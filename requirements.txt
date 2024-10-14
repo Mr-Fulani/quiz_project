@@ -37,3 +37,7 @@ typing_extensions==4.12.2
 tzlocal==5.2
 urllib3==2.2.3
 yarl==1.11.1
+
+aiobotocore~=2.15.2
+aioboto3~=13.2.0
+pytest~=8.3.3

@@ -1,9 +1,13 @@
+import logging
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from config import DATABASE_URL
 from typing import AsyncGenerator
 
 
+# Настройка логгера
+logger = logging.getLogger(__name__)
 
 # Создаем базу данных моделей
 Base = declarative_base()
@@ -18,7 +22,8 @@ async_engine = create_async_engine(DATABASE_URL, echo=True)
 # Создаем фабрику асинхронных сессий с использованием async_sessionmaker
 AsyncSessionMaker = async_sessionmaker(
     bind=async_engine,
-    expire_on_commit=False
+    expire_on_commit=False,
+    class_=AsyncSession
 )
 
 

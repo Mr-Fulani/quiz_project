@@ -23,15 +23,18 @@ target_metadata = Base.metadata
 # Загрузка переменных окружения
 load_dotenv()
 
+
 # Проверка на наличие переменной окружения DATABASE_URL
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("Не удалось найти переменную окружения DATABASE_URL")
 
+
 # Создание асинхронного движка
 def get_engine() -> AsyncEngine:
     logger.info("Создание асинхронного движка...")
     return create_async_engine(DATABASE_URL, poolclass=pool.NullPool)
+
 
 # Асинхронная миграция
 async def run_migrations_async():
@@ -41,6 +44,7 @@ async def run_migrations_async():
     async with connectable.connect() as connection:
         logger.info("Установлено соединение с базой данных.")
         await connection.run_sync(do_run_migrations)
+
 
 # Синхронная миграция для поддержки Alembic
 def run_migrations():
@@ -55,6 +59,7 @@ def run_migrations():
             logger.info("Выполнение миграций...")
             context.run_migrations()
 
+
 # Основная функция для выполнения миграций (общая логика)
 def do_run_migrations(connection):
     logger.info("Конфигурация и запуск миграций...")
@@ -64,6 +69,7 @@ def do_run_migrations(connection):
         logger.info("Начало транзакции миграции...")
         context.run_migrations()
         logger.info("Миграции успешно выполнены.")
+
 
 # Выполняем миграцию
 if context.is_offline_mode():
