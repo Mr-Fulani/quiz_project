@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 from aiogram import Bot
@@ -66,6 +67,18 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
         task_text = translation.question  # Извлекаем текст задачи
         logger.info(f"Текст задачи: {task_text}")
+        answers = translation.answers  # Варианты ответов для опроса
+        correct_answer = translation.correct_answer  # Правильный ответ
+
+        if not answers or len(answers) < 2:
+            logger.error(f"Недостаточно вариантов ответов для опроса. Варианты: {answers}")
+            await message.answer("Недостаточно вариантов ответов для создания опроса.")
+            return False
+
+        if correct_answer not in answers:
+            logger.error(f"Правильный ответ '{correct_answer}' отсутствует в списке вариантов.")
+            await message.answer(f"Ошибка: правильный ответ не найден среди вариантов.")
+            return False
 
         # Генерация изображения для задачи, если нужно
         logger.info(f"Попытка сгенерировать изображение для задачи с ID {task_id}.")
@@ -74,6 +87,10 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             logger.error(f"Ошибка при генерации изображения для задачи с ID {task_id}.")
             await message.answer("Ошибка при генерации изображения.")
             return False
+
+        # Используем ID группы, если он указан
+        chat_id = task.group.group_id if task.group else message.chat.id
+        logger.info(f"Публикация будет выполнена в группу {task.group.group_name if task.group else 'личный чат'} с ID {chat_id}")
 
         # Формируем сообщение для отправки в Telegram
         logger.info(f"Формирование сообщения для отправки в Telegram для задачи с ID {task_id}.")
@@ -84,14 +101,33 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             await message.answer("Сообщение слишком длинное для публикации.")
             return False
 
-        # Публикуем сообщение в группу
-        logger.info(f"Попытка отправить сообщение в группу {task.group.group_name} с ID {task.group.group_id}.")
+        # Публикуем сообщение с изображением в группу
+        logger.info(f"Попытка отправить сообщение в группу {task.group.group_name} с ID {chat_id}.")
         await bot.send_photo(
-            chat_id=task.group.group_id,
-            photo=task.image_url,
+            chat_id=chat_id,
+            photo=image_url,
             caption=message_text
         )
         logger.info(f"Сообщение для задачи с ID {task_id} успешно отправлено в группу {task.group.group_name}.")
+
+        # Ждем 1 секунду перед публикацией опроса
+        await asyncio.sleep(1)
+
+        # Публикация опроса
+        logger.info(f"Публикация опроса для задачи с ID {task_id}. Варианты: {answers}")
+        correct_option_id = answers.index(correct_answer)
+        logger.info(f"Индекс правильного ответа: {correct_option_id}")
+
+        await bot.send_poll(
+            chat_id=chat_id,
+            question=task_text,
+            options=answers,
+            type="quiz",
+            correct_option_id=correct_option_id,
+            explanation=translation.explanation if translation.explanation else None,
+            is_anonymous=False
+        )
+        logger.info(f"Опрос для задачи с ID {task_id} успешно опубликован.")
 
         # Обновляем статус задачи на "опубликована"
         task.published = True
