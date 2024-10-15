@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from database.models import Task
+from bot.middlewares import db_session
+from database.models import Task, Group
 from bot.services.image_service import generate_image_if_needed
 
 
@@ -15,27 +16,19 @@ logger = logging.getLogger(__name__)
 
 
 async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bot: Bot):
-    """
-    Публикует задачу по её ID. Генерирует изображение, отправляет сообщение с текстом и картинкой в Telegram.
-    """
     try:
-        # Логируем начало публикации задачи
         logger.info(f"Начало публикации задачи с ID {task_id}")
 
-        # Получаем задачу из базы данных
-        logger.info("Попытка выполнить запрос к базе данных для получения задачи.")
-        logger.info(f"db_session is async: {isinstance(db_session, AsyncSession)}")
+        # Получаем задачу вместе с её переводами, топиком и подтопиком
         result = await db_session.execute(
             select(Task)
             .options(
-                joinedload(Task.translations),  # Жадная загрузка translations
-                joinedload(Task.topic),  # Жадная загрузка topic
-                joinedload(Task.subtopic),  # Жадная загрузка subtopic
-                joinedload(Task.group)  # Жадная загрузка group
+                joinedload(Task.translations),
+                joinedload(Task.topic),
+                joinedload(Task.subtopic)
             )
             .where(Task.id == task_id)
         )
-        logger.info("Запрос выполнен успешно, извлечение данных задачи.")
         task = result.unique().scalar_one_or_none()
 
         if task is None:
@@ -48,104 +41,140 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             await message.answer(f"Задача с ID {task_id} уже опубликована.")
             return False
 
-        # Проверка привязки задачи к группе
-        if not task.group:
-            logger.error(f"Группа для задачи с ID {task_id} не указана.")
-            await message.answer("Группа для задачи не найдена.")
+        # Получаем все задачи с тем же translation_group_id
+        translation_group_tasks = await db_session.execute(
+            select(Task)
+            .options(
+                joinedload(Task.translations),
+                joinedload(Task.topic),
+                joinedload(Task.subtopic)
+            )
+            .where(Task.translation_group_id == task.translation_group_id)
+        )
+        translation_group_tasks = translation_group_tasks.unique().scalars().all()
+
+        logger.info(f"Найдено {len(translation_group_tasks)} задач в группе переводов {task.translation_group_id}")
+
+        if len(translation_group_tasks) == 0:
+            logger.warning(f"У задачи с ID {task_id} нет связанных переводов. Публикация невозможна.")
+            await message.answer(f"У задачи с ID {task_id} нет связанных переводов. Публикация невозможна.")
             return False
 
-        # Ищем перевод на 'ru', если его нет, берем первый доступный перевод
-        logger.info(f"Поиск перевода задачи с ID {task_id}.")
-        translation = next((t for t in task.translations if t.language == 'ru'), None)
-        if not translation:
-            translation = task.translations[0] if task.translations else None
-
-        if not translation or not translation.question:
-            logger.error(f"Перевод или текст задачи с ID {task_id} не найден.")
-            await message.answer("Перевод задачи или текст вопроса не найден.")
-            return False
-
-        task_text = translation.question  # Извлекаем текст задачи
-        logger.info(f"Текст задачи: {task_text}")
-        answers = translation.answers  # Варианты ответов для опроса
-        correct_answer = translation.correct_answer  # Правильный ответ
-
-        if not answers or len(answers) < 2:
-            logger.error(f"Недостаточно вариантов ответов для опроса. Варианты: {answers}")
-            await message.answer("Недостаточно вариантов ответов для создания опроса.")
-            return False
-
-        if correct_answer not in answers:
-            logger.error(f"Правильный ответ '{correct_answer}' отсутствует в списке вариантов.")
-            await message.answer(f"Ошибка: правильный ответ не найден среди вариантов.")
-            return False
-
-        # Генерация изображения для задачи, если нужно
-        logger.info(f"Попытка сгенерировать изображение для задачи с ID {task_id}.")
+        # Генерация изображения для задачи (один раз для всех языков)
+        logger.info(f"Генерация изображения для группы задач {task.translation_group_id}.")
         image_url = await generate_image_if_needed(task)
         if not image_url:
-            logger.error(f"Ошибка при генерации изображения для задачи с ID {task_id}.")
-            await message.answer("Ошибка при генерации изображения.")
+            logger.error(f"Ошибка при генерации изображения для группы задач {task.translation_group_id}.")
+            await message.answer(f"Ошибка при генерации изображения для группы задач {task.translation_group_id}.")
             return False
 
-        # Используем ID группы, если он указан
-        chat_id = task.group.group_id if task.group else message.chat.id
-        logger.info(f"Публикация будет выполнена в группу {task.group.group_name if task.group else 'личный чат'} с ID {chat_id}")
+        # Сохраняем ссылку на изображение для всех задач в группе переводов
+        for translation_task in translation_group_tasks:
+            translation_task.image_url = image_url
 
-        # Формируем сообщение для отправки в Telegram
-        logger.info(f"Формирование сообщения для отправки в Telegram для задачи с ID {task_id}.")
-        message_text = f"{task_text}\n\nСсылка на ресурс: {task.external_link}"
+        all_published = True
+        published_languages = []
 
-        if len(message_text) > 4096:
-            logger.error(f"Сообщение для задачи с ID {task_id} превышает лимит символов Telegram (4096).")
-            await message.answer("Сообщение слишком длинное для публикации.")
+        for translation_task in translation_group_tasks:
+            if not translation_task.translations:
+                logger.error(f"У задачи с ID {translation_task.id} нет переводов.")
+                continue
+
+            language = translation_task.translations[0].language
+            logger.info(f"Публикация версии задачи на языке: {language}")
+            try:
+                # Вызов функции для публикации конкретного перевода
+                success = await publish_translation(translation_task, image_url, bot, db_session)
+
+                if success:
+                    published_languages.append(language)
+                    translation_task.published = True
+                    translation_task.publish_date = datetime.now()
+                    logger.info(f"Успешно опубликована версия на языке: {language}")
+                else:
+                    all_published = False
+                    logger.error(f"Не удалось опубликовать версию на языке: {language}")
+            except Exception as e:
+                all_published = False
+                logger.error(f"Ошибка при публикации версии на языке {language}: {str(e)}")
+
+        if all_published:
+            await db_session.commit()
+            success_message = f"Группа задач {task.translation_group_id} успешно опубликована на всех языках ({len(published_languages)}): {', '.join(published_languages)}"
+            logger.info(success_message)
+            await message.answer(success_message)
+        else:
+            if published_languages:
+                await db_session.commit()
+                partial_success_message = f"Группа задач {task.translation_group_id} опубликована частично на {len(published_languages)} из {len(translation_group_tasks)} языков: {', '.join(published_languages)}"
+                logger.warning(partial_success_message)
+                await message.answer(partial_success_message + " Некоторые языки не были опубликованы из-за ошибок.")
+            else:
+                await db_session.rollback()
+                failure_message = f"Группа задач {task.translation_group_id} не была опубликована ни на одном из {len(translation_group_tasks)} языков из-за ошибок."
+                logger.error(failure_message)
+                await message.answer(failure_message + " Проверьте логи для деталей.")
+
+        return all_published
+    except Exception as e:
+        logger.error(f"Ошибка при публикации группы задач для ID {task_id}: {str(e)}")
+        await db_session.rollback()
+        await message.answer(f"Ошибка при публикации группы задач для ID {task_id}: {str(e)}")
+        return False
+
+
+
+
+
+async def publish_translation(translation_task: Task, image_url: str, bot: Bot, db_session: AsyncSession):
+    """
+    Публикует перевод задачи в соответствующую группу на основе языка и топика.
+    """
+    try:
+        if not translation_task.translations:
+            logger.error(f"У задачи с ID {translation_task.id} нет переводов.")
             return False
 
-        # Публикуем сообщение с изображением в группу
-        logger.info(f"Попытка отправить сообщение в группу {task.group.group_name} с ID {chat_id}.")
-        await bot.send_photo(
-            chat_id=chat_id,
-            photo=image_url,
-            caption=message_text
+        translation = translation_task.translations[0]
+        language = translation.language
+        task_text = translation.question
+        answers = translation.answers
+        correct_answer = translation.correct_answer
+
+        # Найти группу для данного языка и топика
+        result = await db_session.execute(
+            select(Group)
+            .where(Group.topic_id == translation_task.topic_id)
+            .where(Group.language == language)
         )
-        logger.info(f"Сообщение для задачи с ID {task_id} успешно отправлено в группу {task.group.group_name}.")
+        group = result.scalar_one_or_none()
 
-        # Ждем 1 секунду перед публикацией опроса
-        await asyncio.sleep(1)
+        if not group:
+            logger.error(f"Группа для языка '{language}' и топика '{translation_task.topic.name}' не найдена.")
+            return False
 
-        # Публикация опроса
-        logger.info(f"Публикация опроса для задачи с ID {task_id}. Варианты: {answers}")
+        # Отправляем изображение и текст задачи в группу
+        await bot.send_photo(
+            chat_id=group.group_id,
+            photo=image_url,
+            caption=task_text
+        )
+        logger.info(f"Сообщение с изображением отправлено в группу {group.group_name} (язык: {language}).")
+
+        # Отправляем опрос
         correct_option_id = answers.index(correct_answer)
-        logger.info(f"Индекс правильного ответа: {correct_option_id}")
-
         await bot.send_poll(
-            chat_id=chat_id,
+            chat_id=group.group_id,
             question=task_text,
             options=answers,
             type="quiz",
             correct_option_id=correct_option_id,
-            explanation=translation.explanation if translation.explanation else None,
+            explanation=translation.explanation,
             is_anonymous=False
         )
-        logger.info(f"Опрос для задачи с ID {task_id} успешно опубликован.")
+        logger.info(f"Опрос успешно опубликован в группе {group.group_name} (язык: {language}).")
 
-        # Обновляем статус задачи на "опубликована"
-        task.published = True
-        task.publish_date = datetime.now()
-
-        logger.info(f"Попытка зафиксировать транзакцию в базе данных для задачи с ID {task_id}.")
-        logger.info(f"db_session is async: {isinstance(db_session, AsyncSession)}")
-        await db_session.commit()
-        logger.info(f"Транзакция выполнена успешно для задачи с ID {task_id}.")
-
-        await message.answer(f"Задача с ID {task_id} успешно опубликована.")
-        logger.info(f"Задача с ID {task_id} успешно опубликована.")
         return True
-
     except Exception as e:
-        logger.error(f"Ошибка при публикации задачи с ID {task_id}: {e}")
-        logger.info(f"db_session is async: {isinstance(db_session, AsyncSession)}")
-        await db_session.rollback()
-        logger.error(f"Выполнен откат транзакции для задачи с ID {task_id}.")
-        await message.answer("Ошибка при публикации задачи.")
+        logger.error(f"Ошибка при публикации перевода на языке {language}: {str(e)}")
         return False

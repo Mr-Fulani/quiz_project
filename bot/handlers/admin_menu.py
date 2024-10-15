@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from bot.services.publication_service import publish_task_by_id
+from bot.services.task_service import publish_task_by_translation_group
 from database.models import Task
 
 # Логгер для отслеживания действий
@@ -86,8 +87,52 @@ async def upload_json(call: CallbackQuery, db_session: AsyncSession):
 
 
 
-# Обработчик для кнопки "Опубликовать по две"
-@router.callback_query(lambda call: call.data == "publish_two_tasks")
-async def publish_two_tasks(call: CallbackQuery, db_session: AsyncSession):
-    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Опубликовать по две'")
-    await call.message.answer("Функция публикации по две задачи в разработке.")
+
+
+
+# Обработчик для кнопки "Опубликовать задачу с переводами"
+@router.callback_query(lambda call: call.data == "publish_task_with_translations")
+async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncSession):
+    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Опубликовать задачу с переводами'")
+
+    # Находим самую старую неопубликованную задачу
+    result = await db_session.execute(
+        select(Task.translation_group_id)
+        .where(Task.published.is_(False))
+        .order_by(Task.id.asc())  # Самая старая задача
+        .limit(1)
+    )
+    translation_group_id = result.scalar_one_or_none()
+
+    if translation_group_id:
+        # Публикуем одну задачу с её переводами
+        await call.message.answer("Найдена неопубликованная задача. Начинаем публикацию.")
+        success = await publish_task_by_translation_group(translation_group_id, call.message, db_session, call.bot)
+
+        if success:
+            await call.message.answer(f"Все переводы задачи с группой {translation_group_id} успешно опубликованы.")
+        else:
+            await call.message.answer("Произошла ошибка при публикации переводов.")
+    else:
+        # Если нет неопубликованных задач, находим самую старую задачу, опубликованную более месяца назад
+        one_month_ago = datetime.now() - timedelta(days=30)
+        result = await db_session.execute(
+            select(Task.translation_group_id)
+            .where(Task.published.is_(True))
+            .where(Task.publish_date < one_month_ago)
+            .order_by(Task.publish_date.asc())  # Самая старая по дате публикации
+            .limit(1)
+        )
+        translation_group_id = result.scalar_one_or_none()
+
+        if translation_group_id:
+            await call.message.answer("Найдена задача, опубликованная более месяца назад. Публикуем её снова.")
+            success = await publish_task_by_translation_group(translation_group_id, call.message, db_session, call.bot, reuse_image=True)
+
+            if success:
+                await call.message.answer(f"Задача с группой {translation_group_id} опубликована снова с обновлением даты.")
+            else:
+                await call.message.answer("Произошла ошибка при публикации перевода.")
+        else:
+            # Сообщаем, что нет задач для публикации
+            await call.message.answer("Задач для публикации не найдено. Все задачи либо недавно опубликованы, либо неопубликованных задач нет.")

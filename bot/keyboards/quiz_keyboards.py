@@ -1,5 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 
 
 
@@ -21,7 +22,6 @@ def get_start_inline_keyboard():
 
 
 
-
 def get_admin_menu_keyboard():
     builder = InlineKeyboardBuilder()
 
@@ -29,7 +29,10 @@ def get_admin_menu_keyboard():
     builder.row(InlineKeyboardButton(text="Создать опрос", callback_data="create_quiz"))
     builder.row(InlineKeyboardButton(text="Опубликовать опрос по ID", callback_data="publish_by_id"))
     builder.row(InlineKeyboardButton(text="Загрузить JSON", callback_data="upload_json"))
-    builder.row(InlineKeyboardButton(text="Опубликовать по две", callback_data="publish_two_tasks"))
+
+    # Обновляем название кнопки для массовой публикации задач с переводами
+    builder.row(
+        InlineKeyboardButton(text="Опубликовать задачу с переводами", callback_data="publish_task_with_translations"))
 
     # Возвращаем разметку
     return builder.as_markup()

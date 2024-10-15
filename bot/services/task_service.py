@@ -1,15 +1,23 @@
+import asyncio
 import json
 import logging
 import traceback
+import uuid
 
+from aiogram import Bot
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+
+from bot.services.publication_service import publish_task_by_id
 from database.models import Task, TaskTranslation, Topic, Subtopic, Group
 
 
 
 # Настройка локального логирования
 logger = logging.getLogger(__name__)
+
+
 
 
 
@@ -77,6 +85,11 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
 
                     subtopic_id = subtopic.id
 
+                # Получаем или генерируем translation_group_id для задачи
+                translation_group_id = task_data.get("translation_group_id")
+                if not translation_group_id:
+                    translation_group_id = str(uuid.uuid4())  # Генерация нового UUID если его нет
+
                 # Обрабатываем переводы для задачи
                 for translation in task_data["translations"]:
                     language = translation["language"]
@@ -108,7 +121,8 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
                         difficulty=task_data["difficulty"],
                         published=False,
                         group_id=group_id,
-                        external_link=external_link  # Заполняем поле ссылкой на канал
+                        external_link=external_link,  # Заполняем поле ссылкой на канал
+                        translation_group_id=translation_group_id  # Используем общий идентификатор для всех переводов задачи
                     )
                     db_session.add(new_task)
                     await db_session.commit()
@@ -153,6 +167,9 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
         return None
 
 
+
+
+
 async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
     """Получаем или создаем тему."""
     logger.info("Попытка выполнить запрос к базе данных для топика.")
@@ -169,6 +186,8 @@ async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
         logger.info("Транзакция для создания топика выполнена успешно.")
         return new_topic.id
     return topic.id
+
+
 
 
 async def get_or_create_subtopic(db_session: AsyncSession, topic_id: int, subtopic_name: str) -> int:
@@ -189,3 +208,46 @@ async def get_or_create_subtopic(db_session: AsyncSession, topic_id: int, subtop
         logger.info("Транзакция для создания подтемы выполнена успешно.")
         return new_subtopic.id
     return subtopic.id
+
+
+
+
+
+
+async def publish_task_by_translation_group(translation_group_id: str, message, db_session: AsyncSession, bot: Bot):
+    """
+    Публикует все переводы задачи, связанные с translation_group_id.
+    """
+    try:
+        # Логируем начало массовой публикации
+        logger.info(f"Начало массовой публикации для translation_group_id {translation_group_id}")
+
+        # Получаем все задачи по translation_group_id
+        result = await db_session.execute(
+            select(Task)
+            .where(Task.translation_group_id == translation_group_id)
+            .options(
+                joinedload(Task.translations),  # Жадная загрузка translations
+                joinedload(Task.group)  # Жадная загрузка group
+            )
+            .where(Task.translation_group_id == translation_group_id)
+        )
+        tasks = result.unique().scalars().all()
+
+        if not tasks:
+            logger.error(f"Не найдены задачи для translation_group_id {translation_group_id}")
+            await message.answer(f"Не найдены задачи для translation_group_id {translation_group_id}")
+            return False
+
+        # Публикуем каждую задачу по очереди
+        for task in tasks:
+            await publish_task_by_id(task.id, message, db_session, bot)
+            await asyncio.sleep(2)  # Пауза между публикациями
+
+        logger.info(f"Массовая публикация для translation_group_id {translation_group_id} завершена")
+        return True
+
+    except Exception as e:
+        logger.error(f"Ошибка при массовой публикации по translation_group_id {translation_group_id}: {e}")
+        await message.answer(f"Ошибка при массовой публикации по translation_group_id {translation_group_id}.")
+        return False

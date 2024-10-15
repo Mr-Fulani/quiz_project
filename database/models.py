@@ -1,3 +1,5 @@
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -30,6 +32,7 @@ class Task(Base):
 
     # Новое поле для ссылки на сторонний ресурс (например, Telegram канал)
     external_link = Column(String, default="https://t.me/tyt_python", nullable=True)
+    translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
 
     # Связь с таблицей переводов задач
     translations = relationship('TaskTranslation', back_populates='task', cascade="all, delete-orphan")
