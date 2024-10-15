@@ -56,11 +56,18 @@ async def handle_document(message: Message, db_session: AsyncSession):
                 logger.error("Произошла ошибка при импорте задач.")
                 return
 
-            successfully_loaded, failed_tasks = result
+            successfully_loaded, failed_tasks, loaded_task_ids = result
+
+            # Лог и сообщение об успешном импорте
+            logger.info(
+                f"Задачи успешно загружены: {successfully_loaded}. Проигнорировано из-за ошибок: {failed_tasks}.")
+            logger.info(f"ID загруженных задач: {', '.join(map(str, loaded_task_ids))}")
 
             # Выводим сообщение о количестве загруженных и проигнорированных задач
             await message.answer(
                     f"Задачи успешно загружены: {successfully_loaded}. Проигнорировано из-за ошибок: {failed_tasks}.")
+            if loaded_task_ids:
+                await message.answer(f"ID загруженных задач: {', '.join(map(str, loaded_task_ids))}")
 
             logger.info("Обработка загрузки задач завершена.")
         except Exception as e:

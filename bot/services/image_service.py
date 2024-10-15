@@ -1,8 +1,11 @@
 import logging
+import os
 import re
+from functools import partial
 from typing import Optional
 
 from PIL import Image, ImageDraw
+from dotenv import load_dotenv
 from pygments import highlight
 from pygments.lexers import PythonLexer, JavaLexer, SqlLexer, GoLexer
 from pygments.formatters import ImageFormatter
@@ -17,8 +20,18 @@ from bot.services.s3_services import save_image_to_storage
 from database.models import Task
 
 
+
+# Загружаем переменные окружения из файла .env
+load_dotenv()
+
+
+
 # Настройка логгера
 logger = logging.getLogger(__name__)
+
+
+
+logo_path = os.getenv('LOGO_PATH', '/default/path/to/logo.png')
 
 
 
@@ -37,7 +50,8 @@ async def generate_image_with_executor(task_text, language, logo_path=None):
     executor = ThreadPoolExecutor()
 
     # Выполняем блокирующую операцию в отдельном потоке
-    image = await loop.run_in_executor(executor, generate_console_image, task_text, language, logo_path)
+    image_generation_fn = partial(generate_console_image, task_text, language, logo_path)
+    image = await loop.run_in_executor(executor, image_generation_fn)
 
     # Освобождаем ресурсы
     executor.shutdown(wait=True)
@@ -74,7 +88,7 @@ async def generate_image_if_needed(task: Task) -> Optional[str]:
 
         # Генерация изображения с использованием run_in_executor для избежания блокировки
         logger.info(f"Генерация изображения для задачи с ID {task.id}")
-        image = await generate_image_with_executor(task_text, 'python')
+        image = await generate_image_with_executor(task_text, 'python', logo_path)
 
         # Формируем имя файла для изображения на основе темы, подтемы и ID задачи (для SEO)
         image_name = f"{task.topic.name}_{task.subtopic.name if task.subtopic else 'general'}_{task.id}.png".replace(" ", "_").lower()

@@ -21,7 +21,6 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         # Логируем начало публикации задачи
         logger.info(f"Начало публикации задачи с ID {task_id}")
 
-
         # Получаем задачу из базы данных
         logger.info("Попытка выполнить запрос к базе данных для получения задачи.")
         logger.info(f"db_session is async: {isinstance(db_session, AsyncSession)}")
@@ -30,7 +29,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             .options(
                 joinedload(Task.translations),  # Жадная загрузка translations
                 joinedload(Task.topic),  # Жадная загрузка topic
-                joinedload(Task.subtopic)  # Жадная загрузка subtopic
+                joinedload(Task.subtopic),  # Жадная загрузка subtopic
+                joinedload(Task.group)  # Жадная загрузка group
             )
             .where(Task.id == task_id)
         )
@@ -45,6 +45,12 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         if task.published:
             logger.info(f"Задача с ID {task_id} уже была опубликована.")
             await message.answer(f"Задача с ID {task_id} уже опубликована.")
+            return False
+
+        # Проверка привязки задачи к группе
+        if not task.group:
+            logger.error(f"Группа для задачи с ID {task_id} не указана.")
+            await message.answer("Группа для задачи не найдена.")
             return False
 
         # Ищем перевод на 'ru', если его нет, берем первый доступный перевод
@@ -78,14 +84,14 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             await message.answer("Сообщение слишком длинное для публикации.")
             return False
 
-        # Отправляем сообщение с картинкой
-        logger.info(f"Попытка отправить сообщение с изображением для задачи с ID {task_id}.")
+        # Публикуем сообщение в группу
+        logger.info(f"Попытка отправить сообщение в группу {task.group.group_name} с ID {task.group.group_id}.")
         await bot.send_photo(
-            chat_id=message.chat.id,
+            chat_id=task.group.group_id,
             photo=task.image_url,
             caption=message_text
         )
-        logger.info(f"Сообщение для задачи с ID {task_id} успешно отправлено.")
+        logger.info(f"Сообщение для задачи с ID {task_id} успешно отправлено в группу {task.group.group_name}.")
 
         # Обновляем статус задачи на "опубликована"
         task.published = True

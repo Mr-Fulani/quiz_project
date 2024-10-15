@@ -20,7 +20,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
 
     :param file_path: Путь к файлу JSON.
     :param db_session: Асинхронная сессия базы данных.
-    :return: Количество успешно загруженных и неудачных задач.
+    :return: Количество успешно загруженных и неудачных задач, а также список ID загруженных задач.
     """
     try:
         # Чтение JSON файла
@@ -30,6 +30,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
 
         successfully_loaded = 0  # Количество успешно загруженных задач
         failed_tasks = 0  # Количество проигнорированных задач
+        successfully_loaded_ids = []  # Список ID успешно загруженных задач
 
         # Перебираем задачи в JSON
         for task_data in data["tasks"]:
@@ -114,6 +115,9 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
                     logger.info("Транзакция для создания задачи выполнена успешно.")
                     successfully_loaded += 1  # Увеличиваем счетчик загруженных задач
 
+                    # Сохраняем ID успешно загруженной задачи
+                    successfully_loaded_ids.append(new_task.id)
+
                     logger.info(f"Задача успешно создана: {new_task.id} для группы {group.group_name}.")
 
                     # Сохраняем переводы задачи
@@ -136,12 +140,16 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
 
         # Сообщаем о количестве загруженных и пропущенных задач
         logger.info(
-            f"Импорт завершен. Успешно загружено задач: {successfully_loaded}, проигнорировано: {failed_tasks}.")
-        return successfully_loaded, failed_tasks
+            f"Импорт завершен. Успешно загружено задач: {successfully_loaded}, проигнорировано: {failed_tasks}."
+        )
+        logger.info(f"ID загруженных задач: {', '.join(map(str, successfully_loaded_ids))}")
+        return successfully_loaded, failed_tasks, successfully_loaded_ids
 
     except Exception as e:
         logger.error(f"Произошла ошибка при импорте задач: {e}")
         logger.error(traceback.format_exc())
+        # Откат транзакции при общей ошибке
+        await db_session.rollback()
         return None
 
 
