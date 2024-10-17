@@ -3,22 +3,34 @@ from datetime import datetime, timedelta
 
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, message
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from bot.services.publication_service import publish_task_by_id
-from bot.services.task_service import publish_task_by_translation_group
+from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
+from sqlalchemy import update
 from database.models import Task
+
+
+
+
+
+
 
 # Логгер для отслеживания действий
 logger = logging.getLogger(__name__)
 
+
+
 router = Router()
+
+
 
 # Храним введенный ID от пользователя
 temp_data = {}
+
+
 
 
 
@@ -33,6 +45,9 @@ async def create_quiz(call: CallbackQuery, db_session: AsyncSession):
 
 
 
+
+
+
 # Обработчик для кнопки "Опубликовать опрос по ID"
 @router.callback_query(lambda call: call.data == "publish_by_id")
 async def publish_by_id(call: types.CallbackQuery):
@@ -42,6 +57,9 @@ async def publish_by_id(call: types.CallbackQuery):
     logger.info(f"Пользователь {call.from_user.username} нажал на 'Опубликовать опрос по ID'")
     await call.message.answer("Введите ID задачи для публикации.")
     temp_data[call.from_user.id] = 'awaiting_task_id'
+
+
+
 
 
 
@@ -79,6 +97,11 @@ async def receive_task_id(message: types.Message, db_session: AsyncSession, bot:
         await message.answer("Я не ожидал ID задачи. Пожалуйста, воспользуйтесь соответствующей командой.")
 
 
+
+
+
+
+
 # Обработчик для кнопки "Загрузить JSON"
 @router.callback_query(lambda call: call.data == "upload_json")
 async def upload_json(call: CallbackQuery, db_session: AsyncSession):
@@ -90,49 +113,78 @@ async def upload_json(call: CallbackQuery, db_session: AsyncSession):
 
 
 
-# Обработчик для кнопки "Опубликовать задачу с переводами"
-@router.callback_query(lambda call: call.data == "publish_task_with_translations")
-async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncSession):
-    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Опубликовать задачу с переводами'")
 
-    # Находим самую старую неопубликованную задачу
+@router.callback_query(lambda call: call.data == "publish_task_with_translations")
+async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncSession, bot: Bot):
+    logger.info(
+        f"🟢 Пользователь {call.from_user.username} (ID: {call.from_user.id}) начал процесс публикации задачи с переводами.")
+    await call.message.answer(
+        f"🟢 Процесс публикации задачи с переводами запущен для пользователя {call.from_user.username}.")
+
+    # Шаг 1: Поиск самой старой неопубликованной задачи
+    logger.info("🔍 Поиск самой старой неопубликованной задачи...")
+    await call.message.answer("🔍 Поиск самой старой неопубликованной задачи...")
+
     result = await db_session.execute(
         select(Task.translation_group_id)
         .where(Task.published.is_(False))
-        .order_by(Task.id.asc())  # Самая старая задача
+        .order_by(Task.id.asc())  # Самая старая неопубликованная задача
         .limit(1)
     )
     translation_group_id = result.scalar_one_or_none()
 
-    if translation_group_id:
-        # Публикуем одну задачу с её переводами
-        await call.message.answer("Найдена неопубликованная задача. Начинаем публикацию.")
-        success = await publish_task_by_translation_group(translation_group_id, call.message, db_session, call.bot)
+    # Шаг 2: Если неопубликованные задачи не найдены, ищем опубликованные более месяца назад
+    if not translation_group_id:
+        logger.info("🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
+        await call.message.answer(
+            "🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
 
-        if success:
-            await call.message.answer(f"Все переводы задачи с группой {translation_group_id} успешно опубликованы.")
-        else:
-            await call.message.answer("Произошла ошибка при публикации переводов.")
-    else:
-        # Если нет неопубликованных задач, находим самую старую задачу, опубликованную более месяца назад
         one_month_ago = datetime.now() - timedelta(days=30)
         result = await db_session.execute(
             select(Task.translation_group_id)
             .where(Task.published.is_(True))
             .where(Task.publish_date < one_month_ago)
-            .order_by(Task.publish_date.asc())  # Самая старая по дате публикации
+            .order_by(Task.publish_date.asc())  # Самая старая опубликованная задача
             .limit(1)
         )
         translation_group_id = result.scalar_one_or_none()
 
-        if translation_group_id:
-            await call.message.answer("Найдена задача, опубликованная более месяца назад. Публикуем её снова.")
-            success = await publish_task_by_translation_group(translation_group_id, call.message, db_session, call.bot, reuse_image=True)
+    # Шаг 3: Если задача найдена, публикуем
+    if translation_group_id:
+        logger.info(f"🟡 Найдена задача с группой переводов {translation_group_id}. Начинаем публикацию.")
+        await call.message.answer(f"🟡 Найдена задача с группой переводов {translation_group_id}. Начинаем публикацию.")
 
-            if success:
-                await call.message.answer(f"Задача с группой {translation_group_id} опубликована снова с обновлением даты.")
-            else:
-                await call.message.answer("Произошла ошибка при публикации перевода.")
+        # Выполнение публикации
+        success, published_count, failed_count, total_count = await publish_task_by_translation_group(
+            translation_group_id, call.message, db_session, bot
+        )
+
+        # Логируем результат публикации
+        if success:
+            logger.info(f"✅ Задача с группой переводов {translation_group_id} успешно опубликована.")
+            logger.info(
+                f"📊 Результаты публикации: всего переводов — {total_count}, успешно опубликовано — {published_count}, с ошибками — {failed_count}.")
+            await call.message.answer(
+                f"✅ Задача с группой переводов {translation_group_id} успешно опубликована.\n"
+                f"📊 Результаты:\n"
+                f"Всего переводов: {total_count}\n"
+                f"Успешно опубликовано: {published_count}\n"
+                f"С ошибками: {failed_count}"
+            )
         else:
-            # Сообщаем, что нет задач для публикации
-            await call.message.answer("Задач для публикации не найдено. Все задачи либо недавно опубликованы, либо неопубликованных задач нет.")
+            logger.error(f"❌ Произошла ошибка при публикации задачи с группой переводов {translation_group_id}.")
+            await call.message.answer(
+                f"❌ Произошла ошибка при публикации задачи с группой переводов {translation_group_id}.\n"
+                f"📊 Результаты:\n"
+                f"Всего переводов: {total_count}\n"
+                f"Успешно опубликовано: {published_count}\n"
+                f"С ошибками: {failed_count}"
+            )
+    else:
+        # Если нет неопубликованных и старых задач
+        logger.info(
+            "⚠️ Не найдены задачи для публикации: все задачи уже опубликованы или не требуют повторной публикации.")
+        await call.message.answer("⚠️ Все задачи уже опубликованы или не требуют повторной публикации.")
+
+    logger.info(f"🔚 Завершение публикации для пользователя {call.from_user.username} (ID: {call.from_user.id}).")
+    await call.message.answer(f"🔚 Процесс публикации завершен для пользователя {call.from_user.username}.")

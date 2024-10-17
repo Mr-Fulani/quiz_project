@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import tempfile
 from functools import partial
 from typing import Optional
 
@@ -284,23 +285,27 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
 
 
 
-def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
-    image.save(filename)
-    image.show()
 
 
 
-if __name__ == "__main__":
-    task_text = """
-def hello_world():
-    if True:
-        print("Hello, World!")
-    for i in range(5):
-        def inner_function():
-            pass
-    print("End of hello_world")
-    """
-    language = 'python'
-    logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
-    image = generate_console_image(task_text, language, logo_path)
-    save_and_show_image(image)
+
+# def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
+#     image.save(filename)
+#     image.show()
+#
+#
+#
+# if __name__ == "__main__":
+#     task_text = """
+# def hello_world():
+#     if True:
+#         print("Hello, World!")
+#     for i in range(5):
+#         def inner_function():
+#             pass
+#     print("End of hello_world")
+#     """
+#     language = 'python'
+#     logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
+#     image = generate_console_image(task_text, language, logo_path)
+#     save_and_show_image(image)

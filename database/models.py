@@ -25,6 +25,7 @@ class Task(Base):
     subtopic_id = Column(Integer, ForeignKey('subtopics.id'), nullable=True)  # Связь с подтемой
     difficulty = Column(String, nullable=False)  # Сложность задачи
     published = Column(Boolean, default=False, nullable=False)  # Статус публикации
+    create_date = Column(DateTime, default=datetime.utcnow, nullable=False)  # Дата создания задачи
     publish_date = Column(DateTime, nullable=True)  # Дата публикации
 
     # Поле для ссылки на картинку из S3
@@ -33,6 +34,7 @@ class Task(Base):
     # Новое поле для ссылки на сторонний ресурс (например, Telegram канал)
     external_link = Column(String, default="https://t.me/tyt_python", nullable=True)
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
+    error = Column(Boolean, default=False)  # Поле для пометки задач с ошибками
 
     # Связь с таблицей переводов задач
     translations = relationship('TaskTranslation', back_populates='task', cascade="all, delete-orphan")
