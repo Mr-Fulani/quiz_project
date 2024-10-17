@@ -22,58 +22,58 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Обработчик документов (включая JSON)
 @router.message(F.content_type == ContentType.DOCUMENT)
 async def handle_document(message: Message, db_session: AsyncSession):
-    logger.info(f"Получен документ от пользователя {message.from_user.username} ({message.from_user.id})")
+    user_id = message.from_user.id
+    username = message.from_user.username
+    document = message.document
 
-    if not await is_admin(message.from_user.id, db_session):
-        await message.answer("У вас нет прав для выполнения этой операции.")
-        logger.warning(
-            f"Пользователь {message.from_user.username} ({message.from_user.id}) пытался загрузить файл без прав")
+    logger.info(f"📄 Получен документ от пользователя {username} (ID: {user_id})")
+
+    # Проверка прав доступа пользователя
+    if not await is_admin(user_id, db_session):
+        await message.answer("❌ У вас нет прав для выполнения этой операции.")
+        logger.warning(f"⛔ Пользователь {username} (ID: {user_id}) пытался загрузить файл без прав")
         return
 
-    document = message.document
-    logger.info(f"Загружен файл: {document.file_name}")
+    logger.info(f"📦 Загружен файл: {document.file_name} (MIME: {document.mime_type})")
 
+    # Проверяем, что файл имеет правильный тип (JSON)
     if document.mime_type == 'application/json':
-        # Получаем файл через API Telegram
-        file_info = await message.bot.get_file(document.file_id)
-        file_path = f"{UPLOAD_DIR}/{document.file_name}"
-
-        # Сохраняем файл
-        await message.bot.download_file(file_info.file_path, file_path)
-        logger.info(f"Файл сохранен: {file_path}")
-
-        # Импортируем задачи из файла
         try:
-            logger.info("Получен файл, начинается процесс импорта.")
-            # Импортируем задачи из файла
+            # Получаем файл через API Telegram
+            file_info = await message.bot.get_file(document.file_id)
+            file_path = f"{UPLOAD_DIR}/{document.file_name}"
+
+            # Сохраняем файл на сервере
+            await message.bot.download_file(file_info.file_path, file_path)
+            logger.info(f"✅ Файл успешно сохранен по пути: {file_path}")
+
+            # Начинаем процесс импорта
+            logger.info(f"📥 Начало импорта задач из файла: {file_path}")
             result = await import_tasks_from_json(file_path, db_session)
-            logger.info(f"Результат импорта задач: {result}")
-            logger.info("Импорт задач завершен успешно.")
 
-
+            # Проверка результата импорта
             if result is None:
-                await message.answer("Произошла ошибка при обработке файла. Пожалуйста, проверьте формат.")
-                logger.error("Произошла ошибка при импорте задач.")
+                await message.answer("⚠️ Произошла ошибка при обработке файла. Проверьте его формат.")
+                logger.error("❗ Ошибка при импорте задач из файла.")
                 return
 
             successfully_loaded, failed_tasks, loaded_task_ids = result
 
-            # Лог и сообщение об успешном импорте
-            logger.info(
-                f"Задачи успешно загружены: {successfully_loaded}. Проигнорировано из-за ошибок: {failed_tasks}.")
-            logger.info(f"ID загруженных задач: {', '.join(map(str, loaded_task_ids))}")
+            # Лог успешного завершения
+            logger.info(f"📊 Импорт завершен: {successfully_loaded} задач успешно загружены, {failed_tasks} проигнорировано.")
+            logger.info(f"🆔 ID загруженных задач: {', '.join(map(str, loaded_task_ids)) if loaded_task_ids else 'нет задач'}")
 
-            # Выводим сообщение о количестве загруженных и проигнорированных задач
-            await message.answer(
-                    f"Задачи успешно загружены: {successfully_loaded}. Проигнорировано из-за ошибок: {failed_tasks}.")
+            # Сообщение пользователю
+            await message.answer(f"✅ Успешно загружено задач: {successfully_loaded}. Проигнорировано: {failed_tasks}.")
             if loaded_task_ids:
-                await message.answer(f"ID загруженных задач: {', '.join(map(str, loaded_task_ids))}")
+                await message.answer(f"🆔 ID загруженных задач: {', '.join(map(str, loaded_task_ids))}")
 
-            logger.info("Обработка загрузки задач завершена.")
+            logger.info("📂 Обработка загрузки задач завершена.")
         except Exception as e:
-            logger.error(f"Произошла ошибка при импорте задач: {e}")
-            await message.answer("Ошибка при импорте задач.")
+            logger.error(f"❗ Ошибка при импорте задач: {e}")
+            await message.answer("⚠️ Произошла ошибка при импорте задач.")
             logger.error(traceback.format_exc())  # Вывод полного стека ошибки
     else:
-        await message.answer("Пожалуйста, загрузите JSON файл.")
-        logger.warning(f"Пользователь {message.from_user.username} загрузил неверный формат файла.")
+        # Сообщение о неправильном формате файла
+        await message.answer("❌ Пожалуйста, загрузите файл в формате JSON.")
+        logger.warning(f"⚠️ Пользователь {username} (ID: {user_id}) загрузил файл неверного формата: {document.file_name}")

@@ -289,6 +289,18 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 # def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
 #     image.save(filename)
 #     image.show()

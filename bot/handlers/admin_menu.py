@@ -46,18 +46,24 @@ async def create_quiz(call: CallbackQuery, db_session: AsyncSession):
 
 
 
-
-
 # Обработчик для кнопки "Опубликовать опрос по ID"
 @router.callback_query(lambda call: call.data == "publish_by_id")
 async def publish_by_id(call: types.CallbackQuery):
     """
     Запрашивает у пользователя ID задачи для публикации.
     """
-    logger.info(f"Пользователь {call.from_user.username} нажал на 'Опубликовать опрос по ID'")
-    await call.message.answer("Введите ID задачи для публикации.")
-    temp_data[call.from_user.id] = 'awaiting_task_id'
+    user_id = call.from_user.id
+    username = call.from_user.username
 
+    logger.info(f"📢 Пользователь {username} (ID: {user_id}) нажал на 'Опубликовать опрос по ID'")
+
+    # Отправляем запрос на ввод ID задачи
+    await call.message.answer("📝 Пожалуйста, введите ID задачи для публикации:")
+
+    # Устанавливаем временное состояние для ожидания ID
+    temp_data[user_id] = 'awaiting_task_id'
+
+    logger.info(f"⏳ Ожидание ввода ID задачи от пользователя {username} (ID: {user_id})")
 
 
 
@@ -75,28 +81,34 @@ async def receive_task_id(message: types.Message, db_session: AsyncSession, bot:
     if temp_data.get(user_id) == 'awaiting_task_id':
         try:
             task_id = int(message.text)
-            logger.info(f"Получен ID задачи для публикации: {task_id} от пользователя {message.from_user.username}")
+            logger.info(f"📥 Получен ID задачи для публикации: {task_id} от пользователя {message.from_user.username}")
 
             # Публикуем задачу через сервис
             success = await publish_task_by_id(task_id, message, db_session, bot)
 
             if success:
-                logger.info(f"Задача с ID {task_id} успешно опубликована.")
+                success_message = f"✅ Задача с ID {task_id} успешно опубликована!"
+                logger.info(success_message)
+                await message.answer(success_message)
             else:
-                logger.error(f"Задача с ID {task_id} не опубликована.")
+                failure_message = f"❌ Не удалось опубликовать задачу с ID {task_id}."
+                logger.error(failure_message)
+                await message.answer(failure_message)
 
+        except ValueError:
+            logger.error(f"⛔ Ошибка: некорректный формат ID задачи. Пользователь: {message.from_user.username}, ID: {message.text}")
+            await message.answer("⛔ Ошибка: Пожалуйста, введите корректный числовой ID задачи.")
         except Exception as e:
-            logger.error(f"Ошибка при обработке ID задачи: {e}")
-            await message.answer("Произошла ошибка при обработке задачи.")
-
+            logger.error(f"⚠️ Ошибка при обработке ID задачи: {e}")
+            await message.answer("⚠️ Произошла ошибка при обработке задачи. Попробуйте позже.")
         finally:
+            # Очищаем состояние и удаляем временные данные пользователя
             temp_data.pop(user_id, None)
             await state.clear()
 
     else:
-        await message.answer("Я не ожидал ID задачи. Пожалуйста, воспользуйтесь соответствующей командой.")
-
-
+        logger.warning(f"⚠️ Пользователь {message.from_user.username} отправил неожиданный ID задачи.")
+        await message.answer("⚠️ Я не ожидал ID задачи. Пожалуйста, воспользуйтесь соответствующей командой.")
 
 
 
