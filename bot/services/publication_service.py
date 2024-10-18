@@ -151,7 +151,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         options=poll_message["options"],
                         correct_option_id=poll_message["correct_option_id"],
                         explanation=poll_message["explanation"],
-                        is_anonymous=True
+                        is_anonymous=True,
+                        type="quiz"
                     )
                     logger.info(f"📊 Опрос успешно опубликован в группу '{group.group_name}' (язык: {translation.language}).")
 
@@ -265,14 +266,15 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         )
         logger.info(f"📋 Тема, подтема и сложность задачи отправлены в группу '{group.group_name}'.")
 
-        # 3. Отправляем опрос
+        # 3. Отправляем опрос с типом "quiz"
         await bot.send_poll(
             chat_id=group.group_id,
             question=poll_message["question"],
             options=poll_message["options"],
             correct_option_id=poll_message["correct_option_id"],
             explanation=poll_message["explanation"],
-            is_anonymous=True
+            is_anonymous=True,
+            type="quiz"  # Явно указываем, что это опрос-викторина
         )
         logger.info(f"📊 Опрос успешно опубликован в группе '{group.group_name}' (язык: {translation.language}).")
 
@@ -289,6 +291,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
     except Exception as e:
         logger.error(f"❌ Ошибка при публикации перевода на языке {translation.language}: {str(e)}")
         return False
+
 
 
 
@@ -407,14 +410,15 @@ async def publish_task_by_translation_group(translation_group_id, message, db_se
                     )
                     logger.info(f"📋 Тема, подтема и сложность задачи отправлены в группу '{group.group_name}'.")
 
-                    # Отправка опроса
+                    # Отправка опроса с типом "quiz"
                     await bot.send_poll(
                         chat_id=group.group_id,
                         question=poll_message["question"],
                         options=poll_message["options"],
                         correct_option_id=poll_message["correct_option_id"],
                         explanation=poll_message["explanation"],
-                        is_anonymous=True
+                        is_anonymous=True,
+                        type="quiz"
                     )
                     logger.info(f"📊 Опрос успешно опубликован в группу '{group.group_name}' (язык: {translation.language}).")
 
@@ -466,3 +470,7 @@ async def publish_task_by_translation_group(translation_group_id, message, db_se
         await db_session.rollback()
         await message.answer(f"❌ Ошибка при публикации группы задач: {str(e)}")
         return False, published_count, failed_count, total_translations
+
+
+
+
