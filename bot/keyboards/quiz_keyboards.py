@@ -1,26 +1,34 @@
+import logging
+
+
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, Message
+
+
+
+# Настройка локального логирования
+logger = logging.getLogger(__name__)
 
 
 
 
 
-def get_start_inline_keyboard() -> InlineKeyboardMarkup:
+
+def get_start_reply_keyboard() -> ReplyKeyboardMarkup:
     """
-    Создает инлайн-клавиатуру для старта.
+    Создает reply-клавиатуру с кнопкой "Старт".
     """
-    builder = InlineKeyboardBuilder()
-
-    # Добавляем Inline-кнопку "Старт"
-    builder.row(
-        InlineKeyboardButton(
-            text="Старт",
-            callback_data="start_pressed"  # Действие при нажатии
-        )
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Меню")]  # Добавляем кнопку "Старт"
+        ],
+        resize_keyboard=True
     )
+    return keyboard
 
-    # Возвращаем разметку
-    return builder.as_markup()
+
+
+
 
 
 
@@ -49,3 +57,39 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
 
     # Возвращаем разметку
     return builder.as_markup()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def get_start_inline_keyboard() -> InlineKeyboardMarkup:
+#     """
+#     Создает инлайн-клавиатуру для старта.
+#     """
+#     builder = InlineKeyboardBuilder()
+#
+#     # Добавляем Inline-кнопку "Старт"
+#     builder.row(
+#         InlineKeyboardButton(
+#             text="Старт",
+#             callback_data="start_pressed"  # Действие при нажатии
+#         )
+#     )
+#
+#     # Возвращаем разметку
+#     return builder.as_markup()
+
+
+
+
+
