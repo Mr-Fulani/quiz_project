@@ -417,7 +417,7 @@ async def publish_task_by_translation_group(translation_group_id, message, db_se
                         options=poll_message["options"],
                         correct_option_id=poll_message["correct_option_id"],
                         explanation=poll_message["explanation"],
-                        is_anonymous=True,
+                        is_anonymous=False,
                         type="quiz"
                     )
                     logger.info(f"📊 Опрос успешно опубликован в группу '{group.group_name}' (язык: {translation.language}).")

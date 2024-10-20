@@ -1,16 +1,20 @@
 import logging
+import os
 from datetime import datetime, timedelta
 
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, message
+from aiogram.types import CallbackQuery, FSInputFile
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+
 
 from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
-from sqlalchemy import update
+
+from bot.services.task_bd_status_service import get_task_status
+from bot.utils.image_generator import generate_detailed_task_status_image
 from database.models import Task
+
 
 
 
@@ -200,3 +204,39 @@ async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncS
 
     logger.info(f"🔚 Завершение публикации для пользователя {call.from_user.username} (ID: {call.from_user.id}).")
     await call.message.answer(f"🔚 Процесс публикации завершен для пользователя {call.from_user.username}.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@router.callback_query(lambda query: query.data == "database_status")
+async def handle_database_status(callback: CallbackQuery, db_session):
+    """
+    Обработчик для кнопки "Состояние базы". Отправляет информацию о задачах.
+    """
+    # Получаем данные из базы
+    unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks, topics = await get_task_status(db_session)
+
+    # Генерируем изображение
+    image_path = await generate_detailed_task_status_image(unpublished_tasks, old_published_tasks, total_tasks, topics, published_tasks)
+
+    # Используем FSInputFile для работы с файлами
+    image_file = FSInputFile(image_path)  # Передаем путь к файлу
+
+    # Отправляем изображение
+    await callback.message.answer_photo(photo=image_file)
+
+    # Удаляем временное изображение
+    os.remove(image_path)
+
+    # Уведомляем пользователя о выполнении команды
+    await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)

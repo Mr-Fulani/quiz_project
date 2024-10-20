@@ -183,7 +183,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         f"Тип опроса: quiz"
     )
 
-    # Подготовка инлайн-кнопки
+    # Подготовка инлайн-кнопки с переводом текста "Узнать больше о задаче"
     learn_more_text = {
         'ru': "Узнать подробнее",
         'en': "Learn more",
@@ -192,6 +192,18 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'arab': "تعلم المزيد"
     }.get(language, "Узнать подробнее")
     logger.info(f"🔗 Текст кнопки 'Узнать больше' на языке {language}: {learn_more_text}")
+
+
+    # Текст для вывода перед кнопкой, также с переводом
+    learn_more_about_task_text = {
+        'ru': "Узнать больше о задаче:",
+        'en': "Learn more about the task:",
+        'es': "Saber más sobre la tarea:",
+        'tr': "Görev hakkında daha fazla öğren:",
+        'arab': "تعرف على المزيد حول المهمة:"
+    }.get(language, "Узнать больше о задаче:")
+
+    logger.info(f"✅ Текст 'Узнать больше о задаче' на языке {language}: {learn_more_about_task_text}")
 
     external_link = task.external_link or "https://t.me/tyt_python"
 
@@ -202,7 +214,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
 
     button_message = {
         "type": "text",
-        "text": "Узнать больше о задаче:",
+        "text": learn_more_about_task_text,  # Используем перевод в зависимости от языка
         "reply_markup": learn_more_button
     }
     logger.info(f"✅ Подготовлено сообщение с кнопкой 'Узнать больше'")

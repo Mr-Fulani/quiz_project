@@ -49,20 +49,15 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="Загрузить JSON", callback_data="upload_json")
     )
-
-    # Обновляем название кнопки для массовой публикации задач с переводами
     builder.row(
         InlineKeyboardButton(text="Опубликовать задачу с переводами", callback_data="publish_task_with_translations")
     )
+    # Добавляем кнопку для отображения состояния базы
+    builder.row(
+        InlineKeyboardButton(text="Состояние базы", callback_data="database_status")
+    )
 
-    # Возвращаем разметку
     return builder.as_markup()
-
-
-
-
-
-
 
 
 
