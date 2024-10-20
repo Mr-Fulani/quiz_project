@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.types import CallbackQuery, FSInputFile, Message
+from sqlalchemy import delete
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,14 +14,7 @@ from bot.services.publication_service import publish_task_by_id, publish_task_by
 
 from bot.services.task_bd_status_service import get_task_status
 from bot.utils.image_generator import generate_detailed_task_status_image
-from database.models import Task
-
-
-
-
-
-
-
+from database.models import Task, TaskTranslation
 
 # Логгер для отслеживания действий
 logger = logging.getLogger(__name__)
@@ -215,9 +209,6 @@ async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncS
 
 
 
-
-
-
 @router.callback_query(lambda query: query.data == "database_status")
 async def handle_database_status(callback: CallbackQuery, db_session):
     """
@@ -240,3 +231,23 @@ async def handle_database_status(callback: CallbackQuery, db_session):
 
     # Уведомляем пользователя о выполнении команды
     await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)
+
+
+
+
+
+
+
+@router.callback_query(lambda query: query.data == "delete_task")
+async def handle_delete_task_button(callback: CallbackQuery):
+    """
+    Обработчик кнопки "Удалить задачу". Запрашивает ID задачи у пользователя.
+    """
+    await callback.message.answer("Введите ID задачи для удаления:")
+    await callback.answer()
+
+
+
+
+
+

@@ -2,7 +2,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from bot.handlers import start, admin, admin_menu, upload_json  # Импортируем start.py
+from bot.handlers import start, admin, admin_menu, upload_json, delete_task  # Импортируем start.py
 import asyncio
 
 from bot.middlewares.db_session import DbSessionMiddleware
@@ -43,6 +43,7 @@ dp.update.middleware(DbSessionMiddleware())
 
 # Регистрация маршрутизаторов
 dp.include_router(start.router)
+dp.include_router(delete_task.router)
 dp.include_router(admin_menu.router)
 dp.include_router(upload_json.router)
 

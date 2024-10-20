@@ -54,7 +54,7 @@ class TaskTranslation(Base):
     __tablename__ = 'task_translations'
 
     id = Column(Integer, primary_key=True)
-    task_id = Column(Integer, ForeignKey('tasks.id'), nullable=False)  # Связь с задачей
+    task_id = Column(Integer, ForeignKey('tasks.id', ondelete='CASCADE'), nullable=False)  # Связь с задачей
     language = Column(String, nullable=False)  # Язык перевода
     question = Column(String, nullable=False)  # Вопрос
     answers = Column(JSON, nullable=False)  # Варианты ответов

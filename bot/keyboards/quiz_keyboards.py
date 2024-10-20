@@ -56,6 +56,10 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="Состояние базы", callback_data="database_status")
     )
+    # Добавим кнопку для удаления задачи по ID
+    builder.row(
+        InlineKeyboardButton(text="Удалить задачу по ID", callback_data="delete_task")
+    )
 
     return builder.as_markup()
 
