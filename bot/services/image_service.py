@@ -250,7 +250,7 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     max_code_width = console_width - (padding_left + 20)
     max_code_height = console_height - (padding_top + 30)
 
-    font_size = 20
+    font_size = 25
     code_img = None
     while font_size >= 8:
         # Создаем форматтер для подсветки кода
@@ -301,21 +301,24 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
 
 
 
-# def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
-#     image.save(filename)
-#     image.show()
-#
-#
-#
+def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
+    image.save(filename)
+    image.show()
+
+
+
 # if __name__ == "__main__":
 #     task_text = """
 # def hello_world():
-#     if True:
-#         print("Hello, World!")
-#     for i in range(5):
-#         def inner_function():
-#             pass
-#     print("End of hello_world")
+#     print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+#
+#
 #     """
 #     language = 'python'
 #     logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
