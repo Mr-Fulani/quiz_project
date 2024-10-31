@@ -171,7 +171,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         "options": options,
         "correct_option_id": correct_option_id,
         "explanation": translation.explanation,
-        "is_anonymous": False,
+        "is_anonymous": True,
         "type": "quiz"  # Явно указываем тип опроса "quiz"
     }
 

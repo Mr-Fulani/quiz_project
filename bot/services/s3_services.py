@@ -84,17 +84,31 @@ async def save_image_to_storage(image: Image, image_name: str) -> str:
             image.save(image_bytes, format='PNG')
             image_bytes.seek(0)
 
-            # Загружаем изображение в S3
-            await s3_client.put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=image_name,
-                Body=image_bytes.getvalue(),
-                ContentType='image/png',
-                ACL='public-read'
-            )
+            # Попытка загрузки изображения с ACL (для бакетов, поддерживающих ACL)
+            try:
+                await s3_client.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=image_name,
+                    Body=image_bytes.getvalue(),
+                    ContentType='image/png',
+                    ACL='public-read'
+                )
+            except s3_client.exceptions.ClientError as e:
+                if e.response['Error']['Code'] == 'AccessControlListNotSupported':
+                    logger.warning(f"Бакет {S3_BUCKET_NAME} не поддерживает ACL. Повторная загрузка без ACL.")
+                    # Повторная загрузка без параметра ACL
+                    await s3_client.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=image_name,
+                        Body=image_bytes.getvalue(),
+                        ContentType='image/png'
+                    )
+                else:
+                    raise e
 
             # Формируем URL для изображения
             image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{image_name}"
+            logger.info(f"Изображение успешно загружено по URL: {image_url}")
             return image_url
 
     except Exception as e:

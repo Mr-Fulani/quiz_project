@@ -186,6 +186,7 @@ def get_lexer(language: str):
 
 
 
+
 def generate_console_image(task_text: str, language: str, logo_path: Optional[str] = None) -> Image.Image:
     """
     Генерирует изображение консоли с подсвеченным кодом задачи и логотипом.
@@ -195,10 +196,42 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     :param logo_path: Путь к логотипу (опционально).
     :return: Объект изображения PIL с отрисованной консолью и кодом.
     """
+    # Минимальные и базовые размеры
+    MIN_WIDTH, MIN_HEIGHT = 800, 500
+    MIN_CONSOLE_WIDTH, MIN_CONSOLE_HEIGHT = 700, 350
 
-    # Размеры изображения и консольного окна
-    width, height = 800, 500
-    console_width, console_height = 700, 350
+    # Создаем форматтер для подсветки кода
+    lexer = get_lexer(language)
+    font_size = 25
+
+    # Подбираем оптимальный размер шрифта
+    while font_size >= 15:
+        formatter = ImageFormatter(
+            font_size=font_size,
+            style=get_style_by_name('monokai'),
+            line_numbers=False,
+            image_pad=10,
+            line_pad=5,
+            background_color='transparent'
+        )
+
+        # Создаем изображение кода
+        code_image_io = io.BytesIO()
+        highlight(task_text.strip(), lexer, formatter, outfile=code_image_io)
+        code_image_io.seek(0)
+        code_img = Image.open(code_image_io).convert("RGBA")
+
+        # Динамический расчет размеров
+        console_width = max(MIN_CONSOLE_WIDTH, code_img.width + 80)  # Отступы
+        console_height = max(MIN_CONSOLE_HEIGHT, code_img.height + 120)  # Отступы
+        width = max(MIN_WIDTH, console_width + 100)  # Дополнительное пространство
+        height = max(MIN_HEIGHT, console_height + 100)
+
+        # Проверяем, что код помещается
+        if code_img.width <= (console_width - 80) and code_img.height <= (console_height - 120):
+            break
+
+        font_size -= 1
 
     # Создаем изображение с фоном светло-синего цвета
     background_color = (173, 216, 230)
@@ -217,7 +250,8 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     console_y1 = console_y0 + console_height
 
     # Отрисовка консоли со скругленными углами
-    draw.rounded_rectangle((console_x0, console_y0, console_x1, console_y1), radius=corner_radius, fill=console_color)
+    draw.rounded_rectangle((console_x0, console_y0, console_x1, console_y1),
+                           radius=corner_radius, fill=console_color)
 
     # Отрисовка "кнопок" в верхнем левом углу консоли
     circle_radius = 10
@@ -243,43 +277,12 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
         except Exception as e:
             print(f"Ошибка при загрузке логотипа: {e}")
 
-    # Форматирование и вывод кода на консоль
-    task_text_with_indent = task_text.strip()
-    padding_left = 40
-    padding_top = 40
-    max_code_width = console_width - (padding_left + 20)
-    max_code_height = console_height - (padding_top + 30)
-
-    font_size = 25
-    code_img = None
-    while font_size >= 8:
-        # Создаем форматтер для подсветки кода
-        lexer = get_lexer(language)
-        formatter = ImageFormatter(
-            font_size=font_size,
-            style=get_style_by_name('monokai'),
-            line_numbers=False,
-            image_pad=10,
-            line_pad=5,
-            background_color='transparent'
-        )
-
-        # Используем буфер для создания изображения
-        code_image_io = io.BytesIO()
-        highlight(task_text_with_indent, lexer, formatter, outfile=code_image_io)
-        code_image_io.seek(0)
-        code_img = Image.open(code_image_io).convert("RGBA")
-
-        if code_img.width <= max_code_width and code_img.height <= max_code_height:
-            break
-
-        font_size -= 1
-
     # Вставляем изображение кода в консоль
-    if code_img:
-        code_x = console_x0 + padding_left
-        code_y = console_y0 + padding_top
-        image.paste(code_img, (code_x, code_y), code_img)
+    padding_left = (console_width - code_img.width) // 2
+    padding_top = 70
+    code_x = console_x0 + padding_left
+    code_y = console_y0 + padding_top
+    image.paste(code_img, (code_x, code_y), code_img)
 
     return image
 
@@ -307,6 +310,8 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 
 
 
+
+
 # if __name__ == "__main__":
 #     task_text = """
 # def hello_world():
@@ -315,9 +320,6 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 #     print("Hello, World!")
 # def hello_world():
 #     print("Hello, World!")
-# def hello_world():
-#     print("Hello, World!")
-#
 #
 #     """
 #     language = 'python'

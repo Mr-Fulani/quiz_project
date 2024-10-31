@@ -7,6 +7,7 @@ load_dotenv()
 
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")

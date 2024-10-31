@@ -2,6 +2,8 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+
+import image_sender
 from bot.handlers import start, admin, admin_menu, upload_json, delete_task  # Импортируем start.py
 import asyncio
 
@@ -46,6 +48,7 @@ dp.include_router(start.router)
 dp.include_router(delete_task.router)
 dp.include_router(admin_menu.router)
 dp.include_router(upload_json.router)
+dp.include_router(image_sender.router)
 
 
 

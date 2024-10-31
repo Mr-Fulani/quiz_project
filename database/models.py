@@ -103,6 +103,7 @@ class Group(Base):
     group_id = Column(BigInteger, unique=True, nullable=False)  # Telegram ID группы
     topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)  # Связь с темой
     language = Column(String, nullable=False)  # Язык группы
+    location_type = Column(String, nullable=False, default="group")  # Тип: "group" или "channel"
 
     # Связь с задачами
     tasks = relationship('Task', back_populates='group')
