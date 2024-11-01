@@ -302,6 +302,199 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
 
 
 
+async def publish_task_by_translation_group(translation_group_id, message, db_session: AsyncSession, bot: Bot):
+    published_count = 0
+    failed_count = 0
+    total_translations = 0
+    published_task_ids = []
+    group_names = set()
+
+    try:
+        logger.info(f"🚀 Начало публикации группы переводов с ID {translation_group_id}")
+
+        result = await db_session.execute(
+            select(Task)
+            .options(
+                joinedload(Task.translations),
+                joinedload(Task.topic),
+                joinedload(Task.subtopic)
+            )
+            .where(Task.translation_group_id == translation_group_id)
+        )
+
+        tasks = result.unique().scalars().all()
+        total_translations = len(tasks)
+
+        if total_translations == 0:
+            logger.warning(f"⚠️ Нет задач для публикации в группе переводов {translation_group_id}.")
+            await message.answer(f"⚠️ Нет задач для публикации в группе переводов {translation_group_id}.")
+            return False, published_count, failed_count, total_translations
+
+        logger.info(f"📚 Начало публикации группы переводов {translation_group_id}. Всего задач: {total_translations}")
+
+        # Флаг для отслеживания общего успеха публикации
+        all_publications_successful = True
+
+        for task in tasks:
+            # Проверка предыдущей публикации как раньше
+            if task.published and task.publish_date and task.publish_date > datetime.now() - timedelta(days=30):
+                time_left = (task.publish_date + timedelta(days=30)) - datetime.now()
+                logger.warning(
+                    f"⚠️ Задача с ID {task.id} была опубликована {task.publish_date}. Следующая публикация возможна через {time_left.days} дней и {time_left.seconds // 3600} часов.")
+                await message.answer(
+                    f"⚠️ Задача с ID {task.id} была опубликована {task.publish_date}. Следующая публикация возможна через {time_left.days} дней и {time_left.seconds // 3600} часов.")
+                continue
+
+            # Генерация изображения
+            image_url = await generate_image_if_needed(task)
+            if not image_url:
+                logger.error(f"🚫 Ошибка при генерации изображения для задачи с ID {task.id}. Публикация прервана.")
+                await message.answer(f"🚫 Ошибка при генерации изображения для задачи с ID {task.id}.")
+                all_publications_successful = False
+                failed_count += 1
+                break
+
+            # Флаг для отслеживания успеха публикации перевода
+            task_translation_successful = True
+
+            # Публикуем каждый перевод задачи
+            for translation in task.translations:
+                language = translation.language
+                logger.info(f"🌐 Публикация перевода на языке: {language}")
+
+                try:
+                    # Подготовка всех сообщений заранее
+                    image_message, text_message, poll_message, button_message = await prepare_publication(
+                        task=task,
+                        translation=translation,
+                        image_url=image_url
+                    )
+
+                    # Поиск группы для публикации
+                    result = await db_session.execute(
+                        select(Group)
+                        .where(Group.topic_id == task.topic_id)
+                        .where(Group.language == language)
+                    )
+                    group = result.scalar_one_or_none()
+
+                    if not group:
+                        logger.error(f"🚫 Группа для языка '{language}' и топика '{task.topic.name}' не найдена.")
+                        task_translation_successful = False
+                        failed_count += 1
+                        continue
+
+                    group_names.add(group.group_name)
+
+                    # Отправка 4 сообщений с полным контролем ошибок
+                    try:
+                        # 1. Отправка изображения
+                        response = requests.get(image_url)
+                        if response.status_code != 200:
+                            raise Exception(f"Не удалось загрузить изображение с URL {image_url}")
+
+                        photo = BufferedInputFile(response.content, filename="image.png")
+                        image_send = await bot.send_photo(
+                            chat_id=group.group_id,
+                            photo=photo,
+                            caption=image_message["caption"],
+                            parse_mode="MarkdownV2"
+                        )
+
+                        # 2. Отправка информации о задаче
+                        text_send = await bot.send_message(
+                            chat_id=group.group_id,
+                            text=text_message["text"],
+                            parse_mode=text_message.get("parse_mode", "MarkdownV2")
+                        )
+
+                        # 3. Отправка опроса
+                        poll_send = await bot.send_poll(
+                            chat_id=group.group_id,
+                            question=poll_message["question"],
+                            options=poll_message["options"],
+                            correct_option_id=poll_message["correct_option_id"],
+                            explanation=poll_message["explanation"],
+                            is_anonymous=True,
+                            type="quiz"
+                        )
+
+                        # 4. Отправка кнопки "Узнать больше"
+                        button_send = await bot.send_message(
+                            chat_id=group.group_id,
+                            text=button_message["text"],
+                            reply_markup=button_message["reply_markup"]
+                        )
+
+                        published_count += 1
+                        published_task_ids.append(task.id)
+
+                    except Exception as publish_error:
+                        logger.error(f"❌ Ошибка при публикации перевода на языке {language}: {str(publish_error)}")
+                        task_translation_successful = False
+
+                        # Удаление уже отправленных сообщений в случае ошибки
+                        try:
+                            if 'image_send' in locals() and image_send:
+                                await bot.delete_message(chat_id=group.group_id, message_id=image_send.message_id)
+                            if 'text_send' in locals() and text_send:
+                                await bot.delete_message(chat_id=group.group_id, message_id=text_send.message_id)
+                            if 'poll_send' in locals() and poll_send:
+                                await bot.delete_message(chat_id=group.group_id, message_id=poll_send.message_id)
+                            if 'button_send' in locals() and button_send:
+                                await bot.delete_message(chat_id=group.group_id, message_id=button_send.message_id)
+                        except Exception as delete_error:
+                            logger.error(f"Ошибка при удалении сообщений: {str(delete_error)}")
+
+                        failed_count += 1
+                        break
+
+                except Exception as e:
+                    logger.error(f"❌ Критическая ошибка при публикации перевода на языке {language}: {str(e)}")
+                    task_translation_successful = False
+                    failed_count += 1
+                    break
+
+                if not task_translation_successful:
+                    all_publications_successful = False
+                    break
+
+            # Прерываем публикацию всей группы, если что-то пошло не так
+            if not task_translation_successful:
+                break
+
+        # Финальная обработка результатов
+        if all_publications_successful and published_count > 0:
+            await db_session.commit()
+            success_message = (
+                f"✅ Задачи с ID: {', '.join(map(str, set(published_task_ids)))} успешно опубликованы!\n"
+                f"🌍 Опубликовано переводов: {published_count} из {total_translations}\n"
+                f"🏷️ Группы: {', '.join(group_names)}"
+            )
+            if failed_count > 0:
+                success_message += f"\n⚠️ Не удалось опубликовать: {failed_count}"
+            logger.info(success_message)
+            await message.answer(success_message)
+        else:
+            await db_session.rollback()
+            failure_message = (
+                f"❌ Публикация группы задач {translation_group_id} завершилась неудачно.\n"
+                f"📜 Всего переводов: {total_translations}\n"
+                f"⚠️ Не удалось опубликовать: {failed_count}"
+            )
+            logger.error(failure_message)
+            await message.answer(failure_message)
+
+        return all_publications_successful, published_count, failed_count, total_translations
+
+    except Exception as e:
+        logger.error(f"❌ Глобальная ошибка при публикации группы задач {translation_group_id}: {str(e)}")
+        await db_session.rollback()
+        await message.answer(f"❌ Глобальная ошибка при публикации группы задач: {str(e)}")
+        return False, published_count, failed_count, total_translations
+
+
+
 
 
 

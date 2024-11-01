@@ -1,115 +1,30 @@
+import datetime
 import logging
 import os
-from datetime import datetime, timedelta
-
-from aiogram import Router, F, types, Bot
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, FSInputFile, Message
-from sqlalchemy import delete
 from sqlalchemy.future import select
+
+from aiogram import Router, Bot
+from aiogram.types import CallbackQuery, Message, FSInputFile
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.filters import StateFilter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
-
+from bot.services.deletion_service import delete_task_by_id  # Импорт функции удаления
 from bot.services.task_bd_status_service import get_task_status
 from bot.utils.image_generator import generate_detailed_task_status_image
-from database.models import Task, TaskTranslation
+from database.models import Task
 
-# Логгер для отслеживания действий
 logger = logging.getLogger(__name__)
-
-
-
 router = Router()
 
 
 
-# Храним введенный ID от пользователя
-temp_data = {}
 
-
-
-
-
-
-# Обработчик для кнопки "Создать опрос"
-@router.callback_query(lambda call: call.data == "create_quiz")
-async def create_quiz(call: CallbackQuery, db_session: AsyncSession):
-    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Создать опрос'")
-    await call.message.answer("Функция создания опроса в разработке.")
-
-
-
-
-
-
-# Обработчик для кнопки "Опубликовать опрос по ID"
-@router.callback_query(lambda call: call.data == "publish_by_id")
-async def publish_by_id(call: types.CallbackQuery):
-    """
-    Запрашивает у пользователя ID задачи для публикации.
-    """
-    user_id = call.from_user.id
-    username = call.from_user.username
-
-    logger.info(f"📢 Пользователь {username} (ID: {user_id}) нажал на 'Опубликовать опрос по ID'")
-
-    # Отправляем запрос на ввод ID задачи
-    await call.message.answer("📝 Пожалуйста, введите ID задачи для публикации:")
-
-    # Устанавливаем временное состояние для ожидания ID
-    temp_data[user_id] = 'awaiting_task_id'
-
-    logger.info(f"⏳ Ожидание ввода ID задачи от пользователя {username} (ID: {user_id})")
-
-
-
-
-
-
-# Обработчик для получения ID от пользователя
-@router.message(F.text.regexp(r'^\d+$'))  # Ожидаем только число (ID задачи)
-async def receive_task_id(message: types.Message, db_session: AsyncSession, bot: Bot, state: FSMContext):
-    """
-    Получает ID задачи от пользователя и публикует её.
-    """
-    user_id = message.from_user.id
-
-    if temp_data.get(user_id) == 'awaiting_task_id':
-        try:
-            task_id = int(message.text)
-            logger.info(f"📥 Получен ID задачи для публикации: {task_id} от пользователя {message.from_user.username}")
-
-            # Публикуем задачу через сервис
-            success = await publish_task_by_id(task_id, message, db_session, bot)
-
-            if success:
-                success_message = f"✅ Задача с ID {task_id} успешно опубликована!"
-                logger.info(success_message)
-                await message.answer(success_message)
-            else:
-                failure_message = f"❌ Не удалось опубликовать задачу с ID {task_id}."
-                logger.error(failure_message)
-                await message.answer(failure_message)
-
-        except ValueError:
-            logger.error(f"⛔ Ошибка: некорректный формат ID задачи. Пользователь: {message.from_user.username}, ID: {message.text}")
-            await message.answer("⛔ Ошибка: Пожалуйста, введите корректный числовой ID задачи.")
-        except Exception as e:
-            logger.error(f"⚠️ Ошибка при обработке ID задачи: {e}")
-            await message.answer("⚠️ Произошла ошибка при обработке задачи. Попробуйте позже.")
-        finally:
-            # Очищаем состояние и удаляем временные данные пользователя
-            temp_data.pop(user_id, None)
-            await state.clear()
-
-    else:
-        logger.warning(f"⚠️ Пользователь {message.from_user.username} отправил неожиданный ID задачи.")
-        await message.answer("⚠️ Я не ожидал ID задачи. Пожалуйста, воспользуйтесь соответствующей командой.")
-
-
-
+class TaskActions(StatesGroup):
+    awaiting_publish_id = State()
+    awaiting_delete_id = State()
 
 
 # Обработчик для кнопки "Загрузить JSON"
@@ -119,6 +34,110 @@ async def upload_json(call: CallbackQuery, db_session: AsyncSession):
     await call.message.answer("Загрузите JSON файл с задачами.")
 
 
+
+
+@router.callback_query(lambda call: call.data == "publish_by_id")
+async def publish_by_id(call: CallbackQuery, state: FSMContext):
+    logger.info(f"📢 Запрошена публикация задачи пользователем {call.from_user.id}")
+    await state.set_state(TaskActions.awaiting_publish_id)
+    await call.message.answer("📝 Пожалуйста, введите ID задачи для публикации:")
+    await call.answer()
+
+
+
+@router.callback_query(lambda call: call.data == "delete_task")
+async def delete_task(call: CallbackQuery, state: FSMContext):
+    logger.info(f"🗑️ Запрошено удаление задачи пользователем {call.from_user.id}")
+    await state.set_state(TaskActions.awaiting_delete_id)
+    await call.message.answer("📝 Введите ID задачи для удаления:")
+    await call.answer()
+
+
+
+@router.message(StateFilter(TaskActions.awaiting_publish_id))
+async def handle_publish_id(message: Message, state: FSMContext, db_session: AsyncSession, bot: Bot):
+    current_state = await state.get_state()
+    logger.debug(f"Текущее состояние (публикация): {current_state}")
+
+    if not message.text or not message.text.isdigit():
+        await message.answer("❌ Пожалуйста, введите корректный ID задачи (только цифры)")
+        return
+
+    task_id = int(message.text)
+    logger.info(f"📢 Публикация задачи с ID: {task_id}")
+
+    try:
+        success = await publish_task_by_id(task_id, message, db_session, bot)
+        if success:
+            await message.answer(f"✅ Задача с ID {task_id} успешно опубликована!")
+        else:
+            await message.answer(f"❌ Не удалось опубликовать задачу с ID {task_id}.")
+    except Exception as e:
+        logger.error(f"Ошибка при публикации задачи {task_id}: {e}")
+        await message.answer(f"❌ Произошла ошибка при публикации задачи: {str(e)}")
+
+    await state.clear()
+
+
+
+
+@router.message(StateFilter(TaskActions.awaiting_delete_id))
+async def handle_delete_id(message: Message, state: FSMContext, db_session: AsyncSession):
+    current_state = await state.get_state()
+    logger.debug(f"Текущее состояние (удаление): {current_state}")
+
+    if not message.text or not message.text.isdigit():
+        await message.answer("❌ Пожалуйста, введите корректный ID задачи (только цифры)")
+        return
+
+    task_id = int(message.text)
+    logger.info(f"🗑️ Получен запрос на удаление задачи с ID: {task_id}")
+
+    try:
+        deletion_info = await delete_task_by_id(task_id, db_session)
+        if deletion_info:
+            # Формирование подробного сообщения
+            task_info = f"✅ Задачи с ID {', '.join(map(str, deletion_info['deleted_task_ids']))} успешно удалены!"
+            topic_info = f"🏷️ Топик задач: {deletion_info['topic_name'] or 'неизвестен'}"
+            translations_info = (
+                f"🌍 Удалено переводов: {deletion_info['deleted_translation_count']}\n"
+                f"📜 Языки переводов: {', '.join(deletion_info['deleted_translation_languages']) if deletion_info['deleted_translation_languages'] else 'нет переводов'}\n"
+                f"🏷️ Каналы: {', '.join(deletion_info['group_names']) if deletion_info['group_names'] else 'группы не найдены'}"
+            )
+
+            # Отправляем информацию о том, что было удалено
+            deleted_info = f"{task_info}\n{topic_info}\n{translations_info}"
+            logger.debug(f"Информация об удалении:\n{deleted_info}")
+            await message.answer(deleted_info)
+        else:
+            await message.answer(f"❌ Не удалось удалить задачу с ID {task_id}. Возможно, задача не найдена.")
+    except Exception as e:
+        logger.error(f"Ошибка при удалении задачи {task_id}: {e}")
+        await message.answer(f"❌ Произошла ошибка при удалении задачи с ID {task_id}.")
+
+    await state.clear()
+
+
+
+
+@router.callback_query(lambda call: call.data == "create_quiz")
+async def create_quiz(call: CallbackQuery, db_session: AsyncSession):
+    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Создать опрос'")
+    await call.message.answer("Функция создания опроса в разработке.")
+
+
+
+
+@router.callback_query(lambda query: query.data == "database_status")
+async def handle_database_status(callback: CallbackQuery, db_session: AsyncSession):
+    unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks, topics = await get_task_status(
+        db_session)
+    image_path = await generate_detailed_task_status_image(unpublished_tasks, old_published_tasks, total_tasks, topics,
+                                                           published_tasks)
+    image_file = FSInputFile(image_path)
+    await callback.message.answer_photo(photo=image_file)
+    os.remove(image_path)
+    await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)
 
 
 
@@ -149,7 +168,7 @@ async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncS
         await call.message.answer(
             "🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
 
-        one_month_ago = datetime.now() - timedelta(days=30)
+        one_month_ago = datetime.now() - datetime.timedelta(days=30)
         result = await db_session.execute(
             select(Task.translation_group_id)
             .where(Task.published.is_(True))
@@ -198,56 +217,3 @@ async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncS
 
     logger.info(f"🔚 Завершение публикации для пользователя {call.from_user.username} (ID: {call.from_user.id}).")
     await call.message.answer(f"🔚 Процесс публикации завершен для пользователя {call.from_user.username}.")
-
-
-
-
-
-
-
-
-
-
-
-@router.callback_query(lambda query: query.data == "database_status")
-async def handle_database_status(callback: CallbackQuery, db_session):
-    """
-    Обработчик для кнопки "Состояние базы". Отправляет информацию о задачах.
-    """
-    # Получаем данные из базы
-    unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks, topics = await get_task_status(db_session)
-
-    # Генерируем изображение
-    image_path = await generate_detailed_task_status_image(unpublished_tasks, old_published_tasks, total_tasks, topics, published_tasks)
-
-    # Используем FSInputFile для работы с файлами
-    image_file = FSInputFile(image_path)  # Передаем путь к файлу
-
-    # Отправляем изображение
-    await callback.message.answer_photo(photo=image_file)
-
-    # Удаляем временное изображение
-    os.remove(image_path)
-
-    # Уведомляем пользователя о выполнении команды
-    await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)
-
-
-
-
-
-
-
-@router.callback_query(lambda query: query.data == "delete_task")
-async def handle_delete_task_button(callback: CallbackQuery):
-    """
-    Обработчик кнопки "Удалить задачу". Запрашивает ID задачи у пользователя.
-    """
-    await callback.message.answer("Введите ID задачи для удаления:")
-    await callback.answer()
-
-
-
-
-
-

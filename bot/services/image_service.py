@@ -157,7 +157,7 @@ def add_indentation(task_text: str, language: str) -> str:
 
 
 
-def wrap_text(task_text: str, max_line_length: int = 60) -> str:
+def wrap_text(task_text: str, max_line_length: int = 50) -> str:
     wrapped_lines = []
     for line in task_text.split('\n'):
         if len(line) > max_line_length:
@@ -317,7 +317,7 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 # def hello_world():
 #     print("Hello, World!")
 # def hello_world():
-#     print("Hello, World!")
+#     print("Hello, World!")print("Hello, World!")print("Hello, World!")print("Hello, World!")
 # def hello_world():
 #     print("Hello, World!")
 #
