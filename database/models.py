@@ -36,6 +36,7 @@ class Task(Base):
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)  # Поле для пометки задач с ошибками
 
+    message_id = Column(Integer, unique=False, nullable=True)
     # Связь с таблицей переводов задач
     translations = relationship('TaskTranslation', back_populates='task', cascade="all, delete-orphan")
     # Связь с таблицей статистики
@@ -43,6 +44,9 @@ class Task(Base):
     # Связь с таблицей групп
     group_id = Column(BigInteger, ForeignKey('groups.id'), nullable=True)  # Ссылка на группу
     group = relationship('Group', back_populates='tasks')
+
+    # Связь с опросом
+    poll = relationship('TaskPoll', back_populates='task', uselist=False)
 
     # Связь с темой
     topic = relationship('Topic', back_populates='tasks')
@@ -104,6 +108,7 @@ class Group(Base):
     topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)  # Связь с темой
     language = Column(String, nullable=False)  # Язык группы
     location_type = Column(String, nullable=False, default="group")  # Тип: "group" или "channel"
+    username = Column(String, nullable=True)
 
     # Связь с задачами
     tasks = relationship('Task', back_populates='group')
@@ -129,3 +134,28 @@ class Subtopic(Base):
 
     # Связь с задачами
     tasks = relationship('Task', back_populates='subtopic')
+
+
+
+
+
+class TaskPoll(Base):
+    __tablename__ = 'task_polls'
+
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey('tasks.id'), nullable=False, unique=True)  # Связь с задачей
+    poll_id = Column(String, nullable=True)
+    poll_question = Column(String, nullable=True)
+    poll_options = Column(JSON, nullable=True)  # Список опций
+    is_anonymous = Column(Boolean, default=True)
+    poll_type = Column(String, nullable=True)
+    allows_multiple_answers = Column(Boolean, default=False)
+    total_voter_count = Column(Integer, default=0)
+    poll_link = Column(String, nullable=True)
+
+    # Обратная связь с задачей
+    task = relationship('Task', back_populates='poll')
+
+
+
+

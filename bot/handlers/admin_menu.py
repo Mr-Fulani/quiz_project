@@ -1,6 +1,8 @@
 import datetime
 import logging
 import os
+
+
 from sqlalchemy.future import select
 
 from aiogram import Router, Bot
@@ -25,6 +27,12 @@ router = Router()
 class TaskActions(StatesGroup):
     awaiting_publish_id = State()
     awaiting_delete_id = State()
+
+
+
+
+
+
 
 
 # Обработчик для кнопки "Загрузить JSON"
@@ -217,3 +225,10 @@ async def publish_task_with_translations(call: CallbackQuery, db_session: AsyncS
 
     logger.info(f"🔚 Завершение публикации для пользователя {call.from_user.username} (ID: {call.from_user.id}).")
     await call.message.answer(f"🔚 Процесс публикации завершен для пользователя {call.from_user.username}.")
+
+
+
+
+
+
+

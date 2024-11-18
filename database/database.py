@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -27,7 +28,19 @@ AsyncSessionMaker = async_sessionmaker(
 )
 
 
-# Функция получения асинхронной сессии
+# Функция получения асинхронной сессии с использованием asynccontextmanager
+@asynccontextmanager
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionMaker() as session:
-        yield session
+        try:
+            yield session
+        except Exception as e:
+            logger.error("Ошибка в сессии базы данных. Откатываем транзакцию.")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+            logger.debug("Сессия базы данных закрыта.")
+
+
+

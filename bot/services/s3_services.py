@@ -74,6 +74,10 @@ async def save_image_to_storage(image: Image, image_name: str) -> str:
     :return: URL загруженного изображения.
     """
     try:
+        if not isinstance(image, Image.Image):
+            logger.error(f"Ожидался объект Image, получен тип {type(image)}")
+            return None
+
         session = aioboto3.Session()  # Создание сессии
         async with session.client('s3',
                                   region_name=S3_REGION,
