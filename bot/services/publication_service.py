@@ -1,5 +1,7 @@
+import asyncio
 import json
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import Tuple
 from uuid import UUID
@@ -14,30 +16,20 @@ from bot.handlers.webhook_handler import get_incorrect_answers
 from bot.services.task_service import prepare_publication
 from database.models import Task, Group, TaskTranslation
 from bot.services.image_service import generate_image_if_needed
-from webhook_sender import send_quiz_published_webhook
+from webhook_sender import send_quiz_published_webhook, send_webhooks_sequentially
+
+
 
 logger = logging.getLogger(__name__)
 
 
 
-
-
-
-
 async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bot: Bot) -> bool:
     """
-    Публикует все переводы задачи по её ID и translation_group_id, если задача не была опубликована
-    или прошёл месяц с последней публикации.
-
-    Args:
-        task_id (int): ID задачи для публикации.
-        message: Сообщение из бота для ответа пользователю.
-        db_session (AsyncSession): Асинхронная сессия базы данных.
-        bot (Bot): Экземпляр бота для отправки сообщений.
-
-    Returns:
-        bool: True, если публикация успешна, иначе False.
+    Публикует все переводы задачи по её ID и translation_group_id.
     """
+    webhook_data_list = []  # Список для хранения данных вебхуков
+
     try:
         logger.info(f"🚀 Начало публикации задачи с ID {task_id}")
 
@@ -58,18 +50,23 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             await message.answer(f"🔍 Задача с ID {task_id} не найдена.")
             return False
 
-        logger.info(f"✅ Задача с ID {task_id} успешно найдена. Статус публикации: {'опубликована' if task.published else 'не опубликована'}")
-
-        # Проверяем, была ли задача уже опубликована и прошло ли 30 дней с последней публикации
-        if task.published:
-            if task.publish_date and task.publish_date > datetime.now() - timedelta(days=30):
+        # Проверка времени с последней публикации
+        if task.published and task.publish_date:
+            if task.publish_date > datetime.now() - timedelta(days=30):
                 time_left = (task.publish_date + timedelta(days=30)) - datetime.now()
-                logger.info(f"⚠️ Задача с ID {task_id} была опубликована {task.publish_date.strftime('%Y-%m-%d %H:%M:%S')}. Публикация доступна через {time_left.days} дней и {time_left.seconds // 3600} часов.")
                 await message.answer(
                     f"⚠️ Задача с ID {task_id} уже опубликована {task.publish_date.strftime('%Y-%m-%d %H:%M:%S')}.\n"
                     f"Следующая публикация доступна через {time_left.days} дней и {time_left.seconds // 3600} часов."
                 )
                 return False
+
+        # Статистика публикации
+        total_translations = 0
+        published_count = 0
+        failed_count = 0
+        published_languages = []
+        published_task_ids = []
+        group_names = set()
 
         # Получаем все задачи с тем же translation_group_id
         result = await db_session.execute(
@@ -83,44 +80,24 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         )
         tasks_in_group = result.unique().scalars().all()
 
-        if not tasks_in_group:
-            logger.warning(f"⚠️ Нет задач для публикации с translation_group_id {task.translation_group_id}.")
-            await message.answer(f"⚠️ Нет задач для публикации с translation_group_id {task.translation_group_id}.")
-            return False
-
-        logger.info(f"📚 Начало публикации группы переводов с ID {task.translation_group_id}. Всего задач: {len(tasks_in_group)}")
-
-        # Переменные для статистики
-        total_translations = 0
-        published_count = 0
-        failed_count = 0
-        published_languages = []
-        published_task_ids = []  # Для хранения ID опубликованных задач
-        group_names = set()
-
-        # Публикуем переводы всех задач в группе
+        # Публикация каждого перевода
         for task_in_group in tasks_in_group:
+            image_url = await generate_image_if_needed(task_in_group)
+            if not image_url:
+                logger.error(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
+                continue
+
             for translation in task_in_group.translations:
                 total_translations += 1
                 try:
-                    logger.info(f"🌍 Публикация перевода на языке {translation.language}")
-
-                    # Генерация изображения для каждого перевода
-                    image_url = await generate_image_if_needed(task_in_group)
-                    if not image_url:
-                        logger.error(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
-                        await message.answer(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
-                        failed_count += 1
-                        continue
-
-                    # Подготовка данных для публикации
+                    # Подготовка публикации
                     image_message, text_message, poll_message, button_message = await prepare_publication(
                         task=task_in_group,
                         translation=translation,
                         image_url=image_url
                     )
 
-                    # Ищем группу для публикации
+                    # Поиск группы для публикации
                     result = await db_session.execute(
                         select(Group)
                         .where(Group.topic_id == task_in_group.topic_id)
@@ -129,32 +106,23 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     group = result.scalar_one_or_none()
 
                     if not group:
-                        logger.error(f"🚫 Группа для языка '{translation.language}' и топика '{task_in_group.topic.name}' не найдена.")
                         failed_count += 1
                         continue
 
-                    # Добавляем название группы в список
-                    group_names.add(group.group_name)
-
-                    # Публикация в Telegram
-                    # 1. Отправляем изображение
+                    # Публикация контента
                     image_msg = await bot.send_photo(
                         chat_id=group.group_id,
                         photo=image_message["photo"],
                         caption=image_message["caption"],
                         parse_mode="MarkdownV2"
                     )
-                    logger.info(f"📷 Сообщение с изображением отправлено в группу '{group.group_name}' (язык: {translation.language}). Message ID: {image_msg.message_id}")
 
-                    # 2. Отправляем информацию о задаче
                     text_msg = await bot.send_message(
                         chat_id=group.group_id,
                         text=text_message["text"],
                         parse_mode=text_message.get("parse_mode", "MarkdownV2")
                     )
-                    logger.info(f"📋 Тема, подтема и сложность задачи отправлены в группу '{group.group_name}'. Message ID: {text_msg.message_id}")
 
-                    # 3. Отправляем опрос и захватываем ответ
                     poll_msg = await bot.send_poll(
                         chat_id=group.group_id,
                         question=poll_message["question"],
@@ -164,96 +132,90 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         is_anonymous=True,
                         type="quiz"
                     )
-                    logger.info(f"📊 Опрос успешно опубликован в группу '{group.group_name}' (язык: {translation.language}). Message ID: {poll_msg.message_id}")
 
-                    # 4. Отправляем кнопку "Узнать больше"
                     button_msg = await bot.send_message(
                         chat_id=group.group_id,
                         text=button_message["text"],
                         reply_markup=button_message["reply_markup"]
                     )
-                    logger.info(f"🔗 Кнопка 'Узнать больше' отправлена в группу '{group.group_name}' (язык: {translation.language}). Message ID: {button_msg.message_id}")
 
-                    # Получаем username канала для формирования poll_link
+                    # Получение username канала
                     chat = await bot.get_chat(group.group_id)
                     channel_username = chat.username
                     if not channel_username:
-                        logger.error(f"❌ Username канала '{group.group_name}' не найден. Убедитесь, что канал публичный и имеет username.")
                         failed_count += 1
                         continue
 
-                    # Формирование ссылки на опрос
+                    # Формирование данных для вебхука
                     poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
-                    logger.debug(f"🔗 Сформированная poll_link: {poll_link}")
-
-                    # Отправка вебхука на Make.com
                     webhook_data = {
                         "type": "quiz_published",
-                        "poll_link": poll_link,  # Корректная ссылка на опрос
-                        "image_url": image_url,  # Ссылка на изображение из базы данных
+                        "poll_link": poll_link,
+                        "image_url": image_url,
                         "question": translation.question,
                         "correct_answer": translation.correct_answer,
-                        "incorrect_answers": await get_incorrect_answers(translation.answers, translation.correct_answer),
+                        "incorrect_answers": await get_incorrect_answers(translation.answers,
+                                                                         translation.correct_answer),
                         "language": translation.language,
                         "group": {
-                            "id": group.group_id,
+                            "id": group.id,
                             "name": group.group_name
                         },
                         "caption": image_message["caption"] or "",
                         "published_at": datetime.utcnow().isoformat()
                     }
 
-                    logger.debug(f"📤 Отправка webhook данных:\n{json.dumps(webhook_data, ensure_ascii=False, indent=2)}")
+                    webhook_data_list.append(webhook_data)
 
-                    # Отправка вебхука на Make.com
-                    response = await send_quiz_published_webhook(webhook_data)
-                    logger.info(f"✅ Вебхук отправлен для translation_id: {translation.id}, язык: {translation.language}. Ответ: {response}")
-
-                    # Отмечаем перевод как опубликованный
                     translation.published = True
                     translation.publish_date = datetime.now()
                     published_languages.append(translation.language)
-                    published_task_ids.append(task_in_group.id)  # Добавляем ID задачи в список опубликованных
+                    published_task_ids.append(task_in_group.id)
+                    group_names.add(group.group_name)
                     published_count += 1
 
                 except Exception as e:
                     failed_count += 1
-                    logger.error(f"Ошибка при публикации перевода на языке {translation.language}: {str(e)}")
+                    logger.error(f"Ошибка при публикации перевода: {str(e)}")
+                    continue
 
-        # Обновляем статус всех задач в группе
+        # Отправка вебхуков
+        if webhook_data_list:
+            logger.info(f"📤 Последовательная отправка {len(webhook_data_list)} вебхуков")
+            try:
+                results = await send_webhooks_sequentially(webhook_data_list)
+                success_count = sum(1 for r in results if r)
+                failed_count = len(results) - success_count
+                logger.info(f"📊 Результаты отправки вебхуков: успешно - {success_count}, неудачно - {failed_count}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
+
+        # Обновление статуса задач
         if published_count > 0:
             for task_in_group in tasks_in_group:
-                task_in_group.published = True
-                task_in_group.publish_date = datetime.now()
+                if task_in_group.id in published_task_ids:
+                    task_in_group.published = True
+                    task_in_group.publish_date = datetime.now()
             await db_session.commit()
+
             success_message = (
                 f"✅ Задачи с ID: {', '.join(map(str, set(published_task_ids)))} успешно опубликованы!\n"
                 f"🌍 Опубликовано переводов: {published_count} из {total_translations}\n"
                 f"📜 Языки: {', '.join(published_languages)}\n"
                 f"🏷️ Группы: {', '.join(group_names)}"
             )
-            if failed_count > 0:
-                success_message += f"\n⚠️ Не удалось опубликовать: {failed_count}"
-            logger.info(success_message)
             await message.answer(success_message)
+            return True
         else:
             await db_session.rollback()
-            failure_message = (
-                f"❌ Публикация группы задач {task.translation_group_id} завершилась неудачно.\n"
-                f"📜 Всего переводов: {total_translations}\n"
-                f"⚠️ Не удалось опубликовать: {failed_count}"
-            )
-            logger.error(failure_message)
-            await message.answer(failure_message)
-
-        return published_count > 0
+            await message.answer(f"❌ Публикация не удалась. Проверьте логи для подробностей.")
+            return False
 
     except Exception as e:
-        logger.error(f"⚠️ Ошибка при публикации группы задач с ID {task_id}: {str(e)}")
+        logger.error(f"⚠️ Ошибка при публикации задачи с ID {task_id}: {str(e)}")
         await db_session.rollback()
-        await message.answer(f"⚠️ Ошибка при публикации группы задач с ID {task_id}: {str(e)}")
+        await message.answer(f"⚠️ Ошибка при публикации задачи с ID {task_id}: {str(e)}")
         return False
-
 
 
 
@@ -261,31 +223,25 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
 async def publish_translation(translation: TaskTranslation, bot: Bot, db_session: AsyncSession) -> bool:
     """
-    Публикует перевод задачи в соответствующую группу на основе языка и топика.
-
-    Args:
-        translation (TaskTranslation): Объект перевода задачи.
-        bot (Bot): Экземпляр бота для отправки сообщений.
-        db_session (AsyncSession): Асинхронная сессия базы данных.
-
-    Returns:
-        bool: True, если публикация успешна, иначе False.
+    Публикует отдельный перевод задачи.
     """
+    webhook_data_list = []  # Список для хранения данных вебхуков
+
     try:
-        # Генерация уникального изображения для перевода
-        image_url = await generate_image_if_needed(translation)
+        # Генерация изображения
+        image_url = await generate_image_if_needed(translation.task)
         if not image_url:
             logger.error(f"🚫 Ошибка генерации изображения для перевода ID {translation.id}")
             return False
 
-        # Вызов функции для подготовки публикации
+        # Подготовка данных для публикации
         image_message, text_message, poll_message, button_message = await prepare_publication(
             task=translation.task,
             translation=translation,
             image_url=image_url
         )
 
-        # Ищем группу для публикации
+        # Поиск группы для публикации
         result = await db_session.execute(
             select(Group)
             .where(Group.topic_id == translation.task.topic_id)
@@ -294,27 +250,23 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         group = result.scalar_one_or_none()
 
         if not group:
-            logger.error(f"🚫 Группа для языка '{translation.language}' и топика '{translation.task.topic.name}' не найдена.")
+            logger.error(f"🚫 Группа не найдена для языка {translation.language}")
             return False
 
-        # 1. Отправляем изображение
+        # Публикация контента
         image_msg = await bot.send_photo(
             chat_id=group.group_id,
             photo=image_message["photo"],
             caption=image_message["caption"],
             parse_mode="MarkdownV2"
         )
-        logger.info(f"📷 Сообщение с изображением отправлено в группу '{group.group_name}' (язык: {translation.language}). Message ID: {image_msg.message_id}")
 
-        # 2. Отправляем информацию о задаче (topic, subtopic, difficulty)
         text_msg = await bot.send_message(
             chat_id=group.group_id,
             text=text_message["text"],
             parse_mode=text_message.get("parse_mode", "MarkdownV2")
         )
-        logger.info(f"📋 Тема, подтема и сложность задачи отправлены в группу '{group.group_name}'. Message ID: {text_msg.message_id}")
 
-        # 3. Отправляем опрос с типом "quiz" и захватываем ответ
         poll_msg = await bot.send_poll(
             chat_id=group.group_id,
             question=poll_message["question"],
@@ -322,98 +274,86 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             correct_option_id=poll_message["correct_option_id"],
             explanation=poll_message["explanation"],
             is_anonymous=True,
-            type="quiz"  # Явно указываем, что это опрос-викторина
+            type="quiz"
         )
-        logger.info(f"📊 Опрос успешно опубликован в группе '{group.group_name}' (язык: {translation.language}). Message ID: {poll_msg.message_id}")
 
-        # 4. Отправляем кнопку "Узнать больше"
         button_msg = await bot.send_message(
             chat_id=group.group_id,
             text=button_message["text"],
             reply_markup=button_message["reply_markup"]
         )
-        logger.info(f"🔗 Кнопка 'Узнать больше' отправлена в группу '{group.group_name}' (язык: {translation.language}). Message ID: {button_msg.message_id}")
 
-        # Получаем username канала для формирования poll_link
+        # Получение username канала
         chat = await bot.get_chat(group.group_id)
         channel_username = chat.username
         if not channel_username:
-            logger.error(f"❌ Username канала '{group.group_name}' не найден. Убедитесь, что канал публичный и имеет username.")
+            logger.error(f"❌ Username канала не найден для группы {group.group_name}")
             return False
 
-        # Формирование ссылки на опрос
+        # Формирование данных для вебхука
         poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
-        logger.debug(f"🔗 Сформированная poll_link: {poll_link}")
-
-        # Отправка вебхука на Make.com
         webhook_data = {
             "type": "quiz_published",
-            "poll_link": poll_link,  # Корректная ссылка на опрос
-            "image_url": image_url,  # Ссылка на изображение из базы данных
+            "poll_link": poll_link,
+            "image_url": image_url,
             "question": translation.question,
             "correct_answer": translation.correct_answer,
             "incorrect_answers": await get_incorrect_answers(translation.answers, translation.correct_answer),
             "language": translation.language,
             "group": {
-                "id": group.group_id,
+                "id": group.id,
                 "name": group.group_name
             },
             "caption": image_message["caption"] or "",
             "published_at": datetime.utcnow().isoformat()
         }
 
-        logger.debug(f"📤 Отправка webhook данных:\n{json.dumps(webhook_data, ensure_ascii=False, indent=2)}")
+        webhook_data_list.append(webhook_data)
 
-        # Отправка вебхука на Make.com
-        response = await send_quiz_published_webhook(webhook_data)
-        logger.info(f"✅ Вебхук отправлен для translation_id: {translation.id}, язык: {translation.language}. Ответ: {response}")
+        # Отправка вебхуков
+        if webhook_data_list:
+            logger.info(f"📤 Последовательная отправка вебхуков для перевода {translation.id}")
+            try:
+                results = await send_webhooks_sequentially(webhook_data_list)
+                success_count = sum(1 for r in results if r)
+                failed_count = len(results) - success_count
+                logger.info(f"📊 Результаты отправки вебхуков: успешно - {success_count}, неудачно - {failed_count}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
+                return False
 
-        # Отмечаем перевод как опубликованный
+        # Обновление статуса публикации
         translation.published = True
         translation.publish_date = datetime.now()
-
         await db_session.commit()
+
         return True
 
     except Exception as e:
-        logger.error(f"❌ Ошибка при публикации перевода на языке {translation.language}: {str(e)}")
+        logger.error(f"❌ Ошибка при публикации перевода {translation.id}: {str(e)}")
         await db_session.rollback()
         return False
 
 
 
 
-
-
-
-
-
-
 async def publish_task_by_translation_group(
-        translation_group_id: UUID,  # Изменен тип на UUID
+        translation_group_id: UUID,
         message,
         db_session: AsyncSession,
         bot: Bot
 ) -> Tuple[bool, int, int, int]:
     """
     Публикует все переводы задач в группе переводов.
-
-    Args:
-        translation_group_id (UUID): ID группы переводов.
-        message: Сообщение из бота для ответа пользователю.
-        db_session (AsyncSession): Асинхронная сессия базы данных.
-        bot (Bot): Экземпляр бота для отправки сообщений.
-
-    Returns:
-        Tuple[bool, int, int, int]: (успех, опубликовано, не удалось, всего переводов)
     """
+    webhook_data_list = []  # Список для хранения данных вебхуков
     published_count = 0
     failed_count = 0
     total_translations = 0
     published_task_ids = []
     published_languages = set()
     published_group_names = set()
-    failed_publications = []  # Список для хранения информации о неудачных публикациях
+    failed_publications = []
 
     try:
         logger.info(f"🚀 Начало публикации группы переводов с ID {translation_group_id}")
@@ -438,39 +378,28 @@ async def publish_task_by_translation_group(
 
         for task in tasks:
             # Проверка предыдущей публикации
-            if task.published and isinstance(task.publish_date, datetime):
+            if task.published and task.publish_date:
                 if task.publish_date > datetime.now() - timedelta(days=30):
                     logger.info(f"⚠️ Задача с ID {task.id} была опубликована {task.publish_date}. Пропуск.")
                     continue
 
-            # Генерация изображения
             image_url = await generate_image_if_needed(task)
-            logger.debug(f"🔗 Сгенерированный URL изображения для задачи {task.id}: {image_url}")
             if not image_url:
-                error_message = f"🚫 Ошибка генерации изображения для задачи {task.id} в группе {translation_group_id}"
+                error_message = f"🚫 Ошибка генерации изображения для задачи {task.id}"
                 logger.error(error_message)
                 failed_count += len(task.translations)
-                for translation in task.translations:
-                    failed_publications.append({
-                        "task_id": task.id,
-                        "translation_id": translation.id,
-                        "group_name": "Неизвестна",
-                        "language": translation.language,
-                        "error": "Ошибка генерации изображения"
-                    })
                 continue
 
             for translation in task.translations:
                 try:
-                    logger.info(f"🌍 Публикация перевода (ID: {translation.id}) на языке {translation.language} для задачи {task.id} из группы {translation_group_id}")
+                    logger.info(f"🌍 Публикация перевода (ID: {translation.id}) на языке {translation.language}")
 
-                    # Подготовка данных для публикации
+                    # Подготовка публикации
                     image_message, text_message, poll_message, button_message = await prepare_publication(
                         task=task,
                         translation=translation,
                         image_url=image_url
                     )
-                    logger.debug(f"📋 Подготовленные данные для публикации: {image_message}, {text_message}, {poll_message}, {button_message}")
 
                     # Поиск группы
                     group_result = await db_session.execute(
@@ -481,190 +410,84 @@ async def publish_task_by_translation_group(
                     group = group_result.scalar_one_or_none()
 
                     if not group:
-                        error_msg = f"🚫 Группа не найдена для языка {translation.language} и темы {task.topic.name}"
+                        error_msg = f"🚫 Группа не найдена для языка {translation.language}"
                         logger.error(error_msg)
                         failed_count += 1
                         failed_publications.append({
                             "task_id": task.id,
                             "translation_id": translation.id,
-                            "group_name": "Неизвестна",
                             "language": translation.language,
                             "error": "Группа не найдена"
                         })
                         continue
 
-                    logger.debug(f"🔍 Найдена группа: {group.group_name} (ID: {group.id}) для публикации")
+                    # Публикация контента
+                    image_msg = await bot.send_photo(
+                        chat_id=group.group_id,
+                        photo=image_message["photo"],
+                        caption=image_message["caption"],
+                        parse_mode="MarkdownV2"
+                    )
 
-                    # Отправка изображения напрямую по URL
-                    try:
-                        image_msg = await bot.send_photo(
-                            chat_id=group.group_id,
-                            photo=image_message["photo"],  # URL
-                            caption=image_message["caption"],
-                            parse_mode="MarkdownV2"
-                        )
-                        logger.info(
-                            f"📷 Сообщение с изображением отправлено в группу '{group.group_name}' (ID: {group.id}, язык: {translation.language}). Message ID: {image_msg.message_id}"
-                        )
-                    except Exception as send_photo_error:
-                        error_msg = f"❌ Ошибка при отправке изображения в группу '{group.group_name}' (ID: {group.id}): {str(send_photo_error)}"
+                    text_msg = await bot.send_message(
+                        chat_id=group.group_id,
+                        text=text_message["text"],
+                        parse_mode=text_message.get("parse_mode", "MarkdownV2")
+                    )
+
+                    poll_msg = await bot.send_poll(
+                        chat_id=group.group_id,
+                        question=poll_message["question"],
+                        options=poll_message["options"],
+                        correct_option_id=poll_message["correct_option_id"],
+                        explanation=poll_message["explanation"],
+                        is_anonymous=True,
+                        type="quiz"
+                    )
+
+                    button_msg = await bot.send_message(
+                        chat_id=group.group_id,
+                        text=button_message["text"],
+                        reply_markup=button_message["reply_markup"]
+                    )
+
+                    # Получение username канала
+                    chat = await bot.get_chat(group.group_id)
+                    channel_username = chat.username
+                    if not channel_username:
+                        error_msg = f"❌ Username канала не найден для группы {group.group_name}"
                         logger.error(error_msg)
                         failed_count += 1
                         failed_publications.append({
                             "task_id": task.id,
                             "translation_id": translation.id,
-                            "group_name": group.group_name,
                             "language": translation.language,
-                            "error": f"Ошибка отправки изображения: {str(send_photo_error)}"
+                            "error": "Username канала не найден"
                         })
                         continue
 
-                    # Отправка информации о задаче
-                    try:
-                        text_msg = await bot.send_message(
-                            chat_id=group.group_id,
-                            text=text_message["text"],
-                            parse_mode=text_message.get("parse_mode", "MarkdownV2")
-                        )
-                        logger.info(
-                            f"📋 Тема, подтема и сложность задачи отправлены в группу '{group.group_name}' (ID: {group.id}). Message ID: {text_msg.message_id}"
-                        )
-                    except Exception as send_text_error:
-                        error_msg = f"❌ Ошибка при отправке текста в группу '{group.group_name}' (ID: {group.id}): {str(send_text_error)}"
-                        logger.error(error_msg)
-                        failed_count += 1
-                        failed_publications.append({
-                            "task_id": task.id,
-                            "translation_id": translation.id,
-                            "group_name": group.group_name,
-                            "language": translation.language,
-                            "error": f"Ошибка отправки текста: {str(send_text_error)}"
-                        })
-                        continue
+                    # Формирование данных для вебхука
+                    poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
+                    webhook_data = {
+                        "type": "quiz_published",
+                        "poll_link": poll_link,
+                        "image_url": image_url,
+                        "question": translation.question,
+                        "correct_answer": translation.correct_answer,
+                        "incorrect_answers": await get_incorrect_answers(translation.answers,
+                                                                         translation.correct_answer),
+                        "language": translation.language,
+                        "group": {
+                            "id": group.id,
+                            "name": group.group_name
+                        },
+                        "caption": image_message["caption"] or "",
+                        "published_at": datetime.utcnow().isoformat()
+                    }
 
-                    # Отправка опроса
-                    try:
-                        poll_msg = await bot.send_poll(
-                            chat_id=group.group_id,
-                            question=poll_message["question"],
-                            options=poll_message["options"],
-                            correct_option_id=poll_message["correct_option_id"],
-                            explanation=poll_message["explanation"],
-                            is_anonymous=True,
-                            type="quiz"
-                        )
-                        logger.info(
-                            f"📊 Опрос успешно опубликован в группу '{group.group_name}' (ID: {group.id}, язык: {translation.language}). Message ID: {poll_msg.message_id}"
-                        )
-                    except Exception as send_poll_error:
-                        error_msg = f"❌ Ошибка при отправке опроса в группу '{group.group_name}' (ID: {group.id}): {str(send_poll_error)}"
-                        logger.error(error_msg)
-                        failed_count += 1
-                        failed_publications.append({
-                            "task_id": task.id,
-                            "translation_id": translation.id,
-                            "group_name": group.group_name,
-                            "language": translation.language,
-                            "error": f"Ошибка отправки опроса: {str(send_poll_error)}"
-                        })
-                        continue
+                    webhook_data_list.append(webhook_data)
 
-                    # Отправка кнопки "Узнать больше"
-                    try:
-                        button_msg = await bot.send_message(
-                            chat_id=group.group_id,
-                            text=button_message["text"],
-                            reply_markup=button_message["reply_markup"]
-                        )
-                        logger.info(
-                            f"🔗 Кнопка 'Узнать больше' отправлена в группу '{group.group_name}' (ID: {group.id}, язык: {translation.language}). Message ID: {button_msg.message_id}"
-                        )
-                    except Exception as send_button_error:
-                        error_msg = f"❌ Ошибка при отправке кнопки в группу '{group.group_name}' (ID: {group.id}): {str(send_button_error)}"
-                        logger.error(error_msg)
-                        failed_count += 1
-                        failed_publications.append({
-                            "task_id": task.id,
-                            "translation_id": translation.id,
-                            "group_name": group.group_name,
-                            "language": translation.language,
-                            "error": f"Ошибка отправки кнопки: {str(send_button_error)}"
-                        })
-                        continue
-
-                    # Получаем username канала для формирования poll_link
-                    try:
-                        chat = await bot.get_chat(group.group_id)
-                        channel_username = chat.username
-                        if not channel_username:
-                            error_msg = f"❌ Username канала '{group.group_name}' (ID: {group.id}) не найден. Убедитесь, что канал публичный и имеет username."
-                            logger.error(error_msg)
-                            failed_count += 1
-                            failed_publications.append({
-                                "task_id": task.id,
-                                "translation_id": translation.id,
-                                "group_name": group.group_name,
-                                "language": translation.language,
-                                "error": "Username канала не найден"
-                            })
-                            continue
-
-                        # Формирование ссылки на опрос
-                        poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
-                        logger.debug(f"🔗 Сформированная poll_link для задачи {task.id}: {poll_link}")
-                    except Exception as get_chat_error:
-                        error_msg = f"❌ Ошибка при получении информации о чате '{group.group_name}' (ID: {group.id}): {str(get_chat_error)}"
-                        logger.error(error_msg)
-                        failed_count += 1
-                        failed_publications.append({
-                            "task_id": task.id,
-                            "translation_id": translation.id,
-                            "group_name": group.group_name,
-                            "language": translation.language,
-                            "error": f"Ошибка получения информации о чате: {str(get_chat_error)}"
-                        })
-                        continue
-
-                    # Отправка вебхука на Make.com
-                    try:
-                        webhook_data = {
-                            "type": "quiz_published",
-                            "poll_link": poll_link,  # Корректная ссылка на опрос
-                            "image_url": image_url,  # Ссылка на изображение из базы данных
-                            "question": translation.question,
-                            "correct_answer": translation.correct_answer,
-                            "incorrect_answers": await get_incorrect_answers(translation.answers, translation.correct_answer),
-                            "language": translation.language,
-                            "group": {
-                                "id": group.id,
-                                "name": group.group_name
-                            },
-                            "caption": image_message["caption"] or "",
-                            "published_at": datetime.utcnow().isoformat()
-                        }
-
-                        logger.debug(
-                            f"📤 Отправка webhook данных для задачи {task.id}, перевода {translation.id}:\n{json.dumps(webhook_data, ensure_ascii=False, indent=2)}"
-                        )
-
-                        response = await send_quiz_published_webhook(webhook_data)
-                        logger.info(
-                            f"✅ Вебхук отправлен для translation_id: {translation.id}, язык: {translation.language}. Ответ: {response}"
-                        )
-                    except Exception as send_webhook_error:
-                        error_msg = f"❌ Ошибка при отправке вебхука для задачи {task.id}, перевода {translation.id}: {str(send_webhook_error)}"
-                        logger.error(error_msg)
-                        failed_count += 1
-                        failed_publications.append({
-                            "task_id": task.id,
-                            "translation_id": translation.id,
-                            "group_name": group.group_name,
-                            "language": translation.language,
-                            "error": f"Ошибка отправки вебхука: {str(send_webhook_error)}"
-                        })
-                        continue
-
-                    # Пометка о публикации перевода
+                    # Отмечаем публикацию как успешную
                     translation.published = True
                     translation.publish_date = datetime.now()
                     published_count += 1
@@ -673,74 +496,76 @@ async def publish_task_by_translation_group(
                     published_group_names.add(group.group_name)
 
                 except Exception as e:
-                    error_msg = f"❌ Критическая ошибка при публикации перевода (ID: {translation.id}) для задачи {task.id}: {str(e)}"
+                    error_msg = f"❌ Ошибка при публикации перевода (ID: {translation.id}): {str(e)}"
                     logger.error(error_msg)
                     failed_count += 1
                     failed_publications.append({
                         "task_id": task.id,
                         "translation_id": translation.id,
-                        "group_name": group.group_name if group else "Неизвестна",
                         "language": translation.language,
-                        "error": f"Критическая ошибка: {str(e)}"
+                        "error": str(e)
                     })
                     continue
 
-        # Финальная обработка результатов
+        # Отправка вебхуков
+        if webhook_data_list:
+            logger.info(f"📤 Последовательная отправка {len(webhook_data_list)} вебхуков")
+            try:
+                results = await send_webhooks_sequentially(webhook_data_list)
+                success_count = sum(1 for r in results if r)
+                failed_count_webhooks = len(results) - success_count
+                logger.info(
+                    f"📊 Результаты отправки вебхуков: успешно - {success_count}, неудачно - {failed_count_webhooks}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
+
+        # Обновление статуса задач
         if published_count > 0:
-            # Обновление статуса задач
             for task in tasks:
                 if task.id in published_task_ids:
                     task.published = True
                     task.publish_date = datetime.now()
             await db_session.commit()
 
-            # Формирование списка уникальных ID задач
-            unique_published_task_ids = sorted(set(published_task_ids))
-
-            # Формирование списка языков
-            languages = ', '.join(sorted(published_languages))
-
-            # Формирование списка групп
-            groups = ', '.join(sorted(published_group_names))
-
-            # Составление сообщения об успехе
             success_message = (
-                f"✅ Задачи с ID: {', '.join(map(str, unique_published_task_ids))} успешно опубликованы!\n"
+                f"✅ Задачи с ID: {', '.join(map(str, set(published_task_ids)))} успешно опубликованы!\n"
                 f"🌍 Опубликовано переводов: {published_count} из {total_translations}\n"
-                f"📜 Языки: {languages}\n"
-                f"🏷️ Группы: {groups}"
+                f"📜 Языки: {', '.join(sorted(published_languages))}\n"
+                f"🏷️ Группы: {', '.join(sorted(published_group_names))}"
             )
-            if failed_count > 0:
-                success_message += f"\n⚠️ Не удалось опубликовать: {failed_count}"
             logger.info(success_message)
             await message.answer(success_message)
-            logger.info(f"✅ Публикация завершена для группы переводов {translation_group_id}. Опубликовано: {published_count}, Не удалось: {failed_count}, Всего: {total_translations}")
             return True, published_count, failed_count, total_translations
         else:
             await db_session.rollback()
             failure_message = (
-                f"❌ Публикация группы задач {translation_group_id} завершилась неудачно.\n"
-                f"📜 Всего переводов: {total_translations}\n"
-                f"⚠️ Не удалось опубликовать: {failed_count}\n\n"
-                f"📋 Детали ошибок:\n"
+                    f"❌ Публикация группы задач {translation_group_id} завершилась неудачно.\n"
+                    f"📜 Всего переводов: {total_translations}\n"
+                    f"⚠️ Не удалось опубликовать: {failed_count}\n\n"
+                    "📋 Детали ошибок:\n" +
+                    "\n".join(
+                        f"• Задача ID {fail['task_id']}, Перевод ID {fail['translation_id']}, "
+                        f"Язык: {fail['language']}\n  - Ошибка: {fail['error']}"
+                        for fail in failed_publications
+                    )
             )
-            for fail in failed_publications:
-                failure_message += (
-                    f"• **Задача ID {fail['task_id']}**, "
-                    f"**Перевод ID {fail['translation_id']}**, "
-                    f"**Группа: {fail['group_name']}**, "
-                    f"**Язык: {fail['language']}**\n"
-                    f"  - Ошибка: {fail['error']}\n"
-                )
-            logger.warning(f"⚠️ Публикация не удалась для группы переводов {translation_group_id}. Всего: {total_translations}, Не удалось: {failed_count}")
+            logger.error(failure_message)
             await message.answer(failure_message)
             return False, published_count, failed_count, total_translations
 
     except Exception as e:
-        logger.exception(f"❌ Ошибка при публикации группы переводов {translation_group_id}: {str(e)}")
+        error_msg = f"❌ Ошибка при публикации группы переводов {translation_group_id}: {str(e)}"
+        logger.exception(error_msg)
         await db_session.rollback()
-        await message.answer(f"❌ Ошибка при публикации группы переводов: {str(e)}")
+        await message.answer(error_msg)
         return False, published_count, failed_count, total_translations
+
+
+
+
+
+
+
 
 
 

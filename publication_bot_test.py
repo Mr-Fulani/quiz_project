@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorage
 import asyncio
 
-from config import PUBLICATION_BOT_TOKEN
+from config import TELEGRAM_BOT_TOKEN
 from bot.handlers.admin_menu import router as publication_router
 
 # Настройка логирования
@@ -16,15 +16,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Проверка загруженного токена
-if not PUBLICATION_BOT_TOKEN:
-    logger.error("❌ PUBLICATION_BOT_TOKEN не загружен. Проверьте файл .env и конфигурацию.")
+if not TELEGRAM_BOT_TOKEN:
+    logger.error("❌ TELEGRAM_BOT_TOKEN не загружен. Проверьте файл .env и конфигурацию.")
     exit(1)
 else:
-    logger.info(f"✅ PUBLICATION_BOT_TOKEN успешно загружен: {PUBLICATION_BOT_TOKEN}")
+    logger.info(f"✅ TELEGRAM_BOT_TOKEN успешно загружен: {TELEGRAM_BOT_TOKEN}")
 
 # Инициализируем бота и диспетчер
 try:
-    publication_bot = Bot(token=PUBLICATION_BOT_TOKEN)
+    publication_bot = Bot(token=TELEGRAM_BOT_TOKEN)
     logger.info("✅ Бот публикации инициализирован")
 except Exception as e:
     logger.exception(f"❌ Ошибка при инициализации бота публикации: {e}")

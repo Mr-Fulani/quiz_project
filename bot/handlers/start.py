@@ -1,59 +1,132 @@
-# handlers/start.py
+# bot/handlers/start.py
 
 import logging
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message, ContentType
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
-from bot.utils.db_utils import fetch_one  # Импортируем утилиты для БД
-from database.models import Task, TaskTranslation
-from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard, get_start_reply_keyboard  # Убедитесь, что путь корректен
+from bot.keyboards.reply_keyboards import get_start_reply_keyboard
+from bot.states.admin_states import PasswordStates
+from bot.utils.db_utils import fetch_one  # Убедитесь, что этот модуль существует и корректен
+from config import ADMIN_SECRET_PASSWORD
+from database.models import Task, TaskTranslation, Admin  # Убедитесь, что модель Admin импортирована
+from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard   # Убедитесь, что путь корректен
+
+from bot.services.admin_service import is_admin  # Импорт функции проверки администратора
+
+
+
 
 logger = logging.getLogger(__name__)
 logger.info("✅ Модуль handlers/start.py импортирован")
 
-router = Router()
+router = Router(name="start_router")
 
-# Обработчик команды /start
+
+
 @router.message(Command(commands=["start"]))
-async def start_command(message: Message):
+async def start_command(message: Message, db_session: AsyncSession):
     """
-    Обработчик команды /start. Выводит приветственное сообщение и клавиатуру с кнопкой "Меню".
+    Обработчик команды /start. Отправляет приветственное сообщение и клавиатуру с кнопкой "Меню" для всех пользователей.
     """
     logger.info("Обработчик /start вызван")
     user_id = message.from_user.id
-    username = message.from_user.username
+    username = message.from_user.username or "None"
     logger.info(f"🔔 Пользователь {username} (ID: {user_id}) отправил команду /start")
 
     try:
-        # Отправляем сообщение с reply-клавиатурой
         await message.answer(
-            "👋 Добро пожаловать! Нажмите кнопку 'Меню', чтобы продолжить.",
-            reply_markup=get_start_reply_keyboard()  # Показываем клавиатуру с кнопкой "Меню"
+            "👋 Привет! Я бот для управления администраторами.\nНажмите кнопку 'Меню', чтобы продолжить.",
+            reply_markup=get_start_reply_keyboard()
         )
+        logger.debug("Стартовое меню отправлено")
+
+        # Если пользователь уже администратор, обновим его username
+        admin_status = await is_admin(user_id, db_session)
+        if admin_status:
+            # Обновляем username
+            query = select(Admin).where(Admin.telegram_id == user_id)
+            result = await db_session.execute(query)
+            admin = result.scalar_one_or_none()
+            if admin:
+                admin.username = message.from_user.username
+                await db_session.commit()
+                logger.debug(f"Обновлён username для админа {user_id} на {admin.username}")
     except Exception as e:
         logger.exception(f"Ошибка в обработчике start_command: {e}")
+        await message.reply("❌ Произошла ошибка при обработке команды /start.")
 
 
-# Обработчик нажатия кнопки "Меню"
+
+
 @router.message(lambda message: message.text == "Меню")
-async def handle_start_button(message: Message):
+async def handle_start_button(message: Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает нажатие кнопки "Меню" и выводит admin меню с инлайн-кнопками.
+    Обрабатывает нажатие кнопки "Меню". Отправляет админ-меню админам,
+    или запрос пароля для неадминов.
     """
+    logger.info(f"Пользователь {message.from_user.username or 'None'} (ID: {message.from_user.id}) нажал кнопку 'Меню'")
+    user_id = message.from_user.id
+
     try:
-        await message.answer(
-            "Выберите действие из меню ниже:",
-            reply_markup=get_admin_menu_keyboard()  # Показываем инлайн-клавиатуру
-        )
+        admin_status = await is_admin(user_id, db_session)
+        logger.debug(f"Результат проверки администратора: {admin_status}")
+
+        if admin_status:
+            logger.debug("Пользователь является администратором. Отправка админ-меню.")
+            await message.answer(
+                "👋 Привет, администратор! Вот ваше меню:",
+                reply_markup=get_admin_menu_keyboard()
+            )
+            logger.debug("Админ-меню отправлено")
+        else:
+            logger.debug("Пользователь не является администратором. Отправка запроса на пароль.")
+            await message.answer("ℹ️ У вас нет доступа к админ-меню.\nВведите пароль администратора:")
+            await state.set_state(PasswordStates.waiting_for_password)
     except Exception as e:
         logger.exception(f"Ошибка в обработчике handle_start_button: {e}")
+        await message.reply("❌ Произошла ошибка при обработке кнопки 'Меню'.")
 
 
-# Добавляем новый обработчик для команды /start quiz_{message_id}
+
+
+# Обработчик ввода пароля
+@router.message(PasswordStates.waiting_for_password)
+async def handle_password(message: Message, db_session: AsyncSession, state: FSMContext):
+    """
+    Обрабатывает ввод пароля администратора.
+    """
+    entered_password = message.text.strip()
+    correct_password = ADMIN_SECRET_PASSWORD  # Замените на ваш пароль
+
+    if entered_password == correct_password:
+        logger.info(f"Пользователь {message.from_user.username or 'None'} (ID: {message.from_user.id}) ввёл корректный пароль.")
+        # Получаем username пользователя
+        username = message.from_user.username
+        new_admin = Admin(telegram_id=message.from_user.id, username=username)
+        db_session.add(new_admin)
+        try:
+            await db_session.commit()
+            logger.debug(f"Добавлен новый администратор: {message.from_user.id} с username={username}")
+            await message.answer("✅ Доступ предоставлен. Вы теперь администратор.", reply_markup=get_admin_menu_keyboard())
+        except Exception as e:
+            await db_session.rollback()
+            logger.exception(f"Ошибка при добавлении администратора в базу данных: {e}")
+            await message.answer("❌ Произошла ошибка при добавлении вас в список администраторов.")
+    else:
+        logger.warning(f"Пользователь {message.from_user.username or 'None'} (ID: {message.from_user.id}) ввёл неверный пароль.")
+        await message.answer("❌ Неверный пароль. Доступ запрещён.")
+
+    # Сброс состояния
+    await state.clear()
+
+
+
+# Обработчик команды /start quiz_{message_id}
 @router.message(lambda message: message.text and message.text.startswith("/start quiz_"))
 async def handle_quiz_start(message: Message, bot: Bot, db_session: AsyncSession):
     """
@@ -94,7 +167,7 @@ async def handle_quiz_start(message: Message, bot: Bot, db_session: AsyncSession
         except ValueError:
             correct_option_id = 0  # По умолчанию, если правильный ответ не найден в списке
 
-        # Отправляем опрос и сохраняем message_id
+        # Отправляем опрос
         poll_message = await bot.send_poll(
             chat_id=message.chat.id,
             question=translation.question,
@@ -105,86 +178,16 @@ async def handle_quiz_start(message: Message, bot: Bot, db_session: AsyncSession
             allows_multiple_answers=task.allows_multiple_answers
         )
 
-        # Сохраняем message_id опроса в задаче
-        task.message_id = poll_message.message_id
-        await db_session.commit()
+        # Если вы хотите сохранить poll_message_id, но у вас нет поля, вы можете закомментировать следующую строку
+        # task.poll_message_id = poll_message.message_id  # Удалено, так как поля нет
+        # await db_session.commit()
+
         logger.info(f"✅ Опрос отправлен для задачи ID {task.id} с message_id {poll_message.message_id}")
 
         await message.reply("✅ Опрос успешно отправлен.")
 
     except Exception as e:
-        await db_session.rollback()
+        # Если вы не сохраняете poll_message_id, вы можете опустить откат транзакции
+        # await db_session.rollback()
         logger.exception(f"❌ Ошибка при обработке команды /start quiz: {e}")
         await message.reply("❌ Произошла ошибка при запуске опроса.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# @router.message(Command("start"))
-# async def start_command(message: Message):
-#     """
-#     Обработчик команды /start. Выводит приветственное сообщение и клавиатуру.
-#     """
-#     user_id = message.from_user.id
-#     username = message.from_user.username
-#     logger.info(f"🔔 Пользователь {username} (ID: {user_id}) отправил команду /start")
-#
-#     # Отправляем сообщение с Inline-кнопкой "Старт"
-#     await message.reply(
-#         "👋 Добро пожаловать! Нажмите кнопку 'Старт', чтобы продолжить.",
-#         reply_markup=get_admin_menu_keyboard()
-#     )
-
-
-
-
-
-
-
-
-# # Обработчик нажатий на Inline-кнопку "Старт"
-# @router.callback_query(lambda call: call.data == "start_pressed")
-# async def inline_start_pressed(call: CallbackQuery, db_session: AsyncSession):
-#     """
-#     Обрабатывает нажатие на кнопку 'Старт'. Проверяет, является ли пользователь администратором.
-#     """
-#     user_id = call.from_user.id
-#     username = call.from_user.username
-#
-#     logger.info(f"🟢 Пользователь {username} (ID: {user_id}) нажал на кнопку 'Старт'")
-#
-#     # Проверяем, является ли пользователь администратором
-#     if await is_admin(user_id, db_session):
-#         logger.info(f"✅ Пользователь {username} (ID: {user_id}) является администратором")
-#         await call.message.answer(
-#             "🔑 Добро пожаловать, администратор! Теперь вам доступны следующие функции:"
-#         )
-#         # Здесь можно добавить дальнейший функционал для администраторов
-#     else:
-#         logger.info(f"🚫 Пользователь {username} (ID: {user_id}) не является администратором")
-#         await call.message.answer("❌ У вас нет прав для доступа к функционалу.")
-#
-#     await call.answer()  # Закрываем всплывающее уведомление
-
-
-
-
-
-
-

@@ -1,0 +1,43 @@
+services:
+  database:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin_fulani_quiz
+      POSTGRES_PASSWORD: 4748699
+      POSTGRES_DB: fulani_quiz_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - quiz_network
+    restart: unless-stopped
+
+  telegram_bot:
+    build: .
+    container_name: upbeat_robinson
+    env_file:
+      - .env  # Подключение .env файла
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - ALLOWED_USERS=${ALLOWED_USERS}
+      - ADMIN_SECRET_PASSWORD=${ADMIN_SECRET_PASSWORD}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - PYTHONPATH=/quiz_project
+    volumes:
+      - .:/quiz_project  # Монтирование текущей директории в контейнер
+    depends_on:
+      - database
+    ports:
+      - "8000:8000"  # Если нужно
+    networks:
+      - quiz_network
+    restart: unless-stopped
+
+networks:
+  quiz_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

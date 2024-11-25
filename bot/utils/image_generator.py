@@ -1,4 +1,5 @@
 import logging
+import os
 from collections import defaultdict
 from textwrap import wrap
 from PIL import Image, ImageDraw, ImageFont
@@ -20,64 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 
+
+
 async def generate_detailed_task_status_image(unpublished_tasks, old_published_tasks, total_tasks, topics,
                                               published_tasks):
     """
     Генерация изображения с информацией по задачам.
     """
     logger.info("Начало генерации изображения статуса задач")
-
-    # Размеры изображения
-    row_height = 150  # Увеличенная высота строки для лучшего отображения
-    max_rows = len(topics)  # Используем количество топиков для определения числа строк
-    table_height = max_rows * row_height + 200
-    width, height = 2400, table_height  # Увеличена ширина изображения
-
-    # Цвета и фон
-    background_color = (255, 255, 255)  # Белый фон
-    text_color = (0, 0, 0)  # Черный текст
-    line_color = (200, 200, 200)  # Цвет линий
-
-    image = Image.new("RGB", (width, height), background_color)
-    draw = ImageDraw.Draw(image)
-
-    font_path = "/Library/Fonts/Arial Unicode.ttf"  # Путь к шрифту
-    font = ImageFont.truetype(font_path, 16)  # Шрифт текста
-    small_font = ImageFont.truetype(font_path, 12)  # Уменьшенный шрифт для длинных списков ID
-    header_font = ImageFont.truetype(font_path, 20)  # Шрифт для заголовков
-
-    title = f"Отчет по задачам (Всего задач: {total_tasks})"
-    y_offset = 20
-    draw.text((width // 2 - draw.textbbox((0, 0), title, font=header_font)[2] // 2, y_offset), title, font=header_font,
-              fill=text_color)
-
-    # Заголовки колонок
-    headers = [
-        "Топик", "Кол-во неопубл.", "ID неопубл. задач", "Кол-во опубл.", "ID опубл. задач",
-        "Кол-во ст. опубл.", "ID ст. опубл. задач", "Общее кол-во задач"
-    ]
-
-    y_offset += 50
-    column_widths = [250, 150, 400, 150, 400, 150, 400, 150]  # Настроены ширины колонок
-
-    # Рисуем заголовки
-    for i, header in enumerate(headers):
-        draw.text((sum(column_widths[:i]) + 10, y_offset), header, font=font, fill=text_color)
-
-    y_offset += 40
-    draw.line([(0, y_offset), (width, y_offset)], fill=line_color, width=2)
-    y_offset += 10
-
-    # Вертикальные линии таблицы
-    for x_offset in [sum(column_widths[:i]) for i in range(len(column_widths) + 1)]:
-        draw.line([(x_offset, y_offset - 40), (x_offset, height)], fill=line_color, width=2)
-
-    # Функция для форматирования ID с переносом строк
-    def format_ids(ids, max_width):
-        if not ids:
-            return "Нет задач"
-        ids_str = ', '.join(str(i) for i in ids)
-        return '\n'.join(wrap(ids_str, width=max_width))
 
     # Подготовка данных
     topic_data = defaultdict(
@@ -110,27 +61,96 @@ async def generate_detailed_task_status_image(unpublished_tasks, old_published_t
 
     logger.info("Завершена обработка данных по задачам")
 
+    # Фильтрация топиков, у которых есть хотя бы одна задача
+    filtered_topics = {}
     for topic_id, topic_name in topics.items():
-        # Если topic_name содержит подстроку, связанную с subtopic, убираем ее
-        if isinstance(topic_name, str) and '-' in topic_name:  # Пример, если subtopic отделен тире
-            topic_name = topic_name.split('-')[0].strip()  # Оставляем только основной топик
+        data = topic_data[topic_id]
+        total_topic_tasks = data["unpublished"] + data["published"] + data["old_published"]
+        if total_topic_tasks > 0:
+            # Если название топика содержит подстроку, связанную с subtopic, убираем ее
+            if isinstance(topic_name, str) and '-' in topic_name:  # Пример, если subtopic отделен тире
+                topic_name = topic_name.split('-')[0].strip()  # Оставляем только основной топик
+            filtered_topics[topic_id] = topic_name
+            logger.debug(
+                f"Топик {topic_id}: всего задач {total_topic_tasks} (неопубл: {data['unpublished']}, опубл: {data['published']}, ст. опубл: {data['old_published']})")
+        else:
+            logger.debug(f"Топик {topic_id} пропущен (нет задач)")
 
+    if not filtered_topics:
+        logger.warning("Нет топиков с задачами для отображения.")
+        return None
+
+    # Размеры изображения
+    row_height = 150  # Увеличенная высота строки для лучшего отображения
+    max_rows = len(filtered_topics)  # Используем количество отфильтрованных топиков
+    table_height = max_rows * row_height + 200
+    width, height = 2400, table_height  # Увеличена ширина изображения
+
+    # Цвета и фон
+    background_color = (255, 255, 255)  # Белый фон
+    text_color = (0, 0, 0)  # Черный текст
+    line_color = (200, 200, 200)  # Цвет линий
+
+    image = Image.new("RGB", (width, height), background_color)
+    draw = ImageDraw.Draw(image)
+
+    font_path = "/quiz_project/fonts/Arial Unicode.ttf"  # Путь к шрифту внутри контейнера
+    try:
+        font = ImageFont.truetype(font_path, 16)  # Шрифт текста
+        small_font = ImageFont.truetype(font_path, 12)  # Уменьшенный шрифт для длинных списков ID
+        header_font = ImageFont.truetype(font_path, 20)  # Шрифт для заголовков
+    except IOError:
+        logger.error(f"Не удалось загрузить шрифт по пути: {font_path}")
+        return None
+
+    title = f"Отчет по задачам (Всего задач: {total_tasks})"
+    y_offset = 20
+    text_width = draw.textbbox((0, 0), title, font=header_font)[2] - draw.textbbox((0, 0), title, font=header_font)[0]
+    draw.text((width // 2 - text_width // 2, y_offset), title, font=header_font, fill=text_color)
+
+    # Заголовки колонок
+    headers = [
+        "Топик", "Кол-во неопубл.", "ID неопубл. задач", "Кол-во опубл.", "ID опубл. задач",
+        "Кол-во ст. опубл.", "ID ст. опубл. задач", "Общее кол-во задач"
+    ]
+
+    y_offset += 50
+    column_widths = [250, 150, 400, 150, 400, 150, 400, 150]  # Настроены ширины колонок
+
+    # Рисуем заголовки
+    for i, header in enumerate(headers):
+        draw.text((sum(column_widths[:i]) + 10, y_offset), header, font=font, fill=text_color)
+
+    y_offset += 40
+    draw.line([(0, y_offset), (width, y_offset)], fill=line_color, width=2)
+    y_offset += 10
+
+    # Вертикальные линии таблицы
+    for x_offset in [sum(column_widths[:i]) for i in range(len(column_widths) + 1)]:
+        draw.line([(x_offset, y_offset - 40), (x_offset, height)], fill=line_color, width=2)
+
+    # Функция для форматирования ID с переносом строк
+    def format_ids(ids, max_width):
+        if not ids:
+            return "Нет задач"
+        ids_str = ', '.join(str(i) for i in ids)
+        return '\n'.join(wrap(ids_str, width=max_width))
+
+    # Функция для отрисовки текста с переносом
+    def draw_wrapped_text(text, x, y, max_width, font):
+        lines = wrap(text, width=max_width)
+        for line in lines:
+            draw.text((x, y), line, font=font, fill=text_color)
+            y += font.getbbox(line)[3] + 5
+        return y
+
+    for topic_id, topic_name in filtered_topics.items():
         data = topic_data[topic_id]
         current_y = y_offset
         max_y = current_y
 
         # Подсчет общего количества задач (опубликованных и неопубликованных)
-        total_topic_tasks = data["unpublished"] + data["published"]
-        logger.debug(
-            f"Топик {topic_id}: всего задач {total_topic_tasks} (неопубл: {data['unpublished']}, опубл: {data['published']})")
-
-        # Функция для отрисовки текста с переносом
-        def draw_wrapped_text(text, x, y, max_width, font):
-            lines = wrap(text, width=max_width)
-            for line in lines:
-                draw.text((x, y), line, font=font, fill=text_color)
-                y += font.getbbox(line)[3] + 5
-            return y
+        total_topic_tasks = data["unpublished"] + data["published"] + data["old_published"]
 
         # Отрисовка данных
         max_y = max(max_y, draw_wrapped_text(topic_name, 10, current_y, 30, font))
@@ -158,8 +178,12 @@ async def generate_detailed_task_status_image(unpublished_tasks, old_published_t
 
     # Сохранение изображения
     image_path = "detailed_task_status_report.png"
-    image.save(image_path)
-    logger.info(f"Изображение сохранено: {image_path}")
+    try:
+        image.save(image_path)
+        logger.info(f"Изображение сохранено: {image_path}")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении изображения: {e}")
+        return None
 
     return image_path
 
@@ -173,3 +197,38 @@ async def get_topic_names(db_session):
     result = await db_session.execute(select(Topic.id, Topic.name))
     topics = {row[0]: row[1] for row in result.fetchall()}
     return topics
+
+
+
+
+
+
+
+async def generate_zero_task_topics_text(zero_task_topics: list) -> str:
+    """
+    Генерация текстового отчета со списком топиков без задач.
+    Возвращает путь к сохранённому текстовому файлу.
+    """
+    logger.info("Начало генерации текстового отчета топиков без задач")
+
+    if not zero_task_topics:
+        logger.warning("Все топики имеют хотя бы одну задачу. Текстовый отчет не будет сгенерирован.")
+        return None
+
+    report_lines = ["📊 *Отчет топиков без задач:*\n"]
+    for topic in zero_task_topics:
+        line = f"• ID: {topic['id']} - Название: {topic['name']}"
+        report_lines.append(line)
+
+    report_content = "\n".join(report_lines)
+    report_path = "/quiz_project/zero_task_topics_report.txt"
+
+    try:
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(report_content)
+        logger.info(f"Текстовый отчет сохранен: {report_path}")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении текстового отчета: {e}")
+        return None
+
+    return report_path

@@ -1,0 +1,40 @@
+# bot/states/admin_states.py
+
+from aiogram.fsm.state import StatesGroup, State
+
+
+
+class PasswordStates(StatesGroup):
+    waiting_for_password = State()
+
+
+class AddAdminStates(StatesGroup):
+    waiting_for_password = State()
+    waiting_for_user_id = State()
+
+
+class AdminStates(StatesGroup):
+    waiting_for_topic_name = State()
+    waiting_for_topic_id = State()
+
+
+
+class RemoveAdminStates(StatesGroup):
+    waiting_for_password = State()
+    waiting_for_user_id = State()
+
+
+
+class TaskActions(StatesGroup):
+    awaiting_publish_id = State()
+    awaiting_delete_id = State()
+
+
+class ChannelStates(StatesGroup):
+    waiting_for_group_name = State()
+    waiting_for_group_id = State()
+    waiting_for_topic = State()
+    waiting_for_language = State()
+    waiting_for_location_type = State()
+    waiting_for_remove_group_id = State()
+    waiting_for_topic_creation = State()

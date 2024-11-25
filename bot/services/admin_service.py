@@ -1,58 +1,57 @@
-import logging
+# bot/services/admin_service.py
 
+import logging
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
+
+from config import ALLOWED_USERS
 from database.models import Admin
-from sqlalchemy import delete
 
-
-
-# Логгер для отслеживания действий
 logger = logging.getLogger(__name__)
 
 
 
-# Проверка, является ли пользователь администратором
 async def is_admin(user_id: int, db_session: AsyncSession) -> bool:
-    """Проверка, является ли пользователь администратором."""
-    logger.info("Попытка выполнить запрос к базе данных1")
-    logger.info(f"db_session is async: {isinstance(db_session, AsyncSession)}")
-    result = await db_session.execute(select(Admin).where(Admin.telegram_id == user_id))
-    logger.info("Запрос выполнен успешно")
+    """
+    Проверяет, является ли пользователь администратором.
+    """
+    logger.debug(f"Проверка администратора для user_id={user_id}")
+    query = select(Admin).where(Admin.telegram_id == user_id)
+    result = await db_session.execute(query)
     admin = result.scalar_one_or_none()
+    logger.debug(f"Результат проверки администратора для user_id={user_id}: {admin is not None}")
     return admin is not None
 
 
 
-# Добавление администратора
 async def add_admin(user_id: int, username: str, db_session: AsyncSession):
-    """Добавление нового администратора."""
-    new_admin = Admin(telegram_id=user_id, username=username)
-    db_session.add(new_admin)
-    await db_session.commit()
-    logger.info("Транзакция выполнена успешно 1")
+    try:
+        admin = Admin(telegram_id=user_id, username=username)
+        db_session.add(admin)
+        await db_session.commit()
+        logger.info(f"Администратор с ID {user_id} и username @{username} добавлен.")
+    except IntegrityError:
+        logger.error(f"Не удалось добавить администратора с ID {user_id}: нарушение целостности данных.")
+        raise
+    except Exception as e:
+        logger.exception(f"Неизвестная ошибка при добавлении администратора с ID {user_id}: {e}")
+        raise
 
 
 
 
-# Удаление администратора
 async def remove_admin(user_id: int, db_session: AsyncSession):
-    """Удаление администратора."""
-    logger.info("Попытка выполнить запрос к базе данных3")
-    logger.info(f"db_session is async: {isinstance(db_session, AsyncSession)}")
-    await db_session.execute(delete(Admin).where(Admin.telegram_id == user_id))
-    logger.info("Запрос выполнен успешно")
-
-    await db_session.commit()
-    logger.info("Транзакция выполнена успешно 2")
-
-
-
-
-
-
-
-
-
-
-
+    try:
+        query = select(Admin).where(Admin.telegram_id == user_id)
+        result = await db_session.execute(query)
+        admin = result.scalar_one_or_none()
+        if admin:
+            await db_session.delete(admin)
+            await db_session.commit()
+            logger.info(f"Администратор с ID {user_id} удалён.")
+        else:
+            logger.warning(f"Попытка удалить несуществующего администратора с ID {user_id}.")
+    except Exception as e:
+        logger.exception(f"Ошибка при удалении администратора с ID {user_id}: {e}")
+        raise

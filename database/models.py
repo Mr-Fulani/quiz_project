@@ -5,8 +5,11 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database.database import Base
 
+
+
 def get_current_time():
     return datetime.now(timezone.utc)
+
 
 # Модель администраторов
 class Admin(Base):
@@ -15,6 +18,7 @@ class Admin(Base):
     id = Column(Integer, primary_key=True)
     telegram_id = Column(BigInteger, unique=True, nullable=False)  # Telegram ID администратора
     username = Column(String, nullable=True)  # Имя пользователя (опционально)
+
 
 # Модель задач
 class Task(Base):
@@ -53,6 +57,7 @@ class Task(Base):
     # Связь с подтемой
     subtopic = relationship('Subtopic', back_populates='tasks')
 
+
 # Модель переводов задач
 class TaskTranslation(Base):
     __tablename__ = 'task_translations'
@@ -68,6 +73,7 @@ class TaskTranslation(Base):
     # Обратная связь с задачей
     task = relationship('Task', back_populates='translations')
 
+
 # Модель пользователей
 class User(Base):
     __tablename__ = 'users'
@@ -81,6 +87,7 @@ class User(Base):
 
     # Связь с таблицей статистики задач
     statistics = relationship('TaskStatistics', back_populates='user', cascade="all, delete-orphan")
+
 
 # Модель статистики задач
 class TaskStatistics(Base):
@@ -98,6 +105,7 @@ class TaskStatistics(Base):
     # Обратная связь с задачей
     task = relationship('Task', back_populates='statistics')
 
+
 # Модель групп
 class Group(Base):
     __tablename__ = 'groups'
@@ -113,6 +121,7 @@ class Group(Base):
     # Связь с задачами
     tasks = relationship('Task', back_populates='group')
 
+
 # Модель тем
 class Topic(Base):
     __tablename__ = 'topics'
@@ -123,6 +132,7 @@ class Topic(Base):
 
     # Связь с задачами
     tasks = relationship('Task', back_populates='topic')
+
 
 # Модель подтем
 class Subtopic(Base):

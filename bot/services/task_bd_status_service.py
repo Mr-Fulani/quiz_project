@@ -1,5 +1,9 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, asc
 from datetime import datetime, timedelta
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
+
 from database.models import Task, Topic
 
 
@@ -52,3 +56,26 @@ async def get_task_status(db_session):
     topics = {row.id: row.name for row in result_topics}
 
     return unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks_info, topics
+
+
+
+
+
+
+
+
+async def get_zero_task_topics(db_session: AsyncSession) -> list:
+    """
+    Получает все топики, у которых нет связанных задач.
+    Возвращает список словарей с 'id' и 'name' топиков.
+    """
+    stmt = (
+        select(Topic.id, Topic.name)
+        .outerjoin(Task, Topic.id == Task.topic_id)
+        .group_by(Topic.id)
+        .having(func.count(Task.id) == 0)
+        .order_by(asc(Topic.id))  # Добавлена сортировка по ID
+    )
+    result = await db_session.execute(stmt)
+    zero_task_topics = [{"id": row.id, "name": row.name} for row in result.fetchall()]
+    return zero_task_topics

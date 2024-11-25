@@ -7,8 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+from database.database import async_engine
+
 logger = logging.getLogger(__name__)
 
+
+# Создайте sessionmaker с асинхронным движком
+AsyncSessionLocal = sessionmaker(
+    async_engine, expire_on_commit=False, class_=AsyncSession
+)
 
 
 class DbSessionMiddleware(BaseMiddleware):
