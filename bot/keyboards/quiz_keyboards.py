@@ -58,5 +58,12 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="Список каналов и групп", callback_data="list_channels_groups_button")  # Новая кнопка
     )
-
+    # Добавляем новые кнопки для управления вебхуками
+    builder.row(
+        InlineKeyboardButton(text="Добавить вебхук", callback_data="add_webhook"),
+        InlineKeyboardButton(text="Удалить вебхук", callback_data="delete_webhook_menu")
+    )
+    builder.row(
+        InlineKeyboardButton(text="Список вебхуков", callback_data="list_webhooks")
+    )
     return builder.as_markup()

@@ -38,3 +38,9 @@ class ChannelStates(StatesGroup):
     waiting_for_location_type = State()
     waiting_for_remove_group_id = State()
     waiting_for_topic_creation = State()
+
+
+class WebhookStates(StatesGroup):
+    waiting_for_webhook_url = State()
+    waiting_for_webhook_id = State()
+    waiting_for_service_name = State()

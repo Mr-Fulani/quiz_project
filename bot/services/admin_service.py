@@ -1,11 +1,11 @@
 # bot/services/admin_service.py
 
 import logging
-from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 
-from config import ALLOWED_USERS
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from database.models import Admin
 
 logger = logging.getLogger(__name__)

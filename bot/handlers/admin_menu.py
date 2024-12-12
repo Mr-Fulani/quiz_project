@@ -1,34 +1,32 @@
 # bot/handlers/admin_menu.py
+import datetime
 import html
 import logging
 import os
-import datetime
-
-from aiogram.exceptions import TelegramBadRequest
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.future import select
-
-from aiogram import Router, F, Bot, types
-from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, InlineKeyboardButton, InputFile, FSInputFile
-from aiogram.fsm.context import FSMContext
-from aiogram.filters import StateFilter
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard
-from bot.keyboards.reply_keyboards import get_location_type_keyboard
-from bot.services.admin_service import is_admin, add_admin, remove_admin
-from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
-from bot.services.deletion_service import delete_task_by_id
-from bot.services.task_bd_status_service import get_task_status, get_zero_task_topics
-from bot.services.topic_services import delete_topic_from_db, add_topic_to_db
-from bot.utils.image_generator import generate_detailed_task_status_image, \
-    generate_zero_task_topics_text
-from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates
-from config import ALLOWED_USERS
-from database.database import get_session
-from database.models import Admin, Task, Group, Topic
 import re
 
+from aiogram import Router, F, Bot, types
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard
+from bot.keyboards.reply_keyboards import get_location_type_keyboard, get_start_reply_keyboard
+from bot.services.admin_service import is_admin, add_admin, remove_admin
+from bot.services.deletion_service import delete_task_by_id
+from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
+from bot.services.task_bd_status_service import get_task_status, get_zero_task_topics
+from bot.services.topic_services import delete_topic_from_db, add_topic_to_db
+from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates
+from bot.utils.image_generator import generate_detailed_task_status_image, \
+    generate_zero_task_topics_text
+from bot.utils.markdownV2 import escape_markdown
+from config import ALLOWED_USERS
+from database.models import Admin, Task, Group, Topic
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin_menu_router")
@@ -40,12 +38,7 @@ router = Router(name="admin_menu_router")
 
 
 
-def escape_markdown(text: str) -> str:
-    """
-    Экранирует специальные символы для MarkdownV2.
-    """
-    escape_chars = r"*_[]()~`>#+\-=|{}.!\\"
-    return re.sub(r'([*_`\[\]()~`>#+\-=|{}.!\\])', r'\\\1', text)
+
 
 
 # Обработчик кнопки "Добавить администратора"
@@ -130,8 +123,8 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
             return
 
         await add_admin(new_admin_id, username, db_session)
-        await message.reply(f"🎉 Пользователь @{username} (ID: {new_admin_id}) успешно добавлен как администратор.")
-        logger.info(f"Пользователь @{username} (ID: {new_admin_id}) добавлен как администратор.")
+        await message.reply(f"🎉 Пользователь @{username} (ID: {new_admin_id}) успешно добавлен как администратор")
+        logger.info(f"Пользователь @{username} (ID: {new_admin_id}) добавлен как администратор")
 
         # Уведомление нового администратора (опционально)
         try:
@@ -147,7 +140,7 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
         )
     except IntegrityError:
         await message.reply("❌ Не удалось добавить администратора. Возможно, пользователь уже существует.")
-        logger.error(f"IntegrityError при добавлении администратора с ID {new_admin_id}.")
+        logger.error(f"IntegrityError при добавлении администратора с ID {new_admin_id}")
         await state.clear()
     except Exception as e:
         await message.reply(f"❌ Произошла ошибка: {e}")
@@ -162,7 +155,7 @@ async def callback_remove_admin(call: CallbackQuery, state: FSMContext, db_sessi
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
         await call.message.answer("⛔ У вас нет прав для выполнения этой команды.")
-        logger.warning(f"Пользователь {call.from_user.username} ({user_id}) попытался удалить администратора без прав.")
+        logger.warning(f"Пользователь {call.from_user.username} ({user_id}) попытался удалить администратора без прав")
         await call.answer()
         return
     await call.message.answer(
@@ -213,8 +206,7 @@ async def process_remove_admin_user_id(message: Message, state: FSMContext, db_s
         logger.info(f"Пользователь с Telegram ID {admin_id} удалён из списка администраторов.")
         # Возврат в главное меню
         await message.answer(
-            "🔄 Возвращаюсь в главное меню.",
-            reply_markup=get_admin_menu_keyboard()
+            reply_markup=get_start_reply_keyboard()
         )
     except Exception as e:
         await message.reply(f"❌ Произошла ошибка: {e}")
@@ -467,6 +459,12 @@ async def callback_add_channel_group(call: types.CallbackQuery, db_session: Asyn
     """
     Обрабатывает нажатие кнопки "Добавить канал/группу". Начинает процесс добавления.
     """
+    user_id = call.from_user.id
+    if not await is_admin(user_id, db_session):
+        await call.message.answer("⛔ У вас нет прав для выполнения этой команды.")
+        await call.answer()
+        return
+
     logger.info(
         f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Добавить канал/группу'")
 
@@ -662,7 +660,8 @@ async def process_location_type(message: types.Message, db_session: AsyncSession
         logger.info(f"Локация '{group_name}' успешно добавлена.")
         await message.answer(
             f"✅ {'Канал' if location_type == 'channel' else 'Группа'} '{group_name}' успешно добавлен{' в базу данных'}.",
-            reply_markup=get_admin_menu_keyboard())
+        reply_markup=get_start_reply_keyboard()
+        )
     except Exception as e:
         await db_session.rollback()
         logger.error(f"Ошибка при добавлении локации '{group_name}': {e}")
@@ -720,8 +719,7 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
         await db_session.delete(group)
         await db_session.commit()
         logger.info(f"Канал '{group.group_name}' (ID: {group_id}) успешно удалён.")
-        await message.answer(f"✅ Канал '{group.group_name}' (ID: {group_id}) успешно удалён из базы данных.",
-                             reply_markup=get_admin_menu_keyboard())
+        await message.answer(f"✅ Канал '{group.group_name}' (ID: {group_id}) успешно удалён из базы данных.")
     except Exception as e:
         await db_session.rollback()
         logger.error(f"Ошибка при удалении канала: {e}")

@@ -44,7 +44,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 
 
 # Настройки клиента вебхука (отправка данных на внешние сервисы)
-MAKE_WEBHOOK_URL = os.getenv("MAKE_WEBHOOK_URL")
+# MAKE_WEBHOOK_URL = os.getenv("MAKE_WEBHOOK_URL")
 MAKE_WEBHOOK_TIMEOUT = int(os.getenv("MAKE_WEBHOOK_TIMEOUT", 10))  # Таймаут в секундах
 MAKE_WEBHOOK_RETRIES = int(os.getenv("MAKE_WEBHOOK_RETRIES", 3))
 MAKE_WEBHOOK_RETRY_DELAY = int(os.getenv("MAKE_WEBHOOK_RETRY_DELAY", 5))  # Задержка между попытками в секундах
@@ -80,7 +80,7 @@ logger.debug(f"S3_REGION: {S3_REGION}")
 logger.debug(f"AWS_ACCESS_KEY_ID: {AWS_ACCESS_KEY_ID}")
 logger.debug(f"AWS_SECRET_ACCESS_KEY: {AWS_SECRET_ACCESS_KEY}")
 logger.debug(f"DATABASE_URL: {DATABASE_URL}")
-logger.debug(f"MAKE_WEBHOOK_URL: {MAKE_WEBHOOK_URL}")
+# logger.debug(f"MAKE_WEBHOOK_URL: {MAKE_WEBHOOK_URL}")
 logger.debug(f"MAKE_WEBHOOK_TIMEOUT: {MAKE_WEBHOOK_TIMEOUT}")
 logger.debug(f"MAKE_WEBHOOK_RETRIES: {MAKE_WEBHOOK_RETRIES}")
 logger.debug(f"MAKE_WEBHOOK_RETRY_DELAY: {MAKE_WEBHOOK_RETRY_DELAY}")

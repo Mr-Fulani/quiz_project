@@ -25,6 +25,7 @@ services:
       - ADMIN_SECRET_PASSWORD=${ADMIN_SECRET_PASSWORD}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - PYTHONPATH=/quiz_project
+      - LOGO_PATH=/quiz_project/bot/assets/logo.png
     volumes:
       - .:/quiz_project  # Монтирование текущей директории в контейнер
     depends_on:

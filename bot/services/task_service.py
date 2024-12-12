@@ -1,22 +1,15 @@
-import asyncio
 import json
 import logging
 import random
 import traceback
 import uuid
 
-from aiogram import Bot
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
-
-
+from sqlalchemy.future import select
 
 from database.models import Task, TaskTranslation, Topic, Subtopic, Group
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-
 
 # Настройка локального логирования
 logger = logging.getLogger(__name__)
@@ -404,162 +397,6 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
         # Откат транзакции при общей ошибке
         await db_session.rollback()
         return None
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
-#     """
-#     Импорт задач из файла JSON в базу данных.
-#
-#     :param file_path: Путь к файлу JSON.
-#     :param db_session: Асинхронная сессия базы данных.
-#     :return: Количество успешно загруженных и неудачных задач, а также список ID загруженных задач.
-#     """
-#     try:
-#         # Чтение JSON файла
-#         with open(file_path, "r", encoding="utf-8") as file:
-#             data = json.load(file)
-#             logger.info(f"📄 Содержимое файла JSON: {data}")
-#
-#         successfully_loaded = 0  # Количество успешно загруженных задач
-#         failed_tasks = 0  # Количество проигнорированных задач
-#         successfully_loaded_ids = []  # Список ID успешно загруженных задач
-#
-#         # Перебираем задачи в JSON
-#         for task_data in data["tasks"]:
-#             try:
-#                 topic_name = task_data["topic"]
-#                 topic_description = task_data.get("description", "")
-#                 external_link = task_data.get("external_link", "https://t.me/tyt_python")
-#
-#                 # Поиск или создание темы
-#                 logger.info(f"🔍 Поиск топика: {topic_name}.")
-#                 result = await db_session.execute(select(Topic).where(Topic.name == topic_name))
-#                 topic = result.scalar_one_or_none()
-#
-#                 if topic is None:
-#                     logger.info(f"🆕 Создание нового топика: {topic_name}.")
-#                     new_topic = Topic(name=topic_name, description=topic_description)
-#                     db_session.add(new_topic)
-#                     await db_session.commit()
-#                     logger.info(f"✅ Топик '{topic_name}' успешно создан.")
-#                     topic = new_topic
-#
-#                 topic_id = topic.id
-#                 subtopic_name = task_data.get("subtopic")
-#                 subtopic_id = None
-#
-#                 if subtopic_name:
-#                     logger.info(f"🔍 Поиск подтемы: {subtopic_name}.")
-#                     result = await db_session.execute(select(Subtopic).where(Subtopic.name == subtopic_name))
-#                     subtopic = result.scalar_one_or_none()
-#
-#                     if subtopic is None:
-#                         logger.info(f"🆕 Создание новой подтемы: {subtopic_name}.")
-#                         new_subtopic = Subtopic(name=subtopic_name, topic_id=topic_id)
-#                         db_session.add(new_subtopic)
-#                         await db_session.commit()
-#                         logger.info(f"✅ Подтема '{subtopic_name}' успешно создана.")
-#                         subtopic = new_subtopic
-#
-#                     subtopic_id = subtopic.id
-#
-#                 # Получаем или генерируем translation_group_id для задачи
-#                 translation_group_id = task_data.get("translation_group_id", str(uuid.uuid4()))
-#
-#                 # Обрабатываем переводы для задачи
-#                 for translation in task_data["translations"]:
-#                     language = translation["language"]
-#
-#                     logger.info(f"🌐 Поиск группы для топика '{topic_name}' и языка '{language}'.")
-#                     result = await db_session.execute(
-#                         select(Group).where(Group.topic_id == topic_id).where(Group.language == language))
-#                     group = result.scalar_one_or_none()
-#
-#                     if group is None:
-#                         logger.error(f"⚠️ Группа не найдена для топика '{topic_name}' и языка '{language}'.")
-#                         raise ValueError(f"Группа не найдена для топика '{topic_name}' и языка '{language}'.")
-#
-#                     group_id = group.id
-#
-#                     # Проверка наличия поля correct_answer
-#                     if "correct_answer" not in translation:
-#                         logger.error(
-#                             f"❌ Перевод на {language} для задачи по топику '{topic_name}' не содержит 'correct_answer'.")
-#                         raise KeyError(f"Отсутствует обязательное поле 'correct_answer' в переводе на {language}.")
-#
-#                     # Создаем новую задачу
-#                     logger.info(f"📝 Создание новой задачи для топика '{topic_name}' с языком '{language}'.")
-#                     new_task = Task(
-#                         topic_id=topic_id,
-#                         subtopic_id=subtopic_id,
-#                         difficulty=task_data["difficulty"],
-#                         published=False,
-#                         group_id=group_id,
-#                         external_link=external_link,
-#                         translation_group_id=translation_group_id
-#                     )
-#                     db_session.add(new_task)
-#                     await db_session.commit()
-#                     successfully_loaded += 1  # Увеличиваем счетчик загруженных задач
-#                     successfully_loaded_ids.append(new_task.id)
-#                     logger.info(f"✅ Задача успешно создана с ID {new_task.id} для группы {group.group_name}.")
-#
-#                     # Сохраняем переводы задачи
-#                     new_translation = TaskTranslation(
-#                         task_id=new_task.id,
-#                         language=language,
-#                         question=translation["question"],
-#                         answers=translation["answers"],
-#                         correct_answer=translation["correct_answer"],
-#                         explanation=translation.get("explanation")
-#                     )
-#                     db_session.add(new_translation)
-#                 await db_session.commit()
-#                 logger.info(f"✅ Переводы для задачи с ID {new_task.id} успешно сохранены.")
-#
-#             except Exception as task_error:
-#                 failed_tasks += 1  # Увеличиваем счетчик неудачных задач
-#                 logger.error(f"❌ Ошибка при обработке задачи по топику '{topic_name}': {task_error}")
-#                 logger.error(traceback.format_exc())  # Логирование стека ошибки
-#
-#         # Сообщаем о количестве загруженных и пропущенных задач
-#         logger.info(
-#             f"📊 Импорт завершен: успешно загружено {successfully_loaded}, проигнорировано {failed_tasks}."
-#         )
-#         logger.info(f"🆔 ID загруженных задач: {', '.join(map(str, successfully_loaded_ids))}")
-#         return successfully_loaded, failed_tasks, successfully_loaded_ids
-#
-#     except Exception as e:
-#         logger.error(f"❌ Произошла ошибка при импорте задач: {e}")
-#         logger.error(traceback.format_exc())
-#         # Откат транзакции при общей ошибке
-#         await db_session.rollback()
-#         return None
-
-
-
-
-
-
-
-
-
-
 
 
 

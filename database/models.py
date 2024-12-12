@@ -169,3 +169,18 @@ class TaskPoll(Base):
 
 
 
+
+
+class Webhook(Base):
+    __tablename__ = 'webhooks'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    url = Column(String, nullable=False, unique=True)
+    service_name = Column(String, nullable=True)  # Например, make.com, Zapier и т.д.
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+
+

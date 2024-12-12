@@ -1,7 +1,7 @@
 import logging
-import os
 from collections import defaultdict
 from textwrap import wrap
+
 from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import select
 
