@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger
+from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database.database import Base
@@ -36,7 +36,7 @@ class Task(Base):
     image_url = Column(String, nullable=True)
 
     # Новое поле для ссылки на сторонний ресурс (например, Telegram канал)
-    external_link = Column(String, default="https://t.me/tyt_python", nullable=True)
+    external_link = Column(String, default="https://t.me/developers_hub_ru", nullable=True)
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)  # Поле для пометки задач с ошибками
 
@@ -180,6 +180,24 @@ class Webhook(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+
+
+
+
+class DefaultLink(Base):
+    __tablename__ = 'default_links'
+
+    id = Column(Integer, primary_key=True, index=True)
+    language = Column(String, nullable=False)
+    topic = Column(String, nullable=False)
+    link = Column(String, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('language', 'topic', name='uix_language_topic'),
+    )
+
 
 
 

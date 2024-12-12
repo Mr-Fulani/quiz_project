@@ -66,4 +66,16 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="Список вебхуков", callback_data="list_webhooks")
     )
+    # Добавляем новые кнопки для управления ссылками по умолчанию
+    builder.row(
+        InlineKeyboardButton(text="Добавить ссылку", callback_data="add_default_link"),
+        InlineKeyboardButton(text="Удалить ссылку", callback_data="remove_default_link")
+    )
+    builder.row(
+        InlineKeyboardButton(text="Список ссылок", callback_data="list_default_links")
+    )
     return builder.as_markup()
+
+
+
+

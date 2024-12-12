@@ -1,7 +1,4 @@
-# bot/states/admin_states.py
-
 from aiogram.fsm.state import StatesGroup, State
-
 
 
 class PasswordStates(StatesGroup):
@@ -18,11 +15,9 @@ class AdminStates(StatesGroup):
     waiting_for_topic_id = State()
 
 
-
 class RemoveAdminStates(StatesGroup):
     waiting_for_password = State()
     waiting_for_user_id = State()
-
 
 
 class TaskActions(StatesGroup):
@@ -44,3 +39,11 @@ class WebhookStates(StatesGroup):
     waiting_for_webhook_url = State()
     waiting_for_webhook_id = State()
     waiting_for_service_name = State()
+
+
+class DefaultLinkStates(StatesGroup):
+    waiting_for_language = State()
+    waiting_for_topic = State()
+    waiting_for_link = State()
+    waiting_for_remove_language = State()
+    waiting_for_remove_topic = State()

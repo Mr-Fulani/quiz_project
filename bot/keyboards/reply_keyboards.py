@@ -33,3 +33,6 @@ def get_location_type_keyboard() -> ReplyKeyboardMarkup:
         one_time_keyboard=True
     )
     return keyboard
+
+
+

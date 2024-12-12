@@ -6,19 +6,23 @@ import uuid
 
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from psycopg2 import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from bot.services.default_link_service import DefaultLinkService
 from database.models import Task, TaskTranslation, Topic, Subtopic, Group
 
 # Настройка локального логирования
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Устанавливаем уровень логирования на DEBUG для подробного вывода
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
-
-
-
-async def prepare_publication(task: Task, translation: TaskTranslation, image_url: str):
+async def prepare_publication(task: Task, translation: TaskTranslation, image_url: str, db_session: AsyncSession):
     """
     Подготавливает данные для публикации задачи в четыре сообщения:
     изображение, текст с деталями задачи, опрос и инлайн-кнопка.
@@ -27,6 +31,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         task (Task): Объект задачи.
         translation (TaskTranslation): Перевод задачи.
         image_url (str): URL изображения для задачи.
+        db_session (AsyncSession): Сессия базы данных.
 
     Returns:
         tuple: Возвращает четыре сообщения (изображение, текст с деталями задачи, опрос и инлайн-кнопка).
@@ -47,7 +52,9 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
             str: Экранированный текст.
         """
         escape_chars = r"_*[]()~`>#+-=|{}.!"
-        return ''.join(f"\\{char}" if char in escape_chars else char for char in text)
+        escaped_text = ''.join(f"\\{char}" if char in escape_chars else char for char in text)
+        logger.debug(f"Экранированный текст: {escaped_text}")
+        return escaped_text
 
     language = translation.language
 
@@ -90,15 +97,19 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         }
     }
 
+    # Получение перевода по языку, если язык отсутствует, используем английский как дефолт
+    lang_translations = translations.get(language, translations['en'])
+    logger.debug(f"Используем переводы для языка '{language}': {lang_translations}")
+
     # Подготовка текстового сообщения с деталями задачи
     escaped_topic = escape_md(task.topic.name)
-    escaped_subtopic = escape_md(task.subtopic.name if task.subtopic else translations[language]['no_subtopic'])
+    escaped_subtopic = escape_md(task.subtopic.name if task.subtopic else lang_translations['no_subtopic'])
     escaped_difficulty = escape_md(task.difficulty.capitalize())
 
     task_details_text = (
-        f"🖥️ *{translations[language]['programming_language']}*: {escaped_topic}\n"
-        f"📂 *{translations[language]['topic']}*: {escaped_subtopic}\n"
-        f"🎯 *{translations[language]['difficulty']}*: {escaped_difficulty}\n"
+        f"🖥️ *{lang_translations['programming_language']}*: {escaped_topic}\n"
+        f"📂 *{lang_translations['topic']}*: {escaped_subtopic}\n"
+        f"🎯 *{lang_translations['difficulty']}*: {escaped_difficulty}\n"
     )
 
     logger.info(f"📋 Подготовлено текстовое сообщение с деталями задачи:\n{task_details_text}")
@@ -118,7 +129,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'arab': "ما هي النتيجة؟"
     }
     question_text = question_texts.get(language, "Какой будет вывод?")
-    logger.info(f"📝 Текст вопроса на языке {language}: {question_text}")
+    logger.info(f"📝 Текст вопроса на языке '{language}': {question_text}")
 
     image_message = {
         "type": "photo",
@@ -128,13 +139,13 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
     logger.info(f"🖼️ Подготовлено сообщение с изображением и вопросом: {image_message['caption']}")
 
     # Подготовка опроса с исправленной логикой
-    wrong_answers = translation.answers
+    wrong_answers = translation.answers.copy()  # Копируем список, чтобы избежать изменений оригинального
     correct_answer = translation.correct_answer
 
     # Если правильный ответ уже содержится в вариантах, удаляем его перед тем, как добавить обратно
     if correct_answer in wrong_answers:
         wrong_answers.remove(correct_answer)
-        logger.info(f"⚠️ Дублирующийся правильный ответ удален, обновленные варианты: {wrong_answers}")
+        logger.warning(f"⚠️ Дублирующийся правильный ответ удален, обновленные варианты: {wrong_answers}")
 
     # Объединяем все варианты ответов
     options = wrong_answers + [correct_answer]
@@ -163,7 +174,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         "question": translation.question,
         "options": options,
         "correct_option_id": correct_option_id,
-        "explanation": translation.explanation,
+        "explanation": translation.explanation or "",
         "is_anonymous": True,
         "type": "quiz"  # Явно указываем тип опроса "quiz"
     }
@@ -173,7 +184,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         f"Вопрос: {translation.question}\n"
         f"Варианты: {options}\n"
         f"Правильный ответ: {correct_answer} (Индекс: {correct_option_id})\n"
-        f"Тип опроса: quiz"
+        f"Тип опроса: {poll_message['type']}"
     )
 
     # Подготовка инлайн-кнопки с переводом текста "Узнать больше о задаче"
@@ -184,8 +195,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'tr': "Daha fazla öğren",
         'arab': "تعلم المزيد"
     }.get(language, "Узнать подробнее")
-    logger.info(f"🔗 Текст кнопки 'Узнать больше' на языке {language}: {learn_more_text}")
-
+    logger.info(f"🔗 Текст кнопки 'Узнать больше' на языке '{language}': {learn_more_text}")
 
     # Текст для вывода перед кнопкой, также с переводом
     learn_more_about_task_text = {
@@ -196,9 +206,13 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'arab': "تعرف على المزيد حول المهمة:"
     }.get(language, "Узнать больше о задаче:")
 
-    logger.info(f"✅ Текст 'Узнать больше о задаче' на языке {language}: {learn_more_about_task_text}")
+    logger.info(f"✅ Текст 'Узнать больше о задаче' на языке '{language}': {learn_more_about_task_text}")
 
-    external_link = task.external_link or "https://t.me/tyt_python"
+    # Получение ссылки для кнопки через task.external_link или DefaultLinkService
+    external_link = task.external_link
+    if not external_link:
+        logger.warning(f"🔗 external_link не задан для задачи ID {task.id}. Используется дефолтная ссылка.")
+        external_link = "https://t.me/developers_hub_ru"
 
     # Создаем билдер клавиатуры
     builder = InlineKeyboardBuilder()
@@ -219,172 +233,150 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
 
 
 
-
-
-DEFAULT_LINKS = {
-    "en": {
-        "Python": "https://t.me/tyt_python",
-        "SQL": "https://t.me/tyt_python",
-        "Golang": "https://t.me/golang_eng",
-        "Java": "https://t.me/tyt_python",
-        "JavaScript": "https://t.me/tyt_python",
-        "Django": "https://t.me/tyt_python",
-    },
-    "ru": {
-        "Python": "https://t.me/tyt_python",
-        "SQL": "https://t.me/sql_hub_channel",
-        "Golang": "https://t.me/tyt_python",
-        "Java": "https://t.me/tyt_python",
-        "JavaScript": "https://t.me/tyt_python",
-        "Django": "https://t.me/tyt_python",
-    },
-    "tr": {
-        "Python": "https://t.me/pythonchik_tr",
-        "SQL": "https://t.me/tyt_python",
-        "Golang": "https://t.me/tyt_python",
-        "Java": "https://t.me/tyt_python",
-        "JavaScript": "https://t.me/tyt_python",
-        "Django": "https://t.me/tyt_python",
-    },
-}
-
-
-
-
-
-def get_default_link(language: str, topic: str) -> str:
+async def get_default_link(language: str, topic: str, db_session: AsyncSession) -> str:
     """
     Возвращает ссылку по умолчанию для указанного языка и темы. Если ссылки нет, возвращает стандартную ссылку.
+
+    Args:
+        language (str): Язык.
+        topic (str): Тема.
+        db_session (AsyncSession): Сессия базы данных.
+
+    Returns:
+        str: URL ссылки.
     """
-    return DEFAULT_LINKS.get(language, {}).get(topic, "https://t.me/tyt_python")
-
-
-
+    default_link_service = DefaultLinkService(db_session)
+    link = await default_link_service.get_default_link(language, topic)
+    logger.debug(f"Получена ссылка по умолчанию для языка '{language}' и темы '{topic}': {link}")
+    return link
 
 
 async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
     """
     Импорт задач из файла JSON в базу данных.
 
-    :param file_path: Путь к файлу JSON.
-    :param db_session: Асинхронная сессия базы данных.
-    :return: Количество успешно загруженных и неудачных задач, а также список ID загруженных задач.
+    Args:
+        file_path (str): Путь к JSON файлу.
+        db_session (AsyncSession): Сессия базы данных.
+
+    Returns:
+        tuple: Количество успешно загруженных задач, количество ошибок, список ID загруженных задач.
     """
     try:
-        # Чтение JSON файла
         with open(file_path, "r", encoding="utf-8") as file:
             data = json.load(file)
-            logger.info(f"📄 Содержимое файла JSON: {data}")
+        logger.info(f"📄 Содержимое файла JSON: {data}")
 
-        successfully_loaded = 0  # Количество успешно загруженных задач
-        failed_tasks = 0  # Количество проигнорированных задач
-        successfully_loaded_ids = []  # Список ID успешно загруженных задач
+        successfully_loaded = 0
+        failed_tasks = 0
+        successfully_loaded_ids = []
 
-        # Перебираем задачи в JSON
-        for task_data in data["tasks"]:
+        default_link_service = DefaultLinkService(db_session)
+
+        for task_data in data.get("tasks", []):
             try:
                 topic_name = task_data["topic"]
-                topic_description = task_data.get("description", "")
-                language = task_data["translations"][0]["language"]  # Предполагаем, что первый перевод содержит язык
+                translations = task_data.get("translations", [])
+                if not translations:
+                    logger.error(f"❌ Задача по топику '{topic_name}' не содержит переводов.")
+                    raise ValueError(f"Задача по топику '{topic_name}' не содержит переводов.")
 
-                # Если external_link отсутствует, назначаем его по умолчанию
+                language = translations[0].get("language")
+                if not language:
+                    logger.error(f"❌ Перевод в задаче по топику '{topic_name}' не содержит языка.")
+                    raise KeyError(f"Перевод в задаче по топику '{topic_name}' не содержит языка.")
+
+                # Получение ссылки по умолчанию, если external_link отсутствует
                 external_link = task_data.get("external_link")
                 if not external_link:
-                    external_link = get_default_link(language, topic_name)
+                    external_link = await default_link_service.get_default_link(language, topic_name)
                     logger.info(f"🔗 Ссылка по умолчанию для топика '{topic_name}' и языка '{language}': {external_link}")
 
                 # Поиск или создание темы
-                logger.info(f"🔍 Поиск топика: {topic_name}.")
-                result = await db_session.execute(select(Topic).where(Topic.name == topic_name))
-                topic = result.scalar_one_or_none()
+                topic_id = await get_or_create_topic(db_session, topic_name)
 
-                if topic is None:
-                    logger.info(f"🆕 Создание нового топика: {topic_name}.")
-                    new_topic = Topic(name=topic_name, description=topic_description)
-                    db_session.add(new_topic)
-                    await db_session.commit()
-                    logger.info(f"✅ Топик '{topic_name}' успешно создан.")
-                    topic = new_topic
-
-                topic_id = topic.id
                 subtopic_name = task_data.get("subtopic")
                 subtopic_id = None
 
                 if subtopic_name:
-                    logger.info(f"🔍 Поиск подтемы: {subtopic_name}.")
+                    logger.debug(f"🔍 Поиск подтемы '{subtopic_name}' для топика '{topic_name}'.")
                     result = await db_session.execute(select(Subtopic).where(Subtopic.name == subtopic_name))
                     subtopic = result.scalar_one_or_none()
-
                     if subtopic is None:
-                        logger.info(f"🆕 Создание новой подтемы: {subtopic_name}.")
                         new_subtopic = Subtopic(name=subtopic_name, topic_id=topic_id)
                         db_session.add(new_subtopic)
                         await db_session.commit()
-                        logger.info(f"✅ Подтема '{subtopic_name}' успешно создана.")
-                        subtopic = new_subtopic
+                        logger.info(f"✅ Подтема '{subtopic_name}' успешно создана с ID {new_subtopic.id}.")
+                        subtopic_id = new_subtopic.id
+                    else:
+                        subtopic_id = subtopic.id
+                        logger.info(f"✅ Подтема '{subtopic_name}' найдена с ID {subtopic_id}.")
+                else:
+                    logger.info(f"🔍 Подтема не задана для топика '{topic_name}'. Используется значение по умолчанию.")
 
-                    subtopic_id = subtopic.id
-
-                # Получаем или генерируем translation_group_id для задачи
                 translation_group_id = task_data.get("translation_group_id", str(uuid.uuid4()))
+                logger.debug(f"📁 Используем translation_group_id: {translation_group_id}")
 
-                # Обрабатываем переводы для задачи
-                for translation in task_data["translations"]:
+                for translation in translations:
                     language = translation["language"]
+                    question = translation.get("question")
+                    answers = translation.get("answers")
+                    correct_answer = translation.get("correct_answer")
+                    explanation = translation.get("explanation")
 
-                    logger.info(f"🌐 Поиск группы для топика '{topic_name}' и языка '{language}'.")
+                    if not all([question, answers, correct_answer]):
+                        logger.error(f"❌ Перевод на языке '{language}' неполный для задачи по топику '{topic_name}'.")
+                        raise KeyError(f"Перевод на языке '{language}' неполный.")
+
+                    logger.debug(f"🔍 Поиск группы для топика ID {topic_id} и языка '{language}'.")
                     result = await db_session.execute(
-                        select(Group).where(Group.topic_id == topic_id).where(Group.language == language))
+                        select(Group).where(Group.topic_id == topic_id, Group.language == language)
+                    )
                     group = result.scalar_one_or_none()
 
                     if group is None:
                         logger.error(f"⚠️ Группа не найдена для топика '{topic_name}' и языка '{language}'.")
                         raise ValueError(f"Группа не найдена для топика '{topic_name}' и языка '{language}'.")
 
-                    group_id = group.id
-
                     # Проверка наличия поля correct_answer
-                    if "correct_answer" not in translation:
-                        logger.error(
-                            f"❌ Перевод на {language} для задачи по топику '{topic_name}' не содержит 'correct_answer'.")
+                    if "correct_answer" not in translation or not correct_answer:
+                        logger.error(f"❌ Перевод на {language} для задачи по топику '{topic_name}' не содержит 'correct_answer'.")
                         raise KeyError(f"Отсутствует обязательное поле 'correct_answer' в переводе на {language}.")
 
                     # Создаем новую задачу
-                    logger.info(f"📝 Создание новой задачи для топика '{topic_name}' с языком '{language}'.")
                     new_task = Task(
                         topic_id=topic_id,
                         subtopic_id=subtopic_id,
                         difficulty=task_data["difficulty"],
                         published=False,
-                        group_id=group_id,
+                        group_id=group.id,
                         external_link=external_link,
                         translation_group_id=translation_group_id
                     )
                     db_session.add(new_task)
                     await db_session.commit()
-                    successfully_loaded += 1  # Увеличиваем счетчик загруженных задач
+                    logger.info(f"✅ Задача успешно создана с ID {new_task.id} для группы '{group.group_name}'.")
+                    successfully_loaded += 1
                     successfully_loaded_ids.append(new_task.id)
-                    logger.info(f"✅ Задача успешно создана с ID {new_task.id} для группы {group.group_name}.")
 
                     # Сохраняем переводы задачи
                     new_translation = TaskTranslation(
                         task_id=new_task.id,
                         language=language,
-                        question=translation["question"],
-                        answers=translation["answers"],
-                        correct_answer=translation["correct_answer"],
-                        explanation=translation.get("explanation")
+                        question=question,
+                        answers=json.dumps(answers),  # Преобразуем список ответов в JSON строку
+                        correct_answer=correct_answer,
+                        explanation=explanation
                     )
                     db_session.add(new_translation)
-                await db_session.commit()
-                logger.info(f"✅ Переводы для задачи с ID {new_task.id} успешно сохранены.")
+                    await db_session.commit()
+                    logger.info(f"✅ Перевод на языке '{language}' для задачи ID {new_task.id} успешно сохранён.")
 
             except Exception as task_error:
-                failed_tasks += 1  # Увеличиваем счетчик неудачных задач
-                logger.error(f"❌ Ошибка при обработке задачи по топику '{topic_name}': {task_error}")
-                logger.error(traceback.format_exc())  # Логирование стека ошибки
+                failed_tasks += 1
+                logger.error(f"❌ Ошибка при обработке задачи по топику '{task_data.get('topic', 'неизвестно')}': {task_error}")
+                logger.error(traceback.format_exc())
 
-        # Сообщаем о количестве загруженных и пропущенных задач
         logger.info(
             f"📊 Импорт завершен: успешно загружено {successfully_loaded}, проигнорировано {failed_tasks}."
         )
@@ -394,17 +386,23 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
     except Exception as e:
         logger.error(f"❌ Произошла ошибка при импорте задач: {e}")
         logger.error(traceback.format_exc())
-        # Откат транзакции при общей ошибке
         await db_session.rollback()
         return None
 
 
-
-
 async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
-    """Получаем или создаем тему."""
+    """
+    Получаем или создаем тему.
+
+    Args:
+        db_session (AsyncSession): Сессия базы данных.
+        topic_name (str): Название темы.
+
+    Returns:
+        int: ID темы.
+    """
     logger.info(f"🔍 Поиск топика с именем '{topic_name}' в базе данных.")
-    logger.info(f"💡 db_session is async: {isinstance(db_session, AsyncSession)}")
+    logger.debug(f"💡 db_session is async: {isinstance(db_session, AsyncSession)}")
 
     # Запрос к базе данных
     result = await db_session.execute(select(Topic).where(Topic.name == topic_name))
@@ -414,21 +412,21 @@ async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
         logger.info(f"🆕 Топик '{topic_name}' не найден. Создание нового топика.")
         new_topic = Topic(name=topic_name)
         db_session.add(new_topic)
-        await db_session.commit()
-        logger.info(f"✅ Топик '{topic_name}' успешно создан с ID {new_topic.id}.")
-        return new_topic.id
-
-    logger.info(f"✅ Топик '{topic_name}' найден с ID {topic.id}.")
-    return topic.id
-
-
-
-
-
-
-
-
-
+        try:
+            await db_session.commit()
+            logger.info(f"✅ Топик '{topic_name}' успешно создан с ID {new_topic.id}.")
+            return new_topic.id
+        except IntegrityError as ie:
+            await db_session.rollback()
+            logger.error(f"🔴 Ошибка при создании топика '{topic_name}': {ie}")
+            raise ie
+        except Exception as e:
+            await db_session.rollback()
+            logger.error(f"🔴 Неизвестная ошибка при создании топика '{topic_name}': {e}")
+            raise e
+    else:
+        logger.info(f"✅ Топик '{topic_name}' найден с ID {topic.id}.")
+        return topic.id
 
 
 

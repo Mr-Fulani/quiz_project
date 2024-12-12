@@ -17,21 +17,25 @@ from sqlalchemy.future import select
 from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard
 from bot.keyboards.reply_keyboards import get_location_type_keyboard, get_start_reply_keyboard
 from bot.services.admin_service import is_admin, add_admin, remove_admin
+from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_task_by_id
 from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
 from bot.services.task_bd_status_service import get_task_status, get_zero_task_topics
 from bot.services.topic_services import delete_topic_from_db, add_topic_to_db
-from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates
+from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates, \
+    DefaultLinkStates
 from bot.utils.image_generator import generate_detailed_task_status_image, \
     generate_zero_task_topics_text
 from bot.utils.markdownV2 import escape_markdown
+from bot.utils.url_validator import is_valid_url
 from config import ALLOWED_USERS
 from database.models import Admin, Task, Group, Topic
 
+
+
+
 logger = logging.getLogger(__name__)
 router = Router(name="admin_menu_router")
-
-
 
 
 
@@ -955,4 +959,130 @@ async def process_delete_topic(message: types.Message, state: FSMContext, db_ses
 
     await state.clear()
 
+
+
+
+
+
+
+# Обработчик кнопки "Добавить ссылку"
+@router.callback_query(F.data == "add_default_link")
+async def callback_add_default_link(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал кнопку 'Добавить ссылку'")
+    await call.message.answer("Начинаем добавление ссылки. 📌 Введите язык для ссылки (например, 'en', 'ru', 'tr'):")
+    await state.set_state(DefaultLinkStates.waiting_for_language)
+    await call.answer()
+
+# Ввод языка для добавления ссылки
+@router.message(DefaultLinkStates.waiting_for_language, F.content_type == ContentType.TEXT)
+async def process_default_link_language(message: Message, state: FSMContext, db_session: AsyncSession):
+    language = message.text.strip().lower()
+    if not re.match(r'^[a-z]{2,3}$', language):
+        await message.reply("❌ Некорректный формат языка. Попробуйте ещё раз.")
+        return
+    logger.info(f"Получен язык для ссылки: {language}")
+    await state.update_data(language=language)
+    await message.reply("📌 Введите тему для ссылки:")
+    await state.set_state(DefaultLinkStates.waiting_for_topic)
+
+# Ввод темы для добавления ссылки
+@router.message(DefaultLinkStates.waiting_for_topic, F.content_type == ContentType.TEXT)
+async def process_default_link_topic(message: Message, state: FSMContext, db_session: AsyncSession):
+    topic = message.text.strip()
+    if not topic:
+        await message.reply("❌ Тема не может быть пустой. Попробуйте ещё раз.")
+        return
+    logger.info(f"Получена тема для ссылки: {topic}")
+    await state.update_data(topic=topic)
+    await message.reply("🔗 Введите ссылку для этой комбинации языка и темы:")
+    await state.set_state(DefaultLinkStates.waiting_for_link)
+
+# Ввод ссылки
+@router.message(DefaultLinkStates.waiting_for_link, F.content_type == ContentType.TEXT)
+async def process_default_link_link(message: Message, state: FSMContext, db_session: AsyncSession):
+    link = message.text.strip()
+    if not is_valid_url(link):
+        await message.reply("❌ Некорректный URL. Попробуйте ещё раз.")
+        return
+    data = await state.get_data()
+    language = data.get("language")
+    topic = data.get("topic")
+    logger.info(f"Попытка добавить ссылку: Язык={language}, Тема={topic}, Ссылка={link}")
+    try:
+        default_link_service = DefaultLinkService(db_session)
+        await default_link_service.add_default_link(language, topic, link)
+        await message.reply(f"✅ Ссылка успешно добавлена:\nЯзык: `{language}`\nТема: `{topic}`\nСсылка: {link}", parse_mode="MarkdownV2")
+        logger.info(f"Успешно добавлена ссылка: Язык={language}, Тема={topic}, Ссылка={link}")
+    except Exception as e:
+        await message.reply("❌ Произошла ошибка при добавлении ссылки.")
+        logger.error(f"Ошибка при добавлении ссылки: {e}")
+    await state.clear()
+
+# Обработчик кнопки "Удалить ссылку"
+@router.callback_query(F.data == "remove_default_link")
+async def callback_remove_default_link(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал кнопку 'Удалить ссылку'")
+    await call.message.answer("Начинаем удаление ссылки. 📌 Введите язык для удаления ссылки (например, 'en', 'ru', 'tr'):")
+    await state.set_state(DefaultLinkStates.waiting_for_remove_language)
+    await call.answer()
+
+# Ввод языка для удаления ссылки
+@router.message(DefaultLinkStates.waiting_for_remove_language, F.content_type == ContentType.TEXT)
+async def process_remove_default_link_language(message: Message, state: FSMContext, db_session: AsyncSession):
+    language = message.text.strip().lower()
+    if not re.match(r'^[a-z]{2,3}$', language):
+        await message.reply("❌ Некорректный формат языка. Попробуйте ещё раз.")
+        return
+    logger.info(f"Получен язык для удаления ссылки: {language}")
+    await state.update_data(language=language)
+    await message.reply("📌 Введите тему для удаления ссылки:")
+    await state.set_state(DefaultLinkStates.waiting_for_remove_topic)
+
+# Ввод темы для удаления ссылки
+@router.message(DefaultLinkStates.waiting_for_remove_topic, F.content_type == ContentType.TEXT)
+async def process_remove_default_link_topic(message: Message, state: FSMContext, db_session: AsyncSession):
+    topic = message.text.strip()
+    if not topic:
+        await message.reply("❌ Тема не может быть пустой. Попробуйте ещё раз.")
+        return
+    data = await state.get_data()
+    language = data.get("language")
+    logger.info(f"Попытка удалить ссылку: Язык={language}, Тема={topic}")
+    try:
+        default_link_service = DefaultLinkService(db_session)
+        success = await default_link_service.remove_default_link(language, topic)
+        if success:
+            await message.reply(f"✅ Ссылка удалена:\nЯзык: `{language}`\nТема: `{topic}`", parse_mode="MarkdownV2")
+            logger.info(f"Успешно удалена ссылка: Язык={language}, Тема={topic}")
+        else:
+            await message.reply(f"❌ Ссылка не найдена:\nЯзык: `{language}`\nТема: `{topic}`", parse_mode="MarkdownV2")
+            logger.warning(f"Ссылка для удаления не найдена: Язык={language}, Тема={topic}")
+    except Exception as e:
+        await message.reply("❌ Произошла ошибка при удалении ссылки.")
+        logger.error(f"Ошибка при удалении ссылки: {e}")
+    await state.clear()
+
+# Обработчик кнопки "Список ссылок"
+@router.callback_query(F.data == "list_default_links")
+async def callback_list_default_links(call: CallbackQuery, db_session: AsyncSession):
+    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) запросил список ссылок")
+    try:
+        default_link_service = DefaultLinkService(db_session)
+        default_links = await default_link_service.list_default_links()
+        if not default_links:
+            await call.message.answer("📭 Ссылки по умолчанию не найдены.")
+            logger.info("Список ссылок пуст.")
+        else:
+            message = "📋 **Список ссылок по умолчанию:**\n\n"
+            for link in default_links:
+                escaped_language = escape_markdown(link.language)
+                escaped_topic = escape_markdown(link.topic)
+                escaped_link = escape_markdown(link.link)
+                message += f"• Язык: `{escaped_language}`, Тема: `{escaped_topic}`, Ссылка: {escaped_link}\n"
+            await call.message.answer(message, parse_mode="MarkdownV2")
+            logger.info("Список ссылок успешно отправлен.")
+    except Exception as e:
+        await call.message.answer("❌ Произошла ошибка при получении списка ссылок.")
+        logger.error(f"Ошибка при получении списка ссылок: {e}")
+    await call.answer()
 

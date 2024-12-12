@@ -14,24 +14,14 @@ import aiohttp
 import certifi
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.utils.url_validator import is_valid_url
 from config import MAKE_WEBHOOK_TIMEOUT, MAKE_WEBHOOK_RETRIES, MAKE_WEBHOOK_RETRY_DELAY, ALLOWED_USERS
 from database.models import Webhook
 from aiogram import Bot
 
 logger = logging.getLogger(__name__)
 
-URL_REGEX = re.compile(
-    r'^(?:http|https)://'
-    r'(?:\S+(?::\S*)?@)?'
-    r'(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+'
-    r'[A-Za-z]{2,6}'
-    r'(?::\d{2,5})?'
-    r'(?:/\S*)?$'
-)
 
-def is_valid_url(url: str) -> bool:
-    """Проверяет корректность URL."""
-    return bool(re.match(URL_REGEX, url))
 
 
 async def send_webhooks_sequentially(webhooks_data: List[Dict], webhooks: List[Webhook], db_session: AsyncSession, bot: Bot) -> List[bool]:
