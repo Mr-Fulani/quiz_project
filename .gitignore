@@ -1,5 +1,6 @@
+.env
 venv/
-*.env
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -10,16 +11,5 @@ __pycache__/
 .DS_Store
 *.log
 *.sqlite3
-
-test_connection.py
-add_groups.py
-
-
-clear_tables.py
-
-
-
-tasks.json
-*.json
-
 postgres_data/
+tasks.json

@@ -1,0 +1,84 @@
+{
+    "tasks": [
+        {
+            "topic": "Python",
+            "subtopic": "Lists",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "numbers = [1, 2, 3, 4, 5]\nnumbers.reverse()\nКаков будет результат?",
+                    "answers": [
+                        "[5, 4, 3, 2, 1]",
+                        "[1, 2, 3, 4, 5]",
+                        "[1, 2, 3, 4]"
+                    ],
+                    "correct_answer": "[5, 4, 3, 2, 1]",
+                    "explanation": "Метод reverse() изменяет порядок элементов списка на обратный."
+                },
+                {
+                    "language": "en",
+                    "question": "numbers = [1, 2, 3, 4, 5]\nnumbers.reverse()\nWhat will be the result?",
+                    "answers": [
+                        "[5, 4, 3, 2, 1]",
+                        "[1, 2, 3, 4, 5]",
+                        "[1, 2, 3, 4]"
+                    ],
+                    "correct_answer": "[5, 4, 3, 2, 1]",
+                    "explanation": "The reverse() method reverses the order of elements in the list."
+                },
+                {
+                    "language": "tr",
+                    "question": "numbers = [1, 2, 3, 4, 5]\nnumbers.reverse()\nSonuç ne olacak?",
+                    "answers": [
+                        "[5, 4, 3, 2, 1]",
+                        "[1, 2, 3, 4, 5]",
+                        "[1, 2, 3, 4]"
+                    ],
+                    "correct_answer": "[5, 4, 3, 2, 1]",
+                    "explanation": "Reverse() yöntemi, listedeki öğelerin sırasını tersine çevirir."
+                }
+            ]
+        },
+        {
+            "topic": "Python",
+            "subtopic": "Lists",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "numbers = [1, 2, 3]\nnew_list = numbers.copy()\nКакой будет содержимое new_list?",
+                    "answers": [
+                        "[1, 2, 3]",
+                        "[1, 2, 3, 4]",
+                        "[]"
+                    ],
+                    "correct_answer": "[1, 2, 3]",
+                    "explanation": "Метод copy() создает поверхностную копию списка."
+                },
+                {
+                    "language": "en",
+                    "question": "numbers = [1, 2, 3]\nnew_list = numbers.copy()\nWhat will be the content of new_list?",
+                    "answers": [
+                        "[1, 2, 3]",
+                        "[1, 2, 3, 4]",
+                        "[]"
+                    ],
+                    "correct_answer": "[1, 2, 3]",
+                    "explanation": "The copy() method creates a shallow copy of the list."
+                },
+                {
+                    "language": "tr",
+                    "question": "numbers = [1, 2, 3]\nnew_list = numbers.copy()\nnew_list'in içeriği ne olacak?",
+                    "answers": [
+                        "[1, 2, 3]",
+                        "[1, 2, 3, 4]",
+                        "[]"
+                    ],
+                    "correct_answer": "[1, 2, 3]",
+                    "explanation": "Copy() yöntemi, listenin yüzeysel bir kopyasını oluşturur."
+                }
+            ]
+        }
+    ]
+}

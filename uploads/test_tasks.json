@@ -1,0 +1,414 @@
+{
+    "tasks": [
+        {
+            "id": 1,
+            "topic": "Python",
+            "subtopic": "List Comprehensions",
+            "difficulty": "easy",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Какой будет результат выполнения следующего кода?\nnumbers = [1, 2, 3, 4]\nsquares = [x**2 for x in numbers]\nprint(squares)",
+                    "answers": [
+                        "[1, 4, 9, 16]",
+                        "[2, 4, 6, 8]",
+                        "[1, 8, 27, 64]"
+                    ],
+                    "correct_answer": "[1, 4, 9, 16]",
+                    "explanation": "List comprehension создаёт новый список, содержащий квадраты чисел из списка numbers."
+                },
+                {
+                    "language": "en",
+                    "question": "What will be the result of the following code?\nnumbers = [1, 2, 3, 4]\nsquares = [x**2 for x in numbers]\nprint(squares)",
+                    "answers": [
+                        "[1, 4, 9, 16]",
+                        "[2, 4, 6, 8]",
+                        "[1, 8, 27, 64]"
+                    ],
+                    "correct_answer": "[1, 4, 9, 16]",
+                    "explanation": "List comprehension creates a new list containing the squares of numbers from the list numbers."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kodun çıktısı ne olacaktır?\nnumbers = [1, 2, 3, 4]\nsquares = [x**2 for x in numbers]\nprint(squares)",
+                    "answers": [
+                        "[1, 4, 9, 16]",
+                        "[2, 4, 6, 8]",
+                        "[1, 8, 27, 64]"
+                    ],
+                    "correct_answer": "[1, 4, 9, 16]",
+                    "explanation": "List comprehension, numbers listesindeki sayıların karelerini içeren yeni bir liste oluşturur."
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "topic": "Python",
+            "subtopic": "Dictionaries",
+            "difficulty": "medium",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Как добавить новый ключ-значение в словарь?\nstudent = {'name': 'John', 'age': 20}\nДобавьте ключ 'grade' со значением 'A'.",
+                    "answers": [
+                        "student['grade'] = 'A'",
+                        "student.add('grade', 'A')",
+                        "student.append('grade', 'A')"
+                    ],
+                    "correct_answer": "student['grade'] = 'A'",
+                    "explanation": "Для добавления нового ключа-значения в словарь используется синтаксис student['new_key'] = value."
+                },
+                {
+                    "language": "en",
+                    "question": "How to add a new key-value pair to a dictionary?\nstudent = {'name': 'John', 'age': 20}\nAdd the key 'grade' with the value 'A'.",
+                    "answers": [
+                        "student['grade'] = 'A'",
+                        "student.add('grade', 'A')",
+                        "student.append('grade', 'A')"
+                    ],
+                    "correct_answer": "student['grade'] = 'A'",
+                    "explanation": "To add a new key-value pair to a dictionary, use the syntax student['new_key'] = value."
+                },
+                {
+                    "language": "tr",
+                    "question": "Bir sözlüğe yeni bir anahtar-değer çifti nasıl eklenir?\nstudent = {'name': 'John', 'age': 20}\n'grade' anahtarını 'A' değeriyle ekleyin.",
+                    "answers": [
+                        "student['grade'] = 'A'",
+                        "student.add('grade', 'A')",
+                        "student.append('grade', 'A')"
+                    ],
+                    "correct_answer": "student['grade'] = 'A'",
+                    "explanation": "Sözlüğe yeni bir anahtar-değer çifti eklemek için student['yeni_anahtar'] = değer sözdizimi kullanılır."
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "topic": "Python",
+            "subtopic": "Functions",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Что выведет следующий код?\ndef greet(name='Guest'):\n    print(f\"Hello, {name}!\")\ngreet()\ngreet('Alice')",
+                    "answers": [
+                        "Hello, Guest!\nHello, Alice!",
+                        "Hello, Alice!\nHello, Alice!",
+                        "Hello, Guest!\nHello, Guest!"
+                    ],
+                    "correct_answer": "Hello, Guest!\nHello, Alice!",
+                    "explanation": "Функция greet вызывается сначала без аргументов, использует значение по умолчанию 'Guest', затем вызывается с аргументом 'Alice'."
+                },
+                {
+                    "language": "en",
+                    "question": "What will the following code output?\ndef greet(name='Guest'):\n    print(f\"Hello, {name}!\")\ngreet()\ngreet('Alice')",
+                    "answers": [
+                        "Hello, Guest!\nHello, Alice!",
+                        "Hello, Alice!\nHello, Alice!",
+                        "Hello, Guest!\nHello, Guest!"
+                    ],
+                    "correct_answer": "Hello, Guest!\nHello, Alice!",
+                    "explanation": "The greet function is first called without arguments, using the default value 'Guest', then called with the argument 'Alice'."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kod ne yazdırır?\ndef greet(name='Guest'):\n    print(f\"Hello, {name}!\")\ngreet()\ngreet('Alice')",
+                    "answers": [
+                        "Hello, Guest!\nHello, Alice!",
+                        "Hello, Alice!\nHello, Alice!",
+                        "Hello, Guest!\nHello, Guest!"
+                    ],
+                    "correct_answer": "Hello, Guest!\nHello, Alice!",
+                    "explanation": "greet fonksiyonu önce argüman olmadan çağrılır, varsayılan değer 'Guest' kullanılır, sonra 'Alice' argümanı ile çağrılır."
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "topic": "Python",
+            "subtopic": "File Handling",
+            "difficulty": "medium",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Как открыть файл для чтения в Python?",
+                    "answers": [
+                        "open('file.txt', 'r')",
+                        "open('file.txt', 'w')",
+                        "open('file.txt', 'a')"
+                    ],
+                    "correct_answer": "open('file.txt', 'r')",
+                    "explanation": "Режим 'r' используется для открытия файла только для чтения."
+                },
+                {
+                    "language": "en",
+                    "question": "How to open a file for reading in Python?",
+                    "answers": [
+                        "open('file.txt', 'r')",
+                        "open('file.txt', 'w')",
+                        "open('file.txt', 'a')"
+                    ],
+                    "correct_answer": "open('file.txt', 'r')",
+                    "explanation": "The 'r' mode is used to open a file for reading only."
+                },
+                {
+                    "language": "tr",
+                    "question": "Python'da bir dosyayı okumak için nasıl açılır?",
+                    "answers": [
+                        "open('file.txt', 'r')",
+                        "open('file.txt', 'w')",
+                        "open('file.txt', 'a')"
+                    ],
+                    "correct_answer": "open('file.txt', 'r')",
+                    "explanation": "'r' modu, bir dosyayı sadece okumak için açmakta kullanılır."
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "topic": "Python",
+            "subtopic": "Classes and Objects",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Что выведет следующий код?\nclass Dog:\n    def __init__(self, name):\n        self.name = name\n    def bark(self):\n        return f\"{self.name} says woof!\"\ndog = Dog('Buddy')\nprint(dog.bark())",
+                    "answers": [
+                        "Buddy says woof!",
+                        "says woof!",
+                        "Error"
+                    ],
+                    "correct_answer": "Buddy says woof!",
+                    "explanation": "Метод bark возвращает строку с именем собаки и звуком."
+                },
+                {
+                    "language": "en",
+                    "question": "What will the following code output?\nclass Dog:\n    def __init__(self, name):\n        self.name = name\n    def bark(self):\n        return f\"{self.name} says woof!\"\ndog = Dog('Buddy')\nprint(dog.bark())",
+                    "answers": [
+                        "Buddy says woof!",
+                        "says woof!",
+                        "Error"
+                    ],
+                    "correct_answer": "Buddy says woof!",
+                    "explanation": "The bark method returns a string with the dog's name and the sound."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kod ne yazdırır?\nclass Dog:\n    def __init__(self, name):\n        self.name = name\n    def bark(self):\n        return f\"{self.name} says woof!\"\ndog = Dog('Buddy')\nprint(dog.bark())",
+                    "answers": [
+                        "Buddy says woof!",
+                        "says woof!",
+                        "Error"
+                    ],
+                    "correct_answer": "Buddy says woof!",
+                    "explanation": "bark metodu, köpeğin adı ve sesi ile bir string döndürür."
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "topic": "Python",
+            "subtopic": "Modules and Packages",
+            "difficulty": "medium",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Как импортировать модуль math в Python?",
+                    "answers": [
+                        "import math",
+                        "import Math",
+                        "include math"
+                    ],
+                    "correct_answer": "import math",
+                    "explanation": "В Python модуль импортируется с помощью ключевого слова import, с указанием названия модуля в нижнем регистре."
+                },
+                {
+                    "language": "en",
+                    "question": "How to import the math module in Python?",
+                    "answers": [
+                        "import math",
+                        "import Math",
+                        "include math"
+                    ],
+                    "correct_answer": "import math",
+                    "explanation": "In Python, a module is imported using the import keyword followed by the module name in lowercase."
+                },
+                {
+                    "language": "tr",
+                    "question": "Python'da math modülü nasıl içe aktarılır?",
+                    "answers": [
+                        "import math",
+                        "import Math",
+                        "include math"
+                    ],
+                    "correct_answer": "import math",
+                    "explanation": "Python'da bir modül, import anahtar kelimesi kullanılarak ve modül adı küçük harflerle belirtilerek içe aktarılır."
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "topic": "Python",
+            "subtopic": "Exception Handling",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Что выведет следующий код?\ntry:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    result = 'На ноль делить нельзя'\nprint(result)",
+                    "answers": [
+                        "На ноль делить нельзя",
+                        "Infinity",
+                        "Ошибка выполнения"
+                    ],
+                    "correct_answer": "На ноль делить нельзя",
+                    "explanation": "Деление на ноль вызывает исключение ZeroDivisionError, которое перехватывается блоком except."
+                },
+                {
+                    "language": "en",
+                    "question": "What will the following code output?\ntry:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    result = 'Cannot divide by zero'\nprint(result)",
+                    "answers": [
+                        "Cannot divide by zero",
+                        "Infinity",
+                        "Runtime Error"
+                    ],
+                    "correct_answer": "Cannot divide by zero",
+                    "explanation": "Division by zero raises a ZeroDivisionError, which is caught by the except block."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kod ne yazdırır?\ntry:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    result = 'Sıfıra bölünemez'\nprint(result)",
+                    "answers": [
+                        "Sıfıra bölünemez",
+                        "Infinity",
+                        "Çalışma zamanı hatası"
+                    ],
+                    "correct_answer": "Sıfıra bölünemez",
+                    "explanation": "Sıfıra bölme ZeroDivisionError istisnasını tetikler ve except bloğu bu hatayı yakalar."
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "topic": "Python",
+            "subtopic": "Lambda Functions",
+            "difficulty": "medium",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Что выведет следующий код?\nnumbers = [1, 2, 3, 4]\nsquared = list(map(lambda x: x**2, numbers))\nprint(squared)",
+                    "answers": [
+                        "[1, 4, 9, 16]",
+                        "[2, 4, 6, 8]",
+                        "[1, 8, 27, 64]"
+                    ],
+                    "correct_answer": "[1, 4, 9, 16]",
+                    "explanation": "Lambda-функция возводит каждый элемент списка в квадрат."
+                },
+                {
+                    "language": "en",
+                    "question": "What will the following code output?\nnumbers = [1, 2, 3, 4]\nsquared = list(map(lambda x: x**2, numbers))\nprint(squared)",
+                    "answers": [
+                        "[1, 4, 9, 16]",
+                        "[2, 4, 6, 8]",
+                        "[1, 8, 27, 64]"
+                    ],
+                    "correct_answer": "[1, 4, 9, 16]",
+                    "explanation": "The lambda function squares each element in the list."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kod ne yazdırır?\nnumbers = [1, 2, 3, 4]\nsquared = list(map(lambda x: x**2, numbers))\nprint(squared)",
+                    "answers": [
+                        "[1, 4, 9, 16]",
+                        "[2, 4, 6, 8]",
+                        "[1, 8, 27, 64]"
+                    ],
+                    "correct_answer": "[1, 4, 9, 16]",
+                    "explanation": "Lambda fonksiyonu, listedeki her öğeyi kareye çıkarır."
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "topic": "Python",
+            "subtopic": "Generators",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Что выведет следующий код?\ndef count_up_to(max):\n    count = 1\n    while count <= max:\n        yield count\n        count += 1\ncounter = count_up_to(3)\nfor num in counter:\n    print(num)",
+                    "answers": [
+                        "1\n2\n3",
+                        "1\n2\n3\n4",
+                        "Error"
+                    ],
+                    "correct_answer": "1\n2\n3",
+                    "explanation": "Генератор count_up_to генерирует числа от 1 до 3 включительно."
+                },
+                {
+                    "language": "en",
+                    "question": "What will the following code output?\ndef count_up_to(max):\n    count = 1\n    while count <= max:\n        yield count\n        count += 1\ncounter = count_up_to(3)\nfor num in counter:\n    print(num)",
+                    "answers": [
+                        "1\n2\n3",
+                        "1\n2\n3\n4",
+                        "Error"
+                    ],
+                    "correct_answer": "1\n2\n3",
+                    "explanation": "The generator count_up_to yields numbers from 1 to 3 inclusive."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kod ne yazdırır?\ndef count_up_to(max):\n    count = 1\n    while count <= max:\n        yield count\n        count += 1\ncounter = count_up_to(3)\nfor num in counter:\n    print(num)",
+                    "answers": [
+                        "1\n2\n3",
+                        "1\n2\n3\n4",
+                        "Error"
+                    ],
+                    "correct_answer": "1\n2\n3",
+                    "explanation": "count_up_to jeneratörü, 1'den 3'e kadar olan sayıları üretir."
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "topic": "Python",
+            "subtopic": "Decorators",
+            "difficulty": "hard",
+            "translations": [
+                {
+                    "language": "ru",
+                    "question": "Что выведет следующий код?\ndef decorator_func(func):\n    def wrapper():\n        print(\"Перед вызовом функции\")\n        func()\n        print(\"После вызова функции\")\n    return wrapper\n@decorator_func\ndef say_hello():\n    print(\"Привет!\")\nsay_hello()",
+                    "answers": [
+                        "Перед вызовом функции\nПривет!\nПосле вызова функции",
+                        "Привет!",
+                        "Перед вызовом функции\nПосле вызова функции"
+                    ],
+                    "correct_answer": "Перед вызовом функции\nПривет!\nПосле вызова функции",
+                    "explanation": "Декоратор добавляет вывод перед и после вызова функции say_hello."
+                },
+                {
+                    "language": "en",
+                    "question": "What will the following code output?\ndef decorator_func(func):\n    def wrapper():\n        print(\"Before function call\")\n        func()\n        print(\"After function call\")\n    return wrapper\n@decorator_func\ndef say_hello():\n    print(\"Hello!\")\nsay_hello()",
+                    "answers": [
+                        "Before function call\nHello!\nAfter function call",
+                        "Hello!",
+                        "Before function call\nAfter function call"
+                    ],
+                    "correct_answer": "Before function call\nHello!\nAfter function call",
+                    "explanation": "The decorator adds print statements before and after calling the say_hello function."
+                },
+                {
+                    "language": "tr",
+                    "question": "Aşağıdaki kod ne yazdırır?\ndef decorator_func(func):\n    def wrapper():\n        print(\"Fonksiyon çağrılmadan önce\")\n        func()\n        print(\"Fonksiyon çağrıldıktan sonra\")\n    return wrapper\n@decorator_func\ndef say_hello():\n    print(\"Merhaba!\")\nsay_hello()",
+                    "answers": [
+                        "Fonksiyon çağrılmadan önce\nMerhaba!\nFonksiyon çağrıldıktan sonra",
+                        "Merhaba!",
+                        "Fonksiyon çağrılmadan önce\nFonksiyon çağrıldıktan sonra"
+                    ],
+                    "correct_answer": "Fonksiyon çağrılmadan önce\nMerhaba!\nFonksiyon çağrıldıktan sonra",
+                    "explanation": "Decorator, say_hello fonksiyonunu çağırmadan önce ve sonra print ifadeleri ekler."
+                }
+            ]
+        }
+    ]
+}

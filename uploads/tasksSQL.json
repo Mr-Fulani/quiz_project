@@ -1,0 +1,94 @@
+{
+  "tasks": [
+    {
+      "topic": "Java",
+      "subtopic": "Loops",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "for (int i = 0; i < 5; i++) {\n    System.out.print(i + \" \");\n}",
+          "answers": [
+            "0 1 2 3 4",
+            "1 2 3 4 5",
+            "0 1 2 3 4 5"
+          ],
+          "correct_answer": "0 1 2 3 4",
+          "explanation": "Цикл `for` выполняется с `i` от 0 до 4 включительно. Метод `System.out.print` выводит значения без новой строки."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Arrays",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "int[] numbers = {1, 2, 3, 4, 5};\nSystem.out.println(numbers[2]);",
+          "answers": [
+            "3",
+            "2",
+            "Ошибка выполнения"
+          ],
+          "correct_answer": "3",
+          "explanation": "Элемент с индексом 2 массива `numbers` равен 3, так как индексация в массивах Java начинается с 0."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Classes and Objects",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "class Car {\n    String model = \"Tesla\";\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        Car myCar = new Car();\n        System.out.println(myCar.model);\n    }\n}",
+          "answers": [
+            "Tesla",
+            "Ошибка компиляции",
+            "null"
+          ],
+          "correct_answer": "Tesla",
+          "explanation": "При создании объекта `myCar` класс `Car` инициализирует поле `model` значением \"Tesla\"."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Methods",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "public static int multiply(int a, int b) {\n    return a * b;\n}\n\npublic static void main(String[] args) {\n    System.out.println(multiply(3, 4));\n}",
+          "answers": [
+            "12",
+            "7",
+            "Ошибка компиляции"
+          ],
+          "correct_answer": "12",
+          "explanation": "Метод `multiply` возвращает произведение двух чисел. `3 * 4 = 12`."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Exceptions",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "try {\n    int[] numbers = {1, 2, 3};\n    System.out.println(numbers[5]);\n} catch (ArrayIndexOutOfBoundsException e) {\n    System.out.println(\"Ошибка\");\n}",
+          "answers": [
+            "Ошибка",
+            "3",
+            "Ошибка компиляции"
+          ],
+          "correct_answer": "Ошибка",
+          "explanation": "Попытка доступа к элементу массива с несуществующим индексом вызывает `ArrayIndexOutOfBoundsException`. Блок `catch` обрабатывает исключение и выводит \"Ошибка\"."
+        }
+      ]
+    }
+  ]
+}

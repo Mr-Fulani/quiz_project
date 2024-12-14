@@ -1,0 +1,144 @@
+{
+  "tasks": [
+    {
+      "topic": "Golang",
+      "subtopic": "Concurrency",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "ch := make(chan int)\ngo func() {\n    ch <- 42\n}()\nfmt.Println(<-ch)",
+          "answers": ["42", "deadlock", "0"],
+          "correct_answer": "42",
+          "explanation": "A channel is used to synchronize goroutines by passing a value through it."
+        },
+        {
+          "language": "ru",
+          "question": "ch := make(chan int)\ngo func() {\n    ch <- 42\n}()\nfmt.Println(<-ch)",
+          "answers": ["42", "deadlock", "0"],
+          "correct_answer": "42",
+          "explanation": "Канал используется для синхронизации горутин путем передачи значения через него."
+        },
+        {
+          "language": "tr",
+          "question": "ch := make(chan int)\ngo func() {\n    ch <- 42\n}()\nfmt.Println(<-ch)",
+          "answers": ["42", "deadlock", "0"],
+          "correct_answer": "42",
+          "explanation": "Bir kanal, değeri aktararak goroutine'leri senkronize etmek için kullanılır."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Concurrency",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "go func() {\n    fmt.Println(\"Hello from goroutine\")\n}()\ntime.Sleep(time.Second)",
+          "answers": ["Hello from goroutine", "Nothing", "Error"],
+          "correct_answer": "Hello from goroutine",
+          "explanation": "The goroutine is allowed to run as Sleep gives time for its execution."
+        },
+        {
+          "language": "ru",
+          "question": "go func() {\n    fmt.Println(\"Привет от горутины\")\n}()\ntime.Sleep(time.Second)",
+          "answers": ["Привет от горутины", "Ничего", "Ошибка"],
+          "correct_answer": "Привет от горутины",
+          "explanation": "Горутина успевает выполниться, так как задержка предоставляет ей время."
+        },
+        {
+          "language": "tr",
+          "question": "go func() {\n    fmt.Println(\"Goroutine'den merhaba\")\n}()\ntime.Sleep(time.Second)",
+          "answers": ["Goroutine'den merhaba", "Hiçbir şey", "Hata"],
+          "correct_answer": "Goroutine'den merhaba",
+          "explanation": "Sleep fonksiyonu ile goroutine'in çalışması için zaman sağlanır."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Concurrency",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "ch := make(chan int, 1)\nch <- 10\nfmt.Println(<-ch)",
+          "answers": ["10", "deadlock", "nil"],
+          "correct_answer": "10",
+          "explanation": "Buffered channels can hold data, so deadlock is avoided here."
+        },
+        {
+          "language": "ru",
+          "question": "ch := make(chan int, 1)\nch <- 10\nfmt.Println(<-ch)",
+          "answers": ["10", "deadlock", "nil"],
+          "correct_answer": "10",
+          "explanation": "Буферизированные каналы могут хранить данные, поэтому deadlock не возникает."
+        },
+        {
+          "language": "tr",
+          "question": "ch := make(chan int, 1)\nch <- 10\nfmt.Println(<-ch)",
+          "answers": ["10", "deadlock", "nil"],
+          "correct_answer": "10",
+          "explanation": "Buffer'li kanallar veri tutabilir, bu yüzden deadlock oluşmaz."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Concurrency",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "ch := make(chan int)\ngo func() {\n    ch <- 5\n    ch <- 15\n}()\nfmt.Println(<-ch)",
+          "answers": ["5", "15", "error"],
+          "correct_answer": "5",
+          "explanation": "Only the first value is read from the channel."
+        },
+        {
+          "language": "ru",
+          "question": "ch := make(chan int)\ngo func() {\n    ch <- 5\n    ch <- 15\n}()\nfmt.Println(<-ch)",
+          "answers": ["5", "15", "ошибка"],
+          "correct_answer": "5",
+          "explanation": "Считывается только первое значение из канала."
+        },
+        {
+          "language": "tr",
+          "question": "ch := make(chan int)\ngo func() {\n    ch <- 5\n    ch <- 15\n}()\nfmt.Println(<-ch)",
+          "answers": ["5", "15", "hata"],
+          "correct_answer": "5",
+          "explanation": "Yalnızca ilk değer kanaldan okunur."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Concurrency",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "ch := make(chan int)\ngo func() {\n    close(ch)\n}()\nfmt.Println(<-ch)",
+          "answers": ["0", "nil", "error"],
+          "correct_answer": "0",
+          "explanation": "Reading from a closed channel returns the zero value for the channel's type."
+        },
+        {
+          "language": "ru",
+          "question": "ch := make(chan int)\ngo func() {\n    close(ch)\n}()\nfmt.Println(<-ch)",
+          "answers": ["0", "nil", "ошибка"],
+          "correct_answer": "0",
+          "explanation": "Считывание из закрытого канала возвращает нулевое значение для типа канала."
+        },
+        {
+          "language": "tr",
+          "question": "ch := make(chan int)\ngo func() {\n    close(ch)\n}()\nfmt.Println(<-ch)",
+          "answers": ["0", "nil", "hata"],
+          "correct_answer": "0",
+          "explanation": "Kapalı bir kanaldan okuma, kanalın türü için sıfır değerini döndürür."
+        }
+      ]
+    }
+  ]
+}
