@@ -2,18 +2,25 @@
 
 import asyncio
 import logging
+import sys
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.exc import SQLAlchemyError
+
+# Убедитесь, что пути импорта корректны в вашем проекте
 from database.database import AsyncSessionMaker as async_session_maker
 from database.models import Topic
 
-
-
 # Настройка логгера
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
-
 
 
 async def create_topics(db_session: AsyncSession):
@@ -96,20 +103,29 @@ async def create_topics(db_session: AsyncSession):
             new_topic = Topic(name=topic_name)
             db_session.add(new_topic)
             logger.info(f"Тема '{topic_name}' успешно добавлена.")
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Ошибка при добавлении темы '{topic_name}': {e}")
+            await db_session.rollback()
+        except Exception as e:
+            logger.error(f"Непредвиденная ошибка при добавлении темы '{topic_name}': {e}")
+            await db_session.rollback()
 
-        # Сохранение изменений
+    # Сохранение изменений
     try:
         await db_session.commit()
         logger.info("Все темы успешно сохранены в базе данных.")
-    except Exception as e:
+    except SQLAlchemyError as e:
         logger.error(f"Ошибка при сохранении тем: {e}")
         await db_session.rollback()
+    except Exception as e:
+        logger.error(f"Непредвиденная ошибка при сохранении тем: {e}")
+        await db_session.rollback()
 
-    async def main():
-        async with async_session_maker() as session:
-            await create_topics(session)
 
-    if __name__ == "__main__":
-        asyncio.run(main())
+async def main():
+    async with async_session_maker() as session:
+        await create_topics(session)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

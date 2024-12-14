@@ -104,7 +104,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     image_message, text_message, poll_message, button_message = await prepare_publication(
                         task=task_in_group,
                         translation=translation,
-                        image_url=image_url
+                        image_url=image_url,
+                        db_session=db_session
                     )
 
                     # Поиск группы для публикации
@@ -261,7 +262,8 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         image_message, text_message, poll_message, button_message = await prepare_publication(
             task=translation.task,
             translation=translation,
-            image_url=image_url
+            image_url=image_url,
+            db_session=db_session
         )
 
         # Поиск группы для публикации
@@ -434,7 +436,8 @@ async def publish_task_by_translation_group(
                     image_message, text_message, poll_message, button_message = await prepare_publication(
                         task=task,
                         translation=translation,
-                        image_url=image_url
+                        image_url=image_url,
+                        db_session=db_session
                     )
 
                     # Поиск группы
@@ -596,3 +599,7 @@ async def publish_task_by_translation_group(
         await db_session.rollback()
         await message.answer(error_msg)
         return False, published_count, failed_count, total_translations
+
+
+
+

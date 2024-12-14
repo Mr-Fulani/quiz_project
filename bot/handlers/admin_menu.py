@@ -51,15 +51,17 @@ async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session:
     logger.info("Обработчик кнопки 'Добавить администратора' вызван")
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
-        await call.message.answer("⛔ У вас нет прав для выполнения этой команды.")
+        await call.message.answer(
+            "⛔ У вас нет прав для выполнения этой команды.",
+            reply_markup=get_start_reply_keyboard()
+        )
         logger.warning(f"Пользователь {call.from_user.username} ({user_id}) попытался добавить администратора без прав.")
         await call.answer()
         return
     await call.message.answer(
         "🔒 Введите секретный пароль для добавления нового администратора:\n\n"
         "_Обратите внимание: вводимые символы будут видны только вам._",
-        parse_mode='Markdown',
-        reply_markup=ForceReply(selective=True)
+        parse_mode='Markdown'
     )
     logger.debug("Просьба ввести пароль для добавления администратора")
     await state.set_state(AddAdminStates.waiting_for_password)
@@ -105,7 +107,7 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
         await state.clear()
         await message.answer(
             "🔄 Возвращаюсь в главное меню.",
-            reply_markup=get_admin_menu_keyboard()
+            reply_markup=get_start_reply_keyboard()  # Используем стартовую клавиатуру
         )
         return
 
@@ -122,7 +124,7 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
             await state.clear()
             await message.answer(
                 "🔄 Возвращаюсь в главное меню.",
-                reply_markup=get_admin_menu_keyboard()
+                reply_markup=get_start_reply_keyboard()
             )
             return
 
@@ -140,7 +142,7 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
         # Возврат в главное меню
         await message.answer(
             "🔄 Возвращаюсь в главное меню.",
-            reply_markup=get_admin_menu_keyboard()
+            reply_markup=get_start_reply_keyboard()
         )
     except IntegrityError:
         await message.reply("❌ Не удалось добавить администратора. Возможно, пользователь уже существует.")
@@ -210,6 +212,7 @@ async def process_remove_admin_user_id(message: Message, state: FSMContext, db_s
         logger.info(f"Пользователь с Telegram ID {admin_id} удалён из списка администраторов.")
         # Возврат в главное меню
         await message.answer(
+            "🔄 Возвращаюсь в главное меню.",
             reply_markup=get_start_reply_keyboard()
         )
     except Exception as e:
@@ -360,18 +363,31 @@ async def create_quiz_handler(call: CallbackQuery, db_session: AsyncSession):
 
 
 
+
 # Обработчик кнопки "Состояние базы"
 @router.callback_query(F.data == "database_status")
 async def handle_database_status(callback: CallbackQuery, db_session: AsyncSession):
     try:
-        unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks, topics = await get_task_status(db_session)
+        unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks, topics = await get_task_status(
+            db_session)
         image_path = await generate_detailed_task_status_image(
             unpublished_tasks, old_published_tasks, total_tasks, topics, published_tasks
         )
+
+        if image_path is None:
+            # Уведомляем администратора, который инициировал отправку отчета
+            await callback.bot.send_message(
+                chat_id=callback.from_user.id,
+                text="📝 В базе данных нет задач для отображения."
+            )
+            await callback.answer("Отчет не был сгенерирован из-за отсутствия задач.", show_alert=True)
+            return  # Завершаем выполнение функции
+
         image_file = FSInputFile(image_path)
         await callback.message.answer_photo(photo=image_file)
         os.remove(image_path)
         await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)
+
     except Exception as e:
         logger.error(f"Ошибка при генерации отчета о состоянии базы данных: {e}")
         await callback.message.answer("❌ Произошла ошибка при генерации отчета о состоянии базы данных.")
@@ -973,6 +989,8 @@ async def callback_add_default_link(call: CallbackQuery, state: FSMContext, db_s
     await state.set_state(DefaultLinkStates.waiting_for_language)
     await call.answer()
 
+
+
 # Ввод языка для добавления ссылки
 @router.message(DefaultLinkStates.waiting_for_language, F.content_type == ContentType.TEXT)
 async def process_default_link_language(message: Message, state: FSMContext, db_session: AsyncSession):
@@ -997,9 +1015,10 @@ async def process_default_link_topic(message: Message, state: FSMContext, db_ses
     await message.reply("🔗 Введите ссылку для этой комбинации языка и темы:")
     await state.set_state(DefaultLinkStates.waiting_for_link)
 
+
 # Ввод ссылки
 @router.message(DefaultLinkStates.waiting_for_link, F.content_type == ContentType.TEXT)
-async def process_default_link_link(message: Message, state: FSMContext, db_session: AsyncSession):
+async def process_default_link_link(message: types.Message, state: FSMContext, db_session: AsyncSession):
     link = message.text.strip()
     if not is_valid_url(link):
         await message.reply("❌ Некорректный URL. Попробуйте ещё раз.")
@@ -1011,12 +1030,27 @@ async def process_default_link_link(message: Message, state: FSMContext, db_sess
     try:
         default_link_service = DefaultLinkService(db_session)
         await default_link_service.add_default_link(language, topic, link)
-        await message.reply(f"✅ Ссылка успешно добавлена:\nЯзык: `{language}`\nТема: `{topic}`\nСсылка: {link}", parse_mode="MarkdownV2")
+
+        # Экранирование всех частей сообщения
+        escaped_language = escape_markdown(language)
+        escaped_topic = escape_markdown(topic)
+        escaped_link = escape_markdown(link)
+
+        reply_text = (
+            f"✅ Ссылка успешно добавлена:\n"
+            f"Язык: `{escaped_language}`\n"
+            f"Тема: `{escaped_topic}`\n"
+            f"Ссылка: {escaped_link}"
+        )
+
+        await message.reply(reply_text, parse_mode="MarkdownV2")
         logger.info(f"Успешно добавлена ссылка: Язык={language}, Тема={topic}, Ссылка={link}")
     except Exception as e:
         await message.reply("❌ Произошла ошибка при добавлении ссылки.")
         logger.error(f"Ошибка при добавлении ссылки: {e}")
     await state.clear()
+
+
 
 # Обработчик кнопки "Удалить ссылку"
 @router.callback_query(F.data == "remove_default_link")

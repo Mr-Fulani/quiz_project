@@ -139,7 +139,20 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
     logger.info(f"🖼️ Подготовлено сообщение с изображением и вопросом: {image_message['caption']}")
 
     # Подготовка опроса с исправленной логикой
-    wrong_answers = translation.answers.copy()  # Копируем список, чтобы избежать изменений оригинального
+    if isinstance(translation.answers, str):
+        try:
+            wrong_answers = json.loads(translation.answers)
+            if not isinstance(wrong_answers, list):
+                raise ValueError("Десериализованные answers должны быть списком.")
+        except json.JSONDecodeError as e:
+            logger.error(f"Ошибка десериализации answers: {e}")
+            raise
+    elif isinstance(translation.answers, list):
+        wrong_answers = translation.answers.copy()
+    else:
+        logger.error(f"Неподдерживаемый тип для translation.answers: {type(translation.answers)}")
+        raise TypeError("translation.answers должен быть списком или JSON-строкой.")
+
     correct_answer = translation.correct_answer
 
     # Если правильный ответ уже содержится в вариантах, удаляем его перед тем, как добавить обратно

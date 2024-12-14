@@ -189,7 +189,6 @@ async def generate_detailed_task_status_image(unpublished_tasks, old_published_t
 
 
 
-
 async def get_topic_names(db_session):
     """
     Получаем все темы в формате словаря {id_топика: название_топика}.

@@ -266,11 +266,11 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
         try:
             logo = Image.open(logo_path).convert("RGBA")
             # Установка фиксированного размера логотипа
-            fixed_logo_size = (200, 200)  # Увеличенный фиксированный размер
+            fixed_logo_size = (300, 300)  # Увеличенный фиксированный размер
             logo = logo.resize(fixed_logo_size, Resampling.LANCZOS)
             logger.info(f"Fixed logo size: {logo.size}")
-            logo_x = width - logo.width - 60  # Увеличенный отступ от края
-            logo_y = 60  # Увеличенный отступ от верхнего края
+            logo_x = width - logo.width - 30  # Увеличенный отступ от края
+            logo_y = 10  # Увеличенный отступ от верхнего края
             image.paste(logo, (logo_x, logo_y), logo)
         except Exception as e:
             logger.error(f"Ошибка при загрузке логотипа: {e}")
@@ -300,7 +300,7 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 # if __name__ == "__main__":
 #     task_text = """
 # def hello_world():
-#     print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!")print("Hello, World!")
+#     print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")
 # def hello_world():
 #     print("Hello, World!")
 # def hello_world():
