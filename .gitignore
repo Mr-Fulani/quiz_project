@@ -11,5 +11,14 @@ __pycache__/
 .DS_Store
 *.log
 *.sqlite3
+
+test_connection.py
+add_groups.py
+
 postgres_data/
+clear_tables.py
+
+
+
 tasks.json
+*.json
