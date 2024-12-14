@@ -74,7 +74,7 @@ logger.debug(f"ALLOWED_USERS: {ALLOWED_USERS}")
 # Временное логирование для отладки
 logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
 # logger.debug(f"WEBHOOK_BOT_TOKEN: {WEBHOOK_BOT_TOKEN}")
-logger.debug(f"TARGET_CHAT_ID: {TARGET_CHAT_ID}")
+# logger.debug(f"TARGET_CHAT_ID: {TARGET_CHAT_ID}")
 logger.debug(f"S3_BUCKET_NAME: {S3_BUCKET_NAME}")
 logger.debug(f"S3_REGION: {S3_REGION}")
 logger.debug(f"AWS_ACCESS_KEY_ID: {AWS_ACCESS_KEY_ID}")
