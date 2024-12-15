@@ -88,7 +88,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
             'no_subtopic': 'Alt konu yok',
             'difficulty': 'Zorluk'
         },
-        'arab': {
+        'ar': {
             'programming_language': 'اللغة',
             'topic': 'الموضوع',
             'subtopic': 'الموضوع الفرعي',
@@ -126,7 +126,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'en': "What will be the output?",
         'es': "¿Cuál será el resultado?",
         'tr': "Çıktı ne olacak?",
-        'arab': "ما هي النتيجة؟"
+        'ar': "ما هي النتيجة؟"
     }
     question_text = question_texts.get(language, "Какой будет вывод?")
     logger.info(f"📝 Текст вопроса на языке '{language}': {question_text}")
@@ -174,7 +174,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'en': "I don't know, but I want to learn",
         'es': "No lo sé, pero quiero aprender",
         'tr': "Bilmiyorum, ama öğrenmek istiyorum",
-        'arab': "لا أعرف، ولكن أريد أن أتعلم"
+        'ar': "لا أعرف، ولكن أريد أن أتعلم"
     }.get(language, "Я не знаю, но хочу узнать")
     options.append(dont_know_option)
 
@@ -206,7 +206,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'en': "Learn more",
         'es': "Saber más",
         'tr': "Daha fazla öğren",
-        'arab': "تعلم المزيد"
+        'ar': "تعلم المزيد"
     }.get(language, "Узнать подробнее")
     logger.info(f"🔗 Текст кнопки 'Узнать больше' на языке '{language}': {learn_more_text}")
 
@@ -216,7 +216,7 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         'en': "Learn more about the task:",
         'es': "Saber más sobre la tarea:",
         'tr': "Görev hakkında daha fazla öğren:",
-        'arab': "تعرف على المزيد حول المهمة:"
+        'ar': "تعرف على المزيد حول المهمة:"
     }.get(language, "Узнать больше о задаче:")
 
     logger.info(f"✅ Текст 'Узнать больше о задаче' на языке '{language}': {learn_more_about_task_text}")

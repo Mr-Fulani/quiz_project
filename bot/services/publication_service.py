@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Tuple
 from uuid import UUID
+import asyncio
+import random
 
 from aiogram import Bot
 from sqlalchemy import select
@@ -20,19 +22,10 @@ from webhook_sender import send_webhooks_sequentially
 logger = logging.getLogger(__name__)
 
 
-
-
-
 async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bot: Bot) -> bool:
     """
     Публикует все переводы задачи по её ID и translation_group_id.
     Отправляет вебхуки на все активные URL вебхуков после публикации.
-
-    :param task_id: ID задачи для публикации
-    :param message: Сообщение бота для отправки ответов пользователю
-    :param db_session: Асинхронная сессия SQLAlchemy
-    :param bot: Экземпляр бота aiogram
-    :return: True, если публикация прошла успешно, иначе False
     """
     webhook_data_list = []  # Список для хранения данных вебхуков
 
@@ -187,6 +180,22 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     group_names.add(group.group_name)
                     published_count += 1
 
+                    # Лог о публикации
+                    logger.info(
+                        f"✅ Публикована задача с ID {task_in_group.id} на канал '{group.group_name}' "
+                        f"({translation.language})."
+                    )
+
+                    # Добавляем паузу между публикациями переводов
+                    sleep_time = random.randint(3, 6)
+                    pause_log_msg = (
+                        f"⏸️ Пауза {sleep_time} секунд перед следующей публикацией "
+                        f"(Задача ID {task_in_group.id}, Язык: {translation.language}, Канал: {group.group_name})"
+                    )
+                    logger.info(pause_log_msg)
+                    await message.answer(pause_log_msg)
+                    await asyncio.sleep(sleep_time)
+
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"Ошибка при публикации перевода: {str(e)}")
@@ -196,7 +205,6 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         if webhook_data_list and active_webhooks:
             logger.info(f"📤 Отправка вебхуков на {len(active_webhooks)} сервисов")
             try:
-                # Передаём db_session и bot
                 results = await send_webhooks_sequentially(webhook_data_list, active_webhooks, db_session, bot)
                 success_count = sum(1 for r in results if r)
                 failed_count += len(results) - success_count
@@ -233,19 +241,12 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         return False
 
 
-
-
 async def publish_translation(translation: TaskTranslation, bot: Bot, db_session: AsyncSession) -> bool:
     """
     Публикует отдельный перевод задачи.
     Отправляет вебхуки на все активные URL вебхуков после публикации.
-
-    :param translation: Перевод задачи для публикации
-    :param bot: Экземпляр бота aiogram
-    :param db_session: Асинхронная сессия SQLAlchemy
-    :return: True, если публикация прошла успешно, иначе False
     """
-    webhook_data_list = []  # Список для хранения данных вебхуков
+    webhook_data_list = []
 
     try:
         # Получение списка активных вебхуков
@@ -335,11 +336,16 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
 
         webhook_data_list.append(webhook_data)
 
+        # Лог о публикации перевода
+        logger.info(
+            f"✅ Публикован перевод задачи (ID задачи: {translation.task_id}, Перевод ID: {translation.id}) на канал '{group.group_name}' "
+            f"({translation.language})."
+        )
+
         # Отправка вебхуков
         if webhook_data_list and active_webhooks:
             logger.info(f"📤 Отправка вебхуков для перевода {translation.id}")
             try:
-                # Передаём db_session и bot
                 results = await send_webhooks_sequentially(webhook_data_list, active_webhooks, db_session, bot)
                 success_count = sum(1 for r in results if r)
                 failed_count = len(results) - success_count
@@ -348,7 +354,6 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
                 logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
                 return False
 
-        # Обновление статуса публикации
         translation.published = True
         translation.publish_date = datetime.now()
         await db_session.commit()
@@ -361,9 +366,6 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         return False
 
 
-
-
-
 async def publish_task_by_translation_group(
         translation_group_id: UUID,
         message,
@@ -373,14 +375,8 @@ async def publish_task_by_translation_group(
     """
     Публикует все переводы задач в группе переводов.
     Отправляет вебхуки на все активные URL вебхуков после публикации.
-
-    :param translation_group_id: ID группы переводов для публикации
-    :param message: Сообщение бота для отправки ответов пользователю
-    :param db_session: Асинхронная сессия SQLAlchemy
-    :param bot: Экземпляр бота aiogram
-    :return: Tuple (успех, опубликовано, неудачно, всего)
     """
-    webhook_data_list = []  # Список для хранения данных вебхуков
+    webhook_data_list = []
     published_count = 0
     failed_count = 0
     total_translations = 0
@@ -533,6 +529,22 @@ async def publish_task_by_translation_group(
                     published_languages.add(translation.language)
                     published_group_names.add(group.group_name)
 
+                    # Лог о публикации
+                    logger.info(
+                        f"✅ Публикована задача с ID {task.id} на канал '{group.group_name}' "
+                        f"({translation.language})."
+                    )
+
+                    # Добавляем паузу между публикациями переводов
+                    sleep_time = random.randint(3, 6)
+                    pause_log_msg = (
+                        f"⏸️ Пауза {sleep_time} секунд перед следующей публикацией "
+                        f"(Задача ID {task.id}, Язык: {translation.language}, Канал: {group.group_name})"
+                    )
+                    logger.info(pause_log_msg)
+                    await message.answer(pause_log_msg)
+                    await asyncio.sleep(sleep_time)
+
                 except Exception as e:
                     error_msg = f"❌ Ошибка при публикации перевода (ID: {translation.id}): {str(e)}"
                     logger.error(error_msg)
@@ -549,7 +561,6 @@ async def publish_task_by_translation_group(
         if webhook_data_list:
             logger.info(f"📤 Последовательная отправка {len(webhook_data_list)} вебхуков")
             try:
-                # Передаём db_session и bot
                 results = await send_webhooks_sequentially(webhook_data_list, active_webhooks, db_session, bot)
                 success_count = sum(1 for r in results if r)
                 failed_count_webhooks = len(results) - success_count

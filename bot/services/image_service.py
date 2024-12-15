@@ -36,6 +36,7 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 # Получаем путь к логотипу из переменных окружения или используем значение по умолчанию
+# logo_path = os.getenv('LOGO_PATH', '/default/path/to/logo.svg')
 logo_path = os.getenv('LOGO_PATH', '/default/path/to/logo.png')
 
 KEYWORDS = {
@@ -88,6 +89,7 @@ async def generate_image_if_needed(task: Task) -> Optional[str]:
 
         # Формируем имя файла для изображения на основе темы, подтемы и ID задачи (для SEO)
         image_name = f"{task.topic.name}_{task.subtopic.name if task.subtopic else 'general'}_{task.id}.png".replace(" ", "_").lower()
+        # image_name = f"{task.topic.name}_{task.subtopic.name if task.subtopic else 'general'}_{task.id}.svg".replace(" ", "_").lower()
 
         # Асинхронное сохранение изображения в облачное хранилище (например, S3)
         image_url = await save_image_to_storage(image, image_name)
