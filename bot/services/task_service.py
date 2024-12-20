@@ -1,9 +1,14 @@
+import io
 import json
 import logging
+import os
 import random
 import traceback
 import uuid
+from typing import Optional
 
+from PIL import Image
+from aiogram.client.session import aiohttp
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.exc import IntegrityError
@@ -12,8 +17,14 @@ from sqlalchemy.future import select
 
 import bot
 from bot.services.default_link_service import DefaultLinkService
-from bot.utils.url_validator import is_valid_url
+from bot.services.s3_services import delete_image_from_s3, save_image_to_storage
+from config import S3_BUCKET_NAME, S3_REGION
 from database.models import Task, TaskTranslation, Topic, Subtopic, Group
+
+
+# # Создаёте экземпляр класса с уникальным именем
+# default_link_service_instance = DefaultLinkService(db_session)
+
 
 # Настройка локального логирования
 logger = logging.getLogger(__name__)
@@ -33,7 +44,17 @@ last_import_error_msg = ""
 
 
 
-async def prepare_publication(task: Task, translation: TaskTranslation, image_url: str, db_session: AsyncSession, external_link: str = None):
+
+
+async def prepare_publication(
+    task: Task,
+    translation: TaskTranslation,
+    image_url: str,
+    db_session: AsyncSession,
+    default_link_service: DefaultLinkService,  # Обязательный аргумент
+    external_link: Optional[str] = None,
+    user_chat_id: int = None
+):
     """
     Подготавливает данные для публикации задачи в четыре сообщения:
     изображение, текст с деталями задачи, опрос и инлайн-кнопка.
@@ -43,8 +64,9 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         translation (TaskTranslation): Перевод задачи.
         image_url (str): URL изображения для задачи.
         db_session (AsyncSession): Сессия базы данных.
-        external_link (str): Ссылка, передаваемая извне (например, из импорта JSON или интерфейса бота).
-                             Если None, будет использована ссылка из задачи или DefaultLinkService.
+        external_link (Optional[str]): Ссылка, передаваемая извне (например, из импорта JSON или интерфейса бота).
+                                        Если None, будет использована ссылка из задачи или DefaultLinkService.
+        user_chat_id (int): ID чата пользователя для уведомлений.
 
     Returns:
         tuple: Возвращает четыре сообщения (изображение, текст с деталями задачи, опрос и инлайн-кнопка).
@@ -234,7 +256,6 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
         external_link = task.external_link
         if not external_link:
             logger.warning(f"🔗 external_link не задан для задачи ID {task.id}. Попытка получить ссылку по умолчанию...")
-            default_link_service = DefaultLinkService(db_session)
             external_link = await default_link_service.get_default_link(language, task.topic.name)
             if external_link:
                 logger.info(f"🔗 Получена ссылка по умолчанию: {external_link}")
@@ -258,6 +279,26 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
 
     logger.info(f"✅ Подготовка публикации завершена для задачи ID {task.id}")
 
+    # Загрузка изображения в S3 и обновление external_link
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(image_url) as resp:
+                if resp.status == 200:
+                    image_data = await resp.read()
+                    image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                    image_name = f"{task.id}_{os.path.basename(image_url)}"
+                    s3_url = await save_image_to_storage(image, image_name, user_chat_id)  # Передаем user_chat_id
+                    if not s3_url:
+                        raise Exception("Не удалось загрузить изображение в S3.")
+                    # Обновляем external_link задачи с URL S3
+                    task.external_link = s3_url
+                    await db_session.commit()
+                else:
+                    raise Exception(f"Не удалось скачать изображение по URL: {image_url}")
+    except Exception as e:
+        logger.error(f"❌ Ошибка при загрузке изображения для задачи ID {task.id}: {e}")
+        raise e  # Пробрасываем исключение для обработки отката
+
     return image_message, text_message, poll_message, button_message
 
 
@@ -266,13 +307,17 @@ async def prepare_publication(task: Task, translation: TaskTranslation, image_ur
 
 
 
-async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
+
+
+
+async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_chat_id: int):
     """
     Импорт задач из файла JSON в базу данных.
 
     Args:
         file_path (str): Путь к JSON файлу.
         db_session (AsyncSession): Сессия базы данных.
+        user_chat_id (int): ID чата пользователя для уведомлений.
 
     Returns:
         (successfully_loaded, failed_tasks, successfully_loaded_ids, error_messages)
@@ -288,7 +333,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
 
     logger.info(f"📄 Содержимое файла JSON: {data}")
 
-    default_link_service = DefaultLinkService(db_session)
+    default_link_service_instance = DefaultLinkService(db_session)
 
     for task_data in data.get("tasks", []):
         try:
@@ -465,13 +510,15 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
                     continue
 
                 try:
-                    # Передаём external_link (может быть None)
+                    # Передаём user_chat_id
                     image_message, text_message, poll_message, button_message = await prepare_publication(
                         task=new_task,
                         translation=new_translation,
                         image_url=image_url,
                         db_session=db_session,
-                        external_link=external_link  # Может быть None
+                        default_link_service=default_link_service_instance,
+                        external_link=external_link,  # Может быть None
+                        user_chat_id=user_chat_id  # Добавлено
                     )
                     await send_publication_messages(new_task, new_translation, image_message, text_message, poll_message, button_message)
                 except Exception as e:
@@ -479,6 +526,19 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
                     logger.error(f"❌ {error_msg}")
                     error_messages.append(error_msg)
                     failed_tasks += 1
+
+                    # Откат: удаляем загруженное изображение из S3, если оно было загружено
+                    if new_task.external_link:
+                        s3_key = new_task.external_link.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
+                        await delete_image_from_s3(s3_key)
+                        logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
+
+                    # Откат: удаляем созданную задачу и перевод
+                    await db_session.delete(new_translation)
+                    await db_session.delete(new_task)
+                    await db_session.commit()
+                    logger.info(f"🔙 Откат изменений для задачи ID {new_task.id}")
+
                     continue
 
         except Exception as task_error:
@@ -502,9 +562,6 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession):
         last_import_error_msg = ""
 
     return successfully_loaded, failed_tasks, successfully_loaded_ids, error_messages
-
-
-
 
 
 async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
@@ -543,6 +600,8 @@ async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
     else:
         logger.info(f"✅ Топик '{topic_name}' найден с ID {topic.id}.")
         return topic.id
+
+
 
 
 async def send_publication_messages(task, translation, image_message, text_message, poll_message, button_message):

@@ -23,6 +23,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.message(F.content_type == ContentType.DOCUMENT)
 async def handle_document(message: Message, db_session: AsyncSession):
     user_id = message.from_user.id
+    user_chat_id = message.chat.id  # Получаем ID чата пользователя
     username = message.from_user.username
     document = message.document
 
@@ -41,7 +42,7 @@ async def handle_document(message: Message, db_session: AsyncSession):
         try:
             # Получаем файл через API Telegram
             file_info = await message.bot.get_file(document.file_id)
-            file_path = f"{UPLOAD_DIR}/{document.file_name}"
+            file_path = os.path.join(UPLOAD_DIR, document.file_name)
 
             # Сохраняем файл на сервере
             await message.bot.download_file(file_info.file_path, file_path)
@@ -49,11 +50,10 @@ async def handle_document(message: Message, db_session: AsyncSession):
 
             # Начинаем процесс импорта
             logger.info(f"📥 Начало импорта задач из файла: {file_path}")
-            result = await import_tasks_from_json(file_path, db_session)
+            result = await import_tasks_from_json(file_path, db_session, user_chat_id)  # Передаем user_chat_id
 
             # Проверка результата импорта
             if result is None:
-                # Используем last_import_error_msg для более информативного ответа в чат
                 detailed_error = last_import_error_msg if last_import_error_msg else "Неизвестная ошибка при обработке файла."
                 await message.answer(f"⚠️ Произошла ошибка при обработке файла: {detailed_error}")
                 logger.error("❗ Ошибка при импорте задач из файла (результат None).")
@@ -78,7 +78,7 @@ async def handle_document(message: Message, db_session: AsyncSession):
         except Exception as e:
             logger.error(f"❗ Ошибка при импорте задач: {e}")
             await message.answer(f"⚠️ Произошла ошибка при импорте задач: {e}")
-            logger.error(traceback.format_exc())  # Вывод полного стека ошибки
+            logger.error(traceback.format_exc())
     else:
         # Сообщение о неправильном формате файла
         await message.answer("❌ Пожалуйста, загрузите файл в формате JSON.")

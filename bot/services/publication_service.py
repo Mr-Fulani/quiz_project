@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from bot.handlers.webhook_handler import get_incorrect_answers
+from bot.services.default_link_service import DefaultLinkService
 from bot.services.image_service import generate_image_if_needed
 from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
@@ -22,7 +23,7 @@ from webhook_sender import send_webhooks_sequentially
 logger = logging.getLogger(__name__)
 
 
-async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bot: Bot) -> bool:
+async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bot: Bot, user_chat_id: int) -> bool:
     """
     Публикует все переводы задачи по её ID и translation_group_id.
     Отправляет вебхуки на все активные URL вебхуков после публикации.
@@ -31,6 +32,9 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
     try:
         logger.info(f"🚀 Начало публикации задачи с ID {task_id}")
+
+        # Инициализация DefaultLinkService
+        default_link_service = DefaultLinkService(db_session)
 
         # Получаем задачу вместе с её переводами, топиком и подтопиком
         result = await db_session.execute(
@@ -85,7 +89,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
         # Публикация каждого перевода
         for task_in_group in tasks_in_group:
-            image_url = await generate_image_if_needed(task_in_group)
+            image_url = await generate_image_if_needed(task_in_group, user_chat_id)
             if not image_url:
                 logger.error(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
                 continue
@@ -98,7 +102,9 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         task=task_in_group,
                         translation=translation,
                         image_url=image_url,
-                        db_session=db_session
+                        db_session=db_session,
+                        default_link_service=default_link_service,  # Добавлено
+                        user_chat_id=user_chat_id
                     )
 
                     # Поиск группы для публикации
@@ -209,7 +215,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 success_count = sum(1 for r in results if r)
                 failed_count += len(results) - success_count
                 logger.info(
-                    f"📊 Результаты отправки вебхуков: успешно - {success_count}, неудачно - {len(results) - success_count}")
+                    f"📊 Результаты отправки вебхуков: успешно - {success_count}, неудачно - {len(results) - success_count}"
+                )
             except Exception as e:
                 logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
 
@@ -241,7 +248,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         return False
 
 
-async def publish_translation(translation: TaskTranslation, bot: Bot, db_session: AsyncSession) -> bool:
+async def publish_translation(translation: TaskTranslation, bot: Bot, db_session: AsyncSession, user_chat_id: int) -> bool:
     """
     Публикует отдельный перевод задачи.
     Отправляет вебхуки на все активные URL вебхуков после публикации.
@@ -249,12 +256,15 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
     webhook_data_list = []
 
     try:
+        # Инициализация DefaultLinkService
+        default_link_service = DefaultLinkService(db_session)
+
         # Получение списка активных вебхуков
         webhook_service = WebhookService(db_session)
         active_webhooks = await webhook_service.get_active_webhooks()
 
         # Генерация изображения
-        image_url = await generate_image_if_needed(translation.task)
+        image_url = await generate_image_if_needed(translation.task, user_chat_id)
         if not image_url:
             logger.error(f"🚫 Ошибка генерации изображения для перевода ID {translation.id}")
             return False
@@ -264,7 +274,9 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             task=translation.task,
             translation=translation,
             image_url=image_url,
-            db_session=db_session
+            db_session=db_session,
+            default_link_service=default_link_service,  # Добавлено
+            user_chat_id=user_chat_id
         )
 
         # Поиск группы для публикации
@@ -354,6 +366,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
                 logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
                 return False
 
+        # Обновление статуса перевода
         translation.published = True
         translation.publish_date = datetime.now()
         await db_session.commit()
@@ -370,7 +383,8 @@ async def publish_task_by_translation_group(
         translation_group_id: UUID,
         message,
         db_session: AsyncSession,
-        bot: Bot
+        bot: Bot,
+        user_chat_id: int
 ) -> Tuple[bool, int, int, int]:
     """
     Публикует все переводы задач в группе переводов.
@@ -410,6 +424,9 @@ async def publish_task_by_translation_group(
         webhook_service = WebhookService(db_session)
         active_webhooks = await webhook_service.get_active_webhooks()
 
+        # Инициализация DefaultLinkService
+        default_link_service = DefaultLinkService(db_session)
+
         for task in tasks:
             # Проверка предыдущей публикации
             if task.published and task.publish_date:
@@ -417,7 +434,7 @@ async def publish_task_by_translation_group(
                     logger.info(f"⚠️ Задача с ID {task.id} была опубликована {task.publish_date}. Пропуск.")
                     continue
 
-            image_url = await generate_image_if_needed(task)
+            image_url = await generate_image_if_needed(task, user_chat_id)
             if not image_url:
                 error_message = f"🚫 Ошибка генерации изображения для задачи {task.id}"
                 logger.error(error_message)
@@ -433,7 +450,9 @@ async def publish_task_by_translation_group(
                         task=task,
                         translation=translation,
                         image_url=image_url,
-                        db_session=db_session
+                        db_session=db_session,
+                        default_link_service=default_link_service,  # Добавлено
+                        user_chat_id=user_chat_id
                     )
 
                     # Поиск группы

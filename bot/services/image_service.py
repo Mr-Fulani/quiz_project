@@ -64,7 +64,8 @@ async def generate_image_with_executor(task_text, language, logo_path=None):
 
     return image
 
-async def generate_image_if_needed(task: Task) -> Optional[str]:
+
+async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[str]:
     """
     Асинхронная генерация изображения для задачи, используя перевод, если изображение ещё не было сгенерировано.
 
@@ -95,7 +96,7 @@ async def generate_image_if_needed(task: Task) -> Optional[str]:
         language_code = translation.language if translation.language else "unknown"
         image_name = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png".replace(" ", "_").lower()
 
-        image_url = await save_image_to_storage(image, image_name)
+        image_url = await save_image_to_storage(image, image_name, user_chat_id)
 
         if not image_url:
             logger.error(f"Ошибка при сохранении изображения для задачи с ID {task.id}.")

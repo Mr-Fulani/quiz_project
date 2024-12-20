@@ -301,8 +301,10 @@ async def handle_publish_id(message: Message, state: FSMContext, db_session: Asy
     task_id = int(message.text)
     logger.info(f"📢 Публикация задачи с ID: {task_id}")
 
+    user_chat_id = message.chat.id  # Получаем user_chat_id из объекта message
+
     try:
-        success = await publish_task_by_id(task_id, message, db_session, bot)
+        success = await publish_task_by_id(task_id, message, db_session, bot, user_chat_id)
         if success:
             await message.answer(f"✅ Задача с ID {task_id} успешно опубликована!")
         else:
