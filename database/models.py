@@ -36,7 +36,7 @@ class Task(Base):
     image_url = Column(String, nullable=True)
 
     # Новое поле для ссылки на сторонний ресурс (например, Telegram канал)
-    external_link = Column(String, default="https://t.me/developers_hub_ru", nullable=True)
+    external_link = Column(String, nullable=True)
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)  # Поле для пометки задач с ошибками
 

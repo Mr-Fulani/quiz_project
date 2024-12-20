@@ -1072,6 +1072,8 @@ async def process_remove_default_link_language(message: Message, state: FSMConte
     await message.reply("📌 Введите тему для удаления ссылки:")
     await state.set_state(DefaultLinkStates.waiting_for_remove_topic)
 
+
+
 # Ввод темы для удаления ссылки
 @router.message(DefaultLinkStates.waiting_for_remove_topic, F.content_type == ContentType.TEXT)
 async def process_remove_default_link_topic(message: Message, state: FSMContext, db_session: AsyncSession):
@@ -1095,6 +1097,8 @@ async def process_remove_default_link_topic(message: Message, state: FSMContext,
         await message.reply("❌ Произошла ошибка при удалении ссылки.")
         logger.error(f"Ошибка при удалении ссылки: {e}")
     await state.clear()
+
+
 
 # Обработчик кнопки "Список ссылок"
 @router.callback_query(F.data == "list_default_links")

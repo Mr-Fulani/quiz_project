@@ -43,7 +43,12 @@ KEYWORDS = {
     'python': r"\b(if|for|def|class|while|else|elif|try|except|finally|with|return|pass)\b",
     'java': r"\b(if|for|public|class|private|try|catch|finally|return|new|else)\b",
     'golang': r"\b(func|for|if|else|return|defer|go|select|case|break)\b",
-    'sql': r"\b(SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|JOIN|ON|GROUP BY|ORDER BY)\b"
+    'sql': r"\b(SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|JOIN|ON|GROUP BY|ORDER BY)\b",
+    'javascript': r"\b(function|if|else|for|while|return|var|let|const|class|try|catch|finally)\b",
+    'c++': r"\b(if|else|for|while|class|struct|try|catch|return|namespace|template)\b",
+    'c#': r"\b(if|else|for|while|class|public|private|protected|return|namespace|try|catch|finally)\b",
+    'php': r"\b(if|else|foreach|while|function|class|public|private|protected|return|try|catch)\b",
+    'rust': r"\b(fn|let|if|else|for|while|loop|match|return|impl|struct|enum|trait)\b"
 }
 
 async def generate_image_with_executor(task_text, language, logo_path=None):
@@ -75,7 +80,6 @@ async def generate_image_if_needed(task: Task) -> Optional[str]:
         # Ищем перевод на 'ru', если его нет, берем первый доступный перевод
         translation = next((t for t in task.translations if t.language == 'ru'), None)
         if not translation:
-            # Если нет перевода на 'ru', пытаемся взять любой доступный перевод
             translation = task.translations[0] if task.translations else None
 
         if not translation or not translation.question:
@@ -83,22 +87,20 @@ async def generate_image_if_needed(task: Task) -> Optional[str]:
 
         task_text = translation.question  # Используем поле 'question' из перевода
 
-        # Генерация изображения с использованием run_in_executor для избежания блокировки
+        # Генерация изображения
         logger.info(f"Генерация изображения для задачи с ID {task.id}")
         image = await generate_image_with_executor(task_text, 'python', logo_path)
 
-        # Формируем имя файла для изображения на основе темы, подтемы и ID задачи (для SEO)
-        image_name = f"{task.topic.name}_{task.subtopic.name if task.subtopic else 'general'}_{task.id}.png".replace(" ", "_").lower()
-        # image_name = f"{task.topic.name}_{task.subtopic.name if task.subtopic else 'general'}_{task.id}.svg".replace(" ", "_").lower()
+        # CHANGED: Добавляем язык в название файла
+        language_code = translation.language if translation.language else "unknown"
+        image_name = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png".replace(" ", "_").lower()
 
-        # Асинхронное сохранение изображения в облачное хранилище (например, S3)
         image_url = await save_image_to_storage(image, image_name)
 
         if not image_url:
             logger.error(f"Ошибка при сохранении изображения для задачи с ID {task.id}.")
             raise ValueError(f"Не удалось сохранить изображение для задачи с ID {task.id} в облако.")
 
-        # Обновляем задачу с URL изображения
         task.image_url = image_url
         logger.info(f"Изображение для задачи с ID {task.id} успешно сгенерировано и сохранено.")
         return image_url
@@ -268,7 +270,7 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
         try:
             logo = Image.open(logo_path).convert("RGBA")
             # Установка фиксированного размера логотипа
-            fixed_logo_size = (250, 250)  # Увеличенный фиксированный размер
+            fixed_logo_size = (240, 240)  # Увеличенный фиксированный размер
             logo = logo.resize(fixed_logo_size, Resampling.LANCZOS)
             logger.info(f"Fixed logo size: {logo.size}")
             logo_x = width - logo.width - 30  # Увеличенный отступ от края
