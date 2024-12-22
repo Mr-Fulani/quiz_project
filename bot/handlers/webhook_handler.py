@@ -2,23 +2,25 @@
 
 import logging
 
-
 from aiogram import Router, F, Bot
 from aiogram.types import Message
 from datetime import datetime
 import json
 import re  # Добавляем импорт модуля регулярных выражений
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from bot.utils.db_utils import fetch_one
-
-
 from database.models import TaskTranslation, Group, Task
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+
+
+
+
 
 
 
@@ -42,9 +44,19 @@ async def get_channel_info(chat_id: int, session: AsyncSession) -> Optional[dict
 
 
 # Предполагаемая реализация get_incorrect_answers
-async def get_incorrect_answers(answers: List[str], correct_answer: str) -> List[str]:
-    # Фильтруем правильный ответ
-    return [answer for answer in answers if answer != correct_answer]
+async def get_incorrect_answers(answers: Union[str, list], correct_answer: str) -> List[str]:
+    """
+    Если answers -- уже список, возвращаем фильтр.
+    Если answers -- строка (JSON), сначала loads(), потом фильтруем.
+    """
+    if isinstance(answers, str):
+        try:
+            answers = json.loads(answers)
+        except json.JSONDecodeError:
+            # На всякий случай обработка ошибки
+            return []
+    # дальше answers точно список
+    return [a for a in answers if a != correct_answer]
 
 
 @router.channel_post(F.photo & F.caption)

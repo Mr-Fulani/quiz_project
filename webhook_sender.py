@@ -48,36 +48,18 @@ async def send_webhooks_sequentially(webhooks_data: List[Dict], webhooks: List[W
         if not webhook.is_active:
             logger.info(f"🔕 Вебхук {webhook.id} не активен. Пропуск.")
             continue
-        if webhook.url in failed_urls:
-            logger.warning(
-                f"⚠️ Вебхук на {webhook.url} ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
-            await notify_admin(bot, admin_chat_id,
-                               f"⚠️ Вебхук на `{webhook.url}` ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
-            continue
 
         for index, webhook_data in enumerate(webhooks_data, 1):
             if webhook.url in failed_urls:
-                break  # Пропускаем дальнейшие данные для этого URL
+                logger.warning(
+                    f"⚠️ Вебхук на {webhook.url} ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
+                await notify_admin(bot, admin_chat_id,
+                                   f"⚠️ Вебхук на `{webhook.url}` ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
+                break  # Пропускаем все дальнейшие webhook_data для этого URL
 
             try:
                 logger.info(
                     f"📤 Отправка вебхука {index}/{len(webhooks_data)} на URL {webhook.url} для языка {webhook_data.get('language')}")
-                logger.debug(
-                    f"🔍 Структура incorrect_answers перед отправкой: {webhook_data['incorrect_answers']} (тип элементов: {[type(ans) for ans in webhook_data['incorrect_answers']]})")
-
-                # Убедимся, что incorrect_answers является списком
-                incorrect_answers = webhook_data.get('incorrect_answers', [])
-                if isinstance(incorrect_answers, str):
-                    try:
-                        incorrect_answers = json.loads(incorrect_answers)
-                        webhook_data['incorrect_answers'] = incorrect_answers
-                        logger.debug("🔄 incorrect_answers десериализованы из строки в список.")
-                    except json.JSONDecodeError as e:
-                        logger.error(f"❌ Ошибка десериализации incorrect_answers: {e}")
-                        webhook_data['incorrect_answers'] = []
-                elif not isinstance(incorrect_answers, list):
-                    logger.error("❌ incorrect_answers имеет неподдерживаемый тип. Ожидается список строк.")
-                    webhook_data['incorrect_answers'] = []
 
                 # Добавляем уникальные идентификаторы
                 webhook_data_with_ids = webhook_data.copy()
@@ -89,6 +71,32 @@ async def send_webhooks_sequentially(webhooks_data: List[Dict], webhooks: List[W
                     "timestamp": datetime.utcnow().isoformat()
                 })
 
+                # Дополнительная задержка между отправками
+                if index > 1:
+                    delay = random.uniform(2.0, 4.0)
+                    logger.info(f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука")
+                    await notify_admin(bot, admin_chat_id,
+                                       f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука.")
+                    await asyncio.sleep(delay)
+
+                # **Проверка incorrect_answers** (если строка – пробуем десериализовать)
+                if "incorrect_answers" in webhook_data_with_ids:
+                    i_answers = webhook_data_with_ids["incorrect_answers"]
+                    if isinstance(i_answers, str):
+                        try:
+                            deserialized = json.loads(i_answers)
+                            if isinstance(deserialized, list):
+                                webhook_data_with_ids["incorrect_answers"] = deserialized
+                                logger.debug("🔄 incorrect_answers десериализованы из строки в список.")
+                            else:
+                                logger.error(f"❌ Ожидался список, получен другой тип: {type(deserialized)}")
+                                webhook_data_with_ids["incorrect_answers"] = []
+                        except json.JSONDecodeError as e:
+                            logger.error(f"❌ Ошибка десериализации incorrect_answers: {e}")
+                            webhook_data_with_ids["incorrect_answers"] = []
+                    elif not isinstance(i_answers, list):
+                        logger.error(f"❌ incorrect_answers имеет неподдерживаемый тип: {type(i_answers)}. Ожидается список.")
+                        webhook_data_with_ids["incorrect_answers"] = []
 
                 success = await send_quiz_published_webhook(webhook.url, webhook_data_with_ids)
                 results.append(success)
@@ -134,8 +142,6 @@ async def send_webhooks_sequentially(webhooks_data: List[Dict], webhooks: List[W
     return results
 
 
-
-
 async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
     try:
         required_fields = [
@@ -155,6 +161,26 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
                 f"poll_link={data.get('poll_link')}, image_url={data.get('image_url')}"
             )
             return False
+
+        # Обработка incorrect_answers
+        if "incorrect_answers" in data:
+            if isinstance(data["incorrect_answers"], str):
+                try:
+                    # Попытка преобразовать строку JSON в список
+                    data["incorrect_answers"] = json.loads(data["incorrect_answers"])
+                except json.JSONDecodeError:
+                    # Если строка не является JSON, разделяем по разделителю
+                    # Предполагаем, что ответы разделены переносом строки или запятой
+                    answers = data["incorrect_answers"].split('\n') if '\n' in data["incorrect_answers"] else data["incorrect_answers"].split(',')
+                    # Очищаем от пробелов и пустых строк
+                    data["incorrect_answers"] = [ans.strip() for ans in answers if ans.strip()]
+            elif isinstance(data["incorrect_answers"], list):
+                # Если это уже список, оставляем как есть
+                pass
+            else:
+                # Если это что-то другое, преобразуем в пустой список
+                logger.warning(f"Неподдерживаемый формат incorrect_answers: {type(data['incorrect_answers'])}")
+                data["incorrect_answers"] = []
 
         logger.info(f"📤 Подготовка отправки вебхука на {webhook_url} для языка {data.get('language')}")
         logger.debug(f"📤 Данные вебхука:\n{json.dumps(data, ensure_ascii=False, indent=2)}")

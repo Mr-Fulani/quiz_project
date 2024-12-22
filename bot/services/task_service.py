@@ -405,6 +405,9 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     failed_tasks += 1
                     continue
 
+                # **Всегда сериализуем answers как JSON строку**
+                serialized_answers = json.dumps(wrong_answers + [correct_answer])
+
                 if correct_answer in wrong_answers:
                     wrong_answers.remove(correct_answer)
                     logger.warning(f"⚠️ Дублирующийся правильный ответ удален, обновленные варианты: {wrong_answers}")
@@ -477,7 +480,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     task_id=new_task.id,
                     language=language,
                     question=question,
-                    answers=json.dumps(wrong_answers + [correct_answer]) if not isinstance(wrong_answers + [correct_answer], str) else wrong_answers + [correct_answer],  # Условная сериализация
+                    answers=json.dumps(wrong_answers + [correct_answer]),
                     correct_answer=correct_answer,
                     explanation=explanation
                 )
