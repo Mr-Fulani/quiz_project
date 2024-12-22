@@ -295,7 +295,7 @@ async def prepare_publication(
         logger.error(f"❌ Ошибка при загрузке изображения для задачи ID {task.id}: {e}")
         raise e  # Пробрасываем исключение для обработки отката
 
-    return image_message, text_message, poll_message, button_message
+    return image_message, text_message, poll_message, button_message, external_link, dont_know_option
 
 
 

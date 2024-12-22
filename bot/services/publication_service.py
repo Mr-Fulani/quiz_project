@@ -113,7 +113,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     await message.answer(publication_start_msg)
 
                     # Подготовка публикации
-                    image_message, text_message, poll_message, button_message = await prepare_publication(
+                    image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
                         task=task_in_group,
                         translation=translation,
                         image_url=image_url,
@@ -140,7 +140,6 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     await bot.send_photo(
                         chat_id=group.group_id,
                         photo=image_message["photo"],
-                        caption=image_message["caption"],
                         parse_mode="MarkdownV2"
                     )
 
@@ -197,6 +196,10 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         "caption": image_message["caption"] or "",
                         "published_at": datetime.utcnow().isoformat()
                     }
+
+                    # Добавляем "Не знаю, но хочу узнать" с локализованным текстом и ссылкой
+                    dont_know_with_link = f"{dont_know_option} ({external_link})"
+                    webhook_data["incorrect_answers"].append(dont_know_with_link)
 
                     webhook_data_list.append(webhook_data)
 
@@ -340,7 +343,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             return False
 
         # Подготовка данных для публикации
-        image_message, text_message, poll_message, button_message = await prepare_publication(
+        image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
             task=translation.task,
             translation=translation,
             image_url=image_url,
@@ -365,7 +368,6 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         image_msg = await bot.send_photo(
             chat_id=group.group_id,
             photo=image_message["photo"],
-            caption=image_message["caption"],
             parse_mode="MarkdownV2"
         )
 
@@ -415,6 +417,10 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             "caption": image_message["caption"] or "",
             "published_at": datetime.utcnow().isoformat()
         }
+
+        # Добавляем "Не знаю, но хочу узнать" с локализованным текстом и ссылкой
+        dont_know_with_link = f"{dont_know_option} ({external_link})"
+        webhook_data["incorrect_answers"].append(dont_know_with_link)
 
         webhook_data_list.append(webhook_data)
 
@@ -553,7 +559,7 @@ async def publish_task_by_translation_group(
                     )
 
                     # Подготовка публикации
-                    image_message, text_message, poll_message, button_message = await prepare_publication(
+                    image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
                         task=task,
                         translation=translation,
                         image_url=image_url,
@@ -593,7 +599,6 @@ async def publish_task_by_translation_group(
                         image_msg = await bot.send_photo(
                             chat_id=group.group_id,
                             photo=image_message["photo"],
-                            caption=image_message["caption"],
                             parse_mode="MarkdownV2"
                         )
                         logger.info(f"✅ Фото отправлено на канал '{group.group_name}'.")
@@ -711,6 +716,10 @@ async def publish_task_by_translation_group(
                         "caption": image_message["caption"] or "",
                         "published_at": datetime.utcnow().isoformat()
                     }
+
+                    # Добавляем "Не знаю, но хочу узнать" с локализованным текстом и ссылкой
+                    dont_know_with_link = f"{dont_know_option} ({external_link})"
+                    webhook_data["incorrect_answers"].append(dont_know_with_link)
 
                     log_webhook_data(webhook_data)
                     webhook_data_list.append(webhook_data)
