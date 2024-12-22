@@ -8,7 +8,7 @@ from aiogram.types import Message
 from datetime import datetime
 import json
 import re  # Добавляем импорт модуля регулярных выражений
-from typing import Optional
+from typing import Optional, List
 
 from bot.utils.db_utils import fetch_one
 
@@ -19,11 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 router = Router()
-
-
-
-
-
 
 
 
@@ -46,11 +41,10 @@ async def get_channel_info(chat_id: int, session: AsyncSession) -> Optional[dict
     return None
 
 
-async def get_incorrect_answers(answers: list, correct_answer: str) -> list:
-    """
-    Возвращает список неправильных ответов.
-    """
-    return [ans for ans in answers if ans != correct_answer]
+# Предполагаемая реализация get_incorrect_answers
+async def get_incorrect_answers(answers: List[str], correct_answer: str) -> List[str]:
+    # Фильтруем правильный ответ
+    return [answer for answer in answers if answer != correct_answer]
 
 
 @router.channel_post(F.photo & F.caption)

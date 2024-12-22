@@ -22,8 +22,7 @@ from config import S3_BUCKET_NAME, S3_REGION
 from database.models import Task, TaskTranslation, Topic, Subtopic, Group
 
 
-# # Создаёте экземпляр класса с уникальным именем
-# default_link_service_instance = DefaultLinkService(db_session)
+
 
 
 # Настройка локального логирования
@@ -478,7 +477,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     task_id=new_task.id,
                     language=language,
                     question=question,
-                    answers=json.dumps(wrong_answers + [correct_answer]),  # Храним как JSON
+                    answers=json.dumps(wrong_answers + [correct_answer]) if not isinstance(wrong_answers + [correct_answer], str) else wrong_answers + [correct_answer],  # Условная сериализация
                     correct_answer=correct_answer,
                     explanation=explanation
                 )

@@ -1,5 +1,6 @@
 # bot/handlers/admin_menu.py
 import datetime
+from datetime import datetime, timedelta
 import html
 import logging
 import os
@@ -421,7 +422,7 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
             logger.info("🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
             await call.message.answer("🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
 
-            one_month_ago = datetime.datetime.now() - datetime.timedelta(days=30)
+            one_month_ago = datetime.now() - timedelta(days=30)
             result = await db_session.execute(
                 select(Task.translation_group_id)
                 .where(Task.published.is_(True))
@@ -434,11 +435,13 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
         # Шаг 3: Если задача найдена, публикуем
         if translation_group_id:
             logger.info(f"🟡 Найдена задача с группой переводов {translation_group_id}. Начинаем публикацию.")
-            await call.message.answer(f"🟡 Найдена задача с группой переводов {translation_group_id}. Начинаем публикацию.")
+
+            # Получение user_chat_id
+            user_chat_id = call.from_user.id  # Или call.message.chat.id, в зависимости от контекста
 
             # Выполнение публикации
             success, published_count, failed_count, total_count = await publish_task_by_translation_group(
-                translation_group_id, call.message, db_session, bot
+                translation_group_id, call.message, db_session, bot, user_chat_id  # Добавлен user_chat_id
             )
 
             # Логируем результат публикации
@@ -447,12 +450,13 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
                 logger.info(
                     f"📊 Результаты публикации: всего переводов — {total_count}, успешно опубликовано — {published_count}, с ошибками — {failed_count}.")
                 await call.message.answer(
-                    f"✅ Задача с группой переводов {translation_group_id} успешно опубликована.\n"
+                    f"Успешно опубликовано: {published_count}\n"
+                    f"С ошибками: {failed_count}"
                 )
             else:
                 logger.error(f"❌ Произошла ошибка при публикации задачи с группой переводов {translation_group_id}.")
                 await call.message.answer(
-                    f"❌ Произошла ошибка при публикации задачи с группой переводов {translation_group_id}.\n"
+                    f"❌ Произошла ошибка при публикации задачи с группой переводов `{translation_group_id}`.\n"
                     f"📊 Результаты:\n"
                     f"Всего переводов: {total_count}\n"
                     f"Успешно опубликовано: {published_count}\n"
