@@ -1,12 +1,11 @@
 # handlers/webhook_handler.py
 
 import logging
-
 from aiogram import Router, F, Bot
 from aiogram.types import Message
 from datetime import datetime
 import json
-import re  # Добавляем импорт модуля регулярных выражений
+import re
 from typing import Optional, List, Union
 
 from bot.utils.db_utils import fetch_one
@@ -16,14 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 router = Router()
-
-
-
-
-
-
-
-
 
 
 async def get_task_translations(task_id: int, session: AsyncSession) -> list:
@@ -141,5 +132,5 @@ async def handle_photo_with_caption(message: Message, bot: Bot, db_session: Asyn
             "create_date": datetime.utcnow().isoformat()
         }
 
-        # Если необходимо, можно отправить информацию об ошибке на отдельный вебхук или логировать её
+        # Логирование информации об ошибке
         logger.error(f"❌ Ошибка при обработке сообщения:\n{json.dumps(error_data, ensure_ascii=False, indent=2)}")

@@ -44,7 +44,6 @@ last_import_error_msg = ""
 
 
 
-
 async def prepare_publication(
     task: Task,
     translation: TaskTranslation,
@@ -99,35 +98,40 @@ async def prepare_publication(
             'topic': 'Тема',
             'subtopic': 'Подтема',
             'no_subtopic': 'Без подтемы',
-            'difficulty': 'Сложность'
+            'difficulty': 'Сложность',
+            'quiz_question': "Какой будет вывод?"
         },
         'en': {
             'programming_language': 'Language',
             'topic': 'Topic',
             'subtopic': 'Subtopic',
             'no_subtopic': 'No subtopic',
-            'difficulty': 'Difficulty'
+            'difficulty': 'Difficulty',
+            'quiz_question': "What will be the output?"
         },
         'es': {
             'programming_language': 'Idioma',
             'topic': 'Tema',
             'subtopic': 'Subtema',
             'no_subtopic': 'Sin subtema',
-            'difficulty': 'Dificultad'
+            'difficulty': 'Dificultad',
+            'quiz_question': "¿Cuál será el resultado?"
         },
         'tr': {
             'programming_language': 'Dil',
             'topic': 'Konu',
             'subtopic': 'Alt Konu',
             'no_subtopic': 'Alt konu yok',
-            'difficulty': 'Zorluk'
+            'difficulty': 'Zorluk',
+            'quiz_question': "Çıktı ne olacak?"
         },
         'ar': {
             'programming_language': 'اللغة',
             'topic': 'الموضوع',
             'subtopic': 'الموضوع الفرعي',
             'no_subtopic': 'لا يوجد موضوع فرعي',
-            'difficulty': 'الصعوبة'
+            'difficulty': 'الصعوبة',
+            'quiz_question': "ما هي النتيجة؟"
         }
     }
 
@@ -155,14 +159,7 @@ async def prepare_publication(
     }
 
     # Подготовка сообщения с изображением
-    question_texts = {
-        'ru': "Какой будет вывод?",
-        'en': "What will be the output?",
-        'es': "¿Cuál será el resultado?",
-        'tr': "Çıktı ne olacak?",
-        'ar': "ما هي النتيجة؟"
-    }
-    question_text = question_texts.get(language, "Какой будет вывод?")
+    question_text = lang_translations['quiz_question']
     logger.info(f"📝 Текст вопроса на языке '{language}': {question_text}")
 
     image_message = {
@@ -209,12 +206,12 @@ async def prepare_publication(
     }.get(language, "Я не знаю, но хочу узнать")
     options.append(dont_know_option)
 
-    logger.info(f"🔍 Вопрос: {translation.question}")
+    logger.info(f"🔍 Вопрос: {question_text}")
     logger.info(f"🔍 Варианты ответов: {options}")
     logger.info(f"🔍 Индекс правильного ответа: {correct_option_id} (Правильный ответ: {correct_answer})")
 
     poll_message = {
-        "question": translation.question,
+        "question": question_text,  # Используем общий вопрос
         "options": options,
         "correct_option_id": correct_option_id,
         "explanation": translation.explanation or "",
@@ -224,7 +221,7 @@ async def prepare_publication(
 
     logger.info(
         f"📊 Подготовлено сообщение для опроса:\n"
-        f"Вопрос: {translation.question}\n"
+        f"Вопрос: {question_text}\n"
         f"Варианты: {options}\n"
         f"Правильный ответ: {correct_answer} (Индекс: {correct_option_id})\n"
         f"Тип опроса: {poll_message['type']}"
@@ -299,7 +296,6 @@ async def prepare_publication(
         raise e  # Пробрасываем исключение для обработки отката
 
     return image_message, text_message, poll_message, button_message
-
 
 
 
