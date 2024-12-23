@@ -65,18 +65,16 @@ async def generate_image_with_executor(task_text, language, logo_path=None):
     return image
 
 
-async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[str]:
+async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Image.Image]:
     """
-    Асинхронная генерация изображения для задачи, используя перевод, если изображение ещё не было сгенерировано.
-
-    :param task: Объект задачи Task
-    :return: URL сгенерированного изображения или None, если не удалось сгенерировать
+    Асинхронно формирует PIL.Image для задачи (если нужно).
+    В ЭТОЙ ВЕРСИИ НЕ загружает картинку в S3 — это делается позже в prepare_publication().
     """
     try:
         # Проверяем, было ли уже сгенерировано изображение
         if task.image_url:
             logger.info(f"Изображение для задачи с ID {task.id} уже сгенерировано.")
-            return task.image_url
+            return None
 
         # Ищем перевод на 'ru', если его нет, берем первый доступный перевод
         translation = next((t for t in task.translations if t.language == 'ru'), None)
@@ -88,23 +86,11 @@ async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[st
 
         task_text = translation.question  # Используем поле 'question' из перевода
 
-        # Генерация изображения
+        # Генерация PIL.Image
         logger.info(f"Генерация изображения для задачи с ID {task.id}")
         image = await generate_image_with_executor(task_text, 'python', logo_path)
 
-        # CHANGED: Добавляем язык в название файла
-        language_code = translation.language if translation.language else "unknown"
-        image_name = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png".replace(" ", "_").lower()
-
-        image_url = await save_image_to_storage(image, image_name, user_chat_id)
-
-        if not image_url:
-            logger.error(f"Ошибка при сохранении изображения для задачи с ID {task.id}.")
-            raise ValueError(f"Не удалось сохранить изображение для задачи с ID {task.id} в облако.")
-
-        task.image_url = image_url
-        logger.info(f"Изображение для задачи с ID {task.id} успешно сгенерировано и сохранено.")
-        return image_url
+        return image
 
     except Exception as e:
         logger.error(f"Ошибка при генерации изображения для задачи с ID {task.id}: {e}")

@@ -92,12 +92,26 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         # Получение списка активных вебхуков
         webhook_service = WebhookService(db_session)
         active_webhooks = await webhook_service.get_active_webhooks()
+        logger.info(f"📥 Список активных вебхуков: {[wh.url for wh in active_webhooks]}")
+        if not active_webhooks:
+            logger.warning("⚠️ Нет активных вебхуков для отправки.")
+            await message.answer("⚠️ Нет активных вебхуков для отправки.")
 
         # Публикация каждого перевода
         for task_in_group in tasks_in_group:
+            # Генерируем (или пытаемся получить) картинку
             image_url = await generate_image_if_needed(task_in_group, user_chat_id)
             if not image_url:
                 logger.error(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
+                failed_count += len(task_in_group.translations)
+                # Раз в других местах добавляются keys, добавим их тут тоже
+                for tr in task_in_group.translations:
+                    failed_publications.append({
+                        "task_id": task_in_group.id,
+                        "translation_id": tr.id,
+                        "language": tr.language,
+                        "error": "Ошибка при генерации изображения"
+                    })
                 continue
 
             for translation in task_in_group.translations:
@@ -542,10 +556,14 @@ async def publish_task_by_translation_group(
                 logger.error(f"❌ {error_message}")
                 await message.answer(error_message)
                 failed_count += len(task.translations)
-                failed_publications.append({
-                    "task_id": task.id,
-                    "error": "Ошибка генерации изображения"
-                })
+                # Запишем ошибку для каждого перевода этой задачи
+                for tr in task.translations:
+                    failed_publications.append({
+                        "task_id": task.id,
+                        "translation_id": tr.id,
+                        "language": tr.language,
+                        "error": "Ошибка генерации изображения"
+                    })
                 continue
 
             # Информирование о начале публикации задачи
@@ -553,10 +571,14 @@ async def publish_task_by_translation_group(
 
             for translation in task.translations:
                 try:
-                    logger.info(f"🌍 Публикация перевода (ID: {translation.id}) на языке {translation.language}")
-                    await message.answer(
-                        f"🌍 Публикация перевода ID `{translation.id}` на языке `{translation.language}`."
+                    # Вместо ручных сообщений используем log_publication_start
+                    publication_start_msg = log_publication_start(
+                        task_id=task.id,
+                        translation_id=translation.id,
+                        language=translation.language,
+                        target=f"группу (канал) этой задачи"
                     )
+                    await message.answer(publication_start_msg)
 
                     # Подготовка публикации
                     image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(

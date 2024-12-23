@@ -1,23 +1,17 @@
-# bot/utils/logging_utils.py
-
 import logging
-
-
-
-logger = logging.getLogger(__name__)
-
-
-
 
 logger = logging.getLogger(__name__)
 
 def log_publication_start(task_id: int, translation_id: int, language: str, target: str) -> str:
+    """
+    Единое сообщение о начале публикации.
+    """
     message = (
         f"🔄 Начинаем публикацию задачи ID `{task_id}`.\n"
-        f"🌍 Публикация перевода ID `{translation_id}` на языке `{language}`."
+        f"🌍 Публикация перевода ID `{translation_id}` на языке `{language}` в {target}."
     )
     logger.info(message)
-    return message  # Для отправки в чат
+    return message
 
 def log_username_received(group_name: str, channel_username: str) -> str:
     message = f"✅ Username канала `{group_name}` получен: @{channel_username}"
@@ -67,7 +61,6 @@ def log_publication_failure(task_id: int, translation_id: int, language: str, ta
 
 def log_webhook_data(webhook_data: dict):
     logger.debug(f"📦 Данные для вебхука: {webhook_data}")
-
 
 def log_publication_success(task_id: int, translation_id: int, language: str, target: str):
     logger.info(

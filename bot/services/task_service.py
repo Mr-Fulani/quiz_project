@@ -17,6 +17,7 @@ from sqlalchemy.future import select
 
 import bot
 from bot.services.default_link_service import DefaultLinkService
+from bot.services.image_service import generate_image_if_needed
 from bot.services.s3_services import delete_image_from_s3, save_image_to_storage
 from config import S3_BUCKET_NAME, S3_REGION
 from database.models import Task, TaskTranslation, Topic, Subtopic, Group
@@ -164,7 +165,7 @@ async def prepare_publication(
 
     image_message = {
         "type": "photo",
-        "photo": image_url,
+        "photo": None,
         "caption": question_text
     }
     logger.info(f"🖼️ Подготовлено сообщение с изображением и вопросом: {image_message['caption']}")
@@ -275,29 +276,46 @@ async def prepare_publication(
 
     logger.info(f"✅ Подготовка публикации завершена для задачи ID {task.id}")
 
-    # Загрузка изображения в S3 и обновление external_link
+    # ---- Загрузка итоговой картинки в S3 (только один раз) ----
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as resp:
-                if resp.status == 200:
-                    image_data = await resp.read()
-                    image = Image.open(io.BytesIO(image_data)).convert("RGB")
-                    image_name = f"{task.id}_{os.path.basename(image_url)}"
-                    s3_url = await save_image_to_storage(image, image_name, user_chat_id)  # Передаем user_chat_id
-                    if not s3_url:
-                        raise Exception("Не удалось загрузить изображение в S3.")
-                    # Обновляем external_link задачи с URL S3
-                    task.external_link = s3_url
-                    await db_session.commit()
-                else:
-                    raise Exception(f"Не удалось скачать изображение по URL: {image_url}")
+        # 1) Генерируем PIL.Image (если вернулась None, попробуем скачать image_url)
+        pil_image = await generate_image_if_needed(task, user_chat_id)
+        if not pil_image:
+            # Если generate_image_if_needed ничего не вернула,
+            # значит мы хотим скачать готовое изображение
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_url) as resp:
+                    if resp.status != 200:
+                        raise Exception(f"Не удалось скачать файл по ссылке: {image_url}")
+                    img_data = await resp.read()
+                    pil_image = Image.open(io.BytesIO(img_data)).convert("RGB")
+
+        # 2) Формируем унифицированное имя файла
+        language_code = translation.language or "unknown"
+        custom_filename = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png"
+        custom_filename = custom_filename.replace(" ", "_").lower()
+
+        # 3) Заливаем изображение в S3
+        s3_url = await save_image_to_storage(pil_image, custom_filename, user_chat_id)
+        if not s3_url:
+            raise Exception("Не удалось загрузить изображение в S3.")
+
+        # 4) Обновляем task.external_link и .image_url (если вам это нужно)
+        task.external_link = s3_url
+        # Если у вас есть поле image_url, можно прописать:
+        #   task.image_url = s3_url
+        await db_session.commit()
+
+        # 5) Теперь подставляем результат в image_message
+        image_message["photo"] = s3_url
+
+        logger.info(f"✅ Изображение загружено в S3: {s3_url}")
+
     except Exception as e:
-        logger.error(f"❌ Ошибка при загрузке изображения для задачи ID {task.id}: {e}")
-        raise e  # Пробрасываем исключение для обработки отката
+        logger.error(f"❌ Ошибка при загрузке/генерации изображения для задачи {task.id}: {e}")
+        raise  # пусть вызывающий код обработает
 
     return image_message, text_message, poll_message, button_message, external_link, dont_know_option
-
-
 
 
 
