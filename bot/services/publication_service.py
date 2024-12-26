@@ -19,7 +19,7 @@ from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
 from bot.utils.logging_utils import log_final_summary, log_webhook_summary, log_webhook_sent, log_pause, \
     log_username_received, log_publication_start, log_publication_failure, log_webhook_data, log_publication_success
-from database.models import Task, Group, TaskTranslation
+from database.models import Task, Group, TaskTranslation, TaskPoll
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +173,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         type="quiz"
                     )
 
+
+
                     await bot.send_message(
                         chat_id=group.group_id,
                         text=button_message["text"],
@@ -216,6 +218,22 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     webhook_data["incorrect_answers"].append(dont_know_with_link)
 
                     webhook_data_list.append(webhook_data)
+
+                    # Сохранение информации об опросе
+                    task_poll = TaskPoll(
+                        task_id=task_in_group.id,
+                        translation_id=translation.id,
+                        poll_id=poll_msg.poll.id,
+                        poll_question=translation.question,
+                        poll_options=translation.answers,
+                        is_anonymous=task_in_group.is_anonymous,
+                        allows_multiple_answers=task_in_group.allows_multiple_answers,
+                        poll_type=poll_msg.type,
+                        total_voter_count=poll_msg.total_voter_count,
+                        poll_link=poll_link
+                    )
+                    db_session.add(task_poll)
+                    await db_session.commit()
 
                     # Логирование получения username канала
                     username_msg = log_username_received(group_name=group.group_name, channel_username=channel_username)

@@ -23,8 +23,8 @@ ADMIN_REMOVE_SECRET_PASSWORD = os.getenv("ADMIN_REMOVE_SECRET_PASSWORD")  # Но
 
 
 
-# Целевой Chat ID для публикации
-TARGET_CHAT_ID = os.getenv("TARGET_CHAT_ID")
+# # Целевой Chat ID для публикации
+# TARGET_CHAT_ID = os.getenv("TARGET_CHAT_ID")
 
 
 

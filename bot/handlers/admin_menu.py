@@ -8,7 +8,7 @@ import re
 
 from aiogram import Router, F, Bot, types
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import StateFilter
+from aiogram.filters import StateFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile
 from sqlalchemy.exc import IntegrityError
@@ -30,7 +30,7 @@ from bot.utils.image_generator import generate_detailed_task_status_image, \
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
 from config import ALLOWED_USERS
-from database.models import Admin, Task, Group, Topic
+from database.models import Admin, Task, Group, Topic, User
 
 
 
@@ -1129,4 +1129,11 @@ async def callback_list_default_links(call: CallbackQuery, db_session: AsyncSess
         await call.message.answer("❌ Произошла ошибка при получении списка ссылок.")
         logger.error(f"Ошибка при получении списка ссылок: {e}")
     await call.answer()
+
+
+
+
+
+
+
 

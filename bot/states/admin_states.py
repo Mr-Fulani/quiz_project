@@ -47,3 +47,9 @@ class DefaultLinkStates(StatesGroup):
     waiting_for_link = State()
     waiting_for_remove_language = State()
     waiting_for_remove_topic = State()
+
+
+
+
+class UserStatsState(StatesGroup):
+    waiting_for_telegram_id = State()

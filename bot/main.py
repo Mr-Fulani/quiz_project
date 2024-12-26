@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from bot.middlewares.db_session import DbSessionMiddleware
+from bot.middlewares.user_middleware import UserMiddleware
 from config import (
     TELEGRAM_BOT_TOKEN,
     DATABASE_URL, ALLOWED_USERS
@@ -22,6 +23,9 @@ from bot.handlers.upload_json import router as upload_json_router
 from bot.handlers.webhook_handler import router as webhook_router
 from bot.handlers.test import router as test_router
 from bot.handlers.admin import router as admin_router  # Импортируйте admin_router
+from bot.handlers.user_handler import router as user_router
+from bot.handlers.statistics_handler import router as statistics_router
+from bot.handlers.poll_handler import router as poll_router
 from database.database import Base
 from database.models import Admin
 
@@ -48,9 +52,13 @@ publication_dp = Dispatcher(storage=publication_storage)
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session_maker = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-# Подключение middleware к диспетчеру публикационного бота
-publication_dp.message.middleware(DbSessionMiddleware(async_session_maker))
-publication_dp.callback_query.middleware(DbSessionMiddleware(async_session_maker))
+# ------------------------------------------------------------------------
+# Глобальная регистрация middleware (на все типы апдейтов):
+# dp.update.middleware(...) — в Aiogram 3.x применится к любому Update.
+# ------------------------------------------------------------------------
+publication_dp.update.middleware(DbSessionMiddleware(async_session_maker))
+publication_dp.update.middleware(UserMiddleware())
+
 
 # Подключение всех необходимых роутеров
 publication_dp.include_router(start_router)
@@ -60,6 +68,9 @@ publication_dp.include_router(upload_json_router)
 publication_dp.include_router(webhook_router)
 publication_dp.include_router(test_router)
 publication_dp.include_router(admin_router)  # Подключение admin_router
+publication_dp.include_router(user_router)
+publication_dp.include_router(statistics_router)
+publication_dp.include_router(poll_router)
 
 logger.info("📌 Все роутеры подключены к диспетчеру публикационного бота")
 

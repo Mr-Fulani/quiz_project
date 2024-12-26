@@ -1,14 +1,12 @@
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+
+from bot.utils.time import get_current_time
 from database.database import Base
-
-
-
-def get_current_time():
-    return datetime.now(timezone.utc)
 
 
 # Модель администраторов
@@ -16,7 +14,7 @@ class Admin(Base):
     __tablename__ = 'admins'
 
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(BigInteger, unique=True, nullable=False)  # Telegram ID администратора
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)  # Telegram ID администратора
     username = Column(String, nullable=True)  # Имя пользователя (опционально)
 
 
@@ -50,7 +48,7 @@ class Task(Base):
     group = relationship('Group', back_populates='tasks')
 
     # Связь с опросом
-    poll = relationship('TaskPoll', back_populates='task', uselist=False)
+    polls = relationship('TaskPoll', back_populates='task', cascade="all, delete-orphan")
 
     # Связь с темой
     topic = relationship('Topic', back_populates='tasks')
@@ -79,14 +77,26 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(BigInteger, unique=True, nullable=False)  # Telegram ID пользователя
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)  # Telegram ID пользователя
     username = Column(String, nullable=True)  # Имя пользователя
     subscription_status = Column(String, default='inactive', nullable=False)  # Статус подписки
     created_at = Column(DateTime, default=get_current_time, nullable=False)  # Дата создания
     language = Column(String, nullable=True)  # Язык пользователя
 
+    # Новое поле для фиксации даты/времени, когда пользователь стал 'inactive'
+    deactivated_at = Column(DateTime, nullable=True)  # <-- Добавлено
+
+    channel_subscriptions = relationship(
+        "UserChannelSubscription",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
     # Связь с таблицей статистики задач
     statistics = relationship('TaskStatistics', back_populates='user', cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<User id={self.id}, tg_id={self.telegram_id}, status={self.subscription_status}>"
 
 
 # Модель статистики задач
@@ -117,6 +127,13 @@ class Group(Base):
     language = Column(String, nullable=False)  # Язык группы
     location_type = Column(String, nullable=False, default="group")  # Тип: "group" или "channel"
     username = Column(String, nullable=True)
+
+    # Дополнительно:
+    user_subscriptions = relationship(
+        "UserChannelSubscription",
+        back_populates="channel",
+        cascade="all, delete-orphan"
+    )
 
     # Связь с задачами
     tasks = relationship('Task', back_populates='group')
@@ -153,8 +170,9 @@ class TaskPoll(Base):
     __tablename__ = 'task_polls'
 
     id = Column(Integer, primary_key=True)
-    task_id = Column(Integer, ForeignKey('tasks.id'), nullable=False, unique=True)  # Связь с задачей
-    poll_id = Column(String, nullable=True)
+    task_id = Column(Integer, ForeignKey('tasks.id'), nullable=False)  # Связь с задачей
+    translation_id = Column(Integer, ForeignKey('task_translations.id'), nullable=False)  # Связь с переводом
+    poll_id = Column(String, nullable=False, unique=True)  # Telegram poll_id
     poll_question = Column(String, nullable=True)
     poll_options = Column(JSON, nullable=True)  # Список опций
     is_anonymous = Column(Boolean, default=True)
@@ -163,8 +181,9 @@ class TaskPoll(Base):
     total_voter_count = Column(Integer, default=0)
     poll_link = Column(String, nullable=True)
 
-    # Обратная связь с задачей
-    task = relationship('Task', back_populates='poll')
+    # Связи
+    task = relationship('Task', back_populates='polls')
+    translation = relationship('TaskTranslation')
 
 
 
@@ -202,3 +221,30 @@ class DefaultLink(Base):
 
 
 
+
+class UserChannelSubscription(Base):
+    """
+    Промежуточная таблица, показывающая, на каких каналах/группах
+    пользователь (User) подписан или нет.
+    """
+    __tablename__ = 'user_channel_subscriptions'
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    channel_id = Column(BigInteger, ForeignKey('groups.group_id'), nullable=False)
+    #  ^ channel_id (или group_id) — это Telegram ID канала/группы
+
+    # subscription_status: 'active' (подписался) или 'inactive' (отписался)
+    subscription_status = Column(String, default='inactive', nullable=False)
+
+    subscribed_at = Column(DateTime, nullable=True)
+    unsubscribed_at = Column(DateTime, nullable=True)
+
+    # Связи (по желанию, если нужно ORM-связь)
+    user = relationship('User', back_populates='channel_subscriptions')
+    channel = relationship('Group', back_populates='user_subscriptions')
+
+    def __repr__(self):
+        return (f"<UserChannelSubscription user_id={self.user_id}, "
+                f"channel_id={self.channel_id}, status={self.subscription_status}>")
