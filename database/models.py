@@ -256,7 +256,12 @@ class MainFallbackLink(Base):
     __tablename__ = 'main_fallback_links'
 
     id = Column(Integer, primary_key=True, index=True)
+    language = Column(String, nullable=False)
     link = Column(String, nullable=False)
 
+    __table_args__ = (
+        UniqueConstraint('language', name='uix_language'),
+    )
+
     def __repr__(self):
-        return f"<MainFallbackLink(link={self.link})>"
+        return f"<MainFallbackLink(language={self.language}, link={self.link})>"

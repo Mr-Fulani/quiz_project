@@ -6,6 +6,8 @@ from database.models import DefaultLink, Task, MainFallbackLink
 
 logger = logging.getLogger(__name__)
 
+
+
 class DefaultLinkService:
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
@@ -13,8 +15,8 @@ class DefaultLinkService:
     async def get_default_link(self, language: str, topic: str) -> str:
         """
         Возвращает ссылку по умолчанию для указанного языка и темы из базы данных.
-        Если ссылки нет, возвращает главную статическую ссылку.
-        Если и её нет, возвращает заранее заданную ссылку.
+        Если ссылки нет, возвращает главную статическую ссылку для языка.
+        Если и её нет, возвращает стандартную ссылку.
         """
         try:
             logger.debug(f"Запрос на получение ссылки по умолчанию для языка '{language}' и темы '{topic}'.")
@@ -31,18 +33,37 @@ class DefaultLinkService:
                 logger.info(f"Найдена ссылка по умолчанию для языка '{language}' и темы '{topic}': {default_link.link}")
                 return default_link.link
             else:
-                # Получаем главную статическую ссылку
-                fallback_result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+                # Получаем главную статическую ссылку для языка
+                fallback_result = await self.db_session.execute(
+                    select(MainFallbackLink).where(MainFallbackLink.language == language)
+                )
                 fallback_link = fallback_result.scalar_one_or_none()
                 if fallback_link:
-                    logger.info(f"Используется главная статическая ссылка: {fallback_link.link}")
+                    logger.info(f"Используется главная статическая ссылка для языка '{language}': {fallback_link.link}")
                     return fallback_link.link
                 else:
-                    logger.warning(f"Главная статическая ссылка не найдена. Используется стандартная ссылка.")
-                    return "https://t.me/proger_dude"
+                    logger.warning(f"Главная статическая ссылка для языка '{language}' не найдена. Используется стандартная ссылка.")
+                    return "https://t.me/tyt_python"
         except Exception as e:
             logger.error(f"Ошибка при получении ссылки по умолчанию: {e}")
-            return "https://t.me/proger_dude"
+            return "https://t.me/tyt_python"
+
+
+    async def get_all_main_fallback_links(self) -> list:
+        """
+        Возвращает список всех главных статических ссылок с указанием языка.
+        """
+        try:
+            logger.info("Запрос на получение всех главных статических ссылок.")
+            result = await self.db_session.execute(select(MainFallbackLink))
+            links = result.scalars().all()
+            logger.info(f"Найдено {len(links)} главных статических ссылок.")
+            return links
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех главных статических ссылок: {e}")
+            return []
+
+
 
     async def add_default_link(self, language: str, topic: str, link: str) -> DefaultLink:
         """
@@ -140,28 +161,30 @@ class DefaultLinkService:
             logger.error(f"Ошибка при получении списка ссылок: {e}")
             return []
 
-    async def set_main_fallback_link(self, link: str) -> MainFallbackLink:
+    async def set_main_fallback_link(self, language: str, link: str) -> MainFallbackLink:
         """
-        Устанавливает или обновляет главную статическую ссылку.
+        Устанавливает или обновляет главную статическую ссылку для указанного языка.
         """
         try:
-            logger.info("Установка или обновление главной статической ссылки...")
-            result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+            logger.info(f"Установка или обновление главной статической ссылки для языка '{language}'...")
+            result = await self.db_session.execute(
+                select(MainFallbackLink).where(MainFallbackLink.language == language)
+            )
             fallback_link = result.scalar_one_or_none()
 
             if not fallback_link:
                 # Ссылка не установлена, добавляем новую
-                fallback_link = MainFallbackLink(link=link)
+                fallback_link = MainFallbackLink(language=language, link=link)
                 self.db_session.add(fallback_link)
-                logger.info(f"Добавлена новая главная статическая ссылка: {link}")
+                logger.info(f"Добавлена новая главная статическая ссылка для языка '{language}': {link}")
             else:
                 # Ссылка уже существует, обновляем её
                 old_link = fallback_link.link
                 fallback_link.link = link
-                logger.info(f"Обновлена главная статическая ссылка. Была: {old_link}, стала: {link}")
+                logger.info(f"Обновлена главная статическая ссылка для языка '{language}'. Была: {old_link}, стала: {link}")
 
             await self.db_session.commit()
-            logger.info("Главная статическая ссылка успешно зафиксирована в базе данных.")
+            logger.info(f"Главная статическая ссылка для языка '{language}' успешно зафиксирована в базе данных.")
 
             return fallback_link
         except Exception as e:
@@ -169,41 +192,45 @@ class DefaultLinkService:
             logger.error(f"Ошибка при установке главной статической ссылки: {e}")
             raise e
 
-    async def remove_main_fallback_link(self) -> bool:
+    async def remove_main_fallback_link(self, language: str) -> bool:
         """
-        Удаляет главную статическую ссылку.
+        Удаляет главную статическую ссылку для указанного языка.
         Возвращает True, если удаление прошло успешно, иначе False.
         """
         try:
-            logger.info("Попытка удаления главной статической ссылки...")
-            result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+            logger.info(f"Попытка удаления главной статической ссылки для языка '{language}'...")
+            result = await self.db_session.execute(
+                select(MainFallbackLink).where(MainFallbackLink.language == language)
+            )
             fallback_link = result.scalar_one_or_none()
             if fallback_link:
                 await self.db_session.delete(fallback_link)
                 await self.db_session.commit()
-                logger.info("Главная статическая ссылка удалена.")
+                logger.info(f"Главная статическая ссылка для языка '{language}' удалена.")
                 return True
             else:
-                logger.warning("Главная статическая ссылка не найдена.")
+                logger.warning(f"Главная статическая ссылка для языка '{language}' не найдена.")
                 return False
         except Exception as e:
             await self.db_session.rollback()
             logger.error(f"Ошибка при удалении главной статической ссылки: {e}")
             return False
 
-    async def get_main_fallback_link(self) -> str:
+    async def get_main_fallback_link(self, language: str) -> str:
         """
-        Возвращает главную статическую ссылку. Если её нет, возвращает стандартную ссылку.
+        Возвращает главную статическую ссылку для указанного языка. Если её нет, возвращает стандартную ссылку.
         """
         try:
-            result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+            result = await self.db_session.execute(
+                select(MainFallbackLink).where(MainFallbackLink.language == language)
+            )
             fallback_link = result.scalar_one_or_none()
             if fallback_link:
-                logger.info(f"Главная статическая ссылка: {fallback_link.link}")
+                logger.info(f"Главная статическая ссылка для языка '{language}': {fallback_link.link}")
                 return fallback_link.link
             else:
-                logger.warning("Главная статическая ссылка не установлена. Используется стандартная ссылка.")
-                return "https://t.me/proger_dude"
+                logger.warning(f"Главная статическая ссылка для языка '{language}' не установлена. Используется стандартная ссылка.")
+                return "https://t.me/tyt_python"
         except Exception as e:
             logger.error(f"Ошибка при получении главной статической ссылки: {e}")
-            return "https://t.me/proger_dude"
+            return "https://t.me/tyt_python"

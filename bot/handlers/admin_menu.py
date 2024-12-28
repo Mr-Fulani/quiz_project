@@ -1373,111 +1373,13 @@ async def post_subscription_buttons(call: types.CallbackQuery, db_session, bot):
 
 
 
-@router.message(Command("setfallback"))
-async def cmd_set_fallback(message: types.Message, db_session: AsyncSession, state: FSMContext):
-    """
-    Команда для установки или обновления главной статической ссылки.
-    """
-    user_id = message.from_user.id
-    if not await is_admin(user_id, db_session):
-        await message.answer("У вас нет доступа к этой команде.")
-        logger.warning(f"Пользователь с ID {user_id} попытался установить главную статическую ссылку без прав.")
-        return
-
-    await message.answer("Пожалуйста, введите новую главную статическую ссылку:")
-    await state.set_state(AdminStates.waiting_for_set_fallback_link)
-    logger.info(f"Пользователь {message.from_user.username} инициировал установку главной статической ссылки.")
-
-
-@router.message(AdminStates.waiting_for_set_fallback_link)
-async def process_set_fallback_link(message: types.Message, db_session: AsyncSession, state: FSMContext):
-    """
-    Обрабатывает ввод новой главной статической ссылки.
-    """
-    user_id = message.from_user.id
-    if not await is_admin(user_id, db_session):
-        await message.answer("У вас нет доступа к этой команде.")
-        logger.warning(f"Пользователь с ID {user_id} попытался установить главную статическую ссылку без прав.")
-        await state.clear()
-        return
-
-    new_link = message.text.strip()
-    # Валидация URL (простая)
-    if not new_link.startswith("http://") and not new_link.startswith("https://"):
-        await message.answer("Пожалуйста, введите корректный URL (начинающийся с http:// или https://).")
-        return
-
-    default_link_service = DefaultLinkService(db_session)
-    try:
-        fallback_link = await default_link_service.set_main_fallback_link(new_link)
-        await message.answer(f"✅ Главная статическая ссылка успешно установлена: {fallback_link.link}")
-        logger.info(
-            f"Пользователь {message.from_user.username} установил главную статическую ссылку: {fallback_link.link}")
-    except Exception as e:
-        await message.answer("❌ Произошла ошибка при установке главной статической ссылки.")
-        logger.error(f"Ошибка при установке главной статической ссылки: {e}")
-
-    await state.clear()
-
-
-@router.message(Command("removefallback"))
-async def cmd_remove_fallback(message: types.Message, db_session: AsyncSession, state: FSMContext):
-    """
-    Команда для удаления главной статической ссылки.
-    """
-    user_id = message.from_user.id
-    if not await is_admin(user_id, db_session):
-        await message.answer("У вас нет доступа к этой команде.")
-        logger.warning(f"Пользователь с ID {user_id} попытался удалить главную статическую ссылку без прав.")
-        return
-
-    default_link_service = DefaultLinkService(db_session)
-    success = await default_link_service.remove_main_fallback_link()
-    if success:
-        await message.answer("✅ Главная статическая ссылка успешно удалена.")
-        logger.info(f"Пользователь {message.from_user.username} удалил главную статическую ссылку.")
-    else:
-        await message.answer("⚠️ Главная статическая ссылка не найдена.")
-        logger.warning("Попытка удалить главную статическую ссылку, но она не была найдена.")
-
-
-@router.message(Command("getfallback"))
-async def cmd_get_fallback(message: types.Message, db_session: AsyncSession, state: FSMContext):
-    """
-    Команда для получения текущей главной статической ссылки.
-    """
-    user_id = message.from_user.id
-    if not await is_admin(user_id, db_session):
-        await message.answer("У вас нет доступа к этой команде.")
-        logger.warning(f"Пользователь с ID {user_id} попытался получить главную статическую ссылку без прав.")
-        return
-
-    default_link_service = DefaultLinkService(db_session)
-    try:
-        fallback_link = await default_link_service.get_main_fallback_link()
-        if fallback_link != "https://t.me/proger_dude":
-            await message.answer(f"👥 **Главная статическая ссылка:**\n[{fallback_link}]({fallback_link})",
-                                 parse_mode='Markdown', disable_web_page_preview=False)
-            logger.info(
-                f"Пользователь {message.from_user.username} запросил главную статическую ссылку: {fallback_link}")
-        else:
-            await message.answer("⚠️ Главная статическая ссылка не установлена. Используется стандартная ссылка.")
-            logger.info("Пользователь запросил главную статическую ссылку, но она не установлена.")
-    except Exception as e:
-        await message.answer("❌ Произошла ошибка при получении главной статической ссылки.")
-        logger.error(f"Ошибка при получении главной статической ссылки: {e}")
-
-
-
-
-
 
 # Обработчик кнопки "Установить главную ссылку"
 @router.callback_query(lambda c: c.data == "set_main_fallback_link")
 async def callback_set_main_fallback_link(call: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Установить главную ссылку".
-    Запрашивает у администратора ввод новой ссылки.
+    Запрашивает у администратора выбор языка для установки ссылки.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1485,11 +1387,34 @@ async def callback_set_main_fallback_link(call: types.CallbackQuery, state: FSMC
         logger.warning(f"Пользователь с ID {user_id} попытался установить главную ссылку без прав.")
         return
 
-    await call.message.answer("Пожалуйста, введите новую главную статическую ссылку (начинающуюся с http:// или https://):")
-    await state.set_state(AdminStates.waiting_for_set_fallback_link)
+    await call.message.answer("Пожалуйста, введите язык, для которого хотите установить главную статическую ссылку (например, 'en', 'ru'):")
+    await state.set_state(AdminStates.waiting_for_set_fallback_language)
     await call.answer()
     logger.info(f"Пользователь {call.from_user.username} инициировал установку главной статической ссылки.")
 
+# Обработчик ввода языка для установки главной статической ссылки
+@router.message(AdminStates.waiting_for_set_fallback_language)
+async def process_set_fallback_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
+    """
+    Обрабатывает ввод языка для установки главной статической ссылки.
+    """
+    user_id = message.from_user.id
+    if not await is_admin(user_id, db_session):
+        await message.answer("У вас нет доступа к этой команде.")
+        logger.warning(f"Пользователь с ID {user_id} попытался установить главную ссылку без прав.")
+        await state.clear()
+        return
+
+    language = message.text.strip().lower()
+    # Здесь можно добавить проверку допустимых языков
+    if not language.isalpha():
+        await message.answer("Пожалуйста, введите корректный язык (только буквы, например, 'en', 'ru').")
+        return
+
+    await state.update_data(set_fallback_language=language)
+    await message.answer(f"Пожалуйста, введите новую главную статическую ссылку для языка '{language}' (начинающуюся с http:// или https://):")
+    await state.set_state(AdminStates.waiting_for_set_fallback_link)
+    logger.info(f"Пользователь {message.from_user.username} выбрал язык '{language}' для установки главной статической ссылки.")
 
 # Обработчик ввода новой главной статической ссылки
 @router.message(AdminStates.waiting_for_set_fallback_link)
@@ -1505,29 +1430,36 @@ async def process_set_main_fallback_link(message: types.Message, db_session: Asy
         return
 
     new_link = message.text.strip()
-    # Простая валидация URL
+    # Валидация URL
     if not (new_link.startswith("http://") or new_link.startswith("https://")):
         await message.answer("Пожалуйста, введите корректный URL (начинающийся с http:// или https://).")
         return
 
+    # Дополнительная валидация с помощью validators
+    if not is_valid_url(new_link):
+        await message.answer("Пожалуйста, введите корректный URL.")
+        return
+
+    data = await state.get_data()
+    language = data.get("set_fallback_language")
+
     default_link_service = DefaultLinkService(db_session)
     try:
-        fallback_link = await default_link_service.set_main_fallback_link(new_link)
-        await message.answer(f"✅ Главная статическая ссылка успешно установлена: [Ссылка]({fallback_link.link})", parse_mode='Markdown', disable_web_page_preview=False)
-        logger.info(f"Пользователь {message.from_user.username} установил главную статическую ссылку: {fallback_link.link}")
+        fallback_link = await default_link_service.set_main_fallback_link(language, new_link)
+        await message.answer(f"✅ Главная статическая ссылка для языка '{language}' успешно установлена: [Ссылка]({fallback_link.link})", parse_mode='Markdown', disable_web_page_preview=False)
+        logger.info(f"Пользователь {message.from_user.username} установил главную статическую ссылку для языка '{language}': {fallback_link.link}")
     except Exception as e:
         await message.answer("❌ Произошла ошибка при установке главной статической ссылки.")
         logger.error(f"Ошибка при установке главной статической ссылки: {e}")
 
     await state.clear()
 
-
 # Обработчик кнопки "Удалить главную ссылку"
 @router.callback_query(lambda c: c.data == "remove_main_fallback_link")
-async def callback_remove_main_fallback_link(call: types.CallbackQuery, db_session: AsyncSession):
+async def callback_remove_main_fallback_link(call: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Удалить главную ссылку".
-    Удаляет главную статическую ссылку из базы данных.
+    Запрашивает у администратора выбор языка для удаления ссылки.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1535,17 +1467,42 @@ async def callback_remove_main_fallback_link(call: types.CallbackQuery, db_sessi
         logger.warning(f"Пользователь с ID {user_id} попытался удалить главную ссылку без прав.")
         return
 
+    await call.message.answer("Пожалуйста, введите язык, для которого хотите удалить главную статическую ссылку (например, 'en', 'ru'):")
+    await state.set_state(AdminStates.waiting_for_remove_fallback_language)
+    await call.answer()
+    logger.info(f"Пользователь {call.from_user.username} инициировал удаление главной статической ссылки.")
+
+# Обработчик ввода языка для удаления главной статической ссылки
+@router.message(AdminStates.waiting_for_remove_fallback_language)
+async def process_remove_fallback_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
+    """
+    Обрабатывает ввод языка для удаления главной статической ссылки.
+    """
+    user_id = message.from_user.id
+    if not await is_admin(user_id, db_session):
+        await message.answer("У вас нет доступа к этой команде.")
+        logger.warning(f"Пользователь с ID {user_id} попытался удалить главную ссылку без прав.")
+        await state.clear()
+        return
+
+    language = message.text.strip().lower()
+    # Здесь можно добавить проверку допустимых языков
+    if not language.isalpha():
+        await message.answer("Пожалуйста, введите корректный язык (только буквы, например, 'en', 'ru').")
+        return
+
     default_link_service = DefaultLinkService(db_session)
-    success = await default_link_service.remove_main_fallback_link()
+    success = await default_link_service.remove_main_fallback_link(language)
 
     if success:
-        await call.message.answer("✅ Главная статическая ссылка успешно удалена.")
-        logger.info(f"Пользователь {call.from_user.username} удалил главную статическую ссылку.")
+        await message.answer(f"✅ Главная статическая ссылка для языка '{language}' успешно удалена.")
+        logger.info(f"Пользователь {message.from_user.username} удалил главную статическую ссылку для языка '{language}'.")
     else:
-        await call.message.answer("⚠️ Главная статическая ссылка не найдена.")
-        logger.warning("Попытка удалить главную статическую ссылку, но она не была найдена.")
+        await message.answer(f"⚠️ Главная статическая ссылка для языка '{language}' не найдена.")
+        logger.warning(f"Пользователь {message.from_user.username} попытался удалить несуществующую главную статическую ссылку для языка '{language}'.")
 
-    await call.answer()
+    await state.clear()
+
 
 
 # Обработчик кнопки "Получить главную ссылку"
@@ -1553,7 +1510,7 @@ async def callback_remove_main_fallback_link(call: types.CallbackQuery, db_sessi
 async def callback_get_main_fallback_link(call: types.CallbackQuery, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Получить главную ссылку".
-    Отправляет текущую главную статическую ссылку администратору.
+    Выводит списком все главные статические ссылки с указанием языка.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1563,19 +1520,45 @@ async def callback_get_main_fallback_link(call: types.CallbackQuery, db_session:
 
     default_link_service = DefaultLinkService(db_session)
     try:
-        fallback_link = await default_link_service.get_main_fallback_link()
-        if fallback_link != "https://t.me/proger_dude":
-            await call.message.answer(f"👥 **Главная статическая ссылка:**\n[Ссылка]({fallback_link})", parse_mode='Markdown', disable_web_page_preview=False)
-            logger.info(f"Пользователь {call.from_user.username} запросил главную статическую ссылку: {fallback_link}")
+        # Получаем все главные статические ссылки
+        main_links = await default_link_service.get_all_main_fallback_links()
+        if main_links:
+            message_text = "📌 **Главные статические ссылки по языкам:**\n\n"
+            for link in main_links:
+                # Используем emoji флагов для наглядности (опционально)
+                flag_emoji = get_flag_emoji(link.language)
+                message_text += f"{flag_emoji} *{link.language}*: [Ссылка]({link.link})\n"
+            await call.message.answer(message_text, parse_mode='Markdown', disable_web_page_preview=False)
+            logger.info(f"Пользователь {call.from_user.username} запросил все главные статические ссылки.")
         else:
-            await call.message.answer("⚠️ Главная статическая ссылка не установлена. Используется стандартная ссылка.")
-            logger.info("Пользователь запросил главную статическую ссылку, но она не установлена.")
+            # Если нет установленных главных ссылок, показать стандартную ссылку
+            await call.message.answer("⚠️ Главные статические ссылки не установлены. Используется стандартная ссылка:\nhttps://t.me/proger_dude")
+            logger.info(f"Пользователь запросил все главные статические ссылки, но они не установлены.")
     except Exception as e:
-        await call.message.answer("❌ Произошла ошибка при получении главной статической ссылки.")
-        logger.error(f"Ошибка при получении главной статической ссылки: {e}")
+        await call.message.answer("❌ Произошла ошибка при получении главных статических ссылок.")
+        logger.error(f"Ошибка при получении главных статических ссылок: {e}")
 
     await call.answer()
 
 
+
+def get_flag_emoji(language_code: str) -> str:
+    """
+    Возвращает эмодзи флага по коду языка.
+    Например, 'en' -> 🇬🇧, 'ru' -> 🇷🇺
+    """
+    try:
+        # Словарь соответствий языков флагам (можно расширить)
+        flags = {
+            'en': '🇬🇧',
+            'ru': '🇷🇺',
+            'tr': '🇹🇷',
+            'ar': '🇸🇦',
+            # Добавьте другие языки и соответствующие флаги
+        }
+        return flags.get(language_code, '🌐')  # 🌐 - глобус по умолчанию
+    except Exception as e:
+        logger.error(f"Ошибка при получении флага для языка '{language_code}': {e}")
+        return '🌐'
 
 
