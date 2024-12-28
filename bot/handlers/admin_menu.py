@@ -30,7 +30,6 @@ from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActio
 from bot.utils.image_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
-from config import ALLOWED_USERS
 from database.models import Admin, Task, Group, Topic, User
 
 
@@ -224,7 +223,7 @@ async def process_remove_admin_user_id(message: Message, state: FSMContext, db_s
 
 
 
-# Обработчик кнопки "Список администраторов"
+
 @router.callback_query(lambda c: c.data == "list_admins_button")
 async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSession):
     """
@@ -244,14 +243,18 @@ async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSessi
         else:
             admin_list = ""
             for admin in admins:
-                username = admin.username if admin.username else "Нет username"
-                # Формируем строку с экранированием
-                line = f"• {username} (ID: {admin.telegram_id})"
-                safe_line = escape_markdown(line)
-                admin_list += f"{safe_line}\n"
+                if admin.username:
+                    # Формируем кликабельный username
+                    username_link = f"[{admin.username}](https://t.me/{admin.username})"
+                else:
+                    username_link = "Нет username"
 
-        # Отправляем сообщение с экранированными символами
-        await call.message.answer(f"👥 **Список администраторов:**\n{admin_list}", parse_mode='MarkdownV2')
+                # Формируем строку
+                line = f"• {username_link} (ID: {admin.telegram_id})"
+                admin_list += f"{line}\n"
+
+        # Отправляем сообщение
+        await call.message.answer(f"👥 **Список администраторов:**\n{admin_list}", parse_mode='Markdown')
         await call.answer()  # Отвечаем на callback_query
         logger.debug("Список администраторов отправлен")
     except Exception as e:
@@ -941,6 +944,8 @@ async def callback_list_channels_groups(call: types.CallbackQuery, db_session: A
 
 
 
+
+
 @router.callback_query(lambda c: c.data == "zero_task_topics_report")
 async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db_session: AsyncSession):
     """
@@ -948,7 +953,7 @@ async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db
     Генерирует текстовый отчет и отправляет его администратору.
     """
     user_id = callback_query.from_user.id
-    if user_id not in ALLOWED_USERS:
+    if not await is_admin(user_id, db_session):
         await callback_query.answer("У вас нет доступа к этой команде.", show_alert=True)
         logger.warning(f"Пользователь с ID {user_id} попытался получить доступ к отчету без прав.")
         return
@@ -1001,11 +1006,13 @@ async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db
 
 
 
-
 @router.callback_query(lambda c: c.data == "add_topic")
-async def handle_add_topic(callback_query: types.CallbackQuery, state: FSMContext):
+async def handle_add_topic(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    """
+    Обработчик для кнопки "Добавить топик".
+    """
     user_id = callback_query.from_user.id
-    if user_id not in ALLOWED_USERS:
+    if not await is_admin(user_id, db_session):
         await callback_query.answer("У вас нет доступа к этой команде.", show_alert=True)
         logger.warning(f"Пользователь с ID {user_id} попытался добавить топик без прав.")
         return
@@ -1045,10 +1052,14 @@ async def process_add_topic(message: types.Message, state: FSMContext, db_sessio
 
 
 
+
 @router.callback_query(lambda c: c.data == "delete_topic")
-async def handle_delete_topic(callback_query: types.CallbackQuery, state: FSMContext):
+async def handle_delete_topic(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    """
+    Обработчик для кнопки "Удалить топик".
+    """
     user_id = callback_query.from_user.id
-    if user_id not in ALLOWED_USERS:
+    if not await is_admin(user_id, db_session):
         await callback_query.answer("У вас нет доступа к этой команде.", show_alert=True)
         logger.warning(f"Пользователь с ID {user_id} попытался удалить топик без прав.")
         return
@@ -1057,6 +1068,7 @@ async def handle_delete_topic(callback_query: types.CallbackQuery, state: FSMCon
     await state.set_state(AdminStates.waiting_for_topic_id)  # Исправлено
     await callback_query.answer()
     logger.info(f"Пользователь {callback_query.from_user.username} инициировал удаление топика.")
+
 
 
 

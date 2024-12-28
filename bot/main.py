@@ -13,7 +13,7 @@ from bot.middlewares.db_session import DbSessionMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
 from config import (
     TELEGRAM_BOT_TOKEN,
-    DATABASE_URL, ALLOWED_USERS
+    DATABASE_URL
 )
 
 from bot.handlers.start import router as start_router
@@ -76,23 +76,19 @@ logger.info("📌 Все роутеры подключены к диспетче
 
 # Логирование зарегистрированных роутеров
 logger.debug("Зарегистрированные роутеры:")
+
+
 for router in publication_dp.sub_routers:
     logger.debug(f"- {router.name}")
 
+
 async def init_db():
-    """Инициализирует базу данных и добавляет начальных администраторов."""
+    """Инициализирует базу данных."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    async with async_session_maker() as session:
-        for user_id in ALLOWED_USERS:
-            query = select(Admin).where(Admin.telegram_id == user_id)
-            result = await session.execute(query)
-            admin = result.scalar_one_or_none()
-            if not admin:
-                admin = Admin(telegram_id=user_id, username=None)  # Вы можете установить username, если доступен
-                session.add(admin)
-                logger.info(f"Добавлен начальный администратор с Telegram ID: {user_id}")
-        await session.commit()
+    await engine.dispose()  # Закрываем соединение после создания таблиц
+    logger.info("✅ База данных инициализирована")
+
 
 async def delete_webhook():
     """Удаляет вебхук перед запуском бота (если установлен)."""
@@ -101,6 +97,7 @@ async def delete_webhook():
         logger.info("✅ Вебхук публикационного бота успешно удалён")
     except Exception as e:
         logger.exception(f"❌ Ошибка при удалении вебхука публикационного бота: {e}")
+
 
 async def start_publication_bot():
     """Запуск публикационного бота с использованием Polling."""
@@ -112,6 +109,7 @@ async def start_publication_bot():
     finally:
         await publication_bot.close()
         logger.info("🛑 Публикационный бот остановлен")
+
 
 async def main():
     """Главная функция запуска."""
@@ -128,6 +126,7 @@ async def main():
         logger.exception("❌ Ошибка в функции main")
     finally:
         logger.info("🛑 Завершение работы приложения...")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
