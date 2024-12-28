@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import MAKE_WEBHOOK_RETRIES, MAKE_WEBHOOK_RETRY_DELAY, MAKE_WEBHOOK_TIMEOUT
 from database.models import Webhook, Admin  # Предполагается, что модель Admin существует
-from webhook_sender import notify_admin, send_quiz_published_webhook
+from bot.services.webhook_sender import notify_admin, send_quiz_published_webhook
 
 logger = logging.getLogger(__name__)
 

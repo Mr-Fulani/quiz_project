@@ -11,6 +11,7 @@ class AddAdminStates(StatesGroup):
 
 
 class AdminStates(StatesGroup):
+    waiting_for_set_fallback_link = State()
     waiting_for_topic_name = State()
     waiting_for_topic_id = State()
 

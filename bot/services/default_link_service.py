@@ -1,10 +1,8 @@
-# bot/services/default_link_service.py
-
 import logging
 from sqlalchemy import update
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import DefaultLink, Task
+from database.models import DefaultLink, Task, MainFallbackLink
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +13,8 @@ class DefaultLinkService:
     async def get_default_link(self, language: str, topic: str) -> str:
         """
         Возвращает ссылку по умолчанию для указанного языка и темы из базы данных.
-        Если ссылки нет, возвращает стандартную ссылку.
+        Если ссылки нет, возвращает главную статическую ссылку.
+        Если и её нет, возвращает заранее заданную ссылку.
         """
         try:
             logger.debug(f"Запрос на получение ссылки по умолчанию для языка '{language}' и темы '{topic}'.")
@@ -32,8 +31,15 @@ class DefaultLinkService:
                 logger.info(f"Найдена ссылка по умолчанию для языка '{language}' и темы '{topic}': {default_link.link}")
                 return default_link.link
             else:
-                logger.warning(f"Ссылка по умолчанию для языка '{language}' и темы '{topic}' не найдена. Используется стандартная ссылка.")
-                return "https://t.me/proger_dude"
+                # Получаем главную статическую ссылку
+                fallback_result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+                fallback_link = fallback_result.scalar_one_or_none()
+                if fallback_link:
+                    logger.info(f"Используется главная статическая ссылка: {fallback_link.link}")
+                    return fallback_link.link
+                else:
+                    logger.warning(f"Главная статическая ссылка не найдена. Используется стандартная ссылка.")
+                    return "https://t.me/proger_dude"
         except Exception as e:
             logger.error(f"Ошибка при получении ссылки по умолчанию: {e}")
             return "https://t.me/proger_dude"
@@ -134,10 +140,70 @@ class DefaultLinkService:
             logger.error(f"Ошибка при получении списка ссылок: {e}")
             return []
 
+    async def set_main_fallback_link(self, link: str) -> MainFallbackLink:
+        """
+        Устанавливает или обновляет главную статическую ссылку.
+        """
+        try:
+            logger.info("Установка или обновление главной статической ссылки...")
+            result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+            fallback_link = result.scalar_one_or_none()
 
+            if not fallback_link:
+                # Ссылка не установлена, добавляем новую
+                fallback_link = MainFallbackLink(link=link)
+                self.db_session.add(fallback_link)
+                logger.info(f"Добавлена новая главная статическая ссылка: {link}")
+            else:
+                # Ссылка уже существует, обновляем её
+                old_link = fallback_link.link
+                fallback_link.link = link
+                logger.info(f"Обновлена главная статическая ссылка. Была: {old_link}, стала: {link}")
 
+            await self.db_session.commit()
+            logger.info("Главная статическая ссылка успешно зафиксирована в базе данных.")
 
+            return fallback_link
+        except Exception as e:
+            await self.db_session.rollback()
+            logger.error(f"Ошибка при установке главной статической ссылки: {e}")
+            raise e
 
+    async def remove_main_fallback_link(self) -> bool:
+        """
+        Удаляет главную статическую ссылку.
+        Возвращает True, если удаление прошло успешно, иначе False.
+        """
+        try:
+            logger.info("Попытка удаления главной статической ссылки...")
+            result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+            fallback_link = result.scalar_one_or_none()
+            if fallback_link:
+                await self.db_session.delete(fallback_link)
+                await self.db_session.commit()
+                logger.info("Главная статическая ссылка удалена.")
+                return True
+            else:
+                logger.warning("Главная статическая ссылка не найдена.")
+                return False
+        except Exception as e:
+            await self.db_session.rollback()
+            logger.error(f"Ошибка при удалении главной статической ссылки: {e}")
+            return False
 
-
-
+    async def get_main_fallback_link(self) -> str:
+        """
+        Возвращает главную статическую ссылку. Если её нет, возвращает стандартную ссылку.
+        """
+        try:
+            result = await self.db_session.execute(select(MainFallbackLink).limit(1))
+            fallback_link = result.scalar_one_or_none()
+            if fallback_link:
+                logger.info(f"Главная статическая ссылка: {fallback_link.link}")
+                return fallback_link.link
+            else:
+                logger.warning("Главная статическая ссылка не установлена. Используется стандартная ссылка.")
+                return "https://t.me/proger_dude"
+        except Exception as e:
+            logger.error(f"Ошибка при получении главной статической ссылки: {e}")
+            return "https://t.me/proger_dude"

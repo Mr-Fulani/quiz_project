@@ -67,6 +67,14 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="Список ссылок", callback_data="list_default_links")
     )
+    # Добавляем инлайн-кнопки для управления главной статической ссылкой
+    builder.row(
+        InlineKeyboardButton(text="Установить главную ссылку", callback_data="set_main_fallback_link"),
+        InlineKeyboardButton(text="Удалить главную ссылку", callback_data="remove_main_fallback_link")
+    )
+    builder.row(
+        InlineKeyboardButton(text="Получить главную ссылку", callback_data="get_main_fallback_link")
+    )
     # Кнопки для статистики
     builder.row(
         InlineKeyboardButton(text="📊 Моя статистика", callback_data="mystatistics"),

@@ -5,10 +5,9 @@ import os
 import uuid
 
 from aiogram import Router, F, types
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from aiogram.types import Message, ContentType, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from aiogram.fsm.context import FSMContext
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
@@ -19,8 +18,7 @@ from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard
 from bot.services.webhook_service import WebhookService
 from bot.states.admin_states import AddAdminStates, RemoveAdminStates, WebhookStates
 from bot.utils.markdownV2 import escape_markdown
-from database.models import Webhook
-from webhook_sender import is_valid_url
+from bot.services.webhook_sender import is_valid_url
 
 
 # Загрузка переменных окружения

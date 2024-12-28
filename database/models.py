@@ -248,3 +248,15 @@ class UserChannelSubscription(Base):
     def __repr__(self):
         return (f"<UserChannelSubscription user_id={self.user_id}, "
                 f"channel_id={self.channel_id}, status={self.subscription_status}>")
+
+
+
+
+class MainFallbackLink(Base):
+    __tablename__ = 'main_fallback_links'
+
+    id = Column(Integer, primary_key=True, index=True)
+    link = Column(String, nullable=False)
+
+    def __repr__(self):
+        return f"<MainFallbackLink(link={self.link})>"
