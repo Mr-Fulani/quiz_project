@@ -480,10 +480,12 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
 
 
 
+
+
 @router.callback_query(lambda c: c.data == "add_channel_group_button")
 async def callback_add_channel_group(call: types.CallbackQuery, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает нажатие кнопки "Добавить канал/группу". Начинает процесс добавления.
+    Обработчик нажатия кнопки "Добавить канал/группу". Начинает процесс добавления.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -491,71 +493,71 @@ async def callback_add_channel_group(call: types.CallbackQuery, db_session: Asyn
         await call.answer()
         return
 
-    logger.info(
-        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Добавить канал/группу'")
-
-    await call.message.answer("🔽 Начнём добавление новой группы или канала.\nВведите имя группы/канала:")
+    logger.info(f"[AddChannelGroup] Пользователь {call.from_user.username or 'None'} (ID={call.from_user.id}) "
+                f"нажал кнопку 'Добавить канал/группу'")
+    await call.message.answer(
+        "🔽 Начинаем добавление новой локации.\n"
+        "1️⃣ Введите название (имя) канала или группы (супергруппы):"
+    )
     await state.set_state(ChannelStates.waiting_for_group_name)
-    await call.answer()  # Отвечаем на callback_query
-
-
-
+    await call.answer()
 
 
 @router.message(ChannelStates.waiting_for_group_name)
 async def process_group_name(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает ввод имени группы или канала.
+    1) Сохраняем название (имя) канала/группы.
     """
     group_name = message.text.strip()
     if not group_name:
-        await message.reply("❌ Имя группы или канала не может быть пустым. Пожалуйста, введите корректное имя:")
+        await message.reply("❌ Название не может быть пустым. Повторите ввод:")
         return
 
     await state.update_data(group_name=group_name)
-    logger.info(f"Введено имя группы/канала: {group_name}")
-    await message.answer("📌 Введите Telegram ID группы/канала (начинается с -100):")
+    logger.info(f"[AddChannelGroup] Шаг1: получено group_name={group_name}")
+
+    await message.answer(
+        "2️⃣ Введите Telegram ID (начинается с -100...), например: -1001234567890"
+    )
     await state.set_state(ChannelStates.waiting_for_group_id)
-
-
 
 
 @router.message(ChannelStates.waiting_for_group_id)
 async def process_group_id(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает ввод Telegram ID группы или канала.
+    2) Сохраняем Telegram ID локации (канал/группа).
     """
     group_id_text = message.text.strip()
     if not re.match(r'^-100\d+$', group_id_text):
-        await message.reply(
-            "❌ Некорректный формат Telegram ID. Он должен начинаться с -100 и содержать цифры после него.\nПожалуйста, введите корректный Telegram ID группы/канала:")
+        await message.reply("❌ Неверный формат. ID должен начинаться с -100 и содержать цифры. Повторите ввод:")
         return
 
     group_id = int(group_id_text)
     await state.update_data(group_id=group_id)
-    logger.info(f"Введён Telegram ID группы/канала: {group_id}")
-    await message.answer("📄 Введите название темы:")
+    logger.info(f"[AddChannelGroup] Шаг2: получен group_id={group_id}")
+
+    await message.answer(
+        "3️⃣ Введите название темы (Topic), например: 'Python', 'Golang', 'Java'."
+    )
     await state.set_state(ChannelStates.waiting_for_topic)
-
-
 
 
 @router.message(ChannelStates.waiting_for_topic)
 async def process_topic_name(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает ввод названия темы.
+    3) Сохраняем тему. Если нет — предложим создать.
     """
     topic_name = message.text.strip()
     if not topic_name:
-        await message.reply("❌ Название темы не может быть пустым. Пожалуйста, введите корректное название темы:")
+        await message.reply("❌ Тема не может быть пустой. Повторите ввод:")
         return
 
-    # Проверка существования темы
+    # Ищем тему
     result = await db_session.execute(select(Topic).where(Topic.name.ilike(topic_name)))
     topic = result.scalar_one_or_none()
 
     if not topic:
-        # Тема не найдена, предложить создать новую
+        # Тема не найдена — спрашиваем, создать ли новую
         await state.update_data(topic_name=topic_name)
         keyboard = types.ReplyKeyboardMarkup(
             keyboard=[
@@ -565,135 +567,196 @@ async def process_topic_name(message: types.Message, db_session: AsyncSession, s
             resize_keyboard=True,
             one_time_keyboard=True
         )
-        await message.answer(f"❓ Тема '{topic_name}' не найдена. Хотите создать новую тему?", reply_markup=keyboard)
+        await message.answer(
+            f"❓ Тема '{topic_name}' не найдена. Создать новую тему?",
+            reply_markup=keyboard
+        )
         await state.set_state(ChannelStates.waiting_for_topic_creation)
     else:
-        # Тема найдена, продолжаем
+        # Тема есть
         await state.update_data(topic_id=topic.id)
-        logger.info(f"Тема '{topic_name}' найдена, ID: {topic.id}")
-        await message.answer("🗣️ Введите язык группы/канала (например, 'en', 'ru', 'tr'):")
+        logger.info(f"[AddChannelGroup] Тема '{topic_name}' найдена, ID={topic.id}")
+
+        await message.answer(
+            "4️⃣ Введите язык канала/группы (2-3 буквы), например: 'ru', 'en', 'tr'.",
+            reply_markup=types.ReplyKeyboardRemove()
+        )
         await state.set_state(ChannelStates.waiting_for_language)
-
-
 
 
 @router.message(ChannelStates.waiting_for_topic_creation)
 async def process_topic_creation(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает решение администратора о создании новой темы.
+    Создаём новую тему, если админ выбрал "да, создать тему".
     """
     decision = message.text.strip().lower()
     if decision == "да, создать тему":
         data = await state.get_data()
-        topic_name = data.get("topic_name")
-        # Создание новой темы
-        new_topic = Topic(name=topic_name)
+        new_topic_name = data.get("topic_name")
+
+        new_topic = Topic(name=new_topic_name)
         db_session.add(new_topic)
         try:
             await db_session.commit()
-            await message.answer(f"✅ Тема '{topic_name}' успешно создана.")
-            # Получаем ID созданной темы
-            result = await db_session.execute(select(Topic).where(Topic.name.ilike(topic_name)))
-            topic = result.scalar_one()
-            await state.update_data(topic_id=topic.id)
-            # Продолжаем процесс добавления группы/канала
-            await message.answer("🗣️ Введите язык группы/канала (например, 'en', 'ru', 'tr'):")
+            # Получим ID, чтоб сохранить дальше
+            res = await db_session.execute(select(Topic).where(Topic.name.ilike(new_topic_name)))
+            created_topic = res.scalar_one()
+            await state.update_data(topic_id=created_topic.id)
+
+            logger.info(f"[AddChannelGroup] Тема '{new_topic_name}' создана, ID={created_topic.id}")
+
+            await message.answer(
+                f"✅ Тема '{new_topic_name}' успешно создана.\n"
+                "4️⃣ Введите язык канала/группы (например, 'ru'):"
+            )
             await state.set_state(ChannelStates.waiting_for_language)
         except Exception as e:
             await db_session.rollback()
-            logger.error(f"Ошибка при создании темы '{topic_name}': {e}")
-            await message.reply("❌ Произошла ошибка при создании темы. Попробуйте ещё раз.")
+            logger.error(f"[AddChannelGroup] Ошибка при создании темы '{new_topic_name}': {e}")
+            await message.reply("❌ Ошибка при создании темы. Попробуйте ещё раз.")
             await state.clear()
+
     elif decision == "нет, отменить добавление":
-        await message.reply("❌ Добавление группы или канала отменено.", reply_markup=get_admin_menu_keyboard())
+        await message.reply(
+            "❌ Добавление локации отменено.",
+            reply_markup=get_admin_menu_keyboard()
+        )
         await state.clear()
     else:
-        await message.reply("❌ Пожалуйста, выберите 'Да, создать тему' или 'Нет, отменить добавление'.")
-
-
+        await message.reply("❌ Выберите: 'Да, создать тему' или 'Нет, отменить добавление'.")
 
 
 @router.message(ChannelStates.waiting_for_language)
 async def process_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает ввод языка группы или канала.
+    4) Сохраняем язык (ru, en, tr, etc.)
     """
     language = message.text.strip().lower()
     if not re.match(r'^[a-z]{2,3}$', language):
-        await message.reply(
-            "❌ Некорректный формат языка. Используйте, например, 'en', 'ru', 'tr'.\nПожалуйста, введите корректный язык:")
+        await message.reply("❌ Некорректный формат языка ('ru', 'en', 'tr'). Повторите ввод:")
         return
 
     await state.update_data(language=language)
-    logger.info(f"Введён язык группы/канала: {language}")
-    await message.answer("🔄 Выберите тип локации:", reply_markup=get_location_type_keyboard())
+    logger.info(f"[AddChannelGroup] Шаг4: язык={language}")
+
+    # Переходим к выбору типа локации (channel / group)
+    await message.answer(
+        "5️⃣ Выберите тип локации:",
+        reply_markup=get_location_type_keyboard()  # ваша клавиатура с кнопками ["channel","group"]
+    )
     await state.set_state(ChannelStates.waiting_for_location_type)
-
-
 
 
 @router.message(ChannelStates.waiting_for_location_type)
 async def process_location_type(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Обрабатывает выбор типа локации (channel или group).
+    5) Сохраняем тип локации (channel / group).
+    Всегда переходим к вводу username, так как supergroup может иметь username.
     """
-    location_type = message.text.strip().lower()
-    if location_type not in ["channel", "group"]:
+    loc_type = message.text.strip().lower()
+    if loc_type not in ["channel", "group"]:
         await message.reply("❌ Некорректный выбор. Пожалуйста, выберите 'channel' или 'group':")
         return
 
-    await state.update_data(location_type=location_type)
-    logger.info(f"Выбран тип локации: {location_type}")
+    await state.update_data(location_type=loc_type)
+    logger.info(f"[AddChannelGroup] Шаг5: location_type={loc_type}")
 
-    # Получаем все данные из состояния
+    # Переходим к вводу username
+    await message.answer(
+        "6️⃣ Введите username канала/группы (без @).\n"
+        "Если у локации нет username, введите '-' или оставьте поле пустым."
+    )
+    await state.set_state(ChannelStates.waiting_for_channel_username)
+
+
+@router.message(ChannelStates.waiting_for_channel_username)
+async def process_channel_username(message: types.Message, db_session: AsyncSession, state: FSMContext):
+    """
+    6) Сохраняем username. Если "-", значит нет.
+    """
+    uname_input = message.text.strip()
+    if uname_input in ["-", ""]:
+        uname_input = None
+    elif uname_input.startswith("@"):
+        uname_input = uname_input[1:].strip()
+
+    # Дополнительная валидация username (опционально)
+    if uname_input and not re.match(r'^[A-Za-z0-9_]{5,32}$', uname_input):
+        await message.reply("❌ Некорректный формат username. Username должен содержать 5-32 символа, включая буквы, цифры и нижнее подчеркивание. Повторите ввод:")
+        return
+
+    await state.update_data(username=uname_input)
+    logger.info(f"[AddChannelGroup] Шаг6: username={uname_input or '—'}")
+
+    # Переходим к созданию записи в базе данных
     data = await state.get_data()
+    await create_group_or_channel_record(message, db_session, state, data)
+
+
+async def create_group_or_channel_record(
+    message: types.Message,
+    db_session: AsyncSession,
+    state: FSMContext,
+    data: dict
+):
+    """
+    Завершающая функция — создаёт запись в таблице Group.
+    """
     group_name = data.get("group_name")
     group_id = data.get("group_id")
-    topic_name = data.get("topic_id")
+    topic_id = data.get("topic_id")
     language = data.get("language")
+    location_type = data.get("location_type")  # "channel" / "group"
+    username = data.get("username")
 
-    # Поиск топика по названию
-    result = await db_session.execute(select(Topic).where(Topic.id == topic_name))
-    topic = result.scalar_one_or_none()
-
+    # Проверим тему
+    res = await db_session.execute(select(Topic).where(Topic.id == topic_id))
+    topic = res.scalar_one_or_none()
     if not topic:
-        await message.reply(
-            f"❌ Тема '{topic_name}' не найдена в базе данных. Пожалуйста, убедитесь, что тема существует.")
+        await message.reply(f"❌ Ошибка: тема c ID={topic_id} не найдена.")
         await state.clear()
         return
 
-    # Проверка существования группы или канала с таким же group_id
-    result = await db_session.execute(select(Group).where(Group.group_id == group_id))
-    existing_group = result.scalar_one_or_none()
-
+    # Проверим, нет ли уже записи с таким group_id
+    res = await db_session.execute(select(Group).where(Group.group_id == group_id))
+    existing_group = res.scalar_one_or_none()
     if existing_group:
-        await message.reply(f"❌ Группа или канал с ID {group_id} уже существует в базе данных.")
+        await message.reply(f"❌ Локация с ID {group_id} уже существует!")
         await state.clear()
         return
 
-    # Создание новой группы или канала
+    # Создаём
     new_group = Group(
         group_name=group_name,
         group_id=group_id,
         topic_id=topic.id,
         language=language,
-        location_type=location_type
+        location_type=location_type,
+        username=username  # <-- Сохраняем username
     )
-
     db_session.add(new_group)
+
     try:
         await db_session.commit()
-        logger.info(f"Локация '{group_name}' успешно добавлена.")
+        logger.info(f"[AddChannelGroup] Создана локация '{group_name}' (ID={group_id}), username={username or '—'}")
         await message.answer(
-            f"✅ {'Канал' if location_type == 'channel' else 'Группа'} '{group_name}' успешно добавлен{' в базу данных'}.",
-        reply_markup=get_start_reply_keyboard()
+            f"✅ {location_type.capitalize()} '{group_name}' успешно добавлен в базу.\n"
+            f"ID: {group_id}\n"
+            f"Username: {username or '—'}\n"
+            f"Тема: {topic.name}\n"
+            f"Язык: {language}",
+            reply_markup=get_start_reply_keyboard()
         )
     except Exception as e:
         await db_session.rollback()
-        logger.error(f"Ошибка при добавлении локации '{group_name}': {e}")
-        await message.reply("❌ Произошла ошибка при добавлении локации. Попробуйте ещё раз.")
+        logger.error(f"[AddChannelGroup] Ошибка при добавлении '{group_name}': {e}")
+        await message.reply("❌ Произошла ошибка при добавлении. Попробуйте ещё раз.")
 
     await state.clear()
+
+
+
+
 
 
 
@@ -713,6 +776,8 @@ async def callback_remove_channel(call: types.CallbackQuery, db_session: AsyncSe
         "🔽 Начнём удаление канала.\nВведите Telegram ID канала, который хотите удалить (начинается с -100):")
     await state.set_state(ChannelStates.waiting_for_remove_group_id)
     await call.answer()  # Отвечаем на callback_query
+
+
 
 
 
@@ -763,62 +828,92 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
 @router.callback_query(lambda c: c.data == "list_channels_groups_button")
 async def callback_list_channels_groups(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает нажатие кнопки "Список каналов и групп". Отправляет список каналов и групп с указанием языка.
+    Обрабатывает нажатие кнопки "Список каналов и групп".
+    Отправляет список каналов и групп с указанием языка,
+    делая название канала кликабельным, если у него есть username.
     """
     logger.info(
-        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Список каналов и групп'")
+        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) "
+        f"нажал кнопку 'Список каналов и групп'"
+    )
 
     try:
-        # Получаем все группы и каналы из базы данных
+        # Получаем все записи из таблицы Group
         query = select(Group)
         result = await db_session.execute(query)
         groups = result.scalars().all()
 
         if not groups:
-            channels_groups_list = "📭 <b>Список каналов и групп:</b>\n\n📭 Нет добавленных каналов или групп."
+            channels_groups_list = (
+                "📭 <b>Список каналов и групп:</b>\n\n"
+                "📭 Нет добавленных каналов или групп."
+            )
         else:
-            # Разделяем каналы и группы
-            channels = [group for group in groups if group.location_type.lower() == "channel"]
-            groups_only = [group for group in groups if group.location_type.lower() == "group"]
+            # Разделяем на каналы и группы по полю location_type
+            channels = [g for g in groups if g.location_type.lower() == "channel"]
+            groups_only = [g for g in groups if g.location_type.lower() == "group"]
 
             channels_list = ""
             groups_list = ""
 
+            # Формируем список каналов
             if channels:
                 channels_list += "📢 <b>Каналы:</b>\n"
                 for channel in channels:
-                    channel_name = html.escape(channel.group_name)
+                    channel_name_html = html.escape(channel.group_name or "Без имени")
                     channel_id = channel.group_id
                     channel_language = html.escape(channel.language) if channel.language else "Не указан"
-                    channels_list += f"• {channel_name} (ID: {channel_id}) - Язык: {channel_language}\n"
-                channels_list += "\n"  # Добавляем дополнительный перенос строки
 
+                    # Формируем кликабельную ссылку, если есть username
+                    # Предполагаем, что в базе у нас хранится username без @, например 'my_channel'
+                    if channel.username:
+                        username_escaped = html.escape(channel.username)
+                        # Создаём HTML-ссылку вида <a href="https://t.me/my_channel">Название</a>
+                        link = f'<a href="https://t.me/{username_escaped}">{channel_name_html}</a>'
+                    else:
+                        # Если username нет, выводим просто текст
+                        link = channel_name_html
+
+                    channels_list += f"• {link} (ID: {channel_id}) - Язык: {channel_language}\n"
+
+                channels_list += "\n"  # Дополнительный перенос строки
+
+            # Формируем список групп
             if groups_only:
                 groups_list += "👥 <b>Группы:</b>\n"
                 for group in groups_only:
-                    group_name = html.escape(group.group_name)
+                    group_name_html = html.escape(group.group_name or "Без имени")
                     group_id = group.group_id
                     group_language = html.escape(group.language) if group.language else "Не указан"
-                    groups_list += f"• {group_name} (ID: {group_id}) - Язык: {group_language}\n"
-                groups_list += "\n"  # Добавляем дополнительный перенос строки
 
-            channels_groups_list = f"📭 <b>Список каналов и групп:</b>\n\n{channels_list}{groups_list}"
+                    # Группы обычно не имеют @username,
+                    # но если захотите сделать кликабельные — аналогично каналам
+                    link = group_name_html  # либо аналогичная логика для group.username
 
-        # Логирование сформированного списка
+                    groups_list += f"• {link} (ID: {group_id}) - Язык: {group_language}\n"
+
+                groups_list += "\n"  # Дополнительный перенос строки
+
+            channels_groups_list = (
+                "📭 <b>Список каналов и групп:</b>\n\n"
+                f"{channels_list}{groups_list}"
+            )
+
+        # Логируем получившийся текст
         logger.debug(f"Сформированный список каналов и групп:\n{channels_groups_list}")
 
-        # Отправляем сообщение с использованием HTML
+        # Отправляем сообщение в формате HTML, чтобы ссылки работали
         await call.message.answer(channels_groups_list, parse_mode='HTML')
-        await call.answer()  # Отвечаем на callback_query
-        logger.debug("Список каналов и групп отправлен")
+        await call.answer()  # Говорим Telegram, что коллбэк обработан
+        logger.debug("Список каналов и групп отправлен пользователю.")
     except TelegramBadRequest as e:
-        # Логирование специфических ошибок Telegram API
-        logger.error(f"Ошибка в обработчике callback_list_channels_groups: {e}")
+        # Если ошибка специфичная для Telegram
+        logger.error(f"Ошибка Telegram в callback_list_channels_groups: {e}")
         await call.message.answer("❌ Произошла ошибка при отправке списка каналов и групп.")
         await call.answer()
     except Exception as e:
-        # Общая обработка исключений
-        logger.exception(f"Неизвестная ошибка в обработчике callback_list_channels_groups: {e}")
+        # Любая другая ошибка
+        logger.exception(f"Неизвестная ошибка в callback_list_channels_groups: {e}")
         await call.message.answer("❌ Произошла непредвиденная ошибка.")
         await call.answer()
 

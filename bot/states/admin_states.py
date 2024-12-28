@@ -26,6 +26,7 @@ class TaskActions(StatesGroup):
 
 
 class ChannelStates(StatesGroup):
+    waiting_for_channel_username = State()
     waiting_for_group_name = State()
     waiting_for_group_id = State()
     waiting_for_topic = State()

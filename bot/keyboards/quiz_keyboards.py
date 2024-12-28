@@ -79,7 +79,7 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="📉 Список всех подписчиков (CSV)", callback_data="list_subscribers_all_csv")
     )
     builder.row(
-        InlineKeyboardButton(text="📉 Список всех каналов с ...", callback_data="list_channels_groups_subscriptions")
+        InlineKeyboardButton(text="📉 Список подписчиков с каналов (CSV)", callback_data="list_channels_groups_subscriptions")
     )
 
     return builder.as_markup()
