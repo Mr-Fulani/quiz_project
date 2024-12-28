@@ -1,4 +1,5 @@
 # bot/handlers/admin_menu.py
+import asyncio
 import datetime
 from datetime import datetime, timedelta
 import html
@@ -10,7 +11,8 @@ from aiogram import Router, F, Bot, types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile
+from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile, InlineKeyboardMarkup, \
+    InlineKeyboardButton
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -1229,6 +1231,116 @@ async def callback_list_default_links(call: CallbackQuery, db_session: AsyncSess
 
 
 
+
+
+
+async def validate_chat(bot, username):
+    try:
+        await bot.get_chat(f"@{username}")
+        return True
+    except Exception as e:
+        logger.error(f"Чат с username @{username} недоступен: {e}")
+        return False
+
+
+
+
+
+# Словарь с переводами
+LANGUAGE_MESSAGES = {
+    "ru": {
+        "message_text": "Подписывайся и учись вместе с нами:",
+        "button_text": "Проверь свои знания на {group_name}"
+    },
+    "en": {
+        "message_text": "Subscribe and learn with us:",
+        "button_text": "Test your knowledge on {group_name}"
+    },
+    "tr": {
+        "message_text": "Abone olun ve bizimle öğrenin:",
+        "button_text": "{group_name} üzerinde bilginizi test edin"
+    },
+    "ar": {
+        "message_text": "اشترك وتعلم معنا:",
+        "button_text": "اختبر معرفتك في {group_name}"
+    }
+    # Добавьте другие языки при необходимости
+}
+
+
+@router.callback_query(F.data == "post_subscription_buttons")
+async def post_subscription_buttons(call: types.CallbackQuery, db_session, bot):
+    """
+    Обработчик для публикации и закрепления кнопок с подписками на всех каналах/группах.
+    """
+    admin_id = call.from_user.id
+
+    # Проверяем, что пользователь - администратор
+    if not await is_admin(admin_id, db_session):
+        await call.message.reply("❌ У вас нет прав для выполнения этого действия.")
+        await call.answer()
+        return
+
+    # Мгновенный ответ на callback, чтобы избежать timeout
+    await call.answer("Начинаю отправку сообщений...")
+
+    # Получаем данные из базы: каналы и группы с username
+    result = await db_session.execute(
+        select(Group.group_name, Group.username, Group.group_id, Group.location_type, Group.language)
+        .where(Group.username.isnot(None))  # Только те, у которых есть username
+    )
+    destinations = result.all()  # [(group_name, username, group_id, location_type, language), ...]
+
+    if not destinations:
+        await call.message.reply("Нет данных о каналах или группах в базе.")
+        return
+
+    # Отправляем сообщения с интервалом
+    for group_name, username, group_id, location_type, language in destinations:
+        if not await validate_chat(bot, username):
+            logger.warning(f"Пропускаем недоступный чат: @{username}")
+            continue
+
+        # Получаем переводы для языка канала
+        messages = LANGUAGE_MESSAGES.get(language, LANGUAGE_MESSAGES["en"])
+        message_text = messages["message_text"]
+
+        # Создаем клавиатуру с кнопками для подписки
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text=LANGUAGE_MESSAGES[language]["button_text"].format(group_name=destination_group_name),
+                        url=f"https://t.me/{destination_username}"
+                    )
+                ]
+                for destination_group_name, destination_username, _, _, _ in destinations
+            ]
+        )
+
+        try:
+            sent_message = await bot.send_message(
+                chat_id=group_id,
+                text=message_text,
+                reply_markup=keyboard
+            )
+
+            # Закрепляем сообщение, если это группа или канал
+            await bot.pin_chat_message(
+                chat_id=group_id,
+                message_id=sent_message.message_id,
+                disable_notification=True
+            )
+
+            # Логируем успешную отправку
+            logger.info(f"Сообщение отправлено в {location_type} '{group_name}' ({group_id}).")
+        except Exception as e:
+            logger.error(f"Не удалось отправить сообщение в {location_type} '{group_name}' ({group_id}): {e}")
+
+        # Ждем заданный интервал перед отправкой в следующий канал/группу
+        await asyncio.sleep(3)  # Интервал в секундах
+
+    await call.message.reply("✅ Сообщения успешно отправлены.")
 
 
 

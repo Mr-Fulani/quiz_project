@@ -81,6 +81,13 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text="📉 Список подписчиков с каналов (CSV)", callback_data="list_channels_groups_subscriptions")
     )
+    # Добавляем кнопку для публикации подписок
+    builder.row(
+        InlineKeyboardButton(
+            text="📌 Опубликовать подписки",
+            callback_data="post_subscription_buttons"
+        )
+    )
 
     return builder.as_markup()
 
@@ -104,3 +111,5 @@ def get_admin_channels_keyboard(channels):
             )
         )
     return builder.as_markup()
+
+
