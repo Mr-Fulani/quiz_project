@@ -6,11 +6,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Task, Topic
 
 
-async def get_task_status(db_session):
+
+
+async def get_task_status(db_session: AsyncSession):
     """
     Получает информацию о неопубликованных задачах, опубликованных задачах и общей информации по базе.
+    Возвращает:
+        - unpublished_tasks: список неопубликованных задач
+        - published_tasks: список опубликованных задач (актуальных)
+        - old_published_tasks: список старых опубликованных задач
+        - total_tasks: общее количество задач
+        - topics: словарь {topic_id: topic_name}
     """
-    one_month_ago = datetime.now() - timedelta(days=30)
+    one_month_ago = datetime.utcnow() - timedelta(days=30)
 
     # Запрос для получения неопубликованных задач
     result_unpublished = await db_session.execute(
@@ -22,11 +30,10 @@ async def get_task_status(db_session):
 
     # Запрос для получения опубликованных задач (актуальных)
     result_published = await db_session.execute(
-        select(Task.topic_id, func.array_agg(Task.id))
+        select(Task)
         .where(Task.published.is_(True), Task.publish_date >= one_month_ago)
-        .group_by(Task.topic_id)
     )
-    published_tasks = result_published.all()
+    published_tasks = result_published.scalars().all()
 
     # Запрос для получения старых опубликованных задач
     result_old_published = await db_session.execute(
@@ -39,20 +46,11 @@ async def get_task_status(db_session):
     result_total_tasks = await db_session.execute(select(func.count(Task.id)))
     total_tasks = result_total_tasks.scalar()
 
-    # Получение средней даты создания задач с использованием EXTRACT (извлечение секунд)
-    result_all_tasks = await db_session.execute(
-        select(func.to_timestamp(func.avg(func.extract('epoch', Task.create_date))))
-    )
-    all_tasks_info = {
-        "average_creation_date": result_all_tasks.scalar()
-    }
-
     # Получение списка тем (topics)
     result_topics = await db_session.execute(select(Topic.id, Topic.name))
     topics = {row.id: row.name for row in result_topics}
 
-    return unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks_info, topics
-
+    return unpublished_tasks, published_tasks, old_published_tasks, total_tasks, topics
 
 
 

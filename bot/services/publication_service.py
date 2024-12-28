@@ -226,8 +226,11 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         poll_id=poll_msg.poll.id,
                         poll_question=translation.question,
                         poll_options=translation.answers,
-                        is_anonymous=task_in_group.is_anonymous,
-                        allows_multiple_answers=task_in_group.allows_multiple_answers,
+                        is_anonymous=poll_msg.is_anonymous if hasattr(poll_msg, 'is_anonymous') else True,
+                        # Проверка на наличие атрибута
+                        allows_multiple_answers=poll_msg.allows_multiple_answers if hasattr(poll_msg,
+                                                                                            'allows_multiple_answers') else False,
+                        # Проверка на наличие атрибута
                         poll_type=poll_msg.type,
                         total_voter_count=poll_msg.total_voter_count,
                         poll_link=poll_link

@@ -27,8 +27,7 @@ from bot.services.task_bd_status_service import get_task_status, get_zero_task_t
 from bot.services.topic_services import delete_topic_from_db, add_topic_to_db
 from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates, \
     DefaultLinkStates
-from bot.utils.image_generator import generate_detailed_task_status_image, \
-    generate_zero_task_topics_text
+from bot.utils.image_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
 from config import ALLOWED_USERS
@@ -373,30 +372,43 @@ async def create_quiz_handler(call: CallbackQuery, db_session: AsyncSession):
 @router.callback_query(F.data == "database_status")
 async def handle_database_status(callback: CallbackQuery, db_session: AsyncSession):
     try:
-        unpublished_tasks, published_tasks, old_published_tasks, total_tasks, all_tasks, topics = await get_task_status(
-            db_session)
-        image_path = await generate_detailed_task_status_image(
-            unpublished_tasks, old_published_tasks, total_tasks, topics, published_tasks
+        # Получение статуса задач
+        unpublished_tasks, published_tasks, old_published_tasks, total_tasks, topics = await get_task_status(db_session)
+
+        # Генерация CSV-файла
+        csv_path = await generate_detailed_task_status_csv(
+            unpublished_tasks,
+            published_tasks,
+            old_published_tasks,
+            total_tasks,
+            topics,
+            db_session  # Передача db_session для получения поля 'error'
         )
 
-        if image_path is None:
+        if csv_path is None:
             # Уведомляем администратора, который инициировал отправку отчета
             await callback.bot.send_message(
                 chat_id=callback.from_user.id,
-                text="📝 В базе данных нет задач для отображения."
+                text="📝 В базе данных нет задач для отображения или произошла ошибка при генерации отчета."
             )
-            await callback.answer("Отчет не был сгенерирован из-за отсутствия задач.", show_alert=True)
+            await callback.answer("Отчет не был сгенерирован.", show_alert=True)
             return  # Завершаем выполнение функции
 
-        image_file = FSInputFile(image_path)
-        await callback.message.answer_photo(photo=image_file)
-        os.remove(image_path)
+        # Отправка CSV-файла
+        csv_file = FSInputFile(csv_path)
+        await callback.message.answer_document(document=csv_file, caption="📄 Отчет о состоянии базы данных")
+
+        # Удаление временного файла после отправки
+        os.remove(csv_path)
+        logger.info(f"CSV отчет отправлен и удален: {csv_path}")
+
         await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)
 
     except Exception as e:
         logger.error(f"Ошибка при генерации отчета о состоянии базы данных: {e}")
         await callback.message.answer("❌ Произошла ошибка при генерации отчета о состоянии базы данных.")
         await callback.answer("Ошибка при генерации отчета.", show_alert=True)
+
 
 
 
