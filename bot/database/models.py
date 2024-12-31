@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from bot.utils.time import get_current_time
-from database.database import Base
+from bot.database.database import Base
 
 
 # Модель администраторов

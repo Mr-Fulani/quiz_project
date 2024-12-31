@@ -9,7 +9,7 @@ from textwrap import wrap
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Task
+from bot.database.models import Task
 
 
 

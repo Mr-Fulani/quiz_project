@@ -4,10 +4,11 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from alembic import context, op
-from database.models import Base  # Импортируй модели
 from dotenv import load_dotenv
 import logging
 import sqlalchemy as sa
+
+from bot.database.database import Base
 
 # Загрузка конфигурации логов Alembic
 config = context.config

@@ -1,107 +1,169 @@
+# bot/handlers/delete_task.py
+
 import logging
-from sqlalchemy import select, delete
+from typing import Optional, Dict, Any
+
+import aioboto3
+from aiogram import Router
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import Task, TaskTranslation, Topic, Group
 
+from bot.config import S3_BUCKET_NAME, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+from bot.database.models import Task, Topic, TaskTranslation, TaskPoll, Group
+from bot.services.s3_services import extract_s3_key_from_url
 
-
-
+# Настройка логгера
 logger = logging.getLogger(__name__)
 
+# Создание роутера
+router = Router()
 
 
 
 
-
-
-async def delete_task_by_id(task_id: int, db_session: AsyncSession):
+async def delete_from_s3(image_url: str) -> bool:
     """
-    Удаляет задачу и связанные с ней переводы по ID задачи.
+    Удаляет изображение из S3 хранилища.
 
     Args:
-        task_id (int): ID задачи для удаления.
-        db_session (AsyncSession): Асинхронная сессия базы данных.
+        image_url (str): URL изображения в S3
 
     Returns:
-        dict: Содержит информацию об удалённых задачах и переводах, или None, если задача не найдена.
+        bool: True если удаление успешно, False в случае ошибки
     """
-    logger.debug(f"Получен запрос на удаление задачи с ID: {task_id}")
-
-    # Получаем задачу и её группу переводов
-    result_task = await db_session.execute(
-        select(Task.id, Task.topic_id, Task.translation_group_id).where(Task.id == task_id)
-    )
-    task = result_task.first()
-
-    if not task:
-        logger.warning(f"⚠️ Задача с ID {task_id} не найдена.")
-        return None  # Возвращаем None, если задача не найдена
-
-    translation_group_id = task.translation_group_id
-    topic_id = task.topic_id
-
-    # Получаем название топика
-    result_topic = await db_session.execute(
-        select(Topic.name).where(Topic.id == topic_id)
-    )
-    topic_name = result_topic.scalar()
-
-    # Получаем все задачи и переводы, связанные с translation_group_id
-    result_tasks_in_group = await db_session.execute(
-        select(Task.id, Task.group_id).where(Task.translation_group_id == translation_group_id)
-    )
-    tasks_in_group = result_tasks_in_group.fetchall()
-    task_ids_in_group = [row[0] for row in tasks_in_group]
-    group_ids = [row[1] for row in tasks_in_group]
-
-    result_translations = await db_session.execute(
-        select(TaskTranslation.id, TaskTranslation.language).where(TaskTranslation.task_id.in_(task_ids_in_group))
-    )
-    translations = result_translations.fetchall()
-    translation_ids = [row[0] for row in translations]
-    translation_languages = [row[1] for row in translations]
-
-    # Получаем названия групп
-    if group_ids:
-        result_groups = await db_session.execute(
-            select(Group.group_name).where(Group.id.in_(group_ids))
-        )
-        group_names = [row[0] for row in result_groups.fetchall()]
-    else:
-        group_names = []
-
-    # Логируем переводы до удаления
-    logger.debug(f"Переводы до удаления для группы переводов {translation_group_id}: {translations}")
-
-    if not translation_ids:
-        logger.warning(f"Переводы для задачи с ID {task_id} не найдены.")
-
     try:
-        # Удаляем переводы, связанные с translation_group_id
-        await db_session.execute(
-            delete(TaskTranslation).where(TaskTranslation.task_id.in_(task_ids_in_group))
-        )
+        if not image_url:
+            return True
 
-        # Удаляем все задачи в группе переводов
-        await db_session.execute(
-            delete(Task).where(Task.translation_group_id == translation_group_id)
-        )
-        await db_session.commit()
+        s3_key = extract_s3_key_from_url(image_url)
+        if not s3_key:
+            logger.warning("Не удалось извлечь ключ S3 из URL")
+            return False
 
-        logger.info(f"✅ Задачи с ID {', '.join(map(str, task_ids_in_group))} успешно удалены.")
-
-        # Формируем информацию об удалении
-        deletion_info = {
-            'deleted_task_ids': task_ids_in_group,
-            'topic_name': topic_name,
-            'deleted_translation_count': len(translation_ids),
-            'deleted_translation_languages': translation_languages,
-            'group_names': group_names
-        }
-
-        return deletion_info
+        session = aioboto3.Session()
+        async with session.client(
+                's3',
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                region_name=S3_REGION
+        ) as s3:
+            await s3.delete_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=s3_key
+            )
+            logger.info(f"✅ Изображение успешно удалено из S3: {s3_key}")
+            return True
 
     except Exception as e:
-        await db_session.rollback()
-        logger.error(f"Ошибка при удалении задач с группой переводов {translation_group_id}: {e}")
-        return None
+        logger.error(f"❌ Ошибка при удалении изображения из S3: {e}")
+        return False
+
+
+async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[Dict[str, Any]]:
+    """
+    Удаляет задачу и все связанные с ней данные, включая изображения из S3.
+
+    Args:
+        task_id (int): ID задачи для удаления
+        db_session (AsyncSession): Сессия базы данных
+    """
+    try:
+        # Начинаем транзакцию
+        async with db_session.begin():
+            # Получаем информацию о задаче перед удалением
+            task_query = select(Task.id, Task.topic_id, Task.translation_group_id, Task.image_url).where(
+                Task.id == task_id)
+            task_result = await db_session.execute(task_query)
+            task_info = task_result.first()
+
+            if not task_info:
+                logger.warning(f"Задача с ID {task_id} не найдена")
+                return None
+
+            task_id, topic_id, translation_group_id, image_url = task_info
+            logger.debug(
+                f"ID группы переводов: {translation_group_id}, ID топика: {topic_id}, URL изображения: {image_url}")
+
+            # Получаем все задачи с тем же translation_group_id
+            related_tasks_query = select(Task.id, Task.group_id, Task.image_url).where(
+                Task.translation_group_id == translation_group_id
+            )
+            related_tasks_result = await db_session.execute(related_tasks_query)
+            related_tasks = related_tasks_result.fetchall()
+            deleted_task_ids = [task.id for task in related_tasks]
+
+            # Собираем все URL изображений для удаления
+            image_urls = [task.image_url for task in related_tasks if task.image_url]
+            logger.debug(f"Найдены URL изображений для удаления: {image_urls}")
+
+            # Получаем название топика
+            topic_query = select(Topic.name).where(Topic.id == topic_id)
+            topic_result = await db_session.execute(topic_query)
+            topic_name = topic_result.scalar()
+
+            # Получаем информацию о переводах
+            translations_query = select(TaskTranslation.id, TaskTranslation.language).where(
+                TaskTranslation.task_id.in_(deleted_task_ids)
+            )
+            translations_result = await db_session.execute(translations_query)
+            translations = translations_result.fetchall()
+            deleted_translation_ids = [tr.id for tr in translations]
+            translation_languages = [tr.language for tr in translations]
+
+            # Получаем названия групп
+            group_ids = [task.group_id for task in related_tasks]
+            groups_query = select(Group.group_name).where(Group.id.in_(group_ids))
+            groups_result = await db_session.execute(groups_query)
+            group_names = [group[0] for group in groups_result.fetchall()]
+
+            # Получаем и удаляем связанные опросы
+            polls_query = select(TaskPoll.id).where(TaskPoll.translation_id.in_(deleted_translation_ids))
+            polls_result = await db_session.execute(polls_query)
+            poll_ids = [poll.id for poll in polls_result.fetchall()]
+
+            if poll_ids:
+                await db_session.execute(
+                    TaskPoll.__table__.delete().where(TaskPoll.id.in_(poll_ids))
+                )
+                logger.info(f"✅ Опросы с ID {poll_ids} успешно удалены.")
+
+            # Удаляем переводы
+            await db_session.execute(
+                TaskTranslation.__table__.delete().where(TaskTranslation.id.in_(deleted_translation_ids))
+            )
+            logger.info(f"✅ Переводы с ID {deleted_translation_ids} успешно удалены.")
+
+            # Удаляем задачи
+            await db_session.execute(
+                Task.__table__.delete().where(Task.translation_group_id == translation_group_id)
+            )
+            logger.info(f"✅ Задачи с ID {deleted_task_ids} успешно удалены.")
+
+            # После успешного удаления из базы данных, удаляем все изображения из S3
+            deleted_images = []
+            for img_url in image_urls:
+                if await delete_from_s3(img_url):
+                    deleted_images.append(img_url)
+                    logger.info(f"🗑️ Изображение успешно удалено из S3: {img_url}")
+                else:
+                    logger.warning(f"⚠️ Не удалось удалить изображение из S3: {img_url}")
+
+            logger.info(f"✅ Транзакция по удалению задачи {task_id} успешно завершена.")
+
+            deletion_info = {
+                'deleted_task_ids': deleted_task_ids,
+                'topic_name': topic_name,
+                'deleted_translation_count': len(deleted_translation_ids),
+                'deleted_translation_languages': translation_languages,
+                'group_names': group_names,
+                'deleted_images': deleted_images
+            }
+            logger.debug(f"Информация об удалении: {deletion_info}")
+
+            return deletion_info
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка при удалении задачи: {e}")
+        raise
+
+

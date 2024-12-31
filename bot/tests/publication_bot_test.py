@@ -1,11 +1,11 @@
 # publication_bot_test.py
 
 import logging
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 import asyncio
 
-from config import TELEGRAM_BOT_TOKEN
+from bot.config import TELEGRAM_BOT_TOKEN
 from bot.handlers.admin_menu import router as publication_router
 
 # Настройка логирования

@@ -3,7 +3,7 @@
 from aiogram import Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from database.models import User, TaskPoll, TaskStatistics
+from bot.database.models import User, TaskPoll, TaskStatistics
 from datetime import datetime, timezone
 import logging
 

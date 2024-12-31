@@ -1,16 +1,16 @@
 # bot/services/s3_services.py
 
 from typing import Optional
+from urllib.parse import urlparse
 
 import aioboto3
 import io
 import logging
 from PIL import Image
-from aiogram import Bot
 from botocore.exceptions import ClientError
 
 import bot
-from config import S3_BUCKET_NAME, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+from bot.config import S3_BUCKET_NAME, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
 
 
@@ -101,31 +101,26 @@ async def save_image_to_storage(image: Image.Image, image_name: str, user_chat_i
         return None
 
 
-async def delete_image_from_s3(s3_key: str):
+
+
+
+
+def extract_s3_key_from_url(image_url: str) -> str:
     """
-    Асинхронное удаление изображения из S3.
+    Извлекает ключ объекта S3 из полного URL.
 
     Args:
-        s3_key (str): Ключ объекта в S3.
+        image_url (str): Полный URL изображения в S3.
+
+    Returns:
+        str: Ключ объекта S3.
     """
-    try:
-        session = aioboto3.Session()
-        async with session.client(
-            's3',
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=S3_REGION
-        ) as s3:
-            await s3.delete_object(Bucket=S3_BUCKET_NAME, Key=s3_key)
-            logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
-    except ClientError as e:
-        logger.error(f"❌ Не удалось удалить изображение из S3: {e}")
+    if not image_url:
+        return ""
 
-
-
-
-
-
+    parsed_url = urlparse(image_url)
+    s3_key = parsed_url.path.lstrip('/')
+    return s3_key
 
 
 

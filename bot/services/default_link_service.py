@@ -2,7 +2,7 @@ import logging
 from sqlalchemy import update
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models import DefaultLink, Task, MainFallbackLink
+from bot.database.models import DefaultLink, Task, MainFallbackLink
 
 logger = logging.getLogger(__name__)
 

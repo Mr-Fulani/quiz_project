@@ -1,6 +1,6 @@
 import pytest
 from bot.services.publication_service import publish_task_by_id
-from database.database import AsyncSessionMaker
+from bot.database.database import AsyncSessionMaker
 import logging
 
 logger = logging.getLogger(__name__)

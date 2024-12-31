@@ -19,7 +19,7 @@ from pygments.lexers import PythonLexer, JavaLexer, SqlLexer, GoLexer
 from pygments.styles import get_style_by_name
 
 from bot.services.s3_services import save_image_to_storage
-from database.models import Task
+from bot.database.models import Task
 
 # Загружаем переменные окружения из файла .env
 load_dotenv()

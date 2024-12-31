@@ -20,7 +20,7 @@ from bot.keyboards.quiz_keyboards import get_admin_channels_keyboard
 from bot.services.admin_service import is_admin
 from bot.states.admin_states import UserStatsState
 from bot.utils.markdownV2 import escape_markdown
-from database.models import User, TaskStatistics, UserChannelSubscription, Group
+from bot.database.models import User, TaskStatistics, UserChannelSubscription, Group
 
 logger = logging.getLogger(__name__)
 router = Router(name="statistics_router")

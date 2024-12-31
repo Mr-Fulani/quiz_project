@@ -15,10 +15,10 @@ services:
     restart: unless-stopped
 
   telegram_bot:
-    build: .
+    build: ./bot
     container_name: upbeat_robinson
     env_file:
-      - .env  # Подключение .env файла
+      - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - ADMIN_SECRET_PASSWORD=${ADMIN_SECRET_PASSWORD}
@@ -26,11 +26,37 @@ services:
       - PYTHONPATH=/quiz_project
       - LOGO_PATH=/quiz_project/bot/assets/logo.png
     volumes:
-      - .:/quiz_project  # Монтирование текущей директории в контейнер
+      - .:/quiz_project
     depends_on:
       - database
     ports:
-      - "8000:8000"  # Если нужно
+      - "8002:8000"
+    networks:
+      - quiz_network
+    restart: unless-stopped
+
+  django:
+    build:
+      context: ./django_project
+      dockerfile: Dockerfile
+    container_name: django-app
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./django_project:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      - database
+    networks:
+      - quiz_network
+
+  mini_app:
+    build:
+      context: ./mini_app
+      dockerfile: Dockerfile
+    container_name: mini_app
+    ports:
+      - "8080:80"
     networks:
       - quiz_network
     restart: unless-stopped

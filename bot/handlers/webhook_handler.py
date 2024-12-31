@@ -9,7 +9,7 @@ import re
 from typing import Optional, List, Union
 
 from bot.utils.db_utils import fetch_one
-from database.models import TaskTranslation, Group, Task
+from bot.database.models import TaskTranslation, Group, Task
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

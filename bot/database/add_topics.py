@@ -9,8 +9,8 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import SQLAlchemyError
 
 # Убедитесь, что пути импорта корректны в вашем проекте
-from database.database import AsyncSessionMaker as async_session_maker
-from database.models import Topic
+from bot.database.database import AsyncSessionMaker as async_session_maker
+from bot.database.models import Topic
 
 # Настройка логгера
 logging.basicConfig(

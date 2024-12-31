@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from bot.services.publication_service import publish_task_by_translation_group
-from database.models import Task, TaskTranslation
+from bot.database.models import Task, TaskTranslation
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from bot.handlers.admin import router as admin_router  # Импортируйте admin_router
 from bot.handlers.admin_menu import router as admin_menu_router
-from bot.handlers.delete_task import router as delete_task_router
+from bot.services.deletion_service import router as delete_task_router
 from bot.handlers.poll_handler import router as poll_router
 from bot.handlers.start import router as start_router
 from bot.handlers.statistics_handler import router as statistics_router
@@ -20,7 +20,7 @@ from bot.handlers.user_handler import router as user_router
 from bot.handlers.webhook_handler import router as webhook_router
 from bot.middlewares.db_session import DbSessionMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
-from config import (
+from bot.config import (
     TELEGRAM_BOT_TOKEN,
     DATABASE_URL
 )

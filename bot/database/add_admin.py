@@ -3,8 +3,8 @@ import asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from config import DATABASE_URL
-from database.models import Admin  # Убедитесь, что модель Admin правильно импортирована
+from bot.config import DATABASE_URL
+from bot.database.models import Admin  # Убедитесь, что модель Admin правильно импортирована
 import logging
 
 

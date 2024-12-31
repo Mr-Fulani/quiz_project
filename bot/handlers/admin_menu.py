@@ -30,7 +30,7 @@ from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActio
 from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
-from database.models import Admin, Task, Group, Topic, User
+from bot.database.models import Admin, Task, Group, Topic, User
 
 
 
@@ -322,9 +322,16 @@ async def handle_publish_id(message: Message, state: FSMContext, db_session: Asy
 
 
 
-# Обработчик состояния удаления задачи
 @router.message(StateFilter(TaskActions.awaiting_delete_id), F.content_type == ContentType.TEXT)
 async def handle_delete_id(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обработчик для удаления задачи по ID.
+
+    Args:
+        message (Message): Сообщение от пользователя
+        state (FSMContext): Контекст состояния FSM
+        db_session (AsyncSession): Сессия базы данных
+    """
     current_state = await state.get_state()
     logger.debug(f"Текущее состояние (удаление): {current_state}")
 
@@ -334,17 +341,18 @@ async def handle_delete_id(message: Message, state: FSMContext, db_session: Asyn
 
     task_id = int(message.text)
     logger.info(f"🗑️ Получен запрос на удаление задачи с ID: {task_id}")
+    logger.debug(f"Получен запрос на удаление задачи с ID: {task_id}")
 
     try:
         deletion_info = await delete_task_by_id(task_id, db_session)
         if deletion_info:
             # Формирование подробного сообщения
             task_info = f"✅ Задачи с ID {', '.join(map(str, deletion_info['deleted_task_ids']))} успешно удалены!"
-            topic_info = f"🏷️ Топик задач: {deletion_info['topic_name'] or 'неизвестен'}"
+            topic_info = f"🏷️ Топик задач: {deletion_info['topic_name']}"
             translations_info = (
                 f"🌍 Удалено переводов: {deletion_info['deleted_translation_count']}\n"
-                f"📜 Языки переводов: {', '.join(deletion_info['deleted_translation_languages']) if deletion_info['deleted_translation_languages'] else 'нет переводов'}\n"
-                f"🏷️ Каналы: {', '.join(deletion_info['group_names']) if deletion_info['group_names'] else 'группы не найдены'}"
+                f"📜 Языки переводов: {', '.join(deletion_info['deleted_translation_languages'])}\n"
+                f"🏷️ Каналы: {', '.join(deletion_info['group_names'])}"
             )
 
             # Отправляем информацию о том, что было удалено
@@ -358,6 +366,8 @@ async def handle_delete_id(message: Message, state: FSMContext, db_session: Asyn
         await message.answer(f"❌ Произошла ошибка при удалении задачи с ID {task_id}.")
 
     await state.clear()
+
+
 
 
 

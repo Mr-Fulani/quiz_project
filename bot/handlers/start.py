@@ -4,16 +4,15 @@ import logging
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ContentType
+from aiogram.types import Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
 
 from bot.keyboards.reply_keyboards import get_start_reply_keyboard
 from bot.states.admin_states import PasswordStates
 from bot.utils.db_utils import fetch_one  # Убедитесь, что этот модуль существует и корректен
-from config import ADMIN_SECRET_PASSWORD
-from database.models import Task, TaskTranslation, Admin  # Убедитесь, что модель Admin импортирована
+from bot.config import ADMIN_SECRET_PASSWORD
+from bot.database.models import Task, TaskTranslation, Admin  # Убедитесь, что модель Admin импортирована
 from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard   # Убедитесь, что путь корректен
 
 from bot.services.admin_service import is_admin  # Импорт функции проверки администратора

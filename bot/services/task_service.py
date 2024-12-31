@@ -1,7 +1,6 @@
 import io
 import json
 import logging
-import os
 import random
 import traceback
 import uuid
@@ -17,14 +16,12 @@ from sqlalchemy.future import select
 
 import bot
 from bot.services.default_link_service import DefaultLinkService
+from bot.services.deletion_service import delete_from_s3
 from bot.services.image_service import generate_image_if_needed
-from bot.services.s3_services import delete_image_from_s3, save_image_to_storage
-from config import S3_BUCKET_NAME, S3_REGION
-from database.models import Task, TaskTranslation, Topic, Subtopic, Group
-
-
-
-
+from bot.services.s3_services import  save_image_to_storage
+from bot.config import S3_BUCKET_NAME, S3_REGION
+from bot.database.models import Task, TaskTranslation, Topic, Subtopic, Group
+from bot.utils.markdownV2 import escape_markdown
 
 # Настройка локального логирования
 logger = logging.getLogger(__name__)
@@ -75,20 +72,6 @@ async def prepare_publication(
         f"с переводом ID {translation.id} на языке {translation.language}"
     )
 
-    def escape_md(text: str) -> str:
-        """
-        Экранирует специальные символы для использования в MarkdownV2.
-
-        Args:
-            text (str): Текст, который нужно экранировать.
-
-        Returns:
-            str: Экранированный текст.
-        """
-        escape_chars = r"_*[]()~`>#+-=|{}.!"
-        escaped_text = ''.join(f"\\{char}" if char in escape_chars else char for char in text)
-        logger.debug(f"Экранированный текст: {escaped_text}")
-        return escaped_text
 
     language = translation.language
 
@@ -141,9 +124,9 @@ async def prepare_publication(
     logger.debug(f"Используем переводы для языка '{language}': {lang_translations}")
 
     # Подготовка текстового сообщения с деталями задачи
-    escaped_topic = escape_md(task.topic.name)
-    escaped_subtopic = escape_md(task.subtopic.name if task.subtopic else lang_translations['no_subtopic'])
-    escaped_difficulty = escape_md(task.difficulty.capitalize())
+    escaped_topic = escape_markdown(task.topic.name)
+    escaped_subtopic = escape_markdown(task.subtopic.name if task.subtopic else lang_translations['no_subtopic'])
+    escaped_difficulty = escape_markdown(task.difficulty.capitalize())
 
     task_details_text = (
         f"🖥️ *{lang_translations['programming_language']}*: {escaped_topic}\n"
@@ -258,7 +241,7 @@ async def prepare_publication(
                 logger.info(f"🔗 Получена ссылка по умолчанию: {external_link}")
             else:
                 # Резервная ссылка, если ничего не найдено
-                external_link = "https://t.me/developers_hub_ru"
+                external_link = "https://t.me/tyt_python"
                 logger.info(f"🔗 Не удалось получить ссылку по умолчанию, используется резервная: {external_link}")
     else:
         logger.info(f"🔗 Используется переданная извне ссылка: {external_link}")
@@ -300,10 +283,7 @@ async def prepare_publication(
         if not s3_url:
             raise Exception("Не удалось загрузить изображение в S3.")
 
-        # 4) Обновляем task.external_link и .image_url (если вам это нужно)
-        task.external_link = s3_url
-        # Если у вас есть поле image_url, можно прописать:
-        #   task.image_url = s3_url
+        task.image_url = s3_url
         await db_session.commit()
 
         # 5) Теперь подставляем результат в image_message
@@ -517,36 +497,36 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     failed_tasks += 1
                     continue
 
-                image_url = task_data.get("image_url")
-                if not image_url:
-                    error_msg = f"Не задан image_url для задачи ID {new_task.id}."
-                    logger.error(f"❌ {error_msg}")
-                    error_messages.append(error_msg)
-                    failed_tasks += 1
-                    continue
+                    # Оставляем 'continue' при отсутствии image_url
+                    image_url = task_data.get("image_url")
+                    if not image_url:
+                        # Просто прерываем эту задачу,
+                        # НО НЕ увеличиваем failed_tasks и НЕ пишем error_messages
+                        logger.debug(f"⏩ Пропускаем задачу {new_task.id} (нет image_url), без вывода в чат.")
+                        continue
 
-                try:
-                    # Передаём user_chat_id
-                    image_message, text_message, poll_message, button_message = await prepare_publication(
-                        task=new_task,
-                        translation=new_translation,
-                        image_url=image_url,
-                        db_session=db_session,
-                        default_link_service=default_link_service_instance,
-                        external_link=external_link,  # Может быть None
-                        user_chat_id=user_chat_id  # Добавлено
-                    )
-                    await send_publication_messages(new_task, new_translation, image_message, text_message, poll_message, button_message)
-                except Exception as e:
-                    error_msg = f"Ошибка при подготовке публикации для задачи ID {new_task.id}: {e}"
-                    logger.error(f"❌ {error_msg}")
-                    error_messages.append(error_msg)
-                    failed_tasks += 1
+                    # А если image_url есть, пробуем publishing / prepare_publication
+                    try:
+                        image_message, text_message, poll_message, button_message = await prepare_publication(
+                            task=new_task,
+                            translation=new_translation,
+                            image_url=image_url,
+                            db_session=db_session,
+                            default_link_service=default_link_service_instance,
+                            user_chat_id=user_chat_id
+                        )
+                        await send_publication_messages(new_task, new_translation, image_message, text_message,
+                                                        poll_message, button_message)
+                    except Exception as e:
+                        error_msg = f"Ошибка при подготовке публикации для задачи ID {new_task.id}: {e}"
+                        logger.error(f"❌ {error_msg}")
+                        error_messages.append(error_msg)
+                        failed_tasks += 1
 
                     # Откат: удаляем загруженное изображение из S3, если оно было загружено
-                    if new_task.external_link:
-                        s3_key = new_task.external_link.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
-                        await delete_image_from_s3(s3_key)
+                    if new_task.image_url:
+                        s3_key = new_task.image_url.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
+                        await delete_from_s3(s3_key)
                         logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
 
                     # Откат: удаляем созданную задачу и перевод
@@ -578,6 +558,8 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
         last_import_error_msg = ""
 
     return successfully_loaded, failed_tasks, successfully_loaded_ids, error_messages
+
+
 
 
 async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:

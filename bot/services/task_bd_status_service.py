@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select, func, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Task, Topic
+from bot.database.models import Task, Topic
 
 
 

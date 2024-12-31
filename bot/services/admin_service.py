@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from database.models import Admin
+from bot.database.models import Admin
 
 logger = logging.getLogger(__name__)
 

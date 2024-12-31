@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from database.models import Topic
+from bot.database.models import Topic
 
 
 

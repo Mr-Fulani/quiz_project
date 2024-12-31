@@ -9,7 +9,7 @@ from aiogram.types import Message, CallbackQuery, PollAnswer
 from typing import Any, Dict, Awaitable, Callable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from database.models import User
+from bot.database.models import User
 from bot.utils.time import get_current_time
 
 logger = logging.getLogger(__name__)
