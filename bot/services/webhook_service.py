@@ -43,7 +43,7 @@ class WebhookService:
         except IntegrityError as e:
             await self.db_session.rollback()
             logger.error(f"Ошибка при добавлении вебхука {url}: {e}")
-            return None  # Возвращаем None, если возникла ошибка дублирования
+            return None
 
     async def delete_webhook(self, webhook_id: uuid.UUID) -> bool:
         """
@@ -87,7 +87,42 @@ class WebhookService:
         """
         return await self.list_webhooks()
 
-    async def send_data_to_webhooks_sequentially(self, webhooks_data: List[Dict], webhooks: List[Webhook], db_session: AsyncSession, bot: Bot, admin_chat_id: int) -> List[bool]:
+    async def prepare_webhook_data(self, webhook_data: Dict, index: int, total_webhooks: int) -> Dict:
+        """
+        Подготавливает данные для отправки вебхука, добавляя необходимые идентификаторы и обрабатывая incorrect_answers.
+        """
+        webhook_data_with_ids = webhook_data.copy()
+        webhook_data_with_ids.update({
+            "id": str(uuid.uuid4()),
+            "sequence_number": index,
+            "total_webhooks": total_webhooks,
+            "webhook_batch_id": str(uuid.uuid4()),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+        # Обработка incorrect_answers
+        if "incorrect_answers" in webhook_data_with_ids:
+            i_answers = webhook_data_with_ids["incorrect_answers"]
+            if isinstance(i_answers, str):
+                try:
+                    deserialized = json.loads(i_answers)
+                    if isinstance(deserialized, list):
+                        webhook_data_with_ids["incorrect_answers"] = deserialized
+                        logger.debug("🔄 incorrect_answers десериализованы из строки в список.")
+                    else:
+                        logger.error(f"❌ Ожидался список, получен другой тип: {type(deserialized)}")
+                        webhook_data_with_ids["incorrect_answers"] = []
+                except json.JSONDecodeError as e:
+                    logger.error(f"❌ Ошибка десериализации incorrect_answers: {e}")
+                    webhook_data_with_ids["incorrect_answers"] = []
+            elif not isinstance(i_answers, list):
+                logger.error(f"❌ incorrect_answers имеет неподдерживаемый тип: {type(i_answers)}")
+                webhook_data_with_ids["incorrect_answers"] = []
+
+        return webhook_data_with_ids
+
+    async def send_webhooks(self, webhooks_data: List[Dict], webhooks: List[Webhook],
+                          bot: Bot, admin_chat_id: int) -> List[bool]:
         """
         Отправляет данные на все активные вебхуки последовательно.
         """
@@ -101,53 +136,35 @@ class WebhookService:
 
             for index, webhook_data in enumerate(webhooks_data, 1):
                 if webhook.url in failed_urls:
-                    logger.warning(
-                        f"⚠️ Вебхук на {webhook.url} ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
-                    await notify_admin(bot, admin_chat_id,
-                                       f"⚠️ Вебхук на `{webhook.url}` ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
-                    break  # Пропускаем все дальнейшие webhook_data для этого URL
+                    await notify_admin(
+                        bot,
+                        admin_chat_id,
+                        f"⚠️ Вебхук на `{webhook.url}` ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL."
+                    )
+                    break
 
                 try:
                     logger.info(
-                        f"📤 Отправка вебхука {index}/{len(webhooks_data)} на URL {webhook.url} для языка {webhook_data.get('language')}"
+                        f"📤 Отправка вебхука {index}/{len(webhooks_data)} на URL {webhook.url} "
+                        f"для языка {webhook_data.get('language')}"
                     )
 
-                    # Добавляем уникальные идентификаторы
-                    webhook_data_with_ids = webhook_data.copy()
-                    webhook_data_with_ids.update({
-                        "id": str(uuid.uuid4()),
-                        "sequence_number": index,
-                        "total_webhooks": len(webhooks_data),
-                        "webhook_batch_id": str(uuid.uuid4()),
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
+                    # Подготовка данных для отправки
+                    webhook_data_with_ids = await self.prepare_webhook_data(
+                        webhook_data,
+                        index,
+                        len(webhooks_data)
+                    )
 
-                    # Дополнительная задержка между отправками
+                    # Задержка между отправками
                     if index > 1:
                         delay = random.uniform(2.0, 4.0)
-                        logger.info(f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука")
-                        await notify_admin(bot, admin_chat_id,
-                                           f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука.")
+                        await notify_admin(
+                            bot,
+                            admin_chat_id,
+                            f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука."
+                        )
                         await asyncio.sleep(delay)
-
-                    # **Проверка incorrect_answers** (если строка – пробуем десериализовать)
-                    if "incorrect_answers" in webhook_data_with_ids:
-                        i_answers = webhook_data_with_ids["incorrect_answers"]
-                        if isinstance(i_answers, str):
-                            try:
-                                deserialized = json.loads(i_answers)
-                                if isinstance(deserialized, list):
-                                    webhook_data_with_ids["incorrect_answers"] = deserialized
-                                    logger.debug("🔄 incorrect_answers десериализованы из строки в список.")
-                                else:
-                                    logger.error(f"❌ Ожидался список, получен другой тип: {type(deserialized)}")
-                                    webhook_data_with_ids["incorrect_answers"] = []
-                            except json.JSONDecodeError as e:
-                                logger.error(f"❌ Ошибка десериализации incorrect_answers: {e}")
-                                webhook_data_with_ids["incorrect_answers"] = []
-                        elif not isinstance(i_answers, list):
-                            logger.error(f"❌ incorrect_answers имеет неподдерживаемый тип: {type(i_answers)}")
-                            webhook_data_with_ids["incorrect_answers"] = []
 
                     # Отправка вебхука
                     success = await send_quiz_published_webhook(webhook.url, webhook_data_with_ids)
@@ -155,142 +172,42 @@ class WebhookService:
 
                     if success:
                         logger.info(
-                            f"✅ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) успешно отправлен"
+                            f"✅ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) "
+                            f"для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) "
+                            f"успешно отправлен"
                         )
-                        # Уведомляем инициирующего администратора об успешной отправке
-                        await notify_admin(bot, admin_chat_id, f"✅ Вебхук `{webhook.url}` ({webhook.service_name}) успешно отправлен.")
-                        # Дополнительная задержка после успешной отправки
+                        await notify_admin(
+                            bot,
+                            admin_chat_id,
+                            f"✅ Вебхук `{webhook.url}` ({webhook.service_name}) успешно отправлен."
+                        )
                         await asyncio.sleep(1.0)
                     else:
                         logger.error(
-                            f"❌ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) не удалось отправить"
+                            f"❌ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) "
+                            f"для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) "
+                            f"не удалось отправить"
                         )
                         failed_urls.add(webhook.url)
-                        # Уведомляем инициирующего администратора об ошибке
-                        await notify_admin(bot, admin_chat_id, f"❌ Вебхук `{webhook.url}` ({webhook.service_name}) не удалось отправить.")
-                        # Пауза после неудачной отправки
+                        await notify_admin(
+                            bot,
+                            admin_chat_id,
+                            f"❌ Вебхук `{webhook.url}` ({webhook.service_name}) не удалось отправить."
+                        )
                         await asyncio.sleep(2.0)
                 except Exception as e:
                     logger.exception(
-                        f"❌ Ошибка при отправке вебхука {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) для языка {webhook_data.get('language', 'Unknown')}: {e}"
+                        f"❌ Ошибка при отправке вебхука {index}/{len(webhooks_data)} на {webhook.url} "
+                        f"({webhook.service_name}) для языка {webhook_data.get('language', 'Unknown')}: {e}"
                     )
                     failed_urls.add(webhook.url)
-                    # Уведомляем инициирующего администратора об ошибке
-                    await notify_admin(bot, admin_chat_id, f"❌ Ошибка при отправке вебхука `{webhook.url}` ({webhook.service_name}): {e}")
-                    results.append(False)
-                    await asyncio.sleep(2.0)  # Задержка после ошибки
-
-        # Итоговая статистика
-        success_count = sum(1 for r in results if r)
-        failed_count = len(results) - success_count
-        summary_msg = (
-            f"📊 Итоги отправки вебхуков:\n"
-            f"✅ Успешно: {success_count}\n"
-            f"❌ Неудачно: {failed_count}"
-        )
-        logger.info(summary_msg)
-        await notify_admin(bot, admin_chat_id, summary_msg)
-
-        return results
-
-    async def send_webhooks_sequentially(webhooks_data: List[Dict], webhooks: List[Webhook], db_session: AsyncSession,
-                                         bot: Bot, admin_chat_id: int) -> List[bool]:
-        """
-        Последовательно отправляет вебхуки на каждый URL из списка.
-        Уведомляет только инициирующего администратора.
-        Не деактивирует вебхуки автоматически.
-        """
-        results = []
-        failed_urls = set()
-
-        for webhook in webhooks:
-            if not webhook.is_active:
-                logger.info(f"🔕 Вебхук {webhook.id} не активен. Пропуск.")
-                continue
-
-            for index, webhook_data in enumerate(webhooks_data, 1):
-                if webhook.url in failed_urls:
-                    logger.warning(
-                        f"⚠️ Вебхук на {webhook.url} ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
-                    await notify_admin(bot, admin_chat_id,
-                                       f"⚠️ Вебхук на `{webhook.url}` ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL.")
-                    break  # Пропускаем все дальнейшие webhook_data для этого URL
-
-                try:
-                    logger.info(
-                        f"📤 Отправка вебхука {index}/{len(webhooks_data)} на URL {webhook.url} для языка {webhook_data.get('language')}"
+                    await notify_admin(
+                        bot,
+                        admin_chat_id,
+                        f"❌ Ошибка при отправке вебхука `{webhook.url}` ({webhook.service_name}): {e}"
                     )
-
-                    # Добавляем уникальные идентификаторы
-                    webhook_data_with_ids = webhook_data.copy()
-                    webhook_data_with_ids.update({
-                        "id": str(uuid.uuid4()),
-                        "sequence_number": index,
-                        "total_webhooks": len(webhooks_data),
-                        "webhook_batch_id": str(uuid.uuid4()),
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-
-                    # Дополнительная задержка между отправками
-                    if index > 1:
-                        delay = random.uniform(2.0, 4.0)
-                        logger.info(f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука")
-                        await notify_admin(bot, admin_chat_id,
-                                           f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука.")
-                        await asyncio.sleep(delay)
-
-                    # **Проверка incorrect_answers** (если строка – пробуем десериализовать)
-                    if "incorrect_answers" in webhook_data_with_ids:
-                        i_answers = webhook_data_with_ids["incorrect_answers"]
-                        if isinstance(i_answers, str):
-                            try:
-                                deserialized = json.loads(i_answers)
-                                if isinstance(deserialized, list):
-                                    webhook_data_with_ids["incorrect_answers"] = deserialized
-                                    logger.debug("🔄 incorrect_answers десериализованы из строки в список.")
-                                else:
-                                    logger.error(f"❌ Ожидался список, получен другой тип: {type(deserialized)}")
-                                    webhook_data_with_ids["incorrect_answers"] = []
-                            except json.JSONDecodeError as e:
-                                logger.error(f"❌ Ошибка десериализации incorrect_answers: {e}")
-                                webhook_data_with_ids["incorrect_answers"] = []
-                        elif not isinstance(i_answers, list):
-                            logger.error(f"❌ incorrect_answers имеет неподдерживаемый тип: {type(i_answers)}")
-                            webhook_data_with_ids["incorrect_answers"] = []
-
-                    # Отправка вебхука
-                    success = await send_quiz_published_webhook(webhook.url, webhook_data_with_ids)
-                    results.append(success)
-
-                    if success:
-                        logger.info(
-                            f"✅ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) успешно отправлен"
-                        )
-                        # Уведомляем инициирующего администратора об успешной отправке
-                        await notify_admin(bot, admin_chat_id,
-                                           f"✅ Вебхук `{webhook.url}` ({webhook.service_name}) успешно отправлен.")
-                        # Дополнительная задержка после успешной отправки
-                        await asyncio.sleep(1.0)
-                    else:
-                        logger.error(
-                            f"❌ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) не удалось отправить"
-                        )
-                        failed_urls.add(webhook.url)
-                        # Уведомляем инициирующего администратора об ошибке
-                        await notify_admin(bot, admin_chat_id,
-                                           f"❌ Вебхук `{webhook.url}` ({webhook.service_name}) не удалось отправить.")
-                        # Пауза после неудачной отправки
-                        await asyncio.sleep(2.0)
-                except Exception as e:
-                    logger.exception(
-                        f"❌ Ошибка при отправке вебхука {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) для языка {webhook_data.get('language', 'Unknown')}: {e}"
-                    )
-                    failed_urls.add(webhook.url)
-                    # Уведомляем инициирующего администратора об ошибке
-                    await notify_admin(bot, admin_chat_id,
-                                       f"❌ Ошибка при отправке вебхука `{webhook.url}` ({webhook.service_name}): {e}")
                     results.append(False)
-                    await asyncio.sleep(2.0)  # Задержка после ошибки
+                    await asyncio.sleep(2.0)
 
         # Итоговая статистика
         success_count = sum(1 for r in results if r)

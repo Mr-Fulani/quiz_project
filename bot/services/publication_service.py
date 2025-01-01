@@ -22,8 +22,7 @@ from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
 from bot.utils.logging_utils import log_final_summary, log_webhook_summary, log_pause, \
     log_username_received, log_publication_start, log_publication_failure, log_webhook_data, log_publication_success
-
-
+from bot.utils.webhook_utils import create_webhook_data
 
 logger = logging.getLogger(__name__)
 
@@ -219,27 +218,20 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         continue
 
                     # Формирование данных для вебхука
-                    poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
-                    webhook_data = {
-                        "type": "quiz_published",
-                        "poll_link": poll_link,
-                        "image_url": image_url,
-                        "question": poll_message["question"],  # Используем общий вопрос
-                        "correct_answer": translation.correct_answer,
-                        "incorrect_answers": await get_incorrect_answers(translation.answers, translation.correct_answer),
-                        "language": translation.language,
-                        "group": {
-                            "id": group.id,
-                            "name": group.group_name
-                        },
-                        "caption": image_message["caption"] or "",
-                        "published_at": datetime.utcnow().isoformat()
-                    }
+                    webhook_data, poll_link = await create_webhook_data(
+                        task_id=task.id,  # ID задачи
+                        channel_username=channel_username,
+                        poll_msg=poll_msg,
+                        image_url=image_url,
+                        poll_message=poll_message,
+                        translation=translation,
+                        group=group,
+                        image_message=image_message,
+                        dont_know_option=dont_know_option,
+                        external_link=external_link
+                    )
 
-                    # Добавляем "Не знаю, но хочу узнать" с локализованным текстом и ссылкой
-                    dont_know_with_link = f"{dont_know_option} ({external_link})"
-                    webhook_data["incorrect_answers"].append(dont_know_with_link)
-
+                    log_webhook_data(webhook_data)
                     webhook_data_list.append(webhook_data)
 
                     # Сохранение информации об опросе
@@ -308,7 +300,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             await message.answer(f"📤 Отправка вебхуков на {len(active_webhooks)} сервисов.")
 
             try:
-                results = await webhook_service.send_data_to_webhooks_sequentially(
+                results = await webhook_service.send_webhooks(
                     webhooks_data=webhook_data_list,
                     webhooks=active_webhooks,
                     db_session=db_session,
@@ -557,32 +549,23 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             return False
 
         # Формирование данных для вебхука
-        poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
-        incorrect_answers = await get_incorrect_answers(
-            translation.answers,
-            translation.correct_answer
-        )
-        webhook_data = {
-            "type": "quiz_published",
-            "poll_link": poll_link,
-            "image_url": image_url,
-            "question": translation.question,
-            "correct_answer": translation.correct_answer,
-            "incorrect_answers": incorrect_answers,
-            "language": translation.language,
-            "group": {
-                "id": group.id,
-                "name": group.group_name
-            },
-            "caption": image_message["caption"] or "",
-            "published_at": datetime.utcnow().isoformat()
-        }
-
-        # Добавляем "Не знаю, но хочу узнать" с локализованным текстом и ссылкой
-        dont_know_with_link = f"{dont_know_option} ({external_link})"
-        webhook_data["incorrect_answers"].append(dont_know_with_link)
-
-        webhook_data_list.append(webhook_data)
+        if webhook_data_list and active_webhooks:
+            logger.info(f"📤 Отправка вебхуков для перевода {translation.id}")
+            try:
+                results = await webhook_service.send_webhooks(
+                    webhook_data_list,
+                    active_webhooks,
+                    bot,
+                    user_chat_id  # передаем как admin_chat_id
+                )
+                success_count = sum(1 for r in results if r)
+                failed_count = len(results) - success_count
+            except Exception as e:
+                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
+                # Помечаем задачу как с ошибкой
+                translation.task.error = True
+                await db_session.commit()
+                return False
 
         # Лог о публикации перевода
         logger.info(
@@ -594,7 +577,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         if webhook_data_list and active_webhooks:
             logger.info(f"📤 Отправка вебхуков для перевода {translation.id}")
             try:
-                results = await webhook_service.send_webhooks_sequentially(
+                results = await webhook_service.send_webhooks(
                     webhook_data_list,
                     active_webhooks,
                     db_session,
@@ -701,10 +684,21 @@ async def publish_task_by_translation_group(
         # Проверка, содержит ли группа задачи с ошибками
         error_tasks = [task for task in tasks if task.error]
         if error_tasks:
-            logger.warning(f"⚠️ Группа переводов `{translation_group_id}` содержит задачи с ошибками. Пропуск.")
-            await message.answer(
-                f"⚠️ Группа переводов `{translation_group_id}` содержит задачи с ошибками. Пропуск."
+            error_details = "\n".join([
+                f"• Задача ID: `{task.id}`\n"
+                f"  Группа: `{task.topic.name if task.topic else 'Не указана'}`"
+                for task in error_tasks
+            ])
+
+            error_message = (
+                f"⚠️ Группа переводов `{translation_group_id}` содержит задачи с ошибками:\n\n"
+                f"{error_details}\n\n"
+                f"Всего задач с ошибками: {len(error_tasks)}\n"
+                f"❌ Публикация пропущена."
             )
+
+            logger.warning(error_message)
+            await message.answer(error_message)
             return False, 0, 0, 0
 
         total_translations = sum(len(task.translations) for task in tasks)
@@ -922,30 +916,18 @@ async def publish_task_by_translation_group(
                         continue
 
                     # Формирование данных для вебхука
-                    poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
-                    incorrect_answers = await get_incorrect_answers(
-                        translation.answers,
-                        translation.correct_answer
+                    webhook_data, poll_link = await create_webhook_data(
+                        task_id=task.id,  # ID задачи
+                        channel_username=channel_username,
+                        poll_msg=poll_msg,
+                        image_url=image_url,
+                        poll_message=poll_message,
+                        translation=translation,
+                        group=group,
+                        image_message=image_message,
+                        dont_know_option=dont_know_option,
+                        external_link=external_link
                     )
-                    webhook_data = {
-                        "type": "quiz_published",
-                        "poll_link": poll_link,
-                        "image_url": image_url,
-                        "question": poll_message["question"],  # Изменено на вопрос опроса
-                        "correct_answer": translation.correct_answer,
-                        "incorrect_answers": incorrect_answers,
-                        "language": translation.language,
-                        "group": {
-                            "id": group.id,
-                            "name": group.group_name
-                        },
-                        "caption": image_message["caption"] or "",
-                        "published_at": datetime.utcnow().isoformat()
-                    }
-
-                    # Добавляем "Не знаю, но хочу узнать" с локализованным текстом и ссылкой
-                    dont_know_with_link = f"{dont_know_option} ({external_link})"
-                    webhook_data["incorrect_answers"].append(dont_know_with_link)
 
                     log_webhook_data(webhook_data)
                     webhook_data_list.append(webhook_data)
@@ -1004,7 +986,7 @@ async def publish_task_by_translation_group(
             logger.debug(f"📥 Активные вебхуки: {[wh.url for wh in active_webhooks]}")
 
             # Вызов функции отправки вебхуков с передачей admin_chat_id
-            results = await webhook_service.send_data_to_webhooks_sequentially(
+            results = await webhook_service.send_webhooks(
                 webhook_data_list,
                 active_webhooks,
                 db_session,

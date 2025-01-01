@@ -425,7 +425,6 @@ async def handle_database_status(callback: CallbackQuery, db_session: AsyncSessi
 
 
 
-# Обработчик кнопки "Опубликовать задачу с переводами"
 @router.callback_query(F.data == "publish_task_with_translations")
 async def publish_task_with_translations_handler(call: CallbackQuery, db_session: AsyncSession, bot: Bot):
     logger.info(f"🟢 Пользователь {call.from_user.username} (ID: {call.from_user.id}) начал процесс публикации задачи с переводами.")
@@ -439,7 +438,7 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
         result = await db_session.execute(
             select(Task.translation_group_id)
             .where(Task.published.is_(False))
-            .order_by(Task.id.asc())  # Самая старая неопубликованная задача
+            .order_by(Task.id.asc())
             .limit(1)
         )
         translation_group_id = result.scalar_one_or_none()
@@ -454,7 +453,7 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
                 select(Task.translation_group_id)
                 .where(Task.published.is_(True))
                 .where(Task.publish_date < one_month_ago)
-                .order_by(Task.publish_date.asc())  # Самая старая опубликованная задача
+                .order_by(Task.publish_date.asc())
                 .limit(1)
             )
             translation_group_id = result.scalar_one_or_none()
@@ -464,31 +463,24 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
             logger.info(f"🟡 Найдена задача с группой переводов {translation_group_id}. Начинаем публикацию.")
 
             # Получение user_chat_id
-            user_chat_id = call.from_user.id  # Или call.message.chat.id, в зависимости от контекста
+            user_chat_id = call.from_user.id
 
             # Выполнение публикации
             success, published_count, failed_count, total_count = await publish_task_by_translation_group(
-                translation_group_id, call.message, db_session, bot, user_chat_id  # Добавлен user_chat_id
+                translation_group_id, call.message, db_session, bot, user_chat_id
             )
 
             # Логируем результат публикации
             if success:
                 logger.info(f"✅ Задача с группой переводов {translation_group_id} успешно опубликована.")
                 logger.info(
-                    f"📊 Результаты публикации: всего переводов — {total_count}, успешно опубликовано — {published_count}, с ошибками — {failed_count}.")
-                await call.message.answer(
-                    f"Успешно опубликовано: {published_count}\n"
-                    f"С ошибками: {failed_count}"
+                    f"📊 Результаты публикации: всего переводов — {total_count}, "
+                    f"успешно опубликовано — {published_count}, с ошибками — {failed_count}."
                 )
+                # Сообщение об успехе отправляется из функции publish_task_by_translation_group
             else:
+                # Сообщение об ошибке уже отправлено из функции publish_task_by_translation_group
                 logger.error(f"❌ Произошла ошибка при публикации задачи с группой переводов {translation_group_id}.")
-                await call.message.answer(
-                    f"❌ Произошла ошибка при публикации задачи с группой переводов `{translation_group_id}`.\n"
-                    f"📊 Результаты:\n"
-                    f"Всего переводов: {total_count}\n"
-                    f"Успешно опубликовано: {published_count}\n"
-                    f"С ошибками: {failed_count}"
-                )
         else:
             # Если нет неопубликованных и старых задач
             logger.info(
@@ -1359,12 +1351,12 @@ async def post_subscription_buttons(call: types.CallbackQuery, db_session, bot):
                 reply_markup=keyboard
             )
 
-            # Закрепляем сообщение, если это группа или канал
-            await bot.pin_chat_message(
-                chat_id=group_id,
-                message_id=sent_message.message_id,
-                disable_notification=True
-            )
+            # # Закрепляем сообщение, если это группа или канал
+            # await bot.pin_chat_message(
+            #     chat_id=group_id,
+            #     message_id=sent_message.message_id,
+            #     disable_notification=True
+            # )
 
             # Логируем успешную отправку
             logger.info(f"Сообщение отправлено в {location_type} '{group_name}' ({group_id}).")
@@ -1402,6 +1394,8 @@ async def callback_set_main_fallback_link(call: types.CallbackQuery, state: FSMC
     await call.answer()
     logger.info(f"Пользователь {call.from_user.username} инициировал установку главной статической ссылки.")
 
+
+
 # Обработчик ввода языка для установки главной статической ссылки
 @router.message(AdminStates.waiting_for_set_fallback_language)
 async def process_set_fallback_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
@@ -1425,6 +1419,8 @@ async def process_set_fallback_language(message: types.Message, db_session: Asyn
     await message.answer(f"Пожалуйста, введите новую главную статическую ссылку для языка '{language}' (начинающуюся с http:// или https://):")
     await state.set_state(AdminStates.waiting_for_set_fallback_link)
     logger.info(f"Пользователь {message.from_user.username} выбрал язык '{language}' для установки главной статической ссылки.")
+
+
 
 # Обработчик ввода новой главной статической ссылки
 @router.message(AdminStates.waiting_for_set_fallback_link)
@@ -1464,6 +1460,7 @@ async def process_set_main_fallback_link(message: types.Message, db_session: Asy
 
     await state.clear()
 
+
 # Обработчик кнопки "Удалить главную ссылку"
 @router.callback_query(lambda c: c.data == "remove_main_fallback_link")
 async def callback_remove_main_fallback_link(call: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
@@ -1481,6 +1478,8 @@ async def callback_remove_main_fallback_link(call: types.CallbackQuery, state: F
     await state.set_state(AdminStates.waiting_for_remove_fallback_language)
     await call.answer()
     logger.info(f"Пользователь {call.from_user.username} инициировал удаление главной статической ссылки.")
+
+
 
 # Обработчик ввода языка для удаления главной статической ссылки
 @router.message(AdminStates.waiting_for_remove_fallback_language)
