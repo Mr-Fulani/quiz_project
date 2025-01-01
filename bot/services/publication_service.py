@@ -310,8 +310,6 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 # Подсчёт результатов
                 success_count = sum(1 for r in results if r)
                 failed_count += len(results) - success_count
-                summary_msg = log_webhook_summary(success=success_count, failed=failed_count)
-                await message.answer(summary_msg)
             except Exception as e:
                 logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
                 await message.answer(f"❌ Ошибка при отправке вебхуков: {str(e)}")
@@ -548,23 +546,19 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             return False
 
         # Формирование данных для вебхука
-        if webhook_data_list and active_webhooks:
-            logger.info(f"📤 Отправка вебхуков для перевода {translation.id}")
-            try:
-                results = await webhook_service.send_webhooks(
-                    webhook_data_list,
-                    active_webhooks,
-                    bot,
-                    user_chat_id  # передаем как admin_chat_id
-                )
-                success_count = sum(1 for r in results if r)
-                failed_count = len(results) - success_count
-            except Exception as e:
-                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
-                # Помечаем задачу как с ошибкой
-                translation.task.error = True
-                await db_session.commit()
-                return False
+        webhook_data, poll_link = await create_webhook_data(
+            task_id=translation.task.id,
+            channel_username=channel_username,
+            poll_msg=poll_msg,
+            image_url=image_url,
+            poll_message=poll_message,
+            translation=translation,
+            group=group,
+            image_message=image_message,
+            dont_know_option=dont_know_option,
+            external_link=external_link
+        )
+        webhook_data_list.append(webhook_data)
 
         # Лог о публикации перевода
         logger.info(
@@ -575,21 +569,14 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         # Отправка вебхуков
         if webhook_data_list and active_webhooks:
             logger.info(f"📤 Отправка вебхуков для перевода {translation.id}")
-            try:
-                results = await webhook_service.send_webhooks(
-                    webhook_data_list,
-                    active_webhooks,
-                    bot,
-                    user_chat_id  # Передача ID чата администратора
-                )
-                success_count = sum(1 for r in results if r)
-                failed_count = len(results) - success_count
-            except Exception as e:
-                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
-                # Помечаем задачу как с ошибкой
-                translation.task.error = True
-                await db_session.commit()
-                return False
+            results = await webhook_service.send_webhooks(
+                webhook_data_list,  # список с данными
+                active_webhooks,
+                bot,
+                user_chat_id  # <-- admin_chat_id
+            )
+            success_count = sum(1 for r in results if r)
+            failed_count = len(results) - success_count
 
         # Обновление статуса перевода
         try:

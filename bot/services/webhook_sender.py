@@ -1,5 +1,3 @@
-# webhook_sender.py
-
 import asyncio
 import json
 import logging
@@ -17,12 +15,6 @@ from bot.config import MAKE_WEBHOOK_TIMEOUT, MAKE_WEBHOOK_RETRIES, MAKE_WEBHOOK_
 
 logger = logging.getLogger(__name__)
 
-
-
-
-
-
-
 async def notify_admin(bot: Bot, admin_chat_id: int, message: str):
     """
     Отправляет сообщение администратору с экранированием MarkdownV2.
@@ -34,10 +26,44 @@ async def notify_admin(bot: Bot, admin_chat_id: int, message: str):
     except Exception as e:
         logger.error(f"Не удалось отправить сообщение администратору {admin_chat_id}: {e}")
 
+async def send_webhook(webhook_url: str, data: Dict, headers: Dict) -> bool:
+    """
+    Отправляет данные на внешний вебхук с повторами при неудаче.
+    """
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=MAKE_WEBHOOK_TIMEOUT),
+        connector=aiohttp.TCPConnector(ssl=ssl_context)
+    ) as session:
+        for attempt in range(1, MAKE_WEBHOOK_RETRIES + 1):
+            try:
+                logger.info(f"📤 Попытка {attempt}/{MAKE_WEBHOOK_RETRIES} отправки вебхука на {webhook_url}")
+
+                async with session.post(webhook_url, json=data, headers=headers) as response:
+                    response_text = await response.text()
+
+                    logger.info(f"📨 Webhook response from {webhook_url}:")
+                    logger.info(f"Status: {response.status}")
+                    logger.info(f"Headers: {dict(response.headers)}")
+                    logger.info(f"Body: {response_text}")
+
+                    if response.status in [200, 201, 202, 204]:
+                        return True
+
+            except Exception as e:
+                logger.exception(f"❌ Попытка {attempt} не удалась для вебхука на {webhook_url}: {e}")
+
+            if attempt < MAKE_WEBHOOK_RETRIES:
+                delay = MAKE_WEBHOOK_RETRY_DELAY * attempt
+                logger.info(f"⏳ Ожидание {delay} секунд перед следующей попыткой отправки вебхука на {webhook_url}")
+                await asyncio.sleep(delay)
+
+        return False
 
 async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
     """
     Отправляет данные о опубликованном опросе на указанный URL вебхука.
+    Предварительно проверяет корректность входных данных.
     """
     try:
         required_fields = [
@@ -58,23 +84,20 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
             )
             return False
 
-        # Обработка incorrect_answers
+        # Обработка incorrect_answers (дополнительная проверка/конвертация)
         if "incorrect_answers" in data:
             if isinstance(data["incorrect_answers"], str):
                 try:
-                    # Попытка преобразовать строку JSON в список
                     data["incorrect_answers"] = json.loads(data["incorrect_answers"])
                 except json.JSONDecodeError:
-                    # Если строка не является JSON, разделяем по разделителю
-                    # Предполагаем, что ответы разделены переносом строки или запятой
-                    answers = data["incorrect_answers"].split('\n') if '\n' in data["incorrect_answers"] else data["incorrect_answers"].split(',')
-                    # Очищаем от пробелов и пустых строк
+                    # Если строка не является JSON, попробуем разделить
+                    answers = (data["incorrect_answers"].split('\n') 
+                               if '\n' in data["incorrect_answers"] 
+                               else data["incorrect_answers"].split(','))
                     data["incorrect_answers"] = [ans.strip() for ans in answers if ans.strip()]
             elif isinstance(data["incorrect_answers"], list):
-                # Если это уже список, оставляем как есть
-                pass
+                pass  # Если это уже список, оставляем как есть
             else:
-                # Если это что-то другое, преобразуем в пустой список
                 logger.warning(f"Неподдерживаемый формат incorrect_answers: {type(data['incorrect_answers'])}")
                 data["incorrect_answers"] = []
 
@@ -108,51 +131,3 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
             f"❌ Ошибка при подготовке вебхука для языка '{data.get('language', 'Unknown')}' (ID: {data.get('id')}): {e}"
         )
         return False
-
-
-async def send_webhook(webhook_url: str, data: Dict, headers: Dict) -> bool:
-    """
-    Отправляет данные на внешний вебхук.
-    """
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-    async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=MAKE_WEBHOOK_TIMEOUT),
-            connector=aiohttp.TCPConnector(ssl=ssl_context)
-    ) as session:
-        for attempt in range(1, MAKE_WEBHOOK_RETRIES + 1):
-            try:
-                logger.info(
-                    f"📤 Попытка {attempt}/{MAKE_WEBHOOK_RETRIES} отправки вебхука на {webhook_url}"
-                )
-
-                async with session.post(webhook_url, json=data, headers=headers) as response:
-                    response_text = await response.text()
-
-                    logger.info(f"📨 Webhook response from {webhook_url}:")
-                    logger.info(f"Status: {response.status}")
-                    logger.info(f"Headers: {dict(response.headers)}")
-                    logger.info(f"Body: {response_text}")
-
-                    if response.status in [200, 201, 202, 204]:
-                        return True
-
-            except Exception as e:
-                logger.exception(
-                    f"❌ Попытка {attempt} не удалась для вебхука на {webhook_url}: {e}"
-                )
-
-            if attempt < MAKE_WEBHOOK_RETRIES:
-                delay = MAKE_WEBHOOK_RETRY_DELAY * attempt
-                logger.info(
-                    f"⏳ Ожидание {delay} секунд перед следующей попыткой отправки вебхука на {webhook_url}"
-                )
-                await asyncio.sleep(delay)
-
-        return False
-
-
-
-
-
-
-

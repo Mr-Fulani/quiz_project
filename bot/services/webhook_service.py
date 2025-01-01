@@ -1,4 +1,3 @@
-# bot/services/webhook_service.py
 import asyncio
 import json
 import logging
@@ -17,7 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import MAKE_WEBHOOK_RETRIES, MAKE_WEBHOOK_RETRY_DELAY, MAKE_WEBHOOK_TIMEOUT
 from bot.database.models import Webhook, Admin  # Предполагается, что модель Admin существует
-from bot.services.webhook_sender import notify_admin, send_quiz_published_webhook
+from bot.services.webhook_sender import (
+    notify_admin,
+    send_quiz_published_webhook
+)
+from bot.utils.logging_utils import log_webhook_summary
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +92,8 @@ class WebhookService:
 
     async def prepare_webhook_data(self, webhook_data: Dict, index: int, total_webhooks: int) -> Dict:
         """
-        Подготавливает данные для отправки вебхука, добавляя необходимые идентификаторы и обрабатывая incorrect_answers.
+        Подготавливает данные для отправки вебхука, добавляя необходимые идентификаторы и
+        обрабатывая incorrect_answers при необходимости.
         """
         webhook_data_with_ids = webhook_data.copy()
         webhook_data_with_ids.update({
@@ -100,7 +104,7 @@ class WebhookService:
             "timestamp": datetime.utcnow().isoformat()
         })
 
-        # Обработка incorrect_answers
+        # Если внутри есть incorrect_answers — проверим формат (пример базовой валидации)
         if "incorrect_answers" in webhook_data_with_ids:
             i_answers = webhook_data_with_ids["incorrect_answers"]
             if isinstance(i_answers, str):
@@ -121,10 +125,15 @@ class WebhookService:
 
         return webhook_data_with_ids
 
-    async def send_webhooks(self, webhooks_data: List[Dict], webhooks: List[Webhook],
-                          bot: Bot, admin_chat_id: int) -> List[bool]:
+    async def send_webhooks(
+        self,
+        webhooks_data: List[Dict],
+        webhooks: List[Webhook],
+        bot: Bot,
+        admin_chat_id: int
+    ) -> List[bool]:
         """
-        Отправляет данные на все активные вебхуки последовательно.
+        Отправляет данные на все (активные) вебхуки последовательно, с уведомлением админа.
         """
         results = []
         failed_urls = set()
@@ -148,15 +157,14 @@ class WebhookService:
                         f"📤 Отправка вебхука {index}/{len(webhooks_data)} на URL {webhook.url} "
                         f"для языка {webhook_data.get('language')}"
                     )
-
-                    # Подготовка данных для отправки
+                    # Подготовка данных
                     webhook_data_with_ids = await self.prepare_webhook_data(
                         webhook_data,
                         index,
                         len(webhooks_data)
                     )
 
-                    # Задержка между отправками
+                    # Задержка между отправками (пример логики)
                     if index > 1:
                         delay = random.uniform(2.0, 4.0)
                         await notify_admin(
@@ -173,8 +181,7 @@ class WebhookService:
                     if success:
                         logger.info(
                             f"✅ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) "
-                            f"для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) "
-                            f"успешно отправлен"
+                            f"для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) отправлен"
                         )
                         await notify_admin(
                             bot,
@@ -195,6 +202,7 @@ class WebhookService:
                             f"❌ Вебхук `{webhook.url}` ({webhook.service_name}) не удалось отправить."
                         )
                         await asyncio.sleep(2.0)
+
                 except Exception as e:
                     logger.exception(
                         f"❌ Ошибка при отправке вебхука {index}/{len(webhooks_data)} на {webhook.url} "
@@ -209,60 +217,14 @@ class WebhookService:
                     results.append(False)
                     await asyncio.sleep(2.0)
 
-        # Итоговая статистика
+        # Итоговая статистика через log_webhook_summary
         success_count = sum(1 for r in results if r)
         failed_count = len(results) - success_count
-        summary_msg = (
-            f"📊 Итоги отправки вебхуков:\n"
-            f"✅ Успешно: {success_count}\n"
-            f"❌ Неудачно: {failed_count}"
-        )
-        logger.info(summary_msg)
+        summary_msg = log_webhook_summary(success_count, failed_count)
+        # После логирования сразу отправляем админу
         await notify_admin(bot, admin_chat_id, summary_msg)
 
         return results
-
-    async def send_webhook(webhook_url: str, data: Dict, headers: Dict) -> bool:
-        """
-        Отправляет данные на внешний вебхук.
-        """
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=MAKE_WEBHOOK_TIMEOUT),
-                connector=aiohttp.TCPConnector(ssl=ssl_context)
-        ) as session:
-            for attempt in range(1, MAKE_WEBHOOK_RETRIES + 1):
-                try:
-                    logger.info(
-                        f"📤 Попытка {attempt}/{MAKE_WEBHOOK_RETRIES} отправки вебхука на {webhook_url}"
-                    )
-
-                    async with session.post(webhook_url, json=data, headers=headers) as response:
-                        response_text = await response.text()
-
-                        logger.info(f"📨 Webhook response from {webhook_url}:")
-                        logger.info(f"Status: {response.status}")
-                        logger.info(f"Headers: {dict(response.headers)}")
-                        logger.info(f"Body: {response_text}")
-
-                        if response.status in [200, 201, 202, 204]:
-                            return True
-
-                except Exception as e:
-                    logger.exception(
-                        f"❌ Попытка {attempt} не удалась для вебхука на {webhook_url}: {e}"
-                    )
-
-                if attempt < MAKE_WEBHOOK_RETRIES:
-                    delay = MAKE_WEBHOOK_RETRY_DELAY * attempt
-                    logger.info(
-                        f"⏳ Ожидание {delay} секунд перед следующей попыткой отправки вебхука на {webhook_url}"
-                    )
-                    await asyncio.sleep(delay)
-
-            return False
-
-
 
     async def activate_webhook(self, webhook_id: uuid.UUID) -> bool:
         """
@@ -294,7 +256,8 @@ class WebhookService:
         """
         Получает список ID всех администраторов, взаимодействующих с ботом.
         """
-        # Просто возвращает все ID из таблицы admins
         query = select(Admin.id)
         result = await self.db_session.execute(query)
         return [row[0] for row in result.fetchall()]
+
+
