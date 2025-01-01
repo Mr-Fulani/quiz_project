@@ -303,7 +303,6 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 results = await webhook_service.send_webhooks(
                     webhooks_data=webhook_data_list,
                     webhooks=active_webhooks,
-                    db_session=db_session,
                     bot=bot,
                     admin_chat_id=user_chat_id  # Передача ID чата администратора
                 )
@@ -580,7 +579,6 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
                 results = await webhook_service.send_webhooks(
                     webhook_data_list,
                     active_webhooks,
-                    db_session,
                     bot,
                     user_chat_id  # Передача ID чата администратора
                 )
@@ -989,7 +987,6 @@ async def publish_task_by_translation_group(
             results = await webhook_service.send_webhooks(
                 webhook_data_list,
                 active_webhooks,
-                db_session,
                 bot,
                 admin_chat_id  # Передача ID чата администратора
             )

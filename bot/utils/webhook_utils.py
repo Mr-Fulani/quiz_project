@@ -4,17 +4,18 @@ from datetime import datetime
 from typing import Dict, Tuple
 
 from bot.database.models import Group
+from bot.handlers.webhook_handler import get_incorrect_answers
 
 
 async def create_webhook_data(
-    task_id: int,  # Добавляем task_id
+    task_id: int,
     channel_username: str,
-    poll_msg: Dict,  # Предполагается, что это словарь с ключами, например, message_id
+    poll_msg,  # Оставляем универсальный тип
     image_url: str,
     poll_message: Dict,
     translation,
     group: Group,
-    image_message: Dict,
+    image_message,  # Оставляем универсальный тип
     dont_know_option: str,
     external_link: str
 ) -> Tuple[Dict, str]:
@@ -22,21 +23,27 @@ async def create_webhook_data(
     Создаёт словарь данных для вебхука и возвращает poll_link отдельно.
     Добавляет task_id для возможности последующей проверки image_url.
     """
-    poll_link = f"https://t.me/{channel_username}/{poll_msg.get('message_id')}"
+    # Проверка poll_msg на атрибуты
+    message_id = poll_msg.get("message_id") if isinstance(poll_msg, dict) else getattr(poll_msg, "message_id", None)
+    poll_link = f"https://t.me/{channel_username}/{message_id}"
+
+    # Проверка image_message на атрибуты
+    caption = image_message.get("caption", "") if isinstance(image_message, dict) else getattr(image_message, "caption", "")
+
     webhook_data = {
         "type": "quiz_published",
-        "task_id": task_id,  # Включаем task_id
+        "task_id": task_id,
         "poll_link": poll_link,
-        "image_url": image_url,  # Остаётся строкой URL
+        "image_url": image_url,
         "question": poll_message["question"],
         "correct_answer": translation.correct_answer,
-        "incorrect_answers": poll_message["incorrect_answers"],
+        "incorrect_answers": await get_incorrect_answers(translation.answers, translation.correct_answer),
         "language": translation.language,
         "group": {
             "id": group.id,
-            "name": group.name
+            "name": group.group_name
         },
-        "caption": image_message.get("caption", ""),
+        "caption": caption,
         "published_at": datetime.utcnow().isoformat()
     }
 
