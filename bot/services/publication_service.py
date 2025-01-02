@@ -12,15 +12,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from bot.config import S3_BUCKET_NAME, S3_REGION
 from bot.database.models import Task, Group, TaskTranslation, TaskPoll
-from bot.handlers.webhook_handler import get_incorrect_answers
 from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_from_s3
 from bot.services.image_service import generate_image_if_needed
+from bot.services.s3_services import extract_s3_key_from_url
 from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
-from bot.utils.logging_utils import log_final_summary, log_webhook_summary, log_pause, \
+from bot.utils.logging_utils import log_final_summary, log_pause, \
     log_username_received, log_publication_start, log_publication_failure, log_webhook_data, log_publication_success
 from bot.utils.webhook_utils import create_webhook_data
 
@@ -113,8 +112,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 continue
 
             # Генерируем (или пытаемся получить) картинку
-            image_url = await generate_image_if_needed(task_in_group, user_chat_id)
-            if not image_url:
+            image_object = await generate_image_if_needed(task_in_group, user_chat_id)
+            if not image_object:
                 logger.error(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
                 failed_count += len(task_in_group.translations)
                 # Добавляем ошибки для каждого перевода этой задачи
@@ -129,8 +128,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 task_in_group.error = True
                 await db_session.commit()
                 continue
-            else:
-                uploaded_images.append(image_url)  # Добавляем в список для отката
+
 
             for translation in task_in_group.translations:
                 total_translations += 1
@@ -148,11 +146,13 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
                         task=task_in_group,
                         translation=translation,
-                        image_url=image_url,
+                        image_url=image_object,
                         db_session=db_session,
                         default_link_service=default_link_service,
                         user_chat_id=user_chat_id
                     )
+
+                    uploaded_images.append(image_message["photo"])
 
                     # Поиск группы для публикации (уже загружена через joinedload)
                     group = task_in_group.group
@@ -222,7 +222,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         task_id=task.id,  # ID задачи
                         channel_username=channel_username,
                         poll_msg=poll_msg,
-                        image_url=image_url,
+                        image_url=image_object,
                         poll_message=poll_message,
                         translation=translation,
                         group=group,
@@ -339,7 +339,17 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 # Откат: удаление загруженных изображений из S3
                 for s3_url in uploaded_images:
                     try:
-                        s3_key = s3_url.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
+                        if not isinstance(s3_url, str):
+                            logger.error(f"Некорректный URL в uploaded_images: {s3_url} (тип: {type(s3_url)})")
+                            continue
+
+                        # Извлечение ключа с помощью extract_s3_key_from_url
+                        s3_key = extract_s3_key_from_url(s3_url)
+
+                        if not s3_key:
+                            logger.warning(f"Не удалось извлечь ключ из URL: {s3_url}")
+                            continue
+
                         await delete_from_s3(s3_key)
                         logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
                     except Exception as del_e:
@@ -406,8 +416,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             translation.task.error = True
             await db_session.commit()
             return False
-        else:
-            uploaded_images.append(image_url)  # Добавляем в список для отката
+
 
         # Подготовка данных для публикации
         image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
@@ -418,6 +427,8 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             default_link_service=default_link_service,
             user_chat_id=user_chat_id
         )
+
+        uploaded_images.append(image_message["photo"])
 
         # Поиск группы для публикации
         result = await db_session.execute(
@@ -591,7 +602,17 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             # Откат: удаление загруженных изображений из S3
             for s3_url in uploaded_images:
                 try:
-                    s3_key = s3_url.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
+                    if not isinstance(s3_url, str):
+                        logger.error(f"Некорректный URL в uploaded_images: {s3_url} (тип: {type(s3_url)})")
+                        continue
+
+                    # Извлечение ключа с помощью extract_s3_key_from_url
+                    s3_key = extract_s3_key_from_url(s3_url)
+
+                    if not s3_key:
+                        logger.warning(f"Не удалось извлечь ключ из URL: {s3_url}")
+                        continue
+
                     await delete_from_s3(s3_key)
                     logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
                 except Exception as del_e:
@@ -713,8 +734,8 @@ async def publish_task_by_translation_group(
                     continue
 
             # Генерация изображения один раз для задачи
-            image_url = await generate_image_if_needed(task, admin_chat_id)
-            if not image_url:
+            image_object = await generate_image_if_needed(task, admin_chat_id)
+            if not image_object:
                 error_message = f"🚫 Ошибка генерации изображения для задачи {task.id}"
                 logger.error(f"❌ {error_message}")
                 await message.answer(error_message)
@@ -731,8 +752,7 @@ async def publish_task_by_translation_group(
                 task.error = True
                 await db_session.commit()
                 continue
-            else:
-                uploaded_images.append(image_url)  # Добавляем в список для отката
+
 
             for translation in task.translations:
                 try:
@@ -749,11 +769,13 @@ async def publish_task_by_translation_group(
                     image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
                         task=task,
                         translation=translation,
-                        image_url=image_url,
+                        image_url=image_object,
                         db_session=db_session,
                         default_link_service=default_link_service,
                         user_chat_id=admin_chat_id
                     )
+
+                    uploaded_images.append(image_message["photo"])
 
                     # Поиск группы для публикации
                     group_result = await db_session.execute(
@@ -905,7 +927,7 @@ async def publish_task_by_translation_group(
                         task_id=task.id,  # ID задачи
                         channel_username=channel_username,
                         poll_msg=poll_msg,
-                        image_url=image_url,
+                        image_url=image_object,
                         poll_message=poll_message,
                         translation=translation,
                         group=group,
@@ -952,7 +974,17 @@ async def publish_task_by_translation_group(
         # Откат: удаление загруженных изображений из S3
         for s3_url in uploaded_images:
             try:
-                s3_key = s3_url.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
+                if not isinstance(s3_url, str):
+                    logger.error(f"Некорректный URL в uploaded_images: {s3_url} (тип: {type(s3_url)})")
+                    continue
+
+                # Извлечение ключа с помощью extract_s3_key_from_url
+                s3_key = extract_s3_key_from_url(s3_url)
+
+                if not s3_key:
+                    logger.warning(f"Не удалось извлечь ключ из URL: {s3_url}")
+                    continue
+
                 await delete_from_s3(s3_key)
                 logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
             except Exception as del_e:
@@ -1011,7 +1043,17 @@ async def publish_task_by_translation_group(
             # Откат: удаление загруженных изображений из S3
             for s3_url in uploaded_images:
                 try:
-                    s3_key = s3_url.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
+                    if not isinstance(s3_url, str):
+                        logger.error(f"Некорректный URL в uploaded_images: {s3_url} (тип: {type(s3_url)})")
+                        continue
+
+                    # Извлечение ключа с помощью extract_s3_key_from_url
+                    s3_key = extract_s3_key_from_url(s3_url)
+
+                    if not s3_key:
+                        logger.warning(f"Не удалось извлечь ключ из URL: {s3_url}")
+                        continue
+
                     await delete_from_s3(s3_key)
                     logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
                 except Exception as del_e:

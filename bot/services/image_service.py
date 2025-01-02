@@ -97,6 +97,9 @@ async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Im
         return None
 
 
+
+
+
 def add_indentation(task_text: str, language: str) -> str:
     if language not in KEYWORDS:
         raise ValueError(f"Язык {language} не поддерживается.")

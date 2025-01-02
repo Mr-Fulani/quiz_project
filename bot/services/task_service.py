@@ -18,7 +18,7 @@ import bot
 from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_from_s3
 from bot.services.image_service import generate_image_if_needed
-from bot.services.s3_services import  save_image_to_storage
+from bot.services.s3_services import save_image_to_storage
 from bot.config import S3_BUCKET_NAME, S3_REGION
 from bot.database.models import Task, TaskTranslation, Topic, Subtopic, Group
 from bot.utils.markdownV2 import escape_markdown
