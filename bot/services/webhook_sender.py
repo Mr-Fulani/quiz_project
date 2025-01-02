@@ -16,9 +16,6 @@ from bot.config import MAKE_WEBHOOK_TIMEOUT, MAKE_WEBHOOK_RETRIES, MAKE_WEBHOOK_
 logger = logging.getLogger(__name__)
 
 async def notify_admin(bot: Bot, admin_chat_id: int, message: str):
-    """
-    Отправляет сообщение администратору с экранированием MarkdownV2.
-    """
     try:
         escaped_message = escape_markdown(message)
         await bot.send_message(admin_chat_id, escaped_message, parse_mode="MarkdownV2")
@@ -41,7 +38,6 @@ async def send_webhook(webhook_url: str, data: Dict, headers: Dict) -> bool:
 
                 async with session.post(webhook_url, json=data, headers=headers) as response:
                     response_text = await response.text()
-
                     logger.info(f"📨 Webhook response from {webhook_url}:")
                     logger.info(f"Status: {response.status}")
                     logger.info(f"Headers: {dict(response.headers)}")
@@ -49,21 +45,20 @@ async def send_webhook(webhook_url: str, data: Dict, headers: Dict) -> bool:
 
                     if response.status in [200, 201, 202, 204]:
                         return True
-
             except Exception as e:
                 logger.exception(f"❌ Попытка {attempt} не удалась для вебхука на {webhook_url}: {e}")
 
             if attempt < MAKE_WEBHOOK_RETRIES:
                 delay = MAKE_WEBHOOK_RETRY_DELAY * attempt
-                logger.info(f"⏳ Ожидание {delay} секунд перед следующей попыткой отправки вебхука на {webhook_url}")
+                logger.info(f"⏳ Ожидание {delay} секунд перед повтором отправки вебхука на {webhook_url}")
                 await asyncio.sleep(delay)
 
         return False
 
 async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
     """
-    Отправляет данные о опубликованном опросе на указанный URL вебхука.
-    Предварительно проверяет корректность входных данных.
+    Вызов для отправки "quiz_published" на указанный URL,
+    перед этим проверяем поля.
     """
     try:
         required_fields = [
@@ -71,10 +66,9 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
             "correct_answer", "incorrect_answers", "language",
             "group", "caption", "published_at"
         ]
-
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            logger.error(f"❌ Отсутствуют необходимые поля в данных вебхука: {missing_fields}")
+        missing = [f for f in required_fields if f not in data]
+        if missing:
+            logger.error(f"❌ Отсутствуют необходимые поля в данных вебхука: {missing}")
             return False
 
         if not (is_valid_url(data.get("poll_link", "")) and is_valid_url(data.get("image_url", ""))):
@@ -84,25 +78,26 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
             )
             return False
 
-        # Обработка incorrect_answers (дополнительная проверка/конвертация)
+        # преобразуем incorrect_answers, если это строка
         if "incorrect_answers" in data:
-            if isinstance(data["incorrect_answers"], str):
+            ians = data["incorrect_answers"]
+            if isinstance(ians, str):
                 try:
-                    data["incorrect_answers"] = json.loads(data["incorrect_answers"])
+                    ians_parsed = json.loads(ians)
+                    if isinstance(ians_parsed, list):
+                        data["incorrect_answers"] = ians_parsed
+                    else:
+                        # fallback: пустой
+                        data["incorrect_answers"] = []
                 except json.JSONDecodeError:
-                    # Если строка не является JSON, попробуем разделить
-                    answers = (data["incorrect_answers"].split('\n') 
-                               if '\n' in data["incorrect_answers"] 
-                               else data["incorrect_answers"].split(','))
-                    data["incorrect_answers"] = [ans.strip() for ans in answers if ans.strip()]
-            elif isinstance(data["incorrect_answers"], list):
-                pass  # Если это уже список, оставляем как есть
-            else:
-                logger.warning(f"Неподдерживаемый формат incorrect_answers: {type(data['incorrect_answers'])}")
+                    # fallback: парсим построчно или через запятую
+                    splitted = ians.split('\n') if '\n' in ians else ians.split(',')
+                    data["incorrect_answers"] = [s.strip() for s in splitted if s.strip()]
+            elif not isinstance(ians, list):
                 data["incorrect_answers"] = []
+                logger.warning(f"Неподдерживаемый формат incorrect_answers: {type(ians)}")
 
-        logger.info(f"📤 Подготовка отправки вебхука на {webhook_url} для языка {data.get('language')}")
-        logger.debug(f"📤 Данные вебхука:\n{json.dumps(data, ensure_ascii=False, indent=2)}")
+        logger.info(f"📤 Подготовка отправки вебхука 'quiz_published' → {webhook_url} [Lang={data.get('language')}]")
 
         headers = {
             'Content-Type': 'application/json',
@@ -113,21 +108,9 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
             'X-Webhook-Language': data.get('language', '')
         }
 
-        success = await send_webhook(webhook_url, data, headers)
-
-        if success:
-            logger.info(
-                f"✅ Вебхук успешно отправлен на {webhook_url} для языка '{data.get('language', 'Unknown')}' (ID: {data.get('id')})"
-            )
-        else:
-            logger.error(
-                f"❌ Вебхук не удалось отправить на {webhook_url} для языка '{data.get('language', 'Unknown')}' (ID: {data.get('id')})"
-            )
-
-        return success
-
+        return await send_webhook(webhook_url, data, headers)
     except Exception as e:
-        logger.exception(
-            f"❌ Ошибка при подготовке вебхука для языка '{data.get('language', 'Unknown')}' (ID: {data.get('id')}): {e}"
-        )
+        logger.exception(f"❌ Ошибка при подготовке вебхука quiz_published: {e}")
         return False
+
+

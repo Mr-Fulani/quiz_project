@@ -134,3 +134,6 @@ async def handle_photo_with_caption(message: Message, bot: Bot, db_session: Asyn
 
         # Логирование информации об ошибке
         logger.error(f"❌ Ошибка при обработке сообщения:\n{json.dumps(error_data, ensure_ascii=False, indent=2)}")
+
+
+

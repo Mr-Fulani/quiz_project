@@ -217,20 +217,19 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         await db_session.commit()
                         continue
 
-                    # Формирование данных для вебхука
+                    # Формируем webhook_data
                     webhook_data, poll_link = await create_webhook_data(
-                        task_id=task.id,  # ID задачи
+                        task_id=task.id,
                         channel_username=channel_username,
                         poll_msg=poll_msg,
-                        image_url=image_object,
+                        image_url=task.image_url,  # <-- берем URL из базы
                         poll_message=poll_message,
                         translation=translation,
                         group=group,
-                        image_message=image_message,
+                        image_message=image_message,  # caption и т.п. пусть берется как раньше
                         dont_know_option=dont_know_option,
                         external_link=external_link
                     )
-
                     log_webhook_data(webhook_data)
                     webhook_data_list.append(webhook_data)
 
@@ -300,19 +299,18 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             await message.answer(f"📤 Отправка вебхуков на {len(active_webhooks)} сервисов.")
 
             try:
+                # <-- Вызываем новую логику send_webhooks
                 results = await webhook_service.send_webhooks(
                     webhooks_data=webhook_data_list,
                     webhooks=active_webhooks,
                     bot=bot,
-                    admin_chat_id=user_chat_id  # Передача ID чата администратора
+                    admin_chat_id=user_chat_id
                 )
-
-                # Подсчёт результатов
                 success_count = sum(1 for r in results if r)
                 failed_count += len(results) - success_count
             except Exception as e:
-                logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
-                await message.answer(f"❌ Ошибка при отправке вебхуков: {str(e)}")
+                logger.error(f"❌ Ошибка при отправке вебхуков: {e}")
+                await message.answer(f"❌ Ошибка при отправке вебхуков: {e}")
 
         # Обновление статуса задач
         if published_count > 0:
@@ -557,34 +555,31 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             return False
 
         # Формирование данных для вебхука
+        group = ...
+        channel_username = ...
         webhook_data, poll_link = await create_webhook_data(
             task_id=translation.task.id,
             channel_username=channel_username,
             poll_msg=poll_msg,
-            image_url=image_url,
+            image_url=translation.task.image_url,  # <-- берем URL из базы
             poll_message=poll_message,
             translation=translation,
             group=group,
-            image_message=image_message,
+            image_message=image_message,  # caption и т.п. пусть берется как раньше
             dont_know_option=dont_know_option,
             external_link=external_link
         )
         webhook_data_list.append(webhook_data)
+        logger.info(f"✅ Публикован перевод задачи ID {translation.task_id} (Перевод ID: {translation.id}).")
 
-        # Лог о публикации перевода
-        logger.info(
-            f"✅ Публикован перевод задачи (ID задачи: {translation.task_id}, Перевод ID: {translation.id}) на канал '{group.group_name}' "
-            f"({translation.language})."
-        )
-
-        # Отправка вебхуков
+        # 5) Отправка вебхуков для этого одного перевода
         if webhook_data_list and active_webhooks:
             logger.info(f"📤 Отправка вебхуков для перевода {translation.id}")
             results = await webhook_service.send_webhooks(
-                webhook_data_list,  # список с данными
-                active_webhooks,
-                bot,
-                user_chat_id  # <-- admin_chat_id
+                webhooks_data=webhook_data_list,
+                webhooks=active_webhooks,
+                bot=bot,
+                admin_chat_id=user_chat_id
             )
             success_count = sum(1 for r in results if r)
             failed_count = len(results) - success_count
@@ -923,20 +918,18 @@ async def publish_task_by_translation_group(
                         continue
 
                     # Формирование данных для вебхука
-                    webhook_data, poll_link = await create_webhook_data(
-                        task_id=task.id,  # ID задачи
+                    webhook_data, _ = await create_webhook_data(
+                        task_id=task.id,
                         channel_username=channel_username,
                         poll_msg=poll_msg,
-                        image_url=image_object,
+                        image_url=task.image_url,  # <-- берем URL из базы
                         poll_message=poll_message,
                         translation=translation,
                         group=group,
-                        image_message=image_message,
+                        image_message=image_message,  # caption и т.п. пусть берется как раньше
                         dont_know_option=dont_know_option,
                         external_link=external_link
                     )
-
-                    log_webhook_data(webhook_data)
                     webhook_data_list.append(webhook_data)
 
                     # Обновление статуса перевода
@@ -1000,23 +993,17 @@ async def publish_task_by_translation_group(
             await message.answer(f"📤 Отправка вебхуков на {len(active_webhooks)} сервисов.")
 
             log_webhook_data(webhook_data_list)
-            logger.debug(f"📥 Активные вебхуки: {[wh.url for wh in active_webhooks]}")
-
-            # Вызов функции отправки вебхуков с передачей admin_chat_id
             results = await webhook_service.send_webhooks(
-                webhook_data_list,
-                active_webhooks,
-                bot,
-                admin_chat_id  # Передача ID чата администратора
+                webhooks_data=webhook_data_list,
+                webhooks=active_webhooks,
+                bot=bot,
+                admin_chat_id=admin_chat_id
             )
             success_count = sum(1 for r in results if r)
-            failed_webhooks = len(results) - success_count
-            logger.info(
-                f"📊 Результаты отправки вебхуков: успешно - {success_count}, неудачно - {failed_webhooks}"
-            )
+            fail_count = len(results) - success_count
+            logger.info(f"📊 Результаты: успешно={success_count}, неудачно={fail_count}")
     except Exception as e:
-        logger.error(f"❌ Ошибка при отправке вебхуков: {str(e)}")
-        await message.answer(f"❌ Ошибка при отправке вебхуков: {str(e)}")
+        await message.answer(f"❌ Ошибка при отправке вебхуков: {e}")
 
     # Обновление статуса задач
     if published_count > 0:

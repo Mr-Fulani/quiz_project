@@ -1,26 +1,23 @@
 import asyncio
-import json
 import logging
 import random
-import ssl
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict
 
-import aiohttp
-import certifi
 from aiogram import Bot
 from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.config import MAKE_WEBHOOK_RETRIES, MAKE_WEBHOOK_RETRY_DELAY, MAKE_WEBHOOK_TIMEOUT
-from bot.database.models import Webhook, Admin  # Предполагается, что модель Admin существует
+from bot.database.models import Webhook, Admin
 from bot.services.webhook_sender import (
     notify_admin,
     send_quiz_published_webhook
 )
 from bot.utils.logging_utils import log_webhook_summary
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +26,6 @@ class WebhookService:
         self.db_session = db_session
 
     async def add_webhook(self, url: str, service_name: Optional[str] = None) -> Optional[Webhook]:
-        """
-        Добавляет новый вебхук в базу данных.
-        """
         webhook = Webhook(
             id=uuid.uuid4(),
             url=url,
@@ -49,9 +43,6 @@ class WebhookService:
             return None
 
     async def delete_webhook(self, webhook_id: uuid.UUID) -> bool:
-        """
-        Удаляет вебхук по его ID.
-        """
         webhook = await self.get_webhook(webhook_id)
         if not webhook:
             logger.warning(f"Вебхук с ID {webhook_id} не найден для удаления.")
@@ -67,9 +58,6 @@ class WebhookService:
         return False
 
     async def list_webhooks(self, include_inactive=False) -> List[Webhook]:
-        """
-        Возвращает список всех вебхуков, с опцией включения неактивных.
-        """
         query = select(Webhook)
         if not include_inactive:
             query = query.where(Webhook.is_active == True)
@@ -77,187 +65,123 @@ class WebhookService:
         return result.scalars().all()
 
     async def get_webhook(self, webhook_id: uuid.UUID) -> Optional[Webhook]:
-        """
-        Получает вебхук по его ID.
-        """
         query = select(Webhook).where(Webhook.id == webhook_id)
         result = await self.db_session.execute(query)
         return result.scalar_one_or_none()
 
     async def get_active_webhooks(self) -> List[Webhook]:
-        """
-        Возвращает список только активных вебхуков.
-        """
         return await self.list_webhooks()
 
     async def prepare_webhook_data(self, webhook_data: Dict, index: int, total_webhooks: int) -> Dict:
         """
-        Подготавливает данные для отправки вебхука, добавляя необходимые идентификаторы и
-        обрабатывая incorrect_answers при необходимости.
+        Простейшее добавление служебных полей для логгирования / трассировки.
         """
-        webhook_data_with_ids = webhook_data.copy()
-        webhook_data_with_ids.update({
-            "id": str(uuid.uuid4()),
+        data_copy = webhook_data.copy()
+        data_copy.update({
+            "id": str(uuid.uuid4()),       # уникальный ID этого конкретного отправления
             "sequence_number": index,
             "total_webhooks": total_webhooks,
             "webhook_batch_id": str(uuid.uuid4()),
             "timestamp": datetime.utcnow().isoformat()
         })
-
-        # Если внутри есть incorrect_answers — проверим формат (пример базовой валидации)
-        if "incorrect_answers" in webhook_data_with_ids:
-            i_answers = webhook_data_with_ids["incorrect_answers"]
-            if isinstance(i_answers, str):
-                try:
-                    deserialized = json.loads(i_answers)
-                    if isinstance(deserialized, list):
-                        webhook_data_with_ids["incorrect_answers"] = deserialized
-                        logger.debug("🔄 incorrect_answers десериализованы из строки в список.")
-                    else:
-                        logger.error(f"❌ Ожидался список, получен другой тип: {type(deserialized)}")
-                        webhook_data_with_ids["incorrect_answers"] = []
-                except json.JSONDecodeError as e:
-                    logger.error(f"❌ Ошибка десериализации incorrect_answers: {e}")
-                    webhook_data_with_ids["incorrect_answers"] = []
-            elif not isinstance(i_answers, list):
-                logger.error(f"❌ incorrect_answers имеет неподдерживаемый тип: {type(i_answers)}")
-                webhook_data_with_ids["incorrect_answers"] = []
-
-        return webhook_data_with_ids
+        return data_copy
 
     async def send_webhooks(
         self,
-        webhooks_data: List[Dict],
-        webhooks: List[Webhook],
+        webhooks_data: List[Dict],  # список словарей (каждый словарь — данные по одному переводу)
+        webhooks: List[Webhook],    # список вебхуков (куда отправлять)
         bot: Bot,
         admin_chat_id: int
     ) -> List[bool]:
         """
-        Отправляет данные на все (активные) вебхуки последовательно, с уведомлением админа.
+        Отправляет webhooks_data на каждый из webhooks последовательно.
+        Между отправками — паузы.
+        Возвращает список (True/False) о результатах:
+          - длина == webhooks_data * кол-во вебхуков, или
+          - если вы хотите индивидуально — см. ниже.
         """
+
         results = []
         failed_urls = set()
 
         for webhook in webhooks:
             if not webhook.is_active:
-                logger.info(f"🔕 Вебхук {webhook.id} не активен. Пропуск.")
+                logger.info(f"🔕 Вебхук {webhook.id} [{webhook.service_name}] не активен, пропускаем.")
                 continue
 
-            for index, webhook_data in enumerate(webhooks_data, 1):
+            for index, wd in enumerate(webhooks_data, start=1):
                 if webhook.url in failed_urls:
                     await notify_admin(
                         bot,
                         admin_chat_id,
-                        f"⚠️ Вебхук на `{webhook.url}` ранее не отправлялся успешно. Пропуск остальных вебхуков с этим URL."
+                        f"⚠️ Этот вебхук {webhook.url} уже ошибся раньше, пропускаем остальные."
                     )
                     break
 
                 try:
+                    # подготавливаем
+                    wd_prepared = await self.prepare_webhook_data(wd, index, len(webhooks_data))
                     logger.info(
-                        f"📤 Отправка вебхука {index}/{len(webhooks_data)} на URL {webhook.url} "
-                        f"для языка {webhook_data.get('language')}"
-                    )
-                    # Подготовка данных
-                    webhook_data_with_ids = await self.prepare_webhook_data(
-                        webhook_data,
-                        index,
-                        len(webhooks_data)
+                        f"📤 Отправка {index}/{len(webhooks_data)} на {webhook.url}, язык={wd.get('language')}"
                     )
 
-                    # Задержка между отправками (пример логики)
+                    # Задержка между отправками (пример)
                     if index > 1:
                         delay = random.uniform(2.0, 4.0)
-                        await notify_admin(
-                            bot,
-                            admin_chat_id,
-                            f"⏳ Ожидание {delay:.1f} секунд перед отправкой следующего вебхука."
-                        )
+                        logger.info(f"⏳ Пауза {delay:.1f} c перед отправкой следующего вебхука.")
                         await asyncio.sleep(delay)
 
-                    # Отправка вебхука
-                    success = await send_quiz_published_webhook(webhook.url, webhook_data_with_ids)
-                    results.append(success)
-
-                    if success:
-                        logger.info(
-                            f"✅ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) "
-                            f"для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) отправлен"
-                        )
-                        await notify_admin(
-                            bot,
-                            admin_chat_id,
-                            f"✅ Вебхук `{webhook.url}` ({webhook.service_name}) успешно отправлен."
-                        )
-                        await asyncio.sleep(1.0)
+                    # Отправляем
+                    ok = await send_quiz_published_webhook(webhook.url, wd_prepared)
+                    results.append(ok)
+                    if ok:
+                        logger.info(f"✅ Успешно на {webhook.url}")
+                        # можно отправить уведомление админам:
+                        await notify_admin(bot, admin_chat_id, f"✅ Успешно: {webhook.url}")
                     else:
-                        logger.error(
-                            f"❌ Вебхук {index}/{len(webhooks_data)} на {webhook.url} ({webhook.service_name}) "
-                            f"для языка {webhook_data.get('language')} (ID: {webhook_data_with_ids['id']}) "
-                            f"не удалось отправить"
-                        )
+                        logger.error(f"❌ Не удалось на {webhook.url}")
                         failed_urls.add(webhook.url)
-                        await notify_admin(
-                            bot,
-                            admin_chat_id,
-                            f"❌ Вебхук `{webhook.url}` ({webhook.service_name}) не удалось отправить."
-                        )
-                        await asyncio.sleep(2.0)
-
+                        await notify_admin(bot, admin_chat_id, f"❌ Ошибка при отправке: {webhook.url}")
                 except Exception as e:
                     logger.exception(
-                        f"❌ Ошибка при отправке вебхука {index}/{len(webhooks_data)} на {webhook.url} "
-                        f"({webhook.service_name}) для языка {webhook_data.get('language', 'Unknown')}: {e}"
+                        f"❌ Ошибка при отправке вебхука {webhook.url}: {e}"
                     )
                     failed_urls.add(webhook.url)
+                    results.append(False)
                     await notify_admin(
                         bot,
                         admin_chat_id,
-                        f"❌ Ошибка при отправке вебхука `{webhook.url}` ({webhook.service_name}): {e}"
+                        f"❌ Ошибка при отправке вебхука {webhook.url}: {str(e)}"
                     )
-                    results.append(False)
-                    await asyncio.sleep(2.0)
 
-        # Итоговая статистика через log_webhook_summary
-        success_count = sum(1 for r in results if r)
-        failed_count = len(results) - success_count
-        summary_msg = log_webhook_summary(success_count, failed_count)
-        # После логирования сразу отправляем админу
+        success = sum(1 for x in results if x)
+        fail = len(results) - success
+        summary_msg = log_webhook_summary(success, fail)
         await notify_admin(bot, admin_chat_id, summary_msg)
 
         return results
 
     async def activate_webhook(self, webhook_id: uuid.UUID) -> bool:
-        """
-        Активирует вебхук по его ID.
-        """
         webhook = await self.get_webhook(webhook_id)
         if webhook:
             webhook.is_active = True
             await self.db_session.commit()
-            logger.info(f"Вебхук с ID {webhook_id} активирован.")
+            logger.info(f"Вебхук {webhook_id} активирован.")
             return True
-        logger.warning(f"Вебхук с ID {webhook_id} не найден для активации.")
+        logger.warning(f"Нет вебхука с ID={webhook_id} для активации.")
         return False
 
     async def deactivate_webhook(self, webhook_id: uuid.UUID) -> bool:
-        """
-        Деактивирует вебхук по его ID.
-        """
         webhook = await self.get_webhook(webhook_id)
         if webhook:
             webhook.is_active = False
             await self.db_session.commit()
-            logger.info(f"Вебхук с ID {webhook_id} деактивирован.")
+            logger.info(f"Вебхук {webhook_id} деактивирован.")
             return True
-        logger.warning(f"Вебхук с ID {webhook_id} не найден для деактивации.")
+        logger.warning(f"Нет вебхука с ID={webhook_id} для деактивации.")
         return False
 
     async def get_active_admin_ids(self) -> List[int]:
-        """
-        Получает список ID всех администраторов, взаимодействующих с ботом.
-        """
         query = select(Admin.id)
         result = await self.db_session.execute(query)
         return [row[0] for row in result.fetchall()]
-
-
