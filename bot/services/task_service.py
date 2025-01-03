@@ -23,6 +23,8 @@ from bot.config import S3_BUCKET_NAME, S3_REGION
 from bot.database.models import Task, TaskTranslation, Topic, Subtopic, Group
 from bot.utils.markdownV2 import escape_markdown
 
+
+
 # Настройка локального логирования
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Устанавливаем уровень логирования на DEBUG для подробного вывода
@@ -33,11 +35,8 @@ logger.addHandler(handler)
 
 
 
-
 # Глобальная переменная для хранения детального сообщения об ошибке при импорте
 last_import_error_msg = ""
-
-
 
 
 
@@ -72,7 +71,6 @@ async def prepare_publication(
         f"с переводом ID {translation.id} на языке {translation.language}"
     )
 
-
     language = translation.language
 
     # Словарь переводов для разных языков
@@ -93,7 +91,7 @@ async def prepare_publication(
             'difficulty': 'Difficulty',
             'quiz_question': "What will be the output?"
         },
-        'es': {
+        'es': {  # Испанский
             'programming_language': 'Idioma',
             'topic': 'Tema',
             'subtopic': 'Subtema',
@@ -101,7 +99,7 @@ async def prepare_publication(
             'difficulty': 'Dificultad',
             'quiz_question': "¿Cuál será el resultado?"
         },
-        'tr': {
+        'tr': {  # Турецкий
             'programming_language': 'Dil',
             'topic': 'Konu',
             'subtopic': 'Alt Konu',
@@ -109,13 +107,69 @@ async def prepare_publication(
             'difficulty': 'Zorluk',
             'quiz_question': "Çıktı ne olacak?"
         },
-        'ar': {
+        'ar': {  # Арабский
             'programming_language': 'اللغة',
             'topic': 'الموضوع',
             'subtopic': 'الموضوع الفرعي',
             'no_subtopic': 'لا يوجد موضوع فرعي',
             'difficulty': 'الصعوبة',
             'quiz_question': "ما هي النتيجة؟"
+        },
+        'fr': {  # Французский
+            'programming_language': 'Langage',
+            'topic': 'Sujet',
+            'subtopic': 'Sous-sujet',
+            'no_subtopic': 'Pas de sous-sujet',
+            'difficulty': 'Difficulté',
+            'quiz_question': "Quelle sera la sortie ?"
+        },
+        'de': {  # Немецкий
+            'programming_language': 'Sprache',
+            'topic': 'Thema',
+            'subtopic': 'Unterthema',
+            'no_subtopic': 'Kein Unterthema',
+            'difficulty': 'Schwierigkeit',
+            'quiz_question': "Was wird die Ausgabe sein?"
+        },
+        'hi': {  # Хинди
+            'programming_language': 'भाषा',
+            'topic': 'विषय',
+            'subtopic': 'उप-विषय',
+            'no_subtopic': 'कोई उप-विषय नहीं',
+            'difficulty': 'कठिनाई',
+            'quiz_question': "आउटपुट क्या होगा?"
+        },
+        'fa': {  # Фарси
+            'programming_language': 'زبان',
+            'topic': 'موضوع',
+            'subtopic': 'موضوع فرعی',
+            'no_subtopic': 'بدون موضوع فرعی',
+            'difficulty': 'سختی',
+            'quiz_question': "خروجی چه خواهد بود؟"
+        },
+        'tj': {  # Таджикский
+            'programming_language': 'Забон',
+            'topic': 'Мавзуъ',
+            'subtopic': 'Мавзуъи зер',
+            'no_subtopic': 'Бе мавзӯи зер',
+            'difficulty': 'Сохтӣ',
+            'quiz_question': "Натиҷа чӣ хоҳад буд?"
+        },
+        'uz': {  # Узбекский
+            'programming_language': 'Til',
+            'topic': 'Mavzu',
+            'subtopic': 'Quyi mavzu',
+            'no_subtopic': 'Quyi mavzu yo‘q',
+            'difficulty': 'Qiyinchilik',
+            'quiz_question': "Natija nima bo‘ladi?"
+        },
+        'kz': {  # Казахский
+            'programming_language': 'Тіл',
+            'topic': 'Тақырып',
+            'subtopic': 'Ақы тақырып',
+            'no_subtopic': 'Ақы тақырып жоқ',
+            'difficulty': 'Қиындық',
+            'quiz_question': "Нәтиже қандай болады?"
         }
     }
 
@@ -180,14 +234,22 @@ async def prepare_publication(
     random.shuffle(options)
     correct_option_id = options.index(correct_answer)
 
-    # Добавляем "Я не знаю, но хочу узнать"
-    dont_know_option = {
+    # Добавляем "Я не знаю, но хочу узнать" на всех поддерживаемых языках
+    dont_know_option_dict = {
         'ru': "Я не знаю, но хочу узнать",
         'en': "I don't know, but I want to learn",
         'es': "No lo sé, pero quiero aprender",
         'tr': "Bilmiyorum, ama öğrenmek istiyorum",
-        'ar': "لا أعرف، ولكن أريد أن أتعلم"
-    }.get(language, "Я не знаю, но хочу узнать")
+        'ar': "لا أعرف، ولكن أريد أن أتعلم",
+        'fr': "Je ne sais pas, mais je veux apprendre",
+        'de': "Ich weiß es nicht, aber ich möchte lernen",
+        'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
+        'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
+        'tj': "Ман намедонам, аммо мехоҳам омӯзам",
+        'uz': "Bilmayman, lekin o‘rganmoqchiman",
+        'kz': "Білмеймін, бірақ үйренгім келеді"
+    }
+    dont_know_option = dont_know_option_dict.get(language, "Я не знаю, но хочу узнать")
     options.append(dont_know_option)
 
     logger.info(f"🔍 Вопрос: {question_text}")
@@ -212,22 +274,38 @@ async def prepare_publication(
     )
 
     # Подготовка инлайн-кнопки "Узнать больше"
-    learn_more_text = {
+    learn_more_text_dict = {
         'ru': "Узнать подробнее",
         'en': "Learn more",
         'es': "Saber más",
         'tr': "Daha fazla öğren",
-        'ar': "تعلم المزيد"
-    }.get(language, "Узнать подробнее")
+        'ar': "تعلم المزيد",
+        'fr': "En savoir plus",
+        'de': "Mehr erfahren",
+        'hi': "अधिक जानें",
+        'fa': "بیشتر بدانید",
+        'tj': "Дарастар бигӯед",
+        'uz': "Batafsil bilish",
+        'kz': "Толығырақ білу"
+    }
+    learn_more_text = learn_more_text_dict.get(language, "Узнать подробнее")
     logger.info(f"🔗 Текст кнопки 'Узнать больше' на языке '{language}': {learn_more_text}")
 
-    learn_more_about_task_text = {
+    learn_more_about_task_text_dict = {
         'ru': "Узнать больше о задаче:",
         'en': "Learn more about the task:",
         'es': "Saber más sobre la tarea:",
         'tr': "Görev hakkında daha fazla öğren:",
-        'ar': "تعرف على المزيد حول المهمة:"
-    }.get(language, "Узнать больше о задаче:")
+        'ar': "تعرف على المزيد حول المهمة:",
+        'fr': "En savoir plus sur la tâche :",
+        'de': "Erfahren Sie mehr über die Aufgabe:",
+        'hi': "कार्य के बारे में अधिक जानें:",
+        'fa': "بیشتر درباره وظیفه بدانید:",
+        'tj': "Дар бораи вазифа бештар маълумот гиред:",
+        'uz': "Vazifa haqida ko‘proq bilish:",
+        'kz': "Тапсырма туралы көбірек біліңіз:"
+    }
+    learn_more_about_task_text = learn_more_about_task_text_dict.get(language, "Узнать больше о задаче:")
 
     logger.info(f"✅ Текст 'Узнать больше о задаче' на языке '{language}': {learn_more_about_task_text}")
 
@@ -296,9 +374,6 @@ async def prepare_publication(
         raise  # пусть вызывающий код обработает
 
     return image_message, text_message, poll_message, button_message, external_link, dont_know_option
-
-
-
 
 
 
@@ -410,13 +485,22 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                 random.shuffle(options)
                 correct_option_id = options.index(correct_answer)
 
-                dont_know_option = {
+                # Добавляем "Я не знаю, но хочу узнать" на всех поддерживаемых языках
+                dont_know_option_dict = {
                     'ru': "Я не знаю, но хочу узнать",
                     'en': "I don't know, but I want to learn",
                     'es': "No lo sé, pero quiero aprender",
                     'tr': "Bilmiyorum, ama öğrenmek istiyorum",
-                    'ar': "لا أعرف، ولكن أريد أن أتعلم"
-                }.get(language, "Я не знаю, но хочу узнать")
+                    'ar': "لا أعرف، ولكن أريد أن أتعلم",
+                    'fr': "Je ne sais pas, mais je veux apprendre",
+                    'de': "Ich weiß es nicht, aber ich möchte lernen",
+                    'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
+                    'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
+                    'tj': "Ман намедонам, аммо мехоҳам омӯзам",
+                    'uz': "Bilmayman, lekin o‘rganmoqchiman",
+                    'kz': "Білмеймін, бірақ үйренгім келеді"
+                }
+                dont_know_option = dont_know_option_dict.get(language, "Я не знаю, но хочу узнать")
                 options.append(dont_know_option)
 
                 logger.info(f"🔍 Вопрос: {question}")
@@ -497,31 +581,31 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     failed_tasks += 1
                     continue
 
-                    # Оставляем 'continue' при отсутствии image_url
-                    image_url = task_data.get("image_url")
-                    if not image_url:
-                        # Просто прерываем эту задачу,
-                        # НО НЕ увеличиваем failed_tasks и НЕ пишем error_messages
-                        logger.debug(f"⏩ Пропускаем задачу {new_task.id} (нет image_url), без вывода в чат.")
-                        continue
+                # Оставляем 'continue' при отсутствии image_url
+                image_url = task_data.get("image_url")
+                if not image_url:
+                    # Просто прерываем эту задачу,
+                    # НО НЕ увеличиваем failed_tasks и НЕ пишем error_messages
+                    logger.debug(f"⏩ Пропускаем задачу {new_task.id} (нет image_url), без вывода в чат.")
+                    continue
 
-                    # А если image_url есть, пробуем publishing / prepare_publication
-                    try:
-                        image_message, text_message, poll_message, button_message = await prepare_publication(
-                            task=new_task,
-                            translation=new_translation,
-                            image_url=image_url,
-                            db_session=db_session,
-                            default_link_service=default_link_service_instance,
-                            user_chat_id=user_chat_id
-                        )
-                        await send_publication_messages(new_task, new_translation, image_message, text_message,
-                                                        poll_message, button_message)
-                    except Exception as e:
-                        error_msg = f"Ошибка при подготовке публикации для задачи ID {new_task.id}: {e}"
-                        logger.error(f"❌ {error_msg}")
-                        error_messages.append(error_msg)
-                        failed_tasks += 1
+                # А если image_url есть, пробуем publishing / prepare_publication
+                try:
+                    image_message, text_message, poll_message, button_message, external_link_used, dont_know_option = await prepare_publication(
+                        task=new_task,
+                        translation=new_translation,
+                        image_url=image_url,
+                        db_session=db_session,
+                        default_link_service=default_link_service_instance,
+                        user_chat_id=user_chat_id
+                    )
+                    await send_publication_messages(new_task, new_translation, image_message, text_message,
+                                                    poll_message, button_message)
+                except Exception as e:
+                    error_msg = f"Ошибка при подготовке публикации для задачи ID {new_task.id}: {e}"
+                    logger.error(f"❌ {error_msg}")
+                    error_messages.append(error_msg)
+                    failed_tasks += 1
 
                     # Откат: удаляем загруженное изображение из S3, если оно было загружено
                     if new_task.image_url:
@@ -561,7 +645,6 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
 
 
 
-
 async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
     """
     Получаем или создаем тему.
@@ -598,7 +681,6 @@ async def get_or_create_topic(db_session: AsyncSession, topic_name: str) -> int:
     else:
         logger.info(f"✅ Топик '{topic_name}' найден с ID {topic.id}.")
         return topic.id
-
 
 
 

@@ -27,6 +27,7 @@ from bot.services.task_bd_status_service import get_task_status, get_zero_task_t
 from bot.services.topic_services import delete_topic_from_db, add_topic_to_db
 from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates, \
     DefaultLinkStates
+from bot.utils.languages_utils import LANGUAGE_MESSAGES
 from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
@@ -1260,6 +1261,8 @@ async def callback_list_default_links(call: CallbackQuery, db_session: AsyncSess
 
 
 
+
+
 async def validate_chat(bot, username):
     try:
         await bot.get_chat(f"@{username}")
@@ -1271,27 +1274,6 @@ async def validate_chat(bot, username):
 
 
 
-
-# Словарь с переводами
-LANGUAGE_MESSAGES = {
-    "ru": {
-        "message_text": "Подписывайся и учись вместе с нами:",
-        "button_text": "Проверь свои знания на {group_name}"
-    },
-    "en": {
-        "message_text": "Subscribe and learn with us:",
-        "button_text": "Test your knowledge on {group_name}"
-    },
-    "tr": {
-        "message_text": "Abone olun ve bizimle öğrenin:",
-        "button_text": "{group_name} üzerinde bilginizi test edin"
-    },
-    "ar": {
-        "message_text": "اشترك وتعلم معنا:",
-        "button_text": "اختبر معرفتك في {group_name}"
-    }
-    # Добавьте другие языки при необходимости
-}
 
 
 @router.callback_query(F.data == "post_subscription_buttons")
@@ -1348,6 +1330,7 @@ async def post_subscription_buttons(call: types.CallbackQuery, db_session, bot):
             sent_message = await bot.send_message(
                 chat_id=group_id,
                 text=message_text,
+                parse_mode="HTML",
                 reply_markup=keyboard
             )
 
