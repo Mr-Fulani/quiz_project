@@ -32,5 +32,3 @@ tasks.json
 
 
 .gitignore
-bot/Dockerfile
-docker-compose.yml

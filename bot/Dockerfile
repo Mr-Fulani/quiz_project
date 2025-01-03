@@ -31,3 +31,4 @@ RUN chmod +x /entrypoint.sh
 
 # Указываем точку входа
 ENTRYPOINT ["/entrypoint.sh"]
+
