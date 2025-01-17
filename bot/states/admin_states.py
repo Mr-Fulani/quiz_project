@@ -1,6 +1,7 @@
 from aiogram.fsm.state import StatesGroup, State
 
 
+
 class PasswordStates(StatesGroup):
     waiting_for_password = State()
 
@@ -58,3 +59,11 @@ class DefaultLinkStates(StatesGroup):
 
 class UserStatsState(StatesGroup):
     waiting_for_telegram_id = State()
+
+
+
+
+
+
+class FeedbackStates(StatesGroup):
+    awaiting_reply = State()

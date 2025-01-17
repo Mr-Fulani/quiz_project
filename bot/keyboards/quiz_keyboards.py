@@ -83,6 +83,10 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
             callback_data="post_subscription_buttons"
         )
     )
+    # Добавляем существующие кнопки
+    builder.row(
+        InlineKeyboardButton(text="Просмотреть сообщения", callback_data="view_feedback")
+    )
 
     return builder.as_markup()
 
@@ -106,5 +110,40 @@ def get_admin_channels_keyboard(channels):
             )
         )
     return builder.as_markup()
+
+
+
+
+
+def get_feedback_keyboard(feedback_id: int) -> InlineKeyboardMarkup:
+    """
+    Создаёт клавиатуру для работы с сообщением обратной связи.
+
+    :param feedback_id: ID сообщения из базы данных.
+    :return: InlineKeyboardMarkup
+    """
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        InlineKeyboardButton(
+            text="✅ Обработано",
+            callback_data=f"mark_processed:{feedback_id}"
+        ),
+        InlineKeyboardButton(
+            text="❌ Удалить",
+            callback_data=f"delete_feedback:{feedback_id}"
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="✏️ Ответить",
+            callback_data=f"reply_to_feedback:{feedback_id}"
+        )
+    )
+    return builder.as_markup()
+
+
+
+
 
 

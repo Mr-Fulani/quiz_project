@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     "blog",
     "corsheaders",
     'social_django',
+    'feedback',
+    'tasks',
+    'users',
 ]
 
 MIDDLEWARE = [

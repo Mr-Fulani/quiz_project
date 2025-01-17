@@ -265,3 +265,22 @@ class MainFallbackLink(Base):
 
     def __repr__(self):
         return f"<MainFallbackLink(language={self.language}, link={self.link})>"
+
+
+
+
+class FeedbackMessage(Base):
+    __tablename__ = 'feedback_messages'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, nullable=False)  # Telegram ID пользователя
+    username = Column(String, nullable=True)  # Имя пользователя
+    message = Column(String, nullable=False)  # Текст сообщения
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # Дата создания
+    is_processed = Column(Boolean, default=False)  # Статус обработки (обработано или нет)
+
+    def __repr__(self):
+        return f"<FeedbackMessage(user_id={self.user_id}, username={self.username}, message={self.message[:20]})>"
+
+
+
