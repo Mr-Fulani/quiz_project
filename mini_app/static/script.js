@@ -1,40 +1,31 @@
-// // Массив цветов для фона
-// const colors = ["#ffeb3b", "#fdd835", "#ffc107", "#ff9800", "#ff5722", "#8bc34a", "#00bcd4", "#673ab7"];
-// let currentColorIndex = 0;
-//
-// // Функция смены цвета
-// function changeBackgroundColor() {
-//     console.log("Кнопка нажата"); // Лог для проверки
-//     currentColorIndex = (currentColorIndex + 1) % colors.length;
-//     document.body.style.backgroundColor = colors[currentColorIndex];
-// }
-//
-// // Привязываем событие клика к кнопке
-// document.addEventListener("DOMContentLoaded", () => {
-//     const button = document.getElementById("register");
-//     if (button) {
-//         console.log("Кнопка найдена, привязываем обработчик");
-//         button.addEventListener("click", changeBackgroundColor);
-//     } else {
-//         console.error("Кнопка не найдена!");
-//     }
-// });
+// Выполняется, когда документ (DOM) загружен
+document.addEventListener("DOMContentLoaded", function() {
+  // Находим элементы по их ID
+  const launchBtn = document.getElementById("launch-btn");
+  const closeBtn = document.getElementById("close-btn");
+  const modalOverlay = document.getElementById("modal-overlay");
+  const appMenu = document.getElementById("app-menu");
 
-document.addEventListener("DOMContentLoaded", () => {
-    const messageElement = document.getElementById("message");
 
-    fetch("https://4664-185-241-101-16.ngrok-free.app/api/test-api/")
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            return response.json();
-        })
-        .then((data) => {
-            messageElement.textContent = data.message; // Отображаем данные
-        })
-        .catch((error) => {
-            console.error("Ошибка при загрузке данных:", error);
-            messageElement.textContent = "Не удалось загрузить данные.";
-        });
+  // Обработчик кнопки "Запустить приложение"
+  launchBtn.addEventListener("click", function() {
+    // Скрываем модальное окно
+    modalOverlay.style.display = "none";
+    // Показываем основной контент приложения
+    appMenu.style.display = "block";
+
+    // Если нужно — отправляем какие-то данные боту
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.sendData(JSON.stringify({ action: "launch" }));
+    }
+  });
 });
+
+// Пример обработчика для кнопок меню
+function handleMenu(action) {
+  alert("Вы нажали: " + action);
+  // Если требуется — передаём данные боту
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.sendData(JSON.stringify({ action: action }));
+  }
+}

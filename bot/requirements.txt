@@ -51,3 +51,4 @@ tzlocal==5.2
 urllib3==2.2.3
 wrapt==1.16.0
 yarl==1.11.1
+Flask==3.1.0

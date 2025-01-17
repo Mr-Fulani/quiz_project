@@ -1,6 +1,15 @@
-# mini_app/Dockerfile
+FROM python:3.12-slim
 
-FROM nginx:alpine
+# Устанавливаем рабочую директорию
+WORKDIR /mini_app
 
-# Копируем файлы приложения
-COPY static /usr/share/nginx/html
+# Устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем исходный код
+COPY . .
+
+# Указываем порт и точку входа
+EXPOSE 5000
+CMD ["python", "app.py"]

@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "blog",
-    "corsheaders"
+    "corsheaders",
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -154,7 +155,7 @@ LOGIN_URL = 'users:login'
 AUTHENTICATION_BACKENDS = [
     'social_core.backends.github.GithubOAuth2',
     'django.contrib.auth.backends.ModelBackend',
-    'users.authentication.EmailAuthBackend',
+    # 'users.authentication.EmailAuthBackend',
 ]
 
 
@@ -178,8 +179,8 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 
-AUTH_USER_MODEL = 'users.User'
-DEFAULT_USER_IMAGE = MEDIA_URL + 'users/default.png'
+# AUTH_USER_MODEL = 'users.User'
+# DEFAULT_USER_IMAGE = MEDIA_URL + 'users/default.png'
 
 
 

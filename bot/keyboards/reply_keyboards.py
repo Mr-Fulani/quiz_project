@@ -12,7 +12,8 @@ def get_start_reply_keyboard() -> ReplyKeyboardMarkup:
     """
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Меню")]
+            [KeyboardButton(text="Меню Администратора")],
+            [KeyboardButton(text="Написать Администратору")]
         ],
         resize_keyboard=True,
         one_time_keyboard=False  # Клавиатура остаётся открытой

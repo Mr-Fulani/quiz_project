@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мини-приложение</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Основной контент приложения (изначально скрыт) -->
+  <div class="app-menu" id="app-menu">
+    <h1>Главное меню приложения</h1>
+    <div class="button-grid">
+      <button class="menu-btn red" onclick="handleMenu('Кнопка 1')">Кнопка 1</button>
+      <button class="menu-btn green" onclick="handleMenu('Кнопка 2')">Кнопка 2</button>
+      <button class="menu-btn blue" onclick="handleMenu('Кнопка 3')">Кнопка 3</button>
+      <button class="menu-btn orange" onclick="handleMenu('Кнопка 4')">Кнопка 4</button>
+    </div>
+  </div>
+
+  <!-- Оверлей с логотипом и двумя кнопками -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <img src="/static/logo.png" alt="Логотип" class="logo">
+      <!-- Контейнер для кнопок -->
+      <div class="inline-buttons">
+        <!-- Кнопка "Запустить приложение" -->
+        <button class="btn inline-btn" id="launch-btn">Запустить приложение</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+  <script>
+    // Если приложение запущено внутри Telegram, уведомляем Telegram, что страница готова
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.ready();
+    }
+  </script>
+</body>
+</html>

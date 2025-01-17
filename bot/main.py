@@ -5,6 +5,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import MenuButtonWebApp, WebAppInfo
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -20,6 +21,7 @@ from bot.handlers.user_handler import router as user_router
 from bot.handlers.webhook_handler import router as webhook_router
 from bot.middlewares.db_session import DbSessionMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
+from mini_app.app_handlers.handlers import router as mini_app_router
 from bot.config import (
     TELEGRAM_BOT_TOKEN,
     DATABASE_URL
@@ -68,6 +70,7 @@ publication_dp.include_router(admin_router)  # Подключение admin_rout
 publication_dp.include_router(user_router)
 publication_dp.include_router(statistics_router)
 publication_dp.include_router(poll_router)
+publication_dp.include_router(mini_app_router)
 
 logger.info("📌 Все роутеры подключены к диспетчеру публикационного бота")
 
@@ -77,6 +80,8 @@ logger.debug("Зарегистрированные роутеры:")
 
 for router in publication_dp.sub_routers:
     logger.debug(f"- {router.name}")
+
+
 
 
 async def init_db():
@@ -94,6 +99,22 @@ async def delete_webhook():
         logger.info("✅ Вебхук публикационного бота успешно удалён")
     except Exception as e:
         logger.exception(f"❌ Ошибка при удалении вебхука публикационного бота: {e}")
+
+
+
+async def setup_telegram_menu(bot: Bot):
+    """Очистить все /команды и установить одну кнопку в меню – Web App."""
+    await bot.set_my_commands([])
+    await bot.set_chat_menu_button(
+        menu_button=MenuButtonWebApp(
+            text="Меню",
+            web_app=WebAppInfo(url="https://5655-185-241-101-35.ngrok-free.app")
+        )
+    )
+    logger.info("✅ Меню Telegram обновлено — одна кнопка запускает Web App.")
+
+
+
 
 
 async def start_publication_bot():
@@ -116,6 +137,8 @@ async def main():
 
         # Удаляем существующий вебхук перед запуском бота
         await delete_webhook()
+
+        await setup_telegram_menu(publication_bot)
 
         # Запуск публикационного бота
         await start_publication_bot()

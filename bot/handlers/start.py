@@ -62,7 +62,7 @@ async def start_command(message: Message, db_session: AsyncSession):
 
 
 
-@router.message(lambda message: message.text == "Меню")
+@router.message(lambda message: message.text == "Меню Администратора")
 async def handle_start_button(message: Message, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает нажатие кнопки "Меню". Отправляет админ-меню админам,
