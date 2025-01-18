@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import User, Group, UserChannelSubscription
+from .models import User, Group, UserChannelSubscription, Admin
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -18,3 +19,9 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'channel', 'subscription_status')
     list_filter = ('subscription_status',)
     search_fields = ('user__telegram_id', 'channel__group_name')
+
+
+@admin.register(Admin)
+class AdminAdmin(admin.ModelAdmin):
+    list_display = ('id', 'telegram_id', 'username')  # Поля для отображения в списке
+    search_fields = ('telegram_id', 'username')  # Поля для поиска

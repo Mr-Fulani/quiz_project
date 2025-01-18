@@ -20,6 +20,25 @@ class User(models.Model):
         return self.username or f"Пользователь {self.telegram_id}"
 
 
+
+
+class Admin(models.Model):
+    """
+    Модель для администраторов
+    """
+    telegram_id = models.BigIntegerField(unique=True, db_index=True)  # Telegram ID администратора
+    username = models.CharField(max_length=255, blank=True, null=True)  # Имя пользователя (опционально)
+
+    class Meta:
+        db_table = 'admins'
+        verbose_name = "Администратор"
+        verbose_name_plural = "Администраторы"
+
+    def __str__(self):
+        return f"{self.username or 'Admin'} ({self.telegram_id})"
+
+
+
 class Group(models.Model):
     """
     Модель для групп или каналов.
