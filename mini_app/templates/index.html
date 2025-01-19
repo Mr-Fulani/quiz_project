@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Matrix Gallery</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/navigation.css') }}">
+  <title>Gallery</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/gallery.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/matrix.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/navigation.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
@@ -20,8 +18,8 @@
     </div>
   </div>
 
-  <div class="matrix-gallery">
-    <div class="matrix-gallery__container">
+  <div class="gallery">
+    <div class="gallery__container">
       <span style="--i:1;">
         <img src="{{ url_for('static', filename='images/1.png') }}" alt="Image 1">
       </span>

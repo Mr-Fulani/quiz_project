@@ -1,47 +1,56 @@
-.matrix-gallery {
-    position: relative;
-    z-index: 20;
-    width: 60%;
-    max-width: 400px;
-    height: 200px;
-    margin: 350px auto 20px auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+body {
+    background: #151F28;
 }
 
-.matrix-gallery__container {
+/* Основные стили галереи */
+.gallery {
+    position: fixed !important;
+    top: 400px !important;      /* Опустили ниже */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 100% !important;
+    max-width: 300px !important;  /* Уменьшили с 350px */
+    height: 180px !important;     /* Уменьшили с 200px */
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 20 !important;
+}
+
+.gallery__container {
     position: relative;
-    width: 200px;
-    height: 200px;
+    width: 180px;    /* Уменьшили с 200px */
+    height: 180px;   /* Уменьшили с 200px */
     transform-style: preserve-3d;
-    animation: gallery_rotate 20s linear infinite;
+    animation: rotate 20s linear infinite;
 }
 
-.matrix-gallery__container span {
+.gallery__container span {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 95%;
+    height: 95%;
+    margin: 2.8%;
     transform-origin: center;
     transform-style: preserve-3d;
-    transform: rotateY(calc(var(--i) * 45deg)) translateZ(300px);
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(180px);  /* Уменьшили со 200px */
 }
 
-.matrix-gallery__container span img {
+.gallery__container span img {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    border-radius: 10px;
+    border-radius: 8px;
     object-fit: cover;
     cursor: pointer;
     transition: 0.5s;
 }
 
-@keyframes gallery_rotate {
+/* Анимация вращения */
+@keyframes rotate {
     0% {
         transform: perspective(1000px) rotateY(0deg);
     }
@@ -50,90 +59,27 @@
     }
 }
 
-.matrix-gallery__container span:hover img {
-    transform: translateY(-50px) scale(1.2);
-}
-
-.matrix-3d-carousel {
-    --carousel-bg: rgba(21, 31, 40, 0.95);
-    --carousel-border: rgba(255, 255, 255, 0.3);
-    --carousel-card-bg: rgba(255, 255, 255, 0.2);
-    --carousel-text: rgba(255, 255, 255, 0.9);
-    
-    position: relative;
-    z-index: 10;
-    background: var(--carousel-bg);
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    margin: 20px auto;
-    width: 90%;
-    max-width: 800px;
-    border: 1px solid var(--carousel-border);
-}
-
-.matrix-3d-carousel__inner {
-    position: relative;
-    width: 100%;
-    height: 400px;
-    perspective: 1000px;
-    transform-style: preserve-3d;
-    animation: rotate3d 15s linear infinite;
-}
-
-.matrix-3d-carousel__card {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 1s;
-    background: var(--carousel-card-bg);
-    border-radius: 10px;
-    border: 2px solid var(--carousel-border);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-}
-
-.matrix-3d-carousel__card-content {
-    color: var(--carousel-text);
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-}
-
-.matrix-3d-carousel__card:nth-child(1) { transform: rotateY(0deg) translateZ(300px); }
-.matrix-3d-carousel__card:nth-child(2) { transform: rotateY(60deg) translateZ(300px); }
-.matrix-3d-carousel__card:nth-child(3) { transform: rotateY(120deg) translateZ(300px); }
-.matrix-3d-carousel__card:nth-child(4) { transform: rotateY(180deg) translateZ(300px); }
-.matrix-3d-carousel__card:nth-child(5) { transform: rotateY(240deg) translateZ(300px); }
-.matrix-3d-carousel__card:nth-child(6) { transform: rotateY(300deg) translateZ(300px); }
-
-@keyframes rotate3d {
-    from {
-        transform: rotateY(0deg);
-    }
-    to {
-        transform: rotateY(360deg);
-    }
-}
-
-@media screen and (max-width: 768px) {
-    .matrix-gallery {
-        height: 300px;
+/* Адаптивность */
+@media (max-width: 768px) {
+    .gallery {
+        max-width: 300px !important;
+        height: 170px !important;
     }
     
-    .matrix-gallery__container span {
-        transform: rotateY(calc(var(--i) * 45deg)) translateZ(200px);
+    .gallery__container {
+        width: 170px;
+        height: 170px;
+    }
+}
+
+@media (max-width: 480px) {
+    .gallery {
+        max-width: 250px !important;
+        height: 150px !important;
     }
     
-    .matrix-3d-carousel {
-        width: 95%;
-        padding: 20px;
+    .gallery__container {
+        width: 150px;
+        height: 150px;
     }
-    
-    .matrix-3d-carousel__inner {
-        height: 300px;
-    }
-    
-    .matrix-3d-carousel__card {
-        transform: translateZ(200px) !important;
-    }
-} 
+}
