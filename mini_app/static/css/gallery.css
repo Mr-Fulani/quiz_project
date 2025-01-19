@@ -1,35 +1,21 @@
 .matrix-gallery {
-    --gallery-bg: rgba(21, 31, 40, 0.95);
     position: relative;
-    z-index: 10;
-    width: 80%;
-    max-width: 600px;
-    height: 300px;
-    margin: 250px auto 20px auto;
+    z-index: 20;
+    width: 60%;
+    max-width: 400px;
+    height: 200px;
+    margin: 350px auto 20px auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(21, 31, 40, 0.7);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
 .matrix-gallery__container {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: 200px;
+    height: 200px;
     transform-style: preserve-3d;
-    animation: animate 20s linear infinite;
-}
-
-@keyframes animate {
-    0% {
-        transform: perspective(1000px) rotateY(0deg);
-    }
-    100% {
-        transform: perspective(1000px) rotateY(360deg);
-    }
+    animation: gallery_rotate 20s linear infinite;
 }
 
 .matrix-gallery__container span {
@@ -40,7 +26,7 @@
     height: 100%;
     transform-origin: center;
     transform-style: preserve-3d;
-    transform: rotateY(calc(var(--i) * 45deg)) translateZ(200px);
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(300px);
 }
 
 .matrix-gallery__container span img {
@@ -51,8 +37,17 @@
     height: 100%;
     border-radius: 10px;
     object-fit: cover;
-    transition: 2s;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: 0.5s;
+}
+
+@keyframes gallery_rotate {
+    0% {
+        transform: perspective(1000px) rotateY(0deg);
+    }
+    100% {
+        transform: perspective(1000px) rotateY(360deg);
+    }
 }
 
 .matrix-gallery__container span:hover img {

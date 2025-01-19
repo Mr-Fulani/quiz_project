@@ -3,10 +3,11 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+from mini_app.config import WEBAPP_URL
 
 router = Router(name="mini_app_router")
 
-WEBAPP_URL = "https://f098-185-241-101-35.ngrok-free.app"  # Обновите на текущий URL
+
 
 @router.message(Command("profile"))
 async def handle_profile_command(message: types.Message):

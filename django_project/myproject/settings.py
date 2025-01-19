@@ -17,12 +17,15 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', default=False)
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'django-app',  # Ваше внутреннее имя хоста в Docker
-    '4664-185-241-101-16.ngrok-free.app',  # Ваш публичный ngrok URL
-]
+# ALLOWED_HOSTS = [
+#     'localhost',
+#     '127.0.0.1',
+#     'django-app',  # Ваше внутреннее имя хоста в Docker
+#     '4664-185-241-101-16.ngrok-free.app',  # Ваш публичный ngrok URL
+# ]
+
+ALLOWED_HOSTS = ['*']
+
 
 CORS_ALLOW_ALL_ORIGINS = True  # На время разработки
 

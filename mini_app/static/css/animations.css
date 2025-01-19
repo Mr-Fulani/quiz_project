@@ -1,17 +1,15 @@
+/* Общие переменные */
 :root {
     --clr: #0f0;
 }
 
-body {
-    background: #151F28 !important;
-}
-
+/* Стили для матричного дождя */
 .matrix-rain {
     position: fixed;
     top: 50px;
     left: 50%;
     transform: translateX(-50%) scale(0.6);
-    z-index: 15;
+    z-index: 5;
     pointer-events: none;
 }
 
@@ -24,21 +22,21 @@ body {
     animation: matrix_color 5s linear infinite;
 }
 
-.container .cloud {
+.cloud {
     position: relative;
     width: 300px;
     z-index: 100;
     filter: drop-shadow(0 0 35px var(--clr));
 }
 
-.container .cloud h2 {
+.cloud h2 {
     position: relative;
     color: var(--clr);
     font-size: 2em;
     text-align: center;
 }
 
-.container .cloud h2::before {
+.cloud h2::before {
     content: '';
     position: absolute;
     top: -115px;
@@ -50,7 +48,7 @@ body {
     background: var(--clr);
 }
 
-.container .cloud h2::after {
+.cloud h2::after {
     content: '';
     position: absolute;
     top: -150px;
@@ -62,7 +60,7 @@ body {
     box-shadow: 120px -30px 0 10px var(--clr);
 }
 
-.container .cloud .drop {
+.cloud .drop {
     position: absolute;
     top: 60px;
     height: 20px;
@@ -72,6 +70,51 @@ body {
     animation: matrix_animate 2s linear infinite;
 }
 
+/* Стили для 3D галереи */
+.matrix-gallery {
+    position: relative;
+    z-index: 20;
+    width: 60%;
+    max-width: 400px;
+    height: 200px;
+    margin: 350px auto 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.matrix-gallery__container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    transform-style: preserve-3d;
+    animation: gallery_rotate 20s linear infinite;
+}
+
+.matrix-gallery__container span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(300px);
+}
+
+.matrix-gallery__container span img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: 0.5s;
+}
+
+/* Анимации для матрицы */
 @keyframes matrix_animate {
     0% {
         transform: translateY(0) scaleY(0);
@@ -108,75 +151,12 @@ body {
     }
 }
 
-/* Добавляем слой для фона */
-.background-layer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #151F28;
-    z-index: 1;
-}
-
-/* Убрали все стили навигации из этого файла */
-
-.indicator {
-    background: #29fd53;
-    border: 6px solid var(--clr);
-}
-
-.indicator::before,
-.indicator::after {
-    box-shadow: 1px -10px 0 0 var(--clr);
-}
-
-/* Добавляем медиа-запросы для разных устройств */
-@media screen and (max-width: 768px) {
-    .matrix-rain__container {
-        transform: scale(0.7);
-    }
-}
-
-@media screen and (min-width: 1024px) {
-    .matrix-rain__container {
-        transform: scale(0.9);
-    }
-}
-
-.matrix-container {
-    --matrix-color: #0f0;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    z-index: 15;
-    background: transparent;
-}
-
-.container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    animation: animateColor 8s linear infinite;
-}
-
-.drop {
-    color: var(--matrix-color);
-    text-shadow: 0 0 10px var(--matrix-color);
-    font-size: 1.2em;
-    font-weight: bold;
-    opacity: 0.7;
-}
-
-@keyframes animateColor {
+/* Анимация для галереи */
+@keyframes gallery_rotate {
     0% {
-        filter: hue-rotate(0deg);
+        transform: perspective(1000px) rotateY(0deg);
     }
     100% {
-        filter: hue-rotate(360deg);
+        transform: perspective(1000px) rotateY(360deg);
     }
-}
+} 
