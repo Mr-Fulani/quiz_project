@@ -1,41 +1,111 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Мини-приложение</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matrix Gallery</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/matrix.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/navigation.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/gallery.css') }}">
 </head>
 <body>
-  <!-- Основной контент приложения (изначально скрыт) -->
-  <div class="app-menu" id="app-menu">
-    <h1>Главное меню приложения</h1>
-    <div class="button-grid">
-      <button class="menu-btn red" onclick="handleMenu('Кнопка 1')">Кнопка 1</button>
-      <button class="menu-btn green" onclick="handleMenu('Кнопка 2')">Кнопка 2</button>
-      <button class="menu-btn blue" onclick="handleMenu('Кнопка 3')">Кнопка 3</button>
-      <button class="menu-btn orange" onclick="handleMenu('Кнопка 4')">Кнопка 4</button>
+  <div class="matrix-container">
+    <div class="container">
+      <!-- matrix rain -->
     </div>
   </div>
 
-  <!-- Оверлей с логотипом и двумя кнопками -->
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
-      <img src="/static/logo.png" alt="Логотип" class="logo">
-      <!-- Контейнер для кнопок -->
-      <div class="inline-buttons">
-        <!-- Кнопка "Запустить приложение" -->
-        <button class="btn inline-btn" id="launch-btn">Запустить приложение</button>
-      </div>
+  <div class="matrix-gallery">
+    <div class="matrix-gallery__container">
+      <span style="--i:1;">
+        <img src="{{ url_for('static', filename='images/1.jpg') }}" alt="Image 1">
+      </span>
+      <span style="--i:2;">
+        <img src="{{ url_for('static', filename='images/2.jpg') }}" alt="Image 2">
+      </span>
+      <span style="--i:3;">
+        <img src="{{ url_for('static', filename='images/3.jpg') }}" alt="Image 3">
+      </span>
+      <span style="--i:4;">
+        <img src="{{ url_for('static', filename='images/4.jpg') }}" alt="Image 4">
+      </span>
+      <span style="--i:5;">
+        <img src="{{ url_for('static', filename='images/5.jpg') }}" alt="Image 5">
+      </span>
+      <span style="--i:6;">
+        <img src="{{ url_for('static', filename='images/6.jpg') }}" alt="Image 6">
+      </span>
+      <span style="--i:7;">
+        <img src="{{ url_for('static', filename='images/7.jpg') }}" alt="Image 7">
+      </span>
+      <span style="--i:8;">
+        <img src="{{ url_for('static', filename='images/8.jpg') }}" alt="Image 8">
+      </span>
     </div>
   </div>
 
-  <script src="/static/script.js"></script>
-  <script>
-    // Если приложение запущено внутри Telegram, уведомляем Telegram, что страница готова
-    if (window.Telegram && Telegram.WebApp) {
-      Telegram.WebApp.ready();
-    }
-  </script>
+  <!-- Отдельно навигация -->
+  <nav class="navigation-menu">
+    <ul>
+      <li class="list active">
+        <a href="#">
+          <span class="icon">
+            <ion-icon name="home-outline"></ion-icon>
+          </span>
+          <span class="text">Главная</span>
+        </a>
+      </li>
+      <li class="list">
+        <a href="#">
+          <span class="icon">
+            <ion-icon name="person-outline"></ion-icon>
+          </span>
+          <span class="text">Профиль</span>
+        </a>
+      </li>
+      <li class="list">
+        <a href="#">
+          <span class="icon">
+            <ion-icon name="trophy-outline"></ion-icon>
+          </span>
+          <span class="text">Достижения</span>
+        </a>
+      </li>
+      <li class="list">
+        <a href="#">
+          <span class="icon">
+            <ion-icon name="stats-chart-outline"></ion-icon>
+          </span>
+          <span class="text">Статистика</span>
+        </a>
+      </li>
+      <li class="list">
+        <a href="#">
+          <span class="icon">
+            <ion-icon name="settings-outline"></ion-icon>
+          </span>
+          <span class="text">Настройки</span>
+        </a>
+      </li>
+      <div class="indicator"></div>
+    </ul>
+  </nav>
+
+  <div class="background-layer"></div>
+  <div class="container">
+    <div class="cloud">
+      <h2>Quiz Time</h2>
+    </div>
+  </div>
+
+  <!-- Контент -->
+  <div id="content" class="content">
+    <!-- Здесь будет отображаться содержимое секций -->
+  </div>
+
+  <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+  <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+  <script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
 </body>
 </html>

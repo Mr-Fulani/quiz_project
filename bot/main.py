@@ -108,7 +108,7 @@ async def setup_telegram_menu(bot: Bot):
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
             text="Меню",
-            web_app=WebAppInfo(url="https://5655-185-241-101-35.ngrok-free.app")
+            web_app=WebAppInfo(url="https://f098-185-241-101-35.ngrok-free.app/")
         )
     )
     logger.info("✅ Меню Telegram обновлено — одна кнопка запускает Web App.")

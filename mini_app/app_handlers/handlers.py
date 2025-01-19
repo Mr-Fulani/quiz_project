@@ -2,19 +2,21 @@
 
 from aiogram import Router, types
 from aiogram.filters import Command
-
-# from mini_app.app_keyboards.buttons import mini_app_keyboard
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 
 router = Router(name="mini_app_router")
-#
-#
-#
-#
-#
-# @router.message(Command("miniapp"))
-# async def handle_miniapp_command(message: types.Message):
-#     # Отправляем сообщение и прикрепляем к нему reply keyboard
-#     await message.answer("Нажмите кнопку «Меню Приложения», чтобы запустить мини‑приложение!", reply_markup=mini_app_keyboard)
-#
-#
-#
+
+WEBAPP_URL = "https://f098-185-241-101-35.ngrok-free.app"  # Обновите на текущий URL
+
+@router.message(Command("profile"))
+async def handle_profile_command(message: types.Message):
+    webapp_button = InlineKeyboardButton(
+        text="Открыть профиль",
+        web_app=WebAppInfo(url=f"{WEBAPP_URL}/")  # Уберем /profile/, так как у нас корневой маршрут
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[webapp_button]])
+    
+    await message.answer(
+        "Нажмите кнопку ниже, чтобы открыть приложение:",
+        reply_markup=keyboard
+    )

@@ -1,0 +1,144 @@
+.matrix-gallery {
+    --gallery-bg: rgba(21, 31, 40, 0.95);
+    position: relative;
+    z-index: 10;
+    width: 80%;
+    max-width: 600px;
+    height: 300px;
+    margin: 250px auto 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(21, 31, 40, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.matrix-gallery__container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    transform-style: preserve-3d;
+    animation: animate 20s linear infinite;
+}
+
+@keyframes animate {
+    0% {
+        transform: perspective(1000px) rotateY(0deg);
+    }
+    100% {
+        transform: perspective(1000px) rotateY(360deg);
+    }
+}
+
+.matrix-gallery__container span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(200px);
+}
+
+.matrix-gallery__container span img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+    transition: 2s;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.matrix-gallery__container span:hover img {
+    transform: translateY(-50px) scale(1.2);
+}
+
+.matrix-3d-carousel {
+    --carousel-bg: rgba(21, 31, 40, 0.95);
+    --carousel-border: rgba(255, 255, 255, 0.3);
+    --carousel-card-bg: rgba(255, 255, 255, 0.2);
+    --carousel-text: rgba(255, 255, 255, 0.9);
+    
+    position: relative;
+    z-index: 10;
+    background: var(--carousel-bg);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    margin: 20px auto;
+    width: 90%;
+    max-width: 800px;
+    border: 1px solid var(--carousel-border);
+}
+
+.matrix-3d-carousel__inner {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    perspective: 1000px;
+    transform-style: preserve-3d;
+    animation: rotate3d 15s linear infinite;
+}
+
+.matrix-3d-carousel__card {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 1s;
+    background: var(--carousel-card-bg);
+    border-radius: 10px;
+    border: 2px solid var(--carousel-border);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.matrix-3d-carousel__card-content {
+    color: var(--carousel-text);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.matrix-3d-carousel__card:nth-child(1) { transform: rotateY(0deg) translateZ(300px); }
+.matrix-3d-carousel__card:nth-child(2) { transform: rotateY(60deg) translateZ(300px); }
+.matrix-3d-carousel__card:nth-child(3) { transform: rotateY(120deg) translateZ(300px); }
+.matrix-3d-carousel__card:nth-child(4) { transform: rotateY(180deg) translateZ(300px); }
+.matrix-3d-carousel__card:nth-child(5) { transform: rotateY(240deg) translateZ(300px); }
+.matrix-3d-carousel__card:nth-child(6) { transform: rotateY(300deg) translateZ(300px); }
+
+@keyframes rotate3d {
+    from {
+        transform: rotateY(0deg);
+    }
+    to {
+        transform: rotateY(360deg);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .matrix-gallery {
+        height: 300px;
+    }
+    
+    .matrix-gallery__container span {
+        transform: rotateY(calc(var(--i) * 45deg)) translateZ(200px);
+    }
+    
+    .matrix-3d-carousel {
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .matrix-3d-carousel__inner {
+        height: 300px;
+    }
+    
+    .matrix-3d-carousel__card {
+        transform: translateZ(200px) !important;
+    }
+} 

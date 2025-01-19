@@ -1,0 +1,70 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'users/css/navigation.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper" data-telegram-id="{{ user.telegram_id }}">
+    <!-- Навигация -->
+    <div class="user-navigation">
+        <ul>
+            <li class="list active" data-section="home">
+                <a href="#">
+                    <span class="icon">
+                        <ion-icon name="home-outline"></ion-icon>
+                    </span>
+                    <span class="text">Главная</span>
+                </a>
+            </li>
+            <li class="list" data-section="profile">
+                <a href="#">
+                    <span class="icon">
+                        <ion-icon name="person-outline"></ion-icon>
+                    </span>
+                    <span class="text">Профиль</span>
+                </a>
+            </li>
+            <li class="list" data-section="achievements">
+                <a href="#">
+                    <span class="icon">
+                        <ion-icon name="trophy-outline"></ion-icon>
+                    </span>
+                    <span class="text">Достижения</span>
+                </a>
+            </li>
+            <li class="list" data-section="statistics">
+                <a href="#">
+                    <span class="icon">
+                        <ion-icon name="stats-chart-outline"></ion-icon>
+                    </span>
+                    <span class="text">Статистика</span>
+                </a>
+            </li>
+            <li class="list" data-section="settings">
+                <a href="#">
+                    <span class="icon">
+                        <ion-icon name="settings-outline"></ion-icon>
+                    </span>
+                    <span class="text">Настройки</span>
+                </a>
+            </li>
+            <div class="indicator"></div>
+        </ul>
+    </div>
+
+    <!-- Контент секций -->
+    <div class="container">
+        <div id="section-content">
+            {% include 'users/sections/home.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+<script src="{% static 'users/js/navigation.js' %}"></script>
+<script src="{% static 'users/js/profile_settings.js' %}"></script>
+{% endblock %} 

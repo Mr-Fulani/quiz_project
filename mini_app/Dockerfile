@@ -7,9 +7,12 @@ WORKDIR /mini_app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем исходный код
+# Копируем все файлы приложения
 COPY . .
 
+# Создаем директории для статических файлов
+RUN mkdir -p static/css static/js static/images
+
 # Указываем порт и точку входа
-EXPOSE 5000
+EXPOSE 8080
 CMD ["python", "app.py"]

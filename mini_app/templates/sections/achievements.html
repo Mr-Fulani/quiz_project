@@ -1,0 +1,54 @@
+<div class="section-achievements">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Достижения</h5>
+                    <div class="achievements-grid">
+                        <!-- Первые шаги -->
+                        <div class="achievement-item {{ 'unlocked' if user.total_tasks >= 10 else 'locked' }}">
+                            <div class="achievement-icon">
+                                <ion-icon name="{{ 'trophy' if user.total_tasks >= 10 else 'lock-closed' }}"></ion-icon>
+                            </div>
+                            <div class="achievement-info">
+                                <h6>Первые шаги</h6>
+                                <p>Решено первых 10 задач</p>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: {{ user.total_tasks|default(0, true) / 10 }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Уверенный старт -->
+                        <div class="achievement-item {{ 'unlocked' if user.total_tasks >= 50 else 'locked' }}">
+                            <div class="achievement-icon">
+                                <ion-icon name="{{ 'star' if user.total_tasks >= 50 else 'lock-closed' }}"></ion-icon>
+                            </div>
+                            <div class="achievement-info">
+                                <h6>Уверенный старт</h6>
+                                <p>Решено 50 задач</p>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: {{ user.total_tasks|default(0, true) / 50 }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Эксперт -->
+                        <div class="achievement-item {{ 'unlocked' if user.total_tasks >= 100 else 'locked' }}">
+                            <div class="achievement-icon">
+                                <ion-icon name="{{ 'medal' if user.total_tasks >= 100 else 'lock-closed' }}"></ion-icon>
+                            </div>
+                            <div class="achievement-info">
+                                <h6>Эксперт</h6>
+                                <p>Решено 100 задач</p>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: {{ user.total_tasks|default(0, true) / 100 }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

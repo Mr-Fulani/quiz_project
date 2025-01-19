@@ -4,20 +4,28 @@ class User(models.Model):
     """
     Модель для пользователей системы.
     """
+    id = models.BigAutoField(primary_key=True)
     telegram_id = models.BigIntegerField(unique=True)  # Telegram ID пользователя
-    username = models.CharField(max_length=150, blank=True, null=True)  # Имя пользователя
-    subscription_status = models.CharField(max_length=50, default='inactive')  # Статус подписки
-    created_at = models.DateTimeField(auto_now_add=True)  # Дата создания пользователя
-    language = models.CharField(max_length=10, blank=True, null=True)  # Язык пользователя
-    deactivated_at = models.DateTimeField(blank=True, null=True)  # Дата отключения
+    username = models.CharField(max_length=255, null=True, blank=True)  # Имя пользователя
+    is_active = models.BooleanField()
+    language = models.CharField(max_length=10)
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    photo = models.CharField(max_length=100, null=True, blank=True)
+    avatar = models.CharField(max_length=100, null=True, blank=True)
+    email = models.CharField(max_length=254, null=True, blank=True)
+    subscription_status = models.CharField(max_length=20, default='inactive')
+    created_at = models.DateTimeField(auto_now_add=True)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = 'users'
+        db_table = 'admins'
+        managed = False
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
 
     def __str__(self):
-        return self.username or f"Пользователь {self.telegram_id}"
+        return f"{self.username or 'No username'} ({self.telegram_id})"
+
 
 
 
@@ -26,8 +34,12 @@ class Admin(models.Model):
     """
     Модель для администраторов
     """
-    telegram_id = models.BigIntegerField(unique=True, db_index=True)  # Telegram ID администратора
-    username = models.CharField(max_length=255, blank=True, null=True)  # Имя пользователя (опционально)
+    telegram_id = models.BigIntegerField(unique=True, db_index=True)  # Telegram ID
+    username = models.CharField(max_length=255, blank=True, null=True)  # Имя пользователя
+    photo = models.ImageField(upload_to='admin_photos/', blank=True, null=True)  # Фото администратора
+    language = models.CharField(max_length=10, default='ru')  # Язык интерфейса Telegram
+    phone_number = models.CharField(max_length=15, blank=True, null=True)  # Номер телефона
+    is_active = models.BooleanField(default=True)  # Статус активности
 
     class Meta:
         db_table = 'admins'
@@ -36,6 +48,15 @@ class Admin(models.Model):
 
     def __str__(self):
         return f"{self.username or 'Admin'} ({self.telegram_id})"
+
+    def photo_url(self):
+        """
+        Возвращает ссылку на фото администратора или ссылку на фото по умолчанию.
+        """
+        if self.photo:
+            return self.photo.url
+        return "/static/images/default_avatar.png"
+
 
 
 

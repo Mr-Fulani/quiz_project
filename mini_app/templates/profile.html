@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div class="page-wrapper" data-telegram-id="{{ user.telegram_id }}">
+    <div class="user-navigation">
+        <ul>
+            <li class="list active" data-section="home">
+                <a href="#">
+                    <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
+                    <span class="text">Главная</span>
+                </a>
+            </li>
+            <li class="list" data-section="profile">
+                <a href="#">
+                    <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
+                    <span class="text">Профиль</span>
+                </a>
+            </li>
+            <li class="list" data-section="achievements">
+                <a href="#">
+                    <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
+                    <span class="text">Достижения</span>
+                </a>
+            </li>
+            <li class="list" data-section="statistics">
+                <a href="#">
+                    <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
+                    <span class="text">Статистика</span>
+                </a>
+            </li>
+            <li class="list" data-section="settings">
+                <a href="#">
+                    <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
+                    <span class="text">Настройки</span>
+                </a>
+            </li>
+            <div class="indicator"></div>
+        </ul>
+    </div>
+
+    <div class="container">
+        <div id="section-content">
+            {% include 'sections/home.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/profile_settings.js') }}"></script>
+{% endblock %} 

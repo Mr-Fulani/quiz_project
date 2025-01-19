@@ -1,0 +1,29 @@
+<div class="section-settings">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Настройки профиля</h5>
+                    <form method="post" enctype="multipart/form-data" id="profile-settings-form" action="{{ url_for('update_profile', telegram_id=user.telegram_id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Загрузить аватар</label>
+                            <input type="file" class="form-control" name="avatar" accept="image/*">
+                            {% if user.avatar %}
+                                <img src="{{ url_for('static', filename=user.avatar) }}" alt="Current avatar" class="settings-preview mt-2">
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ user.email|default('') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" name="phone" value="{{ user.phone_number|default('') }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

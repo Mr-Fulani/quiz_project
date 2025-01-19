@@ -228,12 +228,10 @@ async def process_remove_admin_user_id(message: Message, state: FSMContext, db_s
 
 
 
-# Команда /start для приветствия
-@router.message(Command("start"))
-async def cmd_start(message: Message):
-    await message.reply("👋 Привет! Я бот для управления администраторами.\nИспользуйте /add_admin для добавления администратора и /remove_admin для удаления.")
-
-
+# # Команда /start для приветствия
+# @router.message(Command("start"))
+# async def cmd_start(message: Message):
+#     await message.reply("👋 Привет! Я бот для управления администраторами.\nИспользуйте /add_admin для добавления администратора и /remove_admin для удаления.")
 
 
 
@@ -929,19 +927,7 @@ async def delete_feedback(callback_query: types.CallbackQuery):
     await callback_query.message.delete()
 
 
-# Функция для удаления старых сообщений - БЕЗ ИЗМЕНЕНИЙ
-async def delete_old_feedback():
-    async with async_session_maker() as session:
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
-        await session.execute(delete(FeedbackMessage).where(FeedbackMessage.created_at < cutoff_date))
-        await session.commit()
 
-
-# Периодическая очистка - БЕЗ ИЗМЕНЕНИЙ
-async def periodic_cleanup():
-    while True:
-        await delete_old_feedback()
-        await asyncio.sleep(86400)  # Запускается раз в день
 
 
 

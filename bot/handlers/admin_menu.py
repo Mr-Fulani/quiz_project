@@ -846,11 +846,10 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
 
 
 @router.callback_query(lambda c: c.data == "list_channels_groups_button")
-async def callback_list_channels_groups(call: types.CallbackQuery, db_session: AsyncSession):
+async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Список каналов и групп".
-    Отправляет список каналов и групп с указанием языка,
-    делая название канала кликабельным, если у него есть username.
+    Отправляет отсортированный по названиям список каналов и групп.
     """
     logger.info(
         f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) "
@@ -869,9 +868,21 @@ async def callback_list_channels_groups(call: types.CallbackQuery, db_session: A
                 "📭 Нет добавленных каналов или групп."
             )
         else:
-            # Разделяем на каналы и группы по полю location_type
-            channels = [g for g in groups if g.location_type.lower() == "channel"]
-            groups_only = [g for g in groups if g.location_type.lower() == "group"]
+            # Функция сортировки для группировки похожих названий
+            def sort_key(x):
+                name = x.group_name.lower()
+                main_word = name.split()[0]
+                return (main_word, name)
+
+            # Разделяем на каналы и группы и сортируем
+            channels = sorted(
+                [g for g in groups if g.location_type.lower() == "channel"],
+                key=sort_key
+            )
+            groups_only = sorted(
+                [g for g in groups if g.location_type.lower() == "group"],
+                key=sort_key
+            )
 
             channels_list = ""
             groups_list = ""
@@ -884,19 +895,16 @@ async def callback_list_channels_groups(call: types.CallbackQuery, db_session: A
                     channel_id = channel.group_id
                     channel_language = html.escape(channel.language) if channel.language else "Не указан"
 
-                    # Формируем кликабельную ссылку, если есть username
-                    # Предполагаем, что в базе у нас хранится username без @, например 'my_channel'
+                    # Создаем кликабельную ссылку для каналов с username
                     if channel.username:
                         username_escaped = html.escape(channel.username)
-                        # Создаём HTML-ссылку вида <a href="https://t.me/my_channel">Название</a>
                         link = f'<a href="https://t.me/{username_escaped}">{channel_name_html}</a>'
                     else:
-                        # Если username нет, выводим просто текст
                         link = channel_name_html
 
                     channels_list += f"• {link} (ID: {channel_id}) - Язык: {channel_language}\n"
 
-                channels_list += "\n"  # Дополнительный перенос строки
+                channels_list += "\n"
 
             # Формируем список групп
             if groups_only:
@@ -906,33 +914,33 @@ async def callback_list_channels_groups(call: types.CallbackQuery, db_session: A
                     group_id = group.group_id
                     group_language = html.escape(group.language) if group.language else "Не указан"
 
-                    # Группы обычно не имеют @username,
-                    # но если захотите сделать кликабельные — аналогично каналам
-                    link = group_name_html  # либо аналогичная логика для group.username
+                    # Создаем кликабельную ссылку для групп с username
+                    if group.username:
+                        username_escaped = html.escape(group.username)
+                        link = f'<a href="https://t.me/{username_escaped}">{group_name_html}</a>'
+                    else:
+                        link = group_name_html
 
                     groups_list += f"• {link} (ID: {group_id}) - Язык: {group_language}\n"
 
-                groups_list += "\n"  # Дополнительный перенос строки
+                groups_list += "\n"
 
             channels_groups_list = (
                 "📭 <b>Список каналов и групп:</b>\n\n"
                 f"{channels_list}{groups_list}"
             )
 
-        # Логируем получившийся текст
         logger.debug(f"Сформированный список каналов и групп:\n{channels_groups_list}")
 
-        # Отправляем сообщение в формате HTML, чтобы ссылки работали
+        # Отправляем сообщение с HTML-форматированием для поддержки ссылок
         await call.message.answer(channels_groups_list, parse_mode='HTML')
-        await call.answer()  # Говорим Telegram, что коллбэк обработан
-        logger.debug("Список каналов и групп отправлен пользователю.")
+        await call.answer()
+        logger.debug("Отсортированный список каналов и групп отправлен пользователю.")
     except TelegramBadRequest as e:
-        # Если ошибка специфичная для Telegram
         logger.error(f"Ошибка Telegram в callback_list_channels_groups: {e}")
         await call.message.answer("❌ Произошла ошибка при отправке списка каналов и групп.")
         await call.answer()
     except Exception as e:
-        # Любая другая ошибка
         logger.exception(f"Неизвестная ошибка в callback_list_channels_groups: {e}")
         await call.message.answer("❌ Произошла непредвиденная ошибка.")
         await call.answer()

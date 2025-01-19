@@ -9,13 +9,32 @@ from bot.utils.time import get_current_time
 from bot.database.database import Base
 
 
-# Модель администраторов
+
+
+
+
 class Admin(Base):
     __tablename__ = 'admins'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # Уникальный идентификатор
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)  # Telegram ID администратора
-    username = Column(String, nullable=True)  # Имя пользователя (опционально)
+    username = Column(String(255), nullable=True)  # Имя пользователя (опционально)
+    photo = Column(String, nullable=True)  # Ссылка на фото администратора или загруженный путь
+    language = Column(String(10), default='ru', nullable=False)  # Язык интерфейса Telegram
+    phone_number = Column(String(15), nullable=True)  # Номер телефона
+    is_active = Column(Boolean, default=True, nullable=False)  # Статус активности
+
+    @property
+    def photo_url(self):
+        """
+        Возвращает ссылку на фото администратора или ссылку на фото по умолчанию.
+        """
+        return self.photo or "/static/images/default_avatar.png"
+
+    def __repr__(self):
+        return f"<Admin(username={self.username}, telegram_id={self.telegram_id}, language={self.language})>"
+
+
 
 
 # Модель задач
