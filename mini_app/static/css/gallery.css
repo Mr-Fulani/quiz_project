@@ -5,12 +5,12 @@ body {
 /* Основные стили галереи */
 .gallery {
     position: fixed !important;
-    top: 50vh !important;          /* Увеличили с 45vh до 50vh */
+    top: 50vh !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     width: 100% !important;
     max-width: 220px !important;   
-    height: 160px !important;      /* Увеличили со 140px до 160px для высоты */
+    height: 160px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
