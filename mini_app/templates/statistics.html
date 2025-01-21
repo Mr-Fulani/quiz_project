@@ -1,16 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Статистика</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/navigation.css') }}">
-</head>
-<body>
-    <h1>Это страница статистики.</h1>
-    <p>Здесь будет ваша статистика.</p>
+{% extends "base.html" %}
 
-    <!-- Подключение навигационного меню внизу страницы -->
-    {% include 'navigation.html' %}
-</body>
-</html> 
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<h1>Страница статистики</h1>
+<p>Это тестовый текст на странице статистики. Здесь вы можете увидеть информацию о пользователе.</p>
+{% endblock %}

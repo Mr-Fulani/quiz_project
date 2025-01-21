@@ -1,18 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Достижения</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/navigation.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
+{% block title %}Профиль{% endblock %}
 
-    <h1>Это страница достижений.</h1>
-    <p>Здесь будут ваши достижения.</p>
-
-    <!-- Подключение навигационного меню внизу страницы -->
-    {% include 'navigation.html' %}
-</body>
-</html> 
+{% block content %}
+<h1>Страница достижений</h1>
+<p>Это тестовый текст на странице достижений. Здесь вы можете увидеть информацию о пользователе.</p>
+{% endblock %}
