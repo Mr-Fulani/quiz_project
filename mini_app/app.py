@@ -26,6 +26,32 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/home.html")
+def home():
+    return render_template("home.html")
+
+
+@app.route("/profile.html")
+def profile():
+    user = {"telegram_id": 975113235}  # Заглушка, замените на реальную логику получения пользователя
+    return render_template("profile.html", user=user)
+
+
+@app.route("/achievements.html")
+def achievements():
+    return render_template("achievements.html")
+
+
+@app.route("/statistics.html")
+def statistics():
+    return render_template("statistics.html")
+
+
+@app.route("/settings.html")
+def settings():
+    return render_template("settings.html")
+
+
 @app.route("/api/test-api/", methods=["GET"])
 def test_api():
     """
