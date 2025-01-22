@@ -1,57 +1,76 @@
-   /* mini_app/static/js/animations.js */
-   document.addEventListener('DOMContentLoaded', () => {
-    const indicator = document.querySelector('.indicator');
-    const lists = document.querySelectorAll('.navigation-menu .list');
-    const nav = document.querySelector('.navigation-menu');
+document.addEventListener('DOMContentLoaded', () => {
+    const indicator = document.querySelector('.navigation ul .indicator');
+    const items = document.querySelectorAll('.navigation ul li');
 
-    if (!indicator || !nav) {
-        console.error('Элемент индикатора или навигационного меню не найден!');
+    console.log('Индикатор:', indicator);
+    console.log('Пункты меню:', items);
+
+    if (!indicator || items.length === 0) {
+        console.error('Необходимые элементы не найдены!');
         return;
     }
 
-    // Функция для установки позиции и ширины индикатора
-    function setIndicatorPosition(element) {
-        const navRect = nav.getBoundingClientRect();
-        const elemRect = element.getBoundingClientRect();
-        const left = elemRect.left - navRect.left;
-        const width = elemRect.width;
-
-        console.log('Установка позиции индикатора: left =', left, ', width =', width);
-
-        indicator.style.width = `${width}px`; // Устанавливаем ширину индикатора
-        indicator.style.transform = `translateX(${left}px)`; // Перемещаем индикатор
+    // Функция для получения точной позиции элемента
+    function getPosition(el) {
+        const rect = el.getBoundingClientRect();
+        const parent = el.closest('ul').getBoundingClientRect();
+        return rect.left - parent.left;
     }
 
-    // Установка индикатора на активный пункт при загрузке страницы
-    const activeList = document.querySelector('.navigation-menu .list.active');
-    if (activeList) {
-        setIndicatorPosition(activeList);
+    function handleIndicator(el) {
+        // Форсируем перерасчет layout
+        el.offsetHeight;
+
+        // Получаем актуальную позицию
+        const left = getPosition(el);
+        console.log('Перемещение индикатора:', left);
+
+        // Применяем трансформацию с небольшой задержкой
+        requestAnimationFrame(() => {
+            indicator.style.transform = `translateX(${left}px)`;
+        });
     }
 
-    // Функция для активации ссылки и перемещения индикатора
-    function activeLink(event) {
-        // event.preventDefault(); // Удалите или закомментируйте эту строку для восстановления перехода по ссылке
+    items.forEach((item) => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault(); // Предотвращаем переход по ссылке
 
-        console.log('Кликнули на пункт меню:', this);
-        // Удаляем класс active у всех пунктов
-        lists.forEach((item) => item.classList.remove('active'));
-        // Добавляем класс active к текущему пункту
-        this.classList.add('active');
+            // Удаляем класс active у всех элементов
+            items.forEach(item => item.classList.remove('active'));
 
-        // Устанавливаем позицию индикатора на текущий пункт
-        setIndicatorPosition(this);
-    }
+            // Добавляем класс active к нажатому элементу
+            item.classList.add('active');
 
-    // Добавляем обработчики событий
-    lists.forEach((item) => {
-        item.addEventListener('click', activeLink);
+            // Перемещаем индикатор
+            handleIndicator(item);
+
+            // Выполняем переход по ссылке с небольшой задержкой
+            const href = item.querySelector('a').getAttribute('href');
+            setTimeout(() => {
+                window.location.href = href;
+            }, 300);
+        });
     });
 
-    // Обновление позиции индикатора при изменении размера окна
-    window.addEventListener('resize', () => {
-        const activeList = document.querySelector('.navigation-menu .list.active');
-        if (activeList) {
-            setIndicatorPosition(activeList);
+    // Установка начальной позиции индикатора
+    function initializeIndicator() {
+        const activeItem = document.querySelector('.navigation ul li.active');
+        if (activeItem) {
+            handleIndicator(activeItem);
         }
+    }
+
+    // Вызываем инициализацию несколько раз для надежности
+    initializeIndicator();
+    setTimeout(initializeIndicator, 100);
+    setTimeout(initializeIndicator, 500);
+
+    // Обработка изменения размера окна
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            initializeIndicator();
+        }, 100);
     });
 });

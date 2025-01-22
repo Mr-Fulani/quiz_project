@@ -163,32 +163,32 @@ body {
         padding: 0 10px;
         max-width: 100%;
     }
-    
+
     .navigation-menu ul li {
         width: 60px;
     }
-    
+
     .navigation-menu .indicator {
         width: 60px;
         height: 60px;
     }
-    
+
     .navigation-menu ul li:nth-child(1).active ~ .indicator {
         transform: translateX(calc(60px * 0));
     }
-    
+
     .navigation-menu ul li:nth-child(2).active ~ .indicator {
         transform: translateX(calc(60px * 1));
     }
-    
+
     .navigation-menu ul li:nth-child(3).active ~ .indicator {
         transform: translateX(calc(60px * 2));
     }
-    
+
     .navigation-menu ul li:nth-child(4).active ~ .indicator {
         transform: translateX(calc(60px * 3));
     }
-    
+
     .navigation-menu ul li:nth-child(5).active ~ .indicator {
         transform: translateX(calc(60px * 4));
     }
@@ -218,4 +218,4 @@ body {
 
 .navigation-menu .list:hover {
     color: var(--active-color); /* Измените на нужный цвет */
-} 
+}
