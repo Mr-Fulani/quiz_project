@@ -1,0 +1,306 @@
+/* ========= Переменные и базовые стили ========= */
+:root {
+    --base-bg: #151F28;
+    --matrix-color: #00ff00;
+    --matrix-shadow:
+        0 0 5px   #00ff00,
+        0 0 10px  #00ff00,
+        0 0 15px  #00ff00,
+        0 0 20px  #00ff00;
+    --active-color: #29fd53;
+    --clr: #151F28;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: var(--base-bg);
+    color: #fff;
+    /* Чтобы страница занимала минимум по высоте весь экран */
+    min-height: 100vh;
+
+    /* Делаем контейнер флексом, чтобы внизу было меню */
+    display: flex;
+    flex-direction: column;
+
+    /* Отступ под фиксированное нижнее меню */
+    padding-bottom: 70px;
+}
+
+/* ========= Слой 1: Тёмная полупрозрачная подложка ========= */
+.background-layer {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: var(--base-bg);
+    opacity: 0.3;  /* немного прозрачности */
+    z-index: 1;
+}
+
+/* ========= Слой 2: «матричный дождь» ========= */
+.matrix-rain {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2; /* над background-layer, под контентом */
+}
+
+.matrix-drop {
+    position: absolute;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--matrix-color);
+    text-shadow: var(--matrix-shadow);
+    filter: brightness(1.5);
+    opacity: 0.9;
+    animation: fall 2s linear infinite;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+}
+
+/* ========= Слой 3: Контент ========= */
+.content {
+    flex: 1;            /* растягиваем по высоте */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 3;         /* над matrix-rain (z=2) */
+    /* Ваши отступы, стили и т.д. */
+}
+
+/* ========= Галерея (если нужна) ========= */
+/* Чтобы галерея была внизу, делаем margin-top: auto + небольшой отступ снизу */
+.gallery {
+    position: relative;
+    width: 100%;
+    max-width: 220px;
+
+    margin: 0 auto;
+    margin-top: auto;     /* «выталкиваем» её вниз */
+    margin-bottom: 80px;  /* отступ над меню */
+    height: 160px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;  /* можно выше 3, но для обычного случая 20 достаточно */
+}
+
+.gallery__container {
+    position: relative;
+    width: 140px;
+    height: 160px;
+    transform-style: preserve-3d;
+    animation: rotate 20s linear infinite;
+}
+
+.gallery__container span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 95%;
+    height: 95%;
+    margin: 2.5%;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    /* Поворот зависит от --i: span style="--i:0" ... */
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(180px);
+}
+
+.gallery__container span img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: 0.5s;
+}
+
+@keyframes rotate {
+    0% {
+        transform: perspective(1000px) rotateY(0deg);
+    }
+    100% {
+        transform: perspective(1000px) rotateY(360deg);
+    }
+}
+
+/* ========= Нижнее меню ========= */
+.navigation {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 70px;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 9999; /* выше всего */
+}
+
+.navigation ul {
+    display: flex;
+    width: 350px;
+    justify-content: space-between;
+    position: relative;
+}
+
+.navigation ul li {
+    position: relative;
+    list-style: none;
+    width: 70px;
+    height: 70px;
+    z-index: 1;
+}
+
+.navigation ul li a {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--clr);
+    transition: 0.5s;
+}
+
+.navigation ul li a .icon {
+    font-size: 1.5em;
+    line-height: 75px;
+    color: var(--clr);
+    transition: transform 0.5s, color 0.5s;
+}
+
+.navigation ul li a .text {
+    position: absolute;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: 0.5s;
+    color: var(--clr);
+}
+
+.navigation ul li:hover a .icon,
+.navigation ul li.active a .icon {
+    transform: translateY(-32px);
+    color: var(--active-color);
+}
+
+.navigation ul li:hover a .text,
+.navigation ul li.active a .text {
+    opacity: 1;
+    transform: translateY(10px);
+}
+
+.indicator {
+    position: absolute;
+    top: -50%;
+    left: 0;
+    width: 70px;
+    height: 70px;
+    background: #fff;
+    border-radius: 50%;
+    border: 6px solid var(--clr);
+    transition: 0.5s;
+    z-index: 0;
+}
+
+.indicator::before,
+.indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+}
+
+.indicator::before {
+    left: -22px;
+    border-top-right-radius: 20px;
+    box-shadow: 1px -10px 0 0 var(--clr);
+}
+
+.indicator::after {
+    right: -22px;
+    border-top-left-radius: 20px;
+    box-shadow: -1px -10px 0 0 var(--clr);
+}
+
+/* Переезды индикатора при активных пунктах */
+.navigation ul li:nth-child(1).active ~ .indicator {
+    transform: translateX(calc(70px * 0));
+}
+.navigation ul li:nth-child(2).active ~ .indicator {
+    transform: translateX(calc(70px * 1));
+}
+.navigation ul li:nth-child(3).active ~ .indicator {
+    transform: translateX(calc(70px * 2));
+}
+.navigation ul li:nth-child(4).active ~ .indicator {
+    transform: translateX(calc(70px * 3));
+}
+.navigation ul li:nth-child(5).active ~ .indicator {
+    transform: translateX(calc(70px * 4));
+}
+
+/* Адаптив для небольших экранов */
+@media (max-width: 480px) {
+    .navigation {
+        width: 350px;
+    }
+    .navigation ul {
+        width: 310px;
+    }
+    .navigation ul li {
+        width: 60px;
+    }
+    .indicator {
+        width: 60px; height: 60px;
+    }
+    /* Пересчитываем с 70px на 60px */
+    .navigation ul li:nth-child(1).active ~ .indicator {
+        transform: translateX(calc(60px * 0));
+    }
+    .navigation ul li:nth-child(2).active ~ .indicator {
+        transform: translateX(calc(60px * 1));
+    }
+    .navigation ul li:nth-child(3).active ~ .indicator {
+        transform: translateX(calc(60px * 2));
+    }
+    .navigation ul li:nth-child(4).active ~ .indicator {
+        transform: translateX(calc(60px * 3));
+    }
+    .navigation ul li:nth-child(5).active ~ .indicator {
+        transform: translateX(calc(60px * 4));
+    }
+}

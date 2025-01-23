@@ -1,8 +1,22 @@
+<!-- quiz_project/mini_app/templates/settings.html -->
 {% extends "base.html" %}
 
-{% block title %}Профиль{% endblock %}
+{% block title %}
+Настройки
+{% endblock %}
 
 {% block content %}
-<h1>Страница настроек</h1>
-<p>Это тестовый текст на странице настроек. Здесь вы можете увидеть информацию о пользователе.</p>
+<h1>Настройки</h1>
+<p>Здесь вы можете изменить настройки вашего профиля.</p>
+
+<!-- Пример формы настроек -->
+<form action="/settings/update/" method="post" enctype="multipart/form-data">
+    <label for="username">Имя пользователя:</label>
+    <input type="text" id="username" name="username" value="{{ user.username }}" required>
+
+    <label for="avatar">Аватар:</label>
+    <input type="file" name="avatar" id="avatar" required>
+
+    <button type="submit">Сохранить изменения</button>
+</form>
 {% endblock %}

@@ -1,14 +1,16 @@
-FROM python:3.12-slim
+# quiz_project/mini_app/Dockerfile
 
-# Устанавливаем рабочую директорию
+# Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /mini_app
 
-# Устанавливаем зависимости
+# Копируем файл зависимостей в рабочую директорию
 COPY requirements.txt .
+
+# Устанавливаем зависимости проекта
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Создаем все необходимые директории
-RUN mkdir -p static/css static/js static/images
+# Создаём необходимые директории для статических файлов
+RUN mkdir -p static/css static/js static/images uploads
 
 # Копируем статические файлы
 COPY static/css/* static/css/
@@ -18,11 +20,11 @@ COPY static/images/* static/images/
 # Копируем шаблоны
 COPY templates/* templates/
 
-# Копируем остальные файлы
+# Копируем основной файл приложения
 COPY app.py .
 
-# Указываем порт и команду запуска
+# Открываем порт, на котором будет работать приложение
 EXPOSE 8080
 
-# Добавляем флаг --reload для разработки
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--reload", "--log-level", "debug"]
+# Команда для запуска приложения
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]

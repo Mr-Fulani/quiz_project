@@ -5,18 +5,22 @@ __pycache__
 .git
 .venv
 
+# quiz_project/mini_app/.dockerignore
+
+*.pyd
+*.swp
+*.swo
+*.log
 
 
 venv/
 *.env
 __pycache__/
 
-*.pyd
 .Python
 .idea/
 .vscode/
 .DS_Store
-*.log
 *.sqlite3
 
 tests/test_connection.py

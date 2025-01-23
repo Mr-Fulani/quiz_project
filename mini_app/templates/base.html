@@ -1,74 +1,70 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>{% block title %}Мое приложение{% endblock %}</title>
-    <!-- Встраиваем очищенные стили прямо в HTML -->
-    <style>
-        {{ css_content | safe }}
-    </style>
+
+    <!-- Подключаем стили -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+
+    <!-- Подключение Ionicons для иконок (если нужно для меню) -->
+    <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
+    <!-- Слой 1: Тёмный полупрозрачный фон -->
     <div class="background-layer"></div>
 
-    <!-- Контент страницы -->
+    <!-- Слой 2: «Дождь» матрицы -->
+    <div class="matrix-rain"></div>
+
+    <!-- Слой 3: Основной контент -->
     <div class="content">
         {% block content %}
-        <!-- Ваш контент -->
+        <h1>Пример контента</h1>
+        <!-- Если хотите, здесь (или в другом шаблоне) можете расположить галерею -->
         {% endblock %}
     </div>
 
-    <!-- Навигационное меню -->
+    <!-- Фиксированное нижнее меню -->
     <nav class="navigation">
         <ul>
             <li class="list {% if request.url.path == '/' %}active{% endif %}">
                 <a href="/">
-                    <span class="icon">
-                        <ion-icon name="home-outline"></ion-icon>
-                    </span>
+                    <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
                     <span class="text">Главная</span>
                 </a>
             </li>
-            <li class="list {% if request.url.path == '/profile' %}active{% endif %}">
+            <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}">
                 <a href="/profile">
-                    <span class="icon">
-                        <ion-icon name="person-outline"></ion-icon>
-                    </span>
+                    <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
                     <span class="text">Профиль</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/achievements' %}active{% endif %}">
                 <a href="/achievements">
-                    <span class="icon">
-                        <ion-icon name="trophy-outline"></ion-icon>
-                    </span>
+                    <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
                     <span class="text">Достижения</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/statistics' %}active{% endif %}">
                 <a href="/statistics">
-                    <span class="icon">
-                        <ion-icon name="stats-chart-outline"></ion-icon>
-                    </span>
+                    <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
                     <span class="text">Статистика</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/settings' %}active{% endif %}">
                 <a href="/settings">
-                    <span class="icon">
-                        <ion-icon name="settings-outline"></ion-icon>
-                    </span>
+                    <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
                     <span class="text">Настройки</span>
                 </a>
             </li>
-            <!-- Индикатор должен быть после всех пунктов меню -->
             <div class="indicator"></div>
         </ul>
     </nav>
 
-    <!-- Скрипты -->
-    <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-    <script src="{{ url_for('static', path='js/animations.js') }}"></script>
+    <!-- Подключаем скрипты -->
+    <!-- Если есть animations.js, подключаем тоже, но главное - matrix.js -->
+    <script src="/static/js/matrix.js"></script>
 </body>
 </html>
