@@ -1,3 +1,5 @@
+/* static/css/styles.css */
+
 /* ========= Общие стили и переменные ========= */
 :root {
     --base-bg: #151F28;
@@ -9,13 +11,15 @@
         0 0 20px  #00ff00;
     --active-color: #29fd53;
     --clr: #151F28;
+    --primary-font: 'Roboto', sans-serif; /* Основной шрифт */
+    --secondary-font: 'MyCustomFont', sans-serif; /* Вторичный шрифт, если используется */
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--primary-font);
 }
 
 body {
@@ -24,7 +28,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding-bottom: 70px; /* чтобы контент не заходил под нижнюю навигацию */
+    padding-bottom: 70px; /* Чтобы контент не заходил под нижнюю навигацию */
 }
 
 /* Фоновый слой */
@@ -46,9 +50,9 @@ body {
     left: 0;
     width: 100%;
     height: 40%; /* Дождь занимает нижние 40% экрана */
-    overflow: hidden;       /* чтобы "капли" обрезались по экрану */
-    pointer-events: none;   /* клики сквозь дождь */
-    z-index: 2;             /* между background-layer (z=1) и контентом (z=3) */
+    overflow: hidden;       /* Чтобы "капли" обрезались по экрану */
+    pointer-events: none;   /* Клики сквозь дождь */
+    z-index: 2;             /* Между background-layer (z=1) и контентом (z=3) */
     animation: animateColor 5s linear infinite; /* Анимация изменения цвета всей области дождя */
 }
 
@@ -123,10 +127,12 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Центрируем содержимое по вертикали */
-    align-items: center;     /* Центрируем содержимое по горизонтали */
+    justify-content: flex-start; /* Размещает содержимое сверху */
+    align-items: center;          /* Центрирование по горизонтали */
     position: relative;
-    z-index: 3; /* выше, чем matrix-rain (z=2) */
+    z-index: 3; /* Выше, чем matrix-rain (z=2) */
+    padding-top: 50px; /* Верхний внутренний отступ */
+    gap: 40px; /* Пространство между элементами */
 }
 
 /* Галерея */
@@ -134,18 +140,20 @@ body {
     position: relative;
     width: 100%;
     max-width: 220px;
-    margin: 20px 0; /* Добавляем вертикальные отступы */
-    height: 160px;
+    margin: 20px 0; /* Отступ сверху и снизу */
+    margin-top: 60px; /* Увеличенный верхний отступ на 20px */
+    height: 180px; /* Увеличенная высота контейнера */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 20;
+    transform: translateY(20px); /* Опускание галереи на 20 пикселей */
 }
 
 .gallery__container {
     position: relative;
     width: 140px;
-    height: 160px;
+    height: 180px; /* Увеличенная высота контейнера */
     transform-style: preserve-3d;
     animation: rotate 20s linear infinite;
 }
@@ -158,20 +166,20 @@ body {
     height: 95%;
     margin: 2.5%;
     transform-origin: center;
-    transform-style: preserve-3d;
-    transform: rotateY(calc(var(--i) * 45deg)) translateZ(180px);
+    transform: rotateY(calc(var(--i) * 45deg)) translateZ(182px); /* Уменьшенный translateZ на 2px для уменьшения расстояния между карточками */
 }
 
 .gallery__container span img {
     position: absolute;
     width: 100%;
-    height: 100%;
+    height: 120%; /* Увеличенная высота изображений */
     border-radius: 8px;
     object-fit: cover;
     cursor: pointer;
     transition: 0.5s;
 }
 
+/* Анимация вращения галереи */
 @keyframes rotate {
     0% {
         transform: perspective(1000px) rotateY(0deg);
@@ -179,6 +187,54 @@ body {
     100% {
         transform: perspective(1000px) rotateY(360deg);
     }
+}
+
+/* Стили для эффекта печатающегося текста */
+/* static/css/styles.css */
+
+.typewriter {
+    font-family: var(--primary-font); /* Используйте ваш выбранный шрифт */
+    color: #ffffff; /* Белый цвет текста */
+    font-size: 3em; /* Размер шрифта */
+    white-space: nowrap; /* Запрет переноса строк */
+    overflow: hidden; /* Скрыть переполнение */
+    border-right: 0.15em solid #ffffff; /* Курсор */
+    width: 28ch; /* Ширина контейнера под количество символов */
+    margin-top: 20px; /* Верхний отступ */
+    margin-bottom: 40px; /* Нижний отступ */
+    animation: fadeIn 1s forwards, blink-caret 0.75s step-end infinite;
+    text-align: center;
+    opacity: 0; /* Начальная прозрачность для анимации */
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes blink-caret {
+    from, to {
+        border-color: transparent;
+    }
+    50% {
+        border-color: #ffffff;
+    }
+}
+
+#cursor {
+    display: inline-block;
+    background-color: #ffffff; /* Цвет курсора */
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
 /* Центрированный текст для остальных страниц */
@@ -190,6 +246,7 @@ body {
     text-align: center;
     color: #ffffff; /* Белый цвет текста */
     padding: 20px;
+    min-height: calc(100vh - 70px); /* Высота экрана минус высота навигации */
 }
 
 /* Нижняя навигация */
@@ -348,4 +405,42 @@ body {
     .navigation ul li:nth-child(5).active ~ .indicator {
         transform: translateX(calc(60px * 4));
     }
+
+    /* Адаптация размеров текста и галереи для мобильных устройств */
+    .typewriter {
+        font-size: 2.5em; /* Уменьшенный размер шрифта */
+        width: 22ch;
+        margin-top: 15px; /* Уменьшенный верхний отступ */
+        margin-bottom: 30px; /* Уменьшенный нижний отступ */
+    }
+
+    .gallery {
+        max-width: 180px; /* Уменьшенная ширина галереи */
+        height: 130px; /* Уменьшенная высота контейнера */
+        margin-top: 50px; /* Опущена на дополнительные 20px */
+        transform: translateY(20px); /* Дополнительное опускание */
+    }
 }
+
+/* Плавные переходы для текстовых элементов */
+.typewriter, .gallery {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Дополнительные стили для кастомного курсора (опционально) */
+#cursor {
+    display: inline-block;
+    background-color: #ffffff; /* Цвет курсора */
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+

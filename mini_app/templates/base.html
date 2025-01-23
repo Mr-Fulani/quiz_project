@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>{% block title %}Мое приложение{% endblock %}</title>
 
+    <!-- Подключение шрифтов -->
+<!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
+
     <!-- Подключаем стили -->
     <link rel="stylesheet" href="/static/css/styles.css">
 
@@ -63,9 +66,11 @@
             <div class="indicator"></div>
         </ul>
     </nav>
-
+    <!-- Аудио элемент для звука печати -->
+    <audio id="typing-sound" src="/static/audio/typing.mp3" preload="auto"></audio>
     <!-- Подключаем скрипты -->
-    <!-- Если есть animations.js, подключаем тоже, но главное - matrix.js -->
     <script src="/static/js/matrix.js"></script>
+    {% block extra_js %}
+    {% endblock %}
 </body>
 </html>

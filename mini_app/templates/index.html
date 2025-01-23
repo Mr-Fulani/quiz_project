@@ -9,7 +9,11 @@
 {% endblock %}
 
 {% block content %}
-<h1>Добро пожаловать!</h1>
+<!-- Контейнер для эффекта печатающегося текста -->
+<div class="typewriter">
+    <span id="typed-text"></span>
+    <span id="cursor">|</span>
+</div>
 
 <!-- Галерея -->
 <div class="gallery">
@@ -42,4 +46,8 @@
         <!-- При необходимости добавьте больше изображений, увеличив значение --i -->
     </div>
 </div>
+
+<!-- Подключаем скрипты -->
+<script src="/static/js/matrix.js"></script>
+<script src="/static/js/typewriter.js"></script>
 {% endblock %}
