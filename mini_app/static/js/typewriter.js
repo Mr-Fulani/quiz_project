@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const newTextDelay = 2000; // Задержка перед началом печати следующего текста (мс)
     let textIndex = 0;
     let charIndex = 0;
+    let isTyping = false;
 
     function type() {
         if (charIndex < texts[textIndex].length) {
@@ -41,16 +42,38 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // Запуск эффекта печати при клике на кнопку
+    // Функция для запуска печати
+    function startTyping() {
+        if (!isTyping) {
+            isTyping = true;
+            type();
+            // Удалить обработчик после первого запуска
+            document.removeEventListener("click", handleClick);
+            document.removeEventListener("touchstart", handleClick);
+        }
+    }
+
+    // Обработчик клика или тапа
+    function handleClick(event) {
+        const target = event.target;
+        // Проверяем, ведёт ли клик на другую страницу
+        // Например, если клик по ссылке с href, которая не является "#"
+        if (target.tagName.toLowerCase() === 'a' && target.getAttribute('href') && target.getAttribute('href') !== '#') {
+            return; // Не запускаем эффект, если клик по ссылке
+        }
+        startTyping();
+    }
+
+    // Добавляем глобальные обработчики событий
+    document.addEventListener("click", handleClick);
+    document.addEventListener("touchstart", handleClick);
+
+    // Если вы используете кнопку, добавьте дополнительный обработчик
     const startButton = document.getElementById("start-button");
     if (startButton) {
-        startButton.addEventListener("click", function() {
-            if (!document.getElementById("typed-text").textContent.length) {
-                type();
-            }
+        startButton.addEventListener("click", function(event) {
+            event.preventDefault(); // Предотвращаем возможную навигацию
+            startTyping();
         });
-    } else {
-        // Автоматический запуск без кнопки
-        setTimeout(type, newTextDelay + 250);
     }
 });
