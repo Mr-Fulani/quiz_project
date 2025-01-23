@@ -1,4 +1,3 @@
-<!-- quiz_project/mini_app/templates/profile.html -->
 {% extends "base.html" %}
 
 {% block title %}
@@ -6,20 +5,22 @@
 {% endblock %}
 
 {% block content %}
-<h1>Профиль пользователя</h1>
+<div class="centered-text">
+    <h1>Профиль пользователя</h1>
 
-{% if user %}
-    <p>Telegram ID: {{ user.telegram_id }}</p>
-    <p>Username: {{ user.username }}</p>
-    <img src="{{ user.avatar_url }}" alt="Аватар пользователя" width="150" height="150">
+    {% if user %}
+        <p>Telegram ID: {{ user.telegram_id }}</p>
+        <p>Username: {{ user.username }}</p>
+        <img src="{{ user.avatar_url }}" alt="Аватар пользователя" width="150" height="150">
 
-    <!-- Пример формы для загрузки аватарки -->
-    <form action="/profile/{{ user.telegram_id }}/update/" method="post" enctype="multipart/form-data">
-        <label for="avatar">Аватар:</label>
-        <input type="file" name="avatar" id="avatar" required>
-        <button type="submit">Обновить профиль</button>
-    </form>
-{% else %}
-    <p>Информация о пользователе недоступна.</p>
-{% endif %}
+        <!-- Пример формы для загрузки аватарки -->
+        <form action="/profile/{{ user.telegram_id }}/update/" method="post" enctype="multipart/form-data">
+            <label for="avatar">Аватар:</label>
+            <input type="file" name="avatar" id="avatar" required>
+            <button type="submit">Обновить профиль</button>
+        </form>
+    {% else %}
+        <p>Информация о пользователе недоступна.</p>
+    {% endif %}
+</div>
 {% endblock %}

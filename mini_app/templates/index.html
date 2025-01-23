@@ -1,14 +1,17 @@
-<!-- quiz_project/mini_app/templates/index.html -->
 {% extends "base.html" %}
 
 {% block title %}
 Главная страница
 {% endblock %}
 
+{% block rain %}
+<div class="matrix-rain"></div>
+{% endblock %}
+
 {% block content %}
 <h1>Добро пожаловать!</h1>
 
-<!-- Пример галереи -->
+<!-- Галерея -->
 <div class="gallery">
     <div class="gallery__container">
         <!-- Каждый span представляет собой элемент галереи с уникальным изображением -->

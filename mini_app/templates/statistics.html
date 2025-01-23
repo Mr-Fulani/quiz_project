@@ -1,4 +1,3 @@
-<!-- quiz_project/mini_app/templates/statistics.html -->
 {% extends "base.html" %}
 
 {% block title %}
@@ -6,12 +5,14 @@
 {% endblock %}
 
 {% block content %}
-<h1>Статистика</h1>
-<p>Здесь отображаются ваши статистические данные.</p>
+<div class="centered-text">
+    <h1>Статистика</h1>
+    <p>Здесь отображаются ваши статистические данные.</p>
 
-<!-- Пример простых статистических данных -->
-<ul>
-    <li>Количество достижений: {{ achievements | length }}</li>
-    <li>Другие статистики: ...</li>
-</ul>
+    <!-- Пример простых статистических данных -->
+    <ul>
+        <li>Количество достижений: {{ achievements | length }}</li>
+        <li>Другие статистики: ...</li>
+    </ul>
+</div>
 {% endblock %}

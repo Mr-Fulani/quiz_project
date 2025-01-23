@@ -1,4 +1,7 @@
+// matrix.js
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Ищем элемент с классом .matrix-rain
     const container = document.querySelector('.matrix-rain');
     if (!container) {
         console.warn('Не найден .matrix-rain');
@@ -9,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const drop = document.createElement('div');
         drop.className = 'matrix-drop';
 
-        // Случайная позиция по горизонтали
+        // Случайная позиция по горизонтали внутри контейнера
         const left = Math.floor(Math.random() * window.innerWidth);
         drop.style.left = left + 'px';
         drop.style.top = '-20px';
@@ -20,8 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Случайная скорость падения (2..4 секунд)
         const duration = 2 + Math.random() * 2;
-        // Если используете цветовую анимацию, добавьте её сюда
-        drop.style.animation = `fall ${duration}s linear, colorShift ${duration * 2}s linear`;
+        // Обновляем анимации с учётом новых ключевых кадров
+        drop.style.animation = `fall ${duration}s linear, dropAnimate ${duration}s ease-in-out`;
 
         // Начальный случайный оттенок цвета (0..360)
         const hue = Math.floor(Math.random() * 360);  // Полный спектр
