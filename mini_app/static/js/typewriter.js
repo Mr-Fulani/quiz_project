@@ -1,79 +1,71 @@
 // static/js/typewriter.js
 
 document.addEventListener("DOMContentLoaded", function() {
+    console.log("=== Инициализация typewriter.js ===");
+    
     const typedTextSpan = document.getElementById("typed-text");
     const cursorSpan = document.getElementById("cursor");
-    const typingSound = document.getElementById("typing-sound");
-
-    const texts = ["Выбери тему", "Треннеруйся", "Повышай уровень"]; // Массив текстов для печати
-    const typingDelay = 100; // Задержка между символами (мс)
-    const erasingDelay = 50; // Задержка между удалением символов (мс)
-    const newTextDelay = 2000; // Задержка перед началом печати следующего текста (мс)
-    let textIndex = 0;
-    let charIndex = 0;
-    let isTyping = false;
-
-    function type() {
-        if (charIndex < texts[textIndex].length) {
-            typedTextSpan.textContent += texts[textIndex].charAt(charIndex);
-            // Воспроизвести звук, если символ не пробел
-            if (texts[textIndex].charAt(charIndex) !== " ") {
-                typingSound.currentTime = 0; // Сбросить время воспроизведения
-                typingSound.play().catch(error => {
-                    console.error("Ошибка воспроизведения звука:", error);
-                });
-            }
-            charIndex++;
-            setTimeout(type, typingDelay);
-        } else {
-            setTimeout(erase, newTextDelay);
-        }
-    }
-
-    function erase() {
-        if (charIndex > 0) {
-            typedTextSpan.textContent = texts[textIndex].substring(0, charIndex - 1);
-            charIndex--;
-            setTimeout(erase, erasingDelay);
-        } else {
-            textIndex++;
-            if (textIndex >= texts.length) textIndex = 0;
-            setTimeout(type, typingDelay + 1100);
-        }
-    }
-
-    // Функция для запуска печати
-    function startTyping() {
-        if (!isTyping) {
-            isTyping = true;
-            type();
-            // Удалить обработчик после первого запуска
-            document.removeEventListener("click", handleClick);
-            document.removeEventListener("touchstart", handleClick);
-        }
-    }
-
-    // Обработчик клика или тапа
-    function handleClick(event) {
-        const target = event.target;
-        // Проверяем, ведёт ли клик на другую страницу
-        // Например, если клик по ссылке с href, которая не является "#"
-        if (target.tagName.toLowerCase() === 'a' && target.getAttribute('href') && target.getAttribute('href') !== '#') {
-            return; // Не запускаем эффект, если клик по ссылке
-        }
-        startTyping();
-    }
-
-    // Добавляем глобальные обработчики событий
-    document.addEventListener("click", handleClick);
-    document.addEventListener("touchstart", handleClick);
-
-    // Если вы используете кнопку, добавьте дополнительный обработчик
-    const startButton = document.getElementById("start-button");
-    if (startButton) {
-        startButton.addEventListener("click", function(event) {
-            event.preventDefault(); // Предотвращаем возможную навигацию
-            startTyping();
+    
+    // Создаем аудио объект
+    const typingSound = new Audio('/static/audio/typing.mp3');
+    typingSound.preload = 'auto';
+    typingSound.volume = 0.5;
+    
+    // Флаг, указывающий, включен ли звук
+    let soundEnabled = false;
+    
+    // Функция для воспроизведения звука
+    function playTypingSound() {
+        if (!soundEnabled) return;
+        
+        typingSound.currentTime = 0;
+        typingSound.play().catch(error => {
+            console.error("Ошибка воспроизведения:", error);
         });
     }
+    
+    // Массив текстов для печати
+    const texts = ["Выбери тему", "Треннеруйся", "Повышай уровень"];
+    
+    let textArrayIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    let isEnd = false;
+    
+    function type() {
+        isEnd = false;
+        const currentText = texts[textArrayIndex];
+        
+        if (!isDeleting && charIndex < currentText.length) {
+            typedTextSpan.textContent = currentText.substring(0, charIndex + 1);
+            charIndex++;
+            if (charIndex % 3 === 0) {
+                playTypingSound();
+            }
+        } else if (isDeleting && charIndex > 0) {
+            typedTextSpan.textContent = currentText.substring(0, charIndex - 1);
+            charIndex--;
+        } else if (charIndex === 0) {
+            isDeleting = false;
+            textArrayIndex++;
+            if (textArrayIndex >= texts.length) textArrayIndex = 0;
+        } else if (charIndex === currentText.length) {
+            isEnd = true;
+            isDeleting = true;
+        }
+        
+        const humanizeDelay = Math.random() * 100 + 50;
+        const delta = isEnd ? 2000 : isDeleting ? 100 : humanizeDelay;
+        
+        setTimeout(type, delta);
+    }
+    
+    // Включаем звук по клику
+    document.addEventListener("click", function() {
+        console.log("Клик зарегистрирован, включаем звук");
+        soundEnabled = true;
+    }, { once: true });
+    
+    // Запускаем анимацию сразу после загрузки страницы
+    type();
 });

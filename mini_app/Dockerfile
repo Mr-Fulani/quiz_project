@@ -1,4 +1,5 @@
 # quiz_project/mini_app/Dockerfile
+FROM python:3.9
 
 # Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /mini_app
