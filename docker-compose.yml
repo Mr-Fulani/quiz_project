@@ -36,11 +36,11 @@ services:
     restart: unless-stopped
     entrypoint: ["/entrypoint.sh"]
 
-  django:
+  quiz_backend:
     build:
-      context: ./django_project
+      context: ./quiz_backend
       dockerfile: Dockerfile
-    container_name: django-app
+    container_name: quiz_backend
     env_file:
       - .env
     environment:
@@ -60,8 +60,9 @@ services:
       - DB_PORT=${DB_PORT}
     command: bash -c "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ./django_project:/app
+      - ./quiz_backend:/app
       - ./staticfiles:/app/staticfiles
+      - ./quiz_backend/static:/app/static
     ports:
       - "8001:8000"
     depends_on:
@@ -91,4 +92,3 @@ networks:
 
 volumes:
   postgres_data:
-

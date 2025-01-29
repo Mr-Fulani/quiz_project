@@ -1,5 +1,0 @@
-@import 'base/_reset.css';        /* Импорт сброса стилей */
-@import 'base/_typography.css';   /* Импорт основных стилей текста */
-@import 'components/_button.css';  /* Импорт стилей для кнопок */
-@import 'layouts/_header.css';     /* Импорт стилей для заголовка */
-@import 'pages/_home.css';         /* Импорт специфических стилей для главной страницы */
