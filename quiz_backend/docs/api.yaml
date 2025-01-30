@@ -1,0 +1,303 @@
+openapi: 3.0.0
+info:
+  title: Quiz API
+  description: API для системы тестирования
+  version: 1.0.0
+
+tags:
+  - name: accounts
+    description: Управление пользователями и аутентификацией
+  - name: tasks
+    description: Управление задачами и их статистикой
+  - name: topics
+    description: Управление темами и подтемами
+  - name: platforms
+    description: Управление платформами (Telegram каналы)
+  - name: feedback
+    description: Обратная связь от пользователей
+  - name: webhooks
+    description: Обработка вебхуков от Telegram
+
+paths:
+  /api/tasks/:
+    get:
+      tags: [tasks]
+      summary: Получить список задач
+      description: |
+        Возвращает список задач с поддержкой пагинации, фильтрации и сортировки.
+        
+        Параметры фильтрации:
+        - topic_id: ID темы
+        - subtopic_id: ID подтемы
+        - difficulty: Сложность задачи
+        - min_points: Минимальное количество баллов
+        - max_points: Максимальное количество баллов
+        
+        Параметры пагинации:
+        - page: Номер страницы
+        - page_size: Размер страницы
+        
+        Параметры сортировки:
+        - ordering: Поле для сортировки (например, -created_at)
+      parameters:
+        - name: page
+          in: query
+          description: Номер страницы
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          description: Размер страницы
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+
+  /api/platforms/telegram/channels/:
+    get:
+      tags: [platforms]
+      summary: Получить список Telegram каналов
+      description: |
+        Возвращает список подключенных Telegram каналов с поддержкой пагинации и фильтрации.
+        
+        Параметры фильтрации:
+        - group_name: Название группы/канала
+        - language: Язык контента
+        - location_type: Тип (group/channel)
+        - topic_id: ID связанной темы
+      parameters:
+        - name: page
+          in: query
+          description: Номер страницы
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelegramChannelList'
+
+  /api/platforms/telegram/channels/stats/:
+    get:
+      tags: [platforms]
+      summary: Получить статистику по каналам
+      description: |
+        Возвращает общую статистику по всем каналам:
+        - Общее количество каналов
+        - Количество активных каналов
+        - Распределение по языкам
+        - Распределение по типам
+        - Статистика подписчиков
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelStats'
+
+  /api/platforms/telegram/channels/health/:
+    get:
+      tags: [platforms]
+      summary: Проверка здоровья каналов
+      description: |
+        Возвращает статус здоровья для каждого канала:
+        - Активность
+        - Последняя активность
+        - Количество подписчиков
+        - Оценка здоровья (0-100)
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelHealth'
+
+  /api/feedback/:
+    get:
+      tags: [feedback]
+      summary: Получить список отзывов
+      description: |
+        Возвращает список отзывов с поддержкой пагинации и фильтрации.
+        Для админов - все отзывы, для пользователей - только свои.
+      parameters:
+        - name: page
+          in: query
+          description: Номер страницы
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackList'
+    
+    post:
+      tags: [feedback]
+      summary: Создать новый отзыв
+      description: Отправка нового отзыва пользователем
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreate'
+      responses:
+        '201':
+          description: Отзыв успешно создан
+
+  /api/webhooks/telegram/:
+    post:
+      tags: [webhooks]
+      summary: Webhook для Telegram
+      description: |
+        Endpoint для приема вебхуков от Telegram Bot API.
+        Обрабатывает различные типы обновлений:
+        - Новые сообщения
+        - Ответы на вопросы
+        - Команды бота
+        - Присоединение/выход из групп
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelegramUpdate'
+      responses:
+        '200':
+          description: Обновление успешно обработано
+        '400':
+          description: Неверный формат данных
+        '401':
+          description: Неверный токен
+
+  /api/webhooks/telegram/setup/:
+    post:
+      tags: [webhooks]
+      summary: Настройка webhook
+      description: |
+        Настраивает webhook URL в Telegram Bot API.
+        Только для администраторов.
+      responses:
+        '200':
+          description: Webhook успешно настроен
+
+components:
+  schemas:
+    TelegramChannel:
+      type: object
+      properties:
+        id:
+          type: integer
+        group_name:
+          type: string
+        group_id:
+          type: integer
+        topic:
+          $ref: '#/components/schemas/Topic'
+        language:
+          type: string
+          enum: [ru, en]
+        location_type:
+          type: string
+          enum: [group, channel]
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TelegramChannelList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelegramChannel'
+
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: integer
+        user:
+          type: string
+        type:
+          type: string
+          enum: [bug, feature, question, other]
+        subject:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [new, in_progress, resolved, closed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FeedbackCreate:
+      type: object
+      required:
+        - type
+        - subject
+        - message
+      properties:
+        type:
+          type: string
+          enum: [bug, feature, question, other]
+        subject:
+          type: string
+        message:
+          type: string
+
+    TelegramUpdate:
+      type: object
+      properties:
+        update_id:
+          type: integer
+        message:
+          type: object
+        callback_query:
+          type: object 

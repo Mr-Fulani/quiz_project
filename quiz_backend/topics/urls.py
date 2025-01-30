@@ -1,0 +1,21 @@
+from django.urls import path
+from . import views
+
+app_name = 'topics'
+
+urlpatterns = [
+    # Topics
+    path('', views.TopicListView.as_view(), name='topic-list'),
+    path('<int:pk>/', views.TopicDetailView.as_view(), name='topic-detail'),
+    path('create/', views.TopicCreateView.as_view(), name='topic-create'),
+    path('<int:pk>/update/', views.TopicUpdateView.as_view(), name='topic-update'),
+    path('<int:pk>/delete/', views.TopicDeleteView.as_view(), name='topic-delete'),
+    
+    # Subtopics
+    path('subtopics/', views.SubtopicListView.as_view(), name='subtopic-list'),
+    path('subtopics/<int:pk>/', views.SubtopicDetailView.as_view(), name='subtopic-detail'),
+    path('subtopics/create/', views.SubtopicCreateView.as_view(), name='subtopic-create'),
+    path('<int:topic_id>/subtopics/', views.TopicSubtopicsView.as_view(), name='topic-subtopics'),
+    path('subtopics/<int:pk>/update/', views.SubtopicUpdateView.as_view(), name='subtopic-update'),
+    path('subtopics/<int:pk>/delete/', views.SubtopicDeleteView.as_view(), name='subtopic-delete'),
+] 
