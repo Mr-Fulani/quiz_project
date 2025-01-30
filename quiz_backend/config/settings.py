@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_yasg',
     'corsheaders',
+    'blog.apps.BlogConfig',
 ]
 
 MIDDLEWARE = [
@@ -81,8 +82,11 @@ ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
+        'NAME': 'django',  # Добавляем уникальное имя
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'blog' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -90,6 +94,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'blog.context_processors.personal_info',
             ],
         },
     },
@@ -148,10 +153,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Убедитесь, что эта папка существует
+    BASE_DIR / 'blog' / 'static',
 ]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Медиа файлы
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
