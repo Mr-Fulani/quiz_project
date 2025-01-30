@@ -5,7 +5,15 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.shortcuts import render
 
+
+# Функция обработки ошибки 404
+def custom_404_view(request, exception):
+    return render(request, "404.html", status=404)
+
+
+# Настройки Swagger
 schema_view = get_schema_view(
     openapi.Info(
         title="Quiz API",
@@ -19,6 +27,8 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+
+# Основной список URL-ов
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('blog.urls')),  # Главная страница
@@ -34,3 +44,8 @@ urlpatterns = [
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+# Обработчик ошибки 404 (должен быть указан **после** `urlpatterns`)
+from django.conf.urls import handler404
+handler404 = custom_404_view

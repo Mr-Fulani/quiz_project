@@ -417,149 +417,51 @@
 
                 <section class="projects">
                     <ul class="filter-list">
-                        <li class="filter-item"><button class="active" data-filter-btn>All</button></li>
-                        <li class="filter-item"><button data-filter-btn>Web Design</button></li>
-                        <li class="filter-item"><button data-filter-btn>Applications</button></li>
-                        <li class="filter-item"><button data-filter-btn>Web Development</button></li>
+                        <li class="filter-item">
+                            <button class="active" data-filter-btn>All</button>
+                        </li>
+                        {% for category in categories %}
+                        <li class="filter-item">
+                            <button data-filter-btn>{{ category.name }}</button>
+                        </li>
+                        {% endfor %}
                     </ul>
 
                     <div class="filter-select-box">
                         <button class="filter-select" data-select>
-                            <div class="select-value" data-select-value>Select Category</div>
-
+                            <div class="select-value" data-select-value>Select category</div>
                             <div class="select-icon">
                                 <ion-icon name="chevron-down"></ion-icon>
                             </div>
                         </button>
 
                         <ul class="select-list">
-                            <li class="select-item"><button data-select-item>All</button></li>
-                            <li class="select-item"><button data-select-item>Web Design</button></li>
-                            <li class="select-item"><button data-select-item>Applications</button></li>
-                            <li class="select-item"><button data-select-item>Web Development</button></li>
+                            <li class="select-item">
+                                <button data-select-item>All</button>
+                            </li>
+                            {% for category in categories %}
+                            <li class="select-item">
+                                <button data-select-item>{{ category.name }}</button>
+                            </li>
+                            {% endfor %}
                         </ul>
                     </div>
 
                     <ul class="project-list">
-                        <li class="project-item active" data-filter-item data-category="web development">
-                            <a href="#">
+                        {% for project in projects %}
+                        <li class="project-item active" data-filter-item data-category="{{ project.category.name|lower }}">
+                            <a href="{% url 'blog:project_detail' project.slug %}">
                                 <figure class="project-img">
                                     <div class="project-item-icon-box">
                                         <ion-icon name="eye-outline"></ion-icon>
                                     </div>
-
-                                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600" alt="finance" loading="lazy">
+                                    <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
                                 </figure>
-
-                                <h3 class="project-title">Orizon</h3>
-                                <p class="project-category">Web Development</p>
+                                <h3 class="project-title">{{ project.title }}</h3>
+                                <p class="project-category">{{ project.technologies }}</p>
                             </a>
                         </li>
-
-                        <li class="project-item active" data-filter-item data-category="web design">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1522542550221-31fd19575a2d?w=600" alt="fundo" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">Fundo</h3>
-                                <p class="project-category">Web Design</p>
-                            </a>
-                        </li>
-
-                        <li class="project-item active" data-filter-item data-category="applications">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600" alt="brawlhalla" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">Brawlhalla</h3>
-                                <p class="project-category">Applications</p>
-                            </a>
-                        </li>
-
-                        <li class="project-item active" data-filter-item data-category="web design">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600" alt="dsm" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">DSM.</h3>
-                                <p class="project-category">Web Design</p>
-                            </a>
-                        </li>
-
-                        <li class="project-item active" data-filter-item data-category="web design">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1522542550221-31fd19575a2d?w=600" alt="metaspark" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">Metaspark</h3>
-                                <p class="project-category">Web Design</p>
-                            </a>
-                        </li>
-
-                        <li class="project-item active" data-filter-item data-category="web development">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600" alt="summary" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">Summary</h3>
-                                <p class="project-category">Web Development</p>
-                            </a>
-                        </li>
-
-                        <li class="project-item active" data-filter-item data-category="applications">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600" alt="task manager" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">Task Manager</h3>
-                                <p class="project-category">Applications</p>
-                            </a>
-                        </li>
-
-                        <li class="project-item active" data-filter-item data-category="web development">
-                            <a href="#">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-
-                                    <img src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600" alt="arrival" loading="lazy">
-                                </figure>
-
-                                <h3 class="project-title">Arrival</h3>
-                                <p class="project-category">Web Development</p>
-                            </a>
-                        </li>
+                        {% endfor %}
                     </ul>
                 </section>
             </article>
@@ -571,82 +473,28 @@
 
                 <section class="blog-posts">
                     <ul class="blog-posts-list">
+                        {% for post in blog_posts %}
                         <li class="blog-post-item">
-                            <a href="#">
+                            <a href="{% url 'blog:post_detail' post.slug %}">
                                 <figure class="blog-banner-box">
-                                    <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600" alt="Design conferences" loading="lazy">
+                                    <img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy">
                                 </figure>
 
                                 <div class="blog-content">
                                     <div class="blog-meta">
-                                        <p class="blog-category">Design</p>
+                                        <p class="blog-category">{{ post.category.name }}</p>
                                         <span class="dot"></span>
-                                        <time datetime="2024-02-23">Feb 23, 2024</time>
+                                        <time datetime="{{ post.created_at|date:'Y-m-d' }}">
+                                            {{ post.created_at|date:"M d, Y" }}
+                                        </time>
                                     </div>
 
-                                    <h3 class="h3 blog-item-title">Design conferences in 2024</h3>
-                                    <p class="blog-text">In 2024, several exciting design conferences are set to take place, offering opportunities for professionals and enthusiasts to connect, learn, and share innovative ideas.</p>
+                                    <h3 class="h3 blog-item-title">{{ post.title }}</h3>
+                                    <p class="blog-text">{{ post.excerpt|default:post.content|truncatewords:30 }}</p>
                                 </div>
                             </a>
                         </li>
-
-                        <li class="blog-post-item">
-                            <a href="#">
-                                <figure class="blog-banner-box">
-                                    <img src="https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=600" alt="Best fonts" loading="lazy">
-                                </figure>
-
-                                <div class="blog-content">
-                                    <div class="blog-meta">
-                                        <p class="blog-category">Design</p>
-                                        <span class="dot"></span>
-                                        <time datetime="2024-01-29">Jan 29, 2024</time>
-                                    </div>
-
-                                    <h3 class="h3 blog-item-title">Best fonts every designer</h3>
-                                    <p class="blog-text">When it comes to typography, choosing the right font is essential for effective design. In this article, I'll bring a brief overview of some of the best fonts that every designer should consider incorporating into their toolkit.</p>
-                                </div>
-                            </a>
-                        </li>
-
-                        <li class="blog-post-item">
-                            <a href="#">
-                                <figure class="blog-banner-box">
-                                    <img src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600" alt="Design digest" loading="lazy">
-                                </figure>
-
-                                <div class="blog-content">
-                                    <div class="blog-meta">
-                                        <p class="blog-category">Design</p>
-                                        <span class="dot"></span>
-                                        <time datetime="2023-12-20">Dec 20, 2023</time>
-                                    </div>
-
-                                    <h3 class="h3 blog-item-title">Design digest #80</h3>
-                                    <p class="blog-text">Hello, my friends. In this Design Digest, I'll show you a curated collection of the latest trends, insights, and innovations in the design world. This edition highlights key themes and discussions that are shaping the future of design.</p>
-                                </div>
-                            </a>
-                        </li>
-
-
-                        <li class="blog-post-item">
-                            <a href="#">
-                                <figure class="blog-banner-box">
-                                    <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600" alt="Web Development Trends" loading="lazy">
-                                </figure>
-
-                                <div class="blog-content">
-                                    <div class="blog-meta">
-                                        <p class="blog-category">Development</p>
-                                        <span class="dot"></span>
-                                        <time datetime="2023-10-15">Oct 15, 2023</time>
-                                    </div>
-
-                                    <h3 class="h3 blog-item-title">Web Development Trends 2024</h3>
-                                    <p class="blog-text">Exploring the latest trends in web development, from serverless architecture to progressive web apps, and how they're shaping the future of the internet.</p>
-                                </div>
-                            </a>
-                        </li>
+                        {% endfor %}
                     </ul>
                 </section>
             </article>
@@ -659,7 +507,7 @@
                 <section class="mapbox" data-mapbox>
                     <figure>
                         <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.2894267739918!2d28.974372376352787!3d41.00543197134907!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14cab9bd6570f4e1%3A0xe52df7368a104b35!2sSultan%20Ahmed%20Mosque!5e0!3m2!1sen!2str!4v1709834058953!5m2!1sen!2str" 
-                            width="400" height="300" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                    width="400" height="300" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </figure>
                 </section>
 

@@ -85,7 +85,8 @@ TEMPLATES = [
         'NAME': 'django',  # Добавляем уникальное имя
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'blog' / 'templates',
+            BASE_DIR / 'templates',  # Добавляем глобальные шаблоны
+            BASE_DIR / 'blog' / 'templates',  # Оставляем шаблоны blog
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -99,6 +100,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'config.wsgi.application'
 

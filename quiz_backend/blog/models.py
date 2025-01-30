@@ -50,6 +50,12 @@ class Project(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField()
     technologies = models.CharField(max_length=200)
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
     image = models.ImageField(upload_to='blog/projects/')
     github_link = models.URLField(blank=True)
     demo_link = models.URLField(blank=True)

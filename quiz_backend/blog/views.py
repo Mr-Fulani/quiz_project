@@ -6,7 +6,7 @@ from django.utils import timezone
 from .models import Category, Post, Project
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from rest_framework.views import APIView
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, DetailView
 
 # Create your views here.
 
@@ -59,12 +59,22 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['user_data'] = {
-            'name': 'Richard Hanrick',
-            'title': 'Web Developer',
-            'email': 'richard@example.com',
-            'phone': '+1 (213) 352-2795',
-            'birthday': 'June 23, 1982',
-            'location': 'Sacramento, California, USA'
-        }
+        # Получаем опубликованные посты
+        context['blog_posts'] = Post.objects.filter(published=True).order_by('-created_at')[:4]
+        # Получаем проекты, сначала featured
+        context['projects'] = Project.objects.all().order_by('-featured', '-created_at')[:6]
+        # Получаем категории для фильтрации
+        context['categories'] = Category.objects.all()
         return context
+
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/post_detail.html'
+    context_object_name = 'post'
+    slug_url_kwarg = 'slug'
+
+class ProjectDetailView(DetailView):
+    model = Project
+    template_name = 'blog/project_detail.html'
+    context_object_name = 'project'
+    slug_url_kwarg = 'slug'

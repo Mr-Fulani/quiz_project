@@ -1,0 +1,23 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<article class="post-detail">
+    <header>
+        <h1>{{ post.title }}</h1>
+        <div class="meta">
+            <span class="category">{{ post.category.name }}</span>
+            <time>{{ post.created_at|date:"F d, Y" }}</time>
+        </div>
+    </header>
+
+    {% if post.image %}
+    <figure class="post-image">
+        <img src="{{ post.image.url }}" alt="{{ post.title }}">
+    </figure>
+    {% endif %}
+
+    <div class="post-content">
+        {{ post.content|safe }}
+    </div>
+</article>
+{% endblock %} 
