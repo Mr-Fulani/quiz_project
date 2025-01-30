@@ -16,7 +16,7 @@ urlpatterns = [
     
     # Управление подписками
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscription-list'),
-    path('subscriptions/<int:channel_id>/', views.SubscriptionDetailView.as_view(), name='subscription-detail'),
+    path('subscriptions/<int:pk>/', views.SubscriptionDetailView.as_view(), name='subscription-detail'),
     
     # Администраторы
     path('admins/', views.AdminListView.as_view(), name='admin-list'),

@@ -53,23 +53,13 @@ class ProfileSerializer(serializers.ModelSerializer):
     """
     Сериализатор для профиля пользователя.
     """
-    total_tasks = serializers.IntegerField(read_only=True)
-    successful_tasks = serializers.IntegerField(read_only=True)
-
     class Meta:
         model = CustomUser
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name',
-            'language', 'subscription_status', 'created_at',
-            'total_tasks', 'successful_tasks'
+            'language', 'subscription_status', 'created_at'
         )
         read_only_fields = ('id', 'created_at', 'subscription_status')
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['total_tasks'] = instance.task_statistics.count()
-        data['successful_tasks'] = instance.task_statistics.filter(successful=True).count()
-        return data
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     """

@@ -12,6 +12,11 @@ from .serializers import (
     SubscriptionSerializer,
     AdminSerializer
 )
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework.permissions import AllowAny
 
 # Create your views here.
 
@@ -89,6 +94,8 @@ class SubscriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SubscriptionSerializer
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # для swagger
+            return UserChannelSubscription.objects.none()
         return UserChannelSubscription.objects.filter(user=self.request.user)
 
 class AdminListView(generics.ListAPIView):
@@ -143,3 +150,19 @@ class UserStatsView(APIView):
             'subscriptions': user.channel_subscriptions.count()
         }
         return Response(stats)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CustomObtainAuthToken(ObtainAuthToken):
+    permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                         context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'username': user.username
+        })

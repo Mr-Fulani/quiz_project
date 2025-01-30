@@ -1,6 +1,3 @@
-from django.db import models
-
-# Create your models here.
 import uuid
 from django.db import models
 from django.utils import timezone
@@ -144,6 +141,7 @@ class TaskStatistics(models.Model):
         indexes = [
             models.Index(fields=['last_attempt_date']),
         ]
+        unique_together = ('user', 'task')
 
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(
@@ -167,7 +165,7 @@ class TaskStatistics(models.Model):
         help_text='Успешно ли решена задача'
     )
     last_attempt_date = models.DateTimeField(
-        null=True,
+        auto_now=True,
         help_text='Дата последней попытки'
     )
 
