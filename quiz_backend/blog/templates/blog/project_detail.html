@@ -1,36 +1,44 @@
-{% extends 'blog/base.html' %}
+{% extends "blog/base.html" %}
+{% load static %}
 
 {% block content %}
-<article class="project-detail">
+<article class="project-detail active" data-page="project-detail">
     <header>
-        <h1>{{ project.title }}</h1>
-        <div class="meta">
-            <span class="category">{{ project.category.name }}</span>
-            <span class="technologies">{{ project.technologies }}</span>
-        </div>
+        <h2 class="h2 article-title">{{ project.title }}</h2>
     </header>
 
-    {% if project.image %}
-    <figure class="project-image">
-        <img src="{{ project.image.url }}" alt="{{ project.title }}">
-    </figure>
-    {% endif %}
-
-    <div class="project-content">
-        {{ project.description|safe }}
-    </div>
-
-    <div class="project-links">
-        {% if project.github_link %}
-        <a href="{{ project.github_link }}" class="btn" target="_blank">
-            <ion-icon name="logo-github"></ion-icon> GitHub
-        </a>
+    <section class="project-content">
+        {% if project.image %}
+        <figure class="project-banner">
+            <img src="{{ project.image.url }}" alt="{{ project.title }}">
+        </figure>
         {% endif %}
-        {% if project.demo_link %}
-        <a href="{{ project.demo_link }}" class="btn" target="_blank">
-            <ion-icon name="globe-outline"></ion-icon> Live Demo
-        </a>
-        {% endif %}
-    </div>
+
+        <div class="project-info">
+            <div class="meta">
+                {% for category in project.categories.all %}
+                <span class="category">{{ category.name }}</span>
+                {% endfor %}
+                <span class="technologies">{{ project.technologies }}</span>
+            </div>
+
+            <div class="project-text article-text">
+                {{ project.description|safe }}
+            </div>
+
+            <div class="project-links">
+                {% if project.github_link %}
+                <a href="{{ project.github_link }}" class="btn" target="_blank">
+                    <ion-icon name="logo-github"></ion-icon> GitHub
+                </a>
+                {% endif %}
+                {% if project.demo_link %}
+                <a href="{{ project.demo_link }}" class="btn" target="_blank">
+                    <ion-icon name="globe-outline"></ion-icon> Live Demo
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
 </article>
 {% endblock %} 

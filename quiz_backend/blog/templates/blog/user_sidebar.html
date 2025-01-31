@@ -1,0 +1,41 @@
+{% load static %}
+<div class="sidebar-info">
+    <figure class="avatar-box">
+        <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="{{ user.username }}" width="80">
+    </figure>
+
+    <div class="info-content">
+        <h1 class="name" title="{{ user.get_full_name|default:user.username }}">{{ user.get_full_name|default:user.username }}</h1>
+        <p class="title">User Profile</p>
+    </div>
+
+    <button class="info_more-btn" data-sidebar-btn>
+        <span>Show Stats</span>
+        <ion-icon name="chevron-down"></ion-icon>
+    </button>
+</div>
+
+<div class="sidebar-info_more">
+    <div class="separator"></div>
+    <ul class="contacts-list">
+        <li class="contact-item">
+            <div class="icon-box">
+                <ion-icon name="trophy-outline"></ion-icon>
+            </div>
+            <div class="contact-info">
+                <p class="contact-title">Solved Tasks</p>
+                <p class="contact-link">{{ user.statistics.solved_tasks|default:"0" }}</p>
+            </div>
+        </li>
+
+        <li class="contact-item">
+            <div class="icon-box">
+                <ion-icon name="star-outline"></ion-icon>
+            </div>
+            <div class="contact-info">
+                <p class="contact-title">Rating</p>
+                <p class="contact-link">{{ user.statistics.rating|default:"0" }}</p>
+            </div>
+        </li>
+    </ul>
+</div> 

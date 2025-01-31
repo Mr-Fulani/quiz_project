@@ -86,10 +86,29 @@ html { font-family: var(--ff-poppins); }
 
 body { background: var(--smoky-black); }
 
+/* Общий контейнер */
 main {
-    margin: 15px 12px;
-    margin-bottom: 75px;
-    min-width: 259px;
+    max-width: 1800px;
+    margin: 15px auto;
+    padding: 0 20px;
+    display: flex;
+    gap: 20px;
+}
+
+/* Сайдбар */
+.sidebar {
+    width: 300px;
+    min-width: 300px;
+    position: sticky;
+    top: 15px;
+    height: max-content;
+}
+
+/* Основной контент */
+.main-content {
+    flex: 1;
+    min-width: 0;
+    max-width: 1100px;
 }
 
 .sidebar, article {
@@ -232,10 +251,12 @@ article { display: none; }
     gap: 15px;
 }
 
-
-
 .avatar-box {
     background: var(--bg-gradient-onyx);
+    border-radius: 20px;
+}
+
+.avatar-box img {
     border-radius: 20px;
 }
 
@@ -1462,4 +1483,103 @@ textarea.form-input {
     .social-list { justify-content: center; }
 
     .timeline-text { max-width: 700px; }
+}
+
+/* Адаптивность */
+@media (max-width: 1400px) {
+    .main-content {
+        max-width: 800px;
+    }
+}
+
+@media (max-width: 992px) {
+    main {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-width: 0;
+        position: relative;
+    }
+
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* Адаптивные изображения для всех детальных страниц */
+.post-banner img,
+.project-banner img {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 14px;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .post-banner img,
+    .project-banner img {
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .post-banner img,
+    .project-banner img {
+        max-height: 200px;
+    }
+}
+
+/* Стили пагинации */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 30px;
+}
+
+.pagination-btn {
+    min-width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--onyx);
+    color: var(--light-gray);
+    border-radius: 8px;
+    font-size: var(--fs-6);
+    transition: var(--transition-1);
+}
+
+.pagination-btn:hover,
+.pagination-btn.active {
+    background: var(--orange-yellow-crayola);
+    color: var(--smoky-black);
+}
+
+/* Стили фильтра категорий */
+.filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.filter-item button {
+    background: var(--onyx);
+    color: var(--light-gray);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: var(--fs-6);
+    transition: var(--transition-1);
+}
+
+.filter-item button:hover,
+.filter-item button.active {
+    background: var(--orange-yellow-crayola);
+    color: var(--smoky-black);
 }

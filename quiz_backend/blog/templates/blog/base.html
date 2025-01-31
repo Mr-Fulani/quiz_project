@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ personal_info.name }} - Portfolio{% endblock %}</title>
+    
+    <link rel="stylesheet" href="{% static 'blog/css/style.css' %}">
+    <link rel="shortcut icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/x-icon">
+</head>
+<body>
+    <main>
+        <!-- Сайдбар -->
+        <aside class="sidebar" data-sidebar>
+            {% block sidebar %}
+                {% include "blog/sidebar.html" %}
+            {% endblock %}
+        </aside>
+        
+        <!-- Основной контент -->
+        <div class="main-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <script src="{% static 'blog/js/main.js' %}"></script>
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+</body>
+</html> 

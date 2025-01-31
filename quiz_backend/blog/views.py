@@ -7,6 +7,7 @@ from .models import Category, Post, Project
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from rest_framework.views import APIView
 from django.views.generic import TemplateView, DetailView
+from django.core.paginator import Paginator
 
 # Create your views here.
 
@@ -59,22 +60,64 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Получаем опубликованные посты
-        context['blog_posts'] = Post.objects.filter(published=True).order_by('-created_at')[:4]
-        # Получаем проекты, сначала featured
-        context['projects'] = Project.objects.all().order_by('-featured', '-created_at')[:6]
-        # Получаем категории для фильтрации
-        context['categories'] = Category.objects.all()
+        # Добавляем посты для блога
+        posts_list = Post.objects.all()
+        paginator = Paginator(posts_list, 5)
+        page = self.request.GET.get('page')
+        context['posts'] = paginator.get_page(page)
+        
+        # Добавляем только категории блога
+        context['categories'] = Category.objects.filter(is_portfolio=False)
+        
+        # Добавляем проекты и их категории
+        context['projects'] = Project.objects.all()
+        context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
+        
         return context
 
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/post_detail.html'
     context_object_name = 'post'
-    slug_url_kwarg = 'slug'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
+        # Добавляем остальной контекст
+        context['categories'] = Category.objects.all()
+        context['posts'] = Post.objects.all()[:5]  # Последние 5 постов для сайдбара
+        return context
 
 class ProjectDetailView(DetailView):
     model = Project
     template_name = 'blog/project_detail.html'
     context_object_name = 'project'
-    slug_url_kwarg = 'slug'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
+        # Добавляем остальной контекст
+        context['categories'] = Category.objects.all()
+        context['projects'] = Project.objects.all()[:5]  # Последние 5 проектов для сайдбара
+        return context
+
+def blog_view(request):
+    category_slug = request.GET.get('category')
+    posts_list = Post.objects.all()
+    
+    if category_slug:
+        posts_list = posts_list.filter(category__slug=category_slug)
+    
+    # Пагинация
+    paginator = Paginator(posts_list, 5)  # 5 постов на страницу
+    page = request.GET.get('page')
+    posts = paginator.get_page(page)
+    
+    # Получаем все категории
+    categories = Category.objects.filter(is_portfolio=False)
+    
+    context = {
+        'posts': posts,
+        'categories': categories,
+    }
+    return render(request, 'blog/blog.html', context)

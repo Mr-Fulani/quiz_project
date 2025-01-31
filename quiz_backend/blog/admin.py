@@ -3,10 +3,18 @@ from .models import Category, Post, Project
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'created_at')
+    list_display = ('name', 'is_portfolio', 'created_at')
+    list_filter = ('is_portfolio',)
+    search_fields = ('name', 'description')
     prepopulated_fields = {'slug': ('name',)}
-    search_fields = ('name',)
-    ordering = ('name',)
+    list_editable = ('is_portfolio',)
+    ordering = ('is_portfolio', 'name')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).order_by('is_portfolio', 'name')
+
+    def get_list_display(self, request):
+        return ('name', 'is_portfolio', 'created_at')
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):

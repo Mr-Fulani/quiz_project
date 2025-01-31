@@ -7,16 +7,17 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
+    is_portfolio = models.BooleanField(default=False, verbose_name='Portfolio Category')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
         ordering = ['name']
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({'Portfolio' if self.is_portfolio else 'Blog'})"
 
 class Post(models.Model):
     title = models.CharField(max_length=200)
