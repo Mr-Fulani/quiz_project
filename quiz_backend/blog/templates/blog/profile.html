@@ -1,0 +1,274 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="profile active" data-page="profile">
+    <header>
+        <h2 class="h2 article-title">Profile</h2>
+    </header>
+
+    <section class="profile-content">
+        <!-- Profile Navigation -->
+        <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="personal">Personal Info</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+            <button class="tab-btn" data-tab="security">Security</button>
+            <button class="tab-btn" data-tab="statistics">Quiz Statistics</button>
+        </div>
+
+        <!-- Personal Info Tab -->
+        <div class="tab-content active" data-tab-content="personal">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="Profile Avatar">
+                        <button class="change-avatar-btn">Change Photo</button>
+                    </div>
+                    <div class="profile-info">
+                        <h3 class="h3">John Doe</h3>
+                        <p class="profile-email">john.doe@example.com</p>
+                        <p class="profile-status">Member since: January 2024</p>
+                    </div>
+                </div>
+                <div class="profile-details">
+                    <form class="form">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input" placeholder="Full Name" value="John Doe">
+                            <input type="email" class="form-input" placeholder="Email" value="john.doe@example.com">
+                        </div>
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input" placeholder="Location" value="New York, USA">
+                            <input type="text" class="form-input" placeholder="Occupation" value="Software Developer">
+                        </div>
+                        <textarea class="form-input" placeholder="Bio">Full-stack developer with a passion for learning and teaching.</textarea>
+                        <button class="form-btn" type="submit">
+                            <span>Save Changes</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-content" data-tab-content="settings">
+            <div class="profile-card">
+                <h3 class="h3">Preferences</h3>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>Email Notifications</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>Public Profile</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Tab -->
+        <div class="tab-content" data-tab-content="security">
+            <div class="profile-card">
+                <h3 class="h3">Security Settings</h3>
+                <form class="form">
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" placeholder="Current Password">
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="password" class="form-input" placeholder="New Password">
+                        <input type="password" class="form-input" placeholder="Confirm New Password">
+                    </div>
+                    <button class="form-btn" type="submit">
+                        <span>Change Password</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div class="tab-content" data-tab-content="statistics">
+            <div class="profile-card">
+                <h3 class="h3">Quiz Performance</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Completed Quizzes</h4>
+                        <span class="stat-number">12</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Average Score</h4>
+                        <span class="stat-number">85%</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Best Category</h4>
+                        <span class="stat-text">Python</span>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Total Time</h4>
+                        <span class="stat-text">5h 30m</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+
+<style>
+.profile-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: var(--border-gradient-onyx);
+    color: var(--light-gray);
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.tab-btn.active {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+}
+
+.profile-card {
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 14px;
+}
+
+.profile-header {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.profile-avatar img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: var(--border-gradient-onyx);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 24px;
+    color: var(--orange-yellow-crayola);
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--jet);
+}
+
+/* Switch styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--jet);
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--orange-yellow-crayola);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            // Add active class to clicked tab and corresponding content
+            tab.classList.add('active');
+            document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+        });
+    });
+});
+</script>
+{% endblock %} 

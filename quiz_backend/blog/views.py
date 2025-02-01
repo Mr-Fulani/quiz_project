@@ -8,6 +8,7 @@ from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from rest_framework.views import APIView
 from django.views.generic import TemplateView, DetailView
 from django.core.paginator import Paginator
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Create your views here.
 
@@ -166,3 +167,28 @@ class AboutView(TemplateView):
 
 class ContactView(TemplateView):
     template_name = 'blog/contact.html'
+
+class QuizesView(TemplateView):
+    template_name = 'blog/quizes.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Здесь будем добавлять контекст для квизов
+        return context
+
+class QuizDetailView(TemplateView):
+    template_name = 'blog/quiz_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz_type = kwargs.get('quiz_type')
+        context['quiz_type'] = quiz_type.title()
+        return context
+
+class ProfileView(TemplateView):
+    template_name = 'blog/profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user_profile'] = self.request.user
+        return context

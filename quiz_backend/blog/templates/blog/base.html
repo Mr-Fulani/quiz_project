@@ -17,19 +17,26 @@
             <nav class="navbar">
                 <ul class="navbar-list">
                     <li class="navbar-item">
-                        <a href="{% url 'blog:about' %}" class="navbar-link" data-nav-link>About</a>
+                        <a href="{% url 'blog:home' %}" class="navbar-link" data-nav-link>Home</a>
                     </li>
                     <li class="navbar-item">
-                        <a href="{% url 'blog:resume' %}" class="navbar-link" data-nav-link>Resume</a>
+                        <a href="{% url 'blog:blog' %}" class="navbar-link" data-nav-link>Posts</a>
                     </li>
                     <li class="navbar-item">
-                        <a href="{% url 'blog:portfolio' %}" class="navbar-link" data-nav-link>Portfolio</a>
+                        <a href="{% url 'blog:quizes' %}" class="navbar-link" data-nav-link>Quizes</a>
                     </li>
                     <li class="navbar-item">
-                        <a href="{% url 'blog:blog' %}" class="navbar-link" data-nav-link>Blog</a>
+                        <a href="{% url 'blog:profile' %}" class="navbar-link" data-nav-link>Profile</a>
                     </li>
                     <li class="navbar-item">
-                        <a href="{% url 'blog:contact' %}" class="navbar-link" data-nav-link>Contact</a>
+                        {% if user.is_authenticated %}
+                            <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="navbar-link" data-nav-link style="border: none; background: none; cursor: pointer; width: 100%; text-align: left; padding: 10px 15px;">Logout</button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="navbar-link" data-nav-link>Login</a>
+                        {% endif %}
                     </li>
                 </ul>
             </nav>

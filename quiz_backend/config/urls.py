@@ -6,6 +6,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.shortcuts import render
+from django.contrib.auth import views as auth_views
 
 
 # Функция обработки ошибки 404
@@ -32,6 +33,8 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('blog.urls')),  # Главная страница
+    path('login/', auth_views.LoginView.as_view(template_name='blog/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='blog:home'), name='logout'),
     path('api/', include('accounts.urls')),
     path('api/', include('tasks.urls')),
     path('api/', include('topics.urls')),

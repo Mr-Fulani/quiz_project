@@ -1,0 +1,25 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="login active" data-page="login">
+    <header>
+        <h2 class="h2 article-title">Login</h2>
+    </header>
+
+    <section class="login-form">
+        <form method="post" class="form">
+            {% csrf_token %}
+            <div class="input-wrapper">
+                <input type="text" name="username" class="form-input" placeholder="Username" required>
+                <input type="password" name="password" class="form-input" placeholder="Password" required>
+            </div>
+
+            <button class="form-btn" type="submit">
+                <ion-icon name="log-in-outline"></ion-icon>
+                <span>Login</span>
+            </button>
+        </form>
+    </section>
+</article>
+{% endblock %} 

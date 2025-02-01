@@ -1,0 +1,38 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="quiz-detail active" data-page="quiz-detail">
+    <header>
+        <h2 class="h2 article-title">{{ quiz_type }} Quiz</h2>
+    </header>
+
+    <section class="about-text">
+        <p>
+            This is a test page for {{ quiz_type }} quiz. Here you will be able to test your knowledge
+            of {{ quiz_type }} programming language and related technologies.
+        </p>
+        
+        <p>
+            The quiz will contain multiple choice questions, coding challenges, and practical tasks.
+            You will need to complete them within a specified time limit.
+        </p>
+
+        <div class="quiz-stats">
+            <h3 class="h3">Quiz Information</h3>
+            <ul>
+                <li>Difficulty: Intermediate</li>
+                <li>Questions: 20</li>
+                <li>Time Limit: 30 minutes</li>
+                <li>Passing Score: 70%</li>
+            </ul>
+        </div>
+
+        <div class="quiz-actions" style="margin-top: 20px;">
+            <button class="form-btn" style="display: inline-block;">
+                <span>Start Quiz</span>
+            </button>
+        </div>
+    </section>
+</article>
+{% endblock %} 

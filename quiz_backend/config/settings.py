@@ -237,3 +237,8 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+
+# Authentication settings
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'blog:profile'
+LOGOUT_REDIRECT_URL = 'blog:home'
