@@ -76,6 +76,16 @@ class HomePageView(TemplateView):
         
         return context
 
+
+class AboutView(TemplateView):
+    template_name = 'blog/about.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем необходимый контекст
+        return context
+
+
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/post_detail.html'
@@ -152,18 +162,7 @@ class BlogView(TemplateView):
         context['categories'] = Category.objects.filter(is_portfolio=False)
         return context
 
-class AboutView(TemplateView):
-    template_name = 'blog/about.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['personal_info'] = {
-            'name': 'Your Name',
-            'title': 'Your Title',
-            'email': 'your.email@example.com',
-            'location': 'Your Location'
-        }
-        return context
 
 class ContactView(TemplateView):
     template_name = 'blog/contact.html'

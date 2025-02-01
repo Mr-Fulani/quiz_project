@@ -1,41 +1,63 @@
 {% load static %}
-<div class="sidebar-info">
-    <figure class="avatar-box">
+<aside class="sidebar" data-sidebar>
+  {% if user.is_authenticated %}
+    <div class="sidebar-info">
+      <figure class="avatar-box">
         <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="{{ user.username }}" width="80">
-    </figure>
+      </figure>
 
-    <div class="info-content">
-        <h1 class="name" title="{{ user.get_full_name|default:user.username }}">{{ user.get_full_name|default:user.username }}</h1>
+      <div class="info-content">
+        <h1 class="name" title="{{ user.get_full_name|default:user.username }}">
+          {{ user.get_full_name|default:user.username }}
+        </h1>
         <p class="title">User Profile</p>
-    </div>
+      </div>
 
-    <button class="info_more-btn" data-sidebar-btn>
+      <button class="info_more-btn" data-sidebar-btn>
         <span>Show Stats</span>
         <ion-icon name="chevron-down"></ion-icon>
-    </button>
-</div>
+      </button>
+    </div>
 
-<div class="sidebar-info_more">
-    <div class="separator"></div>
-    <ul class="contacts-list">
+    <div class="sidebar-info_more">
+      <div class="separator"></div>
+      <ul class="contacts-list">
         <li class="contact-item">
-            <div class="icon-box">
-                <ion-icon name="trophy-outline"></ion-icon>
-            </div>
-            <div class="contact-info">
-                <p class="contact-title">Solved Tasks</p>
-                <p class="contact-link">{{ user.statistics.solved_tasks|default:"0" }}</p>
-            </div>
+          <div class="icon-box">
+            <ion-icon name="trophy-outline"></ion-icon>
+          </div>
+          <div class="contact-info">
+            <p class="contact-title">Solved Tasks</p>
+            <p class="contact-link">{{ user.statistics.solved_tasks|default:"0" }}</p>
+          </div>
         </li>
 
         <li class="contact-item">
-            <div class="icon-box">
-                <ion-icon name="star-outline"></ion-icon>
-            </div>
-            <div class="contact-info">
-                <p class="contact-title">Rating</p>
-                <p class="contact-link">{{ user.statistics.rating|default:"0" }}</p>
-            </div>
+          <div class="icon-box">
+            <ion-icon name="star-outline"></ion-icon>
+          </div>
+          <div class="contact-info">
+            <p class="contact-title">Rating</p>
+            <p class="contact-link">{{ user.statistics.rating|default:"0" }}</p>
+          </div>
         </li>
-    </ul>
-</div> 
+      </ul>
+    </div>
+  {% else %}
+    <div class="sidebar-info">
+      <figure class="avatar-box">
+        <!-- Аватарка по умолчанию для неавторизованных пользователей -->
+        <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="Default avatar" width="80">
+      </figure>
+
+      <div class="info-content">
+        <h1 class="name">Guest</h1>
+        <p class="title">Visitor</p>
+      </div>
+    </div>
+
+    <div class="sidebar-login-prompt">
+      <p>Please <a href="{% url 'login' %}?next={{ request.path }}">log in</a> to view your profile information.</p>
+    </div>
+  {% endif %}
+</aside>

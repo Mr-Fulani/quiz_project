@@ -1,6 +1,10 @@
 {% extends "blog/base.html" %}
 {% load static %}
 
+{% block sidebar %}
+  {% include 'blog/user_sidebar.html' %}
+{% endblock %}
+
 {% block content %}
 <article class="quiz-detail active" data-page="quiz-detail">
     <header>
@@ -35,4 +39,4 @@
         </div>
     </section>
 </article>
-{% endblock %} 
+{% endblock %}
