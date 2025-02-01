@@ -1,86 +1,88 @@
 {% load static %}
-<div class="sidebar-info">
-    <figure class="avatar-box">
-        <img src="{% static 'blog/images/avatar/my-avatar.png' %}" alt="{{ personal_info.name }}" width="80">
-    </figure>
+<aside class="sidebar" data-sidebar>
+    <div class="sidebar-info">
+        <figure class="avatar-box">
+            <img src="{% static 'blog/images/avatar/my-avatar.png' %}" alt="{{ personal_info.name }}" width="80">
+        </figure>
 
-    <div class="info-content">
-        <h1 class="name" title="{{ personal_info.name }}">{{ personal_info.name }}</h1>
-        <p class="title">{{ personal_info.title }}</p>
+        <div class="info-content">
+            <h1 class="name" title="{{ personal_info.name }}">{{ personal_info.name }}</h1>
+            <p class="title">{{ personal_info.title }}</p>
+        </div>
+
+        <button class="info_more-btn" data-sidebar-btn>
+            <span>Show Contacts</span>
+            <ion-icon name="chevron-down"></ion-icon>
+        </button>
     </div>
 
-    <button class="info_more-btn" data-sidebar-btn>
-        <span>Show Contacts</span>
-        <ion-icon name="chevron-down"></ion-icon>
-    </button>
-</div>
+    <div class="sidebar-info_more">
+        <div class="separator"></div>
+        <ul class="contacts-list">
+            <li class="contact-item">
+                <div class="icon-box">
+                    <ion-icon name="person-outline"></ion-icon>
+                </div>
+                <div class="contact-info">
+                    <p class="contact-title">About Me</p>
+                    <a href="{% url 'blog:about' %}" class="contact-link">View Profile</a>
+                </div>
+            </li>
 
-<div class="sidebar-info_more">
-    <div class="separator"></div>
-    <ul class="contacts-list">
-        <li class="contact-item">
-            <div class="icon-box">
-                <ion-icon name="mail-outline"></ion-icon>
-            </div>
-            <div class="contact-info">
-                <p class="contact-title">Email</p>
-                <a href="mailto:{{ personal_info.email }}" class="contact-link">{{ personal_info.email }}</a>
-            </div>
-        </li>
+            <li class="contact-item">
+                <div class="icon-box">
+                    <ion-icon name="school-outline"></ion-icon>
+                </div>
+                <div class="contact-info">
+                    <p class="contact-title">Resume</p>
+                    <a href="{% url 'blog:resume' %}" class="contact-link">View Resume</a>
+                </div>
+            </li>
 
-        <li class="contact-item">
-            <div class="icon-box">
-                <ion-icon name="phone-portrait-outline"></ion-icon>
-            </div>
-            <div class="contact-info">
-                <p class="contact-title">Phone</p>
-                <a href="tel:{{ personal_info.phone }}" class="contact-link">{{ personal_info.phone }}</a>
-            </div>
-        </li>
+            <li class="contact-item">
+                <div class="icon-box">
+                    <ion-icon name="briefcase-outline"></ion-icon>
+                </div>
+                <div class="contact-info">
+                    <p class="contact-title">Portfolio</p>
+                    <a href="{% url 'blog:portfolio' %}" class="contact-link">View Projects</a>
+                </div>
+            </li>
 
-        <li class="contact-item">
-            <div class="icon-box">
-                <ion-icon name="calendar-outline"></ion-icon>
-            </div>
-            <div class="contact-info">
-                <p class="contact-title">Birthday</p>
-                <time datetime="{{ personal_info.birthday }}">{{ personal_info.birthday }}</time>
-            </div>
-        </li>
+            <li class="contact-item">
+                <div class="icon-box">
+                    <ion-icon name="newspaper-outline"></ion-icon>
+                </div>
+                <div class="contact-info">
+                    <p class="contact-title">Blog</p>
+                    <a href="{% url 'blog:blog' %}" class="contact-link">View Posts</a>
+                </div>
+            </li>
+        </ul>
 
-        <li class="contact-item">
-            <div class="icon-box">
-                <ion-icon name="location-outline"></ion-icon>
-            </div>
-            <div class="contact-info">
-                <p class="contact-title">Location</p>
-                <address>{{ personal_info.location }}</address>
-            </div>
-        </li>
-    </ul>
+        <div class="separator"></div>
 
-    <div class="separator"></div>
-
-    <ul class="social-list">
-        <li class="social-item">
-            <a href="{{ personal_info.social_links.facebook }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                <ion-icon name="logo-facebook"></ion-icon>
-            </a>
-        </li>
-        <li class="social-item">
-            <a href="{{ personal_info.social_links.telegram }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                <ion-icon name="paper-plane"></ion-icon>
-            </a>
-        </li>
-        <li class="social-item">
-            <a href="{{ personal_info.social_links.whatsapp }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                <ion-icon name="logo-whatsapp"></ion-icon>
-            </a>
-        </li>
-        <li class="social-item">
-            <a href="{{ personal_info.social_links.instagram }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                <ion-icon name="logo-instagram"></ion-icon>
-            </a>
-        </li>
-    </ul>
-</div> 
+        <ul class="social-list">
+            <li class="social-item">
+                <a href="{{ personal_info.social_links.facebook }}" class="social-link" target="_blank" rel="noopener noreferrer">
+                    <ion-icon name="logo-facebook"></ion-icon>
+                </a>
+            </li>
+            <li class="social-item">
+                <a href="{{ personal_info.social_links.telegram }}" class="social-link" target="_blank" rel="noopener noreferrer">
+                    <ion-icon name="paper-plane"></ion-icon>
+                </a>
+            </li>
+            <li class="social-item">
+                <a href="{{ personal_info.social_links.whatsapp }}" class="social-link" target="_blank" rel="noopener noreferrer">
+                    <ion-icon name="logo-whatsapp"></ion-icon>
+                </a>
+            </li>
+            <li class="social-item">
+                <a href="{{ personal_info.social_links.instagram }}" class="social-link" target="_blank" rel="noopener noreferrer">
+                    <ion-icon name="logo-instagram"></ion-icon>
+                </a>
+            </li>
+        </ul>
+    </div>
+</aside> 

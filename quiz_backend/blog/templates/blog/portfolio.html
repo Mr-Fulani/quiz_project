@@ -1,0 +1,42 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="portfolio active" data-page="portfolio">
+    <header>
+        <h2 class="h2 article-title">Portfolio</h2>
+    </header>
+
+    <section class="projects">
+        <ul class="filter-list">
+            <li class="filter-item">
+                <button class="active" data-filter-btn>All</button>
+            </li>
+            {% for category in portfolio_categories %}
+            <li class="filter-item">
+                <button data-filter-btn>{{ category.name }}</button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="project-list">
+            {% for project in projects %}
+            <li class="project-item active" data-filter-item data-category="{{ project.category.name|lower }}">
+                <a href="{% url 'blog:project_detail' project.slug %}">
+                    <figure class="project-img">
+                        {% if project.image %}
+                        <div class="project-item-icon-box">
+                            <ion-icon name="eye-outline"></ion-icon>
+                        </div>
+                        <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
+                        {% endif %}
+                    </figure>
+                    <h3 class="project-title">{{ project.title }}</h3>
+                    <p class="project-category">{{ project.category.name }}</p>
+                </a>
+            </li>
+            {% endfor %}
+        </div>
+    </section>
+</article>
+{% endblock %} 

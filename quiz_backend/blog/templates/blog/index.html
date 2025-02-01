@@ -1,567 +1,395 @@
+{% extends "blog/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Portfolio</title>
-    <link rel="stylesheet" href="{% static 'blog/css/style.css' %}">
-    <link rel="icon" type="image/x-icon" href="{% static 'blog/favicon/favicon.png' %}">
-</head>
-<body>
-    <main>
-        <aside class="sidebar" data-sidebar>
-            <div class="sidebar-info">
-                <figure class="avatar-box">
-                    <img src="{% static personal_info.avatar %}" alt="avatar" width="80">
+
+{% block content %}
+<!-- about -->
+<article class="about active" data-page="about">
+    <header>
+        <h2 class="h2 article-title">Обо мне</h2>
+    </header>
+
+    <section class="about-text">
+        {% for paragraph in personal_info.about_text %}
+            <p>{{ paragraph }}</p>
+        {% endfor %}
+    </section>
+
+    <section class="service">
+        <h3 class="h3 service-title">Чем я занимаюсь</h3>
+
+        <ul class="service-list">
+            <li class="service-item">
+                <div class="service-icon-box">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1087/1087927.png" alt="icon" width="40">
+                </div>
+
+                <div class="service-content-box">
+                    <h4 class="h4 service-item-title">Веб-дизайн</h4>
+                    <p class="service-item-text">Самый современный и высококачественный дизайн, созданный на профессиональном уровне.</p>
+                </div>
+            </li>
+
+            <li class="service-item">
+                <div class="service-icon-box">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="icon" width="40">
+                </div>
+
+                <div class="service-content-box">
+                    <h4 class="h4 service-item-title">Веб-разработка</h4>
+                    <p class="service-item-text">Высококачественная разработка сайтов на профессиональном уровне.</p>
+                </div>
+            </li>
+
+            <li class="service-item">
+                <div class="service-icon-box">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2232/2232241.png" alt="icon" width="40">
+                </div>
+
+                <div class="service-content-box">
+                    <h4 class="h4 service-item-title">Мобильные приложения</h4>
+                    <p class="service-item-text">Профессиональная разработка приложений для iOS и Android.</p>
+                </div>
+            </li>
+
+            <li class="service-item">
+                <div class="service-icon-box">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1042/1042339.png" alt="icon" width="40">
+                </div>
+
+                <div class="service-content-box">
+                    <h4 class="h4 service-item-title">Фотография</h4>
+                    <p class="service-item-text">Я делаю высококачественные фотографии любой категории на профессиональном уровне.</p>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <section class="testimonials">
+        <h3 class="h3 testimonials-title">Отзывы</h3>
+
+        <ul class="testimonials-list has-scrollbar">
+            <li class="testimonials-item">
+                <div class="content-card" data-testimonials-item>
+                    <figure class="testimonials-avatar-box">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60" alt="avatar" data-testimonials-avatar width="60">
+                    </figure>
+
+                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Daniel Lewis</h4>
+
+                    <div class="testimonials-text" data-testimonials-text>
+                        <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
+                    </div>
+                </div>
+            </li>
+
+            <li class="testimonials-item">
+                <div class="content-card" data-testimonials-item>
+                    <figure class="testimonials-avatar-box">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60" alt="avatar" data-testimonials-avatar width="60">
+                    </figure>
+
+                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Jessica Miller</h4>
+
+                    <div class="testimonials-text" data-testimonials-text>
+                        <p>Working with Richard has been an absolute pleasure. I was impressed with his attention to detail, his web design skills and his professional approach to our timelines and processes.</p>
+                    </div>
+                </div>
+            </li>
+
+            <li class="testimonials-item">
+                <div class="content-card" data-testimonials-item>
+                    <figure class="testimonials-avatar-box">
+                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60" alt="avatar" data-testimonials-avatar width="60">
+                    </figure>
+
+                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Emily Evans</h4>
+
+                    <div class="testimonials-text" data-testimonials-text>
+                        <p>I couldn't be happier with the website that Richard created for us. His attention to detail and creativity is unmatched. Our clients frequently compliment the design, and it has significantly improved our brand image.</p>
+                    </div>
+                </div>
+            </li>
+
+            <li class="testimonials-item">
+                <div class="content-card" data-testimonials-item>
+                    <figure class="testimonials-avatar-box">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60" alt="avatar" data-testimonials-avatar width="60">
+                    </figure>
+
+                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Henry Williams</h4>
+
+                    <div class="testimonials-text" data-testimonials-text>
+                        <p>I was overwhelmed with the thought of redesigning my online store, but Richard made the process seamless. The site is not only visually appealing but also optimized for conversions. I've seen a 50% increase in traffic since the launch!</p>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <div class="modal-container" data-modal-container>
+        <div class="overlay" data-overlay></div>
+
+        <section class="testimonials-modal">
+            <button class="modal-close-btn" data-modal-close-btn><ion-icon name="close-outline"></ion-icon></button>
+
+            <div class="modal-img-wrapper">
+                <figure class="modal-avatar-box">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="Daniel Lewis" width="80" data-modal-img>
                 </figure>
 
-                <div class="info-content">
-                    <h1 class="name" title="{{ personal_info.name }}">{{ personal_info.name }}</h1>
-                    <p class="title">{{ personal_info.title }}</p>
-                </div>
-
-                <button class="info-more-btn" data-sidebar-btn>
-                    <span>Show Contacts</span>
-                    <ion-icon name="chevron-down"></ion-icon>
-                </button>
+                <img src="https://cdn-icons-png.flaticon.com/512/6364/6364343.png" alt="quote icon">
             </div>
 
-            <div class="sidebar-info-more">
-                <div class="separator"></div>
+            <div class="modal-content">
+                <h4 class="h3 modal-title" data-modal-title>Daniel Lewis</h4>
+                <time datetime="2023-06-14">14 June, 2023</time>
 
-                <ul class="contacts-list">
-                    <li class="contact-item">
-                        <div class="icon-box">
-                            <ion-icon name="mail-outline"></ion-icon>
-                        </div>
-
-                        <div class="contact-info">
-                            <p class="contact-title">Email</p>
-                            <a href="mailto:{{ personal_info.email }}" class="contact-link">{{ personal_info.email }}</a>
-                        </div>
-                    </li>
-
-                    <li class="contact-item">
-                        <div class="icon-box">
-                            <ion-icon name="phone-portrait-outline"></ion-icon>
-                        </div>
-
-                        <div class="contact-info">
-                            <p class="contact-title">Phone</p>
-                            <a href="tel:{{ personal_info.phone }}" class="contact-link">{{ personal_info.phone }}</a>
-                        </div>
-                    </li>
-
-                    <li class="contact-item">
-                        <div class="icon-box">
-                            <ion-icon name="calendar-outline"></ion-icon>
-                        </div>
-
-                        <div class="contact-info">
-                            <p class="contact-title">Birthday</p>
-                            <time datetime="1982-06-23">{{ personal_info.birthday }}</time>
-                        </div>
-                    </li>
-
-                    <li class="contact-item">
-                        <div class="icon-box">
-                            <ion-icon name="location-outline"></ion-icon>
-                        </div>
-
-                        <div class="contact-info">
-                            <p class="contact-title">Location</p>
-                            <address>{{ personal_info.location }}</address>
-                        </div>
-                    </li>
-                </ul>
-
-                <ul class="social-list">
-                    <li class="social-item">
-                        <a href="{{ personal_info.social_links.facebook }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                            <ion-icon name="logo-facebook"></ion-icon>
-                        </a>
-                    </li>
-                    <li class="social-item">
-                        <a href="{{ personal_info.social_links.telegram }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                            <ion-icon name="paper-plane"></ion-icon>
-                        </a>
-                    </li>
-                    <li class="social-item">
-                        <a href="{{ personal_info.social_links.whatsapp }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                            <ion-icon name="logo-whatsapp"></ion-icon>
-                        </a>
-                    </li>
-                    <li class="social-item">
-                        <a href="{{ personal_info.social_links.instagram }}" class="social-link" target="_blank" rel="noopener noreferrer">
-                            <ion-icon name="logo-instagram"></ion-icon>
-                        </a>
-                    </li>
-                </ul>
+                <div class="modal-text" data-modal-text>
+                    <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
+                </div>
             </div>
-        </aside>
+        </section>
+    </div>
 
-        <div class="main-content">
-            <nav class="navbar">
-                <ul class="navbar-list">
-                    <li class="navbar-item"><button class="navbar-link active" data-nav-link>About</button></li>
-                    <li class="navbar-item"><button class="navbar-link" data-nav-link>Resume</button></li>
-                    <li class="navbar-item"><button class="navbar-link" data-nav-link>Portfolio</button></li>
-                    <li class="navbar-item"><button class="navbar-link" data-nav-link>Blog</button></li>
-                    <li class="navbar-item"><button class="navbar-link" data-nav-link>Contact</button></li>
-                </ul>
-            </nav>
+    <section class="clients">
+        <h3 class="h3 clients-title">Clients</h3>
 
-            <article class="about active" data-page="about">
-                <header>
-                    <h2 class="h2 article-title">Обо мне</h2>
-                </header>
+        <ul class="clients-list has-scrollbar">
+            <li class="clients-item">
+                <a href="#"><img src="https://www.logo.wine/a/logo/Adobe_Inc./Adobe_Inc.-Logo.wine.svg" alt="adobe logo"></a>
+            </li>
 
-                <section class="about-text">
-                    {% for paragraph in personal_info.about_text %}
-                        <p>{{ paragraph }}</p>
-                    {% endfor %}
-                </section>
+            <li class="clients-item">
+                <a href="#"><img src="https://www.logo.wine/a/logo/Apple_Inc./Apple_Inc.-Logo.wine.svg" alt="apple logo"></a>
+            </li>
 
-                <section class="service">
-                    <h3 class="h3 service-title">Чем я занимаюсь</h3>
+            <li class="clients-item">
+                <a href="#"><img src="https://www.logo.wine/a/logo/Microsoft/Microsoft-Logo.wine.svg" alt="microsoft logo"></a>
+            </li>
 
-                    <ul class="service-list">
-                        <li class="service-item">
-                            <div class="service-icon-box">
-                                <img src="https://cdn-icons-png.flaticon.com/512/1087/1087927.png" alt="icon" width="40">
-                            </div>
+            <li class="clients-item">
+                <a href="#"><img src="https://www.logo.wine/a/logo/Google/Google-Logo.wine.svg" alt="google logo"></a>
+            </li>
 
-                            <div class="service-content-box">
-                                <h4 class="h4 service-item-title">Веб-дизайн</h4>
-                                <p class="service-item-text">Самый современный и высококачественный дизайн, созданный на профессиональном уровне.</p>
-                            </div>
-                        </li>
+            <li class="clients-item">
+                <a href="#"><img src="https://www.logo.wine/a/logo/Meta_Platforms/Meta_Platforms-Logo.wine.svg" alt="meta logo"></a>
+            </li>
 
-                        <li class="service-item">
-                            <div class="service-icon-box">
-                                <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="icon" width="40">
-                            </div>
+            <li class="clients-item">
+                <a href="#"><img src="https://www.logo.wine/a/logo/Amazon_(company)/Amazon_(company)-Logo.wine.svg" alt="amazon logo"></a>
+            </li>
+        </ul>
+    </section>
 
-                            <div class="service-content-box">
-                                <h4 class="h4 service-item-title">Веб-разработка</h4>
-                                <p class="service-item-text">Высококачественная разработка сайтов на профессиональном уровне.</p>
-                            </div>
-                        </li>
+    <section class="skill">
+        <h3 class="h3 skills-title">My Skills</h3>
 
-                        <li class="service-item">
-                            <div class="service-icon-box">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2232/2232241.png" alt="icon" width="40">
-                            </div>
-
-                            <div class="service-content-box">
-                                <h4 class="h4 service-item-title">Мобильные приложения</h4>
-                                <p class="service-item-text">Профессиональная разработка приложений для iOS и Android.</p>
-                            </div>
-                        </li>
-
-                        <li class="service-item">
-                            <div class="service-icon-box">
-                                <img src="https://cdn-icons-png.flaticon.com/512/1042/1042339.png" alt="icon" width="40">
-                            </div>
-
-                            <div class="service-content-box">
-                                <h4 class="h4 service-item-title">Фотография</h4>
-                                <p class="service-item-text">Я делаю высококачественные фотографии любой категории на профессиональном уровне.</p>
-                            </div>
-                        </li>
-                    </ul>
-                </section>
-
-                <section class="testimonials">
-                    <h3 class="h3 testimonials-title">Отзывы</h3>
-
-                    <ul class="testimonials-list has-scrollbar">
-                        <li class="testimonials-item">
-                            <div class="content-card" data-testimonials-item>
-                                <figure class="testimonials-avatar-box">
-                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60" alt="avatar" data-testimonials-avatar width="60">
-                                </figure>
-
-                                <h4 class="h4 testimonials-item-title" data-testimonials-title>Daniel Lewis</h4>
-
-                                <div class="testimonials-text" data-testimonials-text>
-                                    <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
-                                </div>
-                            </div>
-                        </li>
-
-                        <li class="testimonials-item">
-                            <div class="content-card" data-testimonials-item>
-                                <figure class="testimonials-avatar-box">
-                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60" alt="avatar" data-testimonials-avatar width="60">
-                                </figure>
-
-                                <h4 class="h4 testimonials-item-title" data-testimonials-title>Jessica Miller</h4>
-
-                                <div class="testimonials-text" data-testimonials-text>
-                                    <p>Working with Richard has been an absolute pleasure. I was impressed with his attention to detail, his web design skills and his professional approach to our timelines and processes.</p>
-                                </div>
-                            </div>
-                        </li>
-
-                        <li class="testimonials-item">
-                            <div class="content-card" data-testimonials-item>
-                                <figure class="testimonials-avatar-box">
-                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60" alt="avatar" data-testimonials-avatar width="60">
-                                </figure>
-
-                                <h4 class="h4 testimonials-item-title" data-testimonials-title>Emily Evans</h4>
-
-                                <div class="testimonials-text" data-testimonials-text>
-                                    <p>I couldn't be happier with the website that Richard created for us. His attention to detail and creativity is unmatched. Our clients frequently compliment the design, and it has significantly improved our brand image.</p>
-                                </div>
-                            </div>
-                        </li>
-
-                        <li class="testimonials-item">
-                            <div class="content-card" data-testimonials-item>
-                                <figure class="testimonials-avatar-box">
-                                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60" alt="avatar" data-testimonials-avatar width="60">
-                                </figure>
-
-                                <h4 class="h4 testimonials-item-title" data-testimonials-title>Henry Williams</h4>
-
-                                <div class="testimonials-text" data-testimonials-text>
-                                    <p>I was overwhelmed with the thought of redesigning my online store, but Richard made the process seamless. The site is not only visually appealing but also optimized for conversions. I've seen a 50% increase in traffic since the launch!</p>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
-                </section>
-
-                <div class="modal-container" data-modal-container>
-                    <div class="overlay" data-overlay></div>
-
-                    <section class="testimonials-modal">
-                        <button class="modal-close-btn" data-modal-close-btn><ion-icon name="close-outline"></ion-icon></button>
-
-                        <div class="modal-img-wrapper">
-                            <figure class="modal-avatar-box">
-                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="Daniel Lewis" width="80" data-modal-img>
-                            </figure>
-
-                            <img src="https://cdn-icons-png.flaticon.com/512/6364/6364343.png" alt="quote icon">
-                        </div>
-
-                        <div class="modal-content">
-                            <h4 class="h3 modal-title" data-modal-title>Daniel Lewis</h4>
-                            <time datetime="2023-06-14">14 June, 2023</time>
-
-                            <div class="modal-text" data-modal-text>
-                                <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
-                            </div>
-                        </div>
-                    </section>
+        <ul class="skills-list content-card">
+            <li class="skills-item">
+                <div class="title-wrapper">
+                    <h5 class="h5">Web Design</h5>
+                    <data value="80">80%</data>
                 </div>
 
-                <section class="clients">
-                    <h3 class="h3 clients-title">Clients</h3>
+                <div class="skills-progress-bg">
+                    <div class="skills-progress-fill" style="width: 80%;"></div>
+                </div>
+            </li>
 
-                    <ul class="clients-list has-scrollbar">
-                        <li class="clients-item">
-                            <a href="#"><img src="https://www.logo.wine/a/logo/Adobe_Inc./Adobe_Inc.-Logo.wine.svg" alt="adobe logo"></a>
-                        </li>
+            <li class="skills-item">
+                <div class="title-wrapper">
+                    <h5 class="h5">Graphic Design</h5>
+                    <data value="70">70%</data>
+                </div>
 
-                        <li class="clients-item">
-                            <a href="#"><img src="https://www.logo.wine/a/logo/Apple_Inc./Apple_Inc.-Logo.wine.svg" alt="apple logo"></a>
-                        </li>
+                <div class="skills-progress-bg">
+                    <div class="skills-progress-fill" style="width: 70%;"></div>
+                </div>
+            </li>
 
-                        <li class="clients-item">
-                            <a href="#"><img src="https://www.logo.wine/a/logo/Microsoft/Microsoft-Logo.wine.svg" alt="microsoft logo"></a>
-                        </li>
+            <li class="skills-item">
+                <div class="title-wrapper">
+                    <h5 class="h5">Branding</h5>
+                    <data value="90">90%</data>
+                </div>
 
-                        <li class="clients-item">
-                            <a href="#"><img src="https://www.logo.wine/a/logo/Google/Google-Logo.wine.svg" alt="google logo"></a>
-                        </li>
+                <div class="skills-progress-bg">
+                    <div class="skills-progress-fill" style="width: 90%;"></div>
+                </div>
+            </li>
 
-                        <li class="clients-item">
-                            <a href="#"><img src="https://www.logo.wine/a/logo/Meta_Platforms/Meta_Platforms-Logo.wine.svg" alt="meta logo"></a>
-                        </li>
+            <li class="skills-item">
+                <div class="title-wrapper">
+                    <h5 class="h5">WordPress</h5>
+                    <data value="50">50%</data>
+                </div>
 
-                        <li class="clients-item">
-                            <a href="#"><img src="https://www.logo.wine/a/logo/Amazon_(company)/Amazon_(company)-Logo.wine.svg" alt="amazon logo"></a>
-                        </li>
-                    </ul>
-                </section>
+                <div class="skills-progress-bg">
+                    <div class="skills-progress-fill" style="width: 50%;"></div>
+                </div>
+            </li>
+        </ul>
+    </section>
+</article>
 
-                <section class="skill">
-                    <h3 class="h3 skills-title">My Skills</h3>
+<!-- resume -->
+<article class="resume" data-page="resume">
+    <header>
+        <h2 class="h2 article-title">Resume</h2>
+    </header>
 
-                    <ul class="skills-list content-card">
-                        <li class="skills-item">
-                            <div class="title-wrapper">
-                                <h5 class="h5">Web Design</h5>
-                                <data value="80">80%</data>
-                            </div>
+    <section class="timeline">
+        <div class="title-wrapper">
+            <div class="icon-box">
+                <ion-icon name="book-outline"></ion-icon>
+            </div>
 
-                            <div class="skills-progress-bg">
-                                <div class="skills-progress-fill" style="width: 80%;"></div>
-                            </div>
-                        </li>
-
-                        <li class="skills-item">
-                            <div class="title-wrapper">
-                                <h5 class="h5">Graphic Design</h5>
-                                <data value="70">70%</data>
-                            </div>
-
-                            <div class="skills-progress-bg">
-                                <div class="skills-progress-fill" style="width: 70%;"></div>
-                            </div>
-                        </li>
-
-                        <li class="skills-item">
-                            <div class="title-wrapper">
-                                <h5 class="h5">Branding</h5>
-                                <data value="90">90%</data>
-                            </div>
-
-                            <div class="skills-progress-bg">
-                                <div class="skills-progress-fill" style="width: 90%;"></div>
-                            </div>
-                        </li>
-
-                        <li class="skills-item">
-                            <div class="title-wrapper">
-                                <h5 class="h5">WordPress</h5>
-                                <data value="50">50%</data>
-                            </div>
-
-                            <div class="skills-progress-bg">
-                                <div class="skills-progress-fill" style="width: 50%;"></div>
-                            </div>
-                        </li>
-                    </ul>
-                </section>
-            </article>
-
-            <article class="resume" data-page="resume">
-                <header>
-                    <h2 class="h2 article-title">Resume</h2>
-                </header>
-
-                <section class="timeline">
-                    <div class="title-wrapper">
-                        <div class="icon-box">
-                            <ion-icon name="book-outline"></ion-icon>
-                        </div>
-
-                        <h3 class="h3">Education</h3>
-                    </div>
-
-                    <ol class="timeline-list">
-                        <li class="timeline-item">
-                            <h4 class="h4 timeline-item-title">University school of the arts</h4>
-                            <span>2008 - 2010</span>
-                            <p class="timeline-text">There I learnt a wide range of topics that are essential to understanding both the theory and practical aspects of computing. This involves programming fundamentals, computer architecture, operating systems, databases, software engineering, problem solving, collaboration and communication soft skills.</p>
-                        </li>
-
-                        <li class="timeline-item">
-                            <h4 class="h4 timeline-item-title">New York Academy of Art</h4>
-                            <span>2006 - 2007</span>
-                            <p class="timeline-text">I chose my master degree in technology. There I deepened my knowledge, enhanced my skills in the area and learnt how to increase my career prospects in a competitive job market.</p>
-                        </li>
-
-                        <li class="timeline-item">
-                            <h4 class="h4 timeline-item-title">High School of Art and Design</h4>
-                            <span>2003 - 2005</span>
-                            <p class="timeline-text">There I learnt foundational courses and computer sciences fundamentals. In the institution, I chose my specialization in web-development that involves front-end and back-end technologies, user interface designs and content management systems.</p>
-                        </li>
-                    </ol>
-                </section>
-
-                <section class="timeline">
-                    <div class="title-wrapper">
-                        <div class="icon-box">
-                            <ion-icon name="book-outline"></ion-icon>
-                        </div>
-
-                        <h3 class="h3">Experience</h3>
-                    </div>
-
-                    <ol class="timeline-list">
-                        <li class="timeline-item">
-                            <h4 class="h4 timeline-item-title">Creative director</h4>
-                            <span>2015 - Present</span>
-                            <p class="timeline-text">I can develop and oversee creative concepts for projects and campaigns managing a team of designers, writers, and other creative professionals.</p>
-                        </li>
-
-                        <li class="timeline-item">
-                            <h4 class="h4 timeline-item-title">Art director</h4>
-                            <span>2013 - 2015</span>
-                            <p class="timeline-text">I create and develop visual concepts that align with the project's goals and objectives, supervising the design process and managing timelines and budgets for design projects.</p>
-                        </li>
-
-                        <li class="timeline-item">
-                            <h4 class="h4 timeline-item-title">Web designer</h4>
-                            <span>2010 - 2013</span>
-                            <p class="timeline-text">I create logos, color schemes and typography for a brand's identity. Also I develop graphics for websites, social media and digital ads with applications that enhance user experience.</p>
-                        </li>
-                    </ol>
-                </section>
-            </article>
-
-            <article class="portfolio" data-page="portfolio">
-                <header>
-                    <h2 class="h2 article-title">Portfolio</h2>
-                </header>
-
-                <section class="projects">
-                    <ul class="filter-list">
-                        <li class="filter-item">
-                            <button class="active" data-filter-btn>All</button>
-                        </li>
-                        {% for category in categories %}
-                        <li class="filter-item">
-                            <button data-filter-btn>{{ category.name }}</button>
-                        </li>
-                        {% endfor %}
-                    </ul>
-
-                    <div class="filter-select-box">
-                        <button class="filter-select" data-select>
-                            <div class="select-value" data-select-value>Select category</div>
-                            <div class="select-icon">
-                                <ion-icon name="chevron-down"></ion-icon>
-                            </div>
-                        </button>
-
-                        <ul class="select-list">
-                            <li class="select-item">
-                                <button data-select-item>All</button>
-                            </li>
-                            {% for category in categories %}
-                            <li class="select-item">
-                                <button data-select-item>{{ category.name }}</button>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-
-                    <ul class="project-list">
-                        {% for project in projects %}
-                        <li class="project-item active" data-filter-item data-category="{{ project.category.name|lower }}">
-                            <a href="{% url 'blog:project_detail' project.slug %}">
-                                <figure class="project-img">
-                                    <div class="project-item-icon-box">
-                                        <ion-icon name="eye-outline"></ion-icon>
-                                    </div>
-                                    <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
-                                </figure>
-                                <h3 class="project-title">{{ project.title }}</h3>
-                                <p class="project-category">{{ project.technologies }}</p>
-                            </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </section>
-            </article>
-
-            <article class="blog active" data-page="blog">
-                <header>
-                    <h2 class="h2 article-title">Blog</h2>
-                </header>
-
-                <section class="blog-posts">
-                    <ul class="filter-list">
-                        <li class="filter-item">
-                            <button class="active" data-filter-btn>All</button>
-                        </li>
-                        {% for category in categories %}
-                        <li class="filter-item">
-                            <button data-filter-btn>{{ category.name }}</button>
-                        </li>
-                        {% endfor %}
-                    </ul>
-
-                    <ul class="blog-posts-list">
-                        {% for post in posts %}
-                        <li class="blog-post-item">
-                            <a href="{% url 'blog:post_detail' post.slug %}">
-                                <figure class="blog-banner-box">
-                                    <img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy">
-                                </figure>
-
-                                <div class="blog-content">
-                                    <div class="blog-meta">
-                                        <p class="blog-category">{{ post.category.name }}</p>
-                                        <span class="dot"></span>
-                                        <time datetime="{{ post.created_at|date:'Y-m-d' }}">
-                                            {{ post.created_at|date:"M d, Y" }}
-                                        </time>
-                                    </div>
-
-                                    <h3 class="h3 blog-item-title">{{ post.title }}</h3>
-                                    <p class="blog-text">{{ post.excerpt|default:post.content|truncatewords:30 }}</p>
-                                </div>
-                            </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-
-                    {% if posts.has_other_pages %}
-                    <div class="pagination">
-                        {% if posts.has_previous %}
-                            <a href="?page={{ posts.previous_page_number }}" class="pagination-btn">&laquo;</a>
-                        {% endif %}
-
-                        {% for num in posts.paginator.page_range %}
-                            {% if posts.number == num %}
-                                <a href="?page={{ num }}" class="pagination-btn active">{{ num }}</a>
-                            {% elif num > posts.number|add:'-3' and num < posts.number|add:'3' %}
-                                <a href="?page={{ num }}" class="pagination-btn">{{ num }}</a>
-                            {% endif %}
-                        {% endfor %}
-
-                        {% if posts.has_next %}
-                            <a href="?page={{ posts.next_page_number }}" class="pagination-btn">&raquo;</a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </section>
-            </article>
-
-            <article class="contact" data-page="contact">
-                <header>
-                    <h2 class="h2 article-title">Contact</h2>
-                </header>
-
-                <section class="mapbox" data-mapbox>
-                    <figure>
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.2894267739918!2d28.974372376352787!3d41.00543197134907!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14cab9bd6570f4e1%3A0xe52df7368a104b35!2sSultan%20Ahmed%20Mosque!5e0!3m2!1sen!2str!4v1709834058953!5m2!1sen!2str" 
-                                    width="400" height="300" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-                    </figure>
-                </section>
-
-                <section class="contact-form">
-                    <h3 class="h3 form-title">Contact Form</h3>
-
-                    <form action="#" class="form" data-form>
-                        <div class="input-wrapper">
-                            <input type="text" name="fullname" class="form-input" placeholder="Full name" required data-form-input>
-                            <input type="email" name="email" class="form-input" placeholder="Email Address" required data-form-input>
-                        </div>
-
-                        <textarea name="message" class="form-input" placeholder="Your Message" required data-form-input></textarea>
-
-                        <button class="form-btn" type="submit" disabled data-form-btn>
-                            <ion-icon name="paper-plane"></ion-icon>
-                            <span>Send Message</span>
-                        </button>
-                    </form>
-                </section>
-            </article>
+            <h3 class="h3">Education</h3>
         </div>
-    </main>
 
-    <script src="{% static 'blog/js/main.js' %}"></script>
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-</body>
-</html> 
+        <ol class="timeline-list">
+            <li class="timeline-item">
+                <h4 class="h4 timeline-item-title">University school of the arts</h4>
+                <span>2008 - 2010</span>
+                <p class="timeline-text">There I learnt a wide range of topics that are essential to understanding both the theory and practical aspects of computing. This involves programming fundamentals, computer architecture, operating systems, databases, software engineering, problem solving, collaboration and communication soft skills.</p>
+            </li>
+
+            <li class="timeline-item">
+                <h4 class="h4 timeline-item-title">New York Academy of Art</h4>
+                <span>2006 - 2007</span>
+                <p class="timeline-text">I chose my master degree in technology. There I deepened my knowledge, enhanced my skills in the area and learnt how to increase my career prospects in a competitive job market.</p>
+            </li>
+
+            <li class="timeline-item">
+                <h4 class="h4 timeline-item-title">High School of Art and Design</h4>
+                <span>2003 - 2005</span>
+                <p class="timeline-text">There I learnt foundational courses and computer sciences fundamentals. In the institution, I chose my specialization in web-development that involves front-end and back-end technologies, user interface designs and content management systems.</p>
+            </li>
+        </ol>
+    </section>
+
+    <section class="timeline">
+        <div class="title-wrapper">
+            <div class="icon-box">
+                <ion-icon name="book-outline"></ion-icon>
+            </div>
+
+            <h3 class="h3">Experience</h3>
+        </div>
+
+        <ol class="timeline-list">
+            <li class="timeline-item">
+                <h4 class="h4 timeline-item-title">Creative director</h4>
+                <span>2015 - Present</span>
+                <p class="timeline-text">I can develop and oversee creative concepts for projects and campaigns managing a team of designers, writers, and other creative professionals.</p>
+            </li>
+
+            <li class="timeline-item">
+                <h4 class="h4 timeline-item-title">Art director</h4>
+                <span>2013 - 2015</span>
+                <p class="timeline-text">I create and develop visual concepts that align with the project's goals and objectives, supervising the design process and managing timelines and budgets for design projects.</p>
+            </li>
+
+            <li class="timeline-item">
+                <h4 class="h4 timeline-item-title">Web designer</h4>
+                <span>2010 - 2013</span>
+                <p class="timeline-text">I create logos, color schemes and typography for a brand's identity. Also I develop graphics for websites, social media and digital ads with applications that enhance user experience.</p>
+            </li>
+        </ol>
+    </section>
+</article>
+
+<!-- portfolio -->
+<article class="portfolio" data-page="portfolio">
+    <header>
+        <h2 class="h2 article-title">Portfolio</h2>
+    </header>
+
+    <section class="projects">
+        <ul class="filter-list">
+            <li class="filter-item">
+                <button class="active" data-filter-btn>All</button>
+            </li>
+            {% for category in categories %}
+            <li class="filter-item">
+                <button data-filter-btn>{{ category.name }}</button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="filter-select-box">
+            <button class="filter-select" data-select>
+                <div class="select-value" data-select-value>Select category</div>
+                <div class="select-icon">
+                    <ion-icon name="chevron-down"></ion-icon>
+                </div>
+            </button>
+
+            <ul class="select-list">
+                <li class="select-item">
+                    <button data-select-item>All</button>
+                </li>
+                {% for category in categories %}
+                <li class="select-item">
+                    <button data-select-item>{{ category.name }}</button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <ul class="project-list">
+            {% for project in projects %}
+            <li class="project-item active" data-filter-item data-category="{{ project.category.name|lower }}">
+                <a href="{% url 'blog:project_detail' project.slug %}">
+                    <figure class="project-img">
+                        <div class="project-item-icon-box">
+                            <ion-icon name="eye-outline"></ion-icon>
+                        </div>
+                        <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
+                    </figure>
+                    <h3 class="project-title">{{ project.title }}</h3>
+                    <p class="project-category">{{ project.technologies }}</p>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+</article>
+
+<!-- contact -->
+<article class="contact" data-page="contact">
+    <header>
+        <h2 class="h2 article-title">Contact</h2>
+    </header>
+
+    <section class="mapbox" data-mapbox>
+        <figure>
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.2894267739918!2d28.974372376352787!3d41.00543197134907!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14cab9bd6570f4e1%3A0xe52df7368a104b35!2sSultan%20Ahmed%20Mosque!5e0!3m2!1sen!2str!4v1709834058953!5m2!1sen!2str" 
+                        width="400" height="300" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </figure>
+    </section>
+
+    <section class="contact-form">
+        <h3 class="h3 form-title">Contact Form</h3>
+
+        <form action="#" class="form" data-form>
+            <div class="input-wrapper">
+                <input type="text" name="fullname" class="form-input" placeholder="Full name" required data-form-input>
+                <input type="email" name="email" class="form-input" placeholder="Email Address" required data-form-input>
+            </div>
+
+            <textarea name="message" class="form-input" placeholder="Your Message" required data-form-input></textarea>
+
+            <button class="form-btn" type="submit" disabled data-form-btn>
+                <ion-icon name="paper-plane"></ion-icon>
+                <span>Send Message</span>
+            </button>
+        </form>
+    </section>
+</article>
+
+{% endblock %}
+
+<script src="{% static 'blog/js/main.js' %}"></script>
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script> 

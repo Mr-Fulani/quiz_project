@@ -121,3 +121,48 @@ def blog_view(request):
         'categories': categories,
     }
     return render(request, 'blog/blog.html', context)
+
+class ResumeView(TemplateView):
+    template_name = 'blog/resume.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем необходимый контекст
+        return context
+
+class PortfolioView(TemplateView):
+    template_name = 'blog/portfolio.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['projects'] = Project.objects.all()
+        context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
+        return context
+
+class BlogView(TemplateView):
+    template_name = 'blog/blog_page.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        posts_list = Post.objects.all()
+        paginator = Paginator(posts_list, 5)  # 5 постов на страницу
+        page = self.request.GET.get('page')
+        context['posts'] = paginator.get_page(page)
+        context['categories'] = Category.objects.filter(is_portfolio=False)
+        return context
+
+class AboutView(TemplateView):
+    template_name = 'blog/about.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['personal_info'] = {
+            'name': 'Your Name',
+            'title': 'Your Title',
+            'email': 'your.email@example.com',
+            'location': 'Your Location'
+        }
+        return context
+
+class ContactView(TemplateView):
+    template_name = 'blog/contact.html'

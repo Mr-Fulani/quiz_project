@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CategoryViewSet, PostViewSet, ProjectViewSet, HomePageView, PostDetailView, ProjectDetailView
+from .views import CategoryViewSet, PostViewSet, ProjectViewSet, HomePageView, PostDetailView, ProjectDetailView, ResumeView, PortfolioView, BlogView, AboutView, ContactView
 
 app_name = 'blog'
 
@@ -13,5 +13,10 @@ urlpatterns = [
     path('', HomePageView.as_view(), name='home'),  # Главная страница
     path('post/<slug:slug>/', PostDetailView.as_view(), name='post_detail'),
     path('project/<slug:slug>/', ProjectDetailView.as_view(), name='project_detail'),
+    path('resume/', ResumeView.as_view(), name='resume'),  # Новый URL
+    path('portfolio/', PortfolioView.as_view(), name='portfolio'),
+    path('blog/', BlogView.as_view(), name='blog'),
+    path('about/', AboutView.as_view(), name='about'),
+    path('contact/', ContactView.as_view(), name='contact'),  # Добавляем URL для contact
     path('api/', include(router.urls)),  # API endpoints
 ] 

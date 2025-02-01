@@ -1,0 +1,66 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="resume active" data-page="resume">
+    <header>
+        <h2 class="h2 article-title">Resume</h2>
+    </header>
+
+    <section class="resume-content">
+        <!-- Образование -->
+        <div class="timeline">
+            <div class="title-wrapper">
+                <div class="icon-box">
+                    <ion-icon name="book-outline"></ion-icon>
+                </div>
+                <h3 class="h3">Education</h3>
+            </div>
+            <ol class="timeline-list">
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title">University name</h4>
+                    <span>2019 — 2024</span>
+                    <p class="timeline-text">
+                        Nemo enims ipsam voluptatem, blanditiis praesentium voluptum delenit atque corrupti, quos dolores et quas molestias exceptur.
+                    </p>
+                </li>
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title">University name</h4>
+                    <span>2019 — 2024</span>
+                    <p class="timeline-text">
+                        Nemo enims ipsam voluptatem, blanditiis praesentium voluptum delenit atque corrupti, quos dolores et quas molestias exceptur.
+                    </p>
+                </li>
+                <!-- Можете добавить больше пунктов -->
+            </ol>
+        </div>
+
+        <!-- Опыт работы -->
+        <div class="timeline">
+            <div class="title-wrapper">
+                <div class="icon-box">
+                    <ion-icon name="book-outline"></ion-icon>
+                </div>
+                <h3 class="h3">Experience</h3>
+            </div>
+            <ol class="timeline-list">
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title">Company name</h4>
+                    <span>2021 — Present</span>
+                    <p class="timeline-text">
+                        Nemo enims ipsam voluptatem, blanditiis praesentium voluptum delenit atque corrupti, quos dolores et quas molestias exceptur.
+                    </p>
+                </li>
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title">Company name</h4>
+                    <span>2021 — Present</span>
+                    <p class="timeline-text">
+                        Nemo enims ipsam voluptatem, blanditiis praesentium voluptum delenit atque corrupti, quos dolores et quas molestias exceptur.
+                    </p>
+                </li>
+                <!-- Можете добавить больше пунктов -->
+            </ol>
+        </div>
+    </section>
+</article>
+{% endblock %} 

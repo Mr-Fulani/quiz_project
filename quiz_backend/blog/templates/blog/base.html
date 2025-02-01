@@ -11,15 +11,29 @@
 </head>
 <body>
     <main>
-        <!-- Сайдбар -->
-        <aside class="sidebar" data-sidebar>
-            {% block sidebar %}
-                {% include "blog/sidebar.html" %}
-            {% endblock %}
-        </aside>
+        {% include 'blog/sidebar.html' %}
         
-        <!-- Основной контент -->
         <div class="main-content">
+            <nav class="navbar">
+                <ul class="navbar-list">
+                    <li class="navbar-item">
+                        <a href="{% url 'blog:about' %}" class="navbar-link" data-nav-link>About</a>
+                    </li>
+                    <li class="navbar-item">
+                        <a href="{% url 'blog:resume' %}" class="navbar-link" data-nav-link>Resume</a>
+                    </li>
+                    <li class="navbar-item">
+                        <a href="{% url 'blog:portfolio' %}" class="navbar-link" data-nav-link>Portfolio</a>
+                    </li>
+                    <li class="navbar-item">
+                        <a href="{% url 'blog:blog' %}" class="navbar-link" data-nav-link>Blog</a>
+                    </li>
+                    <li class="navbar-item">
+                        <a href="{% url 'blog:contact' %}" class="navbar-link" data-nav-link>Contact</a>
+                    </li>
+                </ul>
+            </nav>
+            
             {% block content %}{% endblock %}
         </div>
     </main>
