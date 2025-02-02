@@ -14,6 +14,38 @@ def personal_info(request):
                 'whatsapp': 'whatsapp://send?phone=05525821497',
                 'instagram': 'https://www.instagram.com/fulani_developer',
             },
+            'resources': {
+                'youtube': {
+                    'url': 'https://www.youtube.com/yourchannel',
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/800px-YouTube_full-color_icon_%282017%29.svg.png',
+                    'name': 'YouTube'
+                },
+                'telegram': {
+                    'url': 'tg://resolve?domain@Mr-Fulani',
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Telegram_2019_Logo.svg/512px-Telegram_2019_Logo.svg.png',
+                    'name': 'Telegram'
+                },
+                'vk': {
+                    'url': 'https://vk.com/yourpage',
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/VK_Compact_Logo_%282021-present%29.svg/512px-VK_Compact_Logo_%282021-present%29.svg.png',
+                    'name': 'VKontakte'
+                },
+                'dzen': {
+                    'url': 'https://dzen.ru/yourpage',
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Yandex_Zen_logo_icon.svg/512px-Yandex_Zen_logo_icon.svg.png',
+                    'name': 'Яндекс Дзен'
+                },
+                'instagram': {
+                    'url': 'https://www.instagram.com/fulani_developer',
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Instagram_logo_2022.svg/512px-Instagram_logo_2022.svg.png',
+                    'name': 'Instagram'
+                },
+                'tiktok': {
+                    'url': 'https://www.tiktok.com/@yourprofile',
+                    'icon': '/static/blog/images/icons/tiktok.svg',
+                    'name': 'TikTok'
+                }
+            },
             'about_text': [
                 "Создаю высоконагруженные веб-приложения, функциональные сайты, мощные Telegram-боты любой сложности, сайты-визитки и другие цифровые решения.",
                 "Использую микросервисную архитектуру, модульный подход, современные базы данных и оптимизированные API. Это позволяет разрабатывать гибкие, надежные и масштабируемые проекты, которые легко адаптируются под любые задачи.",

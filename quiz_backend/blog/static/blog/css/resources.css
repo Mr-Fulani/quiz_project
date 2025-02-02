@@ -1,0 +1,67 @@
+.clients-list {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 50px;
+    margin: 0 -15px;
+    padding: 35px;
+    padding-bottom: 35px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline mandatory;
+    scroll-padding-inline: 25px;
+}
+
+.clients-item {
+    min-width: 120px;
+    max-width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: start;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.clients-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: grayscale(1);
+    transition: all 0.3s ease;
+    padding: 12px;
+}
+
+.clients-item img:hover {
+    filter: grayscale(0);
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.clients-title {
+    margin-bottom: 30px;
+    font-size: 24px;
+}
+
+.has-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.has-scrollbar::-webkit-scrollbar-track {
+    background: var(--onyx);
+    border-radius: 5px;
+}
+
+.has-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--orange-yellow-crayola);
+    border-radius: 5px;
+}
+
+.has-scrollbar::-webkit-scrollbar-button {
+    width: 20px;
+} 

@@ -12,7 +12,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
-from accounts.models import CustomUser
+from accounts.models import CustomUser, Profile
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.contrib.auth import update_session_auth_hash
@@ -206,12 +206,13 @@ class ProfileView(TemplateView):
 
 @login_required
 def profile_view(request, username):
+    # Получаем пользователя по имени
     user = get_object_or_404(CustomUser, username=username)
     profile = user.profile
-    
-    # Определяем, является ли текущий пользователь владельцем профиля
-    is_owner = request.user == user
-    
+
+    # Проверяем, является ли текущий пользователь владельцем профиля
+    is_owner = (user == request.user)
+
     context = {
         'profile_user': user,
         'profile': profile,
