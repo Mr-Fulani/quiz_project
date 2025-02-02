@@ -36,7 +36,10 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']  # для разработки, в продакшене укажите конкретные хосты
+# Для тестирования 404 страницы даже при DEBUG = True
+TEMPLATE_DEBUG = False  # Это заставит Django использовать кастомные страницы ошибок
+
+ALLOWED_HOSTS = ['*']  # Не используйте '*' в продакшене!
 
 
 # Application definition
@@ -82,11 +85,9 @@ ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
-        'NAME': 'django',  # Добавляем уникальное имя
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'templates',  # Добавляем глобальные шаблоны
-            BASE_DIR / 'blog' / 'templates',  # Оставляем шаблоны blog
+            os.path.join(BASE_DIR, 'templates'),  # Добавляем путь к общим шаблонам
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -95,7 +96,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'blog.context_processors.personal_info',
+                'blog.context_processors.unread_messages',
             ],
         },
     },
@@ -155,14 +156,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'blog' / 'static',
-]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Медиа файлы
+# Для обработки статических файлов в режиме разработки
+if DEBUG:
+    STATICFILES_DIRS = [
+        os.path.join(BASE_DIR, 'static'),
+    ]
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -240,5 +244,5 @@ CORS_ALLOW_HEADERS = [
 
 # Authentication settings
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'blog:profile'
-LOGOUT_REDIRECT_URL = 'blog:home'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

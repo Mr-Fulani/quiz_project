@@ -1,0 +1,150 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="inbox active" data-page="inbox">
+    <header>
+        <h2 class="h2 article-title">Messages</h2>
+    </header>
+
+    <div class="messages-container">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="message-item {% if not message.is_read %}unread{% endif %}" data-message-id="{{ message.id }}">
+                <div class="message-header">
+                    <a href="{% url 'blog:profile' username=message.sender.username %}" class="sender">
+                        {{ message.sender.username }}
+                    </a>
+                    <span class="date">{{ message.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="message-content">
+                    {{ message.content }}
+                </div>
+                
+                {% if message.attachments.exists %}
+                <div class="message-attachments">
+                    <h4>Attachments:</h4>
+                    <ul class="attachment-list">
+                        {% for attachment in message.attachments.all %}
+                        <li class="attachment-item">
+                            <a href="{% url 'blog:download_attachment' attachment.id %}" class="attachment-link">
+                                <ion-icon name="document-outline"></ion-icon>
+                                {{ attachment.filename }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <div class="message-actions">
+                    <button class="btn reply-btn" onclick="replyToMessage('{{ message.sender.username }}')">Reply</button>
+                    <button class="btn delete-btn" onclick="deleteMessage({{ message.id }})">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-messages">No messages yet.</p>
+        {% endif %}
+    </div>
+</article>
+
+<div id="reply-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Reply to Message</h3>
+        <form method="POST" enctype="multipart/form-data" id="reply-form">
+            {% csrf_token %}
+            <textarea name="content" class="form-input" placeholder="Write your reply..." required></textarea>
+            <div class="file-upload">
+                <label for="attachments">
+                    <ion-icon name="attach-outline"></ion-icon>
+                    Add Files
+                </label>
+                <input type="file" id="attachments" name="attachments" multiple>
+            </div>
+            <div id="file-list"></div>
+            <button type="submit" class="form-btn">Send Reply</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Получаем CSRF токен один раз при загрузке
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Функция для удаления сообщения
+    function deleteMessage(messageId) {
+        if (confirm('Are you sure you want to delete this message?')) {
+            fetch(`/messages/delete/${messageId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'deleted' || data.status === 'soft_deleted') {
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        messageElement.remove();
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    }
+
+    // Функция для ответа на сообщение
+    function replyToMessage(username) {
+        const modal = document.getElementById('reply-modal');
+        const form = document.getElementById('reply-form');
+        form.action = `/messages/send/${username}/`;
+        modal.style.display = 'block';
+    }
+
+    // Делаем функции глобально доступными
+    window.deleteMessage = deleteMessage;
+    window.replyToMessage = replyToMessage;
+
+    // Обработка файлов
+    const attachmentsInput = document.getElementById('attachments');
+    if (attachmentsInput) {
+        attachmentsInput.addEventListener('change', function(e) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            Array.from(this.files).forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span>${file.name}</span>
+                    <ion-icon name="close-outline" class="remove-file"></ion-icon>
+                `;
+                item.querySelector('.remove-file').addEventListener('click', function() {
+                    item.remove();
+                });
+                fileList.appendChild(item);
+            });
+        });
+    }
+
+    // Закрытие модального окна
+    const closeButton = document.querySelector('.close');
+    if (closeButton) {
+        closeButton.addEventListener('click', function() {
+            document.getElementById('reply-modal').style.display = 'none';
+        });
+    }
+
+    // Закрытие модального окна при клике вне его
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('reply-modal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %} 

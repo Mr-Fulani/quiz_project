@@ -30,5 +30,12 @@
             {{ post.content|safe }}
         </div>
     </section>
+
+    <!-- ... в секции комментариев или взаимодействий ... -->
+    {% if user.is_authenticated %}
+        <a href="{% url 'blog:profile' username=comment.user.username %}">{{ comment.user.username }}</a>
+    {% else %}
+        <span>{{ comment.user.username }}</span>
+    {% endif %}
 </article>
 {% endblock %} 

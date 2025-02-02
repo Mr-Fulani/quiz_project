@@ -13,6 +13,11 @@ services:
     networks:
       - quiz_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   telegram_bot:
     build: ./bot
@@ -63,10 +68,12 @@ services:
       - ./quiz_backend:/app
       - ./staticfiles:/app/staticfiles
       - ./quiz_backend/static:/app/static
+      - ./media:/app/media
     ports:
       - "8001:8000"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     networks:
       - quiz_network
 

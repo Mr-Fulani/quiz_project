@@ -6,7 +6,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.shortcuts import render
-from django.contrib.auth import views as auth_views
+from django.contrib.auth.views import LogoutView
 
 
 # Функция обработки ошибки 404
@@ -32,10 +32,10 @@ schema_view = get_schema_view(
 # Основной список URL-ов
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('blog.urls')),  # Главная страница
-    path('login/', auth_views.LoginView.as_view(template_name='blog/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='blog:home'), name='logout'),
-    path('api/', include('accounts.urls')),
+    path('', include('blog.urls')),  # Основные URL
+    path('accounts/', include('django.contrib.auth.urls')),  # стандартные auth URLs
+    path('users/', include('accounts.urls')),  # убрали namespace
+    path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('api/', include('tasks.urls')),
     path('api/', include('topics.urls')),
     path('api/', include('platforms.urls')),
@@ -46,7 +46,8 @@ urlpatterns = [
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) \
+  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 # Обработчик ошибки 404 (должен быть указан **после** `urlpatterns`)

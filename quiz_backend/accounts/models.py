@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinLengthValidator, RegexValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 
@@ -15,6 +17,8 @@ class CustomUser(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)  # Дата создания
     language = models.CharField(max_length=10, blank=True, null=True)  # Язык пользователя
     deactivated_at = models.DateTimeField(blank=True, null=True)  # Дата деактивации (если пользователь стал неактивным)
+    photo = models.URLField(max_length=500, blank=True, null=True)
+    telegram_id = models.CharField(max_length=100, blank=True, null=True)
 
     groups = models.ManyToManyField(
         Group,
@@ -38,6 +42,9 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f"{self.username or 'User'}"
+
+    def get_unread_messages_count(self):
+        return self.received_messages.filter(is_read=False).count()
 
 
 
@@ -195,5 +202,70 @@ class UserChannelSubscription(models.Model):
         self.subscription_status = 'inactive'
         self.unsubscribed_at = timezone.now()
         self.save()
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(
+        CustomUser, 
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    avatar = models.ImageField(upload_to='avatar/', blank=True, null=True)
+    bio = models.TextField(max_length=500, blank=True)
+    location = models.CharField(max_length=100, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    website = models.URLField(max_length=200, blank=True)
+    total_points = models.IntegerField(default=0)
+    quizzes_completed = models.IntegerField(default=0)
+    average_score = models.FloatField(default=0.0)
+    favorite_category = models.CharField(max_length=100, blank=True)
+    
+    # Дополнительные поля для телеграм пользователей
+    telegram_username = models.CharField(max_length=100, blank=True, null=True)
+    is_telegram_user = models.BooleanField(default=False)
+    
+    # Настройки
+    email_notifications = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True)
+    theme_preference = models.CharField(
+        max_length=20,
+        choices=[('light', 'Light'), ('dark', 'Dark')],
+        default='dark'
+    )
+    
+    class Meta:
+        db_table = 'user_profiles'
+        verbose_name = 'Профиль пользователя'
+        verbose_name_plural = 'Профили пользователей'
+
+    def __str__(self):
+        return f'Профиль пользователя {self.user.username}'
+
+    @property
+    def get_avatar_url(self):
+        if self.avatar:
+            return self.avatar.url
+        return '/static/blog/images/avatar/default_avatar.png'
+
+# Сигналы
+@receiver(post_save, sender=CustomUser)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+@receiver(post_save, sender=CustomUser)
+def save_user_profile(sender, instance, **kwargs):
+    if not hasattr(instance, 'profile'):
+        Profile.objects.create(user=instance)
+    instance.profile.save()
+
+@receiver(post_save, sender=TelegramAdmin)
+def create_telegram_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(
+            user=instance,
+            is_telegram_user=True,
+            telegram_username=instance.username
+        )
 
 

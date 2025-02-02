@@ -1,0 +1,105 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="profile active" data-page="profile">
+    <header>
+        <h2 class="h2 article-title">{{ profile_user.username }}'s Profile</h2>
+    </header>
+
+    <section class="profile-info">
+        <div class="profile-card">
+            <figure class="profile-avatar-box">
+                <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ profile_user.username }}" class="profile-avatar">
+            </figure>
+
+            <div class="profile-details">
+                <h3 class="profile-name">{{ profile_user.username }}</h3>
+                
+                {% if profile_user.profile.location %}
+                <p class="profile-location">
+                    <ion-icon name="location-outline"></ion-icon>
+                    <span>{{ profile_user.profile.location }}</span>
+                </p>
+                {% endif %}
+
+                {% if profile_user.profile.bio %}
+                <p class="profile-bio">{{ profile_user.profile.bio }}</p>
+                {% endif %}
+
+                <div class="profile-stats">
+                    <div class="stat">
+                        <ion-icon name="trophy-outline"></ion-icon>
+                        <span>Points: {{ profile_user.profile.total_points|default:"0" }}</span>
+                    </div>
+                    <div class="stat">
+                        <ion-icon name="checkbox-outline"></ion-icon>
+                        <span>Quizzes: {{ profile_user.profile.quizzes_completed|default:"0" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+
+<style>
+.profile-card {
+    background: var(--eerie-black-1);
+    border-radius: 20px;
+    padding: 30px;
+    display: flex;
+    gap: 25px;
+}
+
+.profile-avatar-box {
+    margin: 0;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-details {
+    flex: 1;
+}
+
+.profile-name {
+    color: var(--light-gray);
+    font-size: 1.5em;
+    margin-bottom: 15px;
+}
+
+.profile-location {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--light-gray-70);
+    margin-bottom: 15px;
+}
+
+.profile-bio {
+    color: var(--light-gray);
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--light-gray-70);
+}
+
+.stat ion-icon {
+    color: var(--orange-yellow-crayola);
+}
+</style>
+{% endblock %} 

@@ -3,12 +3,20 @@
   {% if user.is_authenticated %}
     <div class="sidebar-info">
       <figure class="avatar-box">
-        <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="{{ user.username }}" width="80">
+        <a href="{% url 'blog:profile' username=user.username %}">
+          {% if user.profile.avatar %}
+            <img src="{{ user.profile.get_avatar_url }}" alt="User Avatar" width="80">
+          {% else %}
+            <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" width="80">
+          {% endif %}
+        </a>
       </figure>
 
       <div class="info-content">
         <h1 class="name" title="{{ user.get_full_name|default:user.username }}">
-          {{ user.get_full_name|default:user.username }}
+          <a href="{% url 'blog:profile' username=user.username %}">
+            {{ user.get_full_name|default:user.username }}
+          </a>
         </h1>
         <p class="title">User Profile</p>
       </div>

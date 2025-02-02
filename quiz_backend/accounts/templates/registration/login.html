@@ -1,0 +1,40 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="login active" data-page="login">
+    <header>
+        <h2 class="h2 article-title">Login</h2>
+    </header>
+
+    <form method="post" class="form">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="alert alert-error">
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}" class="form-label">
+                {{ field.label }}
+            </label>
+            {{ field }}
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="form-btn">
+            <ion-icon name="log-in-outline"></ion-icon>
+            <span>Login</span>
+        </button>
+    </form>
+
+    <div class="auth-links">
+        <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+    </div>
+</article>
+{% endblock %} 

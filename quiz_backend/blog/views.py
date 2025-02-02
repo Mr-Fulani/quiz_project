@@ -1,14 +1,26 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import Category, Post, Project
+from .models import Category, Post, Project, Message, MessageAttachment
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from rest_framework.views import APIView
 from django.views.generic import TemplateView, DetailView
 from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse, FileResponse
+from accounts.models import CustomUser
+from django.db.models import Q
+from django.views.decorators.http import require_POST
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.core.exceptions import PermissionDenied
+import json
+from .forms import ProfileEditForm
+from django.contrib.auth import get_user_model
 
 # Create your views here.
 
@@ -191,3 +203,161 @@ class ProfileView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['user_profile'] = self.request.user
         return context
+
+@login_required
+def profile_view(request, username):
+    user = get_object_or_404(CustomUser, username=username)
+    profile = user.profile
+    
+    # Определяем, является ли текущий пользователь владельцем профиля
+    is_owner = request.user == user
+    
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'is_owner': is_owner,
+    }
+    return render(request, 'blog/profile.html', context)
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('blog:profile', username=request.user.username)
+    else:
+        form = ProfileEditForm(instance=request.user.profile)
+    
+    return render(request, 'blog/edit_profile.html', {'form': form})
+
+@login_required
+def profile_stats(request, username):
+    """API endpoint для получения статистики пользователя"""
+    user = get_object_or_404(CustomUser, username=username)
+    profile = user.profile
+    
+    stats = {
+        'total_points': profile.total_points,
+        'quizzes_completed': profile.quizzes_completed,
+        'average_score': profile.average_score,
+        'favorite_category': profile.favorite_category,
+    }
+    
+    return JsonResponse(stats)
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('blog:profile', username=request.user.username)
+        else:
+            messages.error(request, 'Please correct the errors below.')
+            return JsonResponse({
+                'status': 'error',
+                'errors': form.errors
+            }, status=400)
+    return redirect('blog:profile', username=request.user.username)
+
+@login_required
+@require_POST
+def update_settings(request):
+    try:
+        data = json.loads(request.body)
+        setting = data.get('setting')
+        value = data.get('value')
+        
+        profile = request.user.profile
+        
+        if setting == 'email_notifications':
+            profile.email_notifications = value
+        elif setting == 'is_public':
+            profile.is_public = value
+        elif setting == 'theme_preference':
+            profile.theme_preference = 'dark' if value else 'light'
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid setting'}, status=400)
+        
+        profile.save()
+        return JsonResponse({'status': 'success'})
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+def send_message(request, recipient_username):
+    if request.method == 'POST':
+        recipient = get_object_or_404(CustomUser, username=recipient_username)
+        content = request.POST.get('content')
+        
+        if content:
+            Message.objects.create(
+                sender=request.user,
+                recipient=recipient,
+                content=content
+            )
+            messages.success(request, 'Message sent successfully!')
+        else:
+            messages.error(request, 'Message cannot be empty!')
+            
+    return redirect('blog:profile', username=recipient_username)
+
+@login_required
+def delete_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    if request.user not in [message.sender, message.recipient]:
+        raise PermissionDenied
+    
+    message.soft_delete(request.user)
+    
+    if message.is_completely_deleted:
+        # Удаляем файлы и сообщение полностью
+        for attachment in message.attachments.all():
+            if attachment.file:
+                attachment.file.delete()
+        message.delete()
+        return JsonResponse({'status': 'deleted'})
+    
+    return JsonResponse({'status': 'soft_deleted'})
+
+@login_required
+def download_attachment(request, attachment_id):
+    attachment = get_object_or_404(MessageAttachment, id=attachment_id)
+    message = attachment.message
+    
+    if request.user not in [message.sender, message.recipient]:
+        raise PermissionDenied
+        
+    response = FileResponse(attachment.file)
+    response['Content-Disposition'] = f'attachment; filename="{attachment.filename}"'
+    return response
+
+@login_required
+def inbox(request):
+    user_messages = Message.objects.filter(recipient=request.user)
+    return render(request, 'blog/inbox.html', {'messages': user_messages})
+
+@login_required
+def mark_as_read(request, message_id):
+    message = get_object_or_404(Message, id=message_id, recipient=request.user)
+    message.is_read = True
+    message.save()
+    return JsonResponse({'status': 'success'})
+
+@login_required
+def get_unread_messages_count(request):
+    count = Message.objects.filter(recipient=request.user, is_read=False).count()
+    return JsonResponse({'count': count})
+
+def index(request):
+    User = get_user_model()
+    context = {
+        'users': User.objects.exclude(is_staff=True).select_related('profile').order_by('-date_joined')
+    }
+    return render(request, 'blog/index.html', context)

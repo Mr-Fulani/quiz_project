@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from accounts.models import CustomUser  # Оставляем только нужные импорты
 
 # Create your models here.
 
@@ -76,3 +77,32 @@ class Project(models.Model):
         if not self.slug:
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
+
+class MessageAttachment(models.Model):
+    message = models.ForeignKey('Message', related_name='attachments', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='message_attachments/%Y/%m/%d/')
+    filename = models.CharField(max_length=255)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+class Message(models.Model):
+    sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
+    recipient = models.ForeignKey(CustomUser, related_name='received_messages', on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    is_deleted_by_sender = models.BooleanField(default=False)
+    is_deleted_by_recipient = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def soft_delete(self, user):
+        if user == self.sender:
+            self.is_deleted_by_sender = True
+        elif user == self.recipient:
+            self.is_deleted_by_recipient = True
+        self.save()
+
+    @property
+    def is_completely_deleted(self):
+        return self.is_deleted_by_sender and self.is_deleted_by_recipient

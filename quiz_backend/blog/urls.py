@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CategoryViewSet, PostViewSet, ProjectViewSet, HomePageView, PostDetailView, ProjectDetailView, ResumeView, PortfolioView, BlogView, AboutView, ContactView, QuizesView, QuizDetailView, ProfileView
+from .views import CategoryViewSet, PostViewSet, ProjectViewSet, HomePageView, PostDetailView, ProjectDetailView, ResumeView, PortfolioView, BlogView, AboutView, ContactView, QuizesView, QuizDetailView, ProfileView, profile_view, edit_profile, profile_stats, change_password, update_settings, inbox, send_message, mark_as_read, delete_message, download_attachment, get_unread_messages_count
 
 app_name = 'blog'
 
@@ -20,6 +20,16 @@ urlpatterns = [
     path('contact/', ContactView.as_view(), name='contact'),  # Добавляем URL для contact
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
-    path('profile/', ProfileView.as_view(), name='profile'),
+    path('profile/<str:username>/', profile_view, name='profile'),
+    path('profile/edit/', edit_profile, name='edit_profile'),
+    path('profile/change-password/', change_password, name='change_password'),
+    path('profile/update-settings/', update_settings, name='update_settings'),
+    path('profile/<str:username>/stats/', profile_stats, name='profile_stats'),
+    path('messages/', inbox, name='inbox'),
+    path('messages/send/<str:recipient_username>/', send_message, name='send_message'),
+    path('messages/read/<int:message_id>/', mark_as_read, name='mark_as_read'),
+    path('messages/delete/<int:message_id>/', delete_message, name='delete_message'),
+    path('messages/attachment/<int:attachment_id>/', download_attachment, name='download_attachment'),
+    path('messages/unread/count/', get_unread_messages_count, name='unread_messages_count'),
     path('api/', include(router.urls)),  # API endpoints
 ] 

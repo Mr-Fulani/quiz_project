@@ -1,9 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import login, logout
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription
+from .models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, Profile
 from .serializers import (
     UserSerializer, 
     LoginSerializer,
@@ -17,6 +17,12 @@ from rest_framework.authtoken.models import Token
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.permissions import AllowAny
+from django.contrib import messages
+from .forms import CustomUserCreationForm
+from django.contrib.auth.views import LoginView, LogoutView
+from django.views.generic import RedirectView, DetailView, ListView, UpdateView
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Create your views here.
 
@@ -34,13 +40,8 @@ class LoginView(APIView):
             return Response(UserSerializer(user).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class LogoutView(APIView):
-    """
-    Выход пользователя из системы.
-    """
-    def post(self, request):
-        logout(request)
-        return Response(status=status.HTTP_200_OK)
+class CustomLogoutView(LogoutView):
+    next_page = '/'  # Редирект на главную после выхода
 
 class RegisterView(generics.CreateAPIView):
     """
@@ -166,3 +167,58 @@ class CustomObtainAuthToken(ObtainAuthToken):
             'user_id': user.pk,
             'username': user.username
         })
+
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'
+    redirect_authenticated_user = True
+    success_url = reverse_lazy('blog:index')
+
+def register(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, 'Registration successful!')
+            return redirect('/')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'registration/register.html', {'form': form})
+
+class UserProfileView(LoginRequiredMixin, DetailView):
+    model = CustomUser
+    template_name = 'accounts/user_profile.html'
+    context_object_name = 'profile_user'
+    slug_field = 'username'
+    slug_url_kwarg = 'username'
+
+    def get_object(self):
+        # Отладочное сообщение для проверки переданного username
+        print(f"Looking for user with username: {self.kwargs.get('username')}")
+        return super().get_object()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_own_profile'] = self.object == self.request.user
+        return context
+
+class UserListView(LoginRequiredMixin, ListView):
+    model = CustomUser
+    template_name = 'accounts/user_list.html'
+    context_object_name = 'users'
+    paginate_by = 10
+
+    def get_queryset(self):
+        return CustomUser.objects.exclude(is_staff=True).select_related('profile').order_by('-date_joined')
+
+class ProfileEditView(LoginRequiredMixin, UpdateView):
+    model = Profile
+    template_name = 'accounts/profile_edit.html'
+    fields = ['avatar', 'bio', 'location', 'website']
+    success_url = reverse_lazy('user-profile')
+
+    def get_object(self, queryset=None):
+        return self.request.user.profile
+
+    def get_success_url(self):
+        return reverse_lazy('user-profile', kwargs={'username': self.request.user.username})

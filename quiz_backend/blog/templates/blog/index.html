@@ -265,6 +265,52 @@
     </div>
 </article>
 
+<article class="clients" data-page="clients">
+    <header>
+        <h2 class="h2 article-title">Users</h2>
+    </header>
+
+    <section class="clients-list">
+        {% for user in users %}
+        <div class="client-card">
+            <figure class="client-avatar-box">
+                <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" class="client-avatar">
+            </figure>
+
+            <div class="client-info">
+                <h3 class="client-name">
+                    <a href="{% url 'user-profile' username=user.username %}">{{ user.username }}</a>
+                </h3>
+                
+                {% if user.profile.location %}
+                <p class="client-location">
+                    <ion-icon name="location-outline"></ion-icon>
+                    <span>{{ user.profile.location }}</span>
+                </p>
+                {% endif %}
+
+                {% if user.profile.bio %}
+                <p class="client-bio">{{ user.profile.bio|truncatewords:20 }}</p>
+                {% endif %}
+
+                <div class="client-stats">
+                    <div class="stat">
+                        <ion-icon name="trophy-outline"></ion-icon>
+                        <span>Points: {{ user.profile.total_points }}</span>
+                    </div>
+                    <div class="stat">
+                        <ion-icon name="checkbox-outline"></ion-icon>
+                        <span>Quizzes: {{ user.profile.quizzes_completed }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="no-clients">No users found.</p>
+        {% endfor %}
+    </section>
+</article>
+
 {% endblock %}
 
 <!-- Добавляем необходимые скрипты -->

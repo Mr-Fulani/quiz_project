@@ -1,0 +1,173 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block content %}
+<article class="clients active" data-page="clients">
+    <header>
+        <h2 class="h2 article-title">Users</h2>
+    </header>
+
+    <section class="clients-list">
+        {% for user in users %}
+        <div class="client-card">
+            <figure class="client-avatar-box">
+                {% if user.profile.avatar %}
+                    <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}" class="client-avatar">
+                {% else %}
+                    <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" class="client-avatar">
+                {% endif %}
+            </figure>
+
+            <div class="client-info">
+                <h3 class="client-name">
+                    <a href="{% url 'user-profile' username=user.username %}">{{ user.username }}</a>
+                </h3>
+                
+                {% if user.profile.location %}
+                <p class="client-location">
+                    <ion-icon name="location-outline"></ion-icon>
+                    <span>{{ user.profile.location }}</span>
+                </p>
+                {% endif %}
+
+                {% if user.profile.bio %}
+                <p class="client-bio">{{ user.profile.bio|truncatewords:20 }}</p>
+                {% endif %}
+
+                <div class="client-stats">
+                    <div class="stat">
+                        <ion-icon name="trophy-outline"></ion-icon>
+                        <span>Points: {{ user.profile.total_points }}</span>
+                    </div>
+                    <div class="stat">
+                        <ion-icon name="checkbox-outline"></ion-icon>
+                        <span>Quizzes: {{ user.profile.quizzes_completed }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="no-clients">No users found.</p>
+        {% endfor %}
+    </section>
+
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+
+        <span class="current-page">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</article>
+
+<style>
+.clients-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.client-card {
+    background: var(--eerie-black-1);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    transition: 0.25s ease;
+}
+
+.client-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.client-avatar-box {
+    margin: 0;
+}
+
+.client-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.client-info {
+    flex: 1;
+}
+
+.client-name {
+    margin-bottom: 10px;
+}
+
+.client-name a {
+    color: var(--light-gray);
+    font-size: 1.2em;
+    text-decoration: none;
+}
+
+.client-name a:hover {
+    color: var(--orange-yellow-crayola);
+}
+
+.client-location {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--light-gray-70);
+    margin-bottom: 8px;
+}
+
+.client-bio {
+    color: var(--light-gray);
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.client-stats {
+    display: flex;
+    gap: 15px;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--light-gray-70);
+    font-size: 0.9em;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.page-link {
+    color: var(--orange-yellow-crayola);
+    text-decoration: none;
+}
+
+.current-page {
+    color: var(--light-gray-70);
+}
+
+.no-clients {
+    text-align: center;
+    color: var(--light-gray-70);
+    grid-column: 1 / -1;
+    padding: 40px;
+}
+</style>
+{% endblock %} 

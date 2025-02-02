@@ -1,18 +1,19 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
-
-app_name = 'accounts'
 
 urlpatterns = [
     # Аутентификация
-    path('login/', views.LoginView.as_view(), name='login'),
-    path('logout/', views.LogoutView.as_view(), name='logout'),
-    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('logout/', views.CustomLogoutView.as_view(), name='logout'),
+    path('register/', views.register, name='register'),
     
     # Профили пользователей
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('profile/update/', views.ProfileUpdateView.as_view(), name='profile-update'),
     path('profile/deactivate/', views.ProfileDeactivateView.as_view(), name='profile-deactivate'),
+    path('profile/<str:username>/', views.UserProfileView.as_view(), name='user-profile'),
+    path('profile/edit/', views.ProfileEditView.as_view(), name='profile-edit'),
     
     # Управление подписками
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscription-list'),
@@ -26,4 +27,5 @@ urlpatterns = [
     
     # Статистика
     path('stats/', views.UserStatsView.as_view(), name='user-stats'),
+    path('list/', views.UserListView.as_view(), name='user-list'),
 ] 

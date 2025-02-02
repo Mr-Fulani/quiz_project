@@ -28,3 +28,10 @@ def personal_info(request):
             ]
         }
     }
+
+def unread_messages(request):
+    if request.user.is_authenticated:
+        return {
+            'unread_messages_count': request.user.get_unread_messages_count()
+        }
+    return {'unread_messages_count': 0}

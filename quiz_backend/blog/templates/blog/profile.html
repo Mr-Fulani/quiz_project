@@ -9,7 +9,6 @@
   {% endif %}
 {% endblock %}
 
-
 {% block content %}
   {% if user.is_authenticated %}
     <article class="profile active" data-page="profile">
@@ -31,31 +30,43 @@
           <div class="profile-card">
             <div class="profile-header">
               <div class="profile-avatar">
-                <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="Profile Avatar">
-                <button class="change-avatar-btn">Change Photo</button>
+                <img src="{{ profile.get_avatar_url }}" alt="{{ profile_user.username }}">
+                {% if is_owner %}
+                <form id="avatar-form" method="post" enctype="multipart/form-data" action="{% url 'blog:edit_profile' %}">
+                  {% csrf_token %}
+                  <label for="avatar-upload" class="change-avatar-btn">
+                    Change Photo
+                  </label>
+                  <input type="file" id="avatar-upload" name="avatar" style="display: none;" onchange="this.form.submit()">
+                </form>
+                {% endif %}
               </div>
               <div class="profile-info">
-                <h3 class="h3">John Doe</h3>
-                <p class="profile-email">john.doe@example.com</p>
-                <p class="profile-status">Member since: January 2024</p>
+                <h3 class="h3">{{ profile_user.username }}</h3>
+                <p class="profile-email">{{ profile_user.email }}</p>
+                <p class="profile-status">Member since: {{ profile_user.date_joined|date:"F Y" }}</p>
+                {% if profile.is_telegram_user %}
+                  <span class="telegram-badge">
+                    <i class="fab fa-telegram"></i> Telegram User
+                  </span>
+                {% endif %}
               </div>
             </div>
+            {% if is_owner %}
             <div class="profile-details">
-              <form class="form">
+              <form class="form" method="post" action="{% url 'blog:edit_profile' %}">
+                {% csrf_token %}
                 <div class="input-wrapper">
-                  <input type="text" class="form-input" placeholder="Full Name" value="John Doe">
-                  <input type="email" class="form-input" placeholder="Email" value="john.doe@example.com">
+                  <input type="text" name="username" class="form-input" placeholder="Username" value="{{ profile_user.username }}">
+                  <input type="email" name="email" class="form-input" placeholder="Email" value="{{ profile_user.email }}">
                 </div>
-                <div class="input-wrapper">
-                  <input type="text" class="form-input" placeholder="Location" value="New York, USA">
-                  <input type="text" class="form-input" placeholder="Occupation" value="Software Developer">
-                </div>
-                <textarea class="form-input" placeholder="Bio">Full-stack developer with a passion for learning and teaching.</textarea>
+                <textarea name="bio" class="form-input" placeholder="Bio">{{ profile.bio }}</textarea>
                 <button class="form-btn" type="submit">
                   <span>Save Changes</span>
                 </button>
               </form>
             </div>
+            {% endif %}
           </div>
         </div>
 
@@ -67,21 +78,21 @@
               <div class="setting-item">
                 <span>Dark Mode</span>
                 <label class="switch">
-                  <input type="checkbox">
+                  <input type="checkbox" id="darkModeToggle">
                   <span class="slider round"></span>
                 </label>
               </div>
               <div class="setting-item">
                 <span>Email Notifications</span>
                 <label class="switch">
-                  <input type="checkbox" checked>
+                  <input type="checkbox" name="email_notifications" {% if profile.email_notifications %}checked{% endif %}>
                   <span class="slider round"></span>
                 </label>
               </div>
               <div class="setting-item">
                 <span>Public Profile</span>
                 <label class="switch">
-                  <input type="checkbox" checked>
+                  <input type="checkbox" name="is_public" {% if profile.is_public %}checked{% endif %}>
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -93,18 +104,23 @@
         <div class="tab-content" data-tab-content="security">
           <div class="profile-card">
             <h3 class="h3">Security Settings</h3>
-            <form class="form">
+            {% if not profile.is_telegram_user %}
+            <form class="form" method="post" action="{% url 'blog:change_password' %}">
+              {% csrf_token %}
               <div class="input-wrapper">
-                <input type="password" class="form-input" placeholder="Current Password">
+                <input type="password" name="current_password" class="form-input" placeholder="Current Password">
               </div>
               <div class="input-wrapper">
-                <input type="password" class="form-input" placeholder="New Password">
-                <input type="password" class="form-input" placeholder="Confirm New Password">
+                <input type="password" name="new_password1" class="form-input" placeholder="New Password">
+                <input type="password" name="new_password2" class="form-input" placeholder="Confirm New Password">
               </div>
               <button class="form-btn" type="submit">
                 <span>Change Password</span>
               </button>
             </form>
+            {% else %}
+            <p class="telegram-notice">Password management is handled through Telegram for Telegram users.</p>
+            {% endif %}
           </div>
         </div>
 
@@ -115,22 +131,44 @@
             <div class="stats-grid">
               <div class="stat-card">
                 <h4>Completed Quizzes</h4>
-                <span class="stat-number">12</span>
+                <span class="stat-number">{{ profile.quizzes_completed }}</span>
               </div>
               <div class="stat-card">
                 <h4>Average Score</h4>
-                <span class="stat-number">85%</span>
+                <span class="stat-number">{{ profile.average_score }}%</span>
               </div>
               <div class="stat-card">
-                <h4>Best Category</h4>
-                <span class="stat-text">Python</span>
+                <h4>Total Points</h4>
+                <span class="stat-number">{{ profile.total_points }}</span>
               </div>
               <div class="stat-card">
-                <h4>Total Time</h4>
-                <span class="stat-text">5h 30m</span>
+                <h4>Favorite Category</h4>
+                <span class="stat-text">{{ profile.favorite_category|default:"Not set" }}</span>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- В секции профиля, если это не профиль текущего пользователя -->
+        {% if user.is_authenticated and user.username != profile_user.username %}
+        <div class="message-form">
+            <h3>Send Message</h3>
+            <form method="POST" action="{% url 'blog:send_message' recipient_username=profile_user.username %}">
+                {% csrf_token %}
+                <textarea name="content" class="form-input" placeholder="Write your message..." required></textarea>
+                <button type="submit" class="form-btn">Send Message</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="profile-navigation">
+          {% if is_owner %}
+          <a href="{% url 'blog:edit_profile' %}" class="nav-link">Edit Profile</a>
+          {% endif %}
+          
+          {% if user.is_authenticated and not is_owner %}
+          <a href="{% url 'blog:profile' username=user.username %}" class="nav-link">My Profile</a>
+          {% endif %}
         </div>
       </section>
     </article>
@@ -258,6 +296,38 @@
             // Добавляем класс active для выбранной кнопки и соответствующего контента
             tab.classList.add('active');
             document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+          });
+        });
+
+        // Avatar upload
+        const avatarUpload = document.getElementById('avatar-upload');
+        if (avatarUpload) {
+          avatarUpload.addEventListener('change', function() {
+            this.form.submit();
+          });
+        }
+
+        // Settings toggles
+        const settingsToggles = document.querySelectorAll('.settings-list input[type="checkbox"]');
+        settingsToggles.forEach(toggle => {
+          toggle.addEventListener('change', async function() {
+            try {
+              const response = await fetch('{% url "blog:update_settings" %}', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                  setting: this.name,
+                  value: this.checked
+                })
+              });
+              if (!response.ok) throw new Error('Settings update failed');
+            } catch (error) {
+              console.error('Error:', error);
+              this.checked = !this.checked; // Revert the toggle if update failed
+            }
           });
         });
       });
