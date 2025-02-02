@@ -1,4 +1,61 @@
+from django.db.models import Count, Avg, Sum, Q, Case, When, FloatField, IntegerField, F, Value
+from tasks.models import TaskStatistics
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 def personal_info(request):
+    # Получаем топ пользователей по количеству успешно решенных задач
+    top_users = User.objects.annotate(
+        tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
+        total_attempts=Count('statistics'),
+        avg_success_rate=Avg(
+            Case(
+                When(statistics__successful=True, then=100),
+                default=0,
+                output_field=FloatField(),
+            )
+        ),
+        total_score=Sum(
+            Case(
+                When(statistics__successful=True, then=Case(
+                    When(statistics__task__difficulty='easy', then=Value(1)),
+                    When(statistics__task__difficulty='medium', then=Value(2)),
+                    When(statistics__task__difficulty='hard', then=Value(3)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )),
+                default=0,
+                output_field=IntegerField(),
+            )
+        )
+    ).filter(
+        tasks_completed__gt=0  # Только пользователи, решившие хотя бы одну задачу
+    ).order_by('-total_score')[:4]  # Берем топ 4 пользователя
+
+    # Получаем дополнительную информацию для каждого пользователя
+    top_users_data = []
+    for i, user in enumerate(top_users, 1):
+        # Получаем любимую тему (тему с наибольшим количеством решенных задач)
+        favorite_topic = TaskStatistics.objects.filter(
+            user=user,
+            successful=True
+        ).values(
+            'task__topic__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count').first()
+
+        top_users_data.append({
+            'rank': i,
+            'name': f"{user.first_name} {user.last_name}" if user.first_name else user.username,
+            'avatar': user.profile.avatar.url if hasattr(user, 'profile') and user.profile.avatar else f"https://ui-avatars.com/api/?name={user.username}&background=random",
+            'quizzes_count': user.tasks_completed,
+            'avg_score': round(user.avg_success_rate or 0, 1),
+            'total_score': user.total_score * 100,  # Умножаем на 100 для более красивых чисел
+            'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else "Не определено"
+        })
+
     return {
         'personal_info': {
             'name': 'Anvar Sh.',
@@ -57,7 +114,8 @@ def personal_info(request):
                 "На нашем сайте вы сможете изучать новые технологии, проходить увлекательные интерактивные викторины и отслеживать свой прогресс с подробной статистикой.",
                 "Мы стремимся сделать обучение программированию доступным, интересным и эффективным для каждого, будь вы новичком или профессионалом.",
                 "Начните своё обучение прямо сейчас – погрузитесь в мир кода, проходите викторины, совершенствуйте свои навыки и отслеживайте свой рост."
-            ]
+            ],
+            'top_users': top_users_data
         }
     }
 

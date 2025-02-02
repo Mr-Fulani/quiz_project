@@ -72,85 +72,33 @@
         <h3 class="h3 testimonials-title">Топ пользователей</h3>
 
         <ul class="testimonials-list has-scrollbar">
+            {% for user in personal_info.top_users %}
             <li class="testimonials-item">
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60" alt="avatar" data-testimonials-avatar width="60">
+                        <img src="{{ user.avatar }}" alt="avatar" data-testimonials-avatar width="60">
                     </figure>
 
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Александр Петров</h4>
+                    <h4 class="h4 testimonials-item-title" data-testimonials-title>{{ user.name }}</h4>
                     <div class="user-stats">
-                        <span class="rank">Ранг: #1</span>
-                        <span class="score">Очки: 15,430</span>
+                        <span class="rank">Ранг: #{{ user.rank }}</span>
+                        <span class="score">Очки: {{ user.total_score|floatformat:0 }}</span>
                     </div>
 
                     <div class="testimonials-text" data-testimonials-text>
-                        <p>Пройдено викторин: 145</p>
-                        <p>Средний результат: 92%</p>
-                        <p>Любимая категория: Программирование</p>
+                        <p>Пройдено викторин: {{ user.quizzes_count }}</p>
+                        <p>Средний результат: {{ user.avg_score }}%</p>
+                        <p>Любимая категория: {{ user.favorite_category }}</p>
                     </div>
                 </div>
             </li>
-
+            {% empty %}
             <li class="testimonials-item">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60" alt="avatar" data-testimonials-avatar width="60">
-                    </figure>
-
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Мария Иванова</h4>
-                    <div class="user-stats">
-                        <span class="rank">Ранг: #2</span>
-                        <span class="score">Очки: 14,280</span>
-                    </div>
-
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>Пройдено викторин: 132</p>
-                        <p>Средний результат: 89%</p>
-                        <p>Любимая категория: История</p>
-                    </div>
+                <div class="content-card">
+                    <p>Пока нет данных о пользователях</p>
                 </div>
             </li>
-
-            <li class="testimonials-item">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60" alt="avatar" data-testimonials-avatar width="60">
-                    </figure>
-
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Екатерина Смирнова</h4>
-                    <div class="user-stats">
-                        <span class="rank">Ранг: #3</span>
-                        <span class="score">Очки: 13,950</span>
-                    </div>
-
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>Пройдено викторин: 128</p>
-                        <p>Средний результат: 87%</p>
-                        <p>Любимая категория: Наука</p>
-                    </div>
-                </div>
-            </li>
-
-            <li class="testimonials-item">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60" alt="avatar" data-testimonials-avatar width="60">
-                    </figure>
-
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Дмитрий Козлов</h4>
-                    <div class="user-stats">
-                        <span class="rank">Ранг: #4</span>
-                        <span class="score">Очки: 13,120</span>
-                    </div>
-
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>Пройдено викторин: 115</p>
-                        <p>Средний результат: 85%</p>
-                        <p>Любимая категория: Литература</p>
-                    </div>
-                </div>
-            </li>
+            {% endfor %}
         </ul>
     </section>
 

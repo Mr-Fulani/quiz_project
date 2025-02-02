@@ -36,9 +36,13 @@ class TelegramChannel(models.Model):
     )
     location_type = models.CharField(
         max_length=50,
-        choices=[('group', 'Group'), ('channel', 'Channel')],
+        choices=[
+            ('group', 'Group'), 
+            ('channel', 'Channel'),
+            ('web', 'Website')
+        ],
         default='group',
-        help_text='Тип: группа или канал'
+        help_text='Тип: группа, канал или веб-сайт'
     )
     username = models.CharField(
         max_length=255,
