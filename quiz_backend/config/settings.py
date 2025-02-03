@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 import sys
 from pathlib import Path
-
+from django.conf.global_settings import TEMPLATES as DEFAULT_TEMPLATES
 
 
 
@@ -36,8 +36,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# Для тестирования 404 страницы даже при DEBUG = True
-TEMPLATE_DEBUG = False  # Это заставит Django использовать кастомные страницы ошибок
+
 
 ALLOWED_HOSTS = ['*']  # Не используйте '*' в продакшене!
 
@@ -86,10 +85,8 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),  # Добавляем путь к общим шаблонам
-        ],
-        'APP_DIRS': True,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': False,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -98,6 +95,10 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'blog.context_processors.unread_messages',
                 'blog.context_processors.personal_info',
+            ],
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
             ],
         },
     },
@@ -157,13 +158,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-
-# Для обработки статических файлов в режиме разработки
-if DEBUG:
-    STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, 'static'),
-    ]
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, 'blog/static'),
+]
 
 # Media files
 MEDIA_URL = '/media/'

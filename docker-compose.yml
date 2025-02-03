@@ -66,9 +66,10 @@ services:
     command: bash -c "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./quiz_backend:/app
-      - ./staticfiles:/app/staticfiles
       - ./quiz_backend/static:/app/static
+      - ./quiz_backend/staticfiles:/app/staticfiles
       - ./media:/app/media
+      - ./quiz_backend/templates:/app/templates
     ports:
       - "8001:8000"
     depends_on:

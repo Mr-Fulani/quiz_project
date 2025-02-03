@@ -19,54 +19,78 @@
     </section>
 
     <section class="service">
-        <h3 class="h3 service-title">Чем я занимаюсь</h3>
+        <h3 class="h3 service-title">Возможности платформы</h3>
 
         <ul class="service-list">
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1087/1087927.png" alt="icon" width="40">
-                </div>
+                <a href="{% url 'blog:quizes' %}" class="service-link">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2641/2641457.png" alt="quiz icon" width="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Веб-дизайн</h4>
-                    <p class="service-item-text">Самый современный и высококачественный дизайн, созданный на профессиональном уровне.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Задачи и викторины</h4>
+                        <p class="service-item-text">Практикуйтесь в решении задач разной сложности, от основ до продвинутых тем программирования.</p>
+                    </div>
+                </a>
             </li>
 
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="icon" width="40">
-                </div>
+                <a href="/statistics/" class="service-link">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1584/1584892.png" alt="statistics icon" width="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Веб-разработка</h4>
-                    <p class="service-item-text">Высококачественная разработка сайтов на профессиональном уровне.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Статистика и аналитика</h4>
+                        <p class="service-item-text">Детальная статистика по темам, технологиям, рейтинг TOP-50 пользователей и графики прогресса.</p>
+                    </div>
+                </a>
             </li>
 
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/2232/2232241.png" alt="icon" width="40">
-                </div>
+                <a href="{% url 'blog:blog' %}" class="service-link">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2232/2232688.png" alt="education icon" width="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Мобильные приложения</h4>
-                    <p class="service-item-text">Профессиональная разработка приложений для iOS и Android.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Учебные материалы</h4>
+                        <p class="service-item-text">Полезные статьи, библиотеки, фреймворки и обучающие ресурсы для разработчиков.</p>
+                    </div>
+                </a>
             </li>
 
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1042/1042339.png" alt="icon" width="40">
-                </div>
+                <a href="/chat/" class="service-link">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" alt="chat icon" width="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Фотография</h4>
-                    <p class="service-item-text">Я делаю высококачественные фотографии любой категории на профессиональном уровне.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Общение</h4>
+                        <p class="service-item-text">Обсуждайте задачи, делитесь опытом и общайтесь с другими разработчиками в нашем чате.</p>
+                    </div>
+                </a>
             </li>
         </ul>
     </section>
+
+    <style>
+        .service-link {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 10px;
+        }
+
+        .service-item:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+    </style>
 
     <section class="testimonials">
         <h3 class="h3 testimonials-title">Топ пользователей</h3>
@@ -127,22 +151,29 @@
         </section>
     </div>
 
-    <!-- 4. Наши ресурсы (clients) -->
-    <section class="clients">
-        <h3 class="h3 clients-title">Наши ресурсы</h3>
+    <!-- Заменяем секцию clients на новую версию -->
+    <section class="resources section-gap">
+        <h3 class="h3 resources-title">Наши ресурсы</h3>
 
-        <ul class="clients-list has-scrollbar">
+        <ul class="resources-list">
             {% for key, resource in personal_info.resources.items %}
-            <li class="clients-item">
-                <a href="{{ resource.url }}" target="_blank" title="{{ resource.name }}">
-                    <img src="{{ resource.icon }}" alt="{{ resource.name }}">
+            <li class="resources-item">
+                <a href="{{ resource.url }}" target="_blank" class="resources-link">
+                    <div class="resources-icon-box">
+                        <img src="{{ resource.icon }}" alt="{{ resource.name }}" width="40">
+                    </div>
+
+                    <div class="resources-content-box">
+                        <h4 class="h4 resources-item-title">{{ resource.name }}</h4>
+                        <p class="resources-item-text">{{ resource.description }}</p>
+                    </div>
                 </a>
             </li>
             {% endfor %}
         </ul>
     </section>
 
-    <section class="skill">
+    <section class="skill section-gap">
         <h3 class="h3 skills-title">Popular Quizzes</h3>
 
         <ul class="skills-list content-card">
@@ -200,52 +231,6 @@
             <canvas id="quizStatsChart"></canvas>
         </div>
     </div>
-</article>
-
-<article class="clients" data-page="clients">
-    <header>
-        <h2 class="h2 article-title">Users</h2>
-    </header>
-
-    <section class="clients-list">
-        {% for user in users %}
-        <div class="client-card">
-            <figure class="client-avatar-box">
-                <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" class="client-avatar">
-            </figure>
-
-            <div class="client-info">
-                <h3 class="client-name">
-                    <a href="{% url 'user-profile' username=user.username %}">{{ user.username }}</a>
-                </h3>
-                
-                {% if user.profile.location %}
-                <p class="client-location">
-                    <ion-icon name="location-outline"></ion-icon>
-                    <span>{{ user.profile.location }}</span>
-                </p>
-                {% endif %}
-
-                {% if user.profile.bio %}
-                <p class="client-bio">{{ user.profile.bio|truncatewords:20 }}</p>
-                {% endif %}
-
-                <div class="client-stats">
-                    <div class="stat">
-                        <ion-icon name="trophy-outline"></ion-icon>
-                        <span>Points: {{ user.profile.total_points }}</span>
-                    </div>
-                    <div class="stat">
-                        <ion-icon name="checkbox-outline"></ion-icon>
-                        <span>Quizzes: {{ user.profile.quizzes_completed }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <p class="no-clients">No users found.</p>
-        {% endfor %}
-    </section>
 </article>
 
 <!-- Отладочная информация -->

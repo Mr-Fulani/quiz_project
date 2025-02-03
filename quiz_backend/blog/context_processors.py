@@ -73,17 +73,17 @@ def personal_info(request):
             },
             'resources': {
                 'youtube': {
-                    'url': 'https://www.youtube.com/yourchannel',
+                    'url': 'https://www.youtube.com/@Mr_Fulani',
                     'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/800px-YouTube_full-color_icon_%282017%29.svg.png',
                     'name': 'YouTube'
                 },
                 'telegram': {
-                    'url': 'tg://resolve?domain@Mr-Fulani',
+                    'url': 'https://t.me/+Gh7xasVaKwdlMTY0',
                     'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Telegram_2019_Logo.svg/512px-Telegram_2019_Logo.svg.png',
                     'name': 'Telegram'
                 },
                 'vk': {
-                    'url': 'https://vk.com/yourpage',
+                    'url': 'https://vk.com/development_hub',
                     'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/VK_Compact_Logo_%282021-present%29.svg/512px-VK_Compact_Logo_%282021-present%29.svg.png',
                     'name': 'VKontakte'
                 },
@@ -98,7 +98,7 @@ def personal_info(request):
                     'name': 'Instagram'
                 },
                 'tiktok': {
-                    'url': 'https://www.tiktok.com/@yourprofile',
+                    'url': 'https://www.tiktok.com/@fulani_developer',
                     'icon': '/static/blog/images/icons/tiktok.svg',
                     'name': 'TikTok'
                 }

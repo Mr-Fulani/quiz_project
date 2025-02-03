@@ -5,13 +5,14 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.views import LogoutView
+from django.conf.urls import handler404
+from blog.views import custom_404  # создадим этот view
+from django.views import defaults as default_views
+from django.contrib.staticfiles.views import serve
 
 
-# Функция обработки ошибки 404
-def custom_404_view(request, exception):
-    return render(request, "404.html", status=404)
 
 
 # Настройки Swagger
@@ -50,6 +51,16 @@ urlpatterns = [
   + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
-# Обработчик ошибки 404 (должен быть указан **после** `urlpatterns`)
-from django.conf.urls import handler404
-handler404 = custom_404_view
+def test_404(request):
+    return render(request, '404.html')
+
+handler404 = 'blog.views.custom_404'
+
+# Всегда обслуживаем статические файлы
+urlpatterns += [
+    path('static/<path:path>', serve, {'document_root': settings.STATIC_ROOT}),
+    path('404/', test_404, name='404'),  # Добавляем реальный view
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -11,7 +11,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse, FileResponse, HttpResponseNotFound
 from accounts.models import CustomUser, Profile
 from django.db.models import Q
 from django.views.decorators.http import require_POST
@@ -21,6 +21,17 @@ from django.core.exceptions import PermissionDenied
 import json
 from .forms import ProfileEditForm
 from django.contrib.auth import get_user_model
+import os
+from django.conf import settings
+from django.template import loader
+from django.templatetags.static import static
+from django.template import TemplateDoesNotExist
+from django.template.loader import get_template
+from django.db.models import Count, Avg
+from django.db.models.functions import TruncDate
+from datetime import datetime, timedelta
+from tasks.models import Task, TaskStatistics
+from topics.models import Topic
 
 # Create your views here.
 
@@ -362,3 +373,57 @@ def index(request):
         'users': User.objects.exclude(is_staff=True).select_related('profile').order_by('-date_joined')
     }
     return render(request, 'blog/index.html', context)
+
+
+
+def custom_404(request, exception=None):
+    return redirect('404')
+
+
+
+def statistics_view(request):
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=30)
+    
+    context = {
+        'total_users': CustomUser.objects.count(),
+        'total_quizzes_completed': TaskStatistics.objects.count(),
+        'avg_score': TaskStatistics.objects.filter(successful=True).count() * 100.0 / TaskStatistics.objects.count() if TaskStatistics.objects.exists() else 0,
+        
+        # Данные для графика активности
+        'activity_dates': json.dumps([
+            date.strftime('%d.%m')
+            for date in (start_date + timedelta(n) for n in range(31))
+        ]),
+        'activity_data': json.dumps(
+            list(TaskStatistics.objects.filter(
+                last_attempt_date__gte=start_date
+            ).annotate(
+                date=TruncDate('last_attempt_date')
+            ).values('date').annotate(
+                count=Count('id')
+            ).values_list('count', flat=True))
+        ),
+        
+        # Данные для графика категорий (по темам)
+        'categories_labels': json.dumps(
+            list(Topic.objects.annotate(
+                task_count=Count('tasks')
+            ).values_list('name', flat=True))
+        ),
+        'categories_data': json.dumps(
+            list(Topic.objects.annotate(
+                task_count=Count('tasks')
+            ).values_list('task_count', flat=True))
+        ),
+        
+        # Данные для распределения успешности
+        'scores_distribution': json.dumps([
+            TaskStatistics.objects.filter(
+                attempts__gt=0,
+                attempts__lte=i+5
+            ).count() for i in range(0, 25, 5)
+        ])
+    }
+    
+    return render(request, 'blog/statistics.html', context)

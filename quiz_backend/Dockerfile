@@ -13,7 +13,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копировать код Django
-COPY . /app
+RUN mkdir -p /app/templates
+COPY . /app/
+COPY templates /app/templates
 
 # Команда по умолчанию
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
