@@ -19,6 +19,9 @@ function showFormErrors(form, errors) {
 document.querySelector('form[action*="change-password"]')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     
+    // Очищаем предыдущие ошибки
+    this.querySelectorAll('.error-message').forEach(el => el.remove());
+    
     try {
         const response = await fetch(this.action, {
             method: 'POST',
@@ -27,17 +30,35 @@ document.querySelector('form[action*="change-password"]')?.addEventListener('sub
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             }
         });
-        
+
         const data = await response.json();
         
         if (!response.ok) {
-            showFormErrors(this, data.errors);
+            // Показываем ошибки под каждым полем
+            Object.entries(data.errors).forEach(([field, messages]) => {
+                const input = this.querySelector(`[name="${field}"]`);
+                if (input) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = messages.join(', ');
+                    input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                    input.classList.add('error');
+                }
+            });
         } else {
-            // Перезагружаем страницу при успешной смене пароля
-            window.location.reload();
+            // Успешная смена пароля
+            showNotification('Password changed successfully!', 'success');
+            this.reset(); // Очищаем форму
+            
+            // Добавляем зеленую подсветку полей на короткое время
+            this.querySelectorAll('input').forEach(input => {
+                input.classList.add('success');
+                setTimeout(() => input.classList.remove('success'), 2000);
+            });
         }
     } catch (error) {
         console.error('Error:', error);
+        showNotification('Failed to change password. Please try again.', 'error');
     }
 });
 
@@ -208,15 +229,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // Вспомогательные функции
 function showNotification(message, type = 'success') {
+    // Удаляем предыдущие уведомления
+    document.querySelectorAll('.notification').forEach(n => n.remove());
+    
     const notification = document.createElement('div');
-    notification.className = `message ${type}`;
-    notification.textContent = message;
-
-    const container = document.querySelector('.profile-content');
-    container.insertBefore(notification, container.firstChild);
-
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <ion-icon name="${type === 'success' ? 'checkmark-circle' : 'alert-circle'}"></ion-icon>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Анимация появления
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    // Автоматическое скрытие через 3 секунды
     setTimeout(() => {
-        notification.remove();
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 

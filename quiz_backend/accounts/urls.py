@@ -33,4 +33,5 @@ urlpatterns = [
     path('users/', views.user_list, name='user-list'),
     path('user/<str:username>/', views.UserProfileView.as_view(), name='user-profile'),
     path('user/<str:username>/edit/', views.profile_edit, name='profile_edit'),
+    path('change-password/', views.change_password, name='change_password'),
 ] 

@@ -608,3 +608,74 @@ label:has(+ input[required])::after {
     color: var(--eerie-black-1);
     transform: translateY(-2px);
 }
+
+/* Стили для уведомлений */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    z-index: 1000;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification.success {
+    background-color: #4CAF50;
+}
+
+.notification.error {
+    background-color: #f44336;
+}
+
+/* Стили для полей формы */
+.form-input {
+    border: 1px solid var(--jet);
+    transition: all 0.3s ease;
+}
+
+.form-input.error {
+    border-color: #f44336;
+    animation: shake 0.5s;
+}
+
+.form-input.success {
+    border-color: #4CAF50;
+}
+
+.error-message {
+    color: #f44336;
+    font-size: 0.9em;
+    margin-top: 5px;
+    animation: slideDown 0.3s ease;
+}
+
+/* Анимации */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+@keyframes slideDown {
+    from { 
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

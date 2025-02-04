@@ -102,27 +102,30 @@
         <!-- Settings Tab -->
         <div class="tab-content" data-tab-content="settings">
           <div class="profile-card">
-            <h3 class="h3">Preferences</h3>
+            <h3 class="card-title">Settings</h3>
+            {% csrf_token %}
             <div class="settings-list">
               <div class="setting-item">
-                <span>Dark Mode</span>
+                <div class="setting-info">
+                  <h4>Public Profile</h4>
+                  <p>Allow others to view your profile</p>
+                </div>
                 <label class="switch">
-                  <input type="checkbox" id="darkModeToggle">
-                  <span class="slider round"></span>
+                  <input type="checkbox" name="is_public" 
+                         {% if user_settings.is_public %}checked{% endif %}>
+                  <span class="slider"></span>
                 </label>
               </div>
+
               <div class="setting-item">
-                <span>Email Notifications</span>
+                <div class="setting-info">
+                  <h4>Email Notifications</h4>
+                  <p>Receive email notifications</p>
+                </div>
                 <label class="switch">
-                  <input type="checkbox" name="email_notifications" {% if profile.email_notifications %}checked{% endif %}>
-                  <span class="slider round"></span>
-                </label>
-              </div>
-              <div class="setting-item">
-                <span>Public Profile</span>
-                <label class="switch">
-                  <input type="checkbox" name="is_public" {% if profile.is_public %}checked{% endif %}>
-                  <span class="slider round"></span>
+                  <input type="checkbox" name="email_notifications" 
+                         {% if user_settings.email_notifications %}checked{% endif %}>
+                  <span class="slider"></span>
                 </label>
               </div>
             </div>
@@ -133,23 +136,34 @@
         <div class="tab-content" data-tab-content="security">
           <div class="profile-card">
             <h3 class="h3">Security Settings</h3>
-            {% if not profile.is_telegram_user %}
-            <form class="form" method="post" action="{% url 'blog:change_password' %}">
+            <form class="form" method="post" action="{% url 'accounts:change_password' %}">
               {% csrf_token %}
               <div class="input-wrapper">
-                <input type="password" name="current_password" class="form-input" placeholder="Current Password">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" class="form-input" required>
               </div>
               <div class="input-wrapper">
-                <input type="password" name="new_password1" class="form-input" placeholder="New Password">
-                <input type="password" name="new_password2" class="form-input" placeholder="Confirm New Password">
+                <label for="new_password1">New Password</label>
+                <input type="password" id="new_password1" name="new_password1" class="form-input" 
+                       required minlength="8" 
+                       placeholder="Minimum 8 characters">
+                <label for="new_password2">Confirm New Password</label>
+                <input type="password" id="new_password2" name="new_password2" class="form-input" 
+                       required minlength="8">
               </div>
+              {% if messages %}
+              <div class="messages">
+                {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                  {{ message }}
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
               <button class="form-btn" type="submit">
                 <span>Change Password</span>
               </button>
             </form>
-            {% else %}
-            <p class="telegram-notice">Password management is handled through Telegram for Telegram users.</p>
-            {% endif %}
           </div>
         </div>
 

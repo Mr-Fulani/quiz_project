@@ -15,7 +15,6 @@ from django.http import JsonResponse, FileResponse, HttpResponseNotFound
 from accounts.models import CustomUser, Profile
 from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 import json
@@ -245,37 +244,22 @@ def profile_view(request):
     
     return render(request, 'blog/profile.html', context)
 
-@login_required
-def profile_stats(request, username):
-    """API endpoint для получения статистики пользователя"""
-    user = get_object_or_404(CustomUser, username=username)
-    profile = user.profile
-    
-    stats = {
-        'total_points': profile.total_points,
-        'quizzes_completed': profile.quizzes_completed,
-        'average_score': profile.average_score,
-        'favorite_category': profile.favorite_category,
-    }
-    
-    return JsonResponse(stats)
 
-@login_required
-def change_password(request):
-    if request.method == 'POST':
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, 'Your password was successfully updated!')
-            return redirect('blog:profile') 
-        else:
-            messages.error(request, 'Please correct the errors below.')
-            return JsonResponse({
-                'status': 'error',
-                'errors': form.errors
-            }, status=400)
-    return redirect('blog:profile') 
+# @login_required
+# def profile_stats(request, username):
+#     """API endpoint для получения статистики пользователя"""
+#     user = get_object_or_404(CustomUser, username=username)
+#     profile = user.profile
+    
+#     stats = {
+#         'total_points': profile.total_points,
+#         'quizzes_completed': profile.quizzes_completed,
+#         'average_score': profile.average_score,
+#         'favorite_category': profile.favorite_category,
+#     }
+    
+#     return JsonResponse(stats)
+
 
 @login_required
 @require_POST

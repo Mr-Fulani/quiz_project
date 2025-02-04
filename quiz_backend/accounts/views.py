@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, update_session_auth_hash
 from .models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, Profile
 from .serializers import (
     UserSerializer, 
@@ -25,6 +25,8 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+import re
 
 # Create your views here.
 
@@ -245,3 +247,47 @@ def user_list(request):
         'is_paginated': users.has_other_pages(),
         'page_obj': users,
     })
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
+        
+        errors = {}
+        
+        # Проверяем текущий пароль
+        if not request.user.check_password(current_password):
+            errors['current_password'] = ['Current password is incorrect.']
+        
+        # Проверяем совпадение новых паролей
+        if new_password1 != new_password2:
+            errors['new_password2'] = ['Passwords do not match.']
+        
+        # Проверяем сложность пароля
+        if len(new_password1) < 8:
+            errors['new_password1'] = ['Password must be at least 8 characters long.']
+        elif not re.search(r'[A-Z]', new_password1):
+            errors['new_password1'] = ['Password must contain at least one uppercase letter.']
+        elif not re.search(r'[a-z]', new_password1):
+            errors['new_password1'] = ['Password must contain at least one lowercase letter.']
+        elif not re.search(r'\d', new_password1):
+            errors['new_password1'] = ['Password must contain at least one number.']
+        
+        if errors:
+            for field, field_errors in errors.items():
+                messages.error(request, field_errors[0])
+            return redirect('blog:profile')
+        
+        # Меняем пароль
+        request.user.set_password(new_password1)
+        request.user.save()
+        
+        # Обновляем сессию
+        update_session_auth_hash(request, request.user)
+        
+        messages.success(request, 'Password successfully changed!')
+        return redirect('blog:profile')
+    
+    return redirect('blog:profile')
