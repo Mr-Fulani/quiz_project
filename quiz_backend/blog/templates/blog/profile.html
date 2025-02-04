@@ -1,5 +1,6 @@
 {% extends "blog/base.html" %}
 {% load static %}
+{% load form_tags %}
 
 {% block sidebar %}
   {% if user.is_authenticated %}
@@ -33,46 +34,68 @@
           <div class="profile-card">
             <div class="profile-header">
               <div class="profile-avatar">
-                <img src="{{ profile.get_avatar_url }}" alt="{{ profile_user.username }}">
-                {% if is_owner %}
-                  <form id="avatar-form" method="post" enctype="multipart/form-data" action="{% url 'blog:edit_profile' %}">
-                    {% csrf_token %}
-                    <label for="avatar-upload" class="change-avatar-btn">
-                      <ion-icon name="camera-outline"></ion-icon>
-                    </label>
-                    <input type="file" id="avatar-upload" name="avatar" accept="image/*" style="display: none;">
-                  </form>
-                {% endif %}
+                <img src="{{ profile_user.profile.get_avatar_url }}" alt="{{ profile_user.username }}">
+                <form id="avatar-form" method="post" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <label for="id_avatar" class="avatar-overlay">
+                    <ion-icon name="camera-outline"></ion-icon>
+                    <input type="file" name="avatar" id="id_avatar" accept="image/*">
+                  </label>
+                </form>
               </div>
-              <div class="profile-info">
-                <h3 class="profile-name">{{ profile_user.get_full_name|default:profile_user.username }}</h3>
-                {% if profile_user.profile.location %}
-                  <p class="profile-location">
-                    <ion-icon name="location-outline"></ion-icon>
-                    <span>{{ profile_user.profile.location }}</span>
-                  </p>
-                {% endif %}
-                {% if profile_user.profile.bio %}
-                  <p class="profile-bio">{{ profile_user.profile.bio }}</p>
-                {% endif %}
-              </div>
-            </div>
 
-            {% if is_owner %}
-            <div class="profile-details">
-              <form class="form" method="post" action="{% url 'blog:edit_profile' %}">
-                {% csrf_token %}
-                <div class="input-wrapper">
-                  <input type="text" name="username" class="form-input" placeholder="Username" value="{{ profile_user.username }}">
-                  <input type="email" name="email" class="form-input" placeholder="Email" value="{{ profile_user.email }}">
-                </div>
-                <textarea name="bio" class="form-input" placeholder="Bio">{{ profile.bio }}</textarea>
-                <button class="form-btn" type="submit">
-                  <span>Save Changes</span>
-                </button>
-              </form>
+              <div class="profile-info">
+                <form class="form" method="post" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <input type="hidden" name="personal_info" value="true">
+                  
+                  <div class="input-wrapper">
+                    <label>Username *</label>
+                    {{ personal_info_form.username|add_class:"form-input" }}
+                    
+                    <label>Email *</label>
+                    {{ personal_info_form.email|add_class:"form-input" }}
+                    
+                    <label>First Name</label>
+                    {{ personal_info_form.first_name|add_class:"form-input" }}
+                    
+                    <label>Last Name</label>
+                    {{ personal_info_form.last_name|add_class:"form-input" }}
+                    
+                    <label>Bio</label>
+                    {{ personal_info_form.bio|add_class:"form-input" }}
+                    
+                    <label>Location</label>
+                    {{ personal_info_form.location|add_class:"form-input" }}
+                  </div>
+
+                  <div class="social-links">
+                    <div class="social-input">
+                      <ion-icon name="logo-github"></ion-icon>
+                      {{ personal_info_form.github|add_class:"form-input" }}
+                    </div>
+                    <div class="social-input">
+                      <ion-icon name="logo-linkedin"></ion-icon>
+                      {{ personal_info_form.linkedin|add_class:"form-input" }}
+                    </div>
+                    <div class="social-input">
+                      <ion-icon name="logo-twitter"></ion-icon>
+                      {{ personal_info_form.twitter|add_class:"form-input" }}
+                    </div>
+                    <div class="social-input">
+                      <ion-icon name="globe-outline"></ion-icon>
+                      {{ personal_info_form.website|add_class:"form-input" }}
+                    </div>
+                  </div>
+
+                  <div class="form-submit-wrapper">
+                    <button class="form-btn" type="submit">
+                      <span>Save Changes</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-            {% endif %}
           </div>
         </div>
 
@@ -273,10 +296,6 @@
         {% endif %}
 
         <div class="profile-navigation">
-          {% if is_owner %}
-          <a href="{% url 'blog:edit_profile' %}" class="nav-link">Edit Profile</a>
-          {% endif %}
-          
           {% if user.is_authenticated and not is_owner %}
           <a href={% url 'blog:profile' %}"" class="nav-link">My Profile</a>
           {% endif %}
@@ -576,10 +595,10 @@
         });
 
         // Avatar upload
-        const avatarUpload = document.getElementById('avatar-upload');
+        const avatarUpload = document.getElementById('avatar-form');
         if (avatarUpload) {
           avatarUpload.addEventListener('change', function() {
-            this.form.submit();
+            this.submit();
           });
         }
 

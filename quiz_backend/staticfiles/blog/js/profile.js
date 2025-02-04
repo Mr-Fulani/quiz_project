@@ -55,11 +55,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Обработка загрузки аватара
-    const avatarUpload = document.getElementById('avatar-upload');
-    if (avatarUpload) {
-        avatarUpload.addEventListener('change', function() {
-            this.form.submit();
+    // Автоматическая отправка формы при выборе нового аватара
+    const avatarInput = document.getElementById('id_avatar');
+    const avatarForm = document.getElementById('avatar-form');
+    const avatarImg = document.querySelector('.avatar-img');
+
+    if (avatarInput && avatarForm) {
+        avatarInput.addEventListener('change', function(e) {
+            console.log('File selected:', this.files[0]); // Отладочный вывод
+            avatarForm.submit();
         });
     }
 
@@ -133,8 +137,75 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-});
 
+    // Автозаполнение локации
+    const locationInput = document.querySelector('.location-input');
+    const suggestions = document.querySelector('.location-suggestions');
+
+    if (locationInput && suggestions) {
+        locationInput.addEventListener('input', debounce(async (e) => {
+            const query = e.target.value;
+            if (query.length < 3) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`,
+                    {
+                        headers: {
+                            'Accept-Language': 'ru', // Добавим русский язык
+                            'User-Agent': 'YourApp' // Требуется для API
+                        }
+                    }
+                );
+                const data = await response.json();
+                
+                if (data.length > 0) {
+                    suggestions.innerHTML = data
+                        .slice(0, 5)
+                        .map(place => `
+                            <div class="location-item" data-location="${place.display_name}">
+                                ${place.display_name}
+                            </div>
+                        `)
+                        .join('');
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+            }
+        }, 300));
+
+        // Обработка выбора локации
+        suggestions.addEventListener('click', (e) => {
+            const item = e.target.closest('.location-item');
+            if (item) {
+                locationInput.value = item.dataset.location;
+                suggestions.style.display = 'none';
+            }
+        });
+
+        // Скрываем подсказки при клике вне
+        document.addEventListener('click', (e) => {
+            if (!locationInput.contains(e.target) && !suggestions.contains(e.target)) {
+                suggestions.style.display = 'none';
+            }
+        });
+    }
+
+    // Анимация для активной вкладки
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
 // Вспомогательные функции
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -152,4 +223,17 @@ function showNotification(message, type = 'success') {
 // Добавим функцию для генерации URL профиля
 function getProfileUrl(username) {
     return `/profile/${username}/`;
+}
+
+// Вспомогательная функция debounce
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 } 

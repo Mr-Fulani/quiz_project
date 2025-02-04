@@ -1,6 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CategoryViewSet, PostViewSet, ProjectViewSet, HomePageView, PostDetailView, ProjectDetailView, ResumeView, PortfolioView, BlogView, AboutView, ContactView, QuizesView, QuizDetailView, ProfileView, profile_view, edit_profile, profile_stats, change_password, update_settings, inbox, send_message, delete_message, download_attachment, get_unread_messages_count, statistics_view
+from .views import (
+    CategoryViewSet, PostViewSet, ProjectViewSet, 
+    HomePageView, PostDetailView, ProjectDetailView, 
+    ResumeView, PortfolioView, BlogView, AboutView, 
+    ContactView, QuizesView, QuizDetailView, ProfileView, 
+    profile_view, profile_stats, change_password, 
+    update_settings, inbox, send_message, delete_message, 
+    download_attachment, get_unread_messages_count, 
+    statistics_view
+)
 from django.shortcuts import redirect
 
 app_name = 'blog'
@@ -22,7 +31,6 @@ urlpatterns = [
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     path('dashboard/', profile_view, name='profile'),  # Основная панель управления
-    path('dashboard/edit/', edit_profile, name='edit_profile'),
     path('dashboard/change-password/', change_password, name='change_password'),
     path('dashboard/update-settings/', update_settings, name='update_settings'),
     path('dashboard/stats/', profile_stats, name='profile_stats'),

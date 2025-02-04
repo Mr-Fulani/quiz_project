@@ -19,7 +19,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 import json
-from .forms import ProfileEditForm
+from .forms import ProfileEditForm, PersonalInfoForm
 from django.contrib.auth import get_user_model
 import os
 from django.conf import settings
@@ -217,33 +217,33 @@ class ProfileView(TemplateView):
 
 @login_required
 def profile_view(request):
-    context = {
-        'profile_user': request.user,
-        'is_owner': True,
-        'inbox_messages': Message.objects.filter(
-            recipient=request.user,
-            is_deleted_by_recipient=False
-        ).order_by('-created_at'),
-        'sent_messages': Message.objects.filter(
-            sender=request.user,
-            is_deleted_by_sender=False
-        ).order_by('-created_at'),
-    }
-    
-    return render(request, 'blog/profile.html', context)
-
-@login_required
-def edit_profile(request):
     if request.method == 'POST':
-        form = ProfileEditForm(request.POST, request.FILES, instance=request.user.profile)
+        if 'avatar' in request.FILES:
+            profile = request.user.profile
+            profile.avatar = request.FILES['avatar']
+            profile.save()
+            return redirect('blog:profile')
+            
+        form = PersonalInfoForm(
+            request.POST, 
+            request.FILES, 
+            instance=request.user.profile,
+            user=request.user
+        )
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully!')
-            return redirect('blog:profile') 
+            return redirect('blog:profile')
     else:
-        form = ProfileEditForm(instance=request.user.profile)
+        form = PersonalInfoForm(instance=request.user.profile, user=request.user)
+
+    context = {
+        'profile_user': request.user,
+        'is_owner': True,
+        'personal_info_form': form,
+    }
     
-    return render(request, 'blog/edit_profile.html', {'form': form})
+    return render(request, 'blog/profile.html', context)
 
 @login_required
 def profile_stats(request, username):
