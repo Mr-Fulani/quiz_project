@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'corsheaders',
     'blog.apps.BlogConfig',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
@@ -78,6 +79,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.UpdateLastSeenMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -95,6 +97,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'blog.context_processors.unread_messages',
                 'blog.context_processors.personal_info',
+                'accounts.context_processors.user_profile',
+                'blog.context_processors.unread_messages_count',
             ],
             'loaders': [
                 'django.template.loaders.filesystem.Loader',

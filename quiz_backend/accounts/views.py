@@ -18,11 +18,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.permissions import AllowAny
 from django.contrib import messages
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, ProfileEditForm
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import RedirectView, DetailView, ListView, UpdateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 
 # Create your views here.
 
@@ -192,14 +194,9 @@ class UserProfileView(LoginRequiredMixin, DetailView):
     slug_field = 'username'
     slug_url_kwarg = 'username'
 
-    def get_object(self):
-        # Отладочное сообщение для проверки переданного username
-        print(f"Looking for user with username: {self.kwargs.get('username')}")
-        return super().get_object()
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['is_own_profile'] = self.object == self.request.user
+        context['is_owner'] = self.object == self.request.user
         return context
 
 class UserListView(LoginRequiredMixin, ListView):
@@ -222,3 +219,29 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('user-profile', kwargs={'username': self.request.user.username})
+
+@login_required
+def profile_edit(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user.profile)
+        if form.is_valid():
+            form.save()
+            return redirect('blog:profile') 
+    else:
+        form = ProfileEditForm(instance=request.user.profile)
+    
+    return render(request, 'accounts/profile_edit.html', {'form': form})
+
+@login_required
+def user_list(request):
+    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id)
+    paginator = Paginator(users_list, 12)  # 12 пользователей на страницу
+    
+    page = request.GET.get('page')
+    users = paginator.get_page(page)
+    
+    return render(request, 'accounts/user_list.html', {
+        'users': users,
+        'is_paginated': users.has_other_pages(),
+        'page_obj': users,
+    })

@@ -1,6 +1,8 @@
 from django.db.models import Count, Avg, Sum, Q, Case, When, FloatField, IntegerField, F, Value
 from tasks.models import TaskStatistics
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+from django.contrib import messages
 
 User = get_user_model()
 
@@ -124,4 +126,10 @@ def unread_messages(request):
         return {
             'unread_messages_count': request.user.get_unread_messages_count()
         }
+    return {'unread_messages_count': 0}
+
+def unread_messages_count(request):
+    if request.user.is_authenticated:
+        count = messages.get_messages(request)._loaded_messages
+        return {'unread_messages_count': len(list(count))}
     return {'unread_messages_count': 0}

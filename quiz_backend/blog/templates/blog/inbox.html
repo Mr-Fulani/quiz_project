@@ -1,150 +1,740 @@
 {% extends "blog/base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block content %}
+{% csrf_token %}
 <article class="inbox active" data-page="inbox">
     <header>
         <h2 class="h2 article-title">Messages</h2>
+        <div class="inbox-tabs">
+            <button class="tab-btn active" data-tab="incoming">Incoming</button>
+            <button class="tab-btn" data-tab="outgoing">Outgoing</button>
+        </div>
     </header>
 
     <div class="messages-container">
-        {% if messages %}
-            {% for message in messages %}
-            <div class="message-item {% if not message.is_read %}unread{% endif %}" data-message-id="{{ message.id }}">
-                <div class="message-header">
-                    <a href="{% url 'blog:profile' username=message.sender.username %}" class="sender">
-                        {{ message.sender.username }}
-                    </a>
-                    <span class="date">{{ message.created_at|date:"M d, Y H:i" }}</span>
+        <div id="incoming-messages" class="messages-tab active">
+            {% for message in incoming_messages %}
+                <div class="message-item {% if not message.is_read %}unread{% endif %}" data-message-id="{{ message.id }}">
+                    <div class="message-header">
+                        <div class="sender-info">
+                            {% if message.sender.profile.avatar %}
+                                <img src="{{ message.sender.profile.get_avatar_url }}" 
+                                     alt="{{ message.sender.username }}" 
+                                     class="sender-avatar">
+                            {% else %}
+                                <img src="{% static 'blog/images/avatar/default_avatar.png' %}" 
+                                     alt="{{ message.sender.username }}" 
+                                     class="sender-avatar">
+                            {% endif %}
+                            <div class="sender-details">
+                                <a href="{% url 'accounts:user-profile' username=message.sender.username %}" class="sender-name">
+                                    {{ message.sender.username }}
+                                </a>
+                                <span class="message-date" title="{{ message.created_at|date:'F j, Y H:i' }}">
+                                    {{ message.created_at|naturaltime }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="message-actions">
+                            <button class="reply-btn" onclick="replyToMessage('{{ message.sender.username }}')">
+                                <ion-icon name="return-up-back-outline"></ion-icon>
+                                Reply
+                            </button>
+                            <button class="delete-btn" onclick="deleteMessage({{ message.id }})">
+                                <ion-icon name="trash-outline"></ion-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="message-content">
+                        {{ message.content|linebreaks }}
+                    </div>
+                    
+                    {% if message.attachments.exists %}
+                    <div class="message-attachments">
+                        <h4>Attachments:</h4>
+                        <div class="attachments-grid">
+                            {% for attachment in message.attachments.all %}
+                            <div class="attachment-item">
+                                {% if attachment.file.name|lower|slice:"-4:" == '.jpg' or attachment.file.name|lower|slice:"-4:" == '.png' or attachment.file.name|lower|slice:"-4:" == '.gif' or attachment.file.name|lower|slice:"-5:" == '.jpeg' or attachment.file.name|lower|slice:"-5:" == '.webp' %}
+                                    <div class="attachment-preview">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" 
+                                             onclick="openImagePreview('{{ attachment.file.url }}', '{{ attachment.filename }}')">
+                                    </div>
+                                {% else %}
+                                    <div class="attachment-icon">
+                                        {% if attachment.file.name|lower|slice:"-4:" == '.pdf' %}
+                                            <ion-icon name="document-text-outline"></ion-icon>
+                                        {% elif attachment.file.name|lower|slice:"-4:" == '.doc' or attachment.file.name|lower|slice:"-5:" == '.docx' %}
+                                            <ion-icon name="document-outline"></ion-icon>
+                                        {% elif attachment.file.name|lower|slice:"-4:" == '.xls' or attachment.file.name|lower|slice:"-5:" == '.xlsx' %}
+                                            <ion-icon name="grid-outline"></ion-icon>
+                                        {% else %}
+                                            <ion-icon name="document-attach-outline"></ion-icon>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                <a href="{% url 'blog:download_attachment' attachment.id %}" class="attachment-download" 
+                                   {% if not attachment.file.name|lower|slice:"-4:" in '.jpg,.png,.gif,.pdf' %}download{% endif %}>
+                                    <span class="filename">{{ attachment.filename }}</span>
+                                    <ion-icon name="download-outline"></ion-icon>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="message-content">
-                    {{ message.content }}
+            {% empty %}
+                <div class="no-messages">
+                    <ion-icon name="mail-outline"></ion-icon>
+                    <p>No incoming messages</p>
                 </div>
-                
-                {% if message.attachments.exists %}
-                <div class="message-attachments">
-                    <h4>Attachments:</h4>
-                    <ul class="attachment-list">
-                        {% for attachment in message.attachments.all %}
-                        <li class="attachment-item">
-                            <a href="{% url 'blog:download_attachment' attachment.id %}" class="attachment-link">
-                                <ion-icon name="document-outline"></ion-icon>
-                                {{ attachment.filename }}
-                            </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-                
-                <div class="message-actions">
-                    <button class="btn reply-btn" onclick="replyToMessage('{{ message.sender.username }}')">Reply</button>
-                    <button class="btn delete-btn" onclick="deleteMessage({{ message.id }})">Delete</button>
-                </div>
-            </div>
             {% endfor %}
-        {% else %}
-            <p class="no-messages">No messages yet.</p>
-        {% endif %}
+        </div>
+
+        <div id="outgoing-messages" class="messages-tab">
+            {% for message in outgoing_messages %}
+                <div class="message-item" data-message-id="{{ message.id }}">
+                    <div class="message-header">
+                        <div class="recipient-info">
+                            <img src="{{ message.recipient.profile.get_avatar_url|default:'/static/blog/images/avatar/default_avatar.png' }}" 
+                                 alt="{{ message.recipient.username }}" 
+                                 class="recipient-avatar">
+                            <div class="recipient-details">
+                                <a href="{% url 'accounts:user-profile' username=message.recipient.username %}" class="recipient-name">
+                                    To: {{ message.recipient.username }}
+                                </a>
+                                <span class="message-date" title="{{ message.created_at|date:'F j, Y H:i' }}">
+                                    {{ message.created_at|naturaltime }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="message-actions">
+                            <button class="delete-btn" onclick="deleteMessage({{ message.id }})">
+                                <ion-icon name="trash-outline"></ion-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="message-content">
+                        {{ message.content|linebreaks }}
+                    </div>
+                    
+                    {% if message.attachments.exists %}
+                    <div class="message-attachments">
+                        <h4>Attachments:</h4>
+                        <div class="attachments-grid">
+                            {% for attachment in message.attachments.all %}
+                            <div class="attachment-item">
+                                {% if attachment.file.name|lower|slice:"-4:" == '.jpg' or attachment.file.name|lower|slice:"-4:" == '.png' or attachment.file.name|lower|slice:"-4:" == '.gif' or attachment.file.name|lower|slice:"-5:" == '.jpeg' or attachment.file.name|lower|slice:"-5:" == '.webp' %}
+                                    <div class="attachment-preview">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" 
+                                             onclick="openImagePreview('{{ attachment.file.url }}', '{{ attachment.filename }}')">
+                                    </div>
+                                {% else %}
+                                    <div class="attachment-icon">
+                                        {% if attachment.file.name|lower|slice:"-4:" == '.pdf' %}
+                                            <ion-icon name="document-text-outline"></ion-icon>
+                                        {% elif attachment.file.name|lower|slice:"-4:" == '.doc' or attachment.file.name|lower|slice:"-5:" == '.docx' %}
+                                            <ion-icon name="document-outline"></ion-icon>
+                                        {% elif attachment.file.name|lower|slice:"-4:" == '.xls' or attachment.file.name|lower|slice:"-5:" == '.xlsx' %}
+                                            <ion-icon name="grid-outline"></ion-icon>
+                                        {% else %}
+                                            <ion-icon name="document-attach-outline"></ion-icon>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                <a href="{% url 'blog:download_attachment' attachment.id %}" class="attachment-download" 
+                                   {% if not attachment.file.name|lower|slice:"-4:" in '.jpg,.png,.gif,.pdf' %}download{% endif %}>
+                                    <span class="filename">{{ attachment.filename }}</span>
+                                    <ion-icon name="download-outline"></ion-icon>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <div class="no-messages">
+                    <ion-icon name="paper-plane-outline"></ion-icon>
+                    <p>No outgoing messages</p>
+                </div>
+            {% endfor %}
+        </div>
     </div>
 </article>
 
-<div id="reply-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Reply to Message</h3>
-        <form method="POST" enctype="multipart/form-data" id="reply-form">
-            {% csrf_token %}
-            <textarea name="content" class="form-input" placeholder="Write your reply..." required></textarea>
-            <div class="file-upload">
-                <label for="attachments">
-                    <ion-icon name="attach-outline"></ion-icon>
-                    Add Files
-                </label>
-                <input type="file" id="attachments" name="attachments" multiple>
-            </div>
-            <div id="file-list"></div>
-            <button type="submit" class="form-btn">Send Reply</button>
-        </form>
-    </div>
+<!-- Modal for image preview -->
+<div id="imagePreviewModal" class="modal">
+    <span class="close-modal">&times;</span>
+    <img id="previewImage" src="" alt="">
+    <div class="modal-caption"></div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Получаем CSRF токен один раз при загрузке
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+function openImagePreview(url, filename) {
+    const modal = document.getElementById('imagePreviewModal');
+    const previewImage = document.getElementById('previewImage');
+    const caption = document.querySelector('.modal-caption');
+    
+    previewImage.src = url;
+    previewImage.alt = filename;
+    caption.textContent = filename;
+    modal.style.display = 'block';
+}
 
-    // Функция для удаления сообщения
-    function deleteMessage(messageId) {
-        if (confirm('Are you sure you want to delete this message?')) {
-            fetch(`/messages/delete/${messageId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'deleted' || data.status === 'soft_deleted') {
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (messageElement) {
-                        messageElement.remove();
+document.querySelector('.close-modal').addEventListener('click', function() {
+    document.getElementById('imagePreviewModal').style.display = 'none';
+});
+
+// Закрытие модального окна при клике вне изображения
+document.getElementById('imagePreviewModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+    }
+});
+
+// Обработка клавиши Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('imagePreviewModal').style.display = 'none';
+    }
+});
+
+// Функция для удаления сообщения
+function deleteMessage(messageId) {
+    if (confirm('Are you sure you want to delete this message?')) {
+        fetch(`/messages/delete/${messageId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'  // Важно для CSRF
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                messageElement.style.opacity = '0';
+                setTimeout(() => {
+                    messageElement.remove();
+                    if (document.querySelectorAll('.message-item').length === 0) {
+                        const noMessages = document.createElement('div');
+                        noMessages.className = 'no-messages';
+                        noMessages.innerHTML = `
+                            <ion-icon name="mail-outline"></ion-icon>
+                            <p>No messages yet.</p>
+                        `;
+                        document.querySelector('.messages-container').appendChild(noMessages);
                     }
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                }, 300);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting message. Please try again.');
+        });
+    }
+}
+
+// Функция для ответа на сообщение
+function replyToMessage(username) {
+    const modal = document.createElement('div');
+    modal.className = 'reply-modal';
+    modal.innerHTML = `
+        <div class="reply-modal-content">
+            <div class="reply-modal-header">
+                <h3>Reply to ${username}</h3>
+                <span class="close-reply-modal">&times;</span>
+            </div>
+            <form id="replyForm" method="POST" action="/messages/send/${username}/" enctype="multipart/form-data">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
+                <textarea name="content" placeholder="Write your reply..." required></textarea>
+                <div class="attachment-section">
+                    <label for="reply-attachments" class="attachment-label">
+                        <ion-icon name="attach-outline"></ion-icon>
+                        Add Files
+                    </label>
+                    <input type="file" id="reply-attachments" name="attachments" multiple style="display: none;">
+                    <div id="selected-files-reply" class="selected-files"></div>
+                </div>
+                <div class="reply-modal-footer">
+                    <button type="submit" class="send-reply-btn">
+                        <ion-icon name="send-outline"></ion-icon>
+                        Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Обработчик закрытия модального окна
+    const closeBtn = modal.querySelector('.close-reply-modal');
+    closeBtn.onclick = function() {
+        modal.remove();
+    };
+
+    // Закрытие по клику вне модального окна
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            modal.remove();
         }
-    }
-
-    // Функция для ответа на сообщение
-    function replyToMessage(username) {
-        const modal = document.getElementById('reply-modal');
-        const form = document.getElementById('reply-form');
-        form.action = `/messages/send/${username}/`;
-        modal.style.display = 'block';
-    }
-
-    // Делаем функции глобально доступными
-    window.deleteMessage = deleteMessage;
-    window.replyToMessage = replyToMessage;
+    };
 
     // Обработка файлов
-    const attachmentsInput = document.getElementById('attachments');
-    if (attachmentsInput) {
-        attachmentsInput.addEventListener('change', function(e) {
-            const fileList = document.getElementById('file-list');
-            fileList.innerHTML = '';
-            Array.from(this.files).forEach(file => {
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                item.innerHTML = `
-                    <span>${file.name}</span>
-                    <ion-icon name="close-outline" class="remove-file"></ion-icon>
-                `;
-                item.querySelector('.remove-file').addEventListener('click', function() {
-                    item.remove();
-                });
-                fileList.appendChild(item);
-            });
+    const attachmentsInput = modal.querySelector('#reply-attachments');
+    const selectedFilesContainer = modal.querySelector('#selected-files-reply');
+    
+    attachmentsInput.onchange = function() {
+        selectedFilesContainer.innerHTML = '';
+        Array.from(this.files).forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'selected-file-item';
+            fileItem.innerHTML = `
+                <span>${file.name}</span>
+                <ion-icon name="close-outline" class="remove-file"></ion-icon>
+            `;
+            fileItem.querySelector('.remove-file').onclick = function() {
+                fileItem.remove();
+                // Создаем новый FileList без удаленного файла
+                const dt = new DataTransfer();
+                Array.from(attachmentsInput.files)
+                    .filter(f => f.name !== file.name)
+                    .forEach(f => dt.items.add(f));
+                attachmentsInput.files = dt.files;
+            };
+            selectedFilesContainer.appendChild(fileItem);
         });
-    }
+    };
 
-    // Закрытие модального окна
-    const closeButton = document.querySelector('.close');
-    if (closeButton) {
-        closeButton.addEventListener('click', function() {
-            document.getElementById('reply-modal').style.display = 'none';
+    // Обработка отправки формы
+    const form = modal.querySelector('#replyForm');
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'  // Важно для CSRF
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'sent') {
+                modal.remove();
+                alert('Reply sent successfully!');
+                location.reload();  // Перезагружаем страницу для отображения новых сообщений
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending reply. Please try again.');
         });
-    }
+    };
+}
 
-    // Закрытие модального окна при клике вне его
-    window.addEventListener('click', function(event) {
-        const modal = document.getElementById('reply-modal');
-        if (event.target === modal) {
-            modal.style.display = 'none';
+// Функция для получения CSRF токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
+    }
+    return cookieValue;
+}
+
+// Добавим JavaScript для переключения вкладок
+document.addEventListener('DOMContentLoaded', function() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const messageTabs = document.querySelectorAll('.messages-tab');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Убираем активный класс у всех кнопок и вкладок
+            tabBtns.forEach(b => b.classList.remove('active'));
+            messageTabs.forEach(tab => tab.classList.remove('active'));
+
+            // Добавляем активный класс нажатой кнопке
+            this.classList.add('active');
+
+            // Показываем соответствующую вкладку
+            const tabId = this.dataset.tab + '-messages';
+            document.getElementById(tabId).classList.add('active');
+        });
     });
 });
 </script>
+
+<style>
+.messages-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.message-item {
+    background: var(--eerie-black-2);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.message-item.unread {
+    border-left: 3px solid var(--orange-yellow-crayola);
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.sender-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sender-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.sender-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.sender-name {
+    color: var(--light-gray);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.message-date {
+    font-size: 0.85em;
+    color: var(--light-gray-70);
+}
+
+.message-content {
+    color: var(--light-gray);
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.message-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.message-actions button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--light-gray-70);
+    transition: color 0.3s ease;
+}
+
+.message-actions button:hover {
+    color: var(--orange-yellow-crayola);
+}
+
+.attachments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.attachment-item {
+    background: var(--eerie-black-1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.attachment-preview {
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+}
+
+.attachment-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.attachment-preview img:hover {
+    transform: scale(1.05);
+}
+
+.attachment-icon {
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    color: var(--light-gray-70);
+}
+
+.attachment-download {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: var(--light-gray);
+    background: var(--eerie-black-2);
+    transition: background-color 0.3s ease;
+}
+
+.attachment-download:hover {
+    background: var(--eerie-black-3);
+}
+
+.filename {
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+}
+
+.modal img {
+    max-width: 90%;
+    max-height: 90vh;
+    margin: auto;
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.close-modal {
+    position: absolute;
+    right: 25px;
+    top: 15px;
+    color: #f1f1f1;
+    font-size: 35px;
+    cursor: pointer;
+}
+
+.modal-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #f1f1f1;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.no-messages {
+    text-align: center;
+    padding: 40px;
+    color: var(--light-gray-70);
+}
+
+.no-messages ion-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+/* Стили для модального окна ответа */
+.reply-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.reply-modal-content {
+    background: var(--eerie-black-2);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    padding: 20px;
+}
+
+.reply-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.reply-modal-header h3 {
+    color: var(--light-gray);
+    margin: 0;
+}
+
+.close-reply-modal {
+    color: var(--light-gray-70);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.reply-modal textarea {
+    width: 100%;
+    min-height: 150px;
+    background: var(--eerie-black-1);
+    border: 1px solid var(--jet);
+    border-radius: 10px;
+    padding: 15px;
+    color: var(--light-gray);
+    margin-bottom: 15px;
+    resize: vertical;
+}
+
+.attachment-section {
+    margin-bottom: 15px;
+}
+
+.attachment-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: var(--eerie-black-1);
+    border-radius: 20px;
+    cursor: pointer;
+    color: var(--light-gray);
+}
+
+.selected-files {
+    margin-top: 10px;
+}
+
+.selected-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--eerie-black-1);
+    padding: 8px 12px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.remove-file {
+    cursor: pointer;
+    color: var(--light-gray-70);
+}
+
+.remove-file:hover {
+    color: #e74c3c;
+}
+
+.send-reply-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 25px;
+    color: var(--eerie-black-1);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.send-reply-btn:hover {
+    background: var(--vegas-gold);
+}
+
+.inbox-tabs {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: var(--eerie-black-2);
+    color: var(--light-gray);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+}
+
+.messages-tab {
+    display: none;
+}
+
+.messages-tab.active {
+    display: block;
+}
+
+.recipient-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.recipient-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.recipient-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.recipient-name {
+    color: var(--light-gray);
+    text-decoration: none;
+    font-weight: 500;
+}
+</style>
 {% endblock %} 

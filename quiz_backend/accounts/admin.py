@@ -1,20 +1,35 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin
-
+from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, Profile
 from .utils.telegram_notifications import notify_admin
 
 
-
-
-
-
+# Регистрируем Profile как Inline для CustomUser
+class ProfileInline(admin.StackedInline):
+    model = Profile
+    can_delete = False
+    verbose_name_plural = 'Profile'
+    fk_name = 'user'
+    max_num = 1
+    min_num = 0
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ('avatar', 'bio', 'location', 'birth_date', 'website')
+        }),
+        ('Social Networks', {
+            'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')
+        }),
+        ('Settings', {
+            'fields': ('is_public', 'email_notifications', 'theme_preference')
+        }),
+        ('Statistics', {
+            'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')
+        }),
+    )
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    """
-    Админка для модели CustomUser
-    """
+    inlines = (ProfileInline,)
     list_display = ('username', 'subscription_status', 'language', 'created_at', 'deactivated_at')
     list_filter = ('subscription_status', 'language')
     search_fields = ('username', 'email')
@@ -32,9 +47,31 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Создаем профиль только если его нет
+        Profile.objects.get_or_create(user=obj)
 
-
-
+# Отдельная админка для Profile (если нужно)
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'location', 'birth_date', 'telegram', 'github')
+    search_fields = ('user__username', 'location')
+    list_filter = ('is_public',)
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ('user', 'avatar', 'bio', 'location', 'birth_date', 'website')
+        }),
+        ('Social Networks', {
+            'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')
+        }),
+        ('Settings', {
+            'fields': ('is_public', 'email_notifications', 'theme_preference')
+        }),
+        ('Statistics', {
+            'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')
+        }),
+    )
 
 class BaseAdminAdmin(UserAdmin):
     """

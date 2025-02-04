@@ -1,9 +1,17 @@
 {% load static %}
+{% if debug %}
+<div style="display:none">
+    User: {{ user }}
+    Is authenticated: {{ user.is_authenticated }}
+    User profile: {{ user_profile }}
+    Profile telegram: {{ user_profile.telegram }}
+</div>
+{% endif %}
 <aside class="sidebar" data-sidebar>
   {% if user.is_authenticated %}
     <div class="sidebar-info">
       <figure class="avatar-box">
-        <a href="{% url 'blog:profile' username=user.username %}">
+        <a href="{% url 'blog:profile' %}">
           {% if user.profile.avatar %}
             <img src="{{ user.profile.get_avatar_url }}" alt="User Avatar" width="80">
           {% else %}
@@ -13,22 +21,19 @@
       </figure>
 
       <div class="info-content">
-        <h1 class="name" title="{{ user.get_full_name|default:user.username }}">
-          <a href="{% url 'blog:profile' username=user.username %}">
-            {{ user.get_full_name|default:user.username }}
-          </a>
-        </h1>
-        <p class="title">User Profile</p>
+        <h1 class="name">{{ user.username }}</h1>
+        <p class="title">{{ user.profile.bio|truncatechars:30 }}</p>
       </div>
 
       <button class="info_more-btn" data-sidebar-btn>
-        <span>Show Stats</span>
+        <span>Show Contacts</span>
         <ion-icon name="chevron-down"></ion-icon>
       </button>
     </div>
 
     <div class="sidebar-info_more">
       <div class="separator"></div>
+
       <ul class="contacts-list">
         <li class="contact-item">
           <div class="icon-box">
@@ -49,8 +54,95 @@
             <p class="contact-link">{{ user.statistics.rating|default:"0" }}</p>
           </div>
         </li>
+
+        <li class="contact-item">
+          {% with unread_count=user.get_unread_messages_count %}
+            <div class="icon-box">
+              <ion-icon name="mail-outline"></ion-icon>
+            </div>
+            <div class="contact-info">
+              <p class="contact-title">Messages</p>
+              <a href="{% url 'blog:inbox' %}" class="contact-link">
+                {{ unread_count|default:"0" }}
+              </a>
+            </div>
+          {% endwith %}
+        </li>
+      </ul>
+
+      <div class="separator"></div>
+
+      <ul class="social-list">
+        {% if user_profile.telegram %}
+        <li class="social-item">
+          <a href="https://t.me/{{ user_profile.telegram }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="paper-plane"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user_profile.github %}
+        <li class="social-item">
+          <a href="{{ user_profile.github }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="logo-github"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user_profile.instagram %}
+        <li class="social-item">
+          <a href="{{ user_profile.instagram }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="logo-instagram"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user_profile.facebook %}
+        <li class="social-item">
+          <a href="{{ user_profile.facebook }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="logo-facebook"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user_profile.linkedin %}
+        <li class="social-item">
+          <a href="{{ user_profile.linkedin }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="logo-linkedin"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if user_profile.youtube %}
+        <li class="social-item">
+          <a href="{{ user_profile.youtube }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="logo-youtube"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
       </ul>
     </div>
+
+    <style>
+      .icon-box {
+        position: relative;
+      }
+
+      .message-count {
+        position: absolute;
+        left: -10px;
+        top: -5px;
+        background: var(--orange-yellow-crayola);
+        color: var(--eerie-black-1);
+        font-size: 12px;
+        min-width: 18px;
+        height: 18px;
+        line-height: 18px;
+        border-radius: 9px;
+        text-align: center;
+        padding: 0 5px;
+      }
+    </style>
   {% else %}
     <div class="sidebar-info">
       <figure class="avatar-box">

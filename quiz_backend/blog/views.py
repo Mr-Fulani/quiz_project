@@ -216,19 +216,20 @@ class ProfileView(TemplateView):
         return context
 
 @login_required
-def profile_view(request, username):
-    # Получаем пользователя по имени
-    user = get_object_or_404(CustomUser, username=username)
-    profile = user.profile
-
-    # Проверяем, является ли текущий пользователь владельцем профиля
-    is_owner = (user == request.user)
-
+def profile_view(request):
     context = {
-        'profile_user': user,
-        'profile': profile,
-        'is_owner': is_owner,
+        'profile_user': request.user,
+        'is_owner': True,
+        'inbox_messages': Message.objects.filter(
+            recipient=request.user,
+            is_deleted_by_recipient=False
+        ).order_by('-created_at'),
+        'sent_messages': Message.objects.filter(
+            sender=request.user,
+            is_deleted_by_sender=False
+        ).order_by('-created_at'),
     }
+    
     return render(request, 'blog/profile.html', context)
 
 @login_required
@@ -238,7 +239,7 @@ def edit_profile(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully!')
-            return redirect('blog:profile', username=request.user.username)
+            return redirect('blog:profile') 
     else:
         form = ProfileEditForm(instance=request.user.profile)
     
@@ -267,14 +268,14 @@ def change_password(request):
             user = form.save()
             update_session_auth_hash(request, user)
             messages.success(request, 'Your password was successfully updated!')
-            return redirect('blog:profile', username=request.user.username)
+            return redirect('blog:profile') 
         else:
             messages.error(request, 'Please correct the errors below.')
             return JsonResponse({
                 'status': 'error',
                 'errors': form.errors
             }, status=400)
-    return redirect('blog:profile', username=request.user.username)
+    return redirect('blog:profile') 
 
 @login_required
 @require_POST
@@ -303,40 +304,55 @@ def update_settings(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
-def send_message(request, recipient_username):
-    if request.method == 'POST':
-        recipient = get_object_or_404(CustomUser, username=recipient_username)
-        content = request.POST.get('content')
-        
-        if content:
-            Message.objects.create(
-                sender=request.user,
-                recipient=recipient,
-                content=content
-            )
-            messages.success(request, 'Message sent successfully!')
-        else:
-            messages.error(request, 'Message cannot be empty!')
-            
-    return redirect('blog:profile', username=recipient_username)
-
-@login_required
+@require_POST
 def delete_message(request, message_id):
     message = get_object_or_404(Message, id=message_id)
-    if request.user not in [message.sender, message.recipient]:
-        raise PermissionDenied
+    if request.user not in [message.recipient, message.sender]:
+        return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
     
+    # Мягкое удаление
     message.soft_delete(request.user)
     
+    # Если сообщение полностью удалено обоими пользователями
     if message.is_completely_deleted:
-        # Удаляем файлы и сообщение полностью
+        # Удаляем вложения
         for attachment in message.attachments.all():
             if attachment.file:
-                attachment.file.delete()
-        message.delete()
-        return JsonResponse({'status': 'deleted'})
+                attachment.file.delete()  # Удаляем физический файл
+            attachment.delete()
+        message.delete()  # Удаляем само сообщение
     
-    return JsonResponse({'status': 'soft_deleted'})
+    return JsonResponse({'status': 'success'})
+
+@login_required
+@require_POST
+def send_message(request, recipient_username):
+    recipient = get_object_or_404(CustomUser, username=recipient_username)
+    content = request.POST.get('content')
+    
+    if content:
+        message = Message.objects.create(
+            sender=request.user,
+            recipient=recipient,
+            content=content
+        )
+        
+        # Обработка вложений
+        files = request.FILES.getlist('attachments')
+        for file in files:
+            MessageAttachment.objects.create(
+                message=message,
+                file=file,
+                filename=file.name
+            )
+        
+        return JsonResponse({
+            'status': 'sent',
+            'message_id': message.id,
+            'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    
+    return JsonResponse({'status': 'error', 'message': 'Content is required'}, status=400)
 
 @login_required
 def download_attachment(request, attachment_id):
@@ -352,15 +368,28 @@ def download_attachment(request, attachment_id):
 
 @login_required
 def inbox(request):
-    user_messages = Message.objects.filter(recipient=request.user)
-    return render(request, 'blog/inbox.html', {'messages': user_messages})
-
-@login_required
-def mark_as_read(request, message_id):
-    message = get_object_or_404(Message, id=message_id, recipient=request.user)
-    message.is_read = True
-    message.save()
-    return JsonResponse({'status': 'success'})
+    # Помечаем все сообщения как прочитанные при открытии inbox
+    Message.objects.filter(
+        recipient=request.user,
+        is_read=False,
+        is_deleted_by_recipient=False
+    ).update(is_read=True)
+    
+    # Получаем входящие и исходящие сообщения
+    incoming_messages = Message.objects.filter(
+        recipient=request.user,
+        is_deleted_by_recipient=False
+    ).select_related('sender').prefetch_related('attachments')
+    
+    outgoing_messages = Message.objects.filter(
+        sender=request.user,
+        is_deleted_by_sender=False
+    ).select_related('recipient').prefetch_related('attachments')
+    
+    return render(request, 'blog/inbox.html', {
+        'incoming_messages': incoming_messages,
+        'outgoing_messages': outgoing_messages
+    })
 
 @login_required
 def get_unread_messages_count(request):

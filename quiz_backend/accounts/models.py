@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.core.validators import MinLengthValidator, RegexValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from datetime import timedelta
 
 
 
@@ -207,21 +208,31 @@ class UserChannelSubscription(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(
         CustomUser, 
-        on_delete=models.CASCADE,
-        related_name='profile'
+        on_delete=models.CASCADE, 
+        related_name='profile',
+        primary_key=True  # Делаем user_id первичным ключом
     )
     avatar = models.ImageField(upload_to='avatar/', blank=True, null=True)
     bio = models.TextField(max_length=500, blank=True)
     location = models.CharField(max_length=100, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     website = models.URLField(max_length=200, blank=True)
+    
+    # Социальные сети
+    telegram = models.CharField(max_length=100, blank=True)  # Оставляем только одно поле для телеграма
+    github = models.URLField(blank=True, verbose_name='GitHub Profile')
+    instagram = models.URLField(blank=True, verbose_name='Instagram Profile')
+    facebook = models.URLField(blank=True, verbose_name='Facebook Profile')
+    linkedin = models.URLField(blank=True, verbose_name='LinkedIn Profile')
+    youtube = models.URLField(blank=True, verbose_name='YouTube Channel')
+    
+    # Статистика
     total_points = models.IntegerField(default=0)
     quizzes_completed = models.IntegerField(default=0)
     average_score = models.FloatField(default=0.0)
     favorite_category = models.CharField(max_length=100, blank=True)
     
     # Дополнительные поля для телеграм пользователей
-    telegram_username = models.CharField(max_length=100, blank=True, null=True)
     is_telegram_user = models.BooleanField(default=False)
     
     # Настройки
@@ -232,6 +243,8 @@ class Profile(models.Model):
         choices=[('light', 'Light'), ('dark', 'Dark')],
         default='dark'
     )
+    
+    last_seen = models.DateTimeField(default=timezone.now)
     
     class Meta:
         db_table = 'user_profiles'
@@ -246,6 +259,22 @@ class Profile(models.Model):
         if self.avatar:
             return self.avatar.url
         return '/static/blog/images/avatar/default_avatar.png'
+
+    @property
+    def is_online(self):
+        return timezone.now() - self.last_seen < timedelta(minutes=5)
+
+    @property
+    def member_since(self):
+        return self.user.date_joined
+
+    @property
+    def favorite_topics(self):
+        from tasks.models import TaskStatistics
+        return TaskStatistics.objects.filter(user=self.user)\
+            .values('task__topic__name')\
+            .annotate(count=models.Count('id'))\
+            .order_by('-count')[:3]
 
 # Сигналы
 @receiver(post_save, sender=CustomUser)

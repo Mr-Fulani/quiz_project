@@ -30,7 +30,7 @@
                     </li>
                     <li class="navbar-item">
                         {% if user.is_authenticated %}
-                            <a href="{% url 'blog:profile' username=user.username %}" class="navbar-link">Profile</a>
+                            <a href="{% url 'blog:profile' %}" class="navbar-link">Profile</a>
                         {% else %}
                             <a href="{% url 'login' %}" class="navbar-link">Login</a>
                         {% endif %}
@@ -42,23 +42,11 @@
                                 <button type="submit" class="navbar-link" style="background: none; border: none;">Logout</button>
                             </form>
                         {% else %}
-                            <a href="{% url 'register' %}" class="navbar-link">Register</a>
+                            <a href="{% url 'accounts:register' %}" class="navbar-link">Register</a>
                         {% endif %}
                     </li>
                     <li class="navbar-item">
-                        {% if user.is_authenticated %}
-                            <a href="{% url 'blog:inbox' %}" class="navbar-link" data-nav-link>
-                                Messages
-                                {% with unread_count=user.get_unread_messages_count %}
-                                    {% if unread_count > 0 %}
-                                        <span class="message-badge">{{ unread_count }}</span>
-                                    {% endif %}
-                                {% endwith %}
-                            </a>
-                        {% endif %}
-                    </li>
-                    <li class="navbar-item">
-                        <a href="{% url 'user-list' %}" class="navbar-link" data-nav-link>Users</a>
+                        <a href="{% url 'accounts:user-list' %}" class="navbar-link" data-nav-link>Users</a>
                     </li>
                 </ul>
             </nav>

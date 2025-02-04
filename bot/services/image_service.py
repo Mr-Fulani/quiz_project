@@ -26,17 +26,14 @@ load_dotenv()
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  # Убедитесь, что уровень логирования установлен правильно
+logger.setLevel(logging.INFO)
 
-# Создайте обработчик, если его ещё нет
 if not logger.handlers:
     handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-# Получаем путь к логотипу из переменных окружения или используем значение по умолчанию
-# logo_path = os.getenv('LOGO_PATH', '/default/path/to/logo.svg')
 logo_path = os.getenv('LOGO_PATH', '/default/path/to/logo.png')
 
 KEYWORDS = {
@@ -51,32 +48,24 @@ KEYWORDS = {
     'rust': r"\b(fn|let|if|else|for|while|loop|match|return|impl|struct|enum|trait)\b"
 }
 
+
 async def generate_image_with_executor(task_text, language, logo_path=None):
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor()
 
-    # Выполняем блокирующую операцию в отдельном потоке
     image_generation_fn = partial(generate_console_image, task_text, language, logo_path)
     image = await loop.run_in_executor(executor, image_generation_fn)
 
-    # Освобождаем ресурсы
     executor.shutdown(wait=True)
-
     return image
 
 
 async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Image.Image]:
-    """
-    Асинхронно формирует PIL.Image для задачи (если нужно).
-    В ЭТОЙ ВЕРСИИ НЕ загружает картинку в S3 — это делается позже в prepare_publication().
-    """
     try:
-        # Проверяем, было ли уже сгенерировано изображение
         if task.image_url:
             logger.info(f"Изображение для задачи с ID {task.id} уже сгенерировано.")
             return None
 
-        # Ищем перевод на 'ru', если его нет, берем первый доступный перевод
         translation = next((t for t in task.translations if t.language == 'ru'), None)
         if not translation:
             translation = task.translations[0] if task.translations else None
@@ -84,9 +73,8 @@ async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Im
         if not translation or not translation.question:
             raise ValueError(f"Перевод задачи с ID {task.id} не найден или отсутствует вопрос.")
 
-        task_text = translation.question  # Используем поле 'question' из перевода
+        task_text = translation.question
 
-        # Генерация PIL.Image
         logger.info(f"Генерация изображения для задачи с ID {task.id}")
         image = await generate_image_with_executor(task_text, 'python', logo_path)
 
@@ -97,12 +85,13 @@ async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Im
         return None
 
 
-
-
-
 def add_indentation(task_text: str, language: str) -> str:
+    """
+    Опциональная функция для расстановки отступов по ключевым словам, если это необходимо.
+    Если требуется просто переносить текст, данную функцию можно отключить.
+    """
     if language not in KEYWORDS:
-        raise ValueError(f"Язык {language} не поддерживается.")
+        return task_text  # или ValueError, если строго нужно обрабатывать только поддерживаемые языки
 
     keywords = KEYWORDS[language]
     lines = task_text.split('\n')
@@ -111,8 +100,6 @@ def add_indentation(task_text: str, language: str) -> str:
 
     for i, line in enumerate(lines):
         stripped_line = line.strip()
-
-        # Проверяем, является ли текущая строка началом нового блока
         is_block_start = re.search(keywords, stripped_line) and stripped_line.endswith(':')
 
         # Уменьшаем отступ для закрывающих конструкций
@@ -123,38 +110,43 @@ def add_indentation(task_text: str, language: str) -> str:
         indented_line = '    ' * indent_level + stripped_line
         indented_lines.append(indented_line)
 
-        # Если строка содержит 'return', добавляем пустую строку
+        # Пример добавления пустой строки после return
         if stripped_line.startswith('return'):
-            # Проверяем, чтобы не добавлять пустую строку, если следующая строка уже пустая
             if i + 1 < len(lines) and lines[i + 1].strip():
-                indented_lines.append('')  # Пустая строка
+                indented_lines.append('')
 
         # Увеличиваем отступ после открывающих конструкций
         if is_block_start:
-            # Проверяем, есть ли содержимое блока на следующей строке
             if i + 1 < len(lines) and lines[i + 1].strip():
                 indent_level += 1
 
-        # Обрабатываем случай с одиночными командами без отступа (например, вложенный def)
         elif stripped_line.startswith(('def', 'class')) and not is_block_start:
-            # Не увеличиваем отступ, так как это отдельная конструкция
             pass
 
     return '\n'.join(indented_lines)
 
 
-
-def wrap_text(task_text: str, max_line_length: int = 50) -> str:
+def wrap_text(task_text: str, max_line_length: int = 60) -> str:
+    """
+    Принудительный перенос строк, превышающих max_line_length символов,
+    чтобы избежать слишком длинных строк (например, по рекомендациям PEP8).
+    """
     wrapped_lines = []
     for line in task_text.split('\n'):
         if len(line) > max_line_length:
-            wrapped_lines.extend(textwrap.wrap(line, max_line_length,
-                                               subsequent_indent='    ',
-                                               break_long_words=False,
-                                               replace_whitespace=False))
+            wrapped_lines.extend(
+                textwrap.wrap(
+                    line,
+                    max_line_length,
+                    subsequent_indent='    ',
+                    break_long_words=False,
+                    replace_whitespace=False
+                )
+            )
         else:
             wrapped_lines.append(line)
     return '\n'.join(wrapped_lines)
+
 
 def get_lexer(language: str):
     lexers = {
@@ -163,116 +155,115 @@ def get_lexer(language: str):
         'golang': GoLexer,
         'sql': SqlLexer
     }
-
     if language not in lexers:
-        raise ValueError(f"Лексер для {language} не поддерживается.")
-
+        # Если хотим без подсветки, можно вернуть PythonLexer или PlainTextLexer
+        return PythonLexer()
     return lexers[language]()
-
-
 
 
 def generate_console_image(task_text: str, language: str, logo_path: Optional[str] = None) -> Image.Image:
     """
-    Генерирует изображение консоли с подсвеченным кодом задачи и логотипом.
-
-    :param task_text: Текст задачи (код).
-    :param language: Язык программирования задачи ('python', 'java', 'golang', 'sql').
-    :param logo_path: Путь к логотипу (опционально).
-    :return: Объект изображения PIL с отрисованной консолью и кодом.
+    Генерация «консольного» изображения с подсветкой кода/текста и логотипом.
     """
-    # Минимальные и базовые размеры
-    MIN_WIDTH, MIN_HEIGHT = 1600, 1000  # Увеличенные размеры
-    MIN_CONSOLE_WIDTH, MIN_CONSOLE_HEIGHT = 1400, 700  # Пропорционально увеличены
+    # Сначала опционально расставляем отступы
+    formatted_text = add_indentation(task_text, language)
+    # Затем ограничиваем длину строки PEP8-стилем (79 символов)
+    formatted_text = wrap_text(formatted_text, max_line_length=79)
 
-    # Создаем форматтер для подсветки кода
+    # Минимальные размеры
+    MIN_WIDTH, MIN_HEIGHT = 1600, 1000
+    MIN_CONSOLE_WIDTH, MIN_CONSOLE_HEIGHT = 1400, 700
+
     lexer = get_lexer(language)
-    font_size = 50  # Увеличенный размер шрифта
 
-    # Подбираем оптимальный размер шрифта
-    while font_size >= 20:
+    # Начинаем с более крупного шрифта, чем раньше
+    font_size = 50
+    code_img = None
+    while font_size >= 24:  # минимальный шрифт увеличили с 20 до 24
         formatter = ImageFormatter(
             font_size=font_size,
             style=get_style_by_name('monokai'),
             line_numbers=False,
-            image_pad=20,  # Увеличенные отступы
-            line_pad=10,    # Увеличенные отступы между строками
+            image_pad=20,
+            line_pad=10,
             background_color='transparent'
         )
-
-        # Создаем изображение кода
         code_image_io = io.BytesIO()
-        highlight(task_text.strip(), lexer, formatter, outfile=code_image_io)
+        highlight(formatted_text.strip(), lexer, formatter, outfile=code_image_io)
         code_image_io.seek(0)
-        code_img = Image.open(code_image_io).convert("RGBA")
+        tmp_code_img = Image.open(code_image_io).convert("RGBA")
 
-        # Динамический расчет размеров
-        console_width = max(MIN_CONSOLE_WIDTH, code_img.width + 160)  # Увеличенные отступы
-        console_height = max(MIN_CONSOLE_HEIGHT, code_img.height + 240)  # Увеличенные отступы
-        width = max(MIN_WIDTH, console_width + 300)  # Дополнительное пространство
+        console_width = max(MIN_CONSOLE_WIDTH, tmp_code_img.width + 160)
+        console_height = max(MIN_CONSOLE_HEIGHT, tmp_code_img.height + 240)
+        width = max(MIN_WIDTH, console_width + 300)
         height = max(MIN_HEIGHT, console_height + 300)
 
-        # Логирование размеров для отладки
-        logger.info(f"Code image size: {code_img.width}x{code_img.height}")
-        logger.info(f"Console size: {console_width}x{console_height}")
-        logger.info(f"Final image size: {width}x{height}")
-
-        # Проверяем, что код помещается
-        if code_img.width <= (console_width - 160) and code_img.height <= (console_height - 240):
+        if (tmp_code_img.width <= (console_width - 160)
+                and tmp_code_img.height <= (console_height - 240)):
+            code_img = tmp_code_img
             logger.info(f"Selected font size: {font_size}")
             break
 
-        font_size -= 2  # Уменьшаем размер шрифта для подгонки
+        font_size -= 2
 
-    # Создаем изображение с фоном светло-синего цвета
+    # Если вообще не поместилось, берём последнее (самое маленькое) изображение
+    if code_img is None:
+        code_img = tmp_code_img
+
+    console_width = max(MIN_CONSOLE_WIDTH, code_img.width + 160)
+    console_height = max(MIN_CONSOLE_HEIGHT, code_img.height + 240)
+    width = max(MIN_WIDTH, console_width + 300)
+    height = max(MIN_HEIGHT, console_height + 300)
+
     background_color = (173, 216, 230)
     image = Image.new("RGB", (width, height), background_color)
     draw = ImageDraw.Draw(image)
 
-    # Цвета для "кнопок" и консоли
+    # Цвета и параметры "окна"
     red, yellow, green = (255, 59, 48), (255, 204, 0), (40, 205, 65)
     console_color = (40, 40, 40)
-    corner_radius = 40  # Увеличенный радиус скругления
+    corner_radius = 40
 
-    # Позиционирование консоли
     console_x0 = (width - console_width) // 2
     console_y0 = (height - console_height) // 2
     console_x1 = console_x0 + console_width
     console_y1 = console_y0 + console_height
 
-    # Отрисовка консоли со скругленными углами
-    draw.rounded_rectangle((console_x0, console_y0, console_x1, console_y1),
-                           radius=corner_radius, fill=console_color)
+    # Рисуем "консоль" со скруглёнными углами
+    draw.rounded_rectangle(
+        (console_x0, console_y0, console_x1, console_y1),
+        radius=corner_radius,
+        fill=console_color
+    )
 
-    # Отрисовка "кнопок" в верхнем левом углу консоли
-    circle_radius = 20  # Увеличенный радиус
-    circle_spacing = 30  # Увеличенное расстояние между кнопками
-    circle_y = console_y0 + 40  # Увеличенное положение по Y
+    # "Кнопки" в верхнем левом углу
+    circle_radius = 20
+    circle_spacing = 30
+    circle_y = console_y0 + 40
     for i, color in enumerate([red, yellow, green]):
-        draw.ellipse((console_x0 + (2 * i + 1) * circle_spacing,
-                      circle_y,
-                      console_x0 + (2 * i + 1) * circle_spacing + 2 * circle_radius,
-                      circle_y + 2 * circle_radius),
-                     fill=color)
+        draw.ellipse((
+            console_x0 + (2 * i + 1) * circle_spacing,
+            circle_y,
+            console_x0 + (2 * i + 1) * circle_spacing + 2 * circle_radius,
+            circle_y + 2 * circle_radius
+        ), fill=color)
 
-    # Добавление логотипа в правый верхний угол (если есть)
+    # Логотип в правом верхнем углу, если указан
     if logo_path:
         try:
             logo = Image.open(logo_path).convert("RGBA")
-            # Установка фиксированного размера логотипа
-            fixed_logo_size = (240, 240)  # Увеличенный фиксированный размер
+            fixed_logo_size = (240, 240)
             logo = logo.resize(fixed_logo_size, Resampling.LANCZOS)
-            logger.info(f"Fixed logo size: {logo.size}")
-            logo_x = width - logo.width - 30  # Увеличенный отступ от края
-            logo_y = 10  # Увеличенный отступ от верхнего края
+            logo_x = width - logo.width - 30
+            logo_y = 10
             image.paste(logo, (logo_x, logo_y), logo)
         except Exception as e:
             logger.error(f"Ошибка при загрузке логотипа: {e}")
 
-    # Вставляем изображение кода в консоль
-    shift_left = 50  # Смещение влево в пикселях
+    # Вставляем подготовленное "изображение кода" (или текста) внутрь консоли
+    shift_left = 50
     padding_left = (console_width - code_img.width) // 2 - shift_left
-    padding_top = 150  # Увеличенный отступ сверху
+    padding_top = 150
     code_x = console_x0 + padding_left
     code_y = console_y0 + padding_top
     image.paste(code_img, (code_x, code_y), code_img)
@@ -280,9 +271,8 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     return image
 
 
-
 def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
-    image.save(filename, format='PNG', dpi=(300, 300))  # Явное указание формата
+    image.save(filename, format='PNG', dpi=(300, 300))
     image.show()
 
 
@@ -291,30 +281,30 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 
 
 
-# if __name__ == "__main__":
-#     task_text = """
-# def hello_world():
-#     print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")
-# def hello_world():
-#     print("Hello, World!")
-# def hello_world():
-#     print("Hello, World!")
-# def hello_world():
-#     print("Hello, World!")
-# def hello_world():
-#     print("Hello, World!")
-#     return
-#     return
-# def hello_world():
-#     print("Hello, World!")
-#
-#     """
-#     language = 'python'
-#     logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
-#
-#     # Форматирование текста перед генерацией изображения
-#     formatted_text = add_indentation(task_text, language)
-#     formatted_text = wrap_text(formatted_text, max_line_length=80)  # Увеличенное значение для больших изображений
-#
-#     image = generate_console_image(formatted_text, language, logo_path)
-#     save_and_show_image(image)
+if __name__ == "__main__":
+    task_text = """
+def hello_world():
+    print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")
+def hello_world():
+    print("Hello, World!")
+def hello_world():
+    print("Hello, World!")
+def hello_world():
+    print("Hello, World!")
+def hello_world():
+    print("Hello, World!")
+    return
+    return
+def hello_world():
+    print("Hello, World!")
+
+    """
+    language = 'python'
+    logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
+
+    # Форматирование текста перед генерацией изображения
+    formatted_text = add_indentation(task_text, language)
+    formatted_text = wrap_text(formatted_text, max_line_length=80)  # Увеличенное значение для больших изображений
+
+    image = generate_console_image(formatted_text, language, logo_path)
+    save_and_show_image(image)

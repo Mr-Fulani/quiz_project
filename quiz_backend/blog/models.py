@@ -79,14 +79,14 @@ class Project(models.Model):
         super().save(*args, **kwargs)
 
 class MessageAttachment(models.Model):
-    message = models.ForeignKey('Message', related_name='attachments', on_delete=models.CASCADE)
+    message = models.ForeignKey('Message', on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='message_attachments/%Y/%m/%d/')
     filename = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class Message(models.Model):
-    sender = models.ForeignKey(CustomUser, related_name='sent_messages', on_delete=models.CASCADE)
-    recipient = models.ForeignKey(CustomUser, related_name='received_messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='received_messages')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)

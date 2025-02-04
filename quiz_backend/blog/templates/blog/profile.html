@@ -23,6 +23,9 @@
           <button class="tab-btn" data-tab="settings">Settings</button>
           <button class="tab-btn" data-tab="security">Security</button>
           <button class="tab-btn" data-tab="statistics">Quiz Statistics</button>
+          {% if is_owner %}
+            <button class="tab-btn" data-tab="messages">Messages</button>
+          {% endif %}
         </div>
 
         <!-- Personal Info Tab -->
@@ -32,26 +35,29 @@
               <div class="profile-avatar">
                 <img src="{{ profile.get_avatar_url }}" alt="{{ profile_user.username }}">
                 {% if is_owner %}
-                <form id="avatar-form" method="post" enctype="multipart/form-data" action="{% url 'blog:edit_profile' %}">
-                  {% csrf_token %}
-                  <label for="avatar-upload" class="change-avatar-btn">
-                    Change Photo
-                  </label>
-                  <input type="file" id="avatar-upload" name="avatar" style="display: none;" onchange="this.form.submit()">
-                </form>
+                  <form id="avatar-form" method="post" enctype="multipart/form-data" action="{% url 'blog:edit_profile' %}">
+                    {% csrf_token %}
+                    <label for="avatar-upload" class="change-avatar-btn">
+                      <ion-icon name="camera-outline"></ion-icon>
+                    </label>
+                    <input type="file" id="avatar-upload" name="avatar" accept="image/*" style="display: none;">
+                  </form>
                 {% endif %}
               </div>
               <div class="profile-info">
-                <h3 class="h3">{{ profile_user.username }}</h3>
-                <p class="profile-email">{{ profile_user.email }}</p>
-                <p class="profile-status">Member since: {{ profile_user.date_joined|date:"F Y" }}</p>
-                {% if profile.is_telegram_user %}
-                  <span class="telegram-badge">
-                    <i class="fab fa-telegram"></i> Telegram User
-                  </span>
+                <h3 class="profile-name">{{ profile_user.get_full_name|default:profile_user.username }}</h3>
+                {% if profile_user.profile.location %}
+                  <p class="profile-location">
+                    <ion-icon name="location-outline"></ion-icon>
+                    <span>{{ profile_user.profile.location }}</span>
+                  </p>
+                {% endif %}
+                {% if profile_user.profile.bio %}
+                  <p class="profile-bio">{{ profile_user.profile.bio }}</p>
                 {% endif %}
               </div>
             </div>
+
             {% if is_owner %}
             <div class="profile-details">
               <form class="form" method="post" action="{% url 'blog:edit_profile' %}">
@@ -149,15 +155,120 @@
           </div>
         </div>
 
-        <!-- В секции профиля, если это не профиль текущего пользователя -->
-        {% if user.is_authenticated and user.username != profile_user.username %}
-        <div class="message-form">
-            <h3>Send Message</h3>
-            <form method="POST" action="{% url 'blog:send_message' recipient_username=profile_user.username %}">
-                {% csrf_token %}
-                <textarea name="content" class="form-input" placeholder="Write your message..." required></textarea>
-                <button type="submit" class="form-btn">Send Message</button>
+        <!-- Новый таб для сообщений -->
+        {% if is_owner %}
+        <div class="tab-content" data-tab-content="messages">
+          <div class="profile-card">
+            <div class="messages-header">
+              <h3 class="h3">Messages</h3>
+              <div class="message-filters">
+                <button class="filter-btn active" data-filter="inbox">Inbox</button>
+                <button class="filter-btn" data-filter="sent">Sent</button>
+              </div>
+            </div>
+
+            <div class="messages-container">
+              <!-- Входящие сообщения -->
+              <div class="messages-list active" data-messages="inbox">
+                {% for message in inbox_messages %}
+                  <div class="message-item {% if not message.is_read %}unread{% endif %}">
+                    <div class="message-header">
+                      <div class="message-sender">
+                        <img src="{{ message.sender.profile.get_avatar_url }}" alt="{{ message.sender.username }}" class="sender-avatar">
+                        <a href="{% url 'blog:profile' username=message.sender.username %}">{{ message.sender.username }}</a>
+                      </div>
+                      <span class="message-date">{{ message.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="message-content">
+                      {{ message.content }}
+                      {% if message.attachments.exists %}
+                      <div class="message-attachments">
+                        <h4>Attachments:</h4>
+                        <ul class="attachment-list">
+                          {% for attachment in message.attachments.all %}
+                          <li class="attachment-item">
+                            <a href="{{ attachment.file.url }}" class="attachment-link">
+                              <ion-icon name="document-outline"></ion-icon>
+                              {{ attachment.filename }}
+                            </a>
+                          </li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="message-actions">
+                      <button class="reply-btn" data-username="{{ message.sender.username }}">
+                        <ion-icon name="return-up-back-outline"></ion-icon> Reply
+                      </button>
+                      <button class="delete-btn" data-message-id="{{ message.id }}">
+                        <ion-icon name="trash-outline"></ion-icon> Delete
+                      </button>
+                    </div>
+                  </div>
+                {% empty %}
+                  <p class="no-messages">No messages in inbox</p>
+                {% endfor %}
+              </div>
+
+              <!-- Отправленные сообщения -->
+              <div class="messages-list" data-messages="sent">
+                {% for message in sent_messages %}
+                  <div class="message-item">
+                    <div class="message-header">
+                      <div class="message-recipient">
+                        To: <a href="{% url 'blog:profile' username=message.recipient.username %}">{{ message.recipient.username }}</a>
+                      </div>
+                      <span class="message-date">{{ message.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="message-content">
+                      {{ message.content }}
+                    </div>
+                    <div class="message-status">
+                      {% if message.is_read %}
+                        <span class="read-status">Read</span>
+                      {% else %}
+                        <span class="unread-status">Unread</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% empty %}
+                  <p class="no-messages">No sent messages</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Форма для отправки сообщения (видна только на чужом профиле) -->
+        {% if user.is_authenticated and not is_owner %}
+        <div class="message-form-container">
+          <button class="compose-btn" id="showMessageForm">
+            <ion-icon name="mail-outline"></ion-icon> Send Message
+          </button>
+          <div class="message-form" id="messageForm" style="display: none;">
+            <form method="POST" enctype="multipart/form-data" id="messageForm">
+              {% csrf_token %}
+              <textarea name="content" class="form-input" placeholder="Write your message..." required></textarea>
+              
+              <div class="attachments-container">
+                <div class="file-upload">
+                  <label for="attachments" class="file-upload-label">
+                    <ion-icon name="attach-outline"></ion-icon>
+                    Add Files
+                  </label>
+                  <input type="file" id="attachments" name="attachments" multiple class="file-upload-input">
+                </div>
+                <div id="selected-files" class="selected-files"></div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="cancel-btn" id="cancelMessage">Cancel</button>
+                <button type="submit" class="send-btn">Send</button>
+              </div>
             </form>
+          </div>
         </div>
         {% endif %}
 
@@ -167,7 +278,7 @@
           {% endif %}
           
           {% if user.is_authenticated and not is_owner %}
-          <a href="{% url 'blog:profile' username=user.username %}" class="nav-link">My Profile</a>
+          <a href={% url 'blog:profile' %}"" class="nav-link">My Profile</a>
           {% endif %}
         </div>
       </section>
@@ -280,6 +391,171 @@
       .tab-content.active {
         display: block;
       }
+      /* Стили для сообщений */
+      .messages-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .message-filters {
+        display: flex;
+        gap: 10px;
+      }
+
+      .filter-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 20px;
+        background: var(--border-gradient-onyx);
+        color: var(--light-gray);
+        cursor: pointer;
+      }
+
+      .filter-btn.active {
+        background: var(--orange-yellow-crayola);
+        color: var(--eerie-black-1);
+      }
+
+      .message-item {
+        background: var(--border-gradient-onyx);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+
+      .message-item.unread {
+        border-left: 3px solid var(--orange-yellow-crayola);
+      }
+
+      .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .message-sender {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .sender-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+      }
+
+      .message-content {
+        color: var(--light-gray);
+        margin-bottom: 10px;
+      }
+
+      .message-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .reply-btn, .delete-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+
+      .reply-btn {
+        background: var(--jet);
+        color: var(--light-gray);
+      }
+
+      .delete-btn {
+        background: var(--eerie-black-2);
+        color: #ff6b6b;
+      }
+
+      .message-form-container {
+        margin-top: 20px;
+      }
+
+      .compose-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--orange-yellow-crayola);
+        border: none;
+        border-radius: 25px;
+        color: var(--eerie-black-1);
+        cursor: pointer;
+      }
+
+      .message-form {
+        margin-top: 15px;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .messages-list {
+        display: none;
+      }
+
+      .messages-list.active {
+        display: block;
+      }
+
+      .attachments-container {
+        margin: 10px 0;
+      }
+
+      .file-upload {
+        position: relative;
+        display: inline-block;
+      }
+
+      .file-upload-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 15px;
+        background: var(--jet);
+        color: var(--light-gray);
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+
+      .file-upload-input {
+        display: none;
+      }
+
+      .selected-files {
+        margin-top: 10px;
+      }
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 10px;
+        background: var(--eerie-black-2);
+        border-radius: 5px;
+        margin-bottom: 5px;
+      }
+
+      .file-item .remove-file {
+        cursor: pointer;
+        color: #ff6b6b;
+      }
     </style>
 
     <script>
@@ -330,6 +606,120 @@
             }
           });
         });
+
+        // Обработка переключения между входящими и отправленными
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const messageLists = document.querySelectorAll('.messages-list');
+
+        filterBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            messageLists.forEach(l => l.classList.remove('active'));
+            
+            btn.classList.add('active');
+            document.querySelector(`[data-messages="${btn.dataset.filter}"]`).classList.add('active');
+          });
+        });
+
+        // Показать/скрыть форму сообщения
+        const showMessageBtn = document.getElementById('showMessageForm');
+        const messageForm = document.getElementById('messageForm');
+        const cancelBtn = document.getElementById('cancelMessage');
+
+        if (showMessageBtn && messageForm && cancelBtn) {
+          showMessageBtn.addEventListener('click', () => {
+            messageForm.style.display = 'block';
+            showMessageBtn.style.display = 'none';
+          });
+
+          cancelBtn.addEventListener('click', () => {
+            messageForm.style.display = 'none';
+            showMessageBtn.style.display = 'block';
+          });
+        }
+
+        // Обработка удаления сообщений
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this message?')) {
+              const messageId = btn.dataset.messageId;
+              try {
+                const response = await fetch(`/messages/delete/${messageId}/`, {
+                  method: 'POST',
+                  headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                  }
+                });
+                if (response.ok) {
+                  btn.closest('.message-item').remove();
+                }
+              } catch (error) {
+                console.error('Error deleting message:', error);
+              }
+            }
+          });
+        });
+
+        const attachmentsInput = document.getElementById('attachments');
+        const selectedFilesContainer = document.getElementById('selected-files');
+
+        if (attachmentsInput) {
+          attachmentsInput.addEventListener('change', function() {
+            selectedFilesContainer.innerHTML = '';
+            Array.from(this.files).forEach(file => {
+              const fileItem = document.createElement('div');
+              fileItem.className = 'file-item';
+              fileItem.innerHTML = `
+                <span class="file-name">${file.name}</span>
+                <ion-icon name="close-outline" class="remove-file"></ion-icon>
+              `;
+              
+              fileItem.querySelector('.remove-file').addEventListener('click', function() {
+                fileItem.remove();
+                // Создаем новый FileList без удаленного файла
+                const dt = new DataTransfer();
+                Array.from(attachmentsInput.files)
+                  .filter(f => f.name !== file.name)
+                  .forEach(f => dt.items.add(f));
+                attachmentsInput.files = dt.files;
+              });
+              
+              selectedFilesContainer.appendChild(fileItem);
+            });
+          });
+        }
+
+        if (messageForm) {
+          messageForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            try {
+              const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                  'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+              });
+
+              const data = await response.json();
+              if (data.status === 'sent') {
+                // Очищаем форму
+                this.reset();
+                selectedFilesContainer.innerHTML = '';
+                // Скрываем форму
+                this.style.display = 'none';
+                document.getElementById('showMessageForm').style.display = 'block';
+                // Показываем уведомление
+                showNotification('Message sent successfully!', 'success');
+              }
+            } catch (error) {
+              console.error('Error sending message:', error);
+              showNotification('Failed to send message', 'error');
+            }
+          });
+        }
       });
     </script>
   {% else %}

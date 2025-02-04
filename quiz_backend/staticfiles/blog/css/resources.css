@@ -64,4 +64,92 @@
 
 .has-scrollbar::-webkit-scrollbar-button {
     width: 20px;
+}
+
+.resources-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.resources-item {
+    position: relative;
+    overflow: hidden;
+    background: var(--border-gradient-onyx);
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-2);
+    transition: all 0.3s ease-in-out;
+}
+
+.resources-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.05),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.resources-item:hover::before {
+    left: 100%;
+}
+
+.resources-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-4);
+}
+
+.resources-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px;
+}
+
+.resources-icon-box {
+    flex-shrink: 0;
+}
+
+.resources-icon-box img {
+    width: 40px;
+    height: 40px;
+    transition: transform 0.3s ease-in-out;
+}
+
+.resources-item:hover .resources-icon-box img {
+    transform: rotate(8deg) scale(1.1);
+}
+
+@media (min-width: 580px) {
+    .resources-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .resources-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Вариант 1: Добавить margin к секциям */
+.resources,
+.skill {
+    margin-top: 70px;  /* Можно регулировать значение */
+}
+
+/* ИЛИ Вариант 2: Использовать специальный класс-разделитель */
+.section-gap {
+    margin-top: 70px;
 } 
