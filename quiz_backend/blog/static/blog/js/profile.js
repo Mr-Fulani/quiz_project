@@ -63,16 +63,21 @@ document.querySelector('form[action*="change-password"]')?.addEventListener('sub
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка переключения табов
-    const tabs = document.querySelectorAll('.tab-btn');
-    const contents = document.querySelectorAll('.tab-content');
+    // Обработка кликов по вкладкам
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab;
+            
+            // Убираем активный класс у всех кнопок и контента
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // Добавляем активный класс нужной кнопке и контенту
+            btn.classList.add('active');
+            document.querySelector(`[data-tab-content="${tabName}"]`).classList.add('active');
         });
     });
 
