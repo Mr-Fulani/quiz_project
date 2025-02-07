@@ -7,7 +7,7 @@ from .views import (
     ContactView, QuizesView, QuizDetailView, ProfileView, 
     profile_view, update_settings, inbox, 
     send_message, delete_message, download_attachment, 
-    get_unread_messages_count, statistics_view
+    get_unread_messages_count, statistics_view, dashboard_view
 )
 from django.shortcuts import redirect
 
@@ -29,7 +29,8 @@ urlpatterns = [
     path('contact/', ContactView.as_view(), name='contact'),  # Добавляем URL для contact
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
-    path('dashboard/', profile_view, name='profile'),  # Основная панель управления
+    path('dashboard/', dashboard_view, name='dashboard'),
+    path('profile/<str:username>/', profile_view, name='profile'),
     path('dashboard/update-settings/', update_settings, name='update_settings'),
     path('messages/', lambda request: redirect('blog:inbox'), name='messages'),
     path('inbox/', inbox, name='inbox'),

@@ -27,6 +27,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 import re
+from tasks.models import TaskStatistics
+from django.utils import timezone
+import json
+from django.db.models import Count, Q
+from django.db import models
 
 # Create your views here.
 
@@ -291,3 +296,78 @@ def change_password(request):
         return redirect('blog:profile')
     
     return redirect('blog:profile')
+
+def profile_view(request, username=None):
+    # Получаем профиль пользователя
+    profile_user = request.user if username is None else CustomUser.objects.get(username=username)
+    context = {'profile_user': profile_user}
+
+    # Подготовка данных для статистики
+    stats = {
+        'total_attempts': TaskStatistics.objects.filter(user=profile_user).count(),
+        'successful_attempts': TaskStatistics.objects.filter(user=profile_user, successful=True).count(),
+    }
+    
+    # Вычисляем процент успешности
+    if stats['total_attempts'] > 0:
+        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
+    else:
+        stats['success_rate'] = 0
+
+    # Статистика по сложности
+    difficulty_stats = TaskStatistics.objects.filter(user=profile_user).values(
+        'task__difficulty'
+    ).annotate(
+        total=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('task__difficulty')
+
+    # Статистика по темам
+    topic_stats = TaskStatistics.objects.filter(user=profile_user).values(
+        'task__topic__name'
+    ).annotate(
+        total=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('-total')[:5]  # Топ-5 тем
+
+    # Статистика активности за последние 30 дней
+    last_30_days = timezone.now() - timezone.timedelta(days=30)
+    activity_stats = TaskStatistics.objects.filter(
+        user=profile_user,
+        attempt_date__gte=last_30_days
+    ).annotate(
+        date=models.functions.TruncDate('attempt_date')
+    ).values('date').annotate(
+        attempts=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('date')
+
+    # Подготовка данных для графиков
+    chart_data = {
+        'activity': {
+            'labels': json.dumps([stat['date'].strftime('%Y-%m-%d') for stat in activity_stats]),
+            'attempts': json.dumps([stat['attempts'] for stat in activity_stats]),
+            'successful': json.dumps([stat['successful'] for stat in activity_stats])
+        },
+        'topics': {
+            'labels': json.dumps([stat['task__topic__name'] for stat in topic_stats]),
+            'success_rates': json.dumps([
+                round((stat['successful'] / stat['total'] * 100), 1) if stat['total'] > 0 else 0 
+                for stat in topic_stats
+            ])
+        },
+        'difficulty': {
+            'labels': json.dumps([stat['task__difficulty'] for stat in difficulty_stats]),
+            'success_rates': json.dumps([
+                round((stat['successful'] / stat['total'] * 100), 1) if stat['total'] > 0 else 0 
+                for stat in difficulty_stats
+            ])
+        }
+    }
+
+    context.update({
+        'stats': stats,
+        'chart_data': chart_data,
+    })
+
+    return render(request, 'accounts/profile.html', context)

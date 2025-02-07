@@ -215,51 +215,114 @@ class ProfileView(TemplateView):
         return context
 
 @login_required
-def profile_view(request):
-    if request.method == 'POST':
-        if 'avatar' in request.FILES:
-            profile = request.user.profile
-            profile.avatar = request.FILES['avatar']
-            profile.save()
-            return redirect('blog:profile')
-            
-        form = PersonalInfoForm(
-            request.POST, 
-            request.FILES, 
-            instance=request.user.profile,
-            user=request.user
-        )
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('blog:profile')
+def dashboard_view(request):
+    """Личный кабинет пользователя"""
+    print("\nDebug dashboard view:")
+    print(f"User: {request.user}")
+    
+    # Получаем статистику
+    stats = {
+        'total_attempts': TaskStatistics.objects.filter(user=request.user).count(),
+        'successful_attempts': TaskStatistics.objects.filter(user=request.user, successful=True).count(),
+    }
+    
+    # Вычисляем процент успешности
+    if stats['total_attempts'] > 0:
+        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
     else:
-        form = PersonalInfoForm(instance=request.user.profile, user=request.user)
-
+        stats['success_rate'] = 0
+    
+    # Получаем сообщения для вкладки сообщений
+    inbox_messages = Message.objects.filter(recipient=request.user).order_by('-created_at')
+    sent_messages = Message.objects.filter(sender=request.user).order_by('-created_at')
+    
     context = {
-        'profile_user': request.user,
-        'is_owner': True,
-        'personal_info_form': form,
+        'stats': stats,
+        'chart_data': get_user_chart_data(request.user),
+        'inbox_messages': inbox_messages,
+        'sent_messages': sent_messages,
+        'personal_info_form': PersonalInfoForm(instance=request.user.profile, user=request.user),
+        'is_owner': True
+    }
+    
+    return render(request, 'blog/dashboard.html', context)
+
+def profile_view(request, username):
+    """Просмотр профиля пользователя"""
+    profile_user = get_object_or_404(CustomUser, username=username)
+    is_owner = request.user == profile_user
+    
+    # Получаем статистику
+    stats = {
+        'total_attempts': TaskStatistics.objects.filter(user=profile_user).count(),
+        'successful_attempts': TaskStatistics.objects.filter(user=profile_user, successful=True).count(),
+    }
+    
+    if stats['total_attempts'] > 0:
+        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
+    else:
+        stats['success_rate'] = 0
+    
+    context = {
+        'profile_user': profile_user,
+        'stats': stats,
+        'chart_data': get_user_chart_data(profile_user),
+        'is_owner': is_owner
     }
     
     return render(request, 'blog/profile.html', context)
 
-
-# @login_required
-# def profile_stats(request, username):
-#     """API endpoint для получения статистики пользователя"""
-#     user = get_object_or_404(CustomUser, username=username)
-#     profile = user.profile
+def get_user_chart_data(user):
+    """Получение данных для графиков"""
+    # Статистика активности за последние 30 дней
+    last_30_days = timezone.now() - timezone.timedelta(days=30)
+    activity_stats = TaskStatistics.objects.filter(
+        user=user,
+        last_attempt_date__gte=last_30_days
+    ).annotate(
+        date=TruncDate('last_attempt_date')
+    ).values('date').annotate(
+        attempts=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('date')
     
-#     stats = {
-#         'total_points': profile.total_points,
-#         'quizzes_completed': profile.quizzes_completed,
-#         'average_score': profile.average_score,
-#         'favorite_category': profile.favorite_category,
-#     }
+    # Статистика по темам
+    topic_stats = TaskStatistics.objects.filter(user=user).values(
+        'task__topic__name'
+    ).annotate(
+        total=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('-total')[:5]
     
-#     return JsonResponse(stats)
-
+    # Статистика по сложности
+    difficulty_stats = TaskStatistics.objects.filter(user=user).values(
+        'task__difficulty'
+    ).annotate(
+        total=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    )
+    
+    return {
+        'activity': {
+            'labels': [stat['date'].strftime('%d.%m') for stat in activity_stats],
+            'attempts': [stat['attempts'] for stat in activity_stats],
+            'successful': [stat['successful'] for stat in activity_stats]
+        },
+        'topics': {
+            'labels': [stat['task__topic__name'] for stat in topic_stats],
+            'success_rates': [
+                round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
+                for stat in topic_stats
+            ]
+        },
+        'difficulty': {
+            'labels': [stat['task__difficulty'] for stat in difficulty_stats],
+            'success_rates': [
+                round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
+                for stat in difficulty_stats
+            ]
+        }
+    }
 
 @login_required
 @require_POST
@@ -440,3 +503,113 @@ def statistics_view(request):
     }
     
     return render(request, 'blog/statistics.html', context)
+
+@login_required
+def dashboard_view(request):
+    """Личный кабинет пользователя"""
+    print("\nDebug dashboard view:")
+    print(f"User: {request.user}")
+    
+    # Получаем статистику
+    stats = {
+        'total_attempts': TaskStatistics.objects.filter(user=request.user).count(),
+        'successful_attempts': TaskStatistics.objects.filter(user=request.user, successful=True).count(),
+    }
+    
+    # Вычисляем процент успешности
+    if stats['total_attempts'] > 0:
+        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
+    else:
+        stats['success_rate'] = 0
+    
+    # Получаем сообщения для вкладки сообщений
+    inbox_messages = Message.objects.filter(recipient=request.user).order_by('-created_at')
+    sent_messages = Message.objects.filter(sender=request.user).order_by('-created_at')
+    
+    context = {
+        'stats': stats,
+        'chart_data': get_user_chart_data(request.user),
+        'inbox_messages': inbox_messages,
+        'sent_messages': sent_messages,
+        'personal_info_form': PersonalInfoForm(instance=request.user.profile, user=request.user),
+        'is_owner': True
+    }
+    
+    return render(request, 'blog/dashboard.html', context)
+
+def profile_view(request, username):
+    """Просмотр профиля пользователя"""
+    profile_user = get_object_or_404(CustomUser, username=username)
+    is_owner = request.user == profile_user
+    
+    # Получаем статистику
+    stats = {
+        'total_attempts': TaskStatistics.objects.filter(user=profile_user).count(),
+        'successful_attempts': TaskStatistics.objects.filter(user=profile_user, successful=True).count(),
+    }
+    
+    if stats['total_attempts'] > 0:
+        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
+    else:
+        stats['success_rate'] = 0
+    
+    context = {
+        'profile_user': profile_user,
+        'stats': stats,
+        'chart_data': get_user_chart_data(profile_user),
+        'is_owner': is_owner
+    }
+    
+    return render(request, 'blog/profile.html', context)
+
+def get_user_chart_data(user):
+    """Получение данных для графиков"""
+    # Статистика активности за последние 30 дней
+    last_30_days = timezone.now() - timezone.timedelta(days=30)
+    activity_stats = TaskStatistics.objects.filter(
+        user=user,
+        last_attempt_date__gte=last_30_days
+    ).annotate(
+        date=TruncDate('last_attempt_date')
+    ).values('date').annotate(
+        attempts=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('date')
+    
+    # Статистика по темам
+    topic_stats = TaskStatistics.objects.filter(user=user).values(
+        'task__topic__name'
+    ).annotate(
+        total=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    ).order_by('-total')[:5]
+    
+    # Статистика по сложности
+    difficulty_stats = TaskStatistics.objects.filter(user=user).values(
+        'task__difficulty'
+    ).annotate(
+        total=Count('id'),
+        successful=Count('id', filter=Q(successful=True))
+    )
+    
+    return {
+        'activity': {
+            'labels': [stat['date'].strftime('%d.%m') for stat in activity_stats],
+            'attempts': [stat['attempts'] for stat in activity_stats],
+            'successful': [stat['successful'] for stat in activity_stats]
+        },
+        'topics': {
+            'labels': [stat['task__topic__name'] for stat in topic_stats],
+            'success_rates': [
+                round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
+                for stat in topic_stats
+            ]
+        },
+        'difficulty': {
+            'labels': [stat['task__difficulty'] for stat in difficulty_stats],
+            'success_rates': [
+                round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
+                for stat in difficulty_stats
+            ]
+        }
+    }

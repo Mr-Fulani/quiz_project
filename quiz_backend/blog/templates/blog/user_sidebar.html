@@ -5,6 +5,10 @@
     Is authenticated: {{ user.is_authenticated }}
     User profile: {{ user_profile }}
     Profile telegram: {{ user_profile.telegram }}
+    Debug stats:
+    Raw stats: {{ user.statistics }}
+    Solved tasks: {{ user.statistics.solved_tasks }}
+    Rating: {{ user.statistics.rating }}
 </div>
 {% endif %}
 <aside class="sidebar" data-sidebar>
@@ -41,7 +45,9 @@
           </div>
           <div class="contact-info">
             <p class="contact-title">Solved Tasks</p>
-            <p class="contact-link">{{ user.statistics.solved_tasks|default:"0" }}</p>
+            <a href="{% url 'blog:profile' %}?tab=statistics" class="contact-link">
+              {{ user.get_statistics.solved_tasks|default:"0" }}
+            </a>
           </div>
         </li>
 
@@ -51,7 +57,7 @@
           </div>
           <div class="contact-info">
             <p class="contact-title">Rating</p>
-            <p class="contact-link">{{ user.statistics.rating|default:"0" }}</p>
+            <a href="{% url 'blog:profile' %}?tab=statistics" class="contact-link">{{ user.statistics.rating|default:"0" }}</a>
           </div>
         </li>
 
@@ -141,6 +147,15 @@
         border-radius: 9px;
         text-align: center;
         padding: 0 5px;
+      }
+
+      .contact-info .contact-link {
+        text-decoration: none;
+        color: var(--light-gray);
+      }
+
+      .contact-info .contact-link:hover {
+        color: var(--orange-yellow-crayola);
       }
     </style>
   {% else %}

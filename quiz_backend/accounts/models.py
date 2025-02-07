@@ -5,6 +5,8 @@ from django.core.validators import MinLengthValidator, RegexValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import timedelta
+from django.core.cache import cache
+from django.db.models import Count, Q
 
 
 
@@ -46,6 +48,67 @@ class CustomUser(AbstractUser):
 
     def get_unread_messages_count(self):
         return self.received_messages.filter(is_read=False).count()
+
+    def get_statistics(self):
+        """Получение актуальной статистики без кэширования"""
+        from tasks.models import TaskStatistics
+        from django.db.models import Count
+        
+        stats = TaskStatistics.objects.filter(user=self).aggregate(
+            solved_tasks=Count('id', filter=Q(successful=True)),
+            rating=Count('id')
+        )
+        
+        return {
+            'solved_tasks': stats['solved_tasks'],
+            'rating': stats['rating']
+        }
+    
+    @property
+    def statistics(self):
+        """Получение статистики пользователя"""
+        from tasks.models import TaskStatistics
+        from django.db.models import Count
+        
+        # Получаем статистику
+        stats = TaskStatistics.objects.filter(user=self).aggregate(
+            solved_tasks=Count('id', filter=Q(successful=True)),
+            rating=Count('id')  # Временно используем общее количество попыток как рейтинг
+        )
+        
+        return {
+            'solved_tasks': stats['solved_tasks'],
+            'rating': stats['rating']
+        }
+    
+    def calculate_rating(self):
+        from tasks.models import TaskStatistics
+        from django.db.models import Count, Case, When, IntegerField
+        
+        # Получаем статистику по сложности
+        difficulty_stats = TaskStatistics.objects.filter(
+            user=self,
+            successful=True
+        ).values(
+            'task__difficulty'
+        ).annotate(
+            count=Count('id')
+        ).values('task__difficulty', 'count')
+        
+        # Рассчитываем рейтинг
+        rating = 0
+        for stat in difficulty_stats:
+            # Множители для разных уровней сложности
+            multipliers = {
+                'easy': 1,
+                'medium': 2,
+                'hard': 3
+            }
+            difficulty = stat['task__difficulty']
+            count = stat['count']
+            rating += count * multipliers.get(difficulty, 1)
+            
+        return rating
 
 
 
@@ -296,5 +359,11 @@ def create_telegram_user_profile(sender, instance, created, **kwargs):
             is_telegram_user=True,
             telegram_username=instance.username
         )
+
+@receiver(post_save, sender='tasks.TaskStatistics')
+def clear_user_statistics_cache(sender, instance, **kwargs):
+    """Очистка кэша при сохранении статистики"""
+    cache_key = f'user_statistics_{instance.user_id}'
+    cache.delete(cache_key)
 
 

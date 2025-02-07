@@ -281,30 +281,30 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 
 
 
-if __name__ == "__main__":
-    task_text = """
-def hello_world():
-    print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")
-def hello_world():
-    print("Hello, World!")
-def hello_world():
-    print("Hello, World!")
-def hello_world():
-    print("Hello, World!")
-def hello_world():
-    print("Hello, World!")
-    return
-    return
-def hello_world():
-    print("Hello, World!")
-
-    """
-    language = 'python'
-    logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
-
-    # Форматирование текста перед генерацией изображения
-    formatted_text = add_indentation(task_text, language)
-    formatted_text = wrap_text(formatted_text, max_line_length=80)  # Увеличенное значение для больших изображений
-
-    image = generate_console_image(formatted_text, language, logo_path)
-    save_and_show_image(image)
+# if __name__ == "__main__":
+#     task_text = """
+# def hello_world():
+#     print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")print("Hello, World!") print("Hello, World!") print("Hello, World!")print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+# def hello_world():
+#     print("Hello, World!")
+#     return
+#     return
+# def hello_world():
+#     print("Hello, World!")
+#
+#     """
+#     language = 'python'
+#     logo_path = '/Users/user/telegram_quiz_bots/quiz_project/bot/assets/logo.png'  # Путь к логотипу
+#
+#     # Форматирование текста перед генерацией изображения
+#     formatted_text = add_indentation(task_text, language)
+#     formatted_text = wrap_text(formatted_text, max_line_length=80)  # Увеличенное значение для больших изображений
+#
+#     image = generate_console_image(formatted_text, language, logo_path)
+#     save_and_show_image(image)

@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 
 class Task(models.Model):
     DIFFICULTY_CHOICES = [
@@ -171,6 +172,94 @@ class TaskStatistics(models.Model):
 
     def __str__(self):
         return f"Статистика: Задача {self.task_id}, Пользователь {self.user_id}"
+
+    @classmethod
+    def get_user_statistics(cls, user):
+        """Получение полной статистики пользователя"""
+        stats = {
+            'total_attempts': cls.objects.filter(user=user).count(),
+            'successful_attempts': cls.objects.filter(user=user, successful=True).count(),
+            
+            # Статистика по сложности
+            'difficulty_stats': cls.get_difficulty_stats(user),
+            
+            # Статистика по темам
+            'topic_stats': cls.get_topic_stats(user),
+            
+            # Активность по дням
+            'activity_stats': cls.get_activity_stats(user),
+            
+            # Любимая категория
+            'favorite_topic': cls.get_favorite_topic(user),
+        }
+        
+        # Вычисляем процент успешности
+        if stats['total_attempts'] > 0:
+            stats['success_rate'] = (stats['successful_attempts'] / stats['total_attempts']) * 100
+        else:
+            stats['success_rate'] = 0
+            
+        return stats
+
+    @classmethod
+    def get_difficulty_stats(cls, user):
+        """Статистика по уровням сложности"""
+        return cls.objects.filter(user=user).values(
+            'task__difficulty'
+        ).annotate(
+            total=models.Count('id'),
+            successful=models.Count('id', filter=models.Q(successful=True)),
+            success_rate=models.ExpressionWrapper(
+                models.F('successful') * 100.0 / models.F('total'),
+                output_field=models.FloatField()
+            )
+        ).order_by('task__difficulty')
+
+    @classmethod
+    def get_topic_stats(cls, user):
+        """Статистика по темам"""
+        return cls.objects.filter(user=user).values(
+            'task__topic__name'
+        ).annotate(
+            total=models.Count('id'),
+            successful=models.Count('id', filter=models.Q(successful=True)),
+            success_rate=models.ExpressionWrapper(
+                models.F('successful') * 100.0 / models.F('total'),
+                output_field=models.FloatField()
+            )
+        ).order_by('-total')
+
+    @classmethod
+    def get_activity_stats(cls, user):
+        """Статистика активности по дням"""
+        last_30_days = timezone.now() - timezone.timedelta(days=30)
+        return cls.objects.filter(
+            user=user,
+            attempt_date__gte=last_30_days
+        ).annotate(
+            date=models.functions.TruncDate('attempt_date')
+        ).values('date').annotate(
+            attempts=models.Count('id'),
+            successful=models.Count('id', filter=models.Q(successful=True))
+        ).order_by('date')
+
+    @classmethod
+    def get_favorite_topic(cls, user):
+        """Определение любимой темы пользователя"""
+        return cls.objects.filter(
+            user=user,
+            successful=True
+        ).values(
+            'task__topic__name'
+        ).annotate(
+            count=models.Count('id')
+        ).order_by('-count').first()
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Очищаем кэш статистики пользователя
+        cache_key = f'user_statistics_{self.user_id}'
+        cache.delete(cache_key)
 
 
 class TaskPoll(models.Model):

@@ -1,0 +1,77 @@
+{% extends "blog/base.html" %}
+{% load static %}
+{% load form_tags %}
+
+{% block sidebar %}
+    {% include 'blog/user_sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<article class="profile active" data-page="profile">
+    <header>
+        <h2 class="h2 article-title">Dashboard</h2>
+    </header>
+
+    <section class="profile-content">
+        <!-- Navigation Tabs -->
+        <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="personal">Personal Info</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+            <button class="tab-btn" data-tab="security">Security</button>
+            <button class="tab-btn" data-tab="statistics">Quiz Statistics</button>
+            <button class="tab-btn" data-tab="messages">Messages</button>
+        </div>
+
+        <!-- Personal Info Tab -->
+        <div class="tab-content active" data-tab-content="personal">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}">
+                        <form id="avatar-form" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <label for="id_avatar" class="avatar-overlay">
+                                <ion-icon name="camera-outline"></ion-icon>
+                                <input type="file" name="avatar" id="id_avatar" accept="image/*">
+                            </label>
+                        </form>
+                    </div>
+
+                    <div class="profile-info">
+                        <form class="form" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="personal_info" value="true">
+                            
+                            <div class="input-wrapper">
+                                {{ personal_info_form.as_p }}
+                            </div>
+
+                            <div class="social-links">
+                                <div class="social-input">
+                                    <ion-icon name="logo-github"></ion-icon>
+                                    {{ personal_info_form.github }}
+                                </div>
+                                <div class="social-input">
+                                    <ion-icon name="paper-plane"></ion-icon>
+                                    {{ personal_info_form.telegram }}
+                                </div>
+                                <div class="social-input">
+                                    <ion-icon name="logo-linkedin"></ion-icon>
+                                    {{ personal_info_form.linkedin }}
+                                </div>
+                                <!-- Добавьте другие социальные сети по необходимости -->
+                            </div>
+
+                            <div class="form-submit-wrapper">
+                                <button class="form-btn" type="submit">
+                                    <span>Save Changes</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+{% endblock %} 
