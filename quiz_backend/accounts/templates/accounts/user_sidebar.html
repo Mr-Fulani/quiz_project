@@ -15,7 +15,7 @@
   {% if user.is_authenticated %}
     <div class="sidebar-info">
       <figure class="avatar-box">
-        <a href="{% url 'blog:profile' %}">
+        <a href="{% url 'accounts:profile' %}">
           {% if user.profile.avatar %}
             <img src="{{ user.profile.get_avatar_url }}" alt="User Avatar" width="80">
           {% else %}
@@ -45,7 +45,7 @@
           </div>
           <div class="contact-info">
             <p class="contact-title">Solved Tasks</p>
-            <a href="{% url 'blog:profile' %}?tab=statistics" class="contact-link">
+            <a href="{% url 'accounts:profile' %}?tab=statistics" class="contact-link">
               {{ user.get_statistics.solved_tasks|default:"0" }}
             </a>
           </div>
@@ -57,7 +57,7 @@
           </div>
           <div class="contact-info">
             <p class="contact-title">Rating</p>
-            <a href="{% url 'blog:profile' %}?tab=statistics" class="contact-link">{{ user.statistics.rating|default:"0" }}</a>
+            <a href="{% url 'accounts:profile' %}?tab=statistics" class="contact-link">{{ user.statistics.rating|default:"0" }}</a>
           </div>
         </li>
 

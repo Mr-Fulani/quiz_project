@@ -24,3 +24,5 @@ database/clear_tables.py
 
 tasks.json
 *.json
+
+/staticfiles

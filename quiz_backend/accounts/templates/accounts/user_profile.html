@@ -3,7 +3,7 @@
 {% load humanize %}
 
 {% block sidebar %}
-    {% include 'blog/user_sidebar.html' %}
+    {% include 'accounts/user_sidebar.html' %}
 {% endblock %}
 
 {% block content %}
@@ -63,7 +63,7 @@
                 </button>
 
                 <div id="messageForm" class="message-form" style="display: none;">
-                    <form method="POST" action="{% url 'blog:send_message' recipient_username=profile_user.username %}" enctype="multipart/form-data">
+                    <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <textarea name="content" placeholder="Write your message..." required></textarea>
                         
