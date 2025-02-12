@@ -1,0 +1,323 @@
+/* ==========================================
+   Стили для навигационных вкладок
+   ========================================== */
+.profile-tabs {
+    display: flex; /* Флексбокс для горизонтального расположения */
+    gap: 15px; /* Расстояние между кнопками */
+    margin-bottom: 30px; /* Отступ снизу */
+    flex-wrap: wrap; /* Перенос кнопок на новую строку при необходимости */
+}
+
+.tab-btn {
+    padding: 12px 24px; /* Внутренний отступ */
+    border: none; /* Убираем границы */
+    border-radius: 12px; /* Скругление углов */
+    background: var(--border-gradient-onyx); /* Фоновый градиент */
+    color: var(--light-gray); /* Цвет текста */
+    cursor: pointer; /* Курсор указывает на возможность клика */
+    transition: all 0.3s ease; /* Анимация при наведении */
+    position: relative; /* Позиционирование для анимации */
+    overflow: hidden; /* Скрываем выходящие за пределы элементы */
+}
+
+.tab-btn::before {
+    content: ''; /* Создание псевдоэлемента */
+    position: absolute; /* Абсолютное позиционирование */
+    top: 0;
+    left: -100%;
+    width: 100%; /* Занимает всю ширину */
+    height: 100%; /* Занимает всю высоту */
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--orange-yellow-crayola),
+        transparent
+    ); /* Градиентная анимация */
+    transition: 0.5s; /* Плавность анимации */
+}
+
+.tab-btn:hover::before {
+    left: 100%; /* Движение градиента при наведении */
+}
+
+.tab-btn.active {
+    background: var(--orange-yellow-crayola); /* Фон активной кнопки */
+    color: var(--eerie-black-1); /* Цвет текста активной кнопки */
+    transform: translateY(-2px); /* Лёгкое поднятие */
+}
+
+/* ==========================================
+   Стили для карточек профиля
+   ========================================== */
+.profile-card {
+    background: var(--border-gradient-onyx); /* Фоновый градиент */
+    padding: 20px; /* Внутренний отступ */
+    border-radius: 14px; /* Скругление углов */
+    margin-bottom: 20px; /* Отступ снизу */
+}
+
+/* ==========================================
+   Шапка профиля (аватар + информация)
+   ========================================== */
+.profile-header {
+    display: flex; /* Флексбокс для выравнивания */
+    gap: 20px; /* Расстояние между элементами */
+    margin-bottom: 30px; /* Отступ снизу */
+}
+
+.profile-avatar img {
+    width: 100px; /* Ширина аватара */
+    height: 100px; /* Высота аватара */
+    border-radius: 50%; /* Круглая форма */
+    object-fit: cover; /* Сохранение пропорций изображения */
+}
+
+/* ==========================================
+   Сетка со статистикой
+   ========================================== */
+.stats-cards {
+    display: grid; /* Сетка для статистики */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Адаптивная сетка */
+    gap: 20px; /* Расстояние между карточками */
+    margin-bottom: 30px; /* Отступ снизу */
+}
+
+.stat-card {
+    background: var(--border-gradient-onyx); /* Фоновый градиент */
+    padding: 20px; /* Внутренний отступ */
+    border-radius: 10px; /* Скругление углов */
+    display: flex; /* Флексбокс для выравнивания */
+    align-items: center; /* Вертикальное центрирование */
+    gap: 15px; /* Расстояние между элементами */
+}
+
+.stat-icon {
+    font-size: 24px; /* Размер иконки */
+    color: var(--orange-yellow-crayola); /* Цвет иконки */
+}
+
+.stat-info h4 {
+    margin: 0; /* Убираем отступы */
+    color: var(--light-gray-70); /* Цвет заголовка */
+    font-size: 14px; /* Размер шрифта */
+}
+
+.stat-info p {
+    margin: 5px 0 0; /* Убираем лишние отступы */
+    color: var(--light-gray); /* Цвет текста */
+    font-size: 24px; /* Размер шрифта */
+    font-weight: bold; /* Жирный текст */
+}
+
+/* ==========================================
+   Блок с графиками
+   ========================================== */
+.stats-charts {
+    display: grid; /* Сетка для графиков */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Адаптивная сетка */
+    gap: 20px; /* Расстояние между графиками */
+    margin-top: 30px; /* Отступ сверху */
+}
+
+.chart-container {
+    background: var(--border-gradient-onyx); /* Фоновый градиент */
+    padding: 20px; /* Внутренний отступ */
+    border-radius: 10px; /* Скругление углов */
+}
+
+.chart-container h4 {
+    margin: 0 0 15px; /* Убираем лишние отступы */
+    color: var(--light-gray-70); /* Цвет заголовка */
+    text-align: center; /* Выравнивание по центру */
+}
+
+canvas {
+    width: 100% !important; /* Полная ширина графика */
+    height: 300px !important; /* Фиксированная высота */
+}
+
+/* ==========================================
+   Настройки (Settings Tab)
+   ========================================== */
+.setting-item {
+    display: flex; /* Флексбокс для выравнивания */
+    justify-content: space-between; /* Расположение элементов */
+    align-items: center; /* Вертикальное центрирование */
+    padding: 10px 0; /* Внутренний отступ */
+    border-bottom: 1px solid var(--jet); /* Нижняя граница */
+}
+
+/* ==========================================
+   Переключатели (switch)
+   ========================================== */
+.switch {
+    position: relative; /* Позиционирование */
+    display: inline-block; /* Блочный элемент */
+    width: 60px; /* Ширина */
+    height: 34px; /* Высота */
+}
+
+.switch input {
+    opacity: 0; /* Прозрачность */
+    width: 0; /* Убираем ширину */
+    height: 0; /* Убираем высоту */
+}
+
+.slider {
+    position: absolute; /* Абсолютное позиционирование */
+    cursor: pointer; /* Курсор указывает на возможность клика */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--jet); /* Фоновый цвет */
+    transition: .4s; /* Анимация */
+    border-radius: 34px; /* Скругление углов */
+}
+
+.slider:before {
+    position: absolute; /* Псевдоэлемент для кружка */
+    content: "";
+    height: 26px; /* Высота */
+    width: 26px; /* Ширина */
+    left: 4px; /* Расположение слева */
+    bottom: 4px; /* Расположение снизу */
+    background-color: #fff; /* Цвет фона */
+    transition: .4s; /* Анимация */
+    border-radius: 50%; /* Круглая форма */
+}
+
+input:checked + .slider {
+    background-color: var(--orange-yellow-crayola); /* Цвет при активации */
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px); /* Перемещение кружка */
+}
+
+.slider.round {
+    border-radius: 34px; /* Скругление углов */
+}
+
+.slider.round:before {
+    border-radius: 50%; /* Круглая форма */
+}
+
+/* ==========================================
+   Контент вкладок (tab-content)
+   ========================================== */
+.tab-content {
+    display: none; /* Скрыть контент по умолчанию */
+}
+
+.tab-content.active {
+    display: block; /* Показать активный контент */
+}
+
+/* ==========================================
+   Сообщения (Messages Tab)
+   ========================================== */
+.messages-header {
+    display: flex; /* Флексбокс для выравнивания */
+    justify-content: space-between; /* Расположение элементов */
+    align-items: center; /* Вертикальное центрирование */
+    margin-bottom: 20px; /* Отступ снизу */
+}
+
+.message-item {
+    background: var(--border-gradient-onyx); /* Фоновый градиент */
+    border-radius: 12px; /* Скругление углов */
+    padding: 15px; /* Внутренний отступ */
+    margin-bottom: 15px; /* Отступ снизу */
+}
+
+.message-item.unread {
+    border-left: 3px solid var(--orange-yellow-crayola); /* Маркер непрочитанных сообщений */
+}
+
+.message-header {
+    display: flex; /* Флексбокс для выравнивания */
+    justify-content: space-between; /* Расположение элементов */
+    align-items: center; /* Вертикальное центрирование */
+    margin-bottom: 10px; /* Отступ снизу */
+}
+
+.message-sender {
+    display: flex; /* Флексбокс для выравнивания */
+    align-items: center; /* Вертикальное центрирование */
+    gap: 10px; /* Расстояние между элементами */
+}
+
+.message-actions {
+    display: flex; /* Флексбокс для выравнивания */
+    gap: 10px; /* Расстояние между элементами */
+}
+
+.delete-btn {
+    background: var(--eerie-black-2); /* Фоновый цвет */
+    color: #ff6b6b; /* Цвет текста */
+    border-radius: 15px; /* Скругление углов */
+    padding: 5px 10px; /* Внутренний отступ */
+    border: none; /* Убираем границы */
+    cursor: pointer; /* Курсор указывает на возможность клика */
+}
+
+/* ==========================================
+   Кнопка "New Message"
+   ========================================== */
+.compose-btn {
+    display: flex; /* Флексбокс для выравнивания */
+    align-items: center; /* Вертикальное центрирование */
+    gap: 8px; /* Расстояние между элементами */
+    padding: 10px 20px; /* Внутренний отступ */
+    background: var(--orange-yellow-crayola); /* Фоновый цвет */
+    border: none; /* Убираем границы */
+    border-radius: 25px; /* Скругление углов */
+    color: var(--eerie-black-1); /* Цвет текста */
+    cursor: pointer; /* Курсор указывает на возможность клика */
+}
+
+/* ==========================================
+   Форма отправки сообщения
+   ========================================== */
+.message-form {
+    margin-top: 15px; /* Отступ сверху */
+    background: var(--border-gradient-onyx); /* Фоновый градиент */
+    border-radius: 12px; /* Скругление углов */
+    padding: 20px; /* Внутренний отступ */
+}
+
+.selected-files {
+    margin-top: 10px; /* Отступ сверху */
+}
+
+.file-item {
+    display: flex; /* Флексбокс для выравнивания */
+    align-items: center; /* Вертикальное центрирование */
+    justify-content: space-between; /* Расположение элементов */
+    padding: 5px 10px; /* Внутренний отступ */
+    background: var(--eerie-black-2); /* Фоновый цвет */
+    border-radius: 5px; /* Скругление углов */
+    margin-bottom: 5px; /* Отступ снизу */
+}
+
+.file-item .remove-file {
+    cursor: pointer; /* Курсор указывает на возможность клика */
+    color: #ff6b6b; /* Цвет текста */
+}
+
+/* ==========================================
+   Социальные поля (GitHub, LinkedIn и т.п.)
+   ========================================== */
+.social-input svg {
+    color: var(--light-gray); /* Цвет иконки */
+    margin-right: 10px; /* Расстояние справа */
+}
+
+/* ==========================================
+   Кнопка отправки формы
+   ========================================== */
+.form-submit-wrapper {
+    margin-top: 40px; /* Отступ сверху */
+    text-align: center; /* Выравнивание по центру */
+}

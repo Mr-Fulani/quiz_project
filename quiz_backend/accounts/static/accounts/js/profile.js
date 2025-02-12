@@ -2,7 +2,7 @@
 function showFormErrors(form, errors) {
     // Очищаем предыдущие ошибки
     form.querySelectorAll('.error-message').forEach(el => el.remove());
-    
+
     // Добавляем новые ошибки
     Object.entries(errors).forEach(([field, messages]) => {
         const input = form.querySelector(`[name="${field}"]`);
@@ -11,8 +11,53 @@ function showFormErrors(form, errors) {
             errorDiv.className = 'error-message';
             errorDiv.textContent = messages.join(', ');
             input.parentNode.insertBefore(errorDiv, input.nextSibling);
+            input.classList.add('error');
         }
     });
+}
+
+// Функция для показа уведомлений
+function showNotification(message, type = 'success') {
+    // Удаляем предыдущие уведомления
+    document.querySelectorAll('.notification').forEach(n => n.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <ion-icon name="${type === 'success' ? 'checkmark-circle' : 'alert-circle'}"></ion-icon>
+            <span>${message}</span>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Анимация появления
+    setTimeout(() => notification.classList.add('show'), 100);
+
+    // Автоматическое скрытие через 3 секунды
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Вспомогательная функция debounce
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Функция для генерации URL профиля
+function getProfileUrl(username) {
+    return `/profile/${username}/`;
 }
 
 // Сохраняем активную вкладку при переключении
@@ -22,23 +67,28 @@ document.querySelectorAll('[data-tab-btn]').forEach(btn => {
     });
 });
 
-// Восстанавливаем активную вкладку при загрузке
 document.addEventListener('DOMContentLoaded', function() {
+    // Восстанавливаем активную вкладку при загрузке
     const activeTab = localStorage.getItem('activeTab');
     if (activeTab) {
         document.querySelector(`[data-tab-btn="${activeTab}"]`)?.click();
     }
 
     // Обработка переключения табов
-    const tabs = document.querySelectorAll('.tab-btn');
-    const contents = document.querySelectorAll('.tab-content');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab;
+
+            // Убираем активный класс у всех кнопок и контента
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // Добавляем активный класс нужной кнопке и контенту
+            btn.classList.add('active');
+            document.querySelector(`[data-tab-content="${tabName}"]`).classList.add('active');
         });
     });
 
@@ -75,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Settings update failed');
                 }
 
-                // Показываем уведомление об успехе
                 showNotification('Settings updated successfully!', 'success');
             } catch (error) {
                 console.error('Error:', error);
@@ -114,13 +163,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`,
                     {
                         headers: {
-                            'Accept-Language': 'ru', // Добавим русский язык
-                            'User-Agent': 'YourApp' // Требуется для API
+                            'Accept-Language': 'ru',
+                            'User-Agent': 'YourApp'
                         }
                     }
                 );
                 const data = await response.json();
-                
+
                 if (data.length > 0) {
                     suggestions.innerHTML = data
                         .slice(0, 5)
@@ -155,15 +204,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // Анимация для активной вкладки
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
 
     // Инициализация графиков статистики
     // Настройка общего стиля для графиков
@@ -240,49 +280,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Функция для показа уведомлений
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => notification.remove(), 3000);
-}
-
-// Добавим функцию для генерации URL профиля
-function getProfileUrl(username) {
-    return `/profile/${username}/`;
-}
-
-// Вспомогательная функция debounce
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Функция для показа уведомления об успехе
-function showSuccessMessage() {
-    const message = document.createElement('div');
-    message.className = 'success-message';
-    message.textContent = 'Password successfully changed!';
-    document.querySelector('.profile-card').insertAdjacentElement('afterbegin', message);
-    
-    // Удаляем сообщение через 3 секунды
-    setTimeout(() => message.remove(), 3000);
-}
-
 // Обработчик отправки формы смены пароля
 document.querySelector('form[action*="change-password"]')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
+
+    // Очищаем предыдущие ошибки
+    this.querySelectorAll('.error-message').forEach(el => el.remove());
+
     try {
         const response = await fetch(this.action, {
             method: 'POST',
@@ -291,16 +295,34 @@ document.querySelector('form[action*="change-password"]')?.addEventListener('sub
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             }
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
-            showFormErrors(this, data.errors);
+            // Показываем ошибки под каждым полем
+            Object.entries(data.errors).forEach(([field, messages]) => {
+                const input = this.querySelector(`[name="${field}"]`);
+                if (input) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = messages.join(', ');
+                    input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                    input.classList.add('error');
+                }
+            });
         } else {
+            // Успешная смена пароля
+            showNotification('Password changed successfully!', 'success');
             this.reset(); // Очищаем форму
-            showSuccessMessage(); // Показываем уведомление
+
+            // Добавляем зеленую подсветку полей на короткое время
+            this.querySelectorAll('input').forEach(input => {
+                input.classList.add('success');
+                setTimeout(() => input.classList.remove('success'), 2000);
+            });
         }
     } catch (error) {
         console.error('Error:', error);
+        showNotification('Failed to change password. Please try again.', 'error');
     }
-}); 
+});

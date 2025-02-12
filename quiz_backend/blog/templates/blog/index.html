@@ -222,15 +222,6 @@
             </li>
         </ul>
     </section>
-
-    <!-- Добавляем модальное окно для статистики -->
-    <div class="quiz-stats-modal" id="quizStatsModal">
-        <div class="modal-content">
-            <span class="close-stats-modal">&times;</span>
-            <h2 id="quizStatsTitle">Quiz Statistics</h2>
-            <canvas id="quizStatsChart"></canvas>
-        </div>
-    </div>
 </article>
 
 <!-- Отладочная информация -->
@@ -242,7 +233,7 @@
 
 <!-- Добавляем необходимые скрипты -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'blog/js/main.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
 <script>
     function showQuizStats(quizId) {
         const modal = document.getElementById('quizStatsModal');

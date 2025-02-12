@@ -7,6 +7,10 @@
   {% include 'blog/sidebar.html' %}
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}">
+{% endblock %}
+
 {% block content %}
   <article class="profile active" data-page="profile">
     <header>
@@ -502,15 +506,15 @@
       .stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       }
-      
+
       .charts-grid {
         grid-template-columns: 1fr;
       }
-      
+
       .chart-wrapper {
         height: 250px;
       }
-      
+
       .stat-info p {
         font-size: 20px;
       }
@@ -524,7 +528,7 @@
       padding: 2rem;
       color: var(--light-gray);
     }
-    
+
     .private-notice ion-icon {
       font-size: 3rem;
     }

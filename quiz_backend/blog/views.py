@@ -306,166 +306,6 @@ class QuizDetailView(TemplateView):
         return context
 
 
-# class ProfileView(TemplateView):
-#     """
-#     Простейшее отображение профиля (blog/profile.html).
-#     Использует self.request.user как user_profile.
-#     """
-#     template_name = 'blog/profile.html'
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['user_profile'] = self.request.user
-#         return context
-#
-#
-# @login_required
-# def dashboard_view(request):
-#     """
-#     Личный кабинет (dashboard) -> вызывает profile_view(..., is_dashboard=True).
-#     """
-#     return profile_view(request, username=request.user.username, is_dashboard=True)
-#
-#
-# @login_required
-# def profile_redirect_view(request):
-#     """
-#     Редирект с /profile/ на /dashboard/.
-#     """
-#     return redirect('blog:dashboard')
-#
-#
-# @login_required
-# def profile_view(request, username, is_dashboard=False):
-#     """
-#     Основное представление профиля.
-#     Если is_dashboard=True -> рендерим blog/dashboard.html,
-#     иначе blog/profile.html.
-#
-#     Вычисляет статистику (stats),
-#     а если личный кабинет (is_dashboard),
-#     добавляет form, inbox_messages и sent_messages.
-#     """
-#     print(f"\nDebug profile view:")
-#     print(f"Username param: {username}")
-#     print(f"Current user: {request.user.username}")
-#     print(f"Is dashboard: {is_dashboard}")
-#
-#     profile_user = get_object_or_404(CustomUser, username=username)
-#     is_owner = request.user == profile_user
-#
-#     template_name = 'blog/dashboard.html' if is_dashboard else 'blog/profile.html'
-#
-#     stats = {
-#         'total_attempts': TaskStatistics.objects.filter(user=profile_user).count(),
-#         'successful_attempts': TaskStatistics.objects.filter(user=profile_user, successful=True).count(),
-#     }
-#     if stats['total_attempts'] > 0:
-#         stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
-#     else:
-#         stats['success_rate'] = 0
-#
-#     context = {
-#         'profile_user': profile_user,
-#         'is_owner': is_owner,
-#         'stats': stats,
-#         'chart_data': get_user_chart_data(profile_user),
-#     }
-#
-#     if is_dashboard:
-#         context.update({
-#             'personal_info_form': PersonalInfoForm(instance=profile_user.profile, user=profile_user),
-#             'inbox_messages': Message.objects.filter(recipient=profile_user).order_by('-created_at'),
-#             'sent_messages': Message.objects.filter(sender=profile_user).order_by('-created_at'),
-#         })
-#
-#     return render(request, template_name, context)
-#
-#
-# def get_user_chart_data(user):
-#     """
-#     Возвращает словарь с данными для трёх видов графиков:
-#     - activity (активность за последние 30 дней)
-#     - topics (топ-5 тем)
-#     - difficulty (статистика по уровню сложности)
-#     """
-#     last_30_days = timezone.now() - timezone.timedelta(days=30)
-#     activity_stats = TaskStatistics.objects.filter(
-#         user=user,
-#         last_attempt_date__gte=last_30_days
-#     ).annotate(
-#         date=TruncDate('last_attempt_date')
-#     ).values('date').annotate(
-#         attempts=Count('id'),
-#         successful=Count('id', filter=Q(successful=True))
-#     ).order_by('date')
-#
-#     topic_stats = TaskStatistics.objects.filter(user=user).values(
-#         'task__topic__name'
-#     ).annotate(
-#         total=Count('id'),
-#         successful=Count('id', filter=Q(successful=True))
-#     ).order_by('-total')[:5]
-#
-#     difficulty_stats = TaskStatistics.objects.filter(user=user).values(
-#         'task__difficulty'
-#     ).annotate(
-#         total=Count('id'),
-#         successful=Count('id', filter=Q(successful=True))
-#     )
-#
-#     return {
-#         'activity': {
-#             'labels': [stat['date'].strftime('%d.%m') for stat in activity_stats],
-#             'attempts': [stat['attempts'] for stat in activity_stats],
-#             'successful': [stat['successful'] for stat in activity_stats]
-#         },
-#         'topics': {
-#             'labels': [stat['task__topic__name'] for stat in topic_stats],
-#             'success_rates': [
-#                 round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
-#                 for stat in topic_stats
-#             ]
-#         },
-#         'difficulty': {
-#             'labels': [stat['task__difficulty'] for stat in difficulty_stats],
-#             'success_rates': [
-#                 round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
-#                 for stat in difficulty_stats
-#             ]
-#         }
-#     }
-#
-#
-# @login_required
-# @require_POST
-# def update_settings(request):
-#     """
-#     AJAX для обновления настроек профиля (email_notifications, is_public, theme_preference).
-#     Принимает JSON {setting, value}, возвращает JSON-ответ.
-#     """
-#     try:
-#         data = json.loads(request.body)
-#         setting = data.get('setting')
-#         value = data.get('value')
-#
-#         profile = request.user.profile
-#
-#         if setting == 'email_notifications':
-#             profile.email_notifications = value
-#         elif setting == 'is_public':
-#             profile.is_public = value
-#         elif setting == 'theme_preference':
-#             profile.theme_preference = 'dark' if value else 'light'
-#         else:
-#             return JsonResponse({'status': 'error', 'message': 'Invalid setting'}, status=400)
-#
-#         profile.save()
-#         return JsonResponse({'status': 'success'})
-#     except json.JSONDecodeError:
-#         return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-#     except Exception as e:
-#         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 @login_required
@@ -564,7 +404,7 @@ def inbox(request):
         is_deleted_by_sender=False
     ).select_related('recipient').prefetch_related('attachments')
 
-    return render(request, 'blog/inbox.html', {
+    return render(request, 'accounts/inbox.html', {
         'incoming_messages': incoming_messages,
         'outgoing_messages': outgoing_messages
     })
@@ -591,6 +431,8 @@ def index(request):
     return render(request, 'blog/index.html', context)
 
 
+
+
 def custom_404(request, exception=None):
     """
     Кастомный обработчик 404: редиректит на '404'.
@@ -598,11 +440,20 @@ def custom_404(request, exception=None):
     return redirect('404')
 
 
+
+
 def statistics_view(request):
     """
-    Статистика по квизам / пользователям (blog/statistics.html).
-    Вычисляет total_users, total_quizzes_completed, avg_score
+    Статистика по квизам/пользователям (используется шаблон accounts/statistics.html).
+    Вычисляет общие показатели:
+      - total_users
+      - total_quizzes_completed
+      - avg_score
     и массивы данных для графиков.
+
+    Если GET-параметр view=personal передан и пользователь авторизован,
+    выбирается первая запись статистики для пользователя (через .first())
+    и в контекст добавляется словарь с личной статистикой (ключ user_stats).
     """
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)
@@ -610,40 +461,58 @@ def statistics_view(request):
     context = {
         'total_users': CustomUser.objects.count(),
         'total_quizzes_completed': TaskStatistics.objects.count(),
-        'avg_score': TaskStatistics.objects.filter(
-            successful=True).count() * 100.0 / TaskStatistics.objects.count() if TaskStatistics.objects.exists() else 0,
-
+        'avg_score': (TaskStatistics.objects.filter(successful=True).count() * 100.0 /
+                      TaskStatistics.objects.count()) if TaskStatistics.objects.exists() else 0,
         'activity_dates': json.dumps([
-            date.strftime('%d.%m')
-            for date in (start_date + timedelta(n) for n in range(31))
+            (start_date + timedelta(n)).strftime('%d.%m')
+            for n in range(31)
         ]),
         'activity_data': json.dumps(
-            list(TaskStatistics.objects.filter(
-                last_attempt_date__gte=start_date
-            ).annotate(
-                date=TruncDate('last_attempt_date')
-            ).values('date').annotate(
-                count=Count('id')
-            ).values_list('count', flat=True))
+            list(
+                TaskStatistics.objects.filter(last_attempt_date__gte=start_date)
+                .annotate(date=TruncDate('last_attempt_date'))
+                .values('date')
+                .annotate(count=Count('id'))
+                .values_list('count', flat=True)
+            )
         ),
-
         'categories_labels': json.dumps(
-            list(Topic.objects.annotate(
-                task_count=Count('tasks')
-            ).values_list('name', flat=True))
+            list(
+                Topic.objects.annotate(task_count=Count('tasks'))
+                .values_list('name', flat=True)
+            )
         ),
         'categories_data': json.dumps(
-            list(Topic.objects.annotate(
-                task_count=Count('tasks')
-            ).values_list('task_count', flat=True))
+            list(
+                Topic.objects.annotate(task_count=Count('tasks'))
+                .values_list('task_count', flat=True)
+            )
         ),
-
         'scores_distribution': json.dumps([
-            TaskStatistics.objects.filter(
-                attempts__gt=0,
-                attempts__lte=i + 5
-            ).count() for i in range(0, 25, 5)
+            TaskStatistics.objects.filter(attempts__gt=0, attempts__lte=i + 5).count()
+            for i in range(0, 25, 5)
         ])
     }
 
-    return render(request, 'blog/statistics.html', context)
+    if request.user.is_authenticated and request.GET.get('view') == "personal":
+        try:
+            stats = request.user.statistics.first()  # Возвращает первую запись статистики пользователя
+        except AttributeError:
+            stats = None
+
+        if stats:
+            # Здесь вы можете настроить логику агрегации статистики.
+            # В данном примере для простоты считаем:
+            context['user_stats'] = {
+                'successful_attempts': 1 if stats.successful else 0,  # упрощённо
+                'total_attempts': stats.attempts,
+                'success_rate': 100.0 if stats.successful else 0.0,
+            }
+        else:
+            context['user_stats'] = {
+                'successful_attempts': 0,
+                'total_attempts': 0,
+                'success_rate': 0.0,
+            }
+
+    return render(request, 'accounts/statistics.html', context)

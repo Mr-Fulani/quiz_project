@@ -29,13 +29,13 @@
         <p class="title">{{ user.profile.bio|truncatechars:30 }}</p>
       </div>
 
-      <button class="info_more-btn" data-sidebar-btn>
+      <button class="info-more-btn" data-sidebar-btn>
         <span>Show Contacts</span>
         <ion-icon name="chevron-down"></ion-icon>
       </button>
     </div>
 
-    <div class="sidebar-info_more">
+    <div class="sidebar-info-more">
       <div class="separator"></div>
 
       <ul class="contacts-list">
@@ -45,7 +45,7 @@
           </div>
           <div class="contact-info">
             <p class="contact-title">Solved Tasks</p>
-            <a href="{% url 'accounts:profile' %}?tab=statistics" class="contact-link">
+            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">
               {{ user.get_statistics.solved_tasks|default:"0" }}
             </a>
           </div>
@@ -57,7 +57,9 @@
           </div>
           <div class="contact-info">
             <p class="contact-title">Rating</p>
-            <a href="{% url 'accounts:profile' %}?tab=statistics" class="contact-link">{{ user.statistics.rating|default:"0" }}</a>
+            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">
+              {{ user.statistics.rating|default:"0" }}
+            </a>
           </div>
         </li>
 
@@ -86,7 +88,6 @@
           </a>
         </li>
         {% endif %}
-
         {% if user_profile.github %}
         <li class="social-item">
           <a href="{{ user_profile.github }}" class="social-link" target="_blank" rel="noopener noreferrer">
@@ -94,7 +95,6 @@
           </a>
         </li>
         {% endif %}
-
         {% if user_profile.instagram %}
         <li class="social-item">
           <a href="{{ user_profile.instagram }}" class="social-link" target="_blank" rel="noopener noreferrer">
@@ -102,7 +102,6 @@
           </a>
         </li>
         {% endif %}
-
         {% if user_profile.facebook %}
         <li class="social-item">
           <a href="{{ user_profile.facebook }}" class="social-link" target="_blank" rel="noopener noreferrer">
@@ -110,7 +109,6 @@
           </a>
         </li>
         {% endif %}
-
         {% if user_profile.linkedin %}
         <li class="social-item">
           <a href="{{ user_profile.linkedin }}" class="social-link" target="_blank" rel="noopener noreferrer">
@@ -118,7 +116,6 @@
           </a>
         </li>
         {% endif %}
-
         {% if user_profile.youtube %}
         <li class="social-item">
           <a href="{{ user_profile.youtube }}" class="social-link" target="_blank" rel="noopener noreferrer">
@@ -133,7 +130,6 @@
       .icon-box {
         position: relative;
       }
-
       .message-count {
         position: absolute;
         left: -10px;
@@ -148,12 +144,10 @@
         text-align: center;
         padding: 0 5px;
       }
-
       .contact-info .contact-link {
         text-decoration: none;
         color: var(--light-gray);
       }
-
       .contact-info .contact-link:hover {
         color: var(--orange-yellow-crayola);
       }
@@ -161,16 +155,13 @@
   {% else %}
     <div class="sidebar-info">
       <figure class="avatar-box">
-        <!-- Аватарка по умолчанию для неавторизованных пользователей -->
         <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="Default avatar" width="80">
       </figure>
-
       <div class="info-content">
         <h1 class="name">Guest</h1>
         <p class="title">Visitor</p>
       </div>
     </div>
-
     <div class="sidebar-login-prompt">
       <p>Please <a href="{% url 'login' %}?next={{ request.path }}">log in</a> to view your profile information.</p>
     </div>

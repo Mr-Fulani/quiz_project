@@ -1,60 +1,65 @@
 {% extends "blog/base.html" %}
 {% load static %}
 
+{% block sidebar %}
+    {% include 'accounts/user_sidebar.html' %}
+{% endblock %}
+
 {% block content %}
 <article class="statistics active" data-page="statistics">
     <header>
         <h2 class="h2 article-title">Статистика</h2>
     </header>
 
-    <!-- Карточки с основной статистикой -->
-    <div class="stats-cards">
-        <div class="stat-card">
-            <div class="stat-icon">
-                <ion-icon name="people"></ion-icon>
+    {% comment %}
+      Если GET-параметр view=personal присутствует и пользователь авторизован,
+      включаем шаблон с личной статистикой.
+    {% endcomment %}
+    {% if request.GET.view == "personal" and user.is_authenticated %}
+        {% include "accounts/user_statistics.html" %}
+    {% else %}
+        <!-- Общая статистика -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <ion-icon name="people"></ion-icon>
+                </div>
+                <div class="stat-details">
+                    <h3>{{ total_users }}</h3>
+                    <p>Пользователей</p>
+                </div>
             </div>
-            <div class="stat-details">
-                <h3>{{ total_users }}</h3>
-                <p>Пользователей</p>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <ion-icon name="school"></ion-icon>
+                </div>
+                <div class="stat-details">
+                    <h3>{{ total_quizzes_completed }}</h3>
+                    <p>Решено задач</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <ion-icon name="trophy"></ion-icon>
+                </div>
+                <div class="stat-details">
+                    <h3>{{ avg_score|floatformat:1 }}%</h3>
+                    <p>Успешность</p>
+                </div>
             </div>
         </div>
+    {% endif %}
 
-        <div class="stat-card">
-            <div class="stat-icon">
-                <ion-icon name="school"></ion-icon>
-            </div>
-            <div class="stat-details">
-                <h3>{{ total_quizzes_completed }}</h3>
-                <p>Решено задач</p>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon">
-                <ion-icon name="trophy"></ion-icon>
-            </div>
-            <div class="stat-details">
-                <h3>{{ avg_score|floatformat:1 }}%</h3>
-                <p>Успешность</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Графики -->
+    <!-- Графики (общие для обеих версий) -->
     <div class="charts-grid">
-        <!-- График активности -->
         <div class="chart-container">
             <h3 class="h3">Активность</h3>
             <canvas id="activityChart"></canvas>
         </div>
-
-        <!-- График категорий -->
         <div class="chart-container">
             <h3 class="h3">Категории</h3>
             <canvas id="categoriesChart"></canvas>
         </div>
-
-        <!-- График распределения попыток -->
         <div class="chart-container">
             <h3 class="h3">Распределение попыток</h3>
             <canvas id="scoresChart"></canvas>
@@ -63,19 +68,18 @@
 </article>
 
 <style>
+/* Стили (вы можете вставить сюда ваши CSS-правила) */
 .statistics {
     padding: 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
-
 .stats-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
 }
-
 .stat-card {
     background: var(--border-gradient-onyx);
     padding: 20px;
@@ -85,11 +89,9 @@
     gap: 15px;
     transition: transform 0.3s ease;
 }
-
 .stat-card:hover {
     transform: translateY(-5px);
 }
-
 .stat-icon {
     background: var(--bg-gradient-onyx);
     padding: 15px;
@@ -97,56 +99,46 @@
     color: var(--orange-yellow-crayola);
     font-size: 24px;
 }
-
 .stat-details h3 {
     font-size: 24px;
     margin-bottom: 5px;
     color: var(--light-gray-70);
 }
-
 .stat-details p {
     color: var(--light-gray);
     font-size: 14px;
 }
-
 .charts-grid {
     display: grid;
     gap: 20px;
     margin-top: 30px;
 }
-
 .chart-container {
     background: var(--border-gradient-onyx);
     padding: 20px;
     border-radius: 14px;
     height: 300px;
 }
-
 .chart-container h3 {
     margin-bottom: 15px;
     color: var(--light-gray-70);
     font-size: 18px;
 }
-
 @media (min-width: 768px) {
     .charts-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
     .chart-container:last-child {
         grid-column: 1 / -1;
     }
 }
-
 @media (max-width: 767px) {
     .statistics {
         padding: 15px;
     }
-    
     .stat-card {
         padding: 15px;
     }
-    
     .chart-container {
         height: 250px;
     }
@@ -156,11 +148,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Настройка общего стиля для графиков
     Chart.defaults.color = '#fff';
     Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
 
-    // График активности
     new Chart(document.getElementById('activityChart'), {
         type: 'line',
         data: {
@@ -177,37 +167,22 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 
-    // График категорий
     new Chart(document.getElementById('categoriesChart'), {
         type: 'doughnut',
         data: {
             labels: {{ categories_labels|safe }},
             datasets: [{
                 data: {{ categories_data|safe }},
-                backgroundColor: [
-                    '#f5a623',
-                    '#4a90e2',
-                    '#50e3c2',
-                    '#e54d42',
-                    '#b8e986'
-                ]
+                backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
+        options: { responsive: true, maintainAspectRatio: false }
     });
 
-    // График распределения попыток
     new Chart(document.getElementById('scoresChart'), {
         type: 'bar',
         data: {
@@ -221,13 +196,9 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}

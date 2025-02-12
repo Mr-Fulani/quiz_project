@@ -49,17 +49,6 @@ urlpatterns = [
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     #   -> Детальная информация о квизе (по quiz_type)
 
-    # path('dashboard/', dashboard_view, name='dashboard'),
-    # #   -> Личный кабинет пользователя (функция dashboard_view)
-    #
-    # path('profile/', profile_redirect_view, name='profile'),
-    # #   -> Редирект /profile/ -> /dashboard/
-    #
-    # path('profile/<str:username>/', profile_view, name='user_profile'),
-    # #   -> Просмотр профиля пользователя (profile_view)
-    #
-    # path('dashboard/update-settings/', update_settings, name='update_settings'),
-    # #   -> AJAX-вьюха для обновления настроек профиля
 
     path('messages/', lambda request: redirect('blog:inbox'), name='messages'),
     #   -> Редирект /messages/ -> /inbox/

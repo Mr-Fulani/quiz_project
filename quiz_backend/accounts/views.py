@@ -554,8 +554,6 @@ def profile_view(request, username, is_dashboard=False):
     if is_dashboard:
         context.update({
             'personal_info_form': PersonalInfoForm(instance=profile_user.profile, user=profile_user),
-            'inbox_messages': Message.objects.filter(recipient=profile_user).order_by('-created_at'),
-            'sent_messages': Message.objects.filter(sender=profile_user).order_by('-created_at'),
         })
 
     return render(request, template_name, context)

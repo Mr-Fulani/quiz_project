@@ -1,0 +1,31 @@
+<section class="user-statistics">
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+            </div>
+            <div class="stat-details">
+                <h3>{{ user_stats.successful_attempts }}</h3>
+                <p>Решено задач</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <ion-icon name="bar-chart-outline"></ion-icon>
+            </div>
+            <div class="stat-details">
+                <h3>{{ user_stats.total_attempts }}</h3>
+                <p>Попыток</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <ion-icon name="pulse-outline"></ion-icon>
+            </div>
+            <div class="stat-details">
+                <h3>{{ user_stats.success_rate|floatformat:1 }}%</h3>
+                <p>Успешность</p>
+            </div>
+        </div>
+    </div>
+</section>

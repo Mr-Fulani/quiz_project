@@ -1,0 +1,360 @@
+/* inbox.css */
+
+.messages-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.message-item {
+    background: var(--eerie-black-2);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.message-item.unread {
+    border-left: 3px solid var(--orange-yellow-crayola);
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.sender-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sender-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.sender-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.sender-name {
+    color: var(--light-gray);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.message-date {
+    font-size: 0.85em;
+    color: var(--light-gray-70);
+}
+
+.message-content {
+    color: var(--light-gray);
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.message-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.message-actions button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--light-gray-70);
+    transition: color 0.3s ease;
+}
+
+.message-actions button:hover {
+    color: var(--orange-yellow-crayola);
+}
+
+.attachments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.attachment-item {
+    background: var(--eerie-black-1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.attachment-preview {
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+}
+
+.attachment-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.attachment-preview img:hover {
+    transform: scale(1.05);
+}
+
+.attachment-icon {
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    color: var(--light-gray-70);
+}
+
+.attachment-download {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: var(--light-gray);
+    background: var(--eerie-black-2);
+    transition: background-color 0.3s ease;
+}
+
+.attachment-download:hover {
+    background: var(--eerie-black-3);
+}
+
+.filename {
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+}
+
+.modal img {
+    max-width: 90%;
+    max-height: 90vh;
+    margin: auto;
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.close-modal {
+    position: absolute;
+    right: 25px;
+    top: 15px;
+    color: #f1f1f1;
+    font-size: 35px;
+    cursor: pointer;
+}
+
+.modal-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #f1f1f1;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.no-messages {
+    text-align: center;
+    padding: 40px;
+    color: var(--light-gray-70);
+}
+
+.no-messages ion-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+/* Reply modal styles */
+.reply-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.reply-modal-content {
+    background: var(--eerie-black-2);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    padding: 20px;
+}
+
+.reply-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.reply-modal-header h3 {
+    color: var(--light-gray);
+    margin: 0;
+}
+
+.close-reply-modal {
+    color: var(--light-gray-70);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.reply-modal textarea {
+    width: 100%;
+    min-height: 150px;
+    background: var(--eerie-black-1);
+    border: 1px solid var(--jet);
+    border-radius: 10px;
+    padding: 15px;
+    color: var(--light-gray);
+    margin-bottom: 15px;
+    resize: vertical;
+}
+
+.attachment-section {
+    margin-bottom: 15px;
+}
+
+.attachment-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: var(--eerie-black-1);
+    border-radius: 20px;
+    cursor: pointer;
+    color: var(--light-gray);
+}
+
+.selected-files {
+    margin-top: 10px;
+}
+
+.selected-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--eerie-black-1);
+    padding: 8px 12px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.remove-file {
+    cursor: pointer;
+    color: var(--light-gray-70);
+}
+
+.remove-file:hover {
+    color: #e74c3c;
+}
+
+.send-reply-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 25px;
+    color: var(--eerie-black-1);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.send-reply-btn:hover {
+    background: var(--vegas-gold);
+}
+
+.inbox-tabs {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background: var(--eerie-black-2);
+    color: var(--light-gray);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+}
+
+.messages-tab {
+    display: none;
+}
+
+.messages-tab.active {
+    display: block;
+}
+
+.recipient-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.recipient-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.recipient-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.recipient-name {
+    color: var(--light-gray);
+    text-decoration: none;
+    font-weight: 500;
+}
