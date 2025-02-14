@@ -727,26 +727,27 @@ async def publish_task_by_translation_group(
                         f"⚠️ Задача с ID `{task.id}` была опубликована {task.publish_date.strftime('%Y-%m-%d %H:%M:%S')}. Пропуск."
                     )
                     continue
-
-            # Генерация изображения один раз для задачи
-            image_object = await generate_image_if_needed(task, admin_chat_id)
-            if not image_object:
-                error_message = f"🚫 Ошибка генерации изображения для задачи {task.id}"
-                logger.error(f"❌ {error_message}")
-                await message.answer(error_message)
-                failed_count += len(task.translations)
-                # Запишем ошибку для каждого перевода этой задачи
-                for tr in task.translations:
-                    failed_publications.append({
-                        "task_id": task.id,
-                        "translation_id": tr.id,
-                        "language": tr.language,
-                        "error": "Ошибка генерации изображения"
-                    })
-                # Помечаем задачу как с ошибкой
-                task.error = True
-                await db_session.commit()
-                continue
+                else:
+                    # Используем существующий URL изображения из базы данных
+                    image_object = task.image_url
+            else:
+                # Генерация нового изображения при необходимости
+                image_object = await generate_image_if_needed(task, admin_chat_id)
+                if not image_object:
+                    error_message = f"🚫 Ошибка генерации изображения для задачи {task.id}"
+                    logger.error(f"❌ {error_message}")
+                    await message.answer(error_message)
+                    failed_count += len(task.translations)
+                    for tr in task.translations:
+                        failed_publications.append({
+                            "task_id": task.id,
+                            "translation_id": tr.id,
+                            "language": tr.language,
+                            "error": "Ошибка генерации изображения"
+                        })
+                    task.error = True
+                    await db_session.commit()
+                    continue
 
 
             for translation in task.translations:

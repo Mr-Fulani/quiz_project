@@ -125,12 +125,13 @@ class BaseAdmin(AbstractUser):
     """
     phone_number = models.CharField(max_length=15, null=True, blank=True)  # Номер телефона
     language = models.CharField(max_length=10, default='ru', null=False)  # Язык интерфейса
-    is_telegram_admin = models.BooleanField(default=False, verbose_name="Telegram Admin")  # Флаг для Telegram администраторов
-    is_django_admin = models.BooleanField(default=False, verbose_name="Django Admin")  # Флаг для Django администраторов
-    is_super_admin = models.BooleanField(default=False, verbose_name="Super Admin")  # Флаг для супер администраторов
+    is_telegram_admin = models.BooleanField(default=False, verbose_name="Telegram Admin")
+    is_django_admin = models.BooleanField(default=False, verbose_name="Django Admin")
+    is_super_admin = models.BooleanField(default=False, verbose_name="Super Admin")
 
     class Meta:
         abstract = True  # Делает модель абстрактной
+
 
 
 class TelegramAdmin(BaseAdmin):
@@ -203,6 +204,9 @@ class SuperAdmin(BaseAdmin):
 
     def __str__(self):
         return f"{self.username or 'SuperAdmin'}"
+
+
+
 
 
 class UserChannelSubscription(models.Model):

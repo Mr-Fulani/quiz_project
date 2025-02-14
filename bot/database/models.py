@@ -23,6 +23,15 @@ class Admin(Base):
     language = Column(String(10), default='ru', nullable=False)  # Язык интерфейса Telegram
     phone_number = Column(String(15), nullable=True)  # Номер телефона
     is_active = Column(Boolean, default=True, nullable=False)  # Статус активности
+    first_name = Column(String(255), nullable=True)  # Имя
+    last_name = Column(String(255), nullable=True)  # Фамилия
+    password = Column(String(128), nullable=False)  # Пароль
+    email = Column(String(255), default='', nullable=False)
+    is_django_admin = Column(Boolean, default=False, nullable=False)
+    is_superuser = Column(Boolean, default=False, nullable=False)
+    is_staff = Column(Boolean, default=False, nullable=False)
+    date_joined = Column(DateTime, default=datetime.utcnow, nullable=False)
+
 
     @property
     def photo_url(self):

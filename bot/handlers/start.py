@@ -1,15 +1,20 @@
 # bot/handlers/start.py
 
 import logging
-from aiogram import Router, Bot
+import os
+
+from aiogram import Router, Bot, F
+from aiogram.types import ContentType
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from django.contrib.auth.hashers import make_password
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.reply_keyboards import get_start_reply_keyboard
-from bot.states.admin_states import PasswordStates
+from bot.states.admin_states import PasswordStates, RegistrationStates
 from bot.utils.db_utils import fetch_one  # Убедитесь, что этот модуль существует и корректен
 from bot.config import ADMIN_SECRET_PASSWORD
 from bot.database.models import Task, TaskTranslation, Admin  # Убедитесь, что модель Admin импортирована
@@ -93,35 +98,94 @@ async def handle_start_button(message: Message, db_session: AsyncSession, state:
 
 
 
-# Обработчик ввода пароля
+
+
 @router.message(PasswordStates.waiting_for_password)
-async def handle_password(message: Message, db_session: AsyncSession, state: FSMContext):
+async def handle_password(message: Message, db_session: "AsyncSession", state: FSMContext):
     """
-    Обрабатывает ввод пароля администратора.
-    """
-    entered_password = message.text.strip()
-    correct_password = ADMIN_SECRET_PASSWORD  # Замените на ваш пароль
+    Обрабатывает саморегистрацию администратора.
 
-    if entered_password == correct_password:
-        logger.info(f"Пользователь {message.from_user.username or 'None'} (ID: {message.from_user.id}) ввёл корректный пароль.")
-        # Получаем username пользователя
-        username = message.from_user.username
-        new_admin = Admin(telegram_id=message.from_user.id, username=username)
+    Пользователь вводит секретный пароль. Если пароль верный,
+    бот запрашивает данные в следующем формате:
+      telegram_id, username, first_name, last_name, password
+
+    Для саморегистрации фактический telegram_id берётся из профиля Telegram.
+    Если введённое значение не совпадает – используется фактический.
+    """
+    try:
+        entered_password = message.text.strip()
+        correct_password = os.getenv("ADMIN_SECRET_PASSWORD")
+        if entered_password == correct_password:
+            await message.answer(
+                "✅ Пароль верный. Пожалуйста, введите ваши данные в следующем формате:\n"
+                "`telegram_id, username, first_name, last_name, password`\n\n"
+                "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`",
+                parse_mode='Markdown'
+            )
+            await state.set_state(RegistrationStates.waiting_for_details)
+        else:
+            await message.answer("❌ Неверный пароль. Доступ запрещён.")
+            await state.clear()
+    except Exception as e:
+        logger.exception("Ошибка в handle_password: %s", e)
+        await message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
+        await state.clear()
+
+@router.message(RegistrationStates.waiting_for_details, F.content_type == ContentType.TEXT)
+async def process_registration_details(message: Message, db_session: "AsyncSession", state: FSMContext):
+    """
+    Обрабатывает ввод данных при саморегистрации администратора.
+
+    Ожидаемый формат:
+      telegram_id, username, first_name, last_name, password
+
+    Фактический telegram_id берётся из профиля Telegram.
+    """
+    try:
+        parts = [p.strip() for p in message.text.split(',')]
+        if len(parts) != 5:
+            raise ValueError("Неверное количество полей")
+        telegram_id_input, username, first_name, last_name, raw_password = parts
+        actual_telegram_id = message.from_user.id
+        if str(actual_telegram_id) != telegram_id_input:
+            logger.warning("Введённый telegram_id (%s) не совпадает с вашим фактическим ID (%s). Будет использован фактический ID.",
+                           telegram_id_input, actual_telegram_id)
+        telegram_id = actual_telegram_id
+    except Exception as e:
+        logger.error("Ошибка разбора данных для регистрации: %s", e)
+        await message.reply(
+            "❌ Неверный формат данных. Пожалуйста, введите данные в формате:\n"
+            "`telegram_id, username, first_name, last_name, password`\n\n"
+            "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`"
+        )
+        return
+
+    try:
+        new_admin = Admin(
+            telegram_id=telegram_id,
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            password=make_password(raw_password),
+            language="ru",
+            is_active=True
+        )
         db_session.add(new_admin)
-        try:
-            await db_session.commit()
-            logger.debug(f"Добавлен новый администратор: {message.from_user.id} с username={username}")
-            await message.answer("✅ Доступ предоставлен. Вы теперь администратор.", reply_markup=get_admin_menu_keyboard())
-        except Exception as e:
-            await db_session.rollback()
-            logger.exception(f"Ошибка при добавлении администратора в базу данных: {e}")
-            await message.answer("❌ Произошла ошибка при добавлении вас в список администраторов.")
-    else:
-        logger.warning(f"Пользователь {message.from_user.username or 'None'} (ID: {message.from_user.id}) ввёл неверный пароль.")
-        await message.answer("❌ Неверный пароль. Доступ запрещён.")
+        await db_session.commit()
+        await message.answer("✅ Доступ предоставлен. Вы теперь администратор.",
+                               reply_markup=get_admin_menu_keyboard())
+    except IntegrityError as ie:
+        await db_session.rollback()
+        logger.error("IntegrityError при регистрации администратора: %s", ie)
+        await message.answer("❌ Пользователь с таким Telegram ID уже существует.")
+    except Exception as e:
+        await db_session.rollback()
+        logger.exception("Ошибка при регистрации администратора: %s", e)
+        await message.answer("❌ Произошла ошибка при регистрации. Проверьте, что данные введены правильно.")
+    finally:
+        await state.clear()
 
-    # Сброс состояния
-    await state.clear()
+
 
 
 

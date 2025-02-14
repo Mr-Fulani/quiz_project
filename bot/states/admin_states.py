@@ -6,7 +6,13 @@ class PasswordStates(StatesGroup):
     waiting_for_password = State()
 
 
+# Состояния для саморегистрации администратора
+class RegistrationStates(StatesGroup):
+    waiting_for_details = State()
+
+
 class AddAdminStates(StatesGroup):
+    waiting_for_admin_data = State
     waiting_for_password = State()
     waiting_for_user_id = State()
 

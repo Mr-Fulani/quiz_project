@@ -1,5 +1,12 @@
-# main.py
+# bot/main.py
 
+# импорты Django
+import os
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "quiz_backend.config.settings")
+django.setup()
+
+# импорты Бота
 import asyncio
 import logging
 
@@ -29,12 +36,19 @@ from bot.config import (
 from database.database import Base
 from mini_app.config import WEBAPP_URL  # Импортируем переменную
 
+
+# настройки Django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "quiz_project.settings")  # замените на ваш путь к настройкам
+django.setup()
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.DEBUG,  # Устанавливаем уровень DEBUG для детального логирования
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
 logger = logging.getLogger(__name__)
+
 
 # Инициализация публикационного бота
 try:

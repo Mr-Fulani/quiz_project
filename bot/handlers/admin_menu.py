@@ -13,6 +13,7 @@ from aiogram.filters import StateFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile, InlineKeyboardMarkup, \
     InlineKeyboardButton
+from django.contrib.auth.hashers import make_password
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -46,114 +47,135 @@ router = Router(name="admin_menu_router")
 
 
 
-
-# Обработчик кнопки "Добавить администратора"
 @router.callback_query(F.data == "add_admin_button")
-async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
-    logger.info("Обработчик кнопки 'Добавить администратора' вызван")
-    user_id = call.from_user.id
-    if not await is_admin(user_id, db_session):
-        await call.message.answer(
-            "⛔ У вас нет прав для выполнения этой команды.",
-            reply_markup=get_start_reply_keyboard()
-        )
-        logger.warning(f"Пользователь {call.from_user.username} ({user_id}) попытался добавить администратора без прав.")
-        await call.answer()
-        return
-    await call.message.answer(
-        "🔒 Введите секретный пароль для добавления нового администратора:\n\n"
-        "_Обратите внимание: вводимые символы будут видны только вам._",
-        parse_mode='Markdown'
-    )
-    logger.debug("Просьба ввести пароль для добавления администратора")
-    await state.set_state(AddAdminStates.waiting_for_password)
-    await call.answer()
+async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session: "AsyncSession"):
+    """
+    Обрабатывает нажатие кнопки "Добавить администратора".
 
-
-
-# Обработчик пароля для добавления администратора
-@router.message(AddAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
-async def process_add_admin_password(message: Message, state: FSMContext, db_session: AsyncSession):
-    logger.info("Обработчик ввода пароля для добавления администратора вызван")
-    if message.text != os.getenv("ADMIN_SECRET_PASSWORD"):
-        await message.reply("❌ Неверный пароль. Доступ запрещён.")
-        logger.warning(f"Неверный пароль от пользователя {message.from_user.username} ({message.from_user.id}).")
-        await state.clear()
-        return
-    await message.reply("✅ Пароль верный. Пожалуйста, введите Telegram ID пользователя, которого хотите добавить:")
-    logger.debug("Пароль верен, просим ввести Telegram ID")
-    await state.set_state(AddAdminStates.waiting_for_user_id)
-
-
-
-# Обработчик Telegram ID для добавления администратора
-@router.message(AddAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
-async def process_add_admin_user_id(message: Message, state: FSMContext, db_session: AsyncSession):
-    logger.info("Обработчик ввода Telegram ID для добавления администратора вызван")
-    if not message.text:
-        await message.reply("❌ Сообщение не содержит текста. Пожалуйста, введите корректный Telegram ID пользователя.")
-        logger.warning(f"Пользователь {message.from_user.username} ({message.from_user.id}) отправил сообщение без текста.")
-        return
-
+    Если вызывающий пользователь является администратором, запрашивается секретный пароль.
+    """
     try:
-        new_admin_id = int(message.text)
-    except (ValueError, TypeError):
-        await message.reply("❌ Пожалуйста, введите корректный числовой Telegram ID (например, 123456789).")
-        logger.debug(f"Пользователь {message.from_user.username} ({message.from_user.id}) ввёл некорректный ID: {message.text}")
-        return
-
-    # Проверка, не является ли пользователь уже администратором
-    if await is_admin(new_admin_id, db_session):
-        await message.reply("ℹ️ Этот пользователь уже является администратором.")
-        logger.info(f"Пользователь с ID {new_admin_id} уже является администратором.")
-        await state.clear()
-        await message.answer(
-            "🔄 Возвращаюсь в главное меню.",
-            reply_markup=get_start_reply_keyboard()  # Используем стартовую клавиатуру
-        )
-        return
-
-    # Добавление администратора
-    try:
-        # Получение username нового администратора (если доступен)
-        try:
-            user = await message.bot.get_chat(new_admin_id)
-            username = user.username if user.username else "Без username"
-            logger.debug(f"Получен username для нового администратора: {username}")
-        except Exception as e:
-            await message.reply("❌ Не удалось найти пользователя с таким Telegram ID. Проверьте корректность ID.")
-            logger.error(f"Не удалось получить информацию о пользователе с ID {new_admin_id}: {e}")
-            await state.clear()
-            await message.answer(
-                "🔄 Возвращаюсь в главное меню.",
+        user_id = call.from_user.id
+        if not await is_admin(user_id, db_session):
+            await call.message.answer(
+                "⛔ У вас нет прав для выполнения этой команды.",
                 reply_markup=get_start_reply_keyboard()
             )
+            await call.answer()
+            return
+        await call.message.answer(
+            "🔒 Введите секретный пароль для добавления нового администратора:\n\n"
+            "_Обратите внимание: вводимые символы будут видны только вам._",
+            parse_mode='Markdown'
+        )
+        await state.set_state(AddAdminStates.waiting_for_password)
+        await call.answer()
+    except Exception as e:
+        logger.exception("Ошибка в callback_add_admin: %s", e)
+        await call.message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
+        await state.clear()
+
+@router.message(AddAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
+async def process_add_admin_password(message: Message, state: FSMContext, db_session: "AsyncSession"):
+    """
+    Обрабатывает ввод секретного пароля для добавления нового администратора.
+
+    Если пароль верный, бот просит ввести данные нового администратора в формате:
+      telegram_id, username, first_name, last_name, password
+
+    Пример: 975113235, myusername, Ivan, Ivanov, mypassword
+    """
+    try:
+        if message.text.strip() != os.getenv("ADMIN_SECRET_PASSWORD"):
+            await message.reply("❌ Неверный пароль. Доступ запрещён.")
+            await state.clear()
+            return
+        await message.reply(
+            "✅ Пароль верный. Пожалуйста, введите данные нового администратора в следующем формате:\n"
+            "`telegram_id, username, first_name, last_name, password`\n\n"
+            "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`",
+            parse_mode='Markdown'
+        )
+        await state.set_state(AddAdminStates.waiting_for_user_id)
+    except Exception as e:
+        logger.exception("Ошибка в process_add_admin_password: %s", e)
+        await message.reply("❌ Произошла ошибка. Попробуйте ещё раз.")
+        await state.clear()
+
+@router.message(AddAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
+async def process_add_admin_user_id(message: Message, state: FSMContext, db_session: "AsyncSession"):
+    """
+    Обрабатывает ввод данных нового администратора, добавляемого через панель.
+
+    Ожидаемый формат:
+      telegram_id, username, first_name, last_name, password
+
+    Если данные корректны и пользователь с данным telegram_id ещё не является администратором,
+    создаётся новый объект модели Admin.
+    """
+    try:
+        parts = [p.strip() for p in message.text.split(',')]
+        if len(parts) != 5:
+            raise ValueError("Неверное количество полей")
+        telegram_id_str, username, first_name, last_name, raw_password = parts
+        telegram_id = int(telegram_id_str)
+    except Exception as e:
+        logger.error("Ошибка разбора данных для нового администратора: %s", e)
+        await message.reply(
+            "❌ Неверный формат данных. Пожалуйста, введите данные в формате:\n"
+            "`telegram_id, username, first_name, last_name, password`\n\n"
+            "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`"
+        )
+        return
+
+    try:
+        if await is_admin(telegram_id, db_session):
+            await message.reply("ℹ️ Этот пользователь уже является администратором.")
+            await state.clear()
+            await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
             return
 
-        await add_admin(new_admin_id, username, db_session)
-        await message.reply(f"🎉 Пользователь @{username} (ID: {new_admin_id}) успешно добавлен как администратор")
-        logger.info(f"Пользователь @{username} (ID: {new_admin_id}) добавлен как администратор")
-
-        # Уведомление нового администратора (опционально)
-        try:
-            await message.bot.send_message(new_admin_id, "🎉 Вы были добавлены как администратор бота.")
-            logger.debug(f"Уведомление отправлено пользователю {new_admin_id}")
-        except Exception as e:
-            logger.error(f"Не удалось уведомить пользователя {new_admin_id}: {e}")
-
-        # Возврат в главное меню
-        await message.answer(
-            "🔄 Возвращаюсь в главное меню.",
-            reply_markup=get_start_reply_keyboard()
+        new_admin = Admin(
+            telegram_id=telegram_id,
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            password=make_password(raw_password),
+            language="ru",
+            is_active=True
         )
-    except IntegrityError:
-        await message.reply("❌ Не удалось добавить администратора. Возможно, пользователь уже существует.")
-        logger.error(f"IntegrityError при добавлении администратора с ID {new_admin_id}")
-        await state.clear()
+        db_session.add(new_admin)
+        await db_session.commit()
+        await message.reply(f"🎉 Пользователь @{username} (ID: {telegram_id}) успешно добавлен как администратор!")
+    except IntegrityError as ie:
+        await db_session.rollback()
+        logger.error("IntegrityError при добавлении администратора: %s", ie)
+        await message.reply("❌ Не удалось добавить администратора. Возможно, такой пользователь уже существует.")
     except Exception as e:
+        await db_session.rollback()
+        logger.exception("Ошибка при добавлении администратора: %s", e)
         await message.reply(f"❌ Произошла ошибка: {e}")
-        logger.error(f"Ошибка при добавлении администратора: {e}")
+    finally:
         await state.clear()
+        await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
+
+
+
+# Если требуется отдельная утилита, функция add_admin остаётся без изменений:
+async def add_admin(user_id: int, username: str, db_session: "AsyncSession"):
+    try:
+        admin = Admin(telegram_id=user_id, username=username)
+        db_session.add(admin)
+        await db_session.commit()
+        logger.info(f"Администратор с ID {user_id} и username @{username} добавлен.")
+    except IntegrityError as ie:
+        logger.error(f"IntegrityError при добавлении администратора с ID {user_id}: {ie}")
+        raise
+    except Exception as e:
+        logger.exception(f"Ошибка при добавлении администратора с ID {user_id}: {e}")
+        raise
+
+
 
 
 
