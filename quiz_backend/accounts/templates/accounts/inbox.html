@@ -10,8 +10,10 @@
     <link rel="stylesheet" href="{% static 'accounts/css/inbox.css' %}">
 {% endblock %}
 
+
 {% block content %}
 {% csrf_token %}
+
 <article class="inbox active" data-page="inbox">
     <header>
         <h2 class="h2 article-title">Messages</h2>

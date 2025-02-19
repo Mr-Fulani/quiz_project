@@ -21,7 +21,12 @@ class CustomUser(AbstractUser):
     language = models.CharField(max_length=10, blank=True, null=True)  # Язык пользователя
     deactivated_at = models.DateTimeField(blank=True, null=True)  # Дата деактивации (если пользователь стал неактивным)
     photo = models.URLField(max_length=500, blank=True, null=True)
-    telegram_id = models.CharField(max_length=100, blank=True, null=True)
+    telegram_id = models.BigIntegerField(blank=True, null=True)
+
+    # Переопределяем поля, которые хотим сделать необязательными:
+    email = models.EmailField(blank=True, null=True)
+    first_name = models.CharField(max_length=150, blank=True, null=True)
+    last_name = models.CharField(max_length=150, blank=True, null=True)
 
     groups = models.ManyToManyField(
         Group,
@@ -125,7 +130,7 @@ class BaseAdmin(AbstractUser):
     """
     phone_number = models.CharField(max_length=15, null=True, blank=True)  # Номер телефона
     language = models.CharField(max_length=10, default='ru', null=False)  # Язык интерфейса
-    is_telegram_admin = models.BooleanField(default=False, verbose_name="Telegram Admin")
+    is_telegram_admin = models.BooleanField(default=False, null=True, blank=True, verbose_name="Telegram Admin")
     is_django_admin = models.BooleanField(default=False, verbose_name="Django Admin")
     is_super_admin = models.BooleanField(default=False, verbose_name="Super Admin")
 
@@ -227,7 +232,7 @@ class UserChannelSubscription(models.Model):
 
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(
-        CustomUser,
+        'accounts.CustomUser',
         on_delete=models.CASCADE,
         related_name='channel_subscriptions',
         help_text='Пользователь'
@@ -256,7 +261,7 @@ class UserChannelSubscription(models.Model):
     )
 
     def __str__(self):
-        return f"Подписка {self.user} на {self.channel} ({self.get_subscription_status_display()})"
+        return f"Подписка {self.user} на {self.channel} ({self.subscription_status})"
 
     def subscribe(self):
         """Активировать подписку"""
@@ -355,14 +360,14 @@ def save_user_profile(sender, instance, **kwargs):
         Profile.objects.create(user=instance)
     instance.profile.save()
 
-@receiver(post_save, sender=TelegramAdmin)
-def create_telegram_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(
-            user=instance,
-            is_telegram_user=True,
-            telegram_username=instance.username
-        )
+# @receiver(post_save, sender=TelegramAdmin)
+# def create_telegram_user_profile(sender, instance, created, **kwargs):
+#     if created:
+#         Profile.objects.create(
+#             user=instance,
+#             is_telegram_user=True,
+#             telegram_username=instance.username
+#         )
 
 @receiver(post_save, sender='tasks.TaskStatistics')
 def clear_user_statistics_cache(sender, instance, **kwargs):

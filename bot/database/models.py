@@ -16,21 +16,29 @@ from bot.database.database import Base
 class Admin(Base):
     __tablename__ = 'admins'
 
-    id = Column(Integer, primary_key=True)  # Уникальный идентификатор
-    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)  # Telegram ID администратора
-    username = Column(String(255), nullable=True)  # Имя пользователя (опционально)
-    photo = Column(String, nullable=True)  # Ссылка на фото администратора или загруженный путь
-    language = Column(String(10), default='ru', nullable=False)  # Язык интерфейса Telegram
-    phone_number = Column(String(15), nullable=True)  # Номер телефона
-    is_active = Column(Boolean, default=True, nullable=False)  # Статус активности
-    first_name = Column(String(255), nullable=True)  # Имя
-    last_name = Column(String(255), nullable=True)  # Фамилия
-    password = Column(String(128), nullable=False)  # Пароль
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    username = Column(String(255), nullable=True)
+    photo = Column(String, nullable=True)
+    language = Column(String(10), default='ru', nullable=False)
+    phone_number = Column(String(15), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    first_name = Column(String(255), nullable=True)
+    last_name = Column(String(255), nullable=True)
+    password = Column(String(128), nullable=False)
     email = Column(String(255), default='', nullable=False)
+
     is_django_admin = Column(Boolean, default=False, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_staff = Column(Boolean, default=False, nullable=False)
     date_joined = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Добавляем поле, соответствующее Django-полю `is_super_admin`:
+    is_super_admin = Column(Boolean, default=False, nullable=False)
+
+    def __repr__(self):
+        return f"<Admin(username={self.username}, telegram_id={self.telegram_id})>"
+
 
 
     @property
@@ -110,9 +118,15 @@ class User(Base):
     subscription_status = Column(String, default='inactive', nullable=False)  # Статус подписки
     created_at = Column(DateTime, default=get_current_time, nullable=False)  # Дата создания
     language = Column(String, nullable=True)  # Язык пользователя
+    password = Column(String, nullable=False, default="passforuser")  # Пароль пользователя
 
-    # Новое поле для фиксации даты/времени, когда пользователь стал 'inactive'
-    deactivated_at = Column(DateTime, nullable=True)  # <-- Добавлено
+    date_joined = Column(DateTime, default=datetime.utcnow, nullable=False)
+    deactivated_at = Column(DateTime, nullable=True)
+
+    is_superuser = Column(Boolean, nullable=False)
+    is_staff = Column(Boolean, nullable=False)
+    is_active = Column(Boolean, nullable=False)
+
 
     channel_subscriptions = relationship(
         "UserChannelSubscription",

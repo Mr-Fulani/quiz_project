@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, Profile
+from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, Profile, UserChannelSubscription
 from .utils.telegram_notifications import notify_admin
+
 
 
 # Регистрируем Profile как Inline для CustomUser
@@ -136,3 +137,12 @@ class SuperAdminAdmin(BaseAdminAdmin):
     """
     def get_queryset(self, request):
         return super().get_queryset(request).filter(is_super_admin=True)
+
+
+
+
+@admin.register(UserChannelSubscription)
+class UserChannelSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ["id", "user", "channel", "subscription_status", "subscribed_at", "unsubscribed_at"]
+    list_filter = ["subscription_status", "channel"]
+    search_fields = ["user__username", "channel__group_name"]

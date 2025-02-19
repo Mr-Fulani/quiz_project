@@ -1,3 +1,12 @@
+<!-- Navigation Tabs -->
+        <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="personal">Personal Info</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+            <button class="tab-btn" data-tab="security">Security</button>
+            <a href="{% url 'blog:statistics' %}?view=personal" class="tab-btn">Quiz Statistics</a>
+            <a href="{% url 'blog:inbox' %}" class="tab-btn">Messages</a>
+        </div>
+
 <section class="user-statistics">
     <div class="stats-cards">
         <div class="stat-card">

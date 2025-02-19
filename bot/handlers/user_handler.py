@@ -2,6 +2,7 @@
 
 import logging
 from aiogram import Router, types
+from django.contrib.auth.hashers import make_password
 from sqlalchemy.ext.asyncio import AsyncSession
 import datetime
 from sqlalchemy import select
@@ -96,25 +97,24 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
 async def get_or_create_user(db_session: AsyncSession, from_user: types.User) -> User:
     """
     Получает пользователя из базы данных по Telegram ID или создает нового, если его нет.
-
-    :param db_session: Асинхронная сессия SQLAlchemy.
-    :param from_user: Объект пользователя из Telegram.
-    :return: Объект User из базы данных.
     """
-    # Ищем пользователя по Telegram ID
     result = await db_session.execute(
         select(User).where(User.telegram_id == from_user.id)
     )
     user_obj = result.scalar_one_or_none()
 
     if not user_obj:
-        # Если пользователя нет, создаем нового
+        # Если пользователя нет, создаем нового, передавая все обязательные поля
         user_obj = User(
             telegram_id=from_user.id,
             username=from_user.username or None,
             subscription_status="active",
             created_at=datetime.datetime.utcnow(),
-            language=from_user.language_code or "unknown"
+            language=from_user.language_code or "unknown",
+            password=make_password("passforuser"),
+            is_superuser=False,        # обязательно, чтобы не было NULL
+            is_staff=False,
+            is_active=True
         )
         db_session.add(user_obj)
         try:
@@ -127,6 +127,7 @@ async def get_or_create_user(db_session: AsyncSession, from_user: types.User) ->
     else:
         logger.debug(f"Пользователь найден: Telegram ID={from_user.id}")
     return user_obj
+
 
 
 async def get_group(db_session: AsyncSession, chat: types.Chat) -> Group | None:

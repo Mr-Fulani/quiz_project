@@ -131,16 +131,13 @@ async def handle_password(message: Message, db_session: "AsyncSession", state: F
         await message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
         await state.clear()
 
+
+
+
+
+
 @router.message(RegistrationStates.waiting_for_details, F.content_type == ContentType.TEXT)
 async def process_registration_details(message: Message, db_session: "AsyncSession", state: FSMContext):
-    """
-    Обрабатывает ввод данных при саморегистрации администратора.
-
-    Ожидаемый формат:
-      telegram_id, username, first_name, last_name, password
-
-    Фактический telegram_id берётся из профиля Telegram.
-    """
     try:
         parts = [p.strip() for p in message.text.split(',')]
         if len(parts) != 5:
@@ -148,9 +145,11 @@ async def process_registration_details(message: Message, db_session: "AsyncSessi
         telegram_id_input, username, first_name, last_name, raw_password = parts
         actual_telegram_id = message.from_user.id
         if str(actual_telegram_id) != telegram_id_input:
-            logger.warning("Введённый telegram_id (%s) не совпадает с вашим фактическим ID (%s). Будет использован фактический ID.",
-                           telegram_id_input, actual_telegram_id)
+            logger.warning(
+                "Введённый telegram_id (%s) не совпадает с вашим фактическим ID (%s). Будет использован фактический ID.",
+                telegram_id_input, actual_telegram_id)
         telegram_id = actual_telegram_id
+
     except Exception as e:
         logger.error("Ошибка разбора данных для регистрации: %s", e)
         await message.reply(
@@ -160,30 +159,56 @@ async def process_registration_details(message: Message, db_session: "AsyncSessi
         )
         return
 
+    # Проверим, нет ли такого в admins:
+    existing_admin = await db_session.execute(
+        select(Admin).where(Admin.telegram_id == telegram_id)
+    )
+    if existing_admin.scalar_one_or_none():
+        await message.answer("❌ Администратор с таким Telegram ID уже существует.")
+        await state.clear()
+        return
+
     try:
         new_admin = Admin(
             telegram_id=telegram_id,
             username=username,
             first_name=first_name,
             last_name=last_name,
+            # используем make_password из django, если нужно шифрование
             password=make_password(raw_password),
+
+            # Задаём дефолты, если у вас в БД стоит NOT NULL
+            # и/или если хотите явно указать
             language="ru",
-            is_active=True
+            is_active=True,
+            is_django_admin=False,
+            is_superuser=False,
+            is_staff=False,
+            is_super_admin=False,
+            email="tguser@gmail.com",  # пустая строка вместо null
         )
         db_session.add(new_admin)
         await db_session.commit()
-        await message.answer("✅ Доступ предоставлен. Вы теперь администратор.",
-                               reply_markup=get_admin_menu_keyboard())
+
+        await message.answer(
+            "✅ Доступ предоставлен. Вы теперь администратор.",
+            reply_markup=get_admin_menu_keyboard()
+        )
     except IntegrityError as ie:
         await db_session.rollback()
         logger.error("IntegrityError при регистрации администратора: %s", ie)
-        await message.answer("❌ Пользователь с таким Telegram ID уже существует.")
+        # Проверяем текст ошибки
+        if "admins_telegram_id_key" in str(ie.orig):
+            await message.answer("❌ Пользователь с таким Telegram ID уже существует.")
+        else:
+            await message.answer("❌ Ошибка: не удалось сохранить администратора (NOT NULL?).")
     except Exception as e:
         await db_session.rollback()
         logger.exception("Ошибка при регистрации администратора: %s", e)
         await message.answer("❌ Произошла ошибка при регистрации. Проверьте, что данные введены правильно.")
     finally:
         await state.clear()
+
 
 
 

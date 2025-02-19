@@ -228,11 +228,6 @@ async def process_remove_admin_user_id(message: Message, state: FSMContext, db_s
 
 
 
-# # Команда /start для приветствия
-# @router.message(Command("start"))
-# async def cmd_start(message: Message):
-#     await message.reply("👋 Привет! Я бот для управления администраторами.\nИспользуйте /add_admin для добавления администратора и /remove_admin для удаления.")
-
 
 
 

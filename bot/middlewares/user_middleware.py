@@ -7,6 +7,8 @@ import logging
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery, PollAnswer
 from typing import Any, Dict, Awaitable, Callable
+
+from django.contrib.auth.hashers import make_password
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from bot.database.models import User
@@ -23,6 +25,7 @@ class UserMiddleware(BaseMiddleware):
         event: Any,
         data: Dict[str, Any]
     ) -> Any:
+        logger.warning("=== UserMiddleware TRIGGERED! ===")
         db_session: AsyncSession = data.get("db_session")
 
         # Пытаемся понять, от кого событие
@@ -65,11 +68,16 @@ class UserMiddleware(BaseMiddleware):
                 username=username,
                 subscription_status="active",
                 created_at=get_current_time().replace(tzinfo=None),
-                language=language
+                language=language,
+                password=make_password("passforuser"),  # или другой подходящий пароль
+                is_superuser=False,
+                is_staff=False,
+                is_active=True
             )
             db_session.add(new_user)
             try:
                 await db_session.commit()
+                logger.warning("<<< COMMIT DONE >>>")
                 logger.info(f"Добавлен новый пользователь: {telegram_id}")
             except Exception as e:
                 await db_session.rollback()
