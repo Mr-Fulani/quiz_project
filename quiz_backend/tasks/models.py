@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
 
+
+
 class Task(models.Model):
     DIFFICULTY_CHOICES = [
         ('easy', 'Легкий'),
@@ -172,6 +174,9 @@ class TaskStatistics(models.Model):
 
     def __str__(self):
         return f"Статистика: Задача {self.task_id}, Пользователь {self.user_id}"
+
+
+
 
     @classmethod
     def get_user_statistics(cls, user):

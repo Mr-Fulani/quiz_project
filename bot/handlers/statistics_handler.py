@@ -258,9 +258,12 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
 
         # Общие показатели
         total_users = (await db_session.execute(select(func.count(User.id)))).scalar() or 0
-        active_users = (await db_session.execute(select(func.count(User.id)).where(User.subscription_status == 'active'))).scalar() or 0
-        inactive_users = (await db_session.execute(select(func.count(User.id)).where(User.subscription_status == 'inactive'))).scalar() or 0
-        active_in_bot = (await db_session.execute(select(func.count(func.distinct(TaskStatistics.user_id))))).scalar() or 0
+        active_users = (await db_session.execute(
+            select(func.count(User.id)).where(User.subscription_status == 'active'))).scalar() or 0
+        inactive_users = (await db_session.execute(
+            select(func.count(User.id)).where(User.subscription_status == 'inactive'))).scalar() or 0
+        active_in_bot = (await db_session.execute(
+            select(func.count(func.distinct(TaskStatistics.user_id))))).scalar() or 0
         bot_activity_pct = (active_in_bot / total_users * 100) if total_users > 0 else 0.0
 
         # Статистика за текущий месяц
@@ -395,7 +398,6 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                                             if (total_gained_quarter + total_lost_quarter) > 0
                                             else "Нет изменений")
 
-
         # Формирование итогового сообщения с правильным экранированием
         response = "📊 *Общая статистика*\n\n"
         response += f"• *Всего пользователей*: {escape_markdown_v2(str(total_users))}\n"
@@ -409,12 +411,9 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
         quarter_dates = f"{escape_markdown_v2(start_quarter.strftime('%Y-%m-%d'))} — {escape_markdown_v2(end_quarter.strftime('%Y-%m-%d'))}"
 
         # Форматирование активности в каналах
-        month_activity = escape_markdown_v2(f"+{total_gained_month} подписок / -{total_lost_month} отписок" if (
-                                                                                                                           total_gained_month + total_lost_month) > 0 else "Нет изменений")
-        week_activity = escape_markdown_v2(f"+{total_gained_week} подписок / -{total_lost_week} отписок" if (
-                                                                                                                        total_gained_week + total_lost_week) > 0 else "Нет изменений")
-        quarter_activity = escape_markdown_v2(f"+{total_gained_quarter} подписок / -{total_lost_quarter} отписок" if (
-                                                                                                                                 total_gained_quarter + total_lost_quarter) > 0 else "Нет изменений")
+        month_activity = escape_markdown_v2(f"+{total_gained_month} подписок / -{total_lost_month} отписок" if (total_gained_month + total_lost_month) > 0 else "Нет изменений")
+        week_activity = escape_markdown_v2(f"+{total_gained_week} подписок / -{total_lost_week} отписок" if (total_gained_week + total_lost_week) > 0 else "Нет изменений")
+        quarter_activity = escape_markdown_v2(f"+{total_gained_quarter} подписок / -{total_lost_quarter} отписок" if (total_gained_quarter + total_lost_quarter) > 0 else "Нет изменений")
 
         response += f"*За текущий месяц* \\({month_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_month))}\n"

@@ -1,0 +1,33 @@
+.poll-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+.choice-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.choice-btn:hover {
+    background-color: #e0e0e0;
+}
+.result-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+}
+.correct {
+    background-color: #d4edda;
+    color: #155724;
+}
+.result-item:not(.correct) {
+    background-color: #f8d7da;
+    color: #721c24;
+}

@@ -1,39 +1,29 @@
+import json
+from datetime import datetime, timedelta
+
+from accounts.models import CustomUser
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.http import JsonResponse, FileResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView, DetailView
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.utils import timezone
-from .models import Category, Post, Project, Message, MessageAttachment
-from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
-from rest_framework.views import APIView
-from django.views.generic import TemplateView, DetailView
-from django.core.paginator import Paginator
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse, FileResponse, HttpResponseNotFound
-from django.db.models import Q
-from django.views.decorators.http import require_POST
-from django.contrib.auth.forms import PasswordChangeForm
-from django.core.exceptions import PermissionDenied
-import json
-from django.contrib.auth import get_user_model
-import os
-from django.conf import settings
-from django.template import loader
-from django.templatetags.static import static
-from django.template import TemplateDoesNotExist
-from django.template.loader import get_template
-from django.db.models import Count, Avg
-from django.db.models.functions import TruncDate
-from datetime import datetime, timedelta
 from tasks.models import Task, TaskStatistics
 from topics.models import Topic
 
-from accounts.models import CustomUser
+from .models import Category, Post, Project, Message, MessageAttachment
+from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
 
-# Create your views here.
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """

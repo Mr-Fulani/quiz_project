@@ -1,0 +1,32 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'polls/css/poll.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ subtopic.name }} ({{ topic.name }})</h1>
+{% if tasks %}
+    <ul>
+        {% for task in tasks %}
+            <li><a href="{% url 'blog:quiz_task_detail' quiz_type=topic.name|lower subtopic=subtopic.name|lower task_id=task.id %}">{{ task.translation.question }}</a></li>
+        {% endfor %}
+    </ul>
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+            <strong>{{ num }}</strong>
+        {% else %}
+            <a href="?page={{ num }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
+    {% endif %}
+{% else %}
+    <p>Нет доступных задач для {{ subtopic.name }}.</p>
+{% endif %}
+{% endblock %}

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'blog.apps.BlogConfig',
     'django.contrib.humanize',
+    'polls',
 ]
 
 MIDDLEWARE = [

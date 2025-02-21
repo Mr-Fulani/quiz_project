@@ -39,6 +39,9 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     #   -> Логаут с редиректом на главную
 
+    path('polls/', include('polls.urls')),
+    #   -> Подключение URL-ов из приложения polls (опросы)
+
     # API для tasks, topics, platforms, feedback, webhooks
     path('api/', include('tasks.urls')),
     path('api/', include('topics.urls')),

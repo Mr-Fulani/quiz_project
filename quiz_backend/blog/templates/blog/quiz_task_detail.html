@@ -1,0 +1,47 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'polls/css/poll.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="poll-container">
+    <h2>{{ translation.question }}</h2>
+    <div id="choices">
+        {% for answer in translation.answers %}
+            <button class="choice-btn" data-answer="{{ answer }}">{{ answer }}</button>
+        {% endfor %}
+    </div>
+    <div id="results" style="display: none;"></div>
+</div>
+
+<script>
+    document.querySelectorAll('.choice-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const selectedAnswer = this.getAttribute('data-answer');
+            fetch(`/quiz/{{ task.topic.name|lower }}/{{ task.subtopic.name|lower }}/{{ task.id }}/submit/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ answer: selectedAnswer })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.results) {
+                    const resultsDiv = document.getElementById('results');
+                    resultsDiv.style.display = 'block';
+                    resultsDiv.innerHTML = data.results.map(result => `
+                        <div class="result-item ${result.is_correct ? 'correct' : ''}">
+                            ${result.text} - ${result.percentage.toFixed(1)}% (${result.votes} голосов)
+                        </div>
+                    `).join('');
+                    document.getElementById('choices').style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -43,11 +43,19 @@ urlpatterns = [
     path('contact/', ContactView.as_view(), name='contact'),
     #   -> Страница "Контакты"
 
-    path('quizes/', QuizesView.as_view(), name='quizes'),
-    #   -> Страница со списком викторин
 
-    path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
-    #   -> Детальная информация о квизе (по quiz_type)
+
+    # path('quizes/', QuizesView.as_view(), name='quizes'),
+    # #   -> Страница со списком викторин
+    #
+    # path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
+    # #   -> Детальная информация о квизе (по quiz_type)
+
+    path('quizes/', QuizesView.as_view(), name='quizes'),  # Список тем
+    path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),  # Список подтем
+    path('quiz/<str:quiz_type>/<str:subtopic>/', QuizSubtopicView.as_view(), name='quiz_subtopic'),  # Список задач
+    path('quiz/<str:quiz_type>/<str:subtopic>/<int:task_id>/', QuizTaskDetailView.as_view(), name='quiz_task_detail'),  # Опрос
+
 
 
     path('messages/', lambda request: redirect('blog:inbox'), name='messages'),

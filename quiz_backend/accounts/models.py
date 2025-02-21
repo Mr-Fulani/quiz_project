@@ -360,14 +360,7 @@ def save_user_profile(sender, instance, **kwargs):
         Profile.objects.create(user=instance)
     instance.profile.save()
 
-# @receiver(post_save, sender=TelegramAdmin)
-# def create_telegram_user_profile(sender, instance, created, **kwargs):
-#     if created:
-#         Profile.objects.create(
-#             user=instance,
-#             is_telegram_user=True,
-#             telegram_username=instance.username
-#         )
+
 
 @receiver(post_save, sender='tasks.TaskStatistics')
 def clear_user_statistics_cache(sender, instance, **kwargs):
