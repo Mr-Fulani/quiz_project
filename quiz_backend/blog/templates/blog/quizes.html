@@ -8,141 +8,38 @@
 {% block content %}
 <article class="quizes active" data-page="quizes">
   <header>
-    <h2 class="h2 article-title">Quizes</h2>
+    <h2 class="h2 article-title">Опросы</h2>
   </header>
 
   <section class="service">
-    <h3 class="h3 service-title">Available Quizes</h3>
+    <h3 class="h3 service-title">Доступные темы</h3>
 
-    <ul class="service-list">
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'python' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/5968/5968350.png" alt="Python icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">Python Basics</h4>
-            <p class="service-item-text">Test your knowledge of Python fundamentals including variables, data types, and basic operations.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'javascript' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/5968/5968292.png" alt="JavaScript icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">JavaScript Essentials</h4>
-            <p class="service-item-text">Check your understanding of JavaScript core concepts, DOM manipulation, and ES6+ features.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'django' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/9307/9307439.png" alt="Django icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">Django Framework</h4>
-            <p class="service-item-text">Test your Django knowledge including models, views, templates, and forms.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'react' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/1183/1183672.png" alt="React icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">React Fundamentals</h4>
-            <p class="service-item-text">Evaluate your React.js skills including components, hooks, and state management.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'java' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/226/226777.png" alt="Java icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">Java Core</h4>
-            <p class="service-item-text">Master Java fundamentals, OOP concepts, collections, and multithreading.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'golang' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/4248/4248443.png" alt="Golang icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">Go Programming</h4>
-            <p class="service-item-text">Learn Go basics, goroutines, channels, and concurrent programming.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'sql' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/4492/4492311.png" alt="SQL icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">SQL Database</h4>
-            <p class="service-item-text">Practice SQL queries, database design, and optimization techniques.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'cpp' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/6132/6132222.png" alt="C++ icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">C++ Programming</h4>
-            <p class="service-item-text">Test your C++ skills including memory management, STL, and templates.</p>
-          </div>
-        </a>
-      </li>
-
-      <!-- Новые квизы -->
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'logic' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/2165/2165454.png" alt="Logic icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">Logic Science</h4>
-            <p class="service-item-text">Test your understanding of logical reasoning, problem solving, and critical thinking.</p>
-          </div>
-        </a>
-      </li>
-
-      <li class="service-item">
-        <a href="{% url 'blog:quiz_detail' 'english' %}" class="service-link">
-          <div class="service-icon-box">
-            <img src="https://cdn-icons-png.flaticon.com/512/197/197374.png" alt="English icon" width="40">
-          </div>
-          <div class="service-content-box">
-            <h4 class="h4 service-item-title">English Language</h4>
-            <p class="service-item-text">Evaluate your proficiency in English grammar, vocabulary, and comprehension.</p>
-          </div>
-        </a>
-      </li>
-    </ul>
+    {% if topics %}
+      <ul class="service-list">
+        {% for topic in topics %}
+          <li class="service-item">
+            <a href="{% url 'blog:quiz_detail' quiz_type=topic.name|lower %}" class="service-link">
+              <div class="service-icon-box">
+                <img src="https://cdn-icons-png.flaticon.com/512/5968/5968350.png" alt="{{ topic.name }} icon" width="40">
+              </div>
+              <div class="service-content-box">
+                <h4 class="h4 service-item-title">{{ topic.name }}</h4>
+                <p class="service-item-text">Тест по теме {{ topic.name }}.</p>
+              </div>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет доступных тем.</p>
+    {% endif %}
   </section>
 
   <div class="user-score">
     {% if user.is_authenticated %}
-        <a href="{% url 'accounts:profile' %}">View My Results</a>
+        <a href="{% url 'accounts:profile' %}">Посмотреть мои результаты</a>
     {% else %}
-        <a href="{% url 'login' %}?next={{ request.path }}">Login to View Results</a>
+        <a href="{% url 'login' %}?next={{ request.path }}">Войдите, чтобы увидеть результаты</a>
     {% endif %}
   </div>
 </article>

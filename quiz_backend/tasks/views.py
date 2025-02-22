@@ -1,23 +1,17 @@
-from django.shortcuts import render
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Count, Avg, F, Sum, Case, When
-from django.utils import timezone
-from .models import Task, TaskTranslation, TaskStatistics
+
+from .models import Task, TaskStatistics
 from .serializers import (
-    TaskSerializer, 
-    TaskTranslationSerializer,
+    TaskSerializer,
     TaskStatisticsSerializer,
     TaskSubmitSerializer,
     TaskStatsResponseSerializer,
     TaskSkipSerializer
 )
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import OrderingFilter
-from .pagination import CustomPageNumberPagination
-from .filters import TaskFilter
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+
 
 # Create your views here.
 

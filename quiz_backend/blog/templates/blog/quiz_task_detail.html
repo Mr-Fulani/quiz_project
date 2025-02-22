@@ -1,47 +1,54 @@
-{% extends 'blog/base.html' %}
+{% extends "blog/base.html" %}
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'polls/css/poll.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="poll-container">
-    <h2>{{ translation.question }}</h2>
-    <div id="choices">
-        {% for answer in translation.answers %}
-            <button class="choice-btn" data-answer="{{ answer }}">{{ answer }}</button>
-        {% endfor %}
-    </div>
-    <div id="results" style="display: none;"></div>
-</div>
+<article class="quiz-task-detail active" data-page="quiz-task-detail">
+    <header>
+        <h2 class="h2 article-title">Задача {{ task.id }} - {{ subtopic.name }} ({{ topic.name }})</h2>
+    </header>
 
-<script>
-    document.querySelectorAll('.choice-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const selectedAnswer = this.getAttribute('data-answer');
-            fetch(`/quiz/{{ task.topic.name|lower }}/{{ task.subtopic.name|lower }}/{{ task.id }}/submit/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ answer: selectedAnswer })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.results) {
-                    const resultsDiv = document.getElementById('results');
-                    resultsDiv.style.display = 'block';
-                    resultsDiv.innerHTML = data.results.map(result => `
-                        <div class="result-item ${result.is_correct ? 'correct' : ''}">
-                            ${result.text} - ${result.percentage.toFixed(1)}% (${result.votes} голосов)
-                        </div>
-                    `).join('');
-                    document.getElementById('choices').style.display = 'none';
-                }
-            });
-        });
-    });
-</script>
+    <section class="task-detail">
+        <h3 class="h3">Вопрос</h3>
+        {% if task.image_url %}
+            <div class="task-image">
+                <img src="{{ task.image_url }}" alt="Task {{ task.id }} question">
+            </div>
+        {% else %}
+            <p>Изображение для задачи {{ task.id }} отсутствует.</p>
+        {% endif %}
+
+        {% if is_correct is not None %}
+            <div class="result">
+                {% if is_correct %}
+                    <p style="color: green;">Правильно!</p>
+                {% else %}
+                    <p style="color: red;">Неправильно! Ваш ответ: "{{ selected_answer }}". Правильный ответ: "{{ translation.correct_answer }}".</p>
+                {% endif %}
+            </div>
+        {% else %}
+            {% if error == 'no_answer' %}
+                <p style="color: red;">Пожалуйста, выберите один из вариантов ответа.</p>
+            {% endif %}
+            {% if answers %}
+                <form method="post" action="{{ submit_url }}">
+                    {% csrf_token %}
+                    <div class="answers">
+                        {% for answer in answers %}
+                            <label class="answer-label">
+                                <input type="radio" name="answer" value="{{ answer }}"> {{ answer }}
+                            </label><br>
+                        {% endfor %}
+                    </div>
+                    <button type="submit">Отправить ответ</button>
+                </form>
+            {% else %}
+                <p>Варианты ответа для задачи {{ task.id }} отсутствуют.</p>
+            {% endif %}
+        {% endif %}
+    </section>
+</article>
 {% endblock %}

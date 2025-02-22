@@ -1,32 +1,48 @@
-{% extends 'blog/base.html' %}
+{% extends "blog/base.html" %}
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'polls/css/poll.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
+{% endblock %}
+
+{% block sidebar %}
+    {% include 'accounts/user_sidebar.html' %}
 {% endblock %}
 
 {% block content %}
-<h1>{{ subtopic.name }} ({{ topic.name }})</h1>
-{% if tasks %}
-    <ul>
-        {% for task in tasks %}
-            <li><a href="{% url 'blog:quiz_task_detail' quiz_type=topic.name|lower subtopic=subtopic.name|lower task_id=task.id %}">{{ task.translation.question }}</a></li>
-        {% endfor %}
-    </ul>
-    {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
-    {% endif %}
-    {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-            <strong>{{ num }}</strong>
+<article class="quiz-subtopic active" data-page="quiz-subtopic">
+    <header>
+        <h2 class="h2 article-title">{{ subtopic.name }} ({{ topic.name }})</h2>
+    </header>
+
+    <section class="tasks">
+        <h3 class="h3">Список задач</h3>
+        {% if tasks %}
+            <ul>
+                {% for task in tasks %}
+                    <li><a href="{% url 'blog:quiz_task_detail' quiz_type=topic.name|lower subtopic=subtopic.name task_id=task.id %}">
+                        Задача {{ task.id }}
+                    </a></li>
+                {% endfor %}
+            </ul>
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <strong>{{ num }}</strong>
+                    {% else %}
+                        <a href="?page={{ num }}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
+                {% endif %}
+            </div>
         {% else %}
-            <a href="?page={{ num }}">{{ num }}</a>
+            <p>Нет доступных задач для {{ subtopic.name }}.</p>
         {% endif %}
-    {% endfor %}
-    {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
-    {% endif %}
-{% else %}
-    <p>Нет доступных задач для {{ subtopic.name }}.</p>
-{% endif %}
+    </section>
+</article>
 {% endblock %}
