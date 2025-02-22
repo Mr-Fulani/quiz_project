@@ -1,3 +1,5 @@
+/* blog/static/blog/css/quiz_styles.css */
+
 .task-detail {
     max-width: 800px;
     margin: 20px auto;
@@ -49,4 +51,63 @@ button[type="submit"] {
 
 button[type="submit"]:hover {
     background-color: #0056b3;
+}
+
+
+
+.task-item {
+    margin-bottom: 30px;
+}
+
+.task-image img {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    border-radius: 15px; /* Овальные края */
+    margin-bottom: 20px;
+}
+
+.answers {
+    margin: 20px 0;
+}
+
+.answer-option {
+    display: inline-block;
+    padding: 10px 15px;
+    margin: 5px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.answer-option:hover {
+    background-color: #e0e0e0;
+}
+
+.answer-option.correct {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.answer-option.incorrect {
+    background-color: #f44336;
+    color: white;
+}
+
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination a.btn {
+    padding: 8px 16px;
+    margin: 0 10px;
+    background-color: #008CBA;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.pagination a.btn:hover {
+    background-color: #006d9e;
 }

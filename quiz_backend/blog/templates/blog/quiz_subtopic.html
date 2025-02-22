@@ -5,8 +5,8 @@
     <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
 {% endblock %}
 
-{% block sidebar %}
-    {% include 'accounts/user_sidebar.html' %}
+{% block extra_js %}
+    <script src="{% static 'blog/js/quiz.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -16,32 +16,41 @@
     </header>
 
     <section class="tasks">
-        <h3 class="h3">Список задач</h3>
-        {% if tasks %}
-            <ul>
-                {% for task in tasks %}
-                    <li><a href="{% url 'blog:quiz_task_detail' quiz_type=topic.name|lower subtopic=subtopic.name task_id=task.id %}">
-                        Задача {{ task.id }}
-                    </a></li>
-                {% endfor %}
-            </ul>
-            <div class="pagination">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+        {% for task in page_obj %}
+            <div class="task-item" data-task-id="{{ task.id }}">
+                {% if task.image_url %}
+                    <div class="task-image">
+                        <img src="{{ task.image_url }}" alt="Task {{ task.id }} question">
+                    </div>
+                {% else %}
+                    <p>Изображение отсутствует.</p>
                 {% endif %}
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <strong>{{ num }}</strong>
-                    {% else %}
-                        <a href="?page={{ num }}">{{ num }}</a>
-                    {% endif %}
-                {% endfor %}
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
+
+                {% if task.translation %}
+                    <div class="answers" data-correct="{{ task.correct_answer }}">
+                        {% for answer in task.answers %}
+                            <span class="answer-option" data-answer="{{ answer }}">{{ answer }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Перевод отсутствует.</p>
                 {% endif %}
             </div>
-        {% else %}
-            <p>Нет доступных задач для {{ subtopic.name }}.</p>
+        {% empty %}
+            <p>Задачи отсутствуют.</p>
+        {% endfor %}
+
+        <!-- Пагинация -->
+        {% if paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="btn">Назад</a>
+                {% endif %}
+                <span>Страница {{ page_obj.number }} из {{ paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="btn">Далее</a>
+                {% endif %}
+            </div>
         {% endif %}
     </section>
 </article>

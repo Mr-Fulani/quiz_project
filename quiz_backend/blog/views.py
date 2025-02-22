@@ -349,33 +349,40 @@ class QuizDetailView(ListView):
         logger.info(f"Context topic: {context['topic']}")
         return context
 
+
+
+
 class QuizSubtopicView(ListView):
     template_name = 'blog/quiz_subtopic.html'
     context_object_name = 'tasks'
-    paginate_by = 5
+    paginate_by = 3  # 3 задачи на страницу
 
     def get_queryset(self):
-        logger.info("QuizSubtopicView is running!")
-        topic_name = self.kwargs['quiz_type'].lower()
-        subtopic_name = self.kwargs['subtopic'].replace('%20', ' ')
-        logger.info(f"Processing topic: {topic_name}, subtopic: {subtopic_name}")
+        topic_name = self.kwargs['quiz_type']
+        subtopic_name = self.kwargs['subtopic']
         topic = get_object_or_404(Topic, name__iexact=topic_name)
         subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
-        tasks = Task.objects.filter(topic=topic, subtopic=subtopic, published=True)
-        logger.info(f"QuizSubtopicView - Topic: {topic_name}, Subtopic: {subtopic_name}, Tasks: {list(tasks)}")
-        return tasks
+        return Task.objects.filter(topic=topic, subtopic=subtopic, published=True).order_by('id')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
-        context['subtopic'] = get_object_or_404(Subtopic, topic=context['topic'], name__iexact=self.kwargs['subtopic'].replace('%20', ' '))
-        logger.info(f"Context topic: {context['topic']}, subtopic: {context['subtopic']}")
+        topic_name = self.kwargs['quiz_type']
+        subtopic_name = self.kwargs['subtopic']
+        topic = get_object_or_404(Topic, name__iexact=topic_name)
+        subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
+
+        # Добавляем переводы и ответы для каждой задачи
         for task in context['page_obj']:
-            # Пробуем "ru", если нет — "en"
-            task.translation = TaskTranslation.objects.filter(task=task, language="ru").first()
-            if not task.translation:
-                task.translation = TaskTranslation.objects.filter(task=task, language="en").first()
-            logger.info(f"Task {task.id} translation: {task.translation}")
+            translation = TaskTranslation.objects.filter(task=task, language="en").first()
+            task.translation = translation
+            if translation and isinstance(translation.answers, str):
+                task.answers = json.loads(translation.answers)
+            else:
+                task.answers = translation.answers if translation else []
+            task.correct_answer = translation.correct_answer if translation else None
+
+        context['topic'] = topic
+        context['subtopic'] = subtopic
         return context
 
 
