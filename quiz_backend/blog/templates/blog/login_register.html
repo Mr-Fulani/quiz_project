@@ -1,0 +1,149 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'blog/css/login_register_styles.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'blog/js/login_register.js' %}"></script>
+    <script src="{% static 'blog/js/modal.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="square">
+        <i style="--clr:#00ff0a;"></i>
+        <i style="--clr:#ff0057;"></i>
+        <i style="--clr:#fffd44;"></i>
+    </div>
+    <div class="auth-container-inner">
+        <div class="auth-tabs">
+            <button class="tab-button active" data-tab="login">Login</button>
+            <button class="tab-button" data-tab="register">Register</button>
+            <button class="tab-button" data-tab="forgot">Forgot Password</button>
+            <button class="tab-button" data-tab="profile">Profile</button>
+        </div>
+
+        <div class="auth-content">
+            <!-- Login Form -->
+            <div class="tab-content active" id="login">
+                <h2>Login</h2>
+                <form method="post" class="form">
+                    {% csrf_token %}
+
+                    {% if form_login.errors %}
+                    <div class="alert alert-error">
+                        {% for error in form_login.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% for field in form_login %}
+                    <div class="inputBx">
+                        <input type="text" name="{{ field.name }}" id="{{ field.id_for_label }}" placeholder="{{ field.label }}" {% if field.value %}value="{{ field.value }}"{% endif %} required>
+                    </div>
+                    {% endfor %}
+
+                    <div class="inputBx">
+                        <input type="submit" value="Sign in">
+                    </div>
+
+                    <div class="links">
+                        <a href="#" class="forgot-link">Forgot Password?</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div class="tab-content" id="register">
+                <h2>Register</h2>
+                <form method="post" class="form">
+                    {% csrf_token %}
+
+                    {% if form_register.errors %}
+                    <div class="alert alert-error">
+                        {% for field in form_register %}
+                            {% for error in field.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% for field in form_register %}
+                    <div class="inputBx">
+                        <input type="text" name="{{ field.name }}" id="{{ field.id_for_label }}" placeholder="{{ field.label }}" {% if field.value %}value="{{ field.value }}"{% endif %} required>
+                    </div>
+                    {% endfor %}
+
+                    <div class="inputBx">
+                        <input type="submit" value="Sign up">
+                    </div>
+
+                    <div class="links">
+                        <a href="#" class="login-link">Already have an account? Login</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div class="tab-content" id="forgot">
+                <h2>Forgot Password</h2>
+                <form method="post" class="form">
+                    {% csrf_token %}
+
+                    {% if form_forgot.errors %}
+                    <div class="alert alert-error">
+                        {% for error in form_forgot.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="inputBx">
+                        <input type="email" name="email" id="id_email" placeholder="Email" required>
+                    </div>
+
+                    <div class="inputBx">
+                        <input type="submit" value="Reset Password">
+                    </div>
+
+                    <div class="links">
+                        <a href="#" class="login-link">Back to Login</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Profile Form/View -->
+            <div class="tab-content" id="profile">
+                <h2>Profile</h2>
+                {% if user.is_authenticated %}
+                    <p>Welcome, {{ user.username }}!</p>
+                    <p>Total attempts: {{ stats.total_attempts }}</p>
+                    <p>Successful attempts: {{ stats.successful_attempts }}</p>
+                    <p>Success rate: {{ stats.success_rate }}%</p>
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn">Edit Profile</a>
+                    <form method="post" action="{% url 'logout' %}" class="form">
+                        {% csrf_token %}
+                        <div class="inputBx">
+                            <input type="submit" value="Logout">
+                        </div>
+                    </form>
+                    <!-- Данные для графиков (если нужно отобразить) -->
+                    {% if chart_data %}
+                        <script>
+                            const chartData = {{ chart_data|safe }};
+                            // Здесь можно добавить код для Chart.js, если нужно отобразить графики
+                        </script>
+                    {% endif %}
+                {% else %}
+                    <p>You need to login or register to view your profile.</p>
+                    <a href="#" class="login-link">Login</a> | <a href="#" class="register-link">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
