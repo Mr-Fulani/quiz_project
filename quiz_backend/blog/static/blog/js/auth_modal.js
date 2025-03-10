@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Auth modal script loaded');
     // Получение элементов DOM
     const loginModal = document.getElementById('login-modal');
     const registerModal = document.getElementById('register-modal');
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Открытие модальных окон
     const loginLink = document.getElementById('login-link');
+    console.log('Login link element:', loginLink);
     if (loginLink) {
         loginLink.addEventListener('click', function(e) {
             e.preventDefault();

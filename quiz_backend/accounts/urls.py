@@ -1,5 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
 from . import views
 from .views import dashboard_view, profile_redirect_view, profile_view, update_settings
 
@@ -7,15 +8,13 @@ app_name = 'accounts'
 
 urlpatterns = [
     # Регистрация нового пользователя
-    path('register/', views.register, name='register'),
+    path('register/', RedirectView.as_view(url='/?open_register=true'), name='register'),
+    path('login/', RedirectView.as_view(url='/?open_login=true'), name='login'),
 
-    # Аутентификация: вход / выход
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    # Аутентификация:  выход
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
 
-    # Повторный путь на 'register' (возможно, дубликат, если выше уже объявлен)
-    path('register/', views.register, name='register'),
-
+ 
     # # Профили пользователей
     # path('profile/', views.ProfileView.as_view(), name='profile'),
     # #   -> Отображает профиль текущего пользователя (Generic APIView или TemplateView)

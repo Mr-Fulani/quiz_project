@@ -74,17 +74,7 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
 
-# class ProfileView(generics.RetrieveAPIView):
-#     """
-#     APIView для получения профиля текущего пользователя.
-#     """
-#     serializer_class = ProfileSerializer
-#
-#     def get_object(self):
-#         """
-#         Возвращает self.request.user в качестве объекта профиля.
-#         """
-#         return self.request.user
+
 
 
 class ProfileUpdateView(generics.UpdateAPIView):
@@ -238,32 +228,7 @@ class CustomObtainAuthToken(ObtainAuthToken):
         })
 
 
-class CustomLoginView(LoginView):
-    """
-    Встроенный Django-класс для логина,
-    использует шаблон 'registration/login.html',
-    перенаправляет, если уже залогинились.
-    """
-    template_name = 'registration/login.html'
-    redirect_authenticated_user = True
-    success_url = reverse_lazy('blog:index')
 
-
-def register(request):
-    """
-    Функция для регистрации. При POST обрабатываем форму CustomUserCreationForm,
-    если ок - создаём юзера, логиним, редиректим на '/'.
-    """
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Registration successful!')
-            return redirect('/')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'registration/register.html', {'form': form})
 
 
 class UserProfileView(LoginRequiredMixin, DetailView):
@@ -405,81 +370,6 @@ def change_password(request):
     return redirect('blog:profile')
 
 
-
-
-
-# def profile_view(request, username=None):
-#     """
-#     Вариант profile_view, получающий профиль по username
-#     (или request.user), собирающий статистику (stats, chart_data)
-#     и рендерящий blog/profile.html.
-#     """
-#     profile_user = request.user if username is None else CustomUser.objects.get(username=username)
-#     context = {'profile_user': profile_user}
-#
-#     stats = {
-#         'total_attempts': TaskStatistics.objects.filter(user=profile_user).count(),
-#         'successful_attempts': TaskStatistics.objects.filter(user=profile_user, successful=True).count(),
-#     }
-#
-#     if stats['total_attempts'] > 0:
-#         stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1)
-#     else:
-#         stats['success_rate'] = 0
-#
-#     difficulty_stats = TaskStatistics.objects.filter(user=profile_user).values(
-#         'task__difficulty'
-#     ).annotate(
-#         total=Count('id'),
-#         successful=Count('id', filter=Q(successful=True))
-#     ).order_by('task__difficulty')
-#
-#     topic_stats = TaskStatistics.objects.filter(user=profile_user).values(
-#         'task__topic__name'
-#     ).annotate(
-#         total=Count('id'),
-#         successful=Count('id', filter=Q(successful=True))
-#     ).order_by('-total')[:5]
-#
-#     last_30_days = timezone.now() - timezone.timedelta(days=30)
-#     activity_stats = TaskStatistics.objects.filter(
-#         user=profile_user,
-#         attempt_date__gte=last_30_days
-#     ).annotate(
-#         date=models.functions.TruncDate('attempt_date')
-#     ).values('date').annotate(
-#         attempts=Count('id'),
-#         successful=Count('id', filter=Q(successful=True))
-#     ).order_by('date')
-#
-#     chart_data = {
-#         'activity': {
-#             'labels': json.dumps([stat['date'].strftime('%Y-%m-%d') for stat in activity_stats]),
-#             'attempts': json.dumps([stat['attempts'] for stat in activity_stats]),
-#             'successful': json.dumps([stat['successful'] for stat in activity_stats])
-#         },
-#         'topics': {
-#             'labels': json.dumps([stat['task__topic__name'] for stat in topic_stats]),
-#             'success_rates': json.dumps([
-#                 round((stat['successful'] / stat['total'] * 100), 1) if stat['total'] > 0 else 0
-#                 for stat in topic_stats
-#             ])
-#         },
-#         'difficulty': {
-#             'labels': json.dumps([stat['task__difficulty'] for stat in difficulty_stats]),
-#             'success_rates': json.dumps([
-#                 round((stat['successful'] / stat['total'] * 100), 1) if stat['total'] > 0 else 0
-#                 for stat in difficulty_stats
-#             ])
-#         }
-#     }
-#
-#     context.update({
-#         'stats': stats,
-#         'chart_data': chart_data,
-#     })
-#
-#     return render(request, 'blog/profile.html', context)
 
 
 
