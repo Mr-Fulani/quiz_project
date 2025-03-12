@@ -3,10 +3,40 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
-{% endblock %}
-
-{% block extra_js %}
-    <script src="{% static 'blog/js/quiz.js' %}"></script>
+    <style>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        @keyframes glow {
+            0%   { box-shadow: 0 0 5px #00ff00; }
+            50%  { box-shadow: 0 0 20px #00ff00; }
+            100% { box-shadow: 0 0 5px #00ff00; }
+        }
+        .correct-answer {
+            animation: glow 1s;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        .task-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .answer-option {
+            cursor: pointer;
+            display: block;
+            padding: 5px;
+            margin: 5px 0;
+        }
+        /* Стиль для кода */
+        pre.code-block {
+            margin: 0;
+            padding: 0;
+            background-color: transparent; /* Фон задаётся в .task-image */
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -22,14 +52,22 @@
                     <div class="task-image">
                         <img src="{{ task.image_url }}" alt="Task {{ task.id }} question">
                     </div>
+                {% elif task.code %}
+                    <div class="task-image">
+                        <pre class="code-block"><code>{{ task.code }}</code></pre>
+                    </div>
                 {% else %}
-                    <p>Изображение отсутствует.</p>
+                    <p>Контент отсутствует.</p>
                 {% endif %}
 
                 {% if task.translation %}
                     <div class="answers" data-correct="{{ task.correct_answer }}">
                         {% for answer in task.answers %}
-                            <span class="answer-option" data-answer="{{ answer }}">{{ answer }}</span>
+                            <span class="answer-option quiz-option"
+                                  data-answer="{{ answer }}"
+                                  data-correct="{% if answer == task.correct_answer %}true{% else %}false{% endif %}">
+                                {{ answer }}
+                            </span>
                         {% endfor %}
                     </div>
                 {% else %}
@@ -54,4 +92,8 @@
         {% endif %}
     </section>
 </article>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
 {% endblock %}

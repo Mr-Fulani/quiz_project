@@ -396,6 +396,7 @@ class UniqueQuizTaskView(DetailView):
 
     def get_object(self):
         task_id = self.kwargs.get('task_id')
+        logger.info(f"Getting task with ID: {task_id}")
         return Task.objects.get(id=task_id)
 
     def get_context_data(self, **kwargs):
@@ -403,33 +404,75 @@ class UniqueQuizTaskView(DetailView):
         task = self.get_object()
         quiz_type = self.kwargs.get('quiz_type')
         subtopic = self.kwargs.get('subtopic')
-        print(f"UniqueQuizTaskView - Topic: {quiz_type}, Subtopic: {subtopic}, Task ID: {task.id}, Found: {task}")
 
+        logger.info("=== UniqueQuizTaskView Debug Info ===")
+        logger.info(f"Topic: {quiz_type}")
+        logger.info(f"Subtopic: {subtopic}")
+        logger.info(f"Task ID: {task.id}")
+        logger.info(f"Task object: {task}")
+
+        # Получаем перевод
         translation = TaskTranslation.objects.filter(task=task, language="en").first()
+        logger.info(f"Translation object: {translation}")
+
         context['translation'] = translation
         if translation:
-            print(f"Task translation: {translation}")
+            logger.info(f"Translation answers type: {type(translation.answers)}")
+            logger.info(f"Raw answers: {translation.answers}")
+
             if isinstance(translation.answers, str):
-                context['answers'] = json.loads(translation.answers)
+                try:
+                    context['answers'] = json.loads(translation.answers)
+                    logger.info(f"Parsed answers: {context['answers']}")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error parsing answers JSON: {e}")
+                    context['answers'] = []
             else:
                 context['answers'] = translation.answers
 
+        # Добавляем информацию о теме и подтеме
         context['topic'] = {'name': quiz_type.capitalize()}
         context['subtopic'] = {'name': subtopic}
+
+        # Формируем URL для отправки ответа
         context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
             'quiz_type': quiz_type,
             'subtopic': subtopic,
             'task_id': task.id
         })
+        logger.info(f"Submit URL: {context['submit_url']}")
 
+        # Обрабатываем параметры результата
         is_correct_param = self.request.GET.get('is_correct')
         context['is_correct'] = True if is_correct_param == 'True' else False if is_correct_param == 'False' else None
         context['selected_answer'] = self.request.GET.get('selected')
-        context['error'] = self.request.GET.get('error')  # Добавляем параметр ошибки
-        print(
-            f"is_correct: {context['is_correct']}, selected_answer: {context['selected_answer']}, error: {context['error']}")
+        context['error'] = self.request.GET.get('error')
+
+        logger.info("=== Context Debug Info ===")
+        logger.info(f"is_correct: {context['is_correct']}")
+        logger.info(f"selected_answer: {context['selected_answer']}")
+        logger.info(f"error: {context['error']}")
+
+        # Проверяем наличие всех необходимых скриптов в контексте
+        logger.info("=== Static Files Check ===")
+        from django.templatetags.static import static
+        script_files = [
+            'blog/js/vector.js',
+            'blog/js/lightning.js',
+            'blog/js/quiz_lightning.js'
+        ]
+        for script in script_files:
+            static_url = static(script)
+            logger.info(f"Static URL for {script}: {static_url}")
+
         return context
 
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        logger.info("=== Template Rendering ===")
+        logger.info(f"Template name: {self.template_name}")
+        logger.info(f"Response status code: {response.status_code}")
+        return response
 
 
 

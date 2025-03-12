@@ -127,6 +127,20 @@
     </div>
 
     <style>
+      /* Стили для аватарки */
+      .avatar-box img {
+        border-radius: 15px;     /* Закругленные углы, но не круглая */
+        object-fit: cover;       /* Обеспечивает правильное масштабирование изображения */
+        /* border: 2px solid var(--orange-yellow-crayola, #f9ab00);  Добавляем рамку */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);  /* Добавляем тень */
+        transition: transform 0.3s ease;  /* Плавное изменение при наведении */
+      }
+      
+      /* Эффект при наведении */
+      .avatar-box img:hover {
+        transform: scale(1.05);  /* Немного увеличиваем при наведении */
+      }
+      
       .icon-box {
         position: relative;
       }
@@ -166,5 +180,14 @@
       <p>Please <a href="#" id="sidebar-login-link">log in</a> to view your profile information.</p>
     </div>
 
+    <style>
+      /* Стили для аватарки */
+      .avatar-box img {
+        border-radius: 15px;     /* Закругленные углы, но не круглая */
+        object-fit: cover;       /* Обеспечивает правильное масштабирование изображения */
+        /* border: 2px solid var(--orange-yellow-crayola, #f9ab00);  Добавляем рамку */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);  /* Добавляем тень */
+      }
+    </style>
   {% endif %}
 </aside>
