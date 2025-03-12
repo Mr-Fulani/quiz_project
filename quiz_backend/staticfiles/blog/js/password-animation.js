@@ -57,79 +57,81 @@ const MOVE_EYE = ({ x, y }) => {
 
 window.addEventListener('pointermove', MOVE_EYE);
 
-TOGGLE.addEventListener('click', () => {
-    if (busy) return;
-    const isText = INPUT.matches('[type=password]');
-    const val = INPUT.value;
-    busy = true;
-    TOGGLE.setAttribute('aria-pressed', isText);
-    const duration = TOGGLE_SPEED;
+if (TOGGLE) {
+    TOGGLE.addEventListener('click', () => {
+        if (busy) return;
+        const isText = INPUT.matches('[type=password]');
+        const val = INPUT.value;
+        busy = true;
+        TOGGLE.setAttribute('aria-pressed', isText);
+        const duration = TOGGLE_SPEED;
 
-    if (isText) {
-        if (blinkTl) blinkTl.kill();
+        if (isText) {
+            if (blinkTl) blinkTl.kill();
 
-        gsap.timeline({
-            onComplete: () => {
-                busy = false;
-            }
-        })
-        .to('.lid--upper', {
-            morphSVG: '.lid--lower',
-            duration
-        })
-        .to('#eye-open path', {
-            morphSVG: '#eye-closed path',
-            duration
-        }, 0)
-        .to(PROXY, {
-            duration: ENCRYPT_SPEED,
-            onStart: () => {
-                INPUT.type = 'text';
-            },
-            onComplete: () => {
-                PROXY.innerHTML = '';
-                INPUT.value = val;
-            },
-            scrambleText: {
-                chars,
-                text: val.charAt(val.length - 1) === ' ' ?
-                    `${val.slice(0, val.length - 1)}${chars.charAt(Math.floor(Math.random() * chars.length))}` :
-                    val
-            },
-            onUpdate: () => {
-                const len = val.length - PROXY.innerText.length;
-                INPUT.value = `${PROXY.innerText}${new Array(len).fill('•').join('')}`;
-            }
-        }, 0);
-    } else {
-        gsap.timeline({
-            onComplete: () => {
-                BLINK();
-                busy = false;
-            }
-        })
-        .to('.lid--upper', {
-            morphSVG: '.lid--upper',
-            duration
-        })
-        .to('#eye-open path', {
-            morphSVG: '#eye-open path',
-            duration
-        }, 0)
-        .to(PROXY, {
-            duration: ENCRYPT_SPEED,
-            onComplete: () => {
-                INPUT.type = 'password';
-                INPUT.value = val;
-                PROXY.innerHTML = '';
-            },
-            scrambleText: {
-                chars,
-                text: new Array(INPUT.value.length).fill('•').join('')
-            },
-            onUpdate: () => {
-                INPUT.value = `${PROXY.innerText}${val.slice(PROXY.innerText.length, val.length)}`;
-            }
-        }, 0);
-    }
-});
+            gsap.timeline({
+                onComplete: () => {
+                    busy = false;
+                }
+            })
+            .to('.lid--upper', {
+                morphSVG: '.lid--lower',
+                duration
+            })
+            .to('#eye-open path', {
+                morphSVG: '#eye-closed path',
+                duration
+            }, 0)
+            .to(PROXY, {
+                duration: ENCRYPT_SPEED,
+                onStart: () => {
+                    INPUT.type = 'text';
+                },
+                onComplete: () => {
+                    PROXY.innerHTML = '';
+                    INPUT.value = val;
+                },
+                scrambleText: {
+                    chars,
+                    text: val.charAt(val.length - 1) === ' ' ?
+                        `${val.slice(0, val.length - 1)}${chars.charAt(Math.floor(Math.random() * chars.length))}` :
+                        val
+                },
+                onUpdate: () => {
+                    const len = val.length - PROXY.innerText.length;
+                    INPUT.value = `${PROXY.innerText}${new Array(len).fill('•').join('')}`;
+                }
+            }, 0);
+        } else {
+            gsap.timeline({
+                onComplete: () => {
+                    BLINK();
+                    busy = false;
+                }
+            })
+            .to('.lid--upper', {
+                morphSVG: '.lid--upper',
+                duration
+            })
+            .to('#eye-open path', {
+                morphSVG: '#eye-open path',
+                duration
+            }, 0)
+            .to(PROXY, {
+                duration: ENCRYPT_SPEED,
+                onComplete: () => {
+                    INPUT.type = 'password';
+                    INPUT.value = val;
+                    PROXY.innerHTML = '';
+                },
+                scrambleText: {
+                    chars,
+                    text: new Array(INPUT.value.length).fill('•').join('')
+                },
+                onUpdate: () => {
+                    INPUT.value = `${PROXY.innerText}${val.slice(PROXY.innerText.length, val.length)}`;
+                }
+            }, 0);
+        }
+    });
+}

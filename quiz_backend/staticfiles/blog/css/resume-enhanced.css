@@ -1,0 +1,298 @@
+/* Специальные стили для улучшенного резюме */
+
+:root {
+    --gold-color: #FFD700;
+    --gold-hover: #FFDF40;
+    --gold-dark: #D4AF37;
+    --dark-bg: #1E1E1E;
+}
+
+/* Переключатель языков */
+.resume .language-switcher {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    justify-content: flex-end;
+}
+
+.resume .lang-btn {
+    padding: 8px 15px;
+    border: 2px solid var(--gold-color);
+    background: var(--dark-bg);
+    color: var(--gold-color);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.resume .lang-btn.active {
+    background: var(--gold-color);
+    color: var(--dark-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4);
+}
+
+.resume .lang-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4);
+    background: var(--gold-hover);
+    color: var(--dark-bg);
+}
+
+/* Обновленные стили для кнопок действий */
+.resume .resume-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+    padding: 15px;
+    background: rgba(30, 30, 30, 0.7);
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--gold-dark);
+}
+
+.resume .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 15px; /* Уменьшенный размер */
+    background: var(--gold-color);
+    color: var(--dark-bg);
+    border: none;
+    border-radius: 6px; /* Уменьшенный радиус */
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+    font-size: 14px; /* Уменьшенный размер шрифта */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.resume .action-btn:hover {
+    background: var(--gold-hover);
+    transform: translateY(-2px); /* Меньше подъем при наведении */
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4);
+}
+
+.resume .action-btn ion-icon {
+    font-size: 1.1em; /* Уменьшенный размер иконок */
+}
+
+
+/* Модальное окно редактирования */
+.resume-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.resume-modal-content {
+    background: var(--dark-bg);
+    color: #fff;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 30px;
+    border-radius: 15px;
+    position: relative;
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+    border: 1px solid var(--gold-color);
+}
+
+.resume-modal .close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--gold-color);
+    transition: color 0.3s;
+}
+
+.resume-modal .close-btn:hover {
+    color: #ff3860;
+}
+
+.resume-modal h2 {
+    color: var(--gold-color);
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--gold-color);
+    padding-bottom: 10px;
+}
+
+.resume-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.resume-modal .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--gold-color);
+    font-weight: bold;
+}
+
+.resume-modal .form-group input,
+.resume-modal .form-group textarea {
+    width: 100%;
+    padding: 12px;
+    background: #2D2D2D;
+    border: 1px solid var(--gold-color);
+    color: #fff;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.resume-modal .form-group input:focus,
+.resume-modal .form-group textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5);
+    background: #333;
+}
+
+.resume-modal .form-section {
+    margin: 30px 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--gold-color);
+}
+
+.resume-modal .form-section h3 {
+    color: var(--gold-color);
+    margin-bottom: 20px;
+}
+
+.resume-modal .add-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background: transparent;
+    color: var(--gold-color);
+    border: 1px dashed var(--gold-color);
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+}
+
+.resume-modal .add-item-btn:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--gold-hover);
+}
+
+.resume-modal .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.resume-modal .save-btn,
+.resume-modal .cancel-btn {
+    padding: 12px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.resume-modal .save-btn {
+    background: var(--gold-color);
+    color: var(--dark-bg);
+    border: none;
+}
+
+.resume-modal .save-btn:hover {
+    background: var(--gold-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4);
+}
+
+.resume-modal .cancel-btn {
+    background: transparent;
+    color: #fff;
+    border: 1px solid var(--gold-color);
+}
+
+.resume-modal .cancel-btn:hover {
+    background: rgba(255, 56, 96, 0.1);
+    border-color: #ff3860;
+    color: #ff3860;
+}
+
+.resume-modal .item-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.resume-modal .remove-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #ff3860;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.resume-modal .remove-item:hover {
+    background: rgba(255, 56, 96, 0.1);
+}
+
+.resume-modal .education-item,
+.resume-modal .experience-item {
+    background: rgba(212, 175, 55, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border-left: 3px solid var(--gold-color);
+}
+
+/* Стили для печати */
+@media print {
+    .resume-actions,
+    .language-switcher,
+    nav,
+    .sidebar {
+        display: none !important;
+    }
+
+    .resume {
+        padding: 0;
+        margin: 0;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+
+    .timeline-item {
+        break-inside: avoid;
+    }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .resume .resume-actions {
+        flex-direction: column;
+    }
+
+    .resume-modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+}
