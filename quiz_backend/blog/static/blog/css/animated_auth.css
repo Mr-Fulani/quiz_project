@@ -143,3 +143,113 @@
 .login .links a:hover {
     text-decoration: underline;
 }
+
+
+
+
+
+
+/* Добавить в конец файла */
+
+.password-group {
+    position: relative;
+}
+
+/* Обновите существующие стили для password-toggle и добавьте новые */
+
+.password-toggle {
+    padding: 0;
+    display: grid;
+    place-items: center;
+    height: 35px;
+    width: 35px;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    color: #00ff0a; /* Изменили цвет на яркий зеленый */
+    position: absolute;
+    right: 10px;
+    z-index: 2;
+    top: 50%;
+    cursor: pointer;
+    translate: 0 -50%;
+    outline: 0;
+    transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: #ff0057; /* Красный при наведении */
+}
+
+.password-toggle svg {
+    width: 75%;
+    height: 75%;
+    filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5)); /* Добавляем свечение */
+}
+
+/* Стили для глаза */
+.eye circle:first-of-type {
+    fill: currentColor; /* Основной цвет глаза */
+}
+
+.eye circle:nth-of-type(2) {
+    fill: #000; /* Зрачок всегда черный */
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
+}
+
+/* Стили для век */
+.lid--upper, .lid--lower {
+    stroke: currentColor;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5));
+}
+
+/* Добавляем анимацию свечения */
+@keyframes glow {
+    0% { filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5)); }
+    50% { filter: drop-shadow(0 0 4px rgba(0, 255, 10, 0.7)); }
+    100% { filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5)); }
+}
+
+.password-toggle svg {
+    animation: glow 2s infinite;
+}
+
+/* Обновляем переменные в :root */
+:root {
+    --glint: #fff;
+    --eye-color: #00ff0a;
+    --eye-hover: #ff0057;
+}
+
+@media(prefers-color-scheme: dark) {
+    :root {
+        --glint: #000;
+        --eye-color: #00ff0a;
+        --eye-hover: #ff0057;
+    }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Добавить в :root если отсутствуют */
+:root {
+    --glint: white;
+}
+
+@media(prefers-color-scheme: dark) {
+    :root {
+        --glint: black;
+    }
+}

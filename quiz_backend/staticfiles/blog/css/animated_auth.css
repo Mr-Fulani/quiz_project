@@ -143,3 +143,68 @@
 .login .links a:hover {
     text-decoration: underline;
 }
+
+
+
+
+/* Добавить в существующий CSS */
+
+.password-group {
+    position: relative;
+}
+
+.password-toggle {
+    padding: 0;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 0;
+    background: linear-gradient(hsl(0 0% var(--button-shade) / calc(var(--active, 0) * 0.5)), hsl(0 0% var(--button-shade) / calc(var(--active, 0) * 0.5))) padding-box;
+    border: 6px solid transparent;
+    transition: background 0.125s;
+    color: var(--color-alpha);
+    position: absolute;
+    right: 0;
+    z-index: 2;
+    top: 50%;
+    cursor: pointer;
+    translate: 0 -50%;
+    outline: 0;
+}
+
+.password-toggle svg {
+    width: 75%;
+}
+
+.eye circle:nth-of-type(2) {
+    fill: var(--glint);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Добавить CSS переменные в :root */
+:root {
+    --button-shade: 80%;
+    --glint: white;
+    --color-alpha: hsl(0 0% 60%);
+}
+
+@media(prefers-color-scheme: dark) {
+    :root {
+        --button-shade: 30%;
+        --glint: black;
+        --color-alpha: hsl(0 0% 50%);
+    }
+}
