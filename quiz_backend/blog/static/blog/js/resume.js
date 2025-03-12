@@ -326,7 +326,37 @@ document.addEventListener('DOMContentLoaded', function () {
     const downloadPdfBtn = document.getElementById('download-pdf');
     if (downloadPdfBtn) {
         downloadPdfBtn.addEventListener('click', function () {
+            // Получаем элемент резюме
             const resumeElement = document.querySelector('.resume');
+            if (!resumeElement) {
+                console.error('Resume element not found');
+                return;
+            }
+
+            // Создаем клон элемента для печати (чтобы не изменять оригинал)
+            const printElement = resumeElement.cloneNode(true);
+
+            // Находим и удаляем кнопки действий из клона
+            const actionsToRemove = printElement.querySelector('.resume-actions');
+            if (actionsToRemove) {
+                actionsToRemove.remove();
+            }
+
+            // Находим и удаляем переключатель языков из клона
+            const langSwitcherToRemove = printElement.querySelector('.language-switcher');
+            if (langSwitcherToRemove) {
+                langSwitcherToRemove.remove();
+            }
+
+            // Добавляем клон в невидимый контейнер
+            const printContainer = document.createElement('div');
+            printContainer.style.position = 'absolute';
+            printContainer.style.left = '-9999px';
+            printContainer.style.top = '-9999px';
+            printContainer.appendChild(printElement);
+            document.body.appendChild(printContainer);
+
+            // Настройки для PDF
             const options = {
                 margin: 10,
                 filename: 'resume.pdf',
@@ -335,15 +365,52 @@ document.addEventListener('DOMContentLoaded', function () {
                 jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
             };
 
-            // Временно скрываем кнопки действий для PDF
-            const actions = document.querySelector('.resume-actions');
-            const actionsDisplay = actions.style.display;
-            actions.style.display = 'none';
+            // Показываем индикатор загрузки
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.textContent = 'Создание PDF...';
+            loadingIndicator.style.position = 'fixed';
+            loadingIndicator.style.top = '50%';
+            loadingIndicator.style.left = '50%';
+            loadingIndicator.style.transform = 'translate(-50%, -50%)';
+            loadingIndicator.style.padding = '15px 25px';
+            loadingIndicator.style.background = 'rgba(0, 0, 0, 0.8)';
+            loadingIndicator.style.color = '#fff';
+            loadingIndicator.style.borderRadius = '5px';
+            loadingIndicator.style.zIndex = '9999';
+            document.body.appendChild(loadingIndicator);
 
-            html2pdf().from(resumeElement).set(options).save().then(() => {
-                // Возвращаем отображение кнопок
-                actions.style.display = actionsDisplay;
-            });
+            // Генерируем PDF из клона
+            try {
+                // Проверяем, доступна ли библиотека html2pdf
+                if (typeof html2pdf === 'undefined') {
+                    throw new Error('html2pdf library not loaded');
+                }
+
+                html2pdf()
+                    .from(printElement)
+                    .set(options)
+                    .save()
+                    .then(() => {
+                        // Удаляем временные элементы
+                        document.body.removeChild(printContainer);
+                        document.body.removeChild(loadingIndicator);
+                    })
+                    .catch(error => {
+                        console.error('Error generating PDF:', error);
+                        document.body.removeChild(printContainer);
+                        document.body.removeChild(loadingIndicator);
+                        alert('Ошибка при создании PDF. Попробуйте еще раз.');
+                    });
+            } catch (error) {
+                console.error('Error with html2pdf:', error);
+                document.body.removeChild(printContainer);
+                document.body.removeChild(loadingIndicator);
+
+                // Предложим альтернативу - печать
+                if (confirm('Не удалось создать PDF. Хотите распечатать резюме?')) {
+                    window.print();
+                }
+            }
         });
     }
 
