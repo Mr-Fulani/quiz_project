@@ -236,22 +236,16 @@ def blog_view(request):
     return render(request, 'blog/blog.html', context)
 
 
-class ResumeView(TemplateView):
-    """
-    Отображает страницу резюме.
 
-    Использует шаблон blog/resume.html.
-    """
+
+class ResumeView(TemplateView):
     template_name = 'blog/resume.html'
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Пока возвращает базовый контекст, можно расширить при необходимости.
-        """
         context = super().get_context_data(**kwargs)
+        context['is_admin'] = self.request.user.is_staff if self.request.user.is_authenticated else False
         return context
+
 
 
 class PortfolioView(TemplateView):
