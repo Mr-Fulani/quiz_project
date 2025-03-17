@@ -8,15 +8,13 @@
 {% block content %}
 <article class="resume active" data-page="resume" id="resume-content">
     <header>
-        <h2 class="h2 article-title">Resume</h2>
-        <!-- Переключатель языков -->
+        <h2 class="h2 article-title page-title lang-text" data-lang-key="resume_title">Resume</h2>
+        <h2 class="h2 article-title lang-text" data-lang-key="personal_info.name">Anvar Sharipov</h2>
         <div class="language-switcher">
             <button class="lang-btn active" data-lang="en">EN</button>
             <button class="lang-btn" data-lang="ru">RU</button>
         </div>
-        <!-- Contact Info -->
         <div class="contact-info">
-            <!-- Заголовок с иконкой -->
             <div class="timeline contact-timeline">
                 <div class="title-wrapper">
                     <div class="icon-box">
@@ -25,7 +23,6 @@
                     <h3 class="h3 lang-text" data-lang-key="contact_title">Contact Information</h3>
                 </div>
             </div>
-            <!-- Обёртка для текста адреса -->
             <div class="location-phone-wrapper">
                 <p class="location-phone lang-text" data-lang="en">Istanbul, Turkey 34520 | +905525821497</p>
                 <p class="location-phone lang-text" data-lang="ru">Стамбул, Турция 34520 | +905525821497</p>
@@ -37,13 +34,12 @@
     </header>
 
     <section class="resume-content">
-        <!-- Summary -->
         <div class="timeline">
             <div class="title-wrapper">
                 <div class="icon-box">
                     <ion-icon name="person-outline"></ion-icon>
                 </div>
-                <h3 class="h3">Professional Summary</h3>
+                <h3 class="h3 lang-text" data-lang-key="summary_title">Professional Summary</h3>
             </div>
             <p class="timeline-text lang-text" data-lang="en">
                 Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.
@@ -53,24 +49,25 @@
             </p>
         </div>
 
-        <!-- Skills -->
         <div class="timeline">
             <div class="title-wrapper">
                 <div class="icon-box">
                     <ion-icon name="star-outline"></ion-icon>
                 </div>
-                <h3 class="h3">Skills</h3>
+                <h3 class="h3 lang-text" data-lang-key="skills_title">Skills</h3>
             </div>
             <ul class="timeline-list skills-list">
                 <li>Linux Environments</li>
-                <li>Django REST framework (DRF)</li>
-                <li>Problem-Solving</li>
+                <li>Python</li>
+                <li>Django (DRF)</li>
+                <li>FastAPI</li>
+                <li>Flask</li>
+                <li>Docker</li>
                 <li>API Development</li>
-                <li>JIRA</li>
+                <li>SQLAlchemy</li>
             </ul>
         </div>
 
-        <!-- Work History -->
         <div class="timeline">
             <div class="title-wrapper">
                 <div class="icon-box">
@@ -80,24 +77,62 @@
             </div>
             <ol class="timeline-list">
                 <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Middle Software Developer</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Средний разработчик программного обеспечения</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Private Practice / Freelancing Remote</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Частная практика / Фриланс удалённо</h4>
                     <span class="lang-text" data-lang="en">01/2023 to Current</span>
                     <span class="lang-text" data-lang="ru">01/2023 по настоящее время</span>
-                    <p class="timeline-text lang-text" data-lang="en">AS TRANSFER DIJTAL ICERIK TEKNOLOJILERI LiMiTED, Istanbul, Turkey</p>
-                    <p class="timeline-text lang-text" data-lang="ru">AS TRANSFER DIJTAL ICERIK TEKNOLOJILERI LiMiTED, Стамбул, Турция</p>
+                    <p class="timeline-text lang-text" data-lang="en">Upwork.com</p>
+                    <p class="timeline-text lang-text" data-lang="ru">Upwork.com</p>
+                    <ul class="responsibilities">
+                        <li class="lang-text" data-lang="en">Self-motivated, with a strong sense of personal responsibility.</li>
+                        <li class="lang-text" data-lang="ru">Самомотивирован, с сильным чувством личной ответственности.</li>
+                        <li class="lang-text" data-lang="en">Skilled at working independently and collaboratively in a team environment.</li>
+                        <li class="lang-text" data-lang="ru">Умение работать самостоятельно и в команде.</li>
+                    </ul>
+                </li>
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Middle Software Developer</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Средний разработчик программного обеспечения</h4>
+                    <span class="lang-text" data-lang="en">01/2023 to 08/2024</span>
+                    <span class="lang-text" data-lang="ru">01/2023 по 08/2024</span>
+                    <p class="timeline-text lang-text" data-lang="en">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED, Istanbul, Turkey</p>
+                    <p class="timeline-text lang-text" data-lang="ru">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED, Стамбул, Турция</p>
                     <ul class="responsibilities">
                         <li class="lang-text" data-lang="en">Improved software efficiency by troubleshooting and resolving coding issues.</li>
                         <li class="lang-text" data-lang="ru">Улучшил эффективность ПО, устраняя проблемы в коде.</li>
                         <li class="lang-text" data-lang="en">Saved time and resources by identifying and fixing bugs before product deployment.</li>
                         <li class="lang-text" data-lang="ru">Сэкономил время и ресурсы, исправляя ошибки перед запуском продукта.</li>
+                        <li class="lang-text" data-lang="en">Discussed issues with team members to provide resolution and apply best practices.</li>
+                        <li class="lang-text" data-lang="ru">Обсуждал проблемы с членами команды для их решения и применения лучших практик.</li>
+                        <li class="lang-text" data-lang="en">Updated old code bases to modern development standards, improving functionality.</li>
+                        <li class="lang-text" data-lang="ru">Обновлял старые кодовые базы до современных стандартов разработки, улучшая функциональность.</li>
+                        <li class="lang-text" data-lang="en">Optimized application performance by conducting regular code reviews and refactoring when necessary.</li>
+                        <li class="lang-text" data-lang="ru">Оптимизировал производительность приложений, проводя регулярные проверки кода и рефакторинг при необходимости.</li>
+                        <li class="lang-text" data-lang="en">Estimated work hours and tracked progress using Scrum methodology.</li>
+                        <li class="lang-text" data-lang="ru">Оценивал рабочее время и отслеживал прогресс с использованием методологии Scrum.</li>
+                        <li class="lang-text" data-lang="en">Built databases and table structures for web applications.</li>
+                        <li class="lang-text" data-lang="ru">Создавал базы данных и структуры таблиц для веб-приложений.</li>
                     </ul>
                 </li>
-                <!-- Остальные записи опущены для краткости -->
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Junior Software Developer</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Младший разработчик программного обеспечения</h4>
+                    <span class="lang-text" data-lang="en">07/2022 to 01/2023</span>
+                    <span class="lang-text" data-lang="ru">07/2022 по 01/2023</span>
+                    <p class="timeline-text lang-text" data-lang="en">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED Si, Istanbul, Turkey</p>
+                    <p class="timeline-text lang-text" data-lang="ru">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED Si, Стамбул, Турция</p>
+                    <ul class="responsibilities">
+                        <li class="lang-text" data-lang="en">Contributed to the successful launch of a new software product by assisting with the design, development, and implementation phases.</li>
+                        <li class="lang-text" data-lang="ru">Способствовал успешному запуску нового программного продукта, помогая в фазах проектирования, разработки и внедрения.</li>
+                        <li class="lang-text" data-lang="en">Discussed issues with team members to provide resolution and apply best practices.</li>
+                        <li class="lang-text" data-lang="ru">Обсуждал проблемы с членами команды для их решения и применения лучших практик.</li>
+                        <li class="lang-text" data-lang="en">Built databases and table structures for web applications.</li>
+                        <li class="lang-text" data-lang="ru">Создавал базы данных и структуры таблиц для веб-приложений.</li>
+                    </ul>
+                </li>
             </ol>
         </div>
 
-        <!-- Education -->
         <div class="timeline">
             <div class="title-wrapper">
                 <div class="icon-box">
@@ -117,52 +152,66 @@
             </ol>
         </div>
 
-        <!-- Languages -->
         <div class="timeline">
-            <div class="title-wrapper">
-                <div class="icon-box">
-                    <ion-icon name="language-outline"></ion-icon>
-                </div>
-                <h3 class="h3">Languages</h3>
-            </div>
-            <div class="languages-container">
-                <div class="language-item lang-text" data-lang="en">
-                    <span>Russian: Native</span>
-                    <div class="progress-bar"><div class="progress" style="width: 100%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Русский: Родной</span>
-                    <div class="progress-bar"><div class="progress" style="width: 100%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="en">
-                    <span>English: Intermediate (B2)</span>
-                    <div class="progress-bar"><div class="progress" style="width: 60%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Английский: Средний (B2)</span>
-                    <div class="progress-bar"><div class="progress" style="width: 60%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="en">
-                    <span>Persian: Upper Intermediate (B2)</span>
-                    <div class="progress-bar"><div class="progress" style="width: 80%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Персидский: Выше среднего (B2)</span>
-                    <div class="progress-bar"><div class="progress" style="width: 80%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="en">
-                    <span>Turkish: Upper Intermediate (B2)</span>
-                    <div class="progress-bar"><div class="progress" style="width: 80%;"></div></div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Турецкий: Выше среднего (B2)</span>
-                    <div class="progress-bar"><div class="progress" style="width: 80%;"></div></div>
-                </div>
+    <div class="title-wrapper">
+        <div class="icon-box">
+            <ion-icon name="language-outline"></ion-icon>
+        </div>
+        <h3 class="h3 lang-text" data-lang-key="languages_title">Languages</h3>
+    </div>
+    <div class="languages-container">
+        <div class="language-item lang-text" data-lang="en">
+            <span>Russian: Native</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 100%;"></div>
             </div>
         </div>
+        <div class="language-item lang-text" data-lang="ru">
+            <span>Русский: Родной</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        <div class="language-item lang-text" data-lang="en">
+            <span>English: Intermediate (B2)</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 60%;"></div>
+            </div>
+        </div>
+        <div class="language-item lang-text" data-lang="ru">
+            <span>Английский: Средний (B2)</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 60%;"></div>
+            </div>
+        </div>
+        <div class="language-item lang-text" data-lang="en">
+            <span>Persian: Native</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 80%;"></div>
+            </div>
+        </div>
+        <div class="language-item lang-text" data-lang="ru">
+            <span>Персидский: Родной</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 80%;"></div>
+            </div>
+        </div>
+        <div class="language-item lang-text" data-lang="en">
+            <span>Turkish: Upper Intermediate (B2)</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 80%;"></div>
+            </div>
+        </div>
+        <div class="language-item lang-text" data-lang="ru">
+            <span>Турецкий: Выше среднего (B2)</span>
+            <div class="skills-progress-bg">
+                <div class="skills-progress-fill" style="width: 80%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
     </section>
 
-    <!-- Кнопки действий -->
     <div class="resume-actions">
         {% if is_admin %}
         <button id="edit-resume" class="action-btn">
@@ -178,7 +227,6 @@
     </div>
 </article>
 
-<!-- Модальное окно редактирования -->
 {% if is_admin %}
 <div id="edit-modal" class="resume-modal">
     <div class="resume-modal-content">
@@ -219,11 +267,11 @@
             </div>
             <div class="form-group">
                 <label for="edit-job1-title-en">Work History 1 Title (EN)</label>
-                <input type="text" id="edit-job1-title-en" name="job1-title-en" value="Middle Software Developer">
+                <input type="text" id="edit-job1-title-en" name="job1-title-en" value="Private Practice / Freelancing Remote">
             </div>
             <div class="form-group">
                 <label for="edit-job1-title-ru">Work History 1 Title (RU)</label>
-                <input type="text" id="edit-job1-title-ru" name="job1-title-ru" value="Средний разработчик программного обеспечения">
+                <input type="text" id="edit-job1-title-ru" name="job1-title-ru" value="Частная практика / Фриланс удалённо">
             </div>
             <div class="form-group">
                 <label for="edit-job1-period-en">Work History 1 Period (EN)</label>
@@ -235,19 +283,19 @@
             </div>
             <div class="form-group">
                 <label for="edit-job1-company-en">Work History 1 Company (EN)</label>
-                <input type="text" id="edit-job1-company-en" name="job1-company-en" value="AS TRANSFER DIJTAL ICERIK TEKNOLOJILERI LiMiTED, Istanbul, Turkey">
+                <input type="text" id="edit-job1-company-en" name="job1-company-en" value="Upwork.com">
             </div>
             <div class="form-group">
                 <label for="edit-job1-company-ru">Work History 1 Company (RU)</label>
-                <input type="text" id="edit-job1-company-ru" name="job1-company-ru" value="AS TRANSFER DIJTAL ICERIK TEKNOLOJILERI LiMiTED, Стамбул, Турция">
+                <input type="text" id="edit-job1-company-ru" name="job1-company-ru" value="Upwork.com">
             </div>
             <div class="form-group">
                 <label for="edit-job1-responsibilities-en">Work History 1 Responsibilities (EN, separated by ; )</label>
-                <textarea id="edit-job1-responsibilities-en" name="job1-responsibilities-en">Improved software efficiency by troubleshooting and resolving coding issues.; Saved time and resources by identifying and fixing bugs before product deployment.</textarea>
+                <textarea id="edit-job1-responsibilities-en" name="job1-responsibilities-en">Self-motivated, with a strong sense of personal responsibility.; Skilled at working independently and collaboratively in a team environment.</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-job1-responsibilities-ru">Work History 1 Responsibilities (RU, separated by ; )</label>
-                <textarea id="edit-job1-responsibilities-ru" name="job1-responsibilities-ru">Улучшил эффективность ПО, устраняя проблемы в коде.; Сэкономил время и ресурсы, исправляя ошибки перед запуском продукта.</textarea>
+                <textarea id="edit-job1-responsibilities-ru" name="job1-responsibilities-ru">Самомотивирован, с сильным чувством личной ответственности.; Умение работать самостоятельно и в команде.</textarea>
             </div>
             <div class="form-actions">
                 <button type="submit" class="save-btn">Save Changes</button>

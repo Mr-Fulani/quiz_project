@@ -1,128 +1,104 @@
-:root {
-    --gold-color: hsl(45, 100%, 72%);
-    --gold-hover: hsl(45, 100%, 75%);
-    --dark-bg: hsl(240, 2%, 13%);
-    --light-gray: hsl(0, 0%, 84%);
-}
+/* Импорт шрифтов */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
 
+/* Ограничим переопределение переменных только для резюме */
 .resume {
+    --gold-hover: hsl(45, 100%, 75%);
     max-width: 900px;
     margin: 0 auto;
     padding: 20px;
-    padding-top: 80px;
-    background: var(--dark-bg);
-    color: var(--light-gray);
     font-family: 'Times New Roman', serif;
+    position: relative;
+    overflow: hidden;
+    color: var(--white2); /* Устанавливаем светлый цвет текста по умолчанию для всего резюме */
 }
 
-.h2.article-title {
-    font-size: 14pt;
+/* Контент резюме */
+.resume-content {
+    margin-top: 50px;
+}
+
+/* Контактная информация в резюме */
+.resume .contact-info {
     text-align: left;
-    color: var(--gold-color);
-    border-bottom: 1px solid var(--gold-color);
-    padding-bottom: 5px;
-    margin-bottom: 25px;
-    position: absolute;
-    left: 20px;
-    top: 20px;
-}
-
-/* Центрирование имени */
-h2.article-title.lang-text[data-lang-key="personal_info.name"] {
-    position: static;
-    text-align: center;
-    left: auto;
-    top: auto;
-    margin: 0 auto 5px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--gold-color);
-}
-
-.lang-text[data-lang-key="personal_info.name"] {
-    text-align: center;
-    font-size: 14pt;
-    color: var(--gold-color);
-    border-bottom: 1px solid var(--gold-color);
-    padding-bottom: 5px;
-    margin-bottom: 0;
-}
-
-.contact-info {
-    margin-top: 0; /* Убрали верхний отступ */
-    text-align: left;
-    font-size: 11pt;
     margin-bottom: 20px;
-    position: relative; /* Для управления расположением */
 }
 
-.contact-info .contact-timeline {
-    margin: 0; /* Убираем стандартные отступы timeline */
-    position: absolute;
-    top: -30px; /* Поднимаем заголовок выше текста */
-    left: 0;
+.resume .contact-info .location-phone-wrapper {
+    position: relative;
+}
+
+.resume .contact-info .location-phone {
+    position: relative;
+    top: -120px;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--white2);
+    font-size: var(--fs6);
+}
+
+/* Переключатель языков */
+.language-switcher {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin: 15px 0 0;
+}
+
+/* Имя в заголовке */
+h2.article-title.lang-text[data-lang-key="personal_info.name"] {
+    text-align: center;
+    margin: 0 auto 5px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--orange-yellow-crayola);
+    color: var(--orange-yellow-crayola);
+}
+
+/* Контактная информация */
+.contact-info {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.contact-info .contact-timeline .title-wrapper {
+    margin-bottom: 25px;
 }
 
 .contact-info .location-phone {
-    margin-top: -45px; /* Поднимаем строку адреса ближе к полосе */
     text-align: center;
     white-space: nowrap;
-    display: block;
 }
 
-.contact-info .email {
-    text-align: left;
+.contact-info .email,
+.contact-info p:nth-child(4),
+.contact-info p:nth-child(5) {
     margin-top: 10px;
 }
 
-.contact-info p {
-    margin: 5px 0;
-}
-
 .contact-info a {
-    color: var(--gold-color);
-    text-decoration: none;
+    color: var(--orange-yellow-crayola);
 }
 
 .contact-info a:hover {
     text-decoration: underline;
+    color: var(--light-gray70);
 }
 
-.h3 {
-    font-size: 12pt;
-    color: var(--gold-color);
-    border-bottom: 1px solid var(--gold-color);
-    padding-bottom: 5px;
-    margin: 20px 0 10px;
-}
-
-.timeline-item .h4 {
-    font-size: 11pt;
-    font-weight: bold;
-    color: var(--light-gray);
-}
-
-.timeline-item span,
-.timeline-text {
-    font-size: 11pt;
-    color: var(--light-gray);
-}
-
-.responsibilities {
-    list-style-type: disc;
-    margin-left: 20px;
-    font-size: 11pt;
-    color: var(--light-gray);
-}
-
+/* Списки обязанностей и навыков */
+.responsibilities,
 .skills-list {
     list-style-type: disc;
     margin-left: 20px;
-    font-size: 11pt;
-    color: var(--light-gray);
-    column-count: 2; /* Два столбца */
+    color: var(--white2); /* Светлый цвет для текста списков */
+}
+
+.skills-list {
+    column-count: 2;
     column-gap: 40px;
 }
 
+/* Языки */
 .languages-container {
     display: flex;
     flex-wrap: wrap;
@@ -132,60 +108,56 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
 
 .language-item {
     flex: 1 1 45%;
-    font-size: 11pt;
-    color: var(--light-gray);
+    font-size: var(--fs6);
+    color: var(--white2); /* Явно задаем светлый цвет текста */
 }
 
 .language-item span {
     display: block;
     margin-bottom: 5px;
+    color: var(--white2); /* Убеждаемся, что текст светлый */
 }
 
-.progress-bar {
-    width: 100%;
+/* Прогресс-бары для языков */
+.language-item .skills-progress-bg {
+    background: var(--jet);
     height: 8px;
-    background: hsl(240, 1%, 17%);
-    border-radius: 4px;
+    border-radius: 10px;
     overflow: hidden;
 }
 
-.progress {
+.language-item .skills-progress-fill {
+    background: var(--text-gradient-yellow);
     height: 100%;
-    background: var(--gold-color);
+    border-radius: inherit;
     transition: width 0.3s ease;
 }
 
-.language-switcher {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    margin: 15px 0;
-    margin-top: 0;
-}
-
-.lang-btn {
+/* Переключатель языков */
+.language-switcher .lang-btn {
     padding: 5px 10px;
-    border: 1px solid var(--gold-color);
-    background: var(--dark-bg);
-    color: var(--gold-color);
+    border: 1px solid var(--jet);
+    background: var(--eerie-black1);
+    color: var(--orange-yellow-crayola);
     border-radius: 5px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all var(--transition1);
 }
 
 .lang-btn.active,
 .lang-btn:hover {
-    background: var(--gold-color);
-    color: var(--dark-bg);
+    background: var(--bg-gradient-yellow1);
+    color: var(--smoky-black);
 }
 
+/* Кнопки действий */
 .resume-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 30px;
     padding: 15px;
-    background: var(--dark-bg);
+    background: var(--eerie-black1);
     border-radius: 10px;
     justify-content: center;
 }
@@ -195,18 +167,17 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: var(--gold-color);
-    color: var(--dark-bg);
-    border: none;
+    background: var(--orange-yellow-crayola);
+    color: var(--smoky-black);
     border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
+    transition: all var(--transition1);
 }
 
 .action-btn:hover {
-    background: var(--gold-hover);
+    background: var(--bg-gradient-yellow1);
 }
 
+/* Модальное окно */
 .resume-modal {
     display: none;
     position: fixed;
@@ -218,37 +189,48 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     z-index: 1000;
     justify-content: center;
     align-items: center;
+    overflow-y: auto;
+}
+
+.resume-modal.active {
+    display: flex;
 }
 
 .resume-modal-content {
-    background: var(--dark-bg);
-    color: var(--light-gray);
     padding: 30px;
-    border-radius: 10px;
     max-width: 800px;
     width: 95%;
     max-height: 90vh;
     overflow-y: auto;
-    box-sizing: border-box;
+    background: var(--eerie-black2);
+    border-radius: 10px;
 }
 
 .close-btn {
     position: absolute;
     top: 15px;
-    right: 20px;
+    right: 15px;
     font-size: 24px;
     cursor: pointer;
-    color: var(--gold-color);
+    color: var(--orange-yellow-crayola);
+    background: var(--dark-bg);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.7;
 }
 
 .close-btn:hover {
-    color: hsl(0, 100%, 70%);
+    opacity: 1;
+    color: var(--light-gray70);
 }
 
 .resume-modal h2 {
-    color: var(--gold-color);
+    color: var(--orange-yellow-crayola);
     margin-bottom: 20px;
-    font-size: 16pt;
 }
 
 .form-group {
@@ -256,27 +238,25 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
 }
 
 .form-group label {
-    color: var(--gold-color);
+    color: var(--orange-yellow-crayola);
     display: block;
     margin-bottom: 5px;
-    font-size: 11pt;
 }
 
 .form-group input,
 .form-group textarea {
-    width: 100%;
-    padding: 10px;
-    background: hsl(240, 1%, 17%);
-    border: 1px solid hsl(0, 0%, 22%);
-    color: var(--light-gray);
-    border-radius: 5px;
+    padding: 13px 20px;
+    background: var(--jet);
+    border: 1px solid var(--jet);
+    color: var(--white2);
+    border-radius: 14px;
     font-family: 'Times New Roman', serif;
-    font-size: 11pt;
-    box-sizing: border-box;
 }
 
 .form-group textarea {
+    min-height: 100px;
     height: 120px;
+    max-height: 200px;
     resize: vertical;
 }
 
@@ -289,17 +269,15 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
 
 .save-btn,
 .cancel-btn {
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 13px 20px;
+    border-radius: 14px;
     cursor: pointer;
-    font-size: 11pt;
-    transition: all 0.3s;
+    transition: var(--transition1);
 }
 
 .save-btn {
-    background: var(--gold-color);
+    background: var(--orange-yellow-crayola);
     color: var(--dark-bg);
-    border: none;
 }
 
 .save-btn:hover {
@@ -308,8 +286,8 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
 
 .cancel-btn {
     background: transparent;
-    color: var(--light-gray);
-    border: 1px solid var(--gold-color);
+    color: var(--white2);
+    border: 1px solid var(--jet);
 }
 
 .cancel-btn:hover {
@@ -317,6 +295,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     color: var(--gold-hover);
 }
 
+/* Печать */
 @media print {
     .resume-actions,
     .language-switcher {
@@ -325,32 +304,21 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     .resume {
         padding: 0.5in;
         margin: 0;
-        background: white;
-        color: black;
+        background: var(--white1);
+        color: var(--smoky-black);
         max-width: 8.5in;
-    }
-    .h2.article-title,
-    .h3 {
-        color: black;
-        border-bottom: 1px solid black;
-    }
-    .contact-info p,
-    .timeline-text,
-    .responsibilities li,
-    .skills-list li,
-    .language-item span {
-        color: black;
-        font-family: 'Times New Roman', serif;
-        font-size: 11pt;
+        box-shadow: none;
+        border: none;
     }
     .skills-list {
-        column-count: 1; /* Один столбец для печати */
+        column-count: 1;
     }
-    .progress-bar {
-        display: none; /* Убираем прогресс-бары при печати */
+    .skills-progress-bg {
+        display: none;
     }
 }
 
+/* Адаптивность */
 @media (max-width: 768px) {
     .resume-actions {
         flex-direction: column;
