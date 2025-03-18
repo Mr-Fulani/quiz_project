@@ -1,509 +1,565 @@
-
 /* 2: Import the 'Poppins' font from Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 /* 3: Begin definition of CSS custom properties in the :root selector */
-    :root {
+:root {
 
-/* 4: Define a background gradient variable named --bg-gradient-onyx */
-        --bg-gradient-onyx: linear-gradient(to bottom right, hsl(240, 1%, 25%) 3%, hsl(0, 0%, 19%) 97%);
+    /* 4: Define a background gradient variable named --bg-gradient-onyx */
+    --bg-gradient-onyx: linear-gradient(to bottom right, hsl(240, 1%, 25%) 3%, hsl(0, 0%, 19%) 97%);
 
-/* 5: Define a background gradient variable --bg-gradient-jet with layered gradients */
-        --bg-gradient-jet: linear-gradient(to bottom right, hsla(240, 1%, 18%, .251) 3%, hsla(240, 2%, 11%, 0) 100%), hsl(240, 2%, 13%);
+    /* 5: Define a background gradient variable --bg-gradient-jet with layered gradients */
+    --bg-gradient-jet: linear-gradient(to bottom right, hsla(240, 1%, 18%, .251) 3%, hsla(240, 2%, 11%, 0) 100%), hsl(240, 2%, 13%);
 
-/* 6: Define a background gradient variable --bg-gradient-yellow1 */
-        --bg-gradient-yellow1: linear-gradient(to bottom right, hsl(45, 100%, 71%) 0%, hsla(36, 100%, 69%, 0) 50%);
+    /* 6: Define a background gradient variable --bg-gradient-yellow1 */
+    --bg-gradient-yellow1: linear-gradient(to bottom right, hsl(45, 100%, 71%) 0%, hsla(36, 100%, 69%, 0) 50%);
 
-/* 7: Define a background gradient variable --bg-gradient-yellow2 */
-        --bg-gradient-yellow2: linear-gradient(135deg, hsla(45, 100%, 71%, .251) 0%, hsla(35, 100%, 68%, 0) 59.86%), hsl(240, 2%, 13%);
+    /* 7: Define a background gradient variable --bg-gradient-yellow2 */
+    --bg-gradient-yellow2: linear-gradient(135deg, hsla(45, 100%, 71%, .251) 0%, hsla(35, 100%, 68%, 0) 59.86%), hsl(240, 2%, 13%);
 
-/* 8: Define a border gradient variable --border-gradient-onyx */
-        --border-gradient-onyx: linear-gradient(to bottom right, hsl(0, 0%, 25%) 0%, hsla(0, 0%, 25%, 0) 50%);
+    /* 8: Define a border gradient variable --border-gradient-onyx */
+    --border-gradient-onyx: linear-gradient(to bottom right, hsl(0, 0%, 25%) 0%, hsla(0, 0%, 25%, 0) 50%);
 
-/* 9: Define a text gradient variable --text-gradient-yellow */
-        --text-gradient-yellow: linear-gradient(to right, hsl(45, 100%, 72%), hsl(35, 100%, 68%));
+    /* 9: Define a text gradient variable --text-gradient-yellow */
+    --text-gradient-yellow: linear-gradient(to right, hsl(45, 100%, 72%), hsl(35, 100%, 68%));
 
-/* 10: Define a solid color variable --jet */
-        --jet: hsl(0, 0%, 22%);
+    /* 10: Define a solid color variable --jet */
+    --jet: hsl(0, 0%, 22%);
 
-/* 11: Define a color variable --onyx */
-        --onyx: hsl(240, 1%, 17%);
+    /* 11: Define a color variable --onyx */
+    --onyx: hsl(240, 1%, 17%);
 
-/* 12: Define a dark color variable --eerie-black1 */
-        --eerie-black1: hsl(240, 2%, 13%);
+    /* 12: Define a dark color variable --eerie-black1 */
+    --eerie-black1: hsl(240, 2%, 13%);
 
-/* 13: Define a dark color variable --eerie-black2 */
-        --eerie-black2: hsl(240, 2%, 12%);
+    /* 13: Define a dark color variable --eerie-black2 */
+    --eerie-black2: hsl(240, 2%, 12%);
 
-/* 14: Define a very dark color variable --smoky-black */
-        --smoky-black: hsl(0, 0%, 7%);
+    /* 14: Define a very dark color variable --smoky-black */
+    --smoky-black: hsl(0, 0%, 7%);
 
-/* 15: Define white color variable --white1 */
-        --white1: hsl(0, 0%, 100%);
+    /* 15: Define white color variable --white1 */
+    --white1: hsl(0, 0%, 100%);
 
-/* 16: Define off-white color variable --white2 */
-        --white2: hsl(0, 0%, 98%);
+    /* 16: Define off-white color variable --white2 */
+    --white2: hsl(0, 0%, 98%);
 
-/* 17: Define an orange-yellow color variable --orange-yellow-crayola */
-        --orange-yellow-crayola: hsl(45, 100%, 72%);
+    /* 17: Define an orange-yellow color variable --orange-yellow-crayola */
+    --orange-yellow-crayola: hsl(45, 100%, 72%);
 
-/* 18: Define a gold-like color variable --vegas-gold */
-        --vegas-gold: hsl(45, 54%, 58%);
+    /* 18: Define a gold-like color variable --vegas-gold */
+    --vegas-gold: hsl(45, 54%, 58%);
 
-/* 19: Define a light gray color variable --light-gray */
-        --light-gray: hsl(0, 0%, 84%);
+    /* 19: Define a light gray color variable --light-gray */
+    --light-gray: hsl(0, 0%, 84%);
 
-/* 20: Define a semi-transparent light gray variable --light-gray70 */
-        --light-gray70: hsla(0, 0%, 84%, .7);
+    /* 20: Define a semi-transparent light gray variable --light-gray70 */
+    --light-gray70: hsla(0, 0%, 84%, .7);
 
-/* 21: Define a bittersweet color variable --bittersweet-shimmer */
-        --bittersweet-shimmer: hsl(0, 43%, 51%);
+    /* 21: Define a bittersweet color variable --bittersweet-shimmer */
+    --bittersweet-shimmer: hsl(0, 43%, 51%);
 
-/* 22: Define a font-family variable for Poppins */
-        --ff-poppins: 'Poppins', sans-serif;
+    /* 22: Define a font-family variable for Poppins */
+    --ff-poppins: 'Poppins', sans-serif;
 
-/* 23: Define various font size variables (fs1 to fs8) */
-        --fs1: 24px;
-        --fs2: 18px;
-        --fs3: 17px;
-        --fs4: 16px;
-        --fs5: 15px;
-        --fs6: 14px;
-        --fs7: 13px;
-        --fs8: 12px;
+    /* 23: Define various font size variables (fs1 to fs8) */
+    --fs1: 24px;
+    --fs2: 18px;
+    --fs3: 17px;
+    --fs4: 16px;
+    --fs5: 15px;
+    --fs6: 14px;
+    --fs7: 13px;
+    --fs8: 12px;
 
-/* 31: Define font weight variables */
-        --fw300: 300;
-        --fw400: 400;
-        --fw500: 500;
-        --fw600: 600;
+    /* 31: Define font weight variables */
+    --fw300: 300;
+    --fw400: 400;
+    --fw500: 500;
+    --fw600: 600;
 
-/* 35: Define several box-shadow variables for different shadow effects */
-        --shadow1: -4px 8px 24px hsla(0, 0%, 0%, .25);
-        --shadow2: 0px 16px 30px hsla(0, 0%, 0%, .25);
-        --shadow3: 0px 16px 40px hsla(0, 0%, 0%, .25);
-        --shadow4: 0px 25px 50px hsla(0, 0%, 0%, .15);
-        --shadow5: 0px 24px 80px hsla(0, 0%, 0%, .25);
+    /* 35: Define several box-shadow variables for different shadow effects */
+    --shadow1: -4px 8px 24px hsla(0, 0%, 0%, .25);
+    --shadow2: 0px 16px 30px hsla(0, 0%, 0%, .25);
+    --shadow3: 0px 16px 40px hsla(0, 0%, 0%, .25);
+    --shadow4: 0px 25px 50px hsla(0, 0%, 0%, .15);
+    --shadow5: 0px 24px 80px hsla(0, 0%, 0%, .25);
 
-/* 40: Define two transition timing variables */
-        --transition1: .25s ease;
-        --transition2: .5s ease-in-out;
-    }  /* 42: End of :root block */
+    /* 40: Define two transition timing variables */
+    --transition1: .25s ease;
+    --transition2: .5s ease-in-out;
+}
+
+/* 42: End of :root block */
 
 /* 43: Universal reset: Remove default margin, padding and set box-sizing for all elements */
-    *, *::before, *::after {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
 /* 47: Remove underline from all <a> (anchor) elements */
-    a {text-decoration: none; }
+a {
+    text-decoration: none;
+}
 
 /* 49: Remove default list styling from <li> elements */
-    li {list-style: none; }
+li {
+    list-style: none;
+}
 
 /* 51: Set display: block для ряда элементов, чтобы они вели себя как блочные */
-    img, ion-icon, a, button, time, span { display: block; }
+img, ion-icon, a, button, time, span {
+    display: block;
+}
 
 /* 53: Сброс стилей для кнопок: наследование шрифта, отсутствие фона и рамки, выравнивание по левому краю и указатель курсора */
-    button {
-        font: inherit;
-        background: none;
-        border: none;
-        text-align: left;
-        cursor: pointer;
-    }
+button {
+    font: inherit;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
 
 /* 59: Сброс стилей для элементов формы: делают input и textarea блочными, устанавливают ширину 100% и наследование шрифта */
-    input, textarea {
-        display: block;
-        width: 100%;
-        background: none;
-        font: inherit;
-    }
+input, textarea {
+    display: block;
+    width: 100%;
+    background: none;
+    font: inherit;
+}
 
 /* 65: Стилизация выделения текста: устанавливает фон и цвет текста при выделении */
-    ::selection {
-        background: var(--orange-yellow-crayola);
-        color: var(--smoky-black);
-    }
+::selection {
+    background: var(--orange-yellow-crayola);
+    color: var(--smoky-black);
+}
 
 /* 70: При фокусе на элементе задаётся цвет обводки (outline) */
-    :focus { outline-color: var(--orange-yellow-crayola); }
+:focus {
+    outline-color: var(--orange-yellow-crayola);
+}
 
 /* 72: Устанавливаем основной шрифт для всего HTML-документа */
-    html {
+html {
     font-family: var(--ff-poppins);
     color: var(--white2); /* Светлый текст по умолчанию */
-    }
+}
 
-    @media (max-width: 768px) {
-        html {
-            color: var(--white1); /* Белый для мобильных */
-        }
+@media (max-width: 768px) {
+    html {
+        color: var(--white1); /* Белый для мобильных */
     }
+}
 
 
 /* 74: Задаём фон для <body> документа */
-    body { background: var(--smoky-black); }
+body {
+    background: var(--smoky-black);
+}
 
 /* 76: Основной контейнер main: отступы и минимальная ширина */
-    main {
-        margin: 15px 12px;
-        margin-bottom: 75px;
-        min-width: 259px;
-    }
+main {
+    margin: 15px 12px;
+    margin-bottom: 75px;
+    min-width: 259px;
+}
 
 /* 82: Общие стили для .sidebar и article – фон, рамка, скругления, тень, z-index и внутренние отступы */
-    .sidebar, article {
-        background: var(--eerie-black2);
-        border: 1px solid var(--jet);
-        border-radius: 20px;
-        box-shadow: var(--shadow1);
-        z-index: 1;
-        padding: 15px;
-    }
+.sidebar, article {
+    background: var(--eerie-black2);
+    border: 1px solid var(--jet);
+    border-radius: 20px;
+    box-shadow: var(--shadow1);
+    z-index: 1;
+    padding: 15px;
+}
 
 /* 90: Если элемент .sidebar имеет класс .active, его максимальная высота увеличивается до 405px */
-    .sidebar.active {
-        max-height: none; /* Убираем ограничение */
-        height: auto; /* Высота подстраивается под содержимое */
-    }
+.sidebar.active {
+    max-height: none; /* Убираем ограничение */
+    height: auto; /* Высота подстраивается под содержимое */
+}
 
 /* 92: .separator – элемент-разделитель; задаёт ширину 100%, высоту 1px, фон и вертикальные отступы */
-    .separator {
-        width: 100%;
-        height: 1px;
-        background: var(--jet);
-        margin: 16px 0;
-    }
+.separator {
+    width: 100%;
+    height: 1px;
+    background: var(--jet);
+    margin: 16px 0;
+}
 
 /* 98: .icon-box – блок для иконок; позиционирование, размеры, скругления, флекс-выравнивание, размер шрифта, цвет, тень и z-index */
-    .icon-box {
-        position: relative;
-        background: var(--border-gradient-onyx);
-        width: 30px;
-        height: 30px;
-        border-radius: 8px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 16px;
-        color: var(--orange-yellow-crayola);
-        box-shadow: var(--shadow1);
-        z-index: 1;
-    }
+.icon-box {
+    position: relative;
+    background: var(--border-gradient-onyx);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    color: var(--orange-yellow-crayola);
+    box-shadow: var(--shadow1);
+    z-index: 1;
+}
 
 /* 108: Псевдоэлемент ::before для .icon-box – создаёт внутреннюю обводку с фоновым цветом */
-        .icon-box::before {
-            content: '';
-            position: absolute;
-            inset: 1px;
-            background: var(--eerie-black1);
-            border-radius: inherit;
-            z-index: -1;
-        }
+.icon-box::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: var(--eerie-black1);
+    border-radius: inherit;
+    z-index: -1;
+}
 
 /* 115: Для вложенного в .icon-box элемента ion-icon устанавливается толщина штриха через CSS-переменную */
-        .icon-box ion-icon { --ionicon-stroke-width: 35px; }
+.icon-box ion-icon {
+    --ionicon-stroke-width: 35px;
+}
 
 /* 117: Скрываем элемент article по умолчанию (display: none) */
-    article { display: none; }
+article {
+    display: none;
+}
 
 /* 119: Если article имеет класс .active, он становится видимым с анимацией появления */
-        article.active {
-            display: block;
-            animation: fade .5s ease backwards;
-        }
+article.active {
+    display: block;
+    animation: fade .5s ease backwards;
+}
 
 /* 124: Определение ключевых кадров анимации fade: от прозрачности 0 до 1 */
-            @keyframes fade {
-                0% { opacity: 0; }
-                100% { opacity: 1; }
-            }
+@keyframes fade {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
 
 /* 130: Классы .h2, .h3, .h4, .h5 – заголовки, которым задаётся цвет и преобразование текста */
-    .h2, .h3, .h4, .h5 {
-        color: var(--white2);
-        text-transform: capitalize;
-    }
+.h2, .h3, .h4, .h5 {
+    color: var(--white2);
+    text-transform: capitalize;
+}
 
 /* 134: Размеры и веса для различных заголовков */
-        .h2 { font-size: var(--fs1); }
-        .h3 { font-size: var(--fs2); }
-        .h4 { font-size: var(--fs4); }
-        .h5 {
-            font-size: var(--fs7);
-            font-weight: var(--fw500);
-        }
+.h2 {
+    font-size: var(--fs1);
+}
+
+.h3 {
+    font-size: var(--fs2);
+}
+
+.h4 {
+    font-size: var(--fs4);
+}
+
+.h5 {
+    font-size: var(--fs7);
+    font-weight: var(--fw500);
+}
 
 /* 141: .article-title – контейнер для заголовка статьи; позиционирование и отступ снизу */
-    .article-title {
-        position: relative;
-        padding-bottom: 7px;
-    }
+.article-title {
+    position: relative;
+    padding-bottom: 7px;
+}
 
 /* 145: Псевдоэлемент ::after для .article-title – создаёт декоративную линию под заголовком */
-        .article-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 30px;
-            height: 3px;
-            background: var(--text-gradient-yellow);
-            border-radius: 3px;
-        }
+.article-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 30px;
+    height: 3px;
+    background: var(--text-gradient-yellow);
+    border-radius: 3px;
+}
 
 /* 151: Селекторы для кастомизации внешнего вида скроллбара у элементов с классом .has-scrollbar */
-    .has-scrollbar::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
-    }
+.has-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
 
 /* 151: Настройка внешнего вида трека (дорожки) для скроллбара элементов с классом .has-scrollbar */
 .has-scrollbar::-webkit-scrollbar-track {
-    background: var(--onyx);           /* Задаём фон для дорожки скроллбара */
-    border-radius: 5px;                /* Скругляем углы дорожки */
+    background: var(--onyx); /* Задаём фон для дорожки скроллбара */
+    border-radius: 5px; /* Скругляем углы дорожки */
 }
 
 /* 155: Настройка внешнего вида бегунка (thumb) скроллбара */
 .has-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--orange-yellow-crayola);  /* Фон бегунка – оранжево-жёлтый оттенок */
-    border-radius: 5px;                         /* Скругляем углы бегунка */
+    background: var(--orange-yellow-crayola); /* Фон бегунка – оранжево-жёлтый оттенок */
+    border-radius: 5px; /* Скругляем углы бегунка */
 }
 
 /* 159: Настройка кнопок скроллбара (если они присутствуют) */
 .has-scrollbar::-webkit-scrollbar-button {
-    width: 20px;                      /* Задаём ширину кнопок скроллбара */
+    width: 20px; /* Задаём ширину кнопок скроллбара */
 }
 
 /* 162: Определение стилей для .content-card – контейнера карточек контента */
 .content-card {
-    position: relative;               /* Устанавливаем относительное позиционирование для контекста псевдоэлемента */
-    background: var(--border-gradient-onyx);  /* Фон карточки – градиент, имитирующий рамку */
-    padding: 15px;                    /* Внутренние отступы со всех сторон */
-    padding-top: 45px;                /* Дополнительный отступ сверху (например, для размещения заголовка или изображения) */
-    border-radius: 14px;              /* Скругление углов карточки */
-    box-shadow: var(--shadow2);       /* Применяем тень для эффекта поднятости */
-    cursor: pointer;                  /* Курсор-указатель при наведении – сигнал интерактивности */
-    z-index: 1;                       /* Устанавливаем z-index для контроля наложения слоёв */
+    position: relative; /* Устанавливаем относительное позиционирование для контекста псевдоэлемента */
+    background: var(--border-gradient-onyx); /* Фон карточки – градиент, имитирующий рамку */
+    padding: 15px; /* Внутренние отступы со всех сторон */
+    padding-top: 45px; /* Дополнительный отступ сверху (например, для размещения заголовка или изображения) */
+    border-radius: 14px; /* Скругление углов карточки */
+    box-shadow: var(--shadow2); /* Применяем тень для эффекта поднятости */
+    cursor: pointer; /* Курсор-указатель при наведении – сигнал интерактивности */
+    z-index: 1; /* Устанавливаем z-index для контроля наложения слоёв */
 }
 
 /* 171: Псевдоэлемент ::before для .content-card, создающий дополнительный визуальный эффект */
 .content-card::before {
-    content: '';                      /* Пустое содержимое, используется только для декоративных целей */
-    position: absolute;               /* Абсолютное позиционирование относительно .content-card */
-    inset: 1px;                      /* Отступ в 1px со всех сторон (top, right, bottom, left) */
+    content: ''; /* Пустое содержимое, используется только для декоративных целей */
+    position: absolute; /* Абсолютное позиционирование относительно .content-card */
+    inset: 1px; /* Отступ в 1px со всех сторон (top, right, bottom, left) */
     background: var(--bg-gradient-jet); /* Фоновый градиент для создания эффекта внутренней рамки */
-    border-radius: inherit;           /* Наследование скругления от родительского элемента (.content-card) */
-    z-index: -1;                      /* Размещаем псевдоэлемент позади основного содержимого карточки */
+    border-radius: inherit; /* Наследование скругления от родительского элемента (.content-card) */
+    z-index: -1; /* Размещаем псевдоэлемент позади основного содержимого карточки */
 }
 
+
 /* 180: Комментарий-разделитель для обозначения новой секции – "ASIDE - SIDEBAR" */
+
 
 /*ASIDE - SIDEBAR*/
 
 /* 182: Определяем стили для боковой панели (sidebar) */
 .sidebar {
-    margin-bottom: 15px;              /* Отступ снизу для разделения от соседних элементов */
-    max-height: 112px;                /* Ограничение максимальной высоты (при отсутствии активности) */
-    overflow: hidden;                 /* Скрываем содержимое, выходящее за пределы указанной высоты */
-    padding: 15px;                    /* Внутренние отступы */
-    transition: var(--transition2);   /* Плавный переход (например, при изменении max-height) */
+    margin-bottom: 15px; /* Отступ снизу для разделения от соседних элементов */
+    max-height: 112px; /* Ограничение максимальной высоты (при отсутствии активности) */
+    overflow: hidden; /* Скрываем содержимое, выходящее за пределы указанной высоты */
+    padding: 15px; /* Внутренние отступы */
+    transition: var(--transition2); /* Плавный переход (например, при изменении max-height) */
 }
 
 /* 189: Стили для блока с информацией внутри sidebar */
 .sidebar-info {
-    position: relative;               /* Относительное позиционирование для возможности абсолютного позиционирования дочерних элементов */
-    display: flex;                    /* Использование flexbox для выравнивания элементов в строку */
-    justify-content: flex-start;      /* Выравнивание по началу контейнера по горизонтали */
-    align-items: center;              /* Вертикальное центрирование элементов */
-    gap: 15px;                        /* Зазор между дочерними элементами */
+    position: relative; /* Относительное позиционирование для возможности абсолютного позиционирования дочерних элементов */
+    display: flex; /* Использование flexbox для выравнивания элементов в строку */
+    justify-content: flex-start; /* Выравнивание по началу контейнера по горизонтали */
+    align-items: center; /* Вертикальное центрирование элементов */
+    gap: 15px; /* Зазор между дочерними элементами */
 }
 
 /* 197: Стили для контейнера аватара внутри sidebar */
 .avatar-box {
     background: var(--bg-gradient-onyx); /* Фон для аватара – градиент */
-    border-radius: 20px;               /* Скругление углов для создания круглой/округлой формы */
+    border-radius: 20px; /* Скругление углов для создания круглой/округлой формы */
 }
 
 /* 201: Стили для имени пользователя внутри блока .info-content */
 .info-content .name {
-    color: var(--white2);             /* Цвет текста – почти белый */
-    font-size: var(--fs3);             /* Размер шрифта, заданный переменной fs3 */
-    font-weight: var(--fw500);         /* Вес шрифта – полужирный */
-    letter-spacing: -0.25px;           /* Немного уменьшенное расстояние между буквами */
-    margin-bottom: 10px;              /* Отступ снизу для разделения от следующего элемента */
+    color: var(--white2); /* Цвет текста – почти белый */
+    font-size: var(--fs3); /* Размер шрифта, заданный переменной fs3 */
+    font-weight: var(--fw500); /* Вес шрифта – полужирный */
+    letter-spacing: -0.25px; /* Немного уменьшенное расстояние между буквами */
+    margin-bottom: 10px; /* Отступ снизу для разделения от следующего элемента */
 }
 
 /* 207: Стили для заголовка должности/титула внутри .info-content */
 .info-content .title {
-    color: var(--white1);             /* Цвет текста – белый */
-    background: var(--onyx);           /* Фон – темный оттенок (onyx) */
-    font-size: var(--fs8);             /* Размер шрифта, заданный переменной fs8 */
-    font-weight: var(--fw300);         /* Вес шрифта – более лёгкий */
-    width: max-content;               /* Ширина подстраивается под содержимое */
-    padding: 3px 12px;                /* Внутренние отступы: 3px сверху/снизу, 12px слева/справа */
-    border-radius: 8px;               /* Скругление углов */
+    color: var(--white1); /* Цвет текста – белый */
+    background: var(--onyx); /* Фон – темный оттенок (onyx) */
+    font-size: var(--fs8); /* Размер шрифта, заданный переменной fs8 */
+    font-weight: var(--fw300); /* Вес шрифта – более лёгкий */
+    width: max-content; /* Ширина подстраивается под содержимое */
+    padding: 3px 12px; /* Внутренние отступы: 3px сверху/снизу, 12px слева/справа */
+    border-radius: 8px; /* Скругление углов */
 }
 
 /* 217: Стили для кнопки раскрытия дополнительной информации (.info-more-btn) */
 .info-more-btn {
-    position: absolute;               /* Абсолютное позиционирование относительно .sidebar-info */
-    top: -15px;                       /* Отступ сверху: кнопка размещается чуть выше родительского блока */
-    right: -15px;                     /* Отступ справа: кнопка размещается чуть правее родительского блока */
-    border-radius: 0 15px;            /* Скругляем только правую нижнюю часть кнопки */
-    font-size: 13px;                  /* Размер шрифта кнопки */
+    position: absolute; /* Абсолютное позиционирование относительно .sidebar-info */
+    top: -15px; /* Отступ сверху: кнопка размещается чуть выше родительского блока */
+    right: -15px; /* Отступ справа: кнопка размещается чуть правее родительского блока */
+    border-radius: 0 15px; /* Скругляем только правую нижнюю часть кнопки */
+    font-size: 13px; /* Размер шрифта кнопки */
     color: var(--orange-yellow-crayola); /* Цвет текста кнопки – оранжево-жёлтый */
     background: var(--border-gradient-onyx); /* Фон кнопки – градиент, имитирующий рамку */
-    padding: 10px;                    /* Внутренние отступы для кнопки */
-    box-shadow: var(--shadow2);       /* Применяем тень для эффекта поднятости */
-    transition: var(--transition1);   /* Плавный переход для эффектов (например, при наведении) */
-    z-index: 1;                      /* Располагаем кнопку поверх других элементов */
+    padding: 10px; /* Внутренние отступы для кнопки */
+    box-shadow: var(--shadow2); /* Применяем тень для эффекта поднятости */
+    transition: var(--transition1); /* Плавный переход для эффектов (например, при наведении) */
+    z-index: 1; /* Располагаем кнопку поверх других элементов */
 }
 
 /* 227: Псевдоэлемент ::before для .info-more-btn для создания дополнительного градиентного эффекта */
-    .info-more-btn::before {
-        content: '';                  /* Пустое содержимое */
-        position: absolute;           /* Абсолютное позиционирование внутри кнопки */
-        inset: 1px;                  /* Отступ 1px со всех сторон */
-        border-radius: inherit;       /* Наследуем скругление от .info-more-btn */
-        background: var(--bg-gradient-jet); /* Фон – градиент, создающий эффект глубины */
-        transition: var(--transition1); /* Плавный переход для эффекта изменения фона */
-        z-index: -1;                  /* Располагаем псевдоэлемент позади текста кнопки */
-    }
+.info-more-btn::before {
+    content: ''; /* Пустое содержимое */
+    position: absolute; /* Абсолютное позиционирование внутри кнопки */
+    inset: 1px; /* Отступ 1px со всех сторон */
+    border-radius: inherit; /* Наследуем скругление от .info-more-btn */
+    background: var(--bg-gradient-jet); /* Фон – градиент, создающий эффект глубины */
+    transition: var(--transition1); /* Плавный переход для эффекта изменения фона */
+    z-index: -1; /* Располагаем псевдоэлемент позади текста кнопки */
+}
 
 /* 235: При наведении или фокусе на кнопке меняется её фон */
-        .info-more-btn:hover, .info-more-btn:focus {
-            background: var(--bg-gradient-yellow1); /* Фон становится градиентом yellow1 */
-        }
+.info-more-btn:hover, .info-more-btn:focus {
+    background: var(--bg-gradient-yellow1); /* Фон становится градиентом yellow1 */
+}
 
 /* 238: И аналогично меняется фон псевдоэлемента при наведении или фокусе */
-        .info-more-btn:hover::before, .info-more-btn:focus::before {
-            background: var(--bg-gradient-yellow2); /* Фон псевдоэлемента становится градиентом yellow2 */
-        }
+.info-more-btn:hover::before, .info-more-btn:focus::before {
+    background: var(--bg-gradient-yellow2); /* Фон псевдоэлемента становится градиентом yellow2 */
+}
 
 /* 242: Скрываем текст внутри кнопки по умолчанию (показывается только иконка, если есть) */
-    .info-more-btn span { display: none; }
+.info-more-btn span {
+    display: none;
+}
 
 /* 245: Определяем стили для блока с дополнительной информацией (контакты, соцсети) */
 .sidebar-info-more {
-    opacity: 0;                       /* Изначально блок невидим */
-    visibility: hidden;               /* И невидим для пользователя */
-    transition: var(--transition2);   /* Плавное появление при изменении состояния */
+    opacity: 0; /* Изначально блок невидим */
+    visibility: hidden; /* И невидим для пользователя */
+    transition: var(--transition2); /* Плавное появление при изменении состояния */
 }
 
 /* 249: При наличии класса .active у .sidebar блок .sidebar-info-more становится видимым */
-    .sidebar.active .sidebar-info-more {
-        opacity: 1;                   /* Полная непрозрачность */
-        visibility: visible;          /* Блок становится видимым */
-    }
+.sidebar.active .sidebar-info-more {
+    opacity: 1; /* Полная непрозрачность */
+    visibility: visible; /* Блок становится видимым */
+}
 
 /* 254: Стили для списка контактов внутри sidebar */
 .contacts-list {
-    display: grid;                    /* Используем CSS Grid для размещения элементов */
-    grid-template-columns: 1fr;       /* Одна колонка */
-    gap: 16px;                        /* Расстояние между элементами списка */
+    display: grid; /* Используем CSS Grid для размещения элементов */
+    grid-template-columns: 1fr; /* Одна колонка */
+    gap: 16px; /* Расстояние между элементами списка */
 }
 
 /* 259: Стили для отдельного элемента контакта */
 .contact-item {
-    min-width: 100%;                  /* Занимает всю доступную ширину */
-    display: flex;                    /* Используем flexbox для выравнивания */
-    align-items: center;              /* Центрирование по вертикали */
-    gap: 16px;                        /* Расстояние между иконкой и текстом */
+    min-width: 100%; /* Занимает всю доступную ширину */
+    display: flex; /* Используем flexbox для выравнивания */
+    align-items: center; /* Центрирование по вертикали */
+    gap: 16px; /* Расстояние между иконкой и текстом */
 }
 
 /* 264: Стили для блока с контактной информацией */
 .contact-info {
-    max-width: calc(100% - 46px);     /* Максимальная ширина с учетом отступов */
-    width: calc(100% - 46px);         /* Фиксированная ширина для выравнивания */
+    max-width: calc(100% - 46px); /* Максимальная ширина с учетом отступов */
+    width: calc(100% - 46px); /* Фиксированная ширина для выравнивания */
 }
 
 /* 269: Для элементов внутри .contact-info (ссылки, time, address) устанавливаем цвет и размер шрифта */
-    .contact-info :is(.contact-link, time, address) {
-        color: var(--white2);         /* Цвет – почти белый */
-        font-size: var(--fs7);         /* Размер шрифта по переменной fs7 */
-    }
+.contact-info :is(.contact-link, time, address) {
+    color: var(--white2); /* Цвет – почти белый */
+    font-size: var(--fs7); /* Размер шрифта по переменной fs7 */
+}
 
 /* 273: Убираем курсив для элемента address */
-    .contact-info address { font-style: normal; }
+.contact-info address {
+    font-style: normal;
+}
 
 /* 275: Стили для заголовка контакта (например, "Email", "Phone") */
 .contact-title {
-    color: var(--light-gray70);       /* Светло-серый оттенок для текста */
-    font-size: var(--fs8);            /* Размер шрифта по переменной fs8 */
-    text-transform: uppercase;        /* Преобразование текста в верхний регистр */
-    margin-bottom: 2px;               /* Небольшой отступ снизу */
+    color: var(--light-gray70); /* Светло-серый оттенок для текста */
+    font-size: var(--fs8); /* Размер шрифта по переменной fs8 */
+    text-transform: uppercase; /* Преобразование текста в верхний регистр */
+    margin-bottom: 2px; /* Небольшой отступ снизу */
 }
 
 /* 280: Стили для списка социальных ссылок */
 .social-list {
-    display: flex;                    /* Используем flexbox для горизонтального расположения */
-    justify-content: flex-start;      /* Выравнивание элементов по началу */
-    align-items: center;              /* Центрирование по вертикали */
-    gap: 15px;                        /* Расстояние между элементами */
-    padding-bottom: 4px;              /* Внутренний отступ снизу */
-    padding-left: 7px;                /* Внутренний отступ слева */
+    display: flex; /* Используем flexbox для горизонтального расположения */
+    justify-content: flex-start; /* Выравнивание элементов по началу */
+    align-items: center; /* Центрирование по вертикали */
+    gap: 15px; /* Расстояние между элементами */
+    padding-bottom: 4px; /* Внутренний отступ снизу */
+    padding-left: 7px; /* Внутренний отступ слева */
 }
 
 /* 286: Стили для ссылки внутри элемента соцсетей */
 .social-item .social-link {
-    color: var(--light-gray70);       /* Цвет ссылки – светло-серый */
-    font-size: 18px;                  /* Размер шрифта для иконок соцсетей */
+    color: var(--light-gray70); /* Цвет ссылки – светло-серый */
+    font-size: 18px; /* Размер шрифта для иконок соцсетей */
 }
 
 /* 290: При наведении на социальную ссылку изменяется её цвет */
-    .social-item .social-link:hover {
-        color: var(--light-gray);     /* Цвет становится чуть ярче */
-    }
+.social-item .social-link:hover {
+    color: var(--light-gray); /* Цвет становится чуть ярче */
+}
+
 
 /* =============================== */
 /*           NAVBAR              */
 /* =============================== */
 
-/* 291: Стили для навигационной панели (navbar) */
+/* 291: Комментарий для обозначения начала секции NAVBAR */
+
+/* 293: Стили для панели навигации */
+/* Оставляем без изменений */
 .navbar {
-    position: fixed;                       /* Фиксированное позиционирование на экране */
-    bottom: 0;                             /* Прикреплена к нижней части окна */
-    left: 0;                               /* Выравнивание по левому краю */
-    width: 100%;                           /* Занимает всю ширину экрана */
-    background: hsla(240, 1%, 17%, .75);    /* Полупрозрачный темный фон */
-    backdrop-filter: blur(10px);            /* Применяется эффект размытия для содержимого позади */
-    border: 1px solid var(--jet);           /* Рамка, использующая цвет переменной --jet */
-    border-radius: 12px 12px 0 0;            /* Скругление верхних углов */
-    box-shadow: var(--shadow2);             /* Применяется тень для создания эффекта поднятости */
-    z-index: 5;                            /* Повышенный z-index для отображения поверх других элементов */
+    position: fixed; /* 294: Фиксированное положение внизу экрана */
+    bottom: 0; /* 295: Привязка к нижнему краю */
+    left: 0; /* 296: Привязка к левому краю */
+    width: 100%; /* 297: Полная ширина */
+    background: hsla(240, 1%, 17%, .75); /* 298: Полупрозрачный тёмный фон */
+    backdrop-filter: blur(10px); /* 299: Размытие фона */
+    border: 1px solid var(--jet); /* 300: Рамка цвета --jet */
+    border-radius: 12px 12px 0 0; /* 301: Скругление верхних углов */
+    box-shadow: var(--shadow2); /* 302: Тень для глубины */
+    z-index: 5; /* 303: Высокий порядок наложения */
 }
 
-/* 302: Контейнер для списка навигационных ссылок */
+/* 306: Стили для списка навигационных ссылок */
+/* Оставляем без изменений */
 .navbar-list {
-    display: flex;                         /* Использование flexbox для расположения ссылок в строку */
-    flex-wrap: wrap;                       /* Позволяет переносить элементы на следующую строку, если места недостаточно */
-    justify-content: center;               /* Горизонтальное центрирование элементов */
-    align-items: center;                   /* Вертикальное центрирование элементов */
-    padding: 0 10px;                       /* Горизонтальные внутренние отступы */
+    display: flex; /* 307: Flexbox для горизонтального расположения */
+    flex-wrap: wrap; /* 308: Перенос элементов при нехватке места */
+    justify-content: center; /* 309: Центрирование ссылок */
+    align-items: center; /* 310: Выравнивание по вертикали */
+    padding: 0 10px; /* 311: Отступы слева и справа */
 }
 
-/* 309: Стили для отдельной навигационной ссылки */
-.navbar-link {
-    color: var(--light-gray);              /* Цвет текста – светло-серый */
-    font-size: var(--fs8);                 /* Размер шрифта согласно переменной fs8 */
-    padding: 20px 7px;                     /* Внутренние отступы: 20px сверху/снизу и 7px слева/справа */
-    transition: color var(--transition1);  /* Плавное изменение цвета при наведении или фокусе */
+/**
+ * 314: Стили для ссылок и заголовков с интерактивностью.
+ * Унифицируем цвета и эффекты, заменяя старый .navbar-link (309–318).
+ */
+.navbar-link,
+.blog-item-title,
+.project-title,
+.blog-posts-item > a,
+.project-item > a {
+    color: var(--light-gray); /* 318: Унифицированный цвет текста */
+    font-size: var(--fs8); /* 319: Размер шрифта */
+    padding: 20px 7px; /* 320: Внутренние отступы */
+    transition: color var(--transition1); /* 321: Плавный переход цвета */
 }
 
-/* 315: Изменение цвета ссылки при наведении или фокусе */
-.navbar-link:hover, .navbar-link:focus {
-    color: var(--light-gray70);            /* Цвет становится чуть ярче при наведении или фокусе */
+/* 324: Эффекты при наведении и фокусе */
+.navbar-link:hover,
+.navbar-link:focus,
+.blog-posts-item > a:hover .blog-item-title,
+.project-item > a:hover .project-title {
+    color: var(--orange-yellow-crayola); /* 328: Оранжево-жёлтый при наведении */
 }
 
-/* 318: Стили для активной навигационной ссылки */
-.navbar-link.active {
-    color: var(--orange-yellow-crayola);   /* Для активного элемента устанавливается оранжево-жёлтый цвет */
+/* 331: Стили для активных ссылок */
+.navbar-link.active,
+.blog-item-title.active,
+.project-title.active {
+    color: var(--orange-yellow-crayola); /* 334: Оранжево-жёлтый для активного состояния */
 }
+
+/* =============================== */
+/*           Конец NAVBAR         */
+/* =============================== */
+
 
 /* =============================== */
 /*             ABOUT             */
@@ -511,24 +567,24 @@
 
 /* 324: Стили для заголовка статьи в секции "О себе" (about) */
 .about .article-title {
-    margin-bottom: 15px;                   /* Отступ снизу для заголовка */
-    margin-top: 15px;                      /* Отступ сверху для заголовка */
+    margin-bottom: 15px; /* Отступ снизу для заголовка */
+    margin-top: 15px; /* Отступ сверху для заголовка */
 }
 
 /* 329: Основные стили для текста раздела "О себе" */
 .about-text {
-    color: var(--light-gray);              /* Цвет текста – светло-серый */
-    font-size: var(--fs6);                 /* Размер шрифта, заданный переменной fs6 */
-    font-weight: var(--fw300);             /* Легкий вес шрифта */
-    line-height: 1.6;                      /* Межстрочный интервал для лучшей читаемости */
+    color: var(--light-gray); /* Цвет текста – светло-серый */
+    font-size: var(--fs6); /* Размер шрифта, заданный переменной fs6 */
+    font-weight: var(--fw300); /* Легкий вес шрифта */
+    line-height: 1.6; /* Межстрочный интервал для лучшей читаемости */
 }
 
 /* 335: Стили для абзацев внутри .about-text */
 .about-text p {
-    margin-bottom: 15px;                   /* Отступ снизу для каждого абзаца */
-    text-align: justify;                   /* Выравнивание текста по ширине */
-    padding-left: 10px;                    /* Внутренний отступ слева */
-    padding-right: 10px;                   /* Внутренний отступ справа */
+    margin-bottom: 15px; /* Отступ снизу для каждого абзаца */
+    text-align: justify; /* Выравнивание текста по ширине */
+    padding-left: 10px; /* Внутренний отступ слева */
+    padding-right: 10px; /* Внутренний отступ справа */
 }
 
 /* =============================== */
@@ -537,67 +593,67 @@
 
 /* 343: Отступ снизу для секции услуг */
 .service {
-    margin-bottom: 35px;                   /* Расстояние между секцией услуг и следующим блоком */
+    margin-bottom: 35px; /* Расстояние между секцией услуг и следующим блоком */
 }
 
 /* 346: Стили для заголовка раздела услуг */
 .service-title {
-    margin-bottom: 20px;                   /* Отступ снизу заголовка раздела */
+    margin-bottom: 20px; /* Отступ снизу заголовка раздела */
 }
 
 /* 349: Стили для контейнера списка услуг */
 .service-list {
-    display: grid;                        /* Используем CSS Grid для организации карточек услуг */
-    grid-template-columns: 1fr;           /* Одна колонка по умолчанию */
-    gap: 20px;                            /* Расстояние между элементами списка */
+    display: grid; /* Используем CSS Grid для организации карточек услуг */
+    grid-template-columns: 1fr; /* Одна колонка по умолчанию */
+    gap: 20px; /* Расстояние между элементами списка */
 }
 
 /* 353: Стили для отдельной карточки услуги */
 .service-item {
-    position: relative;                   /* Относительное позиционирование для возможности позиционирования псевдоэлементов */
+    position: relative; /* Относительное позиционирование для возможности позиционирования псевдоэлементов */
     background: var(--border-gradient-onyx); /* Фон карточки – градиент, имитирующий рамку */
-    padding: 20px;                        /* Внутренние отступы */
-    border-radius: 14px;                  /* Скругленные углы */
-    box-shadow: var(--shadow2);           /* Тень для эффекта объема */
-    z-index: 1;                           /* Задает порядок наложения */
+    padding: 20px; /* Внутренние отступы */
+    border-radius: 14px; /* Скругленные углы */
+    box-shadow: var(--shadow2); /* Тень для эффекта объема */
+    z-index: 1; /* Задает порядок наложения */
 }
 
 /* 360: Псевдоэлемент ::before для .service-item, создающий дополнительный визуальный эффект */
-    .service-item::before {
-        content: '';                      /* Пустое содержимое для декоративного эффекта */
-        position: absolute;               /* Абсолютное позиционирование внутри карточки */
-        inset: 1px;                      /* Отступ 1px со всех сторон */
-        background: var(--bg-gradient-jet);/* Фоновый градиент для создания эффекта глубины */
-        border-radius: inherit;           /* Наследование скругления от родительского элемента */
-        z-index: -1;                      /* Помещается за содержимым карточки */
-    }
+.service-item::before {
+    content: ''; /* Пустое содержимое для декоративного эффекта */
+    position: absolute; /* Абсолютное позиционирование внутри карточки */
+    inset: 1px; /* Отступ 1px со всех сторон */
+    background: var(--bg-gradient-jet); /* Фоновый градиент для создания эффекта глубины */
+    border-radius: inherit; /* Наследование скругления от родительского элемента */
+    z-index: -1; /* Помещается за содержимым карточки */
+}
 
 /* 367: Стили для контейнера с иконкой услуги */
 .service-icon-box {
-    margin-bottom: 10px;                  /* Отступ снизу для отделения от текста */
+    margin-bottom: 10px; /* Отступ снизу для отделения от текста */
 }
 
 /* 369: Стили для изображения внутри .service-icon-box (выравнивание по центру) */
-    .service-icon-box img {
-        margin: auto;                     /* Автоматические внешние отступы для центрирования изображения */
-    }
+.service-icon-box img {
+    margin: auto; /* Автоматические внешние отступы для центрирования изображения */
+}
 
 /* 373: Стили для блока с содержимым услуги (текст, заголовок) */
 .service-content-box {
-    text-align: center;                   /* Центрирование текста внутри карточки */
+    text-align: center; /* Центрирование текста внутри карточки */
 }
 
 /* 375: Отступ снизу для заголовка услуги */
 .service-item-title {
-    margin-bottom: 7px;                   /* Небольшой отступ снизу для заголовка */
+    margin-bottom: 7px; /* Небольшой отступ снизу для заголовка */
 }
 
 /* 378: Стили для описания услуги */
 .service-item-text {
-    color: var(--light-gray);             /* Цвет текста – светло-серый */
-    font-size: var(--fs6);                /* Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);            /* Легкий вес шрифта */
-    line-height: 1.6;                     /* Межстрочный интервал для читаемости */
+    color: var(--light-gray); /* Цвет текста – светло-серый */
+    font-size: var(--fs6); /* Размер шрифта согласно переменной fs6 */
+    font-weight: var(--fw300); /* Легкий вес шрифта */
+    line-height: 1.6; /* Межстрочный интервал для читаемости */
 }
 
 /* =============================== */
@@ -606,55 +662,56 @@
 
 /* 451: Обозначаем начало секции отзывов (testimonials) */
 .testimonials {
-    margin-bottom: 30px;           /* 452: Отступ снизу для блока отзывов */
+    margin-bottom: 30px; /* 452: Отступ снизу для блока отзывов */
 }
+
 .testimonials-title {
-    margin-bottom: 20px;           /* 454: Отступ снизу для заголовка секции отзывов */
+    margin-bottom: 20px; /* 454: Отступ снизу для заголовка секции отзывов */
 }
 
 /* 456: Стили для контейнера, содержащего список отзывов */
 .testimonials-list {
-    display: flex;                /* 458: Использование flexbox для горизонтального расположения отзывов */
-    justify-content: flex-start;  /* 459: Выравнивание элементов по началу контейнера */
-    align-items: flex-start;      /* 460: Выравнивание элементов по верхнему краю */
-    gap: 15px;                    /* 461: Расстояние между отзывами */
-    margin: 0 -15px;              /* 462: Отрицательные боковые отступы для компенсации внутренних отступов */
-    padding: 25px 15px;           /* 463: Внутренние отступы: 25px сверху/снизу, 15px слева/справа */
-    padding-bottom: 35px;         /* 464: Дополнительный отступ снизу для создания пространства */
-    overflow-x: auto;             /* 465: Включаем горизонтальную прокрутку, если отзывы не помещаются */
-    scroll-behavior: smooth;       /* 466: Плавное поведение прокрутки */
+    display: flex; /* 458: Использование flexbox для горизонтального расположения отзывов */
+    justify-content: flex-start; /* 459: Выравнивание элементов по началу контейнера */
+    align-items: flex-start; /* 460: Выравнивание элементов по верхнему краю */
+    gap: 15px; /* 461: Расстояние между отзывами */
+    margin: 0 -15px; /* 462: Отрицательные боковые отступы для компенсации внутренних отступов */
+    padding: 25px 15px; /* 463: Внутренние отступы: 25px сверху/снизу, 15px слева/справа */
+    padding-bottom: 35px; /* 464: Дополнительный отступ снизу для создания пространства */
+    overflow-x: auto; /* 465: Включаем горизонтальную прокрутку, если отзывы не помещаются */
+    scroll-behavior: smooth; /* 466: Плавное поведение прокрутки */
     overscroll-behavior-inline: contain; /* 467: Предотвращает "выбегание" прокрутки за пределы контейнера по горизонтали */
-    scroll-snap-type: inline mandatory;  /* 468: Принудительное "прилипание" элементов при прокрутке */
+    scroll-snap-type: inline mandatory; /* 468: Принудительное "прилипание" элементов при прокрутке */
 }
 
 /* 470: Стили для отдельного элемента отзыва */
 .testimonials-item {
-    min-width: 100%;              /* 472: Каждый отзыв занимает минимум всю ширину контейнера */
-    scroll-snap-align: center;    /* 473: При прокрутке отзыв "прилипает" к центру контейнера */
+    min-width: 100%; /* 472: Каждый отзыв занимает минимум всю ширину контейнера */
+    scroll-snap-align: center; /* 473: При прокрутке отзыв "прилипает" к центру контейнера */
 }
 
 /* 475: Стили для блока с аватаром в отзыве */
 .testimonials-avatar-box {
-    position: absolute;           /* 477: Абсолютное позиционирование для наложения на отзыв */
-    top: 0;                       /* 478: Прикрепление к верхней границе */
-    left: 0;                      /* 479: Прикрепление к левой границе */
-    transform: translate(15px, -25px);  /* 480: Смещение блока для корректного позиционирования поверх отзыва */
+    position: absolute; /* 477: Абсолютное позиционирование для наложения на отзыв */
+    top: 0; /* 478: Прикрепление к верхней границе */
+    left: 0; /* 479: Прикрепление к левой границе */
+    transform: translate(15px, -25px); /* 480: Смещение блока для корректного позиционирования поверх отзыва */
     background: var(--bg-gradient-onyx); /* 481: Фон – градиент, заданный переменной --bg-gradient-onyx */
-    border-radius: 14px;          /* 482: Скругление углов блока аватара */
-    box-shadow: var(--shadow1);   /* 483: Применение тени для создания эффекта объёма */
+    border-radius: 14px; /* 482: Скругление углов блока аватара */
+    box-shadow: var(--shadow1); /* 483: Применение тени для создания эффекта объёма */
 }
 
 /* 485: Стили для текстовой части отзыва */
 .testimonials-text {
-    color: var(--light-gray);     /* 487: Цвет текста – светло-серый */
-    font-size: var(--fs6);         /* 488: Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);     /* 489: Лёгкий вес шрифта */
-    line-height: 1.6;             /* 490: Межстрочный интервал для улучшения читаемости */
-    display: -webkit-box;         /* 491: Использование display: -webkit-box для поддержки обрезки текста в Webkit-браузерах */
-    line-clamp: 4;                /* 492: Ограничение количества отображаемых строк до 4 (стандартное свойство может не поддерживаться всеми браузерами) */
-    -webkit-line-clamp: 4;        /* 493: Webkit-версия ограничения строк */
+    color: var(--light-gray); /* 487: Цвет текста – светло-серый */
+    font-size: var(--fs6); /* 488: Размер шрифта согласно переменной fs6 */
+    font-weight: var(--fw300); /* 489: Лёгкий вес шрифта */
+    line-height: 1.6; /* 490: Межстрочный интервал для улучшения читаемости */
+    display: -webkit-box; /* 491: Использование display: -webkit-box для поддержки обрезки текста в Webkit-браузерах */
+    line-clamp: 4; /* 492: Ограничение количества отображаемых строк до 4 (стандартное свойство может не поддерживаться всеми браузерами) */
+    -webkit-line-clamp: 4; /* 493: Webkit-версия ограничения строк */
     -webkit-box-orient: vertical; /* 494: Установка вертикальной ориентации для -webkit-box */
-    overflow: hidden;             /* 495: Скрытие текста, выходящего за пределы контейнера (эффект обрезки) */
+    overflow: hidden; /* 495: Скрытие текста, выходящего за пределы контейнера (эффект обрезки) */
 }
 
 /* =============================== */
@@ -663,135 +720,135 @@
 
 /* 497: Стили для модального контейнера, служащего для отображения всплывающих окон */
 .modal-container {
-    position: fixed;              /* 499: Фиксированное позиционирование для полного покрытия экрана */
-    top: 0;                       /* 500: Прикрепление к верхней границе экрана */
-    left: 0;                      /* 501: Прикрепление к левой границе экрана */
-    width: 100%;                  /* 502: Ширина – 100% экрана */
-    height: 100%;                 /* 503: Высота – 100% экрана */
-    display: flex;                /* 504: Использование flexbox для центрирования содержимого */
-    justify-content: center;      /* 505: Горизонтальное центрирование содержимого */
-    align-items: center;          /* 506: Вертикальное центрирование содержимого */
-    overflow-y: auto;             /* 507: Вертикальная прокрутка при переполнении содержимого */
-    overscroll-behavior: contain;  /* 508: Предотвращение прокрутки за пределы модального контейнера */
-    z-index: 20;                 /* 509: Повышенный z-index для отображения поверх остальных элементов */
-    pointer-events: none;         /* 510: По умолчанию модальный контейнер не перехватывает события мыши */
-    visibility: hidden;           /* 511: Модальное окно невидимо по умолчанию */
+    position: fixed; /* 499: Фиксированное позиционирование для полного покрытия экрана */
+    top: 0; /* 500: Прикрепление к верхней границе экрана */
+    left: 0; /* 501: Прикрепление к левой границе экрана */
+    width: 100%; /* 502: Ширина – 100% экрана */
+    height: 100%; /* 503: Высота – 100% экрана */
+    display: flex; /* 504: Использование flexbox для центрирования содержимого */
+    justify-content: center; /* 505: Горизонтальное центрирование содержимого */
+    align-items: center; /* 506: Вертикальное центрирование содержимого */
+    overflow-y: auto; /* 507: Вертикальная прокрутка при переполнении содержимого */
+    overscroll-behavior: contain; /* 508: Предотвращение прокрутки за пределы модального контейнера */
+    z-index: 20; /* 509: Повышенный z-index для отображения поверх остальных элементов */
+    pointer-events: none; /* 510: По умолчанию модальный контейнер не перехватывает события мыши */
+    visibility: hidden; /* 511: Модальное окно невидимо по умолчанию */
 }
 
 /* 513: Скрытие скроллбара внутри модального контейнера для Webkit-браузеров */
 .modal-container::-webkit-scrollbar {
-    display: none;                /* 515: Скрываем скроллбар */
+    display: none; /* 515: Скрываем скроллбар */
 }
 
 /* 517: Стили для активного состояния модального контейнера */
 .modal-container.active {
-    pointer-events: all;          /* 519: Активный модальный контейнер начинает перехватывать события мыши */
-    visibility: visible;          /* 520: Модальное окно становится видимым */
+    pointer-events: all; /* 519: Активный модальный контейнер начинает перехватывать события мыши */
+    visibility: visible; /* 520: Модальное окно становится видимым */
 }
 
 /* 523: Если внутри активного модального контейнера находится элемент .testimonials-modal */
 .modal-container.active .testimonials-modal {
-    transform: scale(1);         /* 525: Масштаб окна сбрасывается до нормального (анимация появления) */
-    opacity: 1;                  /* 526: Окно становится полностью непрозрачным */
+    transform: scale(1); /* 525: Масштаб окна сбрасывается до нормального (анимация появления) */
+    opacity: 1; /* 526: Окно становится полностью непрозрачным */
 }
 
 /* 527: Стили для overlay – затемняющего фона за модальным окном */
 .overlay {
-    position: fixed;              /* 529: Фиксированное позиционирование для покрытия всего экрана */
-    top: 0;                       /* 530: Прикрепление к верхней границе */
-    left: 0;                      /* 531: Прикрепление к левой границе */
-    width: 100%;                  /* 532: Ширина – 100% экрана */
-    height: 100vh;                /* 533: Высота – 100% видимой области экрана */
-    background: hsl(0, 0%, 5%);    /* 534: Фон – очень тёмный (почти чёрный) */
-    opacity: 0;                  /* 535: Нулевая непрозрачность по умолчанию */
-    visibility: hidden;          /* 536: Overlay невидим по умолчанию */
-    pointer-events: none;        /* 537: Не перехватывает события мыши */
-    z-index: 1;                  /* 538: Низкий z-index, чтобы находиться позади модального окна */
+    position: fixed; /* 529: Фиксированное позиционирование для покрытия всего экрана */
+    top: 0; /* 530: Прикрепление к верхней границе */
+    left: 0; /* 531: Прикрепление к левой границе */
+    width: 100%; /* 532: Ширина – 100% экрана */
+    height: 100vh; /* 533: Высота – 100% видимой области экрана */
+    background: hsl(0, 0%, 5%); /* 534: Фон – очень тёмный (почти чёрный) */
+    opacity: 0; /* 535: Нулевая непрозрачность по умолчанию */
+    visibility: hidden; /* 536: Overlay невидим по умолчанию */
+    pointer-events: none; /* 537: Не перехватывает события мыши */
+    z-index: 1; /* 538: Низкий z-index, чтобы находиться позади модального окна */
     transition: var(--transition1); /* 539: Плавный переход для изменения непрозрачности и видимости */
 }
 
 /* 541: Стили для активного состояния overlay */
 .overlay.active {
-    opacity: .8;                 /* 543: Непрозрачность overlay становится 0.8 */
-    visibility: visible;          /* 544: Overlay становится видимым */
-    pointer-events: all;          /* 545: Overlay начинает перехватывать события мыши */
+    opacity: .8; /* 543: Непрозрачность overlay становится 0.8 */
+    visibility: visible; /* 544: Overlay становится видимым */
+    pointer-events: all; /* 545: Overlay начинает перехватывать события мыши */
 }
 
 /* 548: Стили для модального окна отзывов (.testimonials-modal) */
 .testimonials-modal {
     background: var(--eerie-black2); /* 550: Фон модального окна – темный оттенок */
-    position: relative;           /* 551: Относительное позиционирование для возможности размещения дочерних элементов */
-    padding: 15px;                /* 552: Внутренние отступы для содержимого окна */
-    margin: 15px 12px;            /* 553: Внешние отступы – 15px сверху/снизу, 12px слева/справа */
-    border: 1px solid var(--jet);  /* 554: Рамка окна, использующая цвет переменной --jet */
-    border-radius: 14px;          /* 555: Скругление углов модального окна */
-    box-shadow: var(--shadow5);   /* 556: Применение более выразительной тени */
-    transform: scale(1.2);        /* 557: Начальный масштаб окна – увеличен на 20% (для анимации появления) */
-    opacity: 0;                  /* 558: Начальная прозрачность – 0 (окно скрыто до активации) */
+    position: relative; /* 551: Относительное позиционирование для возможности размещения дочерних элементов */
+    padding: 15px; /* 552: Внутренние отступы для содержимого окна */
+    margin: 15px 12px; /* 553: Внешние отступы – 15px сверху/снизу, 12px слева/справа */
+    border: 1px solid var(--jet); /* 554: Рамка окна, использующая цвет переменной --jet */
+    border-radius: 14px; /* 555: Скругление углов модального окна */
+    box-shadow: var(--shadow5); /* 556: Применение более выразительной тени */
+    transform: scale(1.2); /* 557: Начальный масштаб окна – увеличен на 20% (для анимации появления) */
+    opacity: 0; /* 558: Начальная прозрачность – 0 (окно скрыто до активации) */
     transition: var(--transition1); /* 559: Плавный переход для анимации масштабирования и появления */
-    z-index: 2;                  /* 560: z-index, чтобы окно располагалось поверх overlay */
+    z-index: 2; /* 560: z-index, чтобы окно располагалось поверх overlay */
 }
 
 /* 562: Стили для кнопки закрытия модального окна */
 .modal-close-btn {
-    position: absolute;           /* 564: Абсолютное позиционирование внутри модального окна */
-    top: 15px;                    /* 565: Расположение кнопки – 15px от верхнего края окна */
-    right: 15px;                  /* 566: Расположение кнопки – 15px от правого края окна */
-    background: var(--onyx);       /* 567: Фон кнопки – темный оттенок (onyx) */
-    border-radius: 8px;           /* 568: Скругление углов кнопки */
-    width: 32px;                  /* 569: Фиксированная ширина кнопки */
-    height: 32px;                 /* 570: Фиксированная высота кнопки */
-    display: flex;                /* 571: Flexbox для центрирования содержимого кнопки */
-    justify-content: center;      /* 572: Центрирование по горизонтали */
-    align-items: center;          /* 573: Центрирование по вертикали */
-    color: var(--white2);         /* 574: Цвет текста/иконки – почти белый */
-    font-size: 18px;              /* 575: Размер шрифта (иконки) */
-    opacity: .7;                 /* 576: Начальная непрозрачность кнопки */
+    position: absolute; /* 564: Абсолютное позиционирование внутри модального окна */
+    top: 15px; /* 565: Расположение кнопки – 15px от верхнего края окна */
+    right: 15px; /* 566: Расположение кнопки – 15px от правого края окна */
+    background: var(--onyx); /* 567: Фон кнопки – темный оттенок (onyx) */
+    border-radius: 8px; /* 568: Скругление углов кнопки */
+    width: 32px; /* 569: Фиксированная ширина кнопки */
+    height: 32px; /* 570: Фиксированная высота кнопки */
+    display: flex; /* 571: Flexbox для центрирования содержимого кнопки */
+    justify-content: center; /* 572: Центрирование по горизонтали */
+    align-items: center; /* 573: Центрирование по вертикали */
+    color: var(--white2); /* 574: Цвет текста/иконки – почти белый */
+    font-size: 18px; /* 575: Размер шрифта (иконки) */
+    opacity: .7; /* 576: Начальная непрозрачность кнопки */
 }
 
 /* 578: При наведении или фокусе на кнопке закрытия изменяется её непрозрачность */
 .modal-close-btn:hover, .modal-close-btn:focus {
-    opacity: 1;                  /* 580: Непрозрачность становится полной при взаимодействии */
+    opacity: 1; /* 580: Непрозрачность становится полной при взаимодействии */
 }
 
 /* 582: Для иконки внутри кнопки закрытия устанавливается толщина штриха */
 .modal-close-btn ion-icon {
-    --ionicon-stroke-width: 50px;  /* 584: Задаёт толщину линии иконки */
+    --ionicon-stroke-width: 50px; /* 584: Задаёт толщину линии иконки */
 }
 
 /* 585: Начало блока для .modal-avatar-box – контейнер для аватара в модальном окне */
 .modal-avatar-box {
-    background: var(--bg-gradient-onyx);   /* 586: Фон – градиент, заданный переменной --bg-gradient-onyx */
-    width: max-content;                     /* 587: Ширина подстраивается под содержимое */
-    border-radius: 14px;                     /* 588: Скругление углов – 14px */
-    margin-bottom: 15px;                     /* 589: Отступ снизу – 15px */
-    box-shadow: var(--shadow2);              /* 590: Применение тени, заданной переменной --shadow2 */
+    background: var(--bg-gradient-onyx); /* 586: Фон – градиент, заданный переменной --bg-gradient-onyx */
+    width: max-content; /* 587: Ширина подстраивается под содержимое */
+    border-radius: 14px; /* 588: Скругление углов – 14px */
+    margin-bottom: 15px; /* 589: Отступ снизу – 15px */
+    box-shadow: var(--shadow2); /* 590: Применение тени, заданной переменной --shadow2 */
 }
 
 /* 592: Селектор для изображения, являющегося непосредственным потомком .modal-img-wrapper */
 .modal-img-wrapper > img {
-    display: none;                         /* 593: Изображение скрыто (возможно, используется для замены или динамического показа) */
+    display: none; /* 593: Изображение скрыто (возможно, используется для замены или динамического показа) */
 }
 
 /* 595: Стили для заголовка модального окна */
 .modal-title {
-    margin-bottom: 4px;                     /* 596: Отступ снизу – 4px для отделения от последующего контента */
+    margin-bottom: 4px; /* 596: Отступ снизу – 4px для отделения от последующего контента */
 }
 
 /* 598: Стили для элемента time внутри блока .modal-content */
 .modal-content time {
-    font-size: var(--fs6);                  /* 599: Размер шрифта определяется переменной fs6 */
-    color: var(--light-gray70);              /* 600: Цвет текста – светло-серый с прозрачностью (70%) */
-    font-weight: var(--fw500);               /* 601: Вес шрифта – полужирный */
-    margin-bottom: 10px;                     /* 602: Отступ снизу – 10px для разделения от следующего блока */
+    font-size: var(--fs6); /* 599: Размер шрифта определяется переменной fs6 */
+    color: var(--light-gray70); /* 600: Цвет текста – светло-серый с прозрачностью (70%) */
+    font-weight: var(--fw500); /* 601: Вес шрифта – полужирный */
+    margin-bottom: 10px; /* 602: Отступ снизу – 10px для разделения от следующего блока */
 }
 
 /* 604: Стили для абзацев (<p>) внутри блока .modal-content */
 .modal-content p {
-    color: var(--light-gray);                /* 605: Цвет текста – светло-серый */
-    font-size: var(--fs6);                   /* 606: Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);               /* 607: Лёгкий вес шрифта (300) */
-    line-height: 1.6;                        /* 608: Межстрочный интервал – 1.6 для лучшей читаемости */
+    color: var(--light-gray); /* 605: Цвет текста – светло-серый */
+    font-size: var(--fs6); /* 606: Размер шрифта согласно переменной fs6 */
+    font-weight: var(--fw300); /* 607: Лёгкий вес шрифта (300) */
+    line-height: 1.6; /* 608: Межстрочный интервал – 1.6 для лучшей читаемости */
 }
 
 /* ====================================================================== */
@@ -800,82 +857,82 @@
 
 /* 611: Стили для заголовка статьи в разделе "Resume" */
 .article-title {
-    margin-bottom: 30px;                     /* 612: Отступ снизу – 30px */
+    margin-bottom: 30px; /* 612: Отступ снизу – 30px */
 }
 
 /* 614: Стили для контейнера временной шкалы (timeline) */
 .timeline {
-    margin-bottom: 30px;                     /* 615: Отступ снизу – 30px для разделения от последующих блоков */
+    margin-bottom: 30px; /* 615: Отступ снизу – 30px для разделения от последующих блоков */
 }
 
 /* 617: Стили для заголовка временной шкалы (.timeline .title-wrapper) */
 .timeline .title-wrapper {
-    display: flex;                          /* 619: Используем flexbox для горизонтального выравнивания содержимого */
-    align-items: center;                    /* 620: Вертикальное центрирование элементов */
-    gap: 15px;                              /* 621: Зазор между элементами – 15px */
-    margin-bottom: 25px;                    /* 622: Отступ снизу – 25px для отделения от списка элементов временной шкалы */
+    display: flex; /* 619: Используем flexbox для горизонтального выравнивания содержимого */
+    align-items: center; /* 620: Вертикальное центрирование элементов */
+    gap: 15px; /* 621: Зазор между элементами – 15px */
+    margin-bottom: 25px; /* 622: Отступ снизу – 25px для отделения от списка элементов временной шкалы */
 }
 
 /* 624: Стили для списка временной шкалы */
 .timeline-list {
-    font-size: var(--fs6);                   /* 625: Размер шрифта согласно переменной fs6 */
-    margin-left: 45px;                       /* 626: Отступ слева – 45px, чтобы создать выравнивание относительно линии времени */
+    font-size: var(--fs6); /* 625: Размер шрифта согласно переменной fs6 */
+    margin-left: 45px; /* 626: Отступ слева – 45px, чтобы создать выравнивание относительно линии времени */
 }
 
 /* 628: Стили для элементов <span> внутри .timeline-list */
 .timeline-list span {
-    color: var(--vegas-gold);                /* 629: Цвет текста – золото, заданное переменной --vegas-gold */
-    font-weight: var(--fw400);                /* 630: Вес шрифта – 400 (нормальный) */
-    line-height: 1.6;                        /* 631: Межстрочный интервал – 1.6 */
+    color: var(--vegas-gold); /* 629: Цвет текста – золото, заданное переменной --vegas-gold */
+    font-weight: var(--fw400); /* 630: Вес шрифта – 400 (нормальный) */
+    line-height: 1.6; /* 631: Межстрочный интервал – 1.6 */
 }
 
 /* 633: Стили для каждого элемента временной шкалы */
 .timeline-item {
-    position: relative;                      /* 634: Относительное позиционирование для возможности использования псевдоэлементов */
+    position: relative; /* 634: Относительное позиционирование для возможности использования псевдоэлементов */
 }
 
 /* 636: Для всех элементов .timeline-item, кроме последнего, задаём отступ снизу */
 .timeline-item:not(:last-child) {
-    margin-bottom: 20px;                     /* 637: Отступ снизу – 20px */
+    margin-bottom: 20px; /* 637: Отступ снизу – 20px */
 }
 
 /* 638: Псевдоэлемент ::before для .timeline-item (для линии, соединяющей элементы) */
 .timeline-item:not(:last-child)::before {
-    content: '';                             /* 640: Пустое содержимое – используется для декоративной линии */
-    position: absolute;                      /* 641: Абсолютное позиционирование относительно .timeline-item */
-    top: -25px;                              /* 642: Отступ сверху – -25px для начала линии над элементом */
-    left: -30px;                             /* 643: Отступ слева – -30px для позиционирования линии */
-    width: 1px;                              /* 644: Ширина линии – 1px */
-    height: calc(100% + 50px);                 /* 645: Высота линии – рассчитывается относительно высоты элемента плюс дополнительное пространство */
-    background: var(--jet);                   /* 646: Цвет линии – переменная --jet */
+    content: ''; /* 640: Пустое содержимое – используется для декоративной линии */
+    position: absolute; /* 641: Абсолютное позиционирование относительно .timeline-item */
+    top: -25px; /* 642: Отступ сверху – -25px для начала линии над элементом */
+    left: -30px; /* 643: Отступ слева – -30px для позиционирования линии */
+    width: 1px; /* 644: Ширина линии – 1px */
+    height: calc(100% + 50px); /* 645: Высота линии – рассчитывается относительно высоты элемента плюс дополнительное пространство */
+    background: var(--jet); /* 646: Цвет линии – переменная --jet */
 }
 
 /* 648: Псевдоэлемент ::after для .timeline-item (создаёт точку на линии) */
 .timeline-item::after {
-    content: '';                             /* 649: Пустое содержимое – используется для создания декоративной точки */
-    position: absolute;                      /* 650: Абсолютное позиционирование */
-    top: 5px;                                /* 651: Отступ сверху – 5px */
-    left: -33px;                             /* 652: Отступ слева – -33px для размещения точки относительно линии */
-    height: 6px;                             /* 653: Высота точки – 6px */
-    width: 6px;                              /* 654: Ширина точки – 6px */
-    border-radius: 50%;                      /* 655: Сделать точку круглой */
-    background: var(--text-gradient-yellow);  /* 656: Цвет точки – градиент, заданный переменной --text-gradient-yellow */
-    box-shadow: 0 0 0 4px var(--jet);          /* 657: Обводка вокруг точки с использованием цвета --jet */
+    content: ''; /* 649: Пустое содержимое – используется для создания декоративной точки */
+    position: absolute; /* 650: Абсолютное позиционирование */
+    top: 5px; /* 651: Отступ сверху – 5px */
+    left: -33px; /* 652: Отступ слева – -33px для размещения точки относительно линии */
+    height: 6px; /* 653: Высота точки – 6px */
+    width: 6px; /* 654: Ширина точки – 6px */
+    border-radius: 50%; /* 655: Сделать точку круглой */
+    background: var(--text-gradient-yellow); /* 656: Цвет точки – градиент, заданный переменной --text-gradient-yellow */
+    box-shadow: 0 0 0 4px var(--jet); /* 657: Обводка вокруг точки с использованием цвета --jet */
 }
 
 /* 659: Стили для заголовка отдельного элемента временной шкалы */
 .timeline-item-title {
-    font-size: var(--fs6);                   /* 660: Размер шрифта согласно переменной fs6 */
-    line-height: 1.3;                        /* 661: Межстрочный интервал – 1.3 */
-    margin-bottom: 7px;                      /* 662: Отступ снизу – 7px для отделения от описания */
+    font-size: var(--fs6); /* 660: Размер шрифта согласно переменной fs6 */
+    line-height: 1.3; /* 661: Межстрочный интервал – 1.3 */
+    margin-bottom: 7px; /* 662: Отступ снизу – 7px для отделения от описания */
 }
 
 /* 664: Стили для текстового описания временной шкалы */
 .timeline-text {
-    color: var(--light-gray);                /* 665: Цвет текста – светло-серый */
-    font-weight: var(--fw300);                /* 666: Легкий вес шрифта */
-    line-height: 1.6;                        /* 667: Межстрочный интервал – 1.6 */
-    text-align: justify;                     /* 668: Выравнивание текста по ширине */
+    color: var(--light-gray); /* 665: Цвет текста – светло-серый */
+    font-weight: var(--fw300); /* 666: Легкий вес шрифта */
+    line-height: 1.6; /* 667: Межстрочный интервал – 1.6 */
+    text-align: justify; /* 668: Выравнивание текста по ширине */
 }
 
 /* ====================================================================== */
@@ -884,51 +941,48 @@
 
 /* 671: Стили для заголовка секции "Skills" */
 .skills-title {
-    margin-bottom: 20px;                     /* 672: Отступ снизу – 20px */
+    margin-bottom: 20px; /* 672: Отступ снизу – 20px */
 }
 
 /* 674: Стили для контейнера списка навыков */
 .skills-list {
-    padding: 20px;                          /* 675: Внутренние отступы – 20px */
+    padding: 20px; /* 675: Внутренние отступы – 20px */
 }
 
 /* 677: Для каждого элемента навыков, кроме последнего, задаём отступ снизу */
 .skills-item:not(:last-child) {
-    margin-bottom: 15px;                     /* 678: Отступ снизу – 15px */
+    margin-bottom: 15px; /* 678: Отступ снизу – 15px */
 }
 
 /* 680: Стили для контейнера заголовка навыка внутри .skill */
 .skill .title-wrapper {
-    display: flex;                          /* 681: Использование flexbox для выравнивания элементов */
-    align-items: center;                    /* 682: Центрирование по вертикали */
-    gap: 5px;                               /* 683: Зазор между элементами – 5px */
-    margin-bottom: 8px;                     /* 684: Отступ снизу – 8px для отделения от описания */
+    display: flex; /* 681: Использование flexbox для выравнивания элементов */
+    align-items: center; /* 682: Центрирование по вертикали */
+    gap: 5px; /* 683: Зазор между элементами – 5px */
+    margin-bottom: 8px; /* 684: Отступ снизу – 8px для отделения от описания */
 }
 
 /* 686: Стили для элемента <data> внутри .skill .title-wrapper */
-    .skill .title-wrapper data {
-        color: var(--light-gray);           /* 688: Цвет текста – светло-серый */
-        font-size: var(--fs7);               /* 689: Размер шрифта согласно переменной fs7 */
-        font-weight: var(--fw300);           /* 690: Лёгкий вес шрифта */
-    }
+.skill .title-wrapper data {
+    color: var(--light-gray); /* 688: Цвет текста – светло-серый */
+    font-size: var(--fs7); /* 689: Размер шрифта согласно переменной fs7 */
+    font-weight: var(--fw300); /* 690: Лёгкий вес шрифта */
+}
 
 /* 692: Стили для фона прогресс-бара навыков */
 .skills-progress-bg {
-    background: var(--jet);                  /* 693: Фон – цвет, заданный переменной --jet */
-    width: 100%;                            /* 694: Занимает всю ширину родительского контейнера */
-    height: 8px;                            /* 695: Высота прогресс-бара – 8px */
-    border-radius: 10px;                      /* 696: Скругление углов – 10px */
+    background: var(--jet); /* 693: Фон – цвет, заданный переменной --jet */
+    width: 100%; /* 694: Занимает всю ширину родительского контейнера */
+    height: 8px; /* 695: Высота прогресс-бара – 8px */
+    border-radius: 10px; /* 696: Скругление углов – 10px */
 }
 
 /* 698: Стили для заполненной части прогресс-бара */
 .skills-progress-fill {
-    background: var(--text-gradient-yellow);  /* 699: Фон заполненной части – градиент, заданный переменной --text-gradient-yellow */
-    height: 100%;                           /* 700: Высота равна высоте контейнера прогресс-бара */
-    border-radius: inherit;                 /* 701: Наследование скругления от родительского элемента */
+    background: var(--text-gradient-yellow); /* 699: Фон заполненной части – градиент, заданный переменной --text-gradient-yellow */
+    height: 100%; /* 700: Высота равна высоте контейнера прогресс-бара */
+    border-radius: inherit; /* 701: Наследование скругления от родительского элемента */
 }
-
-
-
 
 
 /* =============================== */
@@ -1014,8 +1068,12 @@
 }
 
 @keyframes scaleUp {
-    0% { transform: scale(0.5); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(0.5);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .project-item > a {
@@ -1107,12 +1165,46 @@
     .filter-select {
         color: var(--white1); /* Белый для мобильных */
     }
+
     .select-item button {
         color: var(--white1) !important; /* Белый для мобильных */
     }
+
     .project-category {
         color: var(--white1);
     }
+}
+
+
+/* Стили для элементов блога/портфолио */
+.blog-post-item {
+    display: block; /* По умолчанию видим */
+    transition: opacity var(--transition1); /* Плавное появление/исчезновение */
+}
+
+/* Скрываем элементы без класса active */
+.blog-post-item:not(.active) {
+    display: none; /* Скрываем неактивные элементы */
+}
+
+
+/* Добавляем в секцию PORTFOLIO или BLOG */
+.filter-item button {
+    color: var(--white2); /* Светлый текст по умолчанию */
+    font-size: var(--fs5); /* Размер шрифта */
+    background: none; /* Без фона */
+    padding: 8px 12px; /* Отступы */
+    border-radius: 8px; /* Скругление углов */
+    transition: var(--transition1); /* Плавный переход */
+}
+
+.filter-item button:hover {
+    color: var(--light-gray70); /* Цвет при наведении */
+}
+
+.filter-item button.active {
+    color: var(--orange-yellow-crayola); /* Цвет активной кнопки */
+    background: var(--bg-gradient-yellow1); /* Градиентный фон для активной кнопки */
 }
 
 
@@ -1123,102 +1215,235 @@
 /* 901: Комментарий для обозначения начала секции BLOG */
 
 /* 903: Стили для контейнера, содержащего блог-посты */
+/* Оставляем без изменений, так как не затрагивается унификацией */
 .blog-posts {
-    margin-bottom: 10px;          /* 904: Отступ снизу – 10px для отделения от последующих секций */
+    margin-bottom: 10px; /* 904: Отступ снизу – 10px для отделения от последующих секций */
 }
 
 /* 907: Стили для списка блог-постов */
+/* Оставляем без изменений, так как структура сетки не меняется */
 .blog-posts-list {
-    display: grid;                /* 908: Используем CSS Grid для размещения постов */
-    grid-template-columns: 1fr;   /* 909: По умолчанию одна колонка */
-    gap: 20px;                    /* 910: Промежуток между постами – 20px */
+    display: grid; /* 908: Используем CSS Grid для размещения постов */
+    grid-template-columns: 1fr; /* 909: По умолчанию одна колонка */
+    gap: 20px; /* 910: Промежуток между постами – 20px */
 }
 
 /* 913: Стили для ссылки, оборачивающей отдельный блог-пост */
+/* Обновляем, добавляя унифицированные цвета и эффекты наведения */
 .blog-posts-item > a {
-    position: relative;           /* 914: Относительное позиционирование для возможности использования псевдоэлементов */
-    background: var(--border-gradient-onyx);  /* 915: Фон – градиент, имитирующий рамку */
-    height: 100%;                 /* 916: Занимает всю высоту родительского элемента */
-    box-shadow: var(--shadow4);   /* 917: Применение тени (переменная --shadow4) для создания глубины */
-    border-radius: 16px;          /* 918: Скругление углов – 16px */
-    z-index: 1;                   /* 919: Устанавливаем порядок наложения, чтобы псевдоэлемент располагался под содержимым */
+    position: relative; /* 914: Относительное позиционирование для псевдоэлементов */
+    background: var(--border-gradient-onyx); /* 915: Фон – градиент, имитирующий рамку */
+    height: 100%; /* 916: Занимает всю высоту родительского элемента */
+    box-shadow: var(--shadow4); /* 917: Тень для глубины */
+    border-radius: 16px; /* 918: Скругление углов – 16px */
+    z-index: 1; /* 919: Порядок наложения для псевдоэлемента */
+    color: var(--light-gray); /* 920: Унифицированный цвет текста (добавлено для ссылок) */
+    transition: color var(--transition1); /* 921: Плавный переход цвета при наведении */
 }
 
-/* 922: Псевдоэлемент ::before для ссылки блог-поста */
-/* Он создаёт дополнительную внутреннюю рамку с эффектом */
+/* 924: Псевдоэлемент ::before для ссылки блог-поста */
+/* Оставляем без изменений, так как это декоративный элемент */
 .blog-posts-item > a::before {
-    content: '';                  /* 924: Пустое содержимое – используется исключительно для декоративного эффекта */
-    position: absolute;           /* 925: Абсолютное позиционирование относительно родительской ссылки */
-    inset: 1px;                  /* 926: Отступ в 1px со всех сторон (top, right, bottom, left) */
-    border-radius: inherit;       /* 927: Наследует скругление от родительского элемента (16px) */
-    background: var(--eerie-black1);  /* 928: Фон задаётся переменной --eerie-black1 */
-    z-index: -1;                  /* 929: Размещается позади основного содержимого ссылки */
+    content: ''; /* 925: Пустое содержимое для декоративного эффекта */
+    position: absolute; /* 926: Абсолютное позиционирование внутри ссылки */
+    inset: 1px; /* 927: Отступ в 1px со всех сторон */
+    border-radius: inherit; /* 928: Наследует скругление (16px) */
+    background: var(--eerie-black1); /* 929: Фон – тёмный (переменная) */
+    z-index: -1; /* 930: Позади основного содержимого */
 }
 
-/* 932: Стили для контейнера, содержащего баннер блога (изображение) */
-.blog-banner-box {
-    width: 100%;                  /* 934: Ширина – 100% от родительского элемента */
-    height: 200px;                /* 935: Фиксированная высота – 200px */
-    border-radius: 12px;          /* 936: Скругление углов – 12px */
-    overflow: hidden;             /* 937: Содержимое, выходящее за границы, обрезается */
+/**
+ * 933: Стили для контейнеров изображений (баннеров) во всех шаблонах.
+ * Унифицируем с высотой 200px, адаптивностью и эффектом при наведении.
+ * Заменяем старый .blog-banner-box (932–947).
+ */
+.blog-banner-box,
+.project-img,
+.post-banner,
+.project-banner {
+    position: relative; /* 935: Относительное позиционирование для иконки и псевдоэлемента */
+    width: 100%; /* 936: Ширина – 100% от родителя */
+    height: 200px; /* 937: Фиксированная высота как в blog_page */
+    border-radius: 16px; /* 938: Увеличено с 12px до 16px для一致ности */
+    overflow: hidden; /* 939: Обрезает выходящее за границы содержимое */
+    margin-bottom: 15px; /* 940: Отступ снизу для разделения с текстом */
+    transition: var(--transition1); /* 941: Плавный переход для эффектов */
 }
 
-/* 940: Стили для изображения внутри .blog-banner-box */
-.blog-banner-box img {
-    width: 100%;                  /* 942: Изображение растягивается по всей ширине контейнера */
-    height: 100%;                 /* 943: Изображение занимает всю высоту контейнера */
-    object-fit: cover;            /* 944: Изображение обрезается для заполнения контейнера, сохраняя пропорции */
-    transition: var(--transition1); /* 945: Плавный переход (например, при наведении) согласно переменной --transition1 */
+/* 944: Стили для изображения внутри баннеров */
+.blog-banner-box img,
+.project-img img,
+.post-banner img,
+.project-banner img {
+    width: 100%; /* 946: Растягивается по ширине контейнера */
+    height: 100%; /* 947: Заполняет высоту контейнера */
+    object-fit: cover; /* 948: Обрезается с сохранением пропорций */
+    transition: var(--transition1); /* 949: Плавное масштабирование при наведении */
 }
 
-/* 948: Стили для контейнера контента блога (текст и другая информация) */
+/* 952: Псевдоэлемент ::before для затемнения при наведении */
+.blog-banner-box::before,
+.project-img::before,
+.post-banner::before,
+.project-banner::before {
+    content: ''; /* 954: Пустое содержимое для декоративного слоя */
+    position: absolute; /* 955: Абсолютное позиционирование внутри баннера */
+    top: 0; /* 956: Привязка к верху */
+    left: 0; /* 957: Привязка к левому краю */
+    width: 100%; /* 958: Полная ширина */
+    height: 100%; /* 959: Полная высота */
+    background: transparent; /* 960: Изначально прозрачный фон */
+    z-index: 1; /* 961: Поверх изображения, но под иконкой */
+    transition: var(--transition1); /* 962: Плавное изменение фона */
+}
+
+/* 965: Эффект масштабирования изображения при наведении */
+.blog-banner-box:hover img,
+.project-img:hover img,
+.post-banner:hover img,
+.project-banner:hover img {
+    transform: scale(1.1); /* 967: Увеличение на 10% */
+}
+
+/* 970: Эффект затемнения при наведении */
+.blog-banner-box:hover::before,
+.project-img:hover::before,
+.post-banner:hover::before,
+.project-banner:hover::before {
+    background: hsla(0, 0%, 0%, .5); /* 972: Полупрозрачный чёрный фон */
+}
+
+/* 975: Стили для иконки, появляющейся при наведении */
+/* Добавлено для унификации с portfolio_page */
+.blog-banner-box .project-item-icon-box,
+.project-img .project-item-icon-box,
+.post-banner .project-item-icon-box,
+.project-banner .project-item-icon-box {
+    --scale: .8; /* 978: Изначальный масштаб иконки */
+    background: var(--jet); /* 979: Тёмный фон иконки */
+    color: var(--orange-yellow-crayola); /* 980: Оранжево-жёлтый цвет иконки */
+    position: absolute; /* 981: Абсолютное позиционирование в центре */
+    top: 50%; /* 982: Центр по вертикали */
+    left: 50%; /* 983: Центр по горизонтали */
+    transform: translate(-50%, -50%) scale(var(--scale)); /* 984: Центрирование и масштабирование */
+    font-size: 20px; /* 985: Размер иконки */
+    padding: 18px; /* 986: Внутренний отступ для квадратной формы */
+    border-radius: 12px; /* 987: Скругление углов */
+    opacity: 0; /* 988: Изначально невидима */
+    z-index: 2; /* 989: Поверх затемнения */
+    transition: var(--transition1); /* 990: Плавное появление */
+}
+
+/* 993: Эффект при наведении на иконку */
+.blog-banner-box:hover .project-item-icon-box,
+.project-img:hover .project-item-icon-box,
+.post-banner:hover .project-item-icon-box,
+.project-banner:hover .project-item-icon-box {
+    --scale: 1; /* 995: Полный размер */
+    opacity: 1; /* 996: Становится видимой */
+}
+
+/* 999: Стили для самой иконки внутри контейнера */
+.blog-banner-box .project-item-icon-box ion-icon,
+.project-img .project-item-icon-box ion-icon,
+.post-banner .project-item-icon-box ion-icon,
+.project-banner .project-item-icon-box ion-icon {
+    --ionicon-stroke-width: 50px; /* 1002: Толщина линий иконки */
+}
+
+/* 1005: Стили для контейнера контента блога */
+/* Оставляем без изменений */
 .blog-content {
-    padding: 15px;                /* 949: Внутренний отступ – 15px со всех сторон */
+    padding: 15px; /* 1006: Внутренний отступ – 15px со всех сторон */
 }
 
-/* 951: Стили для контейнера метаданных блога (категория, время и т.д.) */
+/* 1009: Стили для контейнера метаданных блога */
+/* Оставляем без изменений */
 .blog-meta {
-    display: flex;                /* 953: Используем flexbox для горизонтального расположения элементов */
-    justify-content: flex-start;  /* 954: Выравнивание элементов по началу контейнера */
-    align-items: center;          /* 955: Центрирование элементов по вертикали */
-    gap: 7px;                     /* 956: Зазор между элементами – 7px */
-    margin-bottom: 10px;          /* 957: Отступ снизу – 10px для отделения от следующего блока */
+    display: flex; /* 1010: Flexbox для горизонтального расположения */
+    justify-content: flex-start; /* 1011: Выравнивание по началу */
+    align-items: center; /* 1012: Центрирование по вертикали */
+    gap: 7px; /* 1013: Зазор между элементами – 7px */
+    margin-bottom: 10px; /* 1014: Отступ снизу – 10px */
 }
 
-/* 960: Стили для элементов внутри .blog-meta, которые являются ссылками категории или элементами времени */
+/* 1017: Стили для элементов метаданных */
+/* Оставляем без изменений */
 .blog-meta :is(.blog-category, time) {
-    color: var(--light-gray70);    /* 962: Цвет – светло-серый с прозрачностью (переменная --light-gray70) */
-    font-size: var(--fs6);         /* 963: Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);     /* 964: Лёгкий вес шрифта (300) */
+    color: var(--light-gray70); /* 1019: Светло-серый цвет с прозрачностью */
+    font-size: var(--fs6); /* 1020: Размер шрифта */
+    font-weight: var(--fw300); /* 1021: Лёгкий вес шрифта */
 }
 
-/* 967: Стили для декоративного элемента – точки (dot) в метаданных блога */
+/* 1024: Стили для точки в метаданных */
+/* Оставляем без изменений */
 .blog-meta .dot {
-    background: var(--light-gray70); /* 969: Фон точки – светло-серый с прозрачностью */
-    width: 4px;                   /* 970: Ширина точки – 4px */
-    height: 4px;                  /* 971: Высота точки – 4px */
-    border-radius: 4px;           /* 972: Скругление углов до полного круга (4px) */
+    background: var(--light-gray70); /* 1026: Цвет точки */
+    width: 4px; /* 1027: Ширина точки */
+    height: 4px; /* 1028: Высота точки */
+    border-radius: 4px; /* 1029: Полный круг */
 }
 
-/* 975: Стили для заголовка блог-поста */
+/* 1032: Стили для заголовка блог-поста */
+/* Обновляем для унификации ссылок */
 .blog-item-title {
-    margin-bottom: 10px;          /* 976: Отступ снизу – 10px */
-    line-height: 1.3;             /* 977: Межстрочный интервал – 1.3 для плотного, но читаемого текста */
-    transition: var(--transition1); /* 978: Плавный переход для изменения цвета при наведении */
+    margin-bottom: 10px; /* 1033: Отступ снизу – 10px */
+    line-height: 1.3; /* 1034: Межстрочный интервал */
+    color: var(--light-gray); /* 1035: Унифицированный цвет (добавлено) */
+    transition: var(--transition1); /* 1036: Плавный переход цвета */
 }
 
-/* 981: При наведении на ссылку блог-поста, заголовок меняет цвет */
-.blog-post-item > a:hover .blog-item-title {
-    color: var(--orange-yellow-crayola); /* 983: Цвет заголовка становится оранжево-жёлтым */
+/* 1039: Эффект наведения для заголовка */
+.blog-posts-item > a:hover .blog-item-title {
+    color: var(--orange-yellow-crayola); /* 1040: Оранжево-жёлтый при наведении */
 }
 
-/* 986: Стили для основного текста блог-поста */
-.blog-text {
-    color: var(--light-gray);      /* 987: Цвет текста – светло-серый */
-    font-size: var(--fs6);          /* 988: Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);      /* 989: Лёгкий вес шрифта */
-    line-height: 1.6;              /* 990: Межстрочный интервал – 1.6 для улучшения читаемости */
-    text-align: justify;           /* 991: Выравнивание текста по ширине для аккуратного вида */
+/**
+ * 1043: Стили для текстовых блоков во всех шаблонах.
+ * Унифицируем с заменой старого .blog-text (986–991).
+ */
+.blog-text,
+.project-text,
+.article-text {
+    color: var(--light-gray); /* 1046: Унифицированный цвет текста */
+    font-size: var(--fs6); /* 1047: Размер шрифта */
+    font-weight: var(--fw300); /* 1048: Лёгкий вес шрифта */
+    line-height: 1.6; /* 1049: Межстрочный интервал */
+    text-align: justify; /* 1050: Выравнивание по ширине */
+    margin-bottom: 15px; /* 1051: Отступ снизу для разделения */
+}
+
+/**
+ * 1054: Стили для пагинации в blog_page.
+ * Добавлено для стилизации пагинации в духе дизайна.
+ */
+.pagination {
+    display: flex; /* 1057: Flexbox для горизонтального расположения кнопок */
+    justify-content: center; /* 1058: Центрирование кнопок */
+    align-items: center; /* 1059: Выравнивание по вертикали */
+    gap: 10px; /* 1060: Зазор между кнопками – 10px */
+    margin-top: 20px; /* 1061: Отступ сверху для отделения от контента */
+}
+
+.pagination-btn {
+    background: var(--border-gradient-onyx); /* 1064: Градиентный фон */
+    color: var(--light-gray); /* 1065: Цвет текста */
+    padding: 8px 12px; /* 1066: Внутренние отступы */
+    border-radius: 8px; /* 1067: Скругление углов */
+    text-decoration: none; /* 1068: Убираем подчёркивание */
+    transition: var(--transition1); /* 1069: Плавный переход для эффектов */
+}
+
+.pagination-btn:hover,
+.pagination-btn:focus {
+    background: var(--bg-gradient-yellow1); /* 1072: Жёлтый градиент при наведении */
+    color: var(--orange-yellow-crayola); /* 1073: Оранжево-жёлтый текст */
+}
+
+.pagination-btn.active {
+    background: var(--bg-gradient-yellow1); /* 1076: Жёлтый градиент для активной кнопки */
+    color: var(--orange-yellow-crayola); /* 1077: Оранжево-жёлтый текст */
+    font-weight: var(--fw500); /* 1078: Увеличенный вес шрифта для выделения */
 }
 
 /* =============================== */
@@ -1232,60 +1457,60 @@
 
 /* 1051: Секция CONTACT – начало блока для карты (mapbox) */
 .mapbox {
-    position: relative;              /* 1052: Относительное позиционирование для дочерних элементов (например, figure или iframe) */
-    height: 250px;                   /* 1053: Фиксированная высота блока карты – 250px */
-    width: 100%;                     /* 1054: Ширина блока равна 100% от родительского элемента */
-    border-radius: 16px;             /* 1055: Скругление углов блока – 16px */
-    margin-bottom: 30px;             /* 1056: Отступ снизу – 30px для отделения от следующего содержимого */
-    border: 1px solid var(--jet);     /* 1057: Рамка вокруг карты с цветом, заданным переменной --jet */
-    overflow: hidden;                /* 1058: Обрезание содержимого, выходящего за границы блока */
+    position: relative; /* 1052: Относительное позиционирование для дочерних элементов (например, figure или iframe) */
+    height: 250px; /* 1053: Фиксированная высота блока карты – 250px */
+    width: 100%; /* 1054: Ширина блока равна 100% от родительского элемента */
+    border-radius: 16px; /* 1055: Скругление углов блока – 16px */
+    margin-bottom: 30px; /* 1056: Отступ снизу – 30px для отделения от следующего содержимого */
+    border: 1px solid var(--jet); /* 1057: Рамка вокруг карты с цветом, заданным переменной --jet */
+    overflow: hidden; /* 1058: Обрезание содержимого, выходящего за границы блока */
 }
 
 /* 1060: Стили для тега <figure> внутри .mapbox */
 .mapbox figure {
-    height: 100%;                    /* 1061: Высота <figure> равна 100% высоты родительского блока (.mapbox) */
+    height: 100%; /* 1061: Высота <figure> равна 100% высоты родительского блока (.mapbox) */
 }
 
 /* 1063: Стили для iframe внутри .mapbox (обычно для вставки карты) */
 .mapbox iframe {
-    width: 100%;                    /* 1065: Ширина iframe равна 100% ширины контейнера */
-    height: 100%;                   /* 1066: Высота iframe равна 100% высоты контейнера */
-    border: none;                   /* 1067: Убираем рамку вокруг iframe */
+    width: 100%; /* 1065: Ширина iframe равна 100% ширины контейнера */
+    height: 100%; /* 1066: Высота iframe равна 100% высоты контейнера */
+    border: none; /* 1067: Убираем рамку вокруг iframe */
     filter: grayscale(1) invert(1); /* 1068: Применяем фильтр: полностью серый (grayscale) и инвертируем цвета (invert) */
 }
 
 /* 1070: Стили для формы контакта – класс .contact-form */
 .contact-form {
-    margin-bottom: 10px;            /* 1071: Отступ снизу – 10px, отделяет форму от последующих блоков */
+    margin-bottom: 10px; /* 1071: Отступ снизу – 10px, отделяет форму от последующих блоков */
 }
 
 /* 1073: Стили для заголовка формы контакта (.form-title) */
 .form-title {
-    margin-bottom: 20px;            /* 1074: Отступ снизу – 20px для отделения заголовка от формы */
+    margin-bottom: 20px; /* 1074: Отступ снизу – 20px для отделения заголовка от формы */
 }
 
 /* 1076: Стили для контейнера ввода данных (.input-wrapper) */
 .input-wrapper {
-    display: grid;                  /* 1077: Используем CSS Grid для размещения элементов формы */
-    grid-template-columns: 1fr;     /* 1078: Одна колонка по умолчанию */
-    gap: 25px;                      /* 1079: Промежуток между элементами – 25px */
-    margin-bottom: 25px;            /* 1080: Отступ снизу – 25px для разделения от кнопки отправки или других элементов */
+    display: grid; /* 1077: Используем CSS Grid для размещения элементов формы */
+    grid-template-columns: 1fr; /* 1078: Одна колонка по умолчанию */
+    gap: 25px; /* 1079: Промежуток между элементами – 25px */
+    margin-bottom: 25px; /* 1080: Отступ снизу – 25px для разделения от кнопки отправки или других элементов */
 }
 
 /* 1082: Стили для текстовых полей ввода (.form-input) */
 .form-input {
-    color: var(--white2);           /* 1083: Цвет текста внутри поля – почти белый */
-    font-size: var(--fs6);           /* 1084: Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw400);       /* 1085: Вес шрифта – 400 (нормальный) */
-    padding: 13px 20px;             /* 1086: Внутренние отступы: 13px сверху/снизу и 20px слева/справа */
-    border: 1px solid var(--jet);     /* 1087: Рамка поля ввода с цветом, заданным переменной --jet */
-    border-radius: 14px;            /* 1088: Скругление углов поля – 14px */
-    outline: none;                  /* 1089: Убираем стандартное выделение (outline) при фокусе */
+    color: var(--white2); /* 1083: Цвет текста внутри поля – почти белый */
+    font-size: var(--fs6); /* 1084: Размер шрифта согласно переменной fs6 */
+    font-weight: var(--fw400); /* 1085: Вес шрифта – 400 (нормальный) */
+    padding: 13px 20px; /* 1086: Внутренние отступы: 13px сверху/снизу и 20px слева/справа */
+    border: 1px solid var(--jet); /* 1087: Рамка поля ввода с цветом, заданным переменной --jet */
+    border-radius: 14px; /* 1088: Скругление углов поля – 14px */
+    outline: none; /* 1089: Убираем стандартное выделение (outline) при фокусе */
 }
 
 /* 1091: Стили для плейсхолдера внутри .form-input */
 .form-input::placeholder {
-    font-weight: var(--fw500);       /* 1092: Вес шрифта плейсхолдера – полужирный (500) */
+    font-weight: var(--fw500); /* 1092: Вес шрифта плейсхолдера – полужирный (500) */
 }
 
 /* 1094: Стили для поля ввода при фокусе */
@@ -1295,56 +1520,56 @@
 
 /* 1097: Стили для поля ввода в случае ошибки (невалидное значение) при фокусе */
 .form-input:focus:invalid {
-    border-color: var(--bittersweet-shimmer);   /* 1098: Рамка становится оттенком, заданным переменной --bittersweet-shimmer */
+    border-color: var(--bittersweet-shimmer); /* 1098: Рамка становится оттенком, заданным переменной --bittersweet-shimmer */
 }
 
 /* 1100: Стили для текстового поля ввода, если элемент является textarea и имеет класс .form-input */
 textarea.form-input {
-    min-height: 100px;              /* 1101: Минимальная высота текстового поля – 100px */
-    height: 120px;                  /* 1102: Фиксированная высота – 120px (если содержимое меньше – используется эта высота) */
-    max-height: 200px;              /* 1103: Максимальная высота – 200px, чтобы избежать чрезмерного роста поля */
-    resize: vertical;              /* 1104: Разрешено изменение размера только по вертикали */
-    margin-bottom: 25px;            /* 1105: Отступ снизу – 25px для разделения от следующих элементов */
+    min-height: 100px; /* 1101: Минимальная высота текстового поля – 100px */
+    height: 120px; /* 1102: Фиксированная высота – 120px (если содержимое меньше – используется эта высота) */
+    max-height: 200px; /* 1103: Максимальная высота – 200px, чтобы избежать чрезмерного роста поля */
+    resize: vertical; /* 1104: Разрешено изменение размера только по вертикали */
+    margin-bottom: 25px; /* 1105: Отступ снизу – 25px для разделения от следующих элементов */
 }
 
 /* 1107: Скрытие стандартного элемента изменения размера для textarea в Webkit-браузерах */
 textarea.form-input::-webkit-resizer {
-    display: none;                  /* 1108: Скрываем стандартный ползунок изменения размера */
+    display: none; /* 1108: Скрываем стандартный ползунок изменения размера */
 }
 
 /* 1110: Стили для кнопки отправки формы (.form-btn) */
 .form-btn {
-    position: relative;             /* 1111: Относительное позиционирование для возможности использования псевдоэлемента ::before */
-    width: 100%;                    /* 1112: Кнопка занимает всю ширину родительского контейнера */
+    position: relative; /* 1111: Относительное позиционирование для возможности использования псевдоэлемента ::before */
+    width: 100%; /* 1112: Кнопка занимает всю ширину родительского контейнера */
     background: var(--border-gradient-onyx); /* 1113: Фон кнопки – градиент, имитирующий рамку */
     color: var(--orange-yellow-crayola); /* 1114: Цвет текста кнопки – оранжево-жёлтый */
-    display: flex;                  /* 1115: Flex-контейнер для выравнивания содержимого кнопки */
-    justify-content: center;        /* 1116: Центрирование по горизонтали */
-    align-items: center;            /* 1117: Центрирование по вертикали */
-    gap: 10px;                      /* 1118: Расстояние между элементами внутри кнопки (например, текст и иконка) */
-    padding: 13px 20px;             /* 1119: Внутренние отступы: 13px сверху/снизу и 20px по бокам */
-    border-radius: 14px;            /* 1120: Скругление углов кнопки – 14px */
-    font-size: var(--fs6);          /* 1121: Размер шрифта согласно переменной fs6 */
-    text-transform: capitalize;     /* 1122: Преобразование текста – первая буква каждого слова заглавная */
-    box-shadow: var(--shadow3);      /* 1123: Тень для кнопки, заданная переменной --shadow3 */
-    z-index: 1;                     /* 1124: Задает порядок наложения, чтобы кнопка отображалась поверх псевдоэлементов */
+    display: flex; /* 1115: Flex-контейнер для выравнивания содержимого кнопки */
+    justify-content: center; /* 1116: Центрирование по горизонтали */
+    align-items: center; /* 1117: Центрирование по вертикали */
+    gap: 10px; /* 1118: Расстояние между элементами внутри кнопки (например, текст и иконка) */
+    padding: 13px 20px; /* 1119: Внутренние отступы: 13px сверху/снизу и 20px по бокам */
+    border-radius: 14px; /* 1120: Скругление углов кнопки – 14px */
+    font-size: var(--fs6); /* 1121: Размер шрифта согласно переменной fs6 */
+    text-transform: capitalize; /* 1122: Преобразование текста – первая буква каждого слова заглавная */
+    box-shadow: var(--shadow3); /* 1123: Тень для кнопки, заданная переменной --shadow3 */
+    z-index: 1; /* 1124: Задает порядок наложения, чтобы кнопка отображалась поверх псевдоэлементов */
     transition: var(--transition1); /* 1125: Плавный переход для анимационных эффектов (например, при наведении) */
 }
 
 /* 1127: Псевдоэлемент ::before для кнопки (.form-btn) для создания декоративного эффекта */
 .form-btn::before {
-    content: '';                    /* 1128: Пустое содержимое – используется исключительно для визуального оформления */
-    position: absolute;             /* 1129: Абсолютное позиционирование внутри кнопки */
-    inset: 1px;                    /* 1130: Отступ в 1px со всех сторон для создания эффекта рамки */
+    content: ''; /* 1128: Пустое содержимое – используется исключительно для визуального оформления */
+    position: absolute; /* 1129: Абсолютное позиционирование внутри кнопки */
+    inset: 1px; /* 1130: Отступ в 1px со всех сторон для создания эффекта рамки */
     background: var(--bg-gradient-jet); /* 1131: Фон псевдоэлемента – градиент, заданный переменной --bg-gradient-jet */
-    border-radius: inherit;         /* 1132: Наследование скругления от родительского элемента (.form-btn) */
-    z-index: -1;                    /* 1133: Размещается позади содержимого кнопки */
+    border-radius: inherit; /* 1132: Наследование скругления от родительского элемента (.form-btn) */
+    z-index: -1; /* 1133: Размещается позади содержимого кнопки */
     transition: var(--transition1); /* 1134: Плавный переход для изменения фона псевдоэлемента */
 }
 
 /* 1136: Стили для иконки внутри кнопки, если используется элемент ion-icon */
 .form-btn ion-icon {
-    font-size: 16px;                /* 1137: Размер иконки – 16px */
+    font-size: 16px; /* 1137: Размер иконки – 16px */
 }
 
 /* 1139: При наведении на кнопку меняется её фон */
@@ -1359,8 +1584,8 @@ textarea.form-input::-webkit-resizer {
 
 /* 1145: Стили для кнопки в неактивном состоянии (disabled) */
 .form-btn:disabled {
-    opacity: .7;                   /* 1146: Непрозрачность уменьшена до 70% */
-    cursor: not-allowed;           /* 1147: Курсор меняется на знак «запрещено», сигнализируя о неактивности */
+    opacity: .7; /* 1146: Непрозрачность уменьшена до 70% */
+    cursor: not-allowed; /* 1147: Курсор меняется на знак «запрещено», сигнализируя о неактивности */
 }
 
 /* 1149: При наведении на неактивную кнопку изменяется фон (для визуальной обратной связи) */
@@ -1377,6 +1602,9 @@ textarea.form-input::-webkit-resizer {
 /* (Данный блок охватывает стили для .mapbox, формы контакта, заголовка формы, контейнера ввода, полей ввода и кнопки отправки) */
 
 
+
+
+
 /* =============================== */
 /*         MEDIA QUERIES         */
 /* =============================== */
@@ -1385,14 +1613,20 @@ textarea.form-input::-webkit-resizer {
 
 /* 1156: Медиа-запрос для экранов шириной от 450px и более */
 @media (min-width: 450px) {
-    /* 1157: Для элементов с классом .clients-item устанавливаем минимальную ширину */
+    /* 1157: Стили для элементов клиентов – минимальная ширина остаётся без изменений */
     .clients-item {
-        min-width: calc(33.33% - 10px);  /* Каждый клиент занимает примерно одну треть ширины минус 10px */
+        min-width: calc(33.33% - 10px); /* Каждый клиент занимает треть ширины минус 10px */
     }
 
-    /* 1160: Для элементов с классами .project-img и .blog-banner-box убираем фиксированную высоту */
-    .project-img, .blog-banner-box {
-        height: auto;  /* Высота подстраивается под содержимое */
+    /**
+     * 1160: Убираем фиксированную высоту для всех баннеров.
+     * Обновляем .project-img и .blog-banner-box, добавляем .post-banner и .project-banner для унификации.
+     */
+    .blog-banner-box,
+    .project-img,
+    .post-banner,
+    .project-banner {
+        height: auto; /* Высота подстраивается под содержимое для адаптивности */
     }
 }
 
@@ -1400,409 +1634,440 @@ textarea.form-input::-webkit-resizer {
 
 /* 1166: Медиа-запрос для экранов от 580px и более */
 @media (min-width: 580px) {
-    /* 1167: Переопределение некоторых CSS-переменных для увеличения размеров шрифтов */
+    /* 1167: Переопределение переменных шрифтов – оставляем без изменений */
     :root {
-        --fs1: 32px;  /* Заголовок h2 увеличен до 32px */
-        --fs2: 24px;  /* h3 увеличен до 24px */
-        --fs3: 26px;  /* h4 увеличен до 26px */
-        --fs4: 18px;  /* h5 увеличен до 18px */
-        --fs6: 15px;  /* Размер основного текста становится 15px */
-        --fs7: 15px;  /* Размер вспомогательного текста – 15px */
-        --fs8: 12px;  /* Размер мелкого текста остаётся 12px */
+        --fs1: 32px; /* Заголовок h2 увеличен до 32px */
+        --fs2: 24px; /* h3 увеличен до 24px */
+        --fs3: 26px; /* h4 увеличен до 26px */
+        --fs4: 18px; /* h5 увеличен до 18px */
+        --fs6: 15px; /* Основной текст – 15px */
+        --fs7: 15px; /* Вспомогательный текст – 15px */
+        --fs8: 12px; /* Мелкий текст – 12px */
     }
 
-    /* 1176: Для блоков .sidebar и article устанавливаем фиксированную ширину, горизонтальное центрирование и увеличенные отступы */
+    /* 1176: Стили для .sidebar и article – оставляем без изменений */
     .sidebar, article {
-        width: 520px;               /* Фиксированная ширина 520px */
-        margin-inline: auto;         /* Горизонтальное центрирование */
-        padding: 30px;              /* Увеличенные внутренние отступы */
+        width: 520px; /* Фиксированная ширина 520px */
+        margin-inline: auto; /* Горизонтальное центрирование */
+        padding: 30px; /* Увеличенные внутренние отступы */
     }
 
-    /* 1181: Стили для заголовка статьи (.article-title) */
+    /* 1181: Стили для заголовка статьи – оставляем без изменений */
     .article-title {
-        font-weight: var(--fw600);  /* Более жирный вес заголовка */
-        padding-bottom: 15px;       /* Отступ снизу для отделения от содержимого */
+        font-weight: var(--fw600); /* Более жирный вес заголовка */
+        padding-bottom: 15px; /* Отступ снизу для отделения */
     }
-        /* 1184: Псевдоэлемент ::after для .article-title – увеличиваем размеры декоративной линии */
-        .article-title::after {
-            width: 40px;           /* Новая ширина линии – 40px */
-            height: 5px;           /* Новая высота линии – 5px */
-        }
 
-    /* 1188: Для .icon-box изменяются размеры и скругления для более крупного отображения */
+    /* 1184: Псевдоэлемент ::after для .article-title – оставляем без изменений */
+    .article-title::after {
+        width: 40px; /* Ширина линии – 40px */
+        height: 5px; /* Высота линии – 5px */
+    }
+
+    /* 1188: Стили для .icon-box – оставляем без изменений */
     .icon-box {
-        width: 48px;               /* Новая ширина – 48px */
-        height: 48px;              /* Новая высота – 48px */
-        border-radius: 12px;       /* Скругление углов – 12px */
-        font-size: 18px;           /* Размер шрифта увеличен до 18px */
+        width: 48px; /* Ширина – 48px */
+        height: 48px; /* Высота – 48px */
+        border-radius: 12px; /* Скругление углов – 12px */
+        font-size: 18px; /* Размер шрифта – 18px */
     }
 
-    /* 1193: Стили для основного контейнера <main> */
+    /* 1193: Стили для <main> – оставляем без изменений */
     main {
-        margin-top: 60px;          /* Отступ сверху – 60px */
-        margin-bottom: 100px;      /* Отступ снизу – 100px */
+        margin-top: 60px; /* Отступ сверху – 60px */
+        margin-bottom: 100px; /* Отступ снизу – 100px */
     }
 
-    /* 1197: Для .sidebar задаём новую максимальную высоту и отступ снизу */
+    /* 1197: Стили для .sidebar – оставляем без изменений */
     .sidebar {
-        max-height: 180px;         /* Ограничение по высоте – 180px до раскрытия */
-        margin-bottom: 30px;       /* Отступ снизу – 30px */
+        max-height: 180px; /* Ограничение высоты до раскрытия */
+        margin-bottom: 30px; /* Отступ снизу – 30px */
     }
-        /* 1201: При активном состоянии .sidebar (с классом .active) максимальная высота увеличивается до 584px */
-        .sidebar.active {
-            max-height: 584px;
-        }
 
-    /* 1204: Увеличение промежутка между элементами внутри .sidebar-info */
+    /* 1201: Активное состояние .sidebar – оставляем без изменений */
+    .sidebar.active {
+        max-height: 584px; /* Увеличенная высота при раскрытии */
+    }
+
+    /* 1204: Стили для .sidebar-info – оставляем без изменений */
     .sidebar-info {
-        gap: 25px;                /* Зазор увеличен до 25px */
+        gap: 25px; /* Зазор между элементами – 25px */
     }
 
-    /* 1206: Для .avatar-box изменяются скругления и размеры изображений внутри */
+    /* 1206: Стили для .avatar-box – оставляем без изменений */
     .avatar-box {
-        border-radius: 30px;      /* Скругление увеличено до 30px */
+        border-radius: 30px; /* Скругление углов – 30px */
     }
-        .avatar-box img {
-            width: 120px;         /* Ширина изображения аватара – 120px */
-        }
 
-    /* 1209: Отступ снизу для имени внутри .info-content */
+    .avatar-box img {
+        width: 120px; /* Ширина изображения – 120px */
+    }
+
+    /* 1209: Отступ для имени – оставляем без изменений */
     .info-content .name {
-        margin-bottom: 15px;      /* Увеличен отступ снизу до 15px */
+        margin-bottom: 15px; /* Отступ снизу – 15px */
     }
 
-    /* 1211: Для заголовка титула изменяются внутренние отступы */
+    /* 1211: Стили для титула – оставляем без изменений */
     .info-content .title {
-        padding: 5px 10px;        /* Отступы: 5px сверху/снизу, 10px слева/справа */
+        padding: 5px 10px; /* Отступы: 5px сверху/снизу, 10px слева/справа */
     }
 
-    /* 1214: Кнопка раскрытия дополнительной информации (.info-more-btn) получает новые координаты и размеры */
+    /* 1214: Стили для кнопки .info-more-btn – оставляем без изменений */
     .info-more-btn {
-        top: -30px;               /* Смещение вверх – -30px */
-        right: -30px;             /* Смещение вправо – -30px */
-        padding: 10px 15px;        /* Новые внутренние отступы */
+        top: -30px; /* Смещение вверх – -30px */
+        right: -30px; /* Смещение вправо – -30px */
+        padding: 10px 15px; /* Внутренние отступы */
     }
-        /* 1218: Внутри кнопки, элемент <span> теперь отображается и получает определённый размер шрифта */
-        .info-more-btn span {
-            display: block;       /* Теперь отображается в виде блочного элемента */
-            font-size: var(--fs8);/* Размер шрифта согласно переменной fs8 */
-        }
-        /* 1221: Скрываем элемент ion-icon внутри кнопки (если он используется) */
-        .info-more-btn ion-icon {
-            display: none;
-        }
 
-    /* 1223: Изменение отступа для .separator */
+    /* 1218: Элемент <span> в кнопке – оставляем без изменений */
+    .info-more-btn span {
+        display: block; /* Блочный элемент */
+        font-size: var(--fs8); /* Размер шрифта */
+    }
+
+    /* 1221: Скрытие иконки в кнопке – оставляем без изменений */
+    .info-more-btn ion-icon {
+        display: none; /* Иконка скрыта */
+    }
+
+    /* 1223: Отступ для .separator – оставляем без изменений */
     .separator {
-        margin: 32px 0;           /* Отступы сверху и снизу – 32px */
+        margin: 32px 0; /* Отступы сверху и снизу – 32px */
     }
 
-    /* 1225: Для списка контактов (.contacts-list) увеличивается зазор между элементами */
+    /* 1225: Зазор для списка контактов – оставляем без изменений */
     .contacts-list {
-        gap: 20px;                /* Зазор между контактами – 20px */
+        gap: 20px; /* Зазор между контактами – 20px */
     }
 
-    /* 1227: Для .contact-info задаётся новая вычисляемая ширина */
+    /* 1227: Ширина для .contact-info – оставляем без изменений */
     .contact-info {
-        max-width: calc(100% - 64px);  /* Максимальная ширина с учётом отступов */
-        width: calc(100% - 64px);      /* Фиксированная ширина для выравнивания */
+        max-width: calc(100% - 64px); /* Максимальная ширина */
+        width: calc(100% - 64px); /* Фиксированная ширина */
     }
 
-    /* 1230: Для navbar задаём новые скругления */
+    /* 1230: Скругление для .navbar – оставляем без изменений */
     .navbar {
-        border-radius: 20px 20px 0 0;   /* Скругление верхних углов – 20px */
+        border-radius: 20px 20px 0 0; /* Скругление верхних углов – 20px */
     }
 
-    /* 1232: Для списка ссылок в navbar устанавливается зазор между элементами */
+    /* 1232: Зазор для .navbar-list – оставляем без изменений */
     .navbar-list {
-        gap: 20px;               /* Зазор – 20px */
+        gap: 20px; /* Зазор – 20px */
     }
 
-    /* 1234: Для ссылок в navbar переопределяем переменную размера шрифта */
-    .navbar-link {
-        --fs8: 14px;            /* Новое значение переменной --fs8 – 14px */
+    /* 1234: Размер шрифта для .navbar-link – обновляем для унификации */
+    .navbar-link,
+    .blog-item-title,
+    .project-title {
+        --fs8: 14px; /* Унифицированный размер шрифта для ссылок */
     }
 
-    /* 1236: Для секции ABOUT заголовок получает новый отступ снизу */
+    /* 1236: Отступ для заголовка в ABOUT – оставляем без изменений */
     .about .article-title {
-        margin-bottom: 20px;      /* Отступ снизу – 20px */
+        margin-bottom: 20px; /* Отступ снизу – 20px */
     }
 
-    /* 1238: Для текста раздела ABOUT увеличивается отступ снизу */
+    /* 1238: Отступ для текста в ABOUT – оставляем без изменений */
     .about-text {
-        margin-bottom: 40px;      /* Отступ снизу – 40px */
+        margin-bottom: 40px; /* Отступ снизу – 40px */
     }
 
-    /* 1240: Для карточек услуг (.service-item) применяется flex‑раскладка */
+    /* 1240: Стили для карточек услуг – оставляем без изменений */
     .service-item {
-        display: flex;                /* Используем flexbox для горизонтального расположения */
-        justify-content: flex-start;  /* Элементы выравниваются по началу */
-        align-items: flex-start;      /* Выравнивание по верхнему краю */
-        gap: 18px;                    /* Зазор между элементами – 18px */
-        padding: 30px;                /* Внутренние отступы – 30px */
+        display: flex; /* Flexbox для горизонтального расположения */
+        justify-content: flex-start; /* Выравнивание по началу */
+        align-items: flex-start; /* Выравнивание по верху */
+        gap: 18px; /* Зазор – 18px */
+        padding: 30px; /* Внутренние отступы – 30px */
     }
 
-    /* 1245: Для контейнера с иконкой услуги (.service-icon-box) убираются внешние отступы */
+    /* 1245: Стили для .service-icon-box – оставляем без изменений */
     .service-icon-box {
-        margin-bottom: 0;             /* Отступ снизу сброшен */
-        margin-top: 5px;              /* Отступ сверху – 5px */
+        margin-bottom: 0; /* Отступ снизу сброшен */
+        margin-top: 5px; /* Отступ сверху – 5px */
     }
 
-    /* 1248: Для блока с содержимым услуги (.service-content-box) устанавливается выравнивание по левому краю */
+    /* 1248: Выравнивание для .service-content-box – оставляем без изменений */
     .service-content-box {
-        text-align: left;
+        text-align: left; /* Выравнивание по левому краю */
     }
 
-    /* 1250: Для секции отзывов заголовок получает отступ снизу */
+    /* 1250: Отступ для заголовка отзывов – оставляем без изменений */
     .testimonials-title {
-        margin-bottom: 25px;          /* Отступ снизу – 25px */
+        margin-bottom: 25px; /* Отступ снизу – 25px */
     }
 
-    /* 1252: Для списка отзывов (.testimonials-list) задаются зазоры и отступы */
+    /* 1252: Стили для списка отзывов – оставляем без изменений */
     .testimonials-list {
-        gap: 30px;                   /* Зазор между отзывами – 30px */
-        margin: 0 -30px;             /* Отрицательные боковые отступы для выравнивания */
-        padding: 30px;               /* Внутренние отступы – 30px */
-        padding-bottom: 35px;         /* Дополнительный отступ снизу – 35px */
+        gap: 30px; /* Зазор между отзывами – 30px */
+        margin: 0 -30px; /* Отрицательные боковые отступы */
+        padding: 30px; /* Внутренние отступы – 30px */
+        padding-bottom: 35px; /* Дополнительный отступ снизу – 35px */
     }
 
-    /* 1257: Для карточек контента (.content-card) увеличиваются отступы */
+    /* 1257: Стили для карточек контента – оставляем без изменений */
     .content-card {
-        padding: 30px;               /* Общий внутренний отступ – 30px */
-        padding-top: 25px;           /* Отступ сверху – 25px */
+        padding: 30px; /* Общий внутренний отступ – 30px */
+        padding-top: 25px; /* Отступ сверху – 25px */
     }
 
-    /* 1260: Для блока аватара в отзывах (.testimonials-avatar-box) применяется смещение и скругление */
+    /* 1260: Стили для аватара в отзывах – оставляем без изменений */
     .testimonials-avatar-box {
-        transform: translate(30px, -30px); /* Смещение: 30px вправо и -30px вверх */
-        border-radius: 28px;              /* Скругление углов – 28px */
+        transform: translate(30px, -30px); /* Смещение */
+        border-radius: 28px; /* Скругление углов – 28px */
     }
-        /* 1263: Для изображений внутри .testimonials-avatar-box задаётся новая ширина */
-        .testimonials-avatar-box img {
-            width: 80px;               /* Ширина изображения – 80px */
-        }
 
-    /* 1266: Для заголовка элемента отзыва (.testimonials-item-title) задаются отступы */
+    .testimonials-avatar-box img {
+        width: 80px; /* Ширина изображения – 80px */
+    }
+
+    /* 1266: Стили для заголовка отзыва – оставляем без изменений */
     .testimonials-item-title {
-        margin-bottom: 10px;          /* Отступ снизу – 10px */
-        margin-left: 95px;            /* Отступ слева – 95px для выравнивания относительно аватара */
+        margin-bottom: 10px; /* Отступ снизу – 10px */
+        margin-left: 95px; /* Отступ слева – 95px */
     }
 
-    /* 1269: Для текста отзывов (.testimonials-text) ограничивается количество строк */
+    /* 1269: Ограничение строк для текста отзывов – оставляем без изменений */
     .testimonials-text {
-        line-clamp: 2;              /* Ограничение видимых строк до 2 (если поддерживается браузером) */
-        -webkit-line-clamp: 2;       /* Webkit-версия ограничения строк */
+        line-clamp: 2; /* Ограничение до 2 строк */
+        -webkit-line-clamp: 2; /* Webkit-версия */
     }
 
-    /* 1273: Для модального контейнера (.modal-container) задаются дополнительные отступы */
+    /* 1273: Отступы для модального контейнера – оставляем без изменений */
     .modal-container {
-        padding: 20px;              /* Внутренний отступ – 20px */
+        padding: 20px; /* Внутренний отступ – 20px */
     }
 
-    /* 1275: Для модального окна отзывов (.testimonials-modal) применяется flex‑раскладка и задаются отступы */
+    /* 1275: Стили для модального окна отзывов – оставляем без изменений */
     .testimonials-modal {
-        display: flex;                /* Flexbox для расположения содержимого */
-        justify-content: flex-start;  /* Выравнивание по началу */
-        align-items: stretch;         /* Элементы растягиваются по высоте */
-        gap: 25px;                    /* Зазор между элементами – 25px */
-        padding: 30px;                /* Внутренний отступ – 30px */
-        border-radius: 20px;          /* Скругление углов – 20px */
+        display: flex; /* Flexbox для содержимого */
+        justify-content: flex-start; /* Выравнивание по началу */
+        align-items: stretch; /* Растягивание по высоте */
+        gap: 25px; /* Зазор – 25px */
+        padding: 30px; /* Внутренний отступ – 30px */
+        border-radius: 20px; /* Скругление углов – 20px */
     }
 
-    /* 1282: Для контейнера изображения в модальном окне (.modal-img-wrapper) задаётся вертикальное расположение */
+    /* 1282: Стили для .modal-img-wrapper – оставляем без изменений */
     .modal-img-wrapper {
-        display: flex;                /* Flexbox для вертикального расположения */
-        flex-direction: column;       /* Вертикальное направление */
-        align-items: center;          /* Центрирование по горизонтали */
+        display: flex; /* Flexbox для вертикального расположения */
+        flex-direction: column; /* Вертикальное направление */
+        align-items: center; /* Центрирование по горизонтали */
     }
 
-    /* 1285: Для блока аватара в модальном окне (.modal-avatar-box) изменяются скругление и отступы */
+    /* 1285: Стили для аватара в модальном окне – оставляем без изменений */
     .modal-avatar-box {
-        border-radius: 18px;          /* Скругление углов – 18px */
-        margin-bottom: 0;             /* Отступ снизу сброшен */
+        border-radius: 18px; /* Скругление углов – 18px */
+        margin-bottom: 0; /* Отступ снизу сброшен */
     }
-        /* 1288: Для изображений внутри .modal-avatar-box устанавливается ширина 65px */
-        .modal-avatar-box img {
-            width: 65px;
-        }
 
-    /* 1291: Для изображения внутри .modal-img-wrapper задаются размеры и позиционирование */
+    .modal-avatar-box img {
+        width: 65px; /* Ширина изображения – 65px */
+    }
+
+    /* 1291: Стили для изображения в .modal-img-wrapper – оставляем без изменений */
     .modal-img-wrapper > img {
-        display: block;              /* Отображается как блочный элемент */
-        position: relative;          /* Относительное позиционирование */
-        /* flex-grow: 1; */          /* (Комментарий: возможно, ранее использовалось свойство роста, сейчас отключено) */
-        width: 35px;                 /* Ширина изображения – 35px */
-        top: 50px;                   /* Смещение сверху – 50px */
+        display: block; /* Блочный элемент */
+        position: relative; /* Относительное позиционирование */
+        width: 35px; /* Ширина изображения – 35px */
+        top: 50px; /* Смещение сверху – 50px */
     }
 
-    /* 1296: Для списка клиентов (.clients-list) задаются зазоры, отступы и скроллинг */
+    /* 1296: Стили для списка клиентов – оставляем без изменений */
     .clients-list {
-        gap: 25px;                   /* Зазор между элементами – 25px */
-        margin: 0 -30px;             /* Отрицательные боковые отступы для корректного выравнивания */
-        padding: 45px;               /* Внутренние отступы – 45px */
-        scroll-padding-inline: 45px; /* Отступ для скроллинга по горизонтали – 45px */
+        gap: 25px; /* Зазор – 25px */
+        margin: 0 -30px; /* Отрицательные боковые отступы */
+        padding: 45px; /* Внутренние отступы – 45px */
+        scroll-padding-inline: 45px; /* Отступ для скроллинга – 45px */
     }
 
-    /* 1302: Для каждого элемента клиентов (.clients-item) устанавливается минимальная ширина */
+    /* 1302: Минимальная ширина для клиентов – оставляем без изменений */
     .clients-item {
-        min-width: calc(33.33% - 35px);  /* Каждый элемент занимает примерно одну треть минус 35px */
+        min-width: calc(33.33% - 35px); /* Одна треть минус 35px */
     }
 
-    /* 1305: Для списка временной шкалы (.timeline-list) задаётся отступ слева */
+    /* 1305: Отступ для временной шкалы – оставляем без изменений */
     .timeline-list {
-        margin-left: 65px;          /* Отступ слева – 65px для визуального выравнивания */
+        margin-left: 65px; /* Отступ слева – 65px */
     }
 
-    /* 1307: Для псевдоэлемента ::before у элементов временной шкалы (кроме последнего) корректируется позиция по горизонтали */
+    /* 1307: Псевдоэлемент ::before для временной шкалы – оставляем без изменений */
     .timeline-item:not(:last-child)::before {
-        left: -40px;               /* Смещение линии влево – -40px */
+        left: -40px; /* Смещение линии влево – -40px */
     }
 
-    /* 1309: Для псевдоэлемента ::after у .timeline-item изменяются размеры и положение */
+    /* 1309: Псевдоэлемент ::after для временной шкалы – оставляем без изменений */
     .timeline-item::after {
-        height: 8px;               /* Высота точки увеличивается до 8px */
-        width: 8px;                /* Ширина точки – 8px */
-        left: -43px;               /* Смещение точки влево – -43px */
+        height: 8px; /* Высота точки – 8px */
+        width: 8px; /* Ширина точки – 8px */
+        left: -43px; /* Смещение влево – -43px */
     }
 
-    /* 1313: Для элементов навыков (.skills-item), кроме последнего, задаётся отступ снизу */
+    /* 1313: Отступ для навыков – оставляем без изменений */
     .skills-item:not(:last-child) {
-        margin-bottom: 25px;       /* Отступ снизу – 25px */
+        margin-bottom: 25px; /* Отступ снизу – 25px */
     }
 
-    /* 1315: Для изображений проектов (.project-img) и блоков баннера блога (.blog-banner-box) изменяется скругление */
-    .project-img, .blog-banner-box {
-        border-radius: 16px;       /* Скругление углов – 16px */
+    /**
+     * 1315: Унифицированное скругление для всех баннеров.
+     * Обновляем .project-img и .blog-banner-box, добавляем остальные.
+     */
+    .blog-banner-box,
+    .project-img,
+    .post-banner,
+    .project-banner {
+        border-radius: 16px; /* Унифицированное скругление углов – 16px */
     }
 
-    /* 1317: Для списка блог-постов (.blog-posts-list) задаётся зазор между элементами */
+    /* 1317: Зазор для списка блог-постов – оставляем без изменений */
     .blog-posts-list {
-        gap: 30px;                /* Зазор – 30px */
+        gap: 30px; /* Зазор – 30px */
     }
 
-    /* 1319: Для контейнера контента блога (.blog-content) увеличиваются внутренние отступы */
+    /* 1319: Отступы для контента блога – оставляем без изменений */
     .blog-content {
-        padding: 25px;            /* Внутренний отступ – 25px */
+        padding: 25px; /* Внутренний отступ – 25px */
     }
 
-    /* 1321: Для блока карты (.mapbox) задаётся новая высота и скругление */
+    /* 1321: Стили для карты – оставляем без изменений */
     .mapbox {
-        height: 380px;            /* Новая высота – 380px */
-        border-radius: 18px;       /* Скругление углов – 18px */
+        height: 380px; /* Высота – 380px */
+        border-radius: 18px; /* Скругление углов – 18px */
     }
 
-    /* 1324: Для контейнера ввода (.input-wrapper) задаётся больший зазор между элементами */
+    /* 1324: Зазор для .input-wrapper – оставляем без изменений */
     .input-wrapper {
-        gap: 30px;                /* Зазор – 30px */
-        margin-bottom: 30px;       /* Отступ снизу – 30px */
+        gap: 30px; /* Зазор – 30px */
+        margin-bottom: 30px; /* Отступ снизу – 30px */
     }
 
-    /* 1327: Для текстовых полей ввода (.form-input) увеличиваются внутренние отступы */
+    /* 1327: Отступы для текстовых полей – оставляем без изменений */
     .form-input {
-        padding: 15px 20px;       /* Отступы – 15px сверху/снизу, 20px по бокам */
+        padding: 15px 20px; /* Отступы – 15px сверху/снизу, 20px по бокам */
     }
 
-    /* 1329: Для текстовых полей textarea (.form-input) задаётся увеличенный отступ снизу */
+    /* 1329: Отступ для textarea – оставляем без изменений */
     textarea.form-input {
-        margin-bottom: 30px;      /* Отступ снизу – 30px */
+        margin-bottom: 30px; /* Отступ снизу – 30px */
     }
 
-    /* 1331: Для кнопки отправки (.form-btn) задаётся изменение переменной размера шрифта и новые отступы */
+    /* 1331: Стили для кнопки отправки – оставляем без изменений */
     .form-btn {
-        --fs-6: 16px;            /* Переопределение переменной для размера шрифта, если используется в кнопке */
-        padding: 16px 20px;       /* Отступы – 16px сверху/снизу, 20px по бокам */
+        --fs-6: 16px; /* Размер шрифта – 16px */
+        padding: 16px 20px; /* Отступы – 16px сверху/снизу, 20px по бокам */
     }
-        /* 1334: Для иконки внутри кнопки (.form-btn ion-icon) увеличивается размер шрифта до 18px */
-        .form-btn ion-icon {
-            font-size: 18px;
-        }
+
+    .form-btn ion-icon {
+        font-size: 18px; /* Размер иконки – 18px */
+    }
+
+    /**
+     * 1335: Отступ для текстовых блоков – добавлено для унификации.
+     */
+    .blog-text,
+    .project-text,
+    .article-text {
+        margin-bottom: 20px; /* Увеличенный отступ снизу для текста */
+    }
+
+    /**
+     * 1339: Отступы для кнопок пагинации – добавлено для унификации.
+     */
+    .pagination-btn {
+        padding: 10px 15px; /* Увеличенные отступы для кнопок */
+    }
 }
 
 /* ---------- @media (min-width: 768px) ---------- */
 
 /* 1340: Медиа-запрос для экранов от 768px и более */
 @media (min-width: 768px) {
-    /* 1341: Для блоков .sidebar и article устанавливается ширина 700px */
+    /* 1341: Ширина для .sidebar и article – оставляем без изменений */
     .sidebar, article {
-        width: 700px;
+        width: 700px; /* Фиксированная ширина – 700px */
     }
 
-    /* 1343: Для кнопок скроллбара внутри элементов с классом .has-scrollbar */
+    /* 1343: Ширина кнопок скроллбара – оставляем без изменений */
     .has-scrollbar::-webkit-scrollbar-button {
-        width: 100px;             /* Ширина кнопок скроллбара – 100px */
+        width: 100px; /* Ширина кнопок – 100px */
     }
 
-    /* 1346: Для списка контактов (.contacts-list) переключается раскладка на две колонки */
+    /* 1346: Раскладка для списка контактов – оставляем без изменений */
     .contacts-list {
-        grid-template-columns: 1fr 1fr;  /* Две равные колонки */
-        gap: 30px 15px;          /* Вертикальный зазор 30px, горизонтальный 15px */
+        grid-template-columns: 1fr 1fr; /* Две равные колонки */
+        gap: 30px 15px; /* Зазоры: 30px вертикальный, 15px горизонтальный */
     }
 
-    /* 1349: Для навигационных ссылок (.navbar-link) переопределяется переменная размера шрифта */
-    .navbar-link {
-        --fs8: 15px;            /* Новое значение переменной --fs8 – 15px */
+    /**
+     * 1349: Размер шрифта для ссылок – обновляем для унификации.
+     */
+    .navbar-link,
+    .blog-item-title,
+    .project-title {
+        --fs8: 15px; /* Унифицированный размер шрифта – 15px */
     }
 
-    /* 1351: Для модального окна отзывов (.testimonials-modal) задаются зазоры и максимальная ширина */
+    /* 1351: Стили для модального окна отзывов – оставляем без изменений */
     .testimonials-modal {
-        gap: 35px;              /* Зазор между элементами – 35px */
-        max-width: 680px;         /* Максимальная ширина – 680px */
+        gap: 35px; /* Зазор – 35px */
+        max-width: 680px; /* Максимальная ширина – 680px */
     }
 
-    /* 1354: Для изображений внутри .modal-avatar-box устанавливается ширина 80px */
     .modal-avatar-box img {
-        width: 80px;
+        width: 80px; /* Ширина изображения – 80px */
     }
 
-    /* 1356: Для заголовка статьи (.article-title) добавляется больший отступ снизу */
+    /* 1356: Отступ для заголовка статьи – оставляем без изменений */
     .article-title {
-        padding-bottom: 20px;    /* Отступ снизу – 20px */
+        padding-bottom: 20px; /* Отступ снизу – 20px */
     }
 
-    /* 1358: Скрытие блока селектов фильтрации для экранов от 768px */
+    /* 1358: Скрытие селектов фильтрации – оставляем без изменений */
     .filter-select-box {
-        display: none;           /* Элемент не отображается */
+        display: none; /* Элемент скрыт */
     }
 
-    /* 1360: Для списка фильтра (.filter-list) меняется раскладка */
+    /* 1360: Стили для списка фильтров – оставляем без изменений */
     .filter-list {
-        display: flex;           /* Переход к flex-раскладке */
+        display: flex; /* Flexbox раскладка */
         justify-content: flex-start; /* Выравнивание по началу */
-        align-items: center;     /* Центрирование по вертикали */
-        gap: 25px;               /* Зазор между элементами – 25px */
-        padding-left: 5px;       /* Внутренний отступ слева – 5px */
-        margin-bottom: 30px;     /* Отступ снизу – 30px */
+        align-items: center; /* Центрирование по вертикали */
+        gap: 25px; /* Зазор – 25px */
+        padding-left: 5px; /* Отступ слева – 5px */
+        margin-bottom: 30px; /* Отступ снизу – 30px */
     }
 
-    /* 1366: Для кнопок внутри .filter-item задаются цвет и размер шрифта */
+    /* 1366: Стили для кнопок фильтрации – оставляем без изменений */
     .filter-item button {
-        color: var(--white2) !important; /* Светлый текст */    /* Цвет – светло-серый */
-        font-size: var(--fs5);         /* Размер шрифта согласно переменной fs5 */
-        transition: var(--transition1); /* Плавный переход для изменения цвета при наведении */
+        color: var(--white2) !important; /* Светлый текст */
+        font-size: var(--fs5); /* Размер шрифта */
+        transition: var(--transition1); /* Плавный переход */
     }
-        /* 1369: При наведении на кнопку фильтрации изменяется цвет */
-        .filter-item button:hover {
-            color: var(--light-gray70); /* Цвет становится чуть ярче */
-        }
-        /* 1371: Если кнопка фильтрации активна, её цвет становится оранжево-жёлтым */
-        .filter-item button.active {
-            color: var(--orange-yellow-crayola);
-        }
 
-    /* 1374: Для списков проектов и блог-постов переключается раскладка на две колонки */
+    .filter-item button:hover {
+        color: var(--light-gray70); /* Цвет при наведении */
+    }
+
+    .filter-item button.active {
+        color: var(--orange-yellow-crayola); /* Цвет активной кнопки */
+    }
+
+    /* 1374: Раскладка для списков проектов и блогов – оставляем без изменений */
     .project-list, .blog-posts-list {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr; /* Две колонки */
     }
 
-    /* 1376: Для контейнера ввода (.input-wrapper) переключается раскладка на две колонки */
+    /* 1376: Раскладка для .input-wrapper – оставляем без изменений */
     .input-wrapper {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr; /* Две колонки */
     }
 
-    /* 1378: Для кнопки отправки (.form-btn) изменяются ширина и отступы */
+    /* 1378: Стили для кнопки отправки – оставляем без изменений */
     .form-btn {
-        width: max-content;       /* Кнопка занимает минимально необходимую ширину */
-        margin-left: auto;         /* Выравнивание кнопки по правому краю (автоматический отступ слева) */
+        width: max-content; /* Минимальная ширина */
+        margin-left: auto; /* Выравнивание по правому краю */
     }
 }
 
@@ -1810,84 +2075,86 @@ textarea.form-input::-webkit-resizer {
 
 /* 1383: Медиа-запрос для экранов от 1024px и более */
 @media (min-width: 1024px) {
-    /* 1384: Переопределяем тени через переменные для более мягкого эффекта */
+    /* 1384: Переопределение теней – оставляем без изменений */
     :root {
         --shadow1: -4px 8px 24px hsla(0, 0%, 0%, .125);
         --shadow2: 0px 16px 30px hsla(0, 0%, 0%, .125);
         --shadow3: 0px 16px 40px hsla(0, 0%, 0%, .125);
     }
 
-    /* 1389: Для .sidebar и article устанавливается ширина 950px и применяется более выраженная тень */
+    /* 1389: Ширина и тень для .sidebar и article – оставляем без изменений */
     .sidebar, article {
-        width: 950px;
-        box-shadow: var(--shadow5);  /* Применяется тень, заданная переменной --shadow5 */
+        width: 950px; /* Фиксированная ширина – 950px */
+        box-shadow: var(--shadow5); /* Тень */
     }
 
-    /* 1393: Для <main> снижается отступ снизу */
+    /* 1393: Отступ для <main> – оставляем без изменений */
     main {
-        margin-bottom: 60px;
+        margin-bottom: 60px; /* Отступ снизу – 60px */
     }
 
-    /* 1395: Для основного контента (.main-content) устанавливается горизонтальное центрирование */
+    /* 1395: Стили для .main-content – оставляем без изменений */
     .main-content {
         position: relative;
         width: max-content;
         margin: auto;
     }
 
-    /* 1399: Изменения для navbar – переключение позиционирования с фиксированного на абсолютное */
+    /* 1399: Стили для .navbar – оставляем без изменений */
     .navbar {
-        position: absolute;         /* Абсолютное позиционирование */
-        bottom: auto;              /* Убираем привязку к нижней части */
-        top: 0;                    /* Прикрепляем к верху */
-        left: auto;                /* Выравнивание по горизонтали изменено */
-        right: 0;                  /* Прикрепляем к правой стороне */
-        width: max-content;        /* Ширина подстраивается под содержимое */
-        border-radius: 0 20px;      /* Скругление только правой стороны */
-        padding: 0 20px;           /* Горизонтальные отступы – 20px */
-        box-shadow: none;          /* Убираем тень для navbar */
+        position: absolute; /* Абсолютное позиционирование */
+        bottom: auto; /* Убираем привязку к низу */
+        top: 0; /* Привязка к верху */
+        left: auto; /* Убираем привязку слева */
+        right: 0; /* Привязка справа */
+        width: max-content; /* Ширина по содержимому */
+        border-radius: 0 20px; /* Скругление правой стороны */
+        padding: 0 20px; /* Горизонтальные отступы – 20px */
+        box-shadow: none; /* Без тени */
     }
 
-    /* 1407: Для списка ссылок в navbar задаётся зазор и отступы */
+    /* 1407: Зазор для .navbar-list – оставляем без изменений */
     .navbar-list {
-        gap: 30px;                /* Зазор между ссылками – 30px */
-        padding: 0 20px;          /* Горизонтальные отступы – 20px */
+        gap: 30px; /* Зазор – 30px */
+        padding: 0 20px; /* Отступы – 20px */
     }
 
-    /* 1411: Для навигационных ссылок (.navbar-link) устанавливается более жирное начертание */
+    /* 1411: Вес шрифта для .navbar-link – оставляем без изменений */
     .navbar-link {
-        font-weight: var(--fw500);
+        font-weight: var(--fw500); /* Жирный шрифт */
     }
 
-    /* 1413: Для списка услуг (.service-list) меняется раскладка на две колонки */
+    /* 1413: Раскладка для списка услуг – оставляем без изменений */
     .service-list {
-        grid-template-columns: 1fr 1fr;
-        gap: 20px 25px;           /* Вертикальный зазор – 20px, горизонтальный – 25px */
+        grid-template-columns: 1fr 1fr; /* Две колонки */
+        gap: 20px 25px; /* Зазоры: 20px вертикальный, 25px горизонтальный */
     }
 
-    /* 1416: Для отзывов (.testimonials-item) устанавливается минимальная ширина в половину контейнера минус 15px */
+    /* 1416: Минимальная ширина для отзывов – оставляем без изменений */
     .testimonials-item {
-        min-width: calc(50% - 15px);
+        min-width: calc(50% - 15px); /* Половина минус 15px */
     }
 
-    /* 1418: Для изображения внутри модального окна (.modal-img-wrapper > img) корректируется позиция сверху */
+    /* 1418: Позиция изображения в модальном окне – оставляем без изменений */
     .modal-img-wrapper > img {
-        top: 20px;                /* Смещение сверху – 20px */
+        top: 20px; /* Смещение сверху – 20px */
     }
 
-    /* 1420: Для списка клиентов (.clients-item) меняется минимальная ширина до примерно одной четверти минус 15px */
+    /* 1420: Минимальная ширина для клиентов – оставляем без изменений */
     .clients-item {
-        min-width: calc(25% - 15px);
+        min-width: calc(25% - 15px); /* Четверть минус 15px */
     }
 
-    /* 1422: Для списка проектов (.project-list) переключается раскладка на 3 колонки */
+    /* 1422: Раскладка для списка проектов – оставляем без изменений */
     .project-list {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, 1fr); /* Три колонки */
     }
 
-    /* 1424: Для блока баннера блога (.blog-banner-box) изменяется высота до 230px */
+    /**
+     * 1424: Высота для баннера блога – обновляем для унификации.
+     */
     .blog-banner-box {
-        height: 230px;
+        height: 230px; /* Унифицированная высота для блога */
     }
 }
 
@@ -1895,129 +2162,132 @@ textarea.form-input::-webkit-resizer {
 
 /* 1427: Медиа-запрос для экранов от 1250px и более */
 @media (min-width: 1250px) {
-    /* 1428: Настройки для скроллбара в браузерах WebKit */
+    /* 1428: Стили для скроллбара – оставляем без изменений */
     body::-webkit-scrollbar {
-        width: 20px;              /* Ширина скроллбара – 20px */
+        width: 20px; /* Ширина скроллбара – 20px */
     }
+
     body::-webkit-scrollbar-track {
-        background: var(--smoky-black); /* Фон дорожки скроллбара – переменная --smoky-black */
+        background: var(--smoky-black); /* Фон дорожки */
     }
+
     body::-webkit-scrollbar-thumb {
-        border: 5px solid var(--smoky-black); /* Рамка вокруг бегунка */
-        background: hsla(0, 0%, 100%, .1);     /* Полупрозрачный белый фон */
-        border-radius: 20px;       /* Скругление бегунка – 20px */
+        border: 5px solid var(--smoky-black); /* Р 어린ка */
+        background: hsla(0, 0%, 100%, .1); /* Полупрозрачный фон */
+        border-radius: 20px; /* Скругление – 20px */
         box-shadow: inset 1px 1px 0 hsla(0, 0%, 100%, .11), inset -1px -1px 0 hsla(0, 0%, 100%, .11);
-                                  /* Внутренняя тень для создания объёма */
     }
+
     body::-webkit-scrollbar-thumb:hover {
-        background: hsla(0, 0%, 100%, .15);   /* При наведении фон бегунка становится немного ярче */
+        background: hsla(0, 0%, 100%, .15); /* Ярче при наведении */
     }
+
     body::-webkit-scrollbar-button {
-        height: 60px;             /* Высота кнопок скроллбара – 60px */
+        height: 60px; /* Высота кнопок – 60px */
     }
 
-    /* 1436: Для блоков .sidebar и article убирается фиксированная ширина – они становятся адаптивными */
+    /* 1436: Ширина для .sidebar и article – оставляем без изменений */
     .sidebar, article {
-        width: auto;
+        width: auto; /* Адаптивная ширина */
     }
 
-    /* 1439: Для элемента article устанавливается минимальная высота 100% */
+    /* 1439: Минимальная высота для article – оставляем без изменений */
     article {
-        min-height: 100%;
+        min-height: 100%; /* Полная высота */
     }
 
-    /* 1441: Для контейнера <main> задаётся максимальная ширина, центрирование и распределение пространства между элементами */
+    /* 1441: Стили для <main> – оставляем без изменений */
     main {
-        max-width: 1200px;         /* Максимальная ширина контейнера – 1200px */
-        margin-inline: auto;        /* Центрирование по горизонтали */
-        display: flex;             /* Flexbox для выравнивания дочерних элементов */
-        justify-content: center;    /* Центрирование по горизонтали */
-        align-items: stretch;       /* Растягивание дочерних элементов по высоте */
-        gap: 25px;                 /* Зазор между элементами – 25px */
+        max-width: 1200px; /* Максимальная ширина – 1200px */
+        margin-inline: auto; /* Центрирование */
+        display: flex; /* Flexbox раскладка */
+        justify-content: center; /* Центрирование по горизонтали */
+        align-items: stretch; /* Растягивание по высоте */
+        gap: 25px; /* Зазор – 25px */
     }
 
-    /* 1448: Для основного контента (.main-content) устанавливается ширина 75% */
+    /* 1448: Ширина для .main-content – оставляем без изменений */
     .main-content {
-        min-width: 75%;
-        width: 75%;
-        margin: 0;                /* Убираем внешние отступы */
+        min-width: 75%; /* Минимальная ширина – 75% */
+        width: 75%; /* Фиксированная ширина – 75% */
+        margin: 0; /* Без отступов */
     }
 
-    /* 1452: Для .sidebar изменяется позиционирование на «прилипающее» (sticky) с отступом сверху */
+    /* 1452: Стили для .sidebar – оставляем без изменений */
     .sidebar {
-        position: sticky;         /* Элемент остается на виду при прокрутке */
-        top: 60px;                /* Отступ от верхней границы – 60px */
-        max-height: max-content;   /* Максимальная высота подстраивается под содержимое */
-        height: 100%;             /* Высота 100% родительского контейнера */
-        margin-bottom: 0;         /* Убираем отступ снизу */
-        padding-top: 60px;        /* Отступ сверху – 60px для дополнительного пространства */
-        z-index: 1;               /* z-index для правильного наложения */
+        position: sticky; /* Прилипающее позиционирование */
+        top: 60px; /* Отступ сверху – 60px */
+        max-height: max-content; /* Высота по содержимому */
+        height: 100%; /* Полная высота контейнера */
+        margin-bottom: 0; /* Без отступа снизу */
+        padding-top: 60px; /* Отступ сверху – 60px */
+        z-index: 1; /* Порядок наложения */
     }
 
-    /* 1458: Для блока информации в .sidebar меняется направление расположения элементов */
+    /* 1458: Направление для .sidebar-info – оставляем без изменений */
     .sidebar-info {
-        flex-direction: column;   /* Элементы располагаются вертикально */
+        flex-direction: column; /* Вертикальное расположение */
     }
 
-    /* 1460: Для изображений аватара (.avatar-box img) увеличивается ширина до 150px */
+    /* 1460: Ширина аватара – оставляем без изменений */
     .avatar-box img {
-        width: 150px;
+        width: 150px; /* Ширина изображения – 150px */
     }
 
-    /* 1462: Для имени пользователя (.info-content .name) применяется nowrap и центрирование текста */
+    /* 1462: Стили для имени – оставляем без изменений */
     .info-content .name {
-        white-space: nowrap;      /* Текст не переносится на новую строку */
-        text-align: center;       /* Центрирование текста */
+        white-space: nowrap; /* Без переноса текста */
+        text-align: center; /* Центрирование текста */
     }
 
-    /* 1464: Для титула пользователя (.info-content .title) устанавливается автоматическое выравнивание */
+    /* 1464: Выравнивание титула – оставляем без изменений */
     .info-content .title {
-        margin: auto;
+        margin: auto; /* Автоматическое выравнивание */
     }
 
-    /* 1466: Кнопка раскрытия дополнительной информации (.info-more-btn) скрывается */
+    /* 1466: Скрытие кнопки .info-more-btn – оставляем без изменений */
     .info-more-btn {
-        display: none;            /* Кнопка не отображается на широких экранах */
+        display: none; /* Кнопка скрыта */
     }
 
-    /* 1468: Блок с дополнительной информацией (.sidebar-info-more) становится постоянно видимым */
+    /* 1468: Видимость дополнительной информации – оставляем без изменений */
     .sidebar-info-more {
-        opacity: 1;               /* Полная непрозрачность */
-        visibility: visible;      /* Блок видим */
+        opacity: 1; /* Полная видимость */
+        visibility: visible; /* Элемент видим */
     }
 
-    /* 1471: Для списка контактов (.contacts-list) переключается раскладка на одну колонку */
+    /* 1471: Раскладка для списка контактов – оставляем без изменений */
     .contacts-list {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; /* Одна колонка */
     }
 
-    /* 1473: Для элементов контактов внутри .contact-info добавляются стили для обрезки текста */
+    /* 1473: Обрезка текста в контактах – оставляем без изменений */
     .contact-info :is(.contact-link) {
-        white-space: nowrap;      /* Текст не переносится */
-        overflow: hidden;         /* Избыточный текст скрывается */
-        text-overflow: ellipsis;  /* В конце строки добавляются многоточия, если текст не помещается */
+        white-space: nowrap; /* Без переноса */
+        overflow: hidden; /* Скрытие избытка */
+        text-overflow: ellipsis; /* Многоточие */
     }
 
-    /* 1477: Для элементов внутри .contact-info (ссылки, время, адрес) устанавливаются уменьшенный размер шрифта и вес */
+    /* 1477: Размер шрифта и вес для контактов – оставляем без изменений */
     .contact-info :is(.contact-link, time, address) {
-        --fs7: 14px;              /* Переменная --fs7 переопределяется на 14px */
-        font-weight: var(--fw300);  /* Вес шрифта – 300 (легкий) */
+        --fs7: 14px; /* Размер шрифта – 14px */
+        font-weight: var(--fw300); /* Лёгкий вес шрифта */
     }
 
-    /* 1481: Для последнего разделителя (.separator:last-of-type) задается отступ и скрывается (opacity 0) */
+    /* 1481: Стили для последнего разделителя – оставляем без изменений */
     .separator:last-of-type {
-        margin: 15px 0;           /* Отступ сверху и снизу – 15px */
-        opacity: 0;               /* Делается полностью прозрачным */
+        margin: 15px 0; /* Отступы – 15px */
+        opacity: 0; /* Прозрачность */
     }
 
-    /* 1484: Для списка социальных ссылок (.social-list) выравнивание переключается на центр */
+    /* 1484: Выравнивание для социальных ссылок – оставляем без изменений */
     .social-list {
-        justify-content: center;
+        justify-content: center; /* Центрирование */
     }
 
-    /* 1486: Для текстового описания временной шкалы (.timeline-text) устанавливается максимальная ширина */
+    /* 1486: Максимальная ширина для текста временной шкалы – оставляем без изменений */
     .timeline-text {
-        max-width: 700px;         /* Максимальная ширина текста – 700px */
+        max-width: 700px; /* Максимальная ширина – 700px */
     }
 }
 

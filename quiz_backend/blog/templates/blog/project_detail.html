@@ -2,31 +2,38 @@
 {% load static %}
 
 {% block content %}
-<article class="project-detail active" data-page="project-detail">
+<article class="blog active" data-page="project-detail">
     <header>
         <h2 class="h2 article-title">{{ project.title }}</h2>
     </header>
 
-    <section class="project-content">
+    <section class="blog-posts">
         {% if project.image %}
-        <figure class="project-banner">
-            <img src="{{ project.image.url }}" alt="{{ project.title }}">
+        <figure class="blog-banner-box">
+            <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
         </figure>
         {% endif %}
 
-        <div class="project-info">
-            <div class="meta">
+        <div class="blog-content">
+            <div class="blog-meta">
                 {% for category in project.categories.all %}
-                <span class="category">{{ category.name }}</span>
+                <p class="blog-category">{{ category.name }}</p>
+                {% if not forloop.last %}
+                <span class="dot"></span>
+                {% endif %}
                 {% endfor %}
-                <span class="technologies">{{ project.technologies }}</span>
+                {% if project.technologies %}
+                <span class="dot"></span>
+                <p class="blog-category">{{ project.technologies }}</p>
+                {% endif %}
             </div>
 
-            <div class="project-text article-text">
+            <div class="blog-text article-text">
                 {{ project.description|safe }}
             </div>
 
-            <div class="project-links">
+            {% if project.github_link or project.demo_link %}
+            <div class="blog-meta project-links">
                 {% if project.github_link %}
                 <a href="{{ project.github_link }}" class="btn" target="_blank">
                     <ion-icon name="logo-github"></ion-icon> GitHub
@@ -38,7 +45,8 @@
                 </a>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
     </section>
 </article>
-{% endblock %} 
+{% endblock %}

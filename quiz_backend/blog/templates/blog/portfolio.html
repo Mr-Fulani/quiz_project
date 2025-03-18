@@ -2,12 +2,12 @@
 {% load static %}
 
 {% block content %}
-<article class="portfolio active" data-page="portfolio">
+<article class="blog active" data-page="portfolio">
     <header>
         <h2 class="h2 article-title">Portfolio</h2>
     </header>
 
-    <section class="projects">
+    <section class="blog-posts">
         <ul class="filter-list">
             <li class="filter-item">
                 <button class="active" data-filter-btn>All</button>
@@ -19,24 +19,36 @@
             {% endfor %}
         </ul>
 
-        <div class="project-list">
+        <ul class="blog-posts-list">
             {% for project in projects %}
-            <li class="project-item active" data-filter-item data-category="{{ project.category.name|lower }}">
+            <li class="blog-post-item" data-filter-item data-category="{{ project.category.name|lower }}">
                 <a href="{% url 'blog:project_detail' project.slug %}">
-                    <figure class="project-img">
-                        {% if project.image %}
-                        <div class="project-item-icon-box">
-                            <ion-icon name="eye-outline"></ion-icon>
-                        </div>
+                    {% if project.image %}
+                    <figure class="blog-banner-box">
                         <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
-                        {% endif %}
                     </figure>
-                    <h3 class="project-title">{{ project.title }}</h3>
-                    <p class="project-category">{{ project.category.name }}</p>
+                    {% endif %}
+                    <div class="blog-content">
+                        <div class="blog-meta">
+                            <p class="blog-category">{{ project.category.name }}</p>
+                            {% if project.created_at %}
+                            <span class="dot"></span>
+                            <time datetime="{{ project.created_at|date:'Y-m-d' }}">{{ project.created_at|date:"M d, Y" }}</time>
+                            {% endif %}
+                        </div>
+                        <h3 class="h3 blog-item-title">{{ project.title }}</h3>
+                        {% if project.description %}
+                        <p class="blog-text">
+                            {{ project.description|truncatewords:30 }}
+                        </p>
+                        {% endif %}
+                    </div>
                 </a>
             </li>
+            {% empty %}
+            <p>No projects available.</p>
             {% endfor %}
-        </div>
+        </ul>
     </section>
 </article>
-{% endblock %} 
+{% endblock %}

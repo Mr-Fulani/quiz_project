@@ -8,7 +8,6 @@
     </header>
 
     <section class="blog-posts">
-        <!-- Фильтр категорий -->
         <ul class="filter-list">
             <li class="filter-item">
                 <button class="active" data-filter-btn>All</button>
@@ -20,24 +19,21 @@
             {% endfor %}
         </ul>
 
-        <!-- Список постов -->
         <ul class="blog-posts-list">
             {% for post in posts %}
-            <li class="blog-post-item">
+            <li class="blog-post-item" data-filter-item data-category="{{ post.category.name|lower }}">
                 <a href="{% url 'blog:post_detail' post.slug %}">
                     {% if post.image %}
                     <figure class="blog-banner-box">
                         <img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy">
                     </figure>
                     {% endif %}
-
                     <div class="blog-content">
                         <div class="blog-meta">
                             <p class="blog-category">{{ post.category.name }}</p>
                             <span class="dot"></span>
                             <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y" }}</time>
                         </div>
-
                         <h3 class="h3 blog-item-title">{{ post.title }}</h3>
                         <p class="blog-text">
                             {{ post.content|truncatewords:30 }}
@@ -50,13 +46,11 @@
             {% endfor %}
         </ul>
 
-        <!-- Пагинация -->
         {% if posts.has_other_pages %}
         <div class="pagination">
             {% if posts.has_previous %}
-                <a href="?page={{ posts.previous_page_number }}" class="pagination-btn">&laquo;</a>
+                <a href="?page={{ posts.previous_page_number }}" class="pagination-btn">«</a>
             {% endif %}
-
             {% for num in posts.paginator.page_range %}
                 {% if posts.number == num %}
                     <a href="?page={{ num }}" class="pagination-btn active">{{ num }}</a>
@@ -64,12 +58,11 @@
                     <a href="?page={{ num }}" class="pagination-btn">{{ num }}</a>
                 {% endif %}
             {% endfor %}
-
             {% if posts.has_next %}
-                <a href="?page={{ posts.next_page_number }}" class="pagination-btn">&raquo;</a>
+                <a href="?page={{ posts.next_page_number }}" class="pagination-btn">»</a>
             {% endif %}
         </div>
         {% endif %}
     </section>
 </article>
-{% endblock %} 
+{% endblock %}
