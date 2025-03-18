@@ -1,5 +1,3 @@
-/* 1: Copyright notice by Leonam Silva de Souza */
-    /* Copyright (c) 2025 by Leonam Silva de Souza (https://codepen.io/leonam-silva-de-souza/pen/vYowKqP) */
 
 /* 2: Import the 'Poppins' font from Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
@@ -135,7 +133,17 @@
     :focus { outline-color: var(--orange-yellow-crayola); }
 
 /* 72: Устанавливаем основной шрифт для всего HTML-документа */
-    html { font-family: var(--ff-poppins); }
+    html {
+    font-family: var(--ff-poppins);
+    color: var(--white2); /* Светлый текст по умолчанию */
+    }
+
+    @media (max-width: 768px) {
+        html {
+            color: var(--white1); /* Белый для мобильных */
+        }
+    }
+
 
 /* 74: Задаём фон для <body> документа */
     body { background: var(--smoky-black); }
@@ -919,203 +927,193 @@
     border-radius: inherit;                 /* 701: Наследование скругления от родительского элемента */
 }
 
-/* 703: Здесь заканчивается Часть 5 (Строки 585–750) */
+
+
+
 
 /* =============================== */
 /*          PORTFOLIO            */
 /* =============================== */
 
-/* 751: Селектор для скрытия списка фильтров (например, для мобильных устройств) */
 .filter-list {
-    display: none;                /* Скрываем элемент, если он не нужен в текущей реализации */
+    display: block; /* Убедимся, что кнопки видны */
 }
 
-/* 754: Контейнер для селекта фильтрации проектов */
 .filter-select-box {
-    position: relative;           /* Относительное позиционирование для размещения абсолютно позиционированных дочерних элементов */
-    margin-bottom: 25px;          /* Отступ снизу для отделения от последующих блоков */
+    position: relative;
+    margin-bottom: 25px;
 }
 
-/* 758: Стили для самого селекта фильтрации */
 .filter-select {
-    background: var(--eerie-black2); /* Фон – темный оттенок, заданный переменной */
-    color: var(--light-gray);         /* Цвет текста – светло-серый */
-    display: flex;                    /* Flex-контейнер для выравнивания содержимого */
-    justify-content: space-between;   /* Раздвигает содержимое по краям */
-    align-items: center;              /* Центрирование по вертикали */
-    width: 100%;                      /* Занимает всю ширину родительского контейнера */
-    padding: 12px 16px;               /* Внутренние отступы: 12px сверху/снизу, 16px по бокам */
-    border: 1px solid var(--jet);     /* Рамка с цветом, заданным переменной --jet */
-    border-radius: 14px;              /* Скругление углов */
-    font-size: var(--fs6);            /* Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);        /* Легкий вес шрифта */
+    background: var(--eerie-black2);
+    color: var(--white2); /* Светлый текст */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--jet);
+    border-radius: 14px;
+    font-size: var(--fs6);
+    font-weight: var(--fw300);
 }
 
-/* 768: Если .filter-select имеет класс .active и содержит элемент .select-icon, то иконка поворачивается на 180° */
 .filter-select.active .select-icon {
-    transform: rotate(0.5turn);      /* Поворот на 180 градусов (0.5turn) */
+    transform: rotate(0.5turn);
 }
 
-/* 772: Стили для списка опций селекта фильтрации */
 .select-list {
-    background: var(--eerie-black2); /* Фон – тот же темный оттенок, что и у селекта */
-    position: absolute;              /* Абсолютное позиционирование для наложения на селект */
-    top: calc(100% + 6px);            /* Расположение ниже селекта на 6px */
-    width: 100%;                    /* Ширина совпадает с шириной родительского элемента */
-    padding: 6px;                    /* Внутренний отступ 6px */
-    border: 1px solid var(--jet);    /* Рамка с цветом переменной --jet */
-    border-radius: 14px;             /* Скругление углов */
-    z-index: 2;                     /* Повышенный порядок наложения, чтобы быть поверх других элементов */
-    visibility: hidden;             /* Изначально скрыт */
-    pointer-events: none;           /* Не реагирует на события мыши, пока не станет активным */
-    transition: .5s ease-in-out;     /* Плавный переход видимости и непрозрачности */
+    background: var(--eerie-black2);
+    position: absolute;
+    top: calc(100% + 6px);
+    width: 100%;
+    padding: 6px;
+    border: 1px solid var(--jet);
+    border-radius: 14px;
+    z-index: 2;
+    visibility: hidden;
+    pointer-events: none;
+    transition: .5s ease-in-out;
 }
 
-/* 783: Когда .filter-select активен, непосредственно следующий соседний .select-list становится видимым */
 .filter-select.active + .select-list {
-    opacity: 1;                     /* Устанавливаем полную непрозрачность */
-    visibility: visible;            /* Делаем список видимым */
-    pointer-events: all;            /* Теперь элемент принимает события мыши */
+    opacity: 1;
+    visibility: visible;
+    pointer-events: all;
 }
 
-/* 788: Стили для кнопок (опций) внутри списка фильтрации */
 .select-item button {
-    background: var(--eerie-black2); /* Фон кнопки соответствует теме селекта */
-    color: var(--light-gray);         /* Цвет текста – светло-серый */
-    font-size: var(--fs6);            /* Размер шрифта согласно переменной fs6 */
-    font-weight: var(--fw300);        /* Легкий вес шрифта */
-    text-transform: capitalize;      /* Преобразование текста – первая буква заглавная */
-    width: 100%;                     /* Кнопка занимает всю ширину контейнера */
-    padding: 8px 10px;               /* Внутренние отступы: 8px сверху/снизу, 10px по бокам */
-    border-radius: 8px;              /* Скругление углов кнопки */
+    background: var(--eerie-black2);
+    color: var(--white2); /* Светлый текст */
+    font-size: var(--fs6);
+    font-weight: var(--fw300);
+    text-transform: capitalize;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
 }
 
-/* 798: При наведении на кнопку внутри .select-item изменяется значение переменной --eerie-black2 */
-/* (Замечание: Такое правило может быть использовано для динамического изменения цвета, если поддерживается) */
 .select-item button:hover {
-    --eerie-black2: hsl(240, 2%, 20%); /* Новое значение цвета для фона при наведении (при условии, что переменная используется в других местах) */
+    --eerie-black2: hsl(240, 2%, 20%);
 }
 
-/* 802: Контейнер для списка проектов */
 .project-list {
-    display: grid;                  /* Используем CSS Grid для выравнивания проектов */
-    grid-template-columns: 1fr;     /* Одна колонка по умолчанию */
-    gap: 30px;                      /* Расстояние между проектами – 30px */
-    margin-bottom: 10px;            /* Отступ снизу для отделения от следующих секций */
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin-bottom: 10px;
 }
 
-/* 807: Каждый проект (.project-item) по умолчанию скрыт */
 .project-item {
-    display: none;                  /* Проекты скрыты, пока не получат класс .active */
+    display: none;
 }
 
-/* 810: Когда проект получает класс .active, он становится видимым с анимацией */
 .project-item.active {
-    display: block;                 /* Делаем проект видимым */
-    animation: scaleUp .25s ease forwards; /* Применяем анимацию scaleUp для плавного появления */
+    display: block;
+    animation: scaleUp .25s ease forwards;
 }
 
-/* 814: Определение анимации scaleUp */
-    @keyframes scaleUp {
-        0% { transform: scale(0.5); }  /* В начале элемент масштабирован до 50% */
-        100% { transform: scale(1); }  /* В конце – нормальный масштаб (100%) */
-    }
+@keyframes scaleUp {
+    0% { transform: scale(0.5); }
+    100% { transform: scale(1); }
+}
 
-/* 819: Ссылка внутри .project-item занимает всю ширину контейнера */
 .project-item > a {
     width: 100%;
 }
 
-/* 822: Стили для контейнера изображения проекта */
-.project-img {
-    position: relative;            /* Относительное позиционирование для псевдоэлементов */
-    width: 100%;                  /* Ширина – 100% родительского контейнера */
-    height: 200px;                /* Фиксированная высота – 200px */
-    border-radius: 16px;           /* Скругление углов – 16px */
-    overflow: hidden;             /* Обрезка содержимого, выходящего за границы */
-    margin-bottom: 15px;          /* Отступ снизу – 15px */
+.project-list .project-item .project-img {
+    position: relative;
+    width: 100%;
+    height: 200px !important; /* Фиксируем высоту на всех экранах */
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 15px;
 }
 
-/* 830: Стили для изображения внутри .project-img */
-    .project-img img {
-        width: 100%;              /* Изображение растягивается по ширине контейнера */
-        height: 100%;             /* Изображение занимает всю высоту контейнера */
-        object-fit: cover;        /* Сохраняется пропорция, изображение обрезается, чтобы заполнить контейнер */
-        transition: var(--transition1); /* Плавный переход для анимационных эффектов (например, при масштабировании) */
-    }
+.project-list .project-item .project-img img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    transition: var(--transition1);
+}
 
-/* 836: Псевдоэлемент ::before для .project-img для создания эффектов при наведении */
-    .project-img::before {
-        content: '';              /* Пустое содержимое для декоративного эффекта */
-        position: absolute;       /* Абсолютное позиционирование внутри контейнера */
-        top: 0;                   /* Прикрепляем к верхней границе */
-        left: 0;                  /* Прикрепляем к левой границе */
-        width: 100%;              /* Занимает всю ширину контейнера */
-        height: 100%;             /* Занимает всю высоту контейнера */
-        background: transparent;  /* Прозрачный фон по умолчанию */
-        z-index: 1;               /* Размещаем поверх изображения, но под другими элементами при необходимости */
-        transition: var(--transition1); /* Плавный переход для изменения фона */
-    }
+.project-img::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    z-index: 1;
+    transition: var(--transition1);
+}
 
-/* 846: При наведении на ссылку проекта изображение масштабируется */
-        .project-item > a:hover img {
-            transform: scale(1.1); /* Масштаб увеличивается до 110% */
-        }
+.project-item > a:hover img {
+    transform: scale(1.1);
+}
 
-/* 849: При наведении на ссылку проекта псевдоэлемент ::before получает полупрозрачный чёрный фон */
-        .project-item > a:hover .project-img::before {
-            background: hsla(0, 0%, 0%, .5); /* Фон становится полупрозрачным чёрным */
-        }
+.project-item > a:hover .project-img::before {
+    background: hsla(0, 0%, 0%, .5);
+}
 
-/* 853: Стили для блока, который появляется поверх проекта при наведении – иконка */
 .project-item-icon-box {
-    --scale: .8;                   /* Изначальный коэффициент масштабирования – 80% */
-
-    background: var(--jet);         /* Фон – цвет, заданный переменной --jet */
-    color: var(--orange-yellow-crayola); /* Цвет иконки – оранжево-жёлтый */
-    position: absolute;             /* Абсолютное позиционирование для центрирования */
-    top: 50%;                      /* Центрирование по вертикали */
-    left: 50%;                     /* Центрирование по горизонтали */
-    transform: translate(-50%, -50%) scale(var(--scale)); /* Центрирование с учетом начального масштаба */
-    font-size: 20px;                /* Размер шрифта для иконки */
-    padding: 18px;                  /* Внутренние отступы для увеличения области вокруг иконки */
-    border-radius: 12px;            /* Скругление углов */
-    opacity: 0;                    /* Изначально элемент невидим (opacity 0) */
-    z-index: 1;                    /* Располагается над изображением, но ниже текста */
-    transition: var(--transition1); /* Плавный переход при изменении масштаба и непрозрачности */
+    --scale: .8;
+    background: var(--jet);
+    color: var(--orange-yellow-crayola);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--scale));
+    font-size: 20px;
+    padding: 18px;
+    border-radius: 12px;
+    opacity: 0;
+    z-index: 1;
+    transition: var(--transition1);
 }
 
-/* 866: При наведении на ссылку проекта блок с иконкой увеличивается и становится видимым */
-    .project-item > a:hover .project-item-icon-box {
-        --scale: 1;               /* Масштаб изменяется до 100% */
-        opacity: 1;                /* Элемент становится полностью видимым */
-    }
+.project-item > a:hover .project-item-icon-box {
+    --scale: 1;
+    opacity: 1;
+}
 
-/* 870: Для иконки внутри блока устанавливается толщина штриха */
-    .project-item-icon-box ion-icon {
-        --ionicon-stroke-width: 50px;  /* Толщина линий для иконки устанавливается через переменную */
-    }
+.project-item-icon-box ion-icon {
+    --ionicon-stroke-width: 50px;
+}
 
-/* 873: Селектор для заголовка проекта и категории проекта; отступ слева для разделения от изображения */
 .project-title, .project-category {
-    margin-left: 10px;             /* Отступ слева – 10px */
+    margin-left: 10px;
 }
 
-/* 876: Стили для заголовка проекта */
-    .project-title {
-        color: var(--white2);      /* Цвет текста – почти белый */
-        font-size: var(--fs5);      /* Размер шрифта согласно переменной fs5 */
-        font-weight: var(--fw400);  /* Вес шрифта – нормальный (400) */
-        text-transform: capitalize; /* Преобразование текста – первая буква заглавная */
-        line-height: 1.3;           /* Межстрочный интервал – 1.3 для плотного, но читаемого текста */
-    }
+.project-title {
+    color: var(--white2);
+    font-size: var(--fs5);
+    font-weight: var(--fw400);
+    text-transform: capitalize;
+    line-height: 1.3;
+}
 
-/* 883: Стили для категории проекта (например, «Web Design», «Photography») */
-    .project-category {
-        color: var(--light-gray70);  /* Цвет – светло-серый с прозрачностью */
-        font-size: var(--fs6);       /* Размер шрифта согласно переменной fs6 */
-        font-weight: var(--fw300);   /* Лёгкий вес шрифта */
+
+.project-category {
+    color: var(--white2);
+    font-size: var(--fs6);
+    font-weight: var(--fw300);
+}
+
+/* Медиа-запрос для мобильных */
+@media (max-width: 768px) {
+    .filter-select {
+        color: var(--white1); /* Белый для мобильных */
     }
+    .select-item button {
+        color: var(--white1) !important; /* Белый для мобильных */
+    }
+    .project-category {
+        color: var(--white1);
+    }
+}
 
 
 /* =============================== */
@@ -1778,7 +1776,7 @@ textarea.form-input::-webkit-resizer {
 
     /* 1366: Для кнопок внутри .filter-item задаются цвет и размер шрифта */
     .filter-item button {
-        color: var(--light-gray);    /* Цвет – светло-серый */
+        color: var(--white2) !important; /* Светлый текст */    /* Цвет – светло-серый */
         font-size: var(--fs5);         /* Размер шрифта согласно переменной fs5 */
         transition: var(--transition1); /* Плавный переход для изменения цвета при наведении */
     }
