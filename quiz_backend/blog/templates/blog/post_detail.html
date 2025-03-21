@@ -1,41 +1,103 @@
 {% extends "blog/base.html" %}
 {% load static %}
+{% load youtube_tags %}
 
 {% block sidebar %}
-    {% include "accounts/user_sidebar.html" %}
+{% include "accounts/user_sidebar.html" %}
 {% endblock %}
 
 {% block content %}
-<article class="post-detail active" data-page="post-detail">
+<article class="detail-page active" data-page="post-detail">
     <header>
         <h2 class="h2 article-title">{{ post.title }}</h2>
     </header>
 
-    <section class="post-content">
-        {% if post.image %}
-        <figure class="post-banner">
-            <img src="{{ post.image.url }}" alt="{{ post.title }}">
-        </figure>
-        {% endif %}
-
-        <div class="blog-meta">
-            <p class="blog-category">{{ post.category.name }}</p>
-            <span class="dot"></span>
-            <time datetime="{{ post.created_at|date:'Y-m-d' }}">
-                {{ post.created_at|date:"M d, Y" }}
-            </time>
+    <section class="detail-content">
+        <!-- Слайдер -->
+        <div class="swiper detail-slider">
+            <div class="swiper-wrapper">
+                {% for image in post.images.all %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <img src="{{ image.image.url }}" alt="{{ post.title }}" loading="lazy">
+                        </div>
+                    </figure>
+                </div>
+                {% endfor %}
+                {% if post.video_url %}
+                <div class="swiper-slide">
+                    <div class="detail-media-box">
+                        <div class="media-wrapper">
+                            <!-- Уникальный ID для каждого iframe -->
+                            <div id="youtube-player-{{ post.id }}"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-pagination"></div>
         </div>
 
-        <div class="post-text article-text">
-            {{ post.content|safe }}
+        <!-- Метаданные и контент -->
+        <div class="detail-text-box">
+            <div class="blog-meta">
+                <p class="blog-category">{{ post.category.name }}</p>
+                <span class="dot"></span>
+                <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y" }}</time>
+            </div>
+            <div class="article-text">
+                {{ post.content|safe }}
+            </div>
         </div>
     </section>
 
-    <!-- ... в секции комментариев или взаимодействий ... -->
-    {% if comment.user.username %}
-        <a href="{% url 'blog:profile' username=comment.user.username %}">{{ comment.user.username }}</a>
-    {% else %}
-        <span>{{ comment.user.username }}</span>
-    {% endif %}
+    <!-- Swiper и YouTube API -->
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        // Инициализация Swiper
+        document.addEventListener('DOMContentLoaded', function () {
+            const swiper = new Swiper('.detail-slider', {
+                loop: true,
+                pagination: { el: '.swiper-pagination', clickable: true },
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev',
+                },
+            });
+        });
+
+        // YouTube API
+        let player;
+        function onYouTubeIframeAPIReady() {
+            {% if post.video_url %}
+            player = new YT.Player('youtube-player-{{ post.id }}', {
+                height: '100%',
+                width: '100%',
+                videoId: '{{ post.video_url|youtube_embed_url|cut:"https://www.youtube.com/embed/"|cut:"?vq=hd1080" }}', // Извлекаем только video_id
+                playerVars: {
+                    'autoplay': 0, // Не автозапуск
+                    'controls': 1, // Показывать элементы управления
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+            {% endif %}
+        }
+
+        function onPlayerReady(event) {
+            // Получаем доступные уровни качества
+            const availableQualities = event.target.getAvailableQualityLevels();
+            // Устанавливаем максимальное качество
+            const maxQuality = availableQualities[0]; // Первый элемент — наивысшее качество
+            event.target.setPlaybackQuality(maxQuality);
+            console.log('Установлено качество:', maxQuality); // Для дебага
+        }
+    </script>
 </article>
-{% endblock %} 
+{% endblock %}

@@ -23,9 +23,13 @@
             {% for project in projects %}
             <li class="blog-post-item" data-filter-item data-category="{{ project.category.name|lower }}">
                 <a href="{% url 'blog:project_detail' project.slug %}">
-                    {% if project.image %}
+                    {% if project.images.all %}
                     <figure class="blog-banner-box">
-                        <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
+                        <img src="{{ project.images.first.image.url }}" alt="{{ project.title }}" loading="lazy">
+                    </figure>
+                    {% else %}
+                    <figure class="blog-banner-box no-image">
+                        <span>No Image</span>
                     </figure>
                     {% endif %}
                     <div class="blog-content">

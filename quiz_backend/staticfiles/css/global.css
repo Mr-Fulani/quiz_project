@@ -1188,29 +1188,107 @@ article.active {
 }
 
 
-/* Добавляем в секцию PORTFOLIO или BLOG */
+/* Стили кнопок фильтрации */
 .filter-item button {
     color: var(--white2); /* Светлый текст по умолчанию */
-    font-size: var(--fs5); /* Размер шрифта */
-    background: none; /* Без фона */
-    padding: 8px 12px; /* Отступы */
-    border-radius: 8px; /* Скругление углов */
-    transition: var(--transition1); /* Плавный переход */
+    font-size: var(--fs5);
+    background: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: var(--transition1); /* Плавный переход для всех свойств */
 }
 
+/* Эффект наведения */
 .filter-item button:hover {
-    color: var(--light-gray70); /* Цвет при наведении */
+    color: var(--orange-yellow-crayola); /* Более яркий цвет при наведении */
+    background: var(--bg-gradient-yellow2); /* Градиентный фон для заметности */
 }
 
+/* Активная кнопка */
 .filter-item button.active {
-    color: var(--orange-yellow-crayola); /* Цвет активной кнопки */
-    background: var(--bg-gradient-yellow1); /* Градиентный фон для активной кнопки */
+    color: var(--orange-yellow-crayola);
+    background: var(--bg-gradient-yellow1); /* Градиент для активного состояния */
 }
+
+
+
+/* Стили для страниц подробностей */
+.detail-page {
+    background: var(--eerie-black2);
+    border: 1px solid var(--jet);
+    border-radius: 20px;
+    padding: 15px;
+}
+
+.detail-content {
+    width: 100%;
+}
+
+.detail-slider {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.detail-media-box {
+    width: 100%;
+    height: 300px; /* Фиксированная высота для слайдов */
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.detail-media-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail-media-box iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.swiper-button-next, .swiper-button-prev {
+    color: var(--orange-yellow-crayola);
+}
+
+.swiper-pagination-bullet {
+    background: var(--light-gray);
+}
+
+.swiper-pagination-bullet-active {
+    background: var(--orange-yellow-crayola);
+}
+
+.detail-text-box {
+    padding: 15px;
+}
+
+.project-links {
+    margin-top: 15px;
+}
+
+.project-links .btn {
+    color: var(--orange-yellow-crayola);
+    background: var(--border-gradient-onyx);
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: var(--transition1);
+}
+
+.project-links .btn:hover {
+    background: var(--bg-gradient-yellow1);
+}
+
 
 
 /* =============================== */
 /*             BLOG              */
 /* =============================== */
+
 
 /* 901: Комментарий для обозначения начала секции BLOG */
 

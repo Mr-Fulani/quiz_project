@@ -1,34 +1,57 @@
 {% extends "blog/base.html" %}
 {% load static %}
+{% load youtube_tags %}
 
 {% block content %}
-<article class="blog active" data-page="project-detail">
+<article class="detail-page active" data-page="project-detail">
     <header>
         <h2 class="h2 article-title">{{ project.title }}</h2>
     </header>
 
-    <section class="blog-posts">
-        {% if project.image %}
-        <figure class="blog-banner-box">
-            <img src="{{ project.image.url }}" alt="{{ project.title }}" loading="lazy">
-        </figure>
-        {% endif %}
-
-        <div class="blog-content">
-            <div class="blog-meta">
-                {% for category in project.categories.all %}
-                <p class="blog-category">{{ category.name }}</p>
-                {% if not forloop.last %}
-                <span class="dot"></span>
-                {% endif %}
+    <section class="detail-content">
+        <!-- Слайдер -->
+        <div class="swiper detail-slider">
+            <div class="swiper-wrapper">
+                {% for image in project.images.all %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <img src="{{ image.image.url }}" alt="{{ project.title }}" loading="lazy">
+                        </div>
+                    </figure>
+                </div>
                 {% endfor %}
-                {% if project.technologies %}
-                <span class="dot"></span>
-                <p class="blog-category">{{ project.technologies }}</p>
+                {% if project.video_url %}
+                <div class="swiper-slide">
+                    <div class="detail-media-box">
+                        <div class="media-wrapper">
+                            <iframe src="{{ project.video_url|youtube_embed_url }}" frameborder="0"
+                                    allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
                 {% endif %}
             </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-pagination"></div>
+        </div>
 
-            <div class="blog-text article-text">
+        <!-- Метаданные и описание -->
+        <div class="detail-text-box">
+            <div class="blog-meta">
+                {% if project.category %}
+                <p class="blog-category">{{ project.category.name }}</p>
+                <span class="dot"></span>
+                {% endif %}
+                {% if project.technologies %}
+                <p class="blog-category">{{ project.technologies }}</p>
+                <span class="dot"></span>
+                {% endif %}
+                <time datetime="{{ project.created_at|date:'Y-m-d' }}">{{ project.created_at|date:"M d, Y" }}</time>
+            </div>
+
+            <div class="article-text">
                 {{ project.description|safe }}
             </div>
 
@@ -36,12 +59,14 @@
             <div class="blog-meta project-links">
                 {% if project.github_link %}
                 <a href="{{ project.github_link }}" class="btn" target="_blank">
-                    <ion-icon name="logo-github"></ion-icon> GitHub
+                    <ion-icon name="logo-github"></ion-icon>
+                    GitHub
                 </a>
                 {% endif %}
                 {% if project.demo_link %}
                 <a href="{{ project.demo_link }}" class="btn" target="_blank">
-                    <ion-icon name="globe-outline"></ion-icon> Live Demo
+                    <ion-icon name="globe-outline"></ion-icon>
+                    Live Demo
                 </a>
                 {% endif %}
             </div>
@@ -49,4 +74,20 @@
         </div>
     </section>
 </article>
+
+<!-- Swiper JS -->
+<link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const swiper = new Swiper('.detail-slider', {
+            loop: true,
+            pagination: {el: '.swiper-pagination', clickable: true},
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+        });
+    });
+</script>
 {% endblock %}

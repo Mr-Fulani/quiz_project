@@ -23,9 +23,13 @@
             {% for post in posts %}
             <li class="blog-post-item" data-filter-item data-category="{{ post.category.name|lower }}">
                 <a href="{% url 'blog:post_detail' post.slug %}">
-                    {% if post.image %}
+                    {% if post.images.all %}
                     <figure class="blog-banner-box">
-                        <img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy">
+                        <img src="{{ post.images.first.image.url }}" alt="{{ post.title }}" loading="lazy">
+                    </figure>
+                    {% else %}
+                    <figure class="blog-banner-box no-image">
+                        <span>No Image</span>
                     </figure>
                     {% endif %}
                     <div class="blog-content">

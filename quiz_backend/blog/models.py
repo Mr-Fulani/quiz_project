@@ -2,7 +2,9 @@ from django.db import models
 from django.utils.text import slugify
 from accounts.models import CustomUser  # Оставляем только нужные импорты
 
-# Create your models here.
+
+
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -26,7 +28,7 @@ class Post(models.Model):
     content = models.TextField()
     excerpt = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
-    image = models.ImageField(upload_to='blog/posts/', blank=True)
+    video_url = models.URLField(blank=True, null=True)
     published = models.BooleanField(default=False)
     featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -47,18 +49,24 @@ class Post(models.Model):
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
+
+class PostImage(models.Model):
+    post = models.ForeignKey(Post, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='blog/posts/')
+
+
 class Project(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     description = models.TextField()
     technologies = models.CharField(max_length=200)
     category = models.ForeignKey(
-        Category, 
+        Category,
         on_delete=models.PROTECT,
         null=True,
         blank=True
     )
-    image = models.ImageField(upload_to='blog/projects/')
+    video_url = models.URLField(blank=True, null=True)
     github_link = models.URLField(blank=True)
     demo_link = models.URLField(blank=True)
     featured = models.BooleanField(default=False)
@@ -78,11 +86,23 @@ class Project(models.Model):
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
+
+class ProjectImage(models.Model):
+    project = models.ForeignKey(Project, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='blog/projects/')
+
+
+
+
 class MessageAttachment(models.Model):
     message = models.ForeignKey('Message', on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='message_attachments/%Y/%m/%d/')
     filename = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+
+
 
 class Message(models.Model):
     sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_messages')
