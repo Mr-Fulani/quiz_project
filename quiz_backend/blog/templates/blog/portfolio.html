@@ -1,5 +1,6 @@
 {% extends "blog/base.html" %}
 {% load static %}
+{% load blog_tags %}
 
 {% block content %}
 <article class="blog active" data-page="portfolio">
@@ -23,15 +24,29 @@
             {% for project in projects %}
             <li class="blog-post-item" data-filter-item data-category="{{ project.category.name|lower }}">
                 <a href="{% url 'blog:project_detail' project.slug %}">
-                    {% if project.images.all %}
-                    <figure class="blog-banner-box">
-                        <img src="{{ project.images.first.image.url }}" alt="{{ project.title }}" loading="lazy">
-                    </figure>
+                    {% with main_media=project.get_main_image %}
+                    {% if main_media %}
+                        {% if main_media.photo %}
+                            <figure class="blog-banner-box">
+                                <img src="{{ main_media.photo.url }}" alt="{{ project.title }}" loading="lazy">
+                            </figure>
+                        {% elif main_media.gif %}
+                            <figure class="blog-banner-box">
+                                <img src="{{ main_media.gif.url }}" alt="{{ project.title }}" loading="lazy">
+                            </figure>
+                        {% elif main_media.video %}
+                            <figure class="blog-banner-box">
+                                <video>
+                                    <source src="{{ main_media.video.url }}" type="video/mp4">
+                                </video>
+                            </figure>
+                        {% endif %}
                     {% else %}
-                    <figure class="blog-banner-box no-image">
-                        <span>No Image</span>
-                    </figure>
+                        <figure class="blog-banner-box no-image">
+                            <span>No Image</span>
+                        </figure>
                     {% endif %}
+                    {% endwith %}
                     <div class="blog-content">
                         <div class="blog-meta">
                             <p class="blog-category">{{ project.category.name }}</p>

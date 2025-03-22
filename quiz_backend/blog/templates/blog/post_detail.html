@@ -1,6 +1,7 @@
 {% extends "blog/base.html" %}
 {% load static %}
 {% load youtube_tags %}
+{% load blog_tags %}
 
 {% block sidebar %}
 {% include "accounts/user_sidebar.html" %}
@@ -16,21 +17,54 @@
         <!-- Слайдер -->
         <div class="swiper detail-slider">
             <div class="swiper-wrapper">
-                {% for image in post.images.all %}
-                <div class="swiper-slide">
-                    <figure class="detail-media-box">
-                        <div class="media-wrapper">
-                            <img src="{{ image.image.url }}" alt="{{ post.title }}" loading="lazy">
-                        </div>
-                    </figure>
-                </div>
+                {% for media in post.images.all %}
+                    {% if media.photo %}
+                    <div class="swiper-slide">
+                        <figure class="detail-media-box">
+                            <div class="media-wrapper">
+                                <img src="{{ media.photo.url }}" alt="{{ post.title }}" loading="lazy">
+                            </div>
+                        </figure>
+                    </div>
+                    {% endif %}
+                    {% if media.gif %}
+                    <div class="swiper-slide">
+                        <figure class="detail-media-box">
+                            <div class="media-wrapper">
+                                <img src="{{ media.gif.url }}" alt="{{ post.title }}" loading="lazy">
+                            </div>
+                        </figure>
+                    </div>
+                    {% endif %}
+                    {% if media.video %}
+                    <div class="swiper-slide">
+                        <figure class="detail-media-box">
+                            <div class="media-wrapper">
+                                <video controls>
+                                    <source src="{{ media.video.url }}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </figure>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                    <div class="swiper-slide">
+                        <figure class="detail-media-box">
+                            <div class="media-wrapper">
+                                <p>Нет медиа для отображения</p>
+                            </div>
+                        </figure>
+                    </div>
                 {% endfor %}
                 {% if post.video_url %}
                 <div class="swiper-slide">
                     <div class="detail-media-box">
                         <div class="media-wrapper">
-                            <!-- Уникальный ID для каждого iframe -->
-                            <div id="youtube-player-{{ post.id }}"></div>
+                            <iframe id="youtube-player-{{ post.id }}"
+                                    src="{{ post.video_url|youtube_embed_url }}"
+                                    frameborder="0"
+                                    allowfullscreen></iframe>
                         </div>
                     </div>
                 </div>
@@ -59,7 +93,6 @@
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        // Инициализация Swiper
         document.addEventListener('DOMContentLoaded', function () {
             const swiper = new Swiper('.detail-slider', {
                 loop: true,
@@ -68,35 +101,57 @@
                     nextEl: '.swiper-button-next',
                     prevEl: '.swiper-button-prev',
                 },
+                on: {
+                    slideChange: function () {
+                        // Останавливаем все локальные <video>
+                        const videos = document.querySelectorAll('.detail-slider video');
+                        videos.forEach(video => {
+                            if (!video.paused) {
+                                video.pause();
+                            }
+                        });
+
+                        // Останавливаем YouTube видео
+                        if (typeof player !== 'undefined' && player && player.pauseVideo) {
+                            const playerState = player.getPlayerState();
+                            if (playerState === 1) { // 1 = воспроизведение
+                                player.pauseVideo();
+                                console.log('YouTube видео остановлено');
+                            }
+                        } else {
+                            console.log('YouTube плеер еще не инициализирован');
+                        }
+                    }
+                }
             });
         });
 
-        // YouTube API
         let player;
         function onYouTubeIframeAPIReady() {
             {% if post.video_url %}
             player = new YT.Player('youtube-player-{{ post.id }}', {
                 height: '100%',
                 width: '100%',
-                videoId: '{{ post.video_url|youtube_embed_url|cut:"https://www.youtube.com/embed/"|cut:"?vq=hd1080" }}', // Извлекаем только video_id
+                videoId: '{{ post.video_url|youtube_embed_url|cut:"https://www.youtube.com/embed/"|cut:"?vq=hd1080" }}',
                 playerVars: {
-                    'autoplay': 0, // Не автозапуск
-                    'controls': 1, // Показывать элементы управления
+                    'autoplay': 0,
+                    'controls': 1,
                 },
                 events: {
-                    'onReady': onPlayerReady
+                    'onReady': onPlayerReady,
+                    'onError': function (e) {
+                        console.log('Ошибка YouTube плеера:', e.data);
+                    }
                 }
             });
             {% endif %}
         }
 
         function onPlayerReady(event) {
-            // Получаем доступные уровни качества
             const availableQualities = event.target.getAvailableQualityLevels();
-            // Устанавливаем максимальное качество
-            const maxQuality = availableQualities[0]; // Первый элемент — наивысшее качество
+            const maxQuality = availableQualities[0];
             event.target.setPlaybackQuality(maxQuality);
-            console.log('Установлено качество:', maxQuality); // Для дебага
+            console.log('YouTube плеер готов, качество:', maxQuality);
         }
     </script>
 </article>

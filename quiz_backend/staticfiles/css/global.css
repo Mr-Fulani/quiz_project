@@ -1212,42 +1212,64 @@ article.active {
 
 
 
-/* Стили для страниц подробностей */
-.detail-page {
-    background: var(--eerie-black2);
-    border: 1px solid var(--jet);
-    border-radius: 20px;
-    padding: 15px;
-}
-
-.detail-content {
-    width: 100%;
-}
-
+/* Слайдер */
 .detail-slider {
     width: 100%;
     margin-bottom: 20px;
 }
 
+/* Контейнер медиа */
 .detail-media-box {
     width: 100%;
-    height: 300px; /* Фиксированная высота для слайдов */
+    height: 400px; /* Фиксированная высота для единообразия */
+    max-height: 80vh; /* Ограничение по высоте экрана */
     border-radius: 16px;
     overflow: hidden;
+    position: relative;
+    background: var(--eerie-black1); /* Фон для пустых областей */
 }
 
+/* Обёртка для контента */
+.detail-media-box .media-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Изображения */
 .detail-media-box img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; /* Обрезаем, чтобы заполнить контейнер */
+    display: block;
 }
 
+/* Видео */
 .detail-media-box iframe {
     width: 100%;
     height: 100%;
     border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
+/* Адаптивность */
+@media (max-width: 768px) {
+    .detail-media-box {
+        height: 300px; /* Меньшая высота для мобильных */
+        max-height: 60vh;
+    }
+}
+
+@media (min-width: 1024px) {
+    .detail-media-box {
+        height: 500px; /* Большая высота для десктопов */
+        max-height: 90vh;
+    }
+}
+
+/* Swiper элементы */
 .swiper-button-next, .swiper-button-prev {
     color: var(--orange-yellow-crayola);
 }
@@ -1260,27 +1282,87 @@ article.active {
     background: var(--orange-yellow-crayola);
 }
 
-.detail-text-box {
-    padding: 15px;
-}
 
-.project-links {
-    margin-top: 15px;
-}
 
-.project-links .btn {
-    color: var(--orange-yellow-crayola);
-    background: var(--border-gradient-onyx);
-    padding: 10px 15px;
-    border-radius: 8px;
-    display: inline-flex;
+/* Для страниц подробностей */
+.detail-media-box {
+    width: 100%;
+    height: 400px;
+    max-height: 80vh;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: var(--eerie-black1);
+    display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 5px;
-    transition: var(--transition1);
 }
 
-.project-links .btn:hover {
-    background: var(--bg-gradient-yellow1);
+.media-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.detail-media-box img,
+.detail-media-box video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.detail-media-box iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Для главной страницы */
+.blog-banner-box {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+    background: var(--eerie-black1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.blog-banner-box img,
+.blog-banner-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .detail-media-box {
+        height: 300px;
+        max-height: 60vh;
+    }
+    .blog-banner-box {
+        height: 150px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .detail-media-box {
+        height: 500px;
+        max-height: 90vh;
+    }
+    .blog-banner-box {
+        height: 250px;
+    }
 }
 
 
