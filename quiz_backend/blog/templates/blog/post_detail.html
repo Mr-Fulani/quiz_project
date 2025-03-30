@@ -88,10 +88,9 @@
         </div>
     </section>
 
-    <!-- Swiper и YouTube API -->
+    <!-- Swiper JS -->
     <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const swiper = new Swiper('.detail-slider', {
@@ -103,56 +102,39 @@
                 },
                 on: {
                     slideChange: function () {
+                        console.log('Слайд изменен (post)');
+
                         // Останавливаем все локальные <video>
                         const videos = document.querySelectorAll('.detail-slider video');
                         videos.forEach(video => {
                             if (!video.paused) {
                                 video.pause();
+                                console.log('Локальное видео остановлено (post)');
                             }
                         });
 
-                        // Останавливаем YouTube видео
-                        if (typeof player !== 'undefined' && player && player.pauseVideo) {
-                            const playerState = player.getPlayerState();
-                            if (playerState === 1) { // 1 = воспроизведение
-                                player.pauseVideo();
-                                console.log('YouTube видео остановлено');
+                        // Останавливаем YouTube через postMessage
+                        const youtubeIframe = document.getElementById('youtube-player-{{ post.id }}');
+                        if (youtubeIframe) {
+                            console.log('Найден iframe с id: youtube-player-{{ post.id }}');
+                            console.log('URL iframe:', youtubeIframe.src);
+                            try {
+                                youtubeIframe.contentWindow.postMessage(
+                                    '{"event":"command","func":"pauseVideo","args":""}',
+                                    '*'
+                                );
+                                console.log('Отправлено postMessage для остановки YouTube (post)');
+                            } catch (e) {
+                                console.error('Ошибка при отправке postMessage (post):', e);
                             }
                         } else {
-                            console.log('YouTube плеер еще не инициализирован');
+                            console.log('YouTube iframe не найден (post)');
                         }
                     }
                 }
             });
+            console.log('Swiper инициализирован (post)');
         });
-
-        let player;
-        function onYouTubeIframeAPIReady() {
-            {% if post.video_url %}
-            player = new YT.Player('youtube-player-{{ post.id }}', {
-                height: '100%',
-                width: '100%',
-                videoId: '{{ post.video_url|youtube_embed_url|cut:"https://www.youtube.com/embed/"|cut:"?vq=hd1080" }}',
-                playerVars: {
-                    'autoplay': 0,
-                    'controls': 1,
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onError': function (e) {
-                        console.log('Ошибка YouTube плеера:', e.data);
-                    }
-                }
-            });
-            {% endif %}
-        }
-
-        function onPlayerReady(event) {
-            const availableQualities = event.target.getAvailableQualityLevels();
-            const maxQuality = availableQualities[0];
-            event.target.setPlaybackQuality(maxQuality);
-            console.log('YouTube плеер готов, качество:', maxQuality);
-        }
     </script>
 </article>
 {% endblock %}
