@@ -1,6 +1,6 @@
 # blog/admin.py
 from django.contrib import admin
-from .models import Category, Post, Project, PostImage, ProjectImage, Message
+from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo
 
 
 @admin.register(Category)
@@ -58,3 +58,17 @@ class MessageAdmin(admin.ModelAdmin):
     list_display = ('sender', 'recipient', 'created_at', 'is_read')
     list_filter = ('is_read',)
     search_fields = ('sender__username', 'recipient__username', 'content')
+
+
+@admin.register(PageVideo)
+class PageVideoAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для управления видео на страницах 'index' и 'about'.
+
+    Отображает список видео с фильтрацией по странице и возможностью сортировки.
+    """
+    list_display = ('title', 'page', 'video_url', 'video_file', 'gif', 'order')  # Добавили 'gif'
+    list_filter = ('page',)
+    search_fields = ('title',)
+    ordering = ('order', 'title')
+    fields = ('page', 'title', 'video_url', 'video_file', 'gif', 'order')  # Добавили 'gif'

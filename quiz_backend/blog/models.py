@@ -334,3 +334,59 @@ class Message(models.Model):
     def is_completely_deleted(self):
         """Проверяет, полностью ли удалено сообщение (обоими сторонами)."""
         return self.is_deleted_by_sender and self.is_deleted_by_recipient
+
+
+
+class PageVideo(models.Model):
+    """
+    Модель для хранения видео, специфичных для страниц 'index' и 'about'.
+
+    Позволяет добавлять видео (YouTube или локальные) через админку для отображения
+    на главной странице или странице "Обо мне".
+    """
+    PAGE_CHOICES = (
+        ('index', 'Главная страница'),
+        ('about', 'Страница "Обо мне"'),
+    )
+
+    page = models.CharField(
+        max_length=10,
+        choices=PAGE_CHOICES,
+        verbose_name="Страница",
+        help_text="Выберите страницу, для которой предназначено видео."
+    )
+    title = models.CharField(
+        max_length=200,
+        verbose_name="Название видео",
+        help_text="Название, которое будет отображаться под видео."
+    )
+    video_url = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name="Ссылка на YouTube",
+        help_text="Вставьте ссылку на YouTube-видео (например, https://www.youtube.com/watch?v=xxx)."
+    )
+    video_file = models.FileField(
+        upload_to='videos/page_videos/',
+        blank=True,
+        null=True,
+        verbose_name="Локальный видеофайл",
+        help_text="Загрузите локальный видеофайл (например, .mp4), если не используете YouTube."
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Порядок отображения",
+        help_text="Число, определяющее порядок видео в списке (меньше — выше)."
+    )
+    gif = models.FileField(
+        upload_to='gifs/page_videos/',
+        blank=True, null=True,
+        verbose_name="GIF-файл")
+
+    class Meta:
+        verbose_name = "Видео для страницы"
+        verbose_name_plural = "Видео для страниц"
+        ordering = ['order', 'title']
+
+    def __str__(self):
+        return f"{self.title} ({self.get_page_display()})"

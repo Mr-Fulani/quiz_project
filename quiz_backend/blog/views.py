@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
 
-from .models import Category, Post, Project, Message, MessageAttachment
+from .models import Category, Post, Project, Message, MessageAttachment, PageVideo
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
 import logging
@@ -136,13 +136,18 @@ class HomePageView(TemplateView):
         все проекты и категории портфолио.
         """
         context = super().get_context_data(**kwargs)
-        posts_list = Post.objects.all()
+        posts_list = Post.objects.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
         context['categories'] = Category.objects.filter(is_portfolio=False)
         context['projects'] = Project.objects.all()
         context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
+        # Добавляем посты с видео
+        context['posts_with_video'] = Post.objects.filter(
+            Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
+        ).distinct()
+        context['page_videos'] = PageVideo.objects.filter(page='index')  # Видео для index
         return context
 
 
@@ -161,6 +166,11 @@ class AboutView(TemplateView):
         Пока возвращает базовый контекст, можно расширить при необходимости.
         """
         context = super().get_context_data(**kwargs)
+        # Добавляем посты с видео
+        context['posts_with_video'] = Post.objects.filter(
+            Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
+        ).distinct()
+        context['page_videos'] = PageVideo.objects.filter(page='about')  # Видео для about
         return context
 
 
@@ -746,3 +756,5 @@ def statistics_view(request):
             }
 
     return render(request, 'accounts/statistics.html', context)
+
+
