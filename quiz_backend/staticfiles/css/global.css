@@ -2456,3 +2456,169 @@ textarea.form-input::-webkit-resizer {
 /* =============================== */
 
 
+
+
+/*!* Стили для видео на главной странице *!*/
+/*article[data-page="home"] .video .video-banner-box {*/
+/*    position: relative;*/
+/*    width: 100%; !* Полная ширина контейнера *!*/
+/*    padding-bottom: 56.25%; !* Соотношение 16:9 (9 / 16 = 0.5625) *!*/
+/*    height: 0; !* Убираем фиксированную высоту, используем padding-bottom *!*/
+/*    border-radius: 16px; !* Скругление углов *!*/
+/*    border: 1px solid var(--jet); !* Рамка как у .mapbox *!*/
+/*    overflow: hidden; !* Скрытие переполнения *!*/
+/*    margin-bottom: 30px; !* Отступ снизу *!*/
+/*}*/
+
+/*!* Убираем лишние стили .content-card *!*/
+/*article[data-page="home"] .video .content-card {*/
+/*    background: none; !* Убираем градиентный фон *!*/
+/*    padding: 0; !* Убираем внутренние отступы *!*/
+/*    border-radius: 0; !* Убираем скругление *!*/
+/*    box-shadow: none; !* Убираем тень *!*/
+/*}*/
+
+/*article[data-page="home"] .video .content-card::before {*/
+/*    display: none; !* Скрываем псевдоэлемент *!*/
+/*}*/
+
+/*!* Стили для iframe, video или img внутри .video-banner-box *!*/
+/*article[data-page="home"] .video .video-banner-box iframe,*/
+/*article[data-page="home"] .video .video-banner-box video,*/
+/*article[data-page="home"] .video .video-banner-box img {*/
+/*    position: absolute; !* Абсолютное позиционирование внутри контейнера *!*/
+/*    top: 0;*/
+/*    left: 0;*/
+/*    width: 100%; !* Полная ширина *!*/
+/*    height: 100%; !* Полная высота *!*/
+/*    border: none; !* Без рамки *!*/
+/*    object-fit: cover; !* Для <video> и <img> – заполнение контейнера *!*/
+/*}*/
+
+/*!* Отступ для заголовка, если он есть *!*/
+/*article[data-page="home"] .video .video-content {*/
+/*    margin-top: 10px; !* Отступ сверху для заголовка *!*/
+/*}*/
+
+
+/*@media (min-width: 580px) {*/
+/*    article[data-page="home"] .video .video-banner-box {*/
+/*        height: 380px;*/
+/*    }*/
+/*}*/
+
+
+
+
+
+
+
+
+/*!* Стили для видео на странице About me *!*/
+/*article[data-page="about"] .video .video-banner-box {*/
+/*    position: relative;*/
+/*    width: 100%; !* Полная ширина контейнера *!*/
+/*    padding-bottom: 56.25%; !* Соотношение 16:9 для адаптивности (9 / 16 = 0.5625) *!*/
+/*    height: 0; !* Убираем фиксированную высоту *!*/
+/*    border-radius: 16px; !* Скругление углов как у .mapbox *!*/
+/*    border: 1px solid var(--jet); !* Рамка как у карты *!*/
+/*    overflow: hidden; !* Скрытие переполнения *!*/
+/*    margin-bottom: 30px; !* Отступ снизу как у .mapbox *!*/
+/*}*/
+
+/*!* Убираем лишние стили .content-card *!*/
+/*article[data-page="about"] .video .content-card {*/
+/*    background: none; !* Убираем градиентный фон *!*/
+/*    padding: 0; !* Убираем внутренние отступы *!*/
+/*    border-radius: 0; !* Убираем скругление *!*/
+/*    box-shadow: none; !* Убираем тень *!*/
+/*}*/
+
+/*article[data-page="about"] .video .content-card::before {*/
+/*    display: none; !* Скрываем псевдоэлемент *!*/
+/*}*/
+
+/*!* Стили для iframe, video или img внутри .video-banner-box *!*/
+/*article[data-page="about"] .video .video-banner-box iframe,*/
+/*article[data-page="about"] .video .video-banner-box video,*/
+/*article[data-page="about"] .video .video-banner-box img {*/
+/*    position: absolute; !* Абсолютное позиционирование внутри контейнера *!*/
+/*    top: 0;*/
+/*    left: 0;*/
+/*    width: 100%; !* Полная ширина *!*/
+/*    height: 100%; !* Полная высота *!*/
+/*    border: none; !* Без рамки *!*/
+/*    object-fit: cover; !* Для <video> и <img> – заполнение контейнера *!*/
+/*}*/
+
+/*!* Отступ для заголовка видео *!*/
+/*article[data-page="about"] .video .video-content {*/
+/*    margin-top: 10px; !* Небольшой отступ сверху для заголовка *!*/
+/*}*/
+
+/*!* Медиа-запрос для больших экранов, как у .mapbox *!*/
+/*@media (min-width: 580px) {*/
+/*    article[data-page="about"] .video .video-banner-box {*/
+/*        max-height: 380px; !* Ограничение высоты как у .mapbox *!*/
+/*    }*/
+/*}*/
+
+
+
+
+/* Переопределяем .section-gap только для секции видео */
+article .video.section-gap {
+    margin-top: 0; /* Убираем верхний отступ для видео */
+}
+
+
+
+/* Унифицированные стили для видео на всех страницах */
+article .video .video-banner-box {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* Соотношение 16:9 */
+    height: 0;
+    border-radius: 16px;
+    border: 1px solid var(--jet);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+/* Убираем лишние стили .content-card для видео */
+article .video .content-card {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+article .video .content-card::before {
+    display: none;
+}
+
+/* Стили для iframe, video или img внутри .video-banner-box */
+article .video .video-banner-box iframe,
+article .video .video-banner-box video,
+article .video .video-banner-box img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    object-fit: cover;
+}
+
+/* Отступ для заголовка видео */
+article .video .video-content {
+    margin-top: 10px;
+}
+
+/* Медиа-запрос для экранов от 580px */
+@media (min-width: 580px) {
+    article .video .video-banner-box {
+        height: 380px; /* Фиксированная высота вместо padding-bottom */
+        padding-bottom: 0; /* Убираем адаптивное соотношение на больших экранах */
+    }
+}

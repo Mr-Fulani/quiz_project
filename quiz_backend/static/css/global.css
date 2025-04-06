@@ -2456,3 +2456,68 @@ textarea.form-input::-webkit-resizer {
 /* =============================== */
 
 
+
+
+
+
+/* ================================================== */
+/*         Отображение видео на главных строницах    */
+/* =================================================*/
+
+
+/* Переопределяем .section-gap только для секции видео */
+article .video.section-gap {
+    margin-top: 0; /* Убираем верхний отступ для видео */
+}
+
+
+
+/* Унифицированные стили для видео на всех страницах */
+article .video .video-banner-box {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* Соотношение 16:9 */
+    height: 0;
+    border-radius: 16px;
+    border: 1px solid var(--jet);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+/* Убираем лишние стили .content-card для видео */
+article .video .content-card {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+article .video .content-card::before {
+    display: none;
+}
+
+/* Стили для iframe, video или img внутри .video-banner-box */
+article .video .video-banner-box iframe,
+article .video .video-banner-box video,
+article .video .video-banner-box img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    object-fit: cover;
+}
+
+/* Отступ для заголовка видео */
+article .video .video-content {
+    margin-top: 10px;
+}
+
+/* Медиа-запрос для экранов от 580px */
+@media (min-width: 580px) {
+    article .video .video-banner-box {
+        height: 380px; /* Фиксированная высота вместо padding-bottom */
+        padding-bottom: 0; /* Убираем адаптивное соотношение на больших экранах */
+    }
+}
