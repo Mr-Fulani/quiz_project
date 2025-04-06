@@ -1213,39 +1213,60 @@ article.active {
 
 
 /* Слайдер */
-.detail-slider {
+.detail-page .detail-slider {
     width: 100%;
     margin-bottom: 20px;
+    position: relative;
 }
 
-/* Контейнер медиа */
-.detail-media-box {
+.detail-page .detail-slider .swiper-wrapper {
     width: 100%;
-    height: 400px; /* Фиксированная высота для единообразия */
-    max-height: 80vh; /* Ограничение по высоте экрана */
+    height: 100%;
+}
+
+.detail-page .detail-slider .swiper-slide {
+    width: 100%;
+    height: 100%;
+}
+
+/* Контейнер медиа (рамка) */
+.detail-page .detail-media-box {
+    width: 100%;
+    height: 400px;
+    max-height: 80vh;
     border-radius: 16px;
     overflow: hidden;
     position: relative;
-    background: var(--eerie-black1); /* Фон для пустых областей */
+    background: var(--eerie-black1);
+    border: 1px solid var(--jet);
 }
 
 /* Обёртка для контента */
-.detail-media-box .media-wrapper {
+.detail-page .detail-media-box .media-wrapper {
     width: 100%;
     height: 100%;
     position: relative;
 }
 
-/* Изображения */
-.detail-media-box img {
+/* Изображения и GIF */
+.detail-page .detail-media-box img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Обрезаем, чтобы заполнить контейнер */
+    object-fit: cover;
+    object-position: center;
     display: block;
 }
 
-/* Видео */
-.detail-media-box iframe {
+/* Локальные видео */
+.detail-page .detail-media-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* YouTube iframe */
+.detail-page .detail-media-box iframe {
     width: 100%;
     height: 100%;
     border: none;
@@ -1254,34 +1275,50 @@ article.active {
     left: 0;
 }
 
+/* Swiper элементы */
+.detail-page .swiper-button-next,
+.detail-page .swiper-button-prev {
+    color: var(--orange-yellow-crayola);
+}
+
+.detail-page .swiper-button-next {
+    right: 10px;
+}
+
+.detail-page .swiper-button-prev {
+    left: 10px;
+}
+
+.detail-page .swiper-pagination {
+    bottom: 10px;
+}
+
+.detail-page .swiper-pagination-bullet {
+    background: var(--light-gray);
+}
+
+.detail-page .swiper-pagination-bullet-active {
+    background: var(--orange-yellow-crayola);
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
-    .detail-media-box {
-        height: 300px; /* Меньшая высота для мобильных */
+    .detail-page .detail-media-box {
+        height: 300px;
         max-height: 60vh;
+    }
+    .detail-page .swiper-button-next,
+    .detail-page .swiper-button-prev {
+        display: none;
     }
 }
 
 @media (min-width: 1024px) {
-    .detail-media-box {
-        height: 500px; /* Большая высота для десктопов */
+    .detail-page .detail-media-box {
+        height: 500px;
         max-height: 90vh;
     }
 }
-
-/* Swiper элементы */
-.swiper-button-next, .swiper-button-prev {
-    color: var(--orange-yellow-crayola);
-}
-
-.swiper-pagination-bullet {
-    background: var(--light-gray);
-}
-
-.swiper-pagination-bullet-active {
-    background: var(--orange-yellow-crayola);
-}
-
 
 
 /* Для страниц подробностей */
