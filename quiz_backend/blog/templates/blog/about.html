@@ -1,6 +1,10 @@
 {% extends "blog/base.html" %}
 {% load static youtube_tags %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/css/card_animations.css' %}">
+{% endblock %}
+
 {% block content %}
 <article class="about active" data-page="about">
     <header>
@@ -105,10 +109,12 @@
                         <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60" alt="avatar" data-testimonials-avatar width="60">
                     </figure>
 
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Daniel Lewis</h4>
+                    <div class="testimonials-content">
+                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Daniel Lewis</h4>
 
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
+                        <div class="testimonials-text" data-testimonials-text>
+                            <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
+                        </div>
                     </div>
                 </div>
             </li>
@@ -119,10 +125,12 @@
                         <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60" alt="avatar" data-testimonials-avatar width="60">
                     </figure>
 
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Jessica Miller</h4>
+                    <div class="testimonials-content">
+                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Jessica Miller</h4>
 
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>Working with Richard has been an absolute pleasure. I was impressed with his attention to detail, his web design skills and his professional approach to our timelines and processes.</p>
+                        <div class="testimonials-text" data-testimonials-text>
+                            <p>Working with Richard has been an absolute pleasure. I was impressed with his attention to detail, his web design skills and his professional approach to our timelines and processes.</p>
+                        </div>
                     </div>
                 </div>
             </li>
@@ -133,10 +141,12 @@
                         <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60" alt="avatar" data-testimonials-avatar width="60">
                     </figure>
 
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Emily Evans</h4>
+                    <div class="testimonials-content">
+                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Emily Evans</h4>
 
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>I couldn't be happier with the website that Richard created for us. His attention to detail and creativity is unmatched. Our clients frequently compliment the design, and it has significantly improved our brand image.</p>
+                        <div class="testimonials-text" data-testimonials-text>
+                            <p>I couldn't be happier with the website that Richard created for us. His attention to detail and creativity is unmatched. Our clients frequently compliment the design, and it has significantly improved our brand image.</p>
+                        </div>
                     </div>
                 </div>
             </li>
@@ -147,36 +157,32 @@
                         <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60" alt="avatar" data-testimonials-avatar width="60">
                     </figure>
 
-                    <h4 class="h4 testimonials-item-title" data-testimonials-title>Henry Williams</h4>
+                    <div class="testimonials-content">
+                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Henry Williams</h4>
 
-                    <div class="testimonials-text" data-testimonials-text>
-                        <p>I was overwhelmed with the thought of redesigning my online store, but Richard made the process seamless. The site is not only visually appealing but also optimized for conversions. I've seen a 50% increase in traffic since the launch!</p>
+                        <div class="testimonials-text" data-testimonials-text>
+                            <p>I was overwhelmed with the thought of redesigning my online store, but Richard made the process seamless. The site is not only visually appealing but also optimized for conversions. I've seen a 50% increase in traffic since the launch!</p>
+                        </div>
                     </div>
                 </div>
             </li>
         </ul>
     </section>
 
+    <!-- Модальное окно в About -->
     <div class="modal-container" data-modal-container>
         <div class="overlay" data-overlay></div>
-
         <section class="testimonials-modal">
             <button class="modal-close-btn" data-modal-close-btn><ion-icon name="close-outline"></ion-icon></button>
-
             <div class="modal-img-wrapper">
                 <figure class="modal-avatar-box">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="Daniel Lewis" width="80" data-modal-img>
+                    <img src="" alt="" width="200" height="200" data-modal-img> <!-- Увеличили до 200x200 -->
                 </figure>
-
-                <img src="https://cdn-icons-png.flaticon.com/512/6364/6364343.png" alt="quote icon">
-            </div>
-
-            <div class="modal-content">
-                <h4 class="h3 modal-title" data-modal-title>Daniel Lewis</h4>
-                <time datetime="2023-06-14">14 June, 2023</time>
-
-                <div class="modal-text" data-modal-text>
-                    <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
+                <div class="modal-content">
+                    <h4 class="h3 modal-title" data-modal-title></h4>
+                    <time class="modal-date" data-modal-date></time> <!-- Добавили для даты -->
+                    <div class="modal-text" data-modal-text></div>
+                    <!-- В About нет кнопки профиля, но оставим структуру совместимой -->
                 </div>
             </div>
         </section>
@@ -254,6 +260,10 @@
                     <h5 class="h5">Docker</h5>
                     <data value="50">50%</data>
                 </div>
+                
+                <div class="skills-progress-bg">
+                    <div class="skills-progress-fill" style="width: 50%;"></div>
+                </div>
             </li>
             <li class="skills-item">
                 <div class="title-wrapper">
@@ -269,6 +279,10 @@
                 <div class="title-wrapper">
                     <h5 class="h5">Linux</h5>
                     <data value="50">50%</data>
+                </div>
+
+                <div class="skills-progress-bg">
+                    <div class="skills-progress-fill" style="width: 50%;"></div>
                 </div>
             </li>
         </ul>

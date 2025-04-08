@@ -139,15 +139,22 @@ class HomePageView(TemplateView):
         posts_list = Post.objects.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
+
+        User = get_user_model()
+        top_users = User.objects.exclude(is_staff=True).select_related('profile').filter(
+            profile__total_points__gt=0
+        ).order_by('-profile__total_points', 'date_joined')[:5]
+        print("Top users:", list(top_users.values('username', 'profile__total_points', 'profile__avatar')))  # Отладка
+
+        context['personal_info'] = {'top_users': top_users}
         context['posts'] = paginator.get_page(page)
         context['categories'] = Category.objects.filter(is_portfolio=False)
         context['projects'] = Project.objects.all()
         context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
-        # Добавляем посты с видео
         context['posts_with_video'] = Post.objects.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
-        context['page_videos'] = PageVideo.objects.filter(page='index')  # Видео для index
+        context['page_videos'] = PageVideo.objects.filter(page='index')
         return context
 
 
@@ -302,6 +309,8 @@ class BlogView(TemplateView):
         return context
 
 
+
+
 class ContactView(TemplateView):
     """
     Отображает страницу "Контакты".
@@ -309,6 +318,8 @@ class ContactView(TemplateView):
     Использует шаблон blog/contact.html.
     """
     template_name = 'blog/contact.html'
+
+
 
 
 class QuizesView(ListView):
@@ -668,17 +679,27 @@ def get_unread_messages_count(request):
     return JsonResponse({'count': count})
 
 
-def index(request):
-    """
-    Отображает главную страницу с пользователями.
 
-    Использует шаблон blog/index.html, показывает всех пользователей (кроме staff).
-    """
-    User = get_user_model()
-    context = {
-        'users': User.objects.exclude(is_staff=True).select_related('profile').order_by('-date_joined')
-    }
-    return render(request, 'blog/index.html', context)
+
+# def index(request):
+#     """
+#     Отображает главную страницу с топ-пользователями.
+#
+#     Использует шаблон blog/index.html, показывает топ-5 пользователей по очкам.
+#     """
+#     User = get_user_model()
+#     top_users = User.objects.exclude(is_staff=True).select_related('profile').order_by('-profile__total_points')[:5]
+#     print("Top users:", list(top_users.values('username', 'profile__total_points', 'profile__avatar')))  # Отладка
+#     personal_info = {
+#         'top_users': top_users
+#     }
+#     context = {
+#         'personal_info': personal_info
+#     }
+#     return render(request, 'blog/index.html', context)
+
+
+
 
 
 def custom_404(request, exception=None):
@@ -756,5 +777,9 @@ def statistics_view(request):
             }
 
     return render(request, 'accounts/statistics.html', context)
+
+
+class MaintenanceView(TemplateView):
+    template_name = 'blog/maintenance.html'
 
 

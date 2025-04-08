@@ -1,73 +1,73 @@
-// Функция для отображения ошибок формы
-function showFormErrors(form, errors) {
-    // Очищаем предыдущие ошибки
-    form.querySelectorAll('.error-message').forEach(el => el.remove());
-
-    // Добавляем новые ошибки
-    Object.entries(errors).forEach(([field, messages]) => {
-        const input = form.querySelector(`[name="${field}"]`);
-        if (input) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.textContent = messages.join(', ');
-            input.parentNode.insertBefore(errorDiv, input.nextSibling);
-            input.classList.add('error');
-        }
-    });
-}
-
-// Функция для показа уведомлений
-function showNotification(message, type = 'success') {
-    // Удаляем предыдущие уведомления
-    document.querySelectorAll('.notification').forEach(n => n.remove());
-
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <ion-icon name="${type === 'success' ? 'checkmark-circle' : 'alert-circle'}"></ion-icon>
-            <span>${message}</span>
-        </div>
-    `;
-
-    document.body.appendChild(notification);
-
-    // Анимация появления
-    setTimeout(() => notification.classList.add('show'), 100);
-
-    // Автоматическое скрытие через 3 секунды
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Вспомогательная функция debounce
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Функция для генерации URL профиля
-function getProfileUrl(username) {
-    return `/profile/${username}/`;
-}
-
-// Сохраняем активную вкладку при переключении
-document.querySelectorAll('[data-tab-btn]').forEach(btn => {
-    btn.addEventListener('click', function() {
-        localStorage.setItem('activeTab', this.dataset.tabBtn);
-    });
-});
-
 document.addEventListener('DOMContentLoaded', function() {
+    // Функция для отображения ошибок формы
+    function showFormErrors(form, errors) {
+        // Очищаем предыдущие ошибки
+        form.querySelectorAll('.error-message').forEach(el => el.remove());
+
+        // Добавляем новые ошибки
+        Object.entries(errors).forEach(([field, messages]) => {
+            const input = form.querySelector(`[name="${field}"]`);
+            if (input) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = messages.join(', ');
+                input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                input.classList.add('error');
+            }
+        });
+    }
+
+    // Функция для показа уведомлений
+    function showNotification(message, type = 'success') {
+        // Удаляем предыдущие уведомления
+        document.querySelectorAll('.notification').forEach(n => n.remove());
+
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <ion-icon name="${type === 'success' ? 'checkmark-circle' : 'alert-circle'}"></ion-icon>
+                <span>${message}</span>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Анимация появления
+        setTimeout(() => notification.classList.add('show'), 100);
+
+        // Автоматическое скрытие через 3 секунды
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Вспомогательная функция debounce
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Функция для генерации URL профиля
+    function getProfileUrl(username) {
+        return `/profile/${username}/`;
+    }
+
+    // Сохраняем активную вкладку при переключении
+    document.querySelectorAll('[data-tab-btn]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            localStorage.setItem('activeTab', this.dataset.tabBtn);
+        });
+    });
+
     // Восстанавливаем активную вкладку при загрузке
     const activeTab = localStorage.getItem('activeTab');
     if (activeTab) {
@@ -135,14 +135,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Обработка ссылок на профиль
+    // Обработка ссылок на профиль с моими дополнениями
     document.querySelectorAll('[data-profile-link]').forEach(link => {
         link.addEventListener('click', function(e) {
             const username = this.dataset.username;
-            if (!username) {
-                e.preventDefault();
-                window.location.href = '{% url "login" %}?next=' + window.location.pathname;
+            const href = this.href;
+
+            // Если username есть или href уже установлен и не ведёт на логин, не вмешиваемся
+            if (username || (href && href !== '#' && !href.includes('login'))) {
+                console.log("Link has username or valid href, proceeding:", href);
+                return; // Позволяем перейти по ссылке
             }
+
+            // Если username нет и href не установлен, перенаправляем на логин
+            e.preventDefault();
+            const loginUrl = window.loginUrl || '/?open_login=true';
+            window.location.href = `${loginUrl}?next=${encodeURIComponent(window.location.pathname)}`;
+            console.log("Redirecting to login:", window.location.href);
         });
     });
 
@@ -278,51 +287,51 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-});
 
-// Обработчик отправки формы смены пароля
-document.querySelector('form[action*="change-password"]')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
+    // Обработчик отправки формы смены пароля
+    document.querySelector('form[action*="change-password"]')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-    // Очищаем предыдущие ошибки
-    this.querySelectorAll('.error-message').forEach(el => el.remove());
+        // Очищаем предыдущие ошибки
+        this.querySelectorAll('.error-message').forEach(el => el.remove());
 
-    try {
-        const response = await fetch(this.action, {
-            method: 'POST',
-            body: new FormData(this),
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            // Показываем ошибки под каждым полем
-            Object.entries(data.errors).forEach(([field, messages]) => {
-                const input = this.querySelector(`[name="${field}"]`);
-                if (input) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    errorDiv.textContent = messages.join(', ');
-                    input.parentNode.insertBefore(errorDiv, input.nextSibling);
-                    input.classList.add('error');
+        try {
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 }
             });
-        } else {
-            // Успешная смена пароля
-            showNotification('Password changed successfully!', 'success');
-            this.reset(); // Очищаем форму
 
-            // Добавляем зеленую подсветку полей на короткое время
-            this.querySelectorAll('input').forEach(input => {
-                input.classList.add('success');
-                setTimeout(() => input.classList.remove('success'), 2000);
-            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Показываем ошибки под каждым полем
+                Object.entries(data.errors).forEach(([field, messages]) => {
+                    const input = this.querySelector(`[name="${field}"]`);
+                    if (input) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-message';
+                        errorDiv.textContent = messages.join(', ');
+                        input.parentNode.insertBefore(errorDiv, input.nextSibling);
+                        input.classList.add('error');
+                    }
+                });
+            } else {
+                // Успешная смена пароля
+                showNotification('Password changed successfully!', 'success');
+                this.reset(); // Очищаем форму
+
+                // Добавляем зеленую подсветку полей на короткое время
+                this.querySelectorAll('input').forEach(input => {
+                    input.classList.add('success');
+                    setTimeout(() => input.classList.remove('success'), 2000);
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification('Failed to change password. Please try again.', 'error');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification('Failed to change password. Please try again.', 'error');
-    }
+    });
 });

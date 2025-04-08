@@ -7,7 +7,7 @@ from .views import (
     ResumeView, PortfolioView, BlogView, AboutView,
     ContactView, QuizesView, QuizDetailView, inbox,
     send_message, delete_message, download_attachment,
-    get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView
+    get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView, MaintenanceView
 )
 from django.shortcuts import redirect
 
@@ -80,6 +80,9 @@ urlpatterns = [
 
     path('statistics/', statistics_view, name='statistics'),
     #   -> Отображает общую статистику (blog/statistics.html)
+
+    path('maintenance/', MaintenanceView.as_view(), name='maintenance'),
+    #   -> Страница "В разработке"
 
     path('api/', include(router.urls)),
     #   -> Подключает URL-ы из DRF DefaultRouter:
