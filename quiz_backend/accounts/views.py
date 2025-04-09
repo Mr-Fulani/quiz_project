@@ -27,7 +27,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 import re
 from tasks.models import TaskStatistics
 from django.utils import timezone
@@ -66,12 +66,23 @@ class CustomLogoutView(LogoutView):
 
 
 class RegisterView(generics.CreateAPIView):
-    """
-    APIView для регистрации нового пользователя
-    (POST /accounts/register/).
-    """
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
+
+    def get(self, request, *args, **kwargs):
+        # Для GET-запросов перенаправляем на главную с open_register=true
+        return HttpResponseRedirect('/?open_register=true')
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        # Логиним пользователя после регистрации
+        user = serializer.instance
+        login(request, user)
+        # Получаем next или используем главную
+        next_url = request.POST.get('next', '/')
+        return HttpResponseRedirect(f"{next_url}?registration_success=true")
 
 
 

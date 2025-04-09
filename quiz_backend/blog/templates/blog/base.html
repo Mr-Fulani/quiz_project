@@ -26,11 +26,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% endblock %}
 </head>
-<body>
+<body data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
 <main>
     {% block sidebar %}
     {% include 'accounts/sidebar.html' %}
     {% endblock %}
+
     <div class="main-content">
         <nav class="navbar">
             <ul class="navbar-list">
@@ -141,10 +142,10 @@
                     <input type="email" name="email" placeholder="Email" required>
                 </div>
                 <div class="inputBx">
-                    <input type="password" name="password1" placeholder="Password" required>
+                    <input type="password" name="password" placeholder="Password" required>
                 </div>
                 <div class="inputBx">
-                    <input type="password" name="password2" placeholder="Confirm Password" required>
+                    <input type="password" name="password_confirm" placeholder="Confirm Password" required>
                 </div>
                 <div class="inputBx">
                     <input type="submit" value="Register">
@@ -193,9 +194,39 @@
 <script src="{% static 'blog/js/quiz.js' %}"></script>
 <script src="{% static 'blog/js/password-animation.js' %}"></script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('registration_success')) {
+        const notification = document.createElement('div');
+        notification.className = 'message-notification success';
+        notification.textContent = 'Registration successful! Welcome!';
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+});
+</script>
+<style>
+.message-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+}
+.message-notification.success {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
+}
+</style>
+
 <!-- Блок для дополнительных скриптов дочерних шаблонов -->
 {% block scripts %}{% endblock %}
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ce29dafc10bfd6',t:'MTc0NDA3NzU0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<!--<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ce29dafc10bfd6',t:'MTc0NDA3NzU0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>-->
 </body>
 </html>

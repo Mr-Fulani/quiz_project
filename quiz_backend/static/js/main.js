@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalText = document.querySelector('[data-modal-text]');
     const modalDate = document.querySelector('[data-modal-date]');
     const modalProfileLink = document.querySelector('[data-profile-link]');
+    const isAuthenticated = document.body.dataset.authenticated === 'true'; // Проверка авторизации
 
     console.log("Found testimonials items:", testimonialsItem.length);
 
@@ -58,11 +59,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalDate) modalDate.textContent = "Member since: " + date; else console.error("modalDate not found");
 
             if (modalProfileLink && username) {
-                // Исправлено: правильный путь к профилю
-                modalProfileLink.href = `/users/user/${encodeURIComponent(username)}/`;
-                modalProfileLink.dataset.username = username;
-                console.log("Profile link set to:", modalProfileLink.href);
-                console.log("data-username set to:", modalProfileLink.dataset.username);
+                if (isAuthenticated) {
+                    modalProfileLink.href = `/users/user/${encodeURIComponent(username)}/`;
+                    modalProfileLink.className = 'modal-profile-btn';
+                    modalProfileLink.textContent = 'Перейти в профиль';
+                    modalProfileLink.dataset.username = username;
+                    console.log("Profile link set to:", modalProfileLink.href);
+                } else {
+                    modalProfileLink.href = '#';
+                    modalProfileLink.className = 'open-login-modal';
+                    modalProfileLink.textContent = 'Войдите, чтобы перейти в профиль';
+                    modalProfileLink.dataset.returnUrl = `/users/user/${encodeURIComponent(username)}/`;
+                    delete modalProfileLink.dataset.username; // Удаляем, чтобы не путать с авторизованным состоянием
+                    console.log("Login link set with return URL:", modalProfileLink.dataset.returnUrl);
+                }
             } else if (!modalProfileLink) {
                 console.error("modalProfileLink not found");
             } else if (!username) {

@@ -3,27 +3,16 @@
 console.log("main.js loaded");
 
 document.addEventListener('DOMContentLoaded', function () {
-    /**
-     * Утилита для переключения класса "active" у элемента.
-     * @param {HTMLElement} elem - Элемент, у которого переключается класс.
-     */
     const elementToggleFunc = function (elem) {
         elem.classList.toggle("active");
     }
 
-    /**
-     * Открытие/закрытие боковой панели.
-     */
     const sidebar = document.querySelector("[data-sidebar]");
     const sidebarBtn = document.querySelector("[data-sidebar-btn]");
     if (sidebarBtn) sidebarBtn.addEventListener("click", function () {
         elementToggleFunc(sidebar);
     });
 
-    /**
-     * Логика модального окна для testimonials.
-     * Отображает данные пользователя из карточки и формирует ссылку на профиль.
-     */
     const testimonialsItem = document.querySelectorAll('[data-testimonials-item]');
     const modalContainer = document.querySelector('[data-modal-container]');
     const modalCloseBtn = document.querySelector('[data-modal-close-btn]');
@@ -33,12 +22,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalText = document.querySelector('[data-modal-text]');
     const modalDate = document.querySelector('[data-modal-date]');
     const modalProfileLink = document.querySelector('[data-profile-link]');
+    const isAuthenticated = document.body.dataset.authenticated === 'true'; // Проверка авторизации
 
-    console.log("Found testimonials items:", testimonialsItem.length); // Добавлено
+    console.log("Found testimonials items:", testimonialsItem.length);
 
-    /**
-     * Функция переключения видимости модального окна и оверлея.
-     */
     const testimonialsModalFunc = function () {
         if (modalContainer && overlay) {
             modalContainer.classList.toggle('active');
@@ -49,10 +36,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    /**
-     * Обработчик кликов по карточкам testimonials.
-     * Заполняет модальное окно данными и устанавливает ссылку на профиль пользователя.
-     */
     for (let i = 0; i < testimonialsItem.length; i++) {
         testimonialsItem[i].addEventListener('click', function () {
             console.log("Card clicked:", i);
@@ -61,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const title = this.querySelector('[data-testimonials-title]').textContent;
             const text = this.querySelector('[data-testimonials-text]').innerHTML;
             const date = this.querySelector('[data-date-joined]') ? this.querySelector('[data-date-joined]').textContent : "14 June, 2023";
-            const username = this.getAttribute('data-username');
+            const username = this.parentElement.getAttribute('data-username');
 
             console.log("Avatar:", avatar);
             console.log("Title:", title);
@@ -76,10 +59,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalDate) modalDate.textContent = "Member since: " + date; else console.error("modalDate not found");
 
             if (modalProfileLink && username) {
-                modalProfileLink.href = `/user/${encodeURIComponent(username)}/`;
-                modalProfileLink.dataset.username = username;
-                console.log("Profile link set to:", modalProfileLink.href);
-                console.log("data-username set to:", modalProfileLink.dataset.username);
+                if (isAuthenticated) {
+                    modalProfileLink.href = `/users/user/${encodeURIComponent(username)}/`;
+                    modalProfileLink.className = 'modal-profile-btn';
+                    modalProfileLink.textContent = 'Перейти в профиль';
+                    modalProfileLink.dataset.username = username;
+                    console.log("Profile link set to:", modalProfileLink.href);
+                } else {
+                    modalProfileLink.href = '#';
+                    modalProfileLink.className = 'open-login-modal';
+                    modalProfileLink.textContent = 'Войдите, чтобы перейти в профиль';
+                    modalProfileLink.dataset.returnUrl = `/users/user/${encodeURIComponent(username)}/`;
+                    delete modalProfileLink.dataset.username; // Удаляем, чтобы не путать с авторизованным состоянием
+                    console.log("Login link set with return URL:", modalProfileLink.dataset.returnUrl);
+                }
             } else if (!modalProfileLink) {
                 console.error("modalProfileLink not found");
             } else if (!username) {

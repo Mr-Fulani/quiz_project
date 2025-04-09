@@ -1,11 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Auth modal script loaded');
+
     // Получение элементов DOM
     const loginModal = document.getElementById('login-modal');
     const registerModal = document.getElementById('register-modal');
     const forgotModal = document.getElementById('forgot-modal');
-    
-    // Проверка URL-параметров для автоматического открытия модальных окон
+
+    /**
+     * Проверяет URL-параметры и автоматически открывает соответствующее модальное окно,
+     * если в URL есть 'open_login', 'open_register' или 'open_forgot'.
+     */
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('open_login')) {
         loginModal.style.display = 'flex';
@@ -16,19 +20,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (urlParams.has('open_forgot')) {
         forgotModal.style.display = 'flex';
     }
-    
-    // Сохранение параметра next из URL в форму входа
+
+    /**
+     * Добавляет скрытое поле 'next' в форму входа, если в URL есть параметр 'next'.
+     * Это позволяет перенаправить пользователя на нужную страницу после входа.
+     */
     const nextParam = urlParams.get('next');
     if (nextParam && loginModal) {
         const loginForm = loginModal.querySelector('form');
         if (loginForm) {
-            // Удаляем существующее поле next, если оно есть
             const existingNext = loginForm.querySelector('input[name="next"]');
             if (existingNext) {
                 existingNext.remove();
             }
-            
-            // Создаем новое поле next
             const nextInput = document.createElement('input');
             nextInput.type = 'hidden';
             nextInput.name = 'next';
@@ -36,8 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
             loginForm.appendChild(nextInput);
         }
     }
-    
-    // Открытие модальных окон
+
+    /**
+     * Открывает модальное окно входа по клику на статическую ссылку с id 'login-link'.
+     */
     const loginLink = document.getElementById('login-link');
     console.log('Login link element:', loginLink);
     if (loginLink) {
@@ -47,7 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Обработчик для ссылки входа в сайдбаре
+    /**
+     * Открывает модальное окно входа по клику на ссылку в сайдбаре с id 'sidebar-login-link'.
+     */
     const sidebarLoginLink = document.getElementById('sidebar-login-link');
     if (sidebarLoginLink) {
         sidebarLoginLink.addEventListener('click', function(e) {
@@ -55,27 +63,22 @@ document.addEventListener('DOMContentLoaded', function() {
             loginModal.style.display = 'flex';
         });
     }
-    
-    // Обработчик для всех ссылок с классом open-login-modal
-    const loginModalLinks = document.querySelectorAll('.open-login-modal');
-    loginModalLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
+
+    /**
+     * Обрабатывает клики по элементам с классом 'open-login-modal' через делегирование событий.
+     * Работает как для статичных, так и для динамически добавленных элементов.
+     * Открывает модальное окно входа и добавляет поле 'next' с URL из 'data-return-url'.
+     */
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('.open-login-modal');
+        if (target) {
             e.preventDefault();
-            
-            // Получаем URL для возврата после входа
-            const returnUrl = this.getAttribute('data-return-url');
-            
-            // Если есть URL для возврата, сохраняем его в скрытом поле формы
+            const returnUrl = target.getAttribute('data-return-url');
             if (returnUrl && loginModal) {
                 const loginForm = loginModal.querySelector('form');
                 if (loginForm) {
-                    // Удаляем существующее поле next, если оно есть
                     const existingNext = loginForm.querySelector('input[name="next"]');
-                    if (existingNext) {
-                        existingNext.remove();
-                    }
-                    
-                    // Создаем новое поле next
+                    if (existingNext) existingNext.remove();
                     const nextInput = document.createElement('input');
                     nextInput.type = 'hidden';
                     nextInput.name = 'next';
@@ -83,13 +86,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     loginForm.appendChild(nextInput);
                 }
             }
-            
-            // Открываем модальное окно входа
             loginModal.style.display = 'flex';
-        });
+            console.log("Login modal opened, return URL:", returnUrl);
+        }
     });
-    
-    // Закрытие модальных окон
+
+    /**
+     * Добавляет обработчики закрытия модальных окон для всех кнопок с классом 'close-btn'.
+     */
     const closeBtns = document.querySelectorAll('.close-btn');
     closeBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -98,8 +102,10 @@ document.addEventListener('DOMContentLoaded', function() {
             forgotModal.style.display = 'none';
         });
     });
-    
-    // Закрытие модальных окон при клике вне их области
+
+    /**
+     * Закрывает модальные окна при клике вне их области (на оверлей).
+     */
     window.addEventListener('click', function(e) {
         if (e.target === loginModal) {
             loginModal.style.display = 'none';
@@ -111,32 +117,28 @@ document.addEventListener('DOMContentLoaded', function() {
             forgotModal.style.display = 'none';
         }
     });
-    
+
     // Переключение между формами
     const toRegisterLink = document.getElementById('to-register');
     const toLoginLink = document.getElementById('to-login');
     const toForgotLink = document.getElementById('to-forgot');
     const backToLoginLink = document.getElementById('back-to-login');
-    
+
+    /**
+     * Переключает с формы входа на форму регистрации и переносит поле 'next', если оно есть.
+     */
     if (toRegisterLink) {
         toRegisterLink.addEventListener('click', function(e) {
             e.preventDefault();
             loginModal.style.display = 'none';
             registerModal.style.display = 'flex';
-            
-            // Передаем параметр next из формы входа в форму регистрации
             const loginForm = loginModal.querySelector('form');
             const registerForm = registerModal.querySelector('form');
             if (loginForm && registerForm) {
                 const nextInput = loginForm.querySelector('input[name="next"]');
                 if (nextInput) {
-                    // Удаляем существующее поле next в форме регистрации, если оно есть
                     const existingNext = registerForm.querySelector('input[name="next"]');
-                    if (existingNext) {
-                        existingNext.remove();
-                    }
-                    
-                    // Создаем новое поле next в форме регистрации
+                    if (existingNext) existingNext.remove();
                     const newNextInput = document.createElement('input');
                     newNextInput.type = 'hidden';
                     newNextInput.name = 'next';
@@ -146,26 +148,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
+    /**
+     * Переключает с формы регистрации на форму входа и переносит поле 'next', если оно есть.
+     */
     if (toLoginLink) {
         toLoginLink.addEventListener('click', function(e) {
             e.preventDefault();
             registerModal.style.display = 'none';
             loginModal.style.display = 'flex';
-            
-            // Передаем параметр next из формы регистрации в форму входа
             const registerForm = registerModal.querySelector('form');
             const loginForm = loginModal.querySelector('form');
             if (registerForm && loginForm) {
                 const nextInput = registerForm.querySelector('input[name="next"]');
                 if (nextInput) {
-                    // Удаляем существующее поле next в форме входа, если оно есть
                     const existingNext = loginForm.querySelector('input[name="next"]');
-                    if (existingNext) {
-                        existingNext.remove();
-                    }
-                    
-                    // Создаем новое поле next в форме входа
+                    if (existingNext) existingNext.remove();
                     const newNextInput = document.createElement('input');
                     newNextInput.type = 'hidden';
                     newNextInput.name = 'next';
@@ -175,7 +173,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
+    /**
+     * Переключает с формы входа на форму восстановления пароля.
+     */
     if (toForgotLink) {
         toForgotLink.addEventListener('click', function(e) {
             e.preventDefault();
@@ -183,7 +184,10 @@ document.addEventListener('DOMContentLoaded', function() {
             forgotModal.style.display = 'flex';
         });
     }
-    
+
+    /**
+     * Возвращает с формы восстановления пароля на форму входа.
+     */
     if (backToLoginLink) {
         backToLoginLink.addEventListener('click', function(e) {
             e.preventDefault();
@@ -191,8 +195,10 @@ document.addEventListener('DOMContentLoaded', function() {
             loginModal.style.display = 'flex';
         });
     }
-    
-    // Обработка клавиши Escape для закрытия модальных окон
+
+    /**
+     * Закрывает все модальные окна при нажатии клавиши Escape.
+     */
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             loginModal.style.display = 'none';

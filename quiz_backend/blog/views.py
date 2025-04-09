@@ -124,7 +124,7 @@ class HomePageView(TemplateView):
     Отображает главную страницу сайта.
 
     Использует шаблон blog/index.html, предоставляет пагинированный список постов,
-    категории и проекты.
+    категории, проекты и данные из personal_info.
     """
     template_name = 'blog/index.html'
 
@@ -133,20 +133,41 @@ class HomePageView(TemplateView):
         Добавляет данные в контекст шаблона.
 
         Включает пагинированный список постов (5 на страницу), категории (не портфолио),
-        все проекты и категории портфолио.
+        все проекты, категории портфолио и дополняет personal_info из процессора.
         """
         context = super().get_context_data(**kwargs)
-        posts_list = Post.objects.filter(published=True)
-        paginator = Paginator(posts_list, 5)
-        page = self.request.GET.get('page')
 
         User = get_user_model()
+
+        # Получаем top_users (как в index)
         top_users = User.objects.exclude(is_staff=True).select_related('profile').filter(
             profile__total_points__gt=0
         ).order_by('-profile__total_points', 'date_joined')[:5]
         print("Top users:", list(top_users.values('username', 'profile__total_points', 'profile__avatar')))  # Отладка
 
-        context['personal_info'] = {'top_users': top_users}
+        # Добавляем новые данные в контекст
+        posts_list = Post.objects.filter(published=True)
+        paginator = Paginator(posts_list, 5)
+        page = self.request.GET.get('page')
+
+        # Дополняем personal_info из процессора
+        if 'personal_info' in context:
+            context['personal_info']['top_users'] = top_users  # Добавляем top_users
+        else:
+            # Если процессор не сработал, создаём базовый personal_info
+            context['personal_info'] = {
+                'name': 'Anvar Sh.',
+                'title': 'Web Developer',
+                'social_links': {
+                    'facebook': 'https://www.facebook.com/badr.commerce.3',
+                    'telegram': 'tg://resolve?domain@Mr-Fulani',
+                    'whatsapp': 'whatsapp://send?phone=05525821497',
+                    'instagram': 'https://www.instagram.com/fulani_developer',
+                },
+                'top_users': top_users
+            }
+
+        # Остальные данные
         context['posts'] = paginator.get_page(page)
         context['categories'] = Category.objects.filter(is_portfolio=False)
         context['projects'] = Project.objects.all()
@@ -155,8 +176,8 @@ class HomePageView(TemplateView):
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='index')
-        return context
 
+        return context
 
 class AboutView(TemplateView):
     """

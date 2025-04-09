@@ -7,11 +7,12 @@ from .views import dashboard_view, profile_redirect_view, profile_view, update_s
 app_name = 'accounts'
 
 urlpatterns = [
-    # Регистрация нового пользователя
-    path('register/', RedirectView.as_view(url='/?open_register=true'), name='register'),
-    path('login/', RedirectView.as_view(url='/?open_login=true'), name='login'),
+    # # Регистрация нового пользователя
+    # path('register/', RedirectView.as_view(url='/?open_register=true'), name='register'),
 
-    # Аутентификация:  выход
+    # Регистрация: GET и POST обрабатываются в RegisterView
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', RedirectView.as_view(url='/?open_login=true'), name='login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
 
  
