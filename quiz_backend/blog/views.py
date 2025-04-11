@@ -1,4 +1,5 @@
 import json
+import random
 from datetime import datetime, timedelta
 
 from accounts.models import CustomUser
@@ -392,6 +393,8 @@ class QuizDetailView(ListView):
 
 
 
+
+
 class QuizSubtopicView(ListView):
     template_name = 'blog/quiz_subtopic.html'
     context_object_name = 'tasks'
@@ -411,31 +414,60 @@ class QuizSubtopicView(ListView):
         topic = get_object_or_404(Topic, name__iexact=topic_name)
         subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
 
-        # Определяем предпочитаемый язык (по умолчанию 'ru')
-        preferred_language = 'ru'
+        # Определяем предпочитаемый язык (можно сделать динамическим через request.user)
+        preferred_language = self.request.user.language if self.request.user.is_authenticated else 'ru'
 
-        # Добавляем переводы и ответы для каждой задачи
+        # Словарь для "Я не знаю, но хочу узнать!"
+        dont_know_option_dict = {
+            'ru': "Я не знаю, но хочу узнать",
+            'en': "I don't know, but I want to learn",
+            'es': "No lo sé, pero quiero aprender",
+            'tr': "Bilmiyorum, ama öğrenmek istiyorum",
+            'ar': "لا أعرف، ولكن أريد أن أتعلم",
+            'fr': "Je ne sais pas, mais je veux apprendre",
+            'de': "Ich weiß es nicht, aber ich möchte lernen",
+            'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
+            'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
+            'tj': "Ман намедонам, аммо мехоҳам омӯзам",
+            'uz': "Bilmayman, lekin o‘rganmoqchiman",
+            'kz': "Білмеймін, бірақ үйренгім келеді"
+        }
+
+        # Добавляем переводы и перемешанные ответы для каждой задачи
         for task in context['page_obj']:
-            # Сначала пытаемся найти перевод на русском языке
+            # Сначала пытаемся найти перевод на предпочитаемом языке
             translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first()
 
-            # Если русского перевода нет, берём первый доступный перевод (если есть)
+            # Если перевода на предпочитаемом языке нет, берём первый доступный
             if not translation:
                 translation = TaskTranslation.objects.filter(task=task).first()
 
             # Присваиваем перевод задаче
             task.translation = translation
             if translation:
-                # Если answers — строка JSON, парсим её
+                # Парсим answers, если это строка JSON
                 if isinstance(translation.answers, str):
                     try:
-                        task.answers = json.loads(translation.answers)
+                        answers = json.loads(translation.answers)
                     except json.JSONDecodeError as e:
                         logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
-                        task.answers = []
+                        answers = []
                 else:
-                    task.answers = translation.answers
-                task.correct_answer = translation.correct_answer
+                    answers = translation.answers
+
+                # Перемешиваем варианты
+                options = answers[:]
+                correct_answer = translation.correct_answer
+                random.shuffle(options)
+                correct_option_id = options.index(correct_answer)
+
+                # Добавляем "Я не знаю, но хочу узнать!" в конец
+                dont_know_option = dont_know_option_dict.get(translation.language, "Я не знаю, но хочу узнать")
+                options.append(dont_know_option)
+
+                # Присваиваем перемешанные варианты и правильный ответ
+                task.answers = options
+                task.correct_answer = correct_answer
             else:
                 # Если перевода нет, задаём пустые значения
                 task.answers = []
