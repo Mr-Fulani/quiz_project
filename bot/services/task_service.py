@@ -339,35 +339,61 @@ async def prepare_publication(
 
     # ---- Загрузка итоговой картинки в S3 (только один раз) ----
     try:
-        # 1) Генерируем PIL.Image (если вернулась None, попробуем скачать image_url)
+        # 1) Генерируем PIL.Image (если вернулась None, проверяем почему)
         pil_image = await generate_image_if_needed(task, user_chat_id)
         if not pil_image:
-            # Если generate_image_if_needed ничего не вернула,
-            # значит мы хотим скачать готовое изображение
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as resp:
-                    if resp.status != 200:
-                        raise Exception(f"Не удалось скачать файл по ссылке: {image_url}")
-                    img_data = await resp.read()
-                    pil_image = Image.open(io.BytesIO(img_data)).convert("RGB")
+            # Проверяем, есть ли уже URL изображения в задаче
+            if task.image_url:
+                # Изображение уже существует, используем его
+                image_message["photo"] = task.image_url
+                logger.info(f"✅ Используем существующее изображение из задачи: {task.image_url}")
+            else:
+                # Пытаемся скачать image_url если он передан
+                if image_url:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(image_url) as resp:
+                            if resp.status != 200:
+                                raise Exception(f"Не удалось скачать файл по ссылке: {image_url}")
+                            img_data = await resp.read()
+                            pil_image = Image.open(io.BytesIO(img_data)).convert("RGB")
 
-        # 2) Формируем унифицированное имя файла
-        language_code = translation.language or "unknown"
-        custom_filename = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png"
-        custom_filename = custom_filename.replace(" ", "_").lower()
+                    # После успешной загрузки продолжаем с загрузкой в S3
+                    # 2) Формируем унифицированное имя файла
+                    language_code = translation.language or "unknown"
+                    custom_filename = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png"
+                    custom_filename = custom_filename.replace(" ", "_").lower()
 
-        # 3) Заливаем изображение в S3
-        s3_url = await save_image_to_storage(pil_image, custom_filename, user_chat_id)
-        if not s3_url:
-            raise Exception("Не удалось загрузить изображение в S3.")
+                    # 3) Заливаем изображение в S3
+                    s3_url = await save_image_to_storage(pil_image, custom_filename, user_chat_id)
+                    if not s3_url:
+                        raise Exception("Не удалось загрузить изображение в S3.")
 
-        task.image_url = s3_url
-        await db_session.commit()
+                    task.image_url = s3_url
+                    await db_session.commit()
 
-        # 5) Теперь подставляем результат в image_message
-        image_message["photo"] = s3_url
+                    # 5) Теперь подставляем результат в image_message
+                    image_message["photo"] = s3_url
+                    logger.info(f"✅ Изображение загружено в S3: {s3_url}")
+                else:
+                    raise Exception("Изображение не сгенерировано и не передан URL для скачивания.")
+        else:
+            # Мы получили новое изображение, продолжаем с его загрузкой в S3
+            # 2) Формируем унифицированное имя файла
+            language_code = translation.language or "unknown"
+            custom_filename = f"{task.topic.name}_{(task.subtopic.name if task.subtopic else 'general')}_{language_code}_{task.id}.png"
+            custom_filename = custom_filename.replace(" ", "_").lower()
 
-        logger.info(f"✅ Изображение загружено в S3: {s3_url}")
+            # 3) Заливаем изображение в S3
+            s3_url = await save_image_to_storage(pil_image, custom_filename, user_chat_id)
+            if not s3_url:
+                raise Exception("Не удалось загрузить изображение в S3.")
+
+            task.image_url = s3_url
+            await db_session.commit()
+
+            # 5) Теперь подставляем результат в image_message
+            image_message["photo"] = s3_url
+            logger.info(f"✅ Изображение загружено в S3: {s3_url}")
 
     except Exception as e:
         logger.error(f"❌ Ошибка при загрузке/генерации изображения для задачи {task.id}: {e}")

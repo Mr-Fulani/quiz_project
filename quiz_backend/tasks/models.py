@@ -47,7 +47,7 @@ class Task(models.Model):
         help_text='Опубликована ли задача'
     )
     create_date = models.DateTimeField(
-        default=timezone.now,
+        auto_now_add=True,
         help_text='Дата создания задачи'
     )
     publish_date = models.DateTimeField(
@@ -131,6 +131,8 @@ class TaskTranslation(models.Model):
         null=True,
         help_text='Объяснение ответа'
     )
+    publish_date = models.DateTimeField(
+        null=True, blank=True)
 
     def __str__(self):
         return f"Перевод задачи {self.task_id} ({self.language})"

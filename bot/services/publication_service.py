@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Tuple
 from uuid import UUID
 
+import pytz
 from aiogram import Bot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,10 @@ from bot.utils.logging_utils import log_final_summary, log_pause, \
     log_username_received, log_publication_start, log_publication_failure, log_webhook_data, log_publication_success
 from bot.utils.webhook_utils import create_webhook_data
 
+
+
+
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -66,8 +71,9 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
         # Проверка времени с последней публикации
         if task.published and task.publish_date:
-            if task.publish_date > datetime.now() - timedelta(days=30):
-                time_left = (task.publish_date + timedelta(days=30)) - datetime.now()
+            utc_now = datetime.now(tz=pytz.utc)
+            if task.publish_date > utc_now - timedelta(days=30):
+                time_left = (task.publish_date + timedelta(days=30)) - utc_now
                 await message.answer(
                     f"⚠️ Задача с ID {task_id} уже опубликована {task.publish_date.strftime('%Y-%m-%d %H:%M:%S')}.\n"
                     f"Следующая публикация доступна через {time_left.days} дней и {time_left.seconds // 3600} часов."
@@ -113,21 +119,26 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
             # Генерируем (или пытаемся получить) картинку
             image_object = await generate_image_if_needed(task_in_group, user_chat_id)
-            if not image_object:
-                logger.error(f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}")
-                failed_count += len(task_in_group.translations)
-                # Добавляем ошибки для каждого перевода этой задачи
-                for tr in task_in_group.translations:
-                    failed_publications.append({
-                        "task_id": task_in_group.id,
-                        "translation_id": tr.id,
-                        "language": tr.language,
-                        "error": "Ошибка при генерации изображения"
-                    })
-                # Помечаем задачу как с ошибкой
-                task_in_group.error = True
-                await db_session.commit()
-                continue
+            # Если image_object None, используем task.image_url, если он есть
+            if image_object is None:
+                if task_in_group.image_url:
+                    image_object = task_in_group.image_url
+                    logger.info(
+                        f"Используется существующее изображение для задачи с ID {task_in_group.id}: {image_object}")
+                else:
+                    logger.error(
+                        f"Ошибка при генерации изображения для задачи с ID {task_in_group.id}: нет изображения")
+                    failed_count += len(task_in_group.translations)
+                    for tr in task_in_group.translations:
+                        failed_publications.append({
+                            "task_id": task_in_group.id,
+                            "translation_id": tr.id,
+                            "language": tr.language,
+                            "error": "Ошибка при генерации изображения"
+                        })
+                    task_in_group.error = True
+                    await db_session.commit()
+                    continue
 
 
             for translation in task_in_group.translations:
@@ -256,7 +267,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
 
                     # Обновление статуса перевода
                     translation.published = True
-                    translation.publish_date = datetime.now()
+                    translation.publish_date = datetime.now(tz=pytz.utc)
+                    task_in_group.published = datetime.now(tz=pytz.utc)
                     published_languages.append(translation.language)
                     published_task_ids.append(task_in_group.id)
                     group_names.add(group.group_name)
@@ -587,7 +599,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         # Обновление статуса перевода
         try:
             translation.published = True
-            translation.publish_date = datetime.now()
+            translation.publish_date = datetime.now(tz=pytz.utc)
             await db_session.commit()
             return True
         except Exception as e:
@@ -667,20 +679,41 @@ async def publish_task_by_translation_group(
     try:
         logger.info(f"🚀 Начало публикации группы переводов с ID {translation_group_id}")
 
-        # Получаем все задачи группы
-        stmt = select(Task).options(
-            joinedload(Task.translations),
-            joinedload(Task.topic),
-            joinedload(Task.subtopic)
-        ).where(Task.translation_group_id == translation_group_id)
+        # # Получаем все задачи группы
+        # stmt = select(Task).options(
+        #     joinedload(Task.translations),
+        #     joinedload(Task.topic),
+        #     joinedload(Task.subtopic)
+        # ).where(Task.translation_group_id == translation_group_id)
+        #
+        # result = await db_session.execute(stmt)
+        # tasks = result.unique().scalars().all()
+        #
+        # if not tasks:
+        #     logger.warning(f"⚠️ Нет задач для публикации в группе переводов {translation_group_id}")
+        #     await message.answer(f"⚠️ Нет задач для публикации в группе переводов `{translation_group_id}`.")
+        #     return False, 0, 0, 0
 
+
+
+        # Базовый запрос без joinedload
+        stmt = select(Task).where(Task.translation_group_id == translation_group_id)
         result = await db_session.execute(stmt)
-        tasks = result.unique().scalars().all()
+        tasks = result.scalars().all()
+
+        # Отладка
+        logger.debug(f"Найдено задач: {len(tasks)}. IDs и publish_date: {[(t.id, t.publish_date) for t in tasks]}")
 
         if not tasks:
             logger.warning(f"⚠️ Нет задач для публикации в группе переводов {translation_group_id}")
             await message.answer(f"⚠️ Нет задач для публикации в группе переводов `{translation_group_id}`.")
             return False, 0, 0, 0
+
+        # Загружаем связанные данные отдельно, если нужно
+        for task in tasks:
+            await db_session.refresh(task, ['translations', 'topic', 'subtopic'])
+
+
 
         # Проверка, содержит ли группа задачи с ошибками
         error_tasks = [task for task in tasks if task.error]
@@ -703,8 +736,15 @@ async def publish_task_by_translation_group(
             return False, 0, 0, 0
 
         total_translations = sum(len(task.translations) for task in tasks)
+        if total_translations == 0:
+            logger.warning(f"⚠️ Нет переводов для публикации в группе переводов {translation_group_id}")
+            await message.answer(f"⚠️ Нет переводов для публикации в группе переводов `{translation_group_id}`.")
+            return False, 0, 0, 0
+
         logger.info(f"📚 Найдено задач для публикации: {total_translations} в группе переводов {translation_group_id}")
         await message.answer(f"📚 Найдено задач для публикации: {total_translations}.")
+
+
 
         # Получение списка активных вебхуков
         webhook_service = WebhookService(db_session)
@@ -720,7 +760,8 @@ async def publish_task_by_translation_group(
         for task in tasks:
             # Проверка предыдущей публикации
             if task.published and task.publish_date:
-                one_month_ago = datetime.now() - timedelta(days=30)
+                utc_now = datetime.now(tz=pytz.utc)
+                one_month_ago = utc_now - timedelta(days=30)
                 if task.publish_date > one_month_ago:
                     logger.info(f"⚠️ Задача с ID {task.id} была опубликована {task.publish_date}. Пропуск.")
                     await message.answer(
@@ -935,7 +976,8 @@ async def publish_task_by_translation_group(
 
                     # Обновление статуса перевода
                     translation.published = True
-                    translation.publish_date = datetime.now()
+                    translation.publish_date = datetime.now(tz=pytz.utc)
+                    task.published = datetime.now(tz=pytz.utc)
                     published_languages.add(translation.language)
                     published_task_ids.append(task.id)
                     published_group_names.add(group.group_name)

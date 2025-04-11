@@ -52,12 +52,8 @@
                     <div class="task-image">
                         <img src="{{ task.image_url }}" alt="Task {{ task.id }} question">
                     </div>
-                {% elif task.code %}
-                    <div class="task-image">
-                        <pre class="code-block"><code>{{ task.code }}</code></pre>
-                    </div>
                 {% else %}
-                    <p>Контент отсутствует.</p>
+                    <p>Изображение отсутствует.</p>
                 {% endif %}
 
                 {% if task.translation %}

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger, UniqueConstraint
+from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -31,7 +31,7 @@ class Admin(Base):
     is_django_admin = Column(Boolean, default=False, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_staff = Column(Boolean, default=False, nullable=False)
-    date_joined = Column(DateTime, default=datetime.utcnow, nullable=False)
+    date_joined = Column(DateTime, server_default=func.now(), nullable=False)
 
     # Добавляем поле, соответствующее Django-полю `is_super_admin`:
     is_super_admin = Column(Boolean, default=False, nullable=False)
@@ -63,8 +63,8 @@ class Task(Base):
     subtopic_id = Column(Integer, ForeignKey('subtopics.id'), nullable=True)  # Связь с подтемой
     difficulty = Column(String, nullable=False)  # Сложность задачи
     published = Column(Boolean, default=False, nullable=False)  # Статус публикации
-    create_date = Column(DateTime, default=datetime.utcnow, nullable=False)  # Дата создания задачи
-    publish_date = Column(DateTime, nullable=True)  # Дата публикации
+    create_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)  # Дата создания задачи
+    publish_date = Column(DateTime(timezone=True), nullable=True)  # Дата публикации
 
     # Поле для ссылки на картинку из S3
     image_url = Column(String, nullable=True)
@@ -103,6 +103,7 @@ class TaskTranslation(Base):
     answers = Column(JSON, nullable=False)  # Варианты ответов
     correct_answer = Column(String, nullable=False)  # Правильный ответ
     explanation = Column(String, nullable=True)  # Объяснение ответа
+    publish_date = Column(DateTime(timezone=True), nullable=True)
 
     # Обратная связь с задачей
     task = relationship('Task', back_populates='translations')
@@ -120,7 +121,7 @@ class User(Base):
     language = Column(String, nullable=True)  # Язык пользователя
     password = Column(String, nullable=False, default="passforuser")  # Пароль пользователя
 
-    date_joined = Column(DateTime, default=datetime.utcnow, nullable=False)
+    date_joined = Column(DateTime, server_default=func.now(), nullable=False)
     deactivated_at = Column(DateTime, nullable=True)
 
     is_superuser = Column(Boolean, nullable=False)
@@ -150,7 +151,7 @@ class TaskStatistics(Base):
     task_id = Column(Integer, ForeignKey('tasks.id'), nullable=False)  # Связь с задачей
     attempts = Column(Integer, default=0, nullable=False)  # Количество попыток
     successful = Column(Boolean, default=False, nullable=False)  # Успешность
-    last_attempt_date = Column(DateTime, nullable=True)  # Дата последней попытки
+    last_attempt_date = Column(DateTime(timezone=True), nullable=True)  # Дата последней попытки
 
     # Обратная связь с пользователем
     user = relationship('User', back_populates='statistics')
@@ -239,8 +240,8 @@ class Webhook(Base):
     url = Column(String, nullable=False, unique=True)
     service_name = Column(String, nullable=True)  # Например, make.com, Zapier и т.д.
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now(), nullable=True)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=True)
 
 
 
@@ -318,7 +319,7 @@ class FeedbackMessage(Base):
     user_id = Column(BigInteger, nullable=False)  # Telegram ID пользователя
     username = Column(String, nullable=True)  # Имя пользователя
     message = Column(String, nullable=False)  # Текст сообщения
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # Дата создания
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)  # Дата создания
     is_processed = Column(Boolean, default=False)  # Статус обработки (обработано или нет)
 
     def __repr__(self):

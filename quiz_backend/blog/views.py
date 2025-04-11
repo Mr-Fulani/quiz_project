@@ -27,7 +27,11 @@ from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
 import logging
 
+
+
 logger = logging.getLogger(__name__)
+
+
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -407,15 +411,35 @@ class QuizSubtopicView(ListView):
         topic = get_object_or_404(Topic, name__iexact=topic_name)
         subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
 
+        # Определяем предпочитаемый язык (по умолчанию 'ru')
+        preferred_language = 'ru'
+
         # Добавляем переводы и ответы для каждой задачи
         for task in context['page_obj']:
-            translation = TaskTranslation.objects.filter(task=task, language="en").first()
+            # Сначала пытаемся найти перевод на русском языке
+            translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first()
+
+            # Если русского перевода нет, берём первый доступный перевод (если есть)
+            if not translation:
+                translation = TaskTranslation.objects.filter(task=task).first()
+
+            # Присваиваем перевод задаче
             task.translation = translation
-            if translation and isinstance(translation.answers, str):
-                task.answers = json.loads(translation.answers)
+            if translation:
+                # Если answers — строка JSON, парсим её
+                if isinstance(translation.answers, str):
+                    try:
+                        task.answers = json.loads(translation.answers)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
+                        task.answers = []
+                else:
+                    task.answers = translation.answers
+                task.correct_answer = translation.correct_answer
             else:
-                task.answers = translation.answers if translation else []
-            task.correct_answer = translation.correct_answer if translation else None
+                # Если перевода нет, задаём пустые значения
+                task.answers = []
+                task.correct_answer = None
 
         context['topic'] = topic
         context['subtopic'] = subtopic
