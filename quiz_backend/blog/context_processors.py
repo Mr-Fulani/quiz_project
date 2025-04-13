@@ -32,10 +32,6 @@ def personal_info(request):
         )
     ).order_by('-total_score')[:5]
 
-    # Логируем выборку
-    logger.info("=== DEBUG: total users count: %s", User.objects.count())
-    logger.info("=== DEBUG: top_users count: %s", top_users.count())
-    logger.info("=== DEBUG: top_users: %s", list(top_users.values('username', 'tasks_completed', 'total_score')))
 
     # Формируем данные
     top_users_data = []
@@ -64,9 +60,7 @@ def personal_info(request):
             logger.error("=== DEBUG: Error processing user %s: %s", user.username, str(e))
             continue
 
-    # Логируем итог
-    logger.info("=== DEBUG: top_users_data count: %s", len(top_users_data))
-    logger.info("=== DEBUG: top_users_data: %s", top_users_data)
+
 
     return {
         'personal_info': {

@@ -158,3 +158,32 @@
 .resources-title {
     margin-bottom: 50px; /* Устанавливаем желаемый отступ */
 }
+
+
+
+/* Пчела */
+#bee-container {
+  width: 600px;
+  height: 600px;
+  position: fixed;
+  z-index: 1000;
+  overflow: visible;
+  pointer-events: none;
+  /* border: 1px solid red; */
+}
+
+@media screen and (max-width: 580px) {
+  #bee-container {
+    width: 300px;
+    height: 300px;
+    pointer-events: none;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  #bee-container {
+    width: 650px;
+    height: 650px;
+    pointer-events: none;
+  }
+}

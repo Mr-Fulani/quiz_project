@@ -254,10 +254,6 @@
 
 </article>
 
-<!-- Отладочная информация -->
-<div style="display: none;">
-    {{ personal_info.resources|json_script:"debug-resources" }}
-</div>
 
 {% endblock %}
 
@@ -265,7 +261,7 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/main.js' %}"></script>
-<script src="{% static 'js/video_control.js' %}"></script>
+<script src="{% static 'blog/js/video_control.js' %}"></script>
 <script>
     function showQuizStats(quizId) {
         const modal = document.getElementById('quizStatsModal');
