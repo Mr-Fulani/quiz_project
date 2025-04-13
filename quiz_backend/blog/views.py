@@ -135,44 +135,13 @@ class HomePageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         """
-        Добавляет данные в контекст шаблона.
-
-        Включает пагинированный список постов (5 на страницу), категории (не портфолио),
-        все проекты, категории портфолио и дополняет personal_info из процессора.
+        Добавляет данные в контекст шаблона, не трогая personal_info из процессора.
         """
         context = super().get_context_data(**kwargs)
 
-        User = get_user_model()
-
-        # Получаем top_users (как в index)
-        top_users = User.objects.exclude(is_staff=True).select_related('profile').filter(
-            profile__total_points__gt=0
-        ).order_by('-profile__total_points', 'date_joined')[:5]
-        print("Top users:", list(top_users.values('username', 'profile__total_points', 'profile__avatar')))  # Отладка
-
-        # Добавляем новые данные в контекст
         posts_list = Post.objects.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
-
-        # Дополняем personal_info из процессора
-        if 'personal_info' in context:
-            context['personal_info']['top_users'] = top_users  # Добавляем top_users
-        else:
-            # Если процессор не сработал, создаём базовый personal_info
-            context['personal_info'] = {
-                'name': 'Anvar Sh.',
-                'title': 'Web Developer',
-                'social_links': {
-                    'facebook': 'https://www.facebook.com/badr.commerce.3',
-                    'telegram': 'tg://resolve?domain@Mr-Fulani',
-                    'whatsapp': 'whatsapp://send?phone=05525821497',
-                    'instagram': 'https://www.instagram.com/fulani_developer',
-                },
-                'top_users': top_users
-            }
-
-        # Остальные данные
         context['posts'] = paginator.get_page(page)
         context['categories'] = Category.objects.filter(is_portfolio=False)
         context['projects'] = Project.objects.all()
@@ -182,7 +151,19 @@ class HomePageView(TemplateView):
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='index')
 
+        # Отладка: проверяем наличие personal_info и его содержимое
+        logger.info("=== DEBUG: Context keys: %s", list(context.keys()))
+        logger.info("=== DEBUG: personal_info: %s", context.get('personal_info', 'Not set'))
+        if 'personal_info' in context:
+            logger.info("=== DEBUG: personal_info.resources: %s", context['personal_info'].get('resources', 'Not set'))
+            logger.info("=== DEBUG: personal_info.top_users: %s", context['personal_info'].get('top_users', 'Not set'))
+
         return context
+
+
+
+
+
 
 class AboutView(TemplateView):
     """

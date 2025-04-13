@@ -1,23 +1,22 @@
+import logging
+
 from django.db.models import Count, Avg, Sum, Q, Case, When, FloatField, IntegerField, F, Value
 from tasks.models import TaskStatistics
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib import messages
 
+
+
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
+
+
 def personal_info(request):
-    # Получаем топ пользователей по количеству успешно решенных задач
+    # Получаем топ пользователей (оставляем как есть — 5 карточек по total_score)
     top_users = User.objects.annotate(
         tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
-        total_attempts=Count('statistics'),
-        avg_success_rate=Avg(
-            Case(
-                When(statistics__successful=True, then=100),
-                default=0,
-                output_field=FloatField(),
-            )
-        ),
         total_score=Sum(
             Case(
                 When(statistics__successful=True, then=Case(
@@ -31,32 +30,43 @@ def personal_info(request):
                 output_field=IntegerField(),
             )
         )
-    ).filter(
-        tasks_completed__gt=0  # Только пользователи, решившие хотя бы одну задачу
-    ).order_by('-total_score')[:4]  # Берем топ 4 пользователя
+    ).order_by('-total_score')[:5]
 
-    # Получаем дополнительную информацию для каждого пользователя
+    # Логируем выборку
+    logger.info("=== DEBUG: total users count: %s", User.objects.count())
+    logger.info("=== DEBUG: top_users count: %s", top_users.count())
+    logger.info("=== DEBUG: top_users: %s", list(top_users.values('username', 'tasks_completed', 'total_score')))
+
+    # Формируем данные
     top_users_data = []
     for i, user in enumerate(top_users, 1):
-        # Получаем любимую тему (тему с наибольшим количеством решенных задач)
-        favorite_topic = TaskStatistics.objects.filter(
-            user=user,
-            successful=True
-        ).values(
-            'task__topic__name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count').first()
+        try:
+            favorite_topic = TaskStatistics.objects.filter(
+                user=user,
+                successful=True
+            ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
 
-        top_users_data.append({
-            'rank': i,
-            'name': f"{user.first_name} {user.last_name}" if user.first_name else user.username,
-            'avatar': user.profile.avatar.url if hasattr(user, 'profile') and user.profile.avatar else f"https://ui-avatars.com/api/?name={user.username}&background=random",
-            'quizzes_count': user.tasks_completed,
-            'avg_score': round(user.avg_success_rate or 0, 1),
-            'total_score': user.total_score * 100,  # Умножаем на 100 для более красивых чисел
-            'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else "Не определено"
-        })
+            # Исправляем аватарку: загруженная или default_avatar.png
+            avatar_url = user.profile.avatar.url if hasattr(user, 'profile') and user.profile and user.profile.avatar else '/static/blog/images/avatar/default_avatar.png'
+
+            user_data = {
+                'rank': i,
+                'name': f"{user.first_name} {user.last_name}".strip() if user.first_name else user.username,
+                'avatar': avatar_url,
+                'quizzes_count': user.tasks_completed,
+                'avg_score': 0,
+                'total_score': (user.total_score or 0) * 100,
+                'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else "Не определено"
+            }
+            top_users_data.append(user_data)
+            logger.info("=== DEBUG: Added user %s: %s", user.username, user_data)
+        except Exception as e:
+            logger.error("=== DEBUG: Error processing user %s: %s", user.username, str(e))
+            continue
+
+    # Логируем итог
+    logger.info("=== DEBUG: top_users_data count: %s", len(top_users_data))
+    logger.info("=== DEBUG: top_users_data: %s", top_users_data)
 
     return {
         'personal_info': {
@@ -115,11 +125,14 @@ def personal_info(request):
                 "Добро пожаловать на QuizHub – ваш ресурс для программирования и викторин. Здесь вы найдете последние новости, подробные руководства и практические советы, охватывающие всё от Python до React.",
                 "На нашем сайте вы сможете изучать новые технологии, проходить увлекательные интерактивные викторины и отслеживать свой прогресс с подробной статистикой.",
                 "Мы стремимся сделать обучение программированию доступным, интересным и эффективным для каждого, будь вы новичком или профессионалом.",
-                "Начните своё обучение прямо сейчас – погрузитесь в мир кода, проходите викторины, совершенствуйте свои навыки и отслеживайте свой рост."
+                "Начните своё обучение прямо сейчас – погрузитесь в мир кода, проходите викторины, совершенствуйте свои навыки и отслеживать свой рост."
             ],
             'top_users': top_users_data
         }
     }
+
+
+
 
 def unread_messages(request):
     if request.user.is_authenticated:

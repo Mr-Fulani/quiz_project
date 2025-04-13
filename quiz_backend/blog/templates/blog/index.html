@@ -35,9 +35,9 @@
                             <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%">
                         </div>
                     {% endif %}
-                    <div class="video-content">
-                        <h4 class="h4 video-item-title">{{ video.title }}</h4>
-                    </div>
+<!--                    <div class="video-content">-->
+<!--                        <h4 class="h4 video-item-title">{{ video.title }}</h4>-->
+<!--                    </div>-->
                 </div>
             {% endif %}
         {% endwith %}
@@ -129,23 +129,22 @@
         <h3 class="h3 testimonials-title">Топ пользователей</h3>
         <ul class="testimonials-list has-scrollbar">
             {% for user in personal_info.top_users %}
-                <li class="testimonials-item" data-username="{{ user.username }}">
+                <li class="testimonials-item" data-username="{{ user.name }}">
                     <div class="content-card" data-testimonials-item>
                         <figure class="testimonials-avatar-box">
-                            <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}" data-testimonials-avatar width="60">
+                            <img src="{{ user.avatar }}" alt="{{ user.name }}" data-testimonials-avatar width="60">
                         </figure>
                         <div class="testimonials-content">
-                            <h4 class="h4 testimonials-item-title" data-testimonials-title>{{ user.username }}</h4>
+                            <h4 class="h4 testimonials-item-title" data-testimonials-title>{{ user.name }}</h4>
                             <div class="user-stats">
-                                <span class="rank">Ранг: #{{ forloop.counter }}</span>
-                                <span class="score">Очки: {{ user.profile.total_points|floatformat:0 }}</span>
+                                <span class="rank">Ранг: #{{ user.rank }}</span>
+                                <span class="score">Очки: {{ user.total_score|floatformat:0 }}</span>
                             </div>
                             <div class="testimonials-text" data-testimonials-text>
-                                <p>Пройдено викторин: {{ user.profile.quizzes_completed }}</p>
-                                <p>Средний результат: {{ user.profile.average_score }}%</p>
-                                <p>Любимая категория: {{ user.profile.favorite_category|default:"Не указана" }}</p>
+                                <p>Пройдено викторин: {{ user.quizzes_count }}</p>
+                                <p>Средний результат: {{ user.avg_score }}%</p>
+                                <p>Любимая категория: {{ user.favorite_category|default:"Не указана" }}</p>
                             </div>
-                            <time class="hidden-date" data-date-joined datetime="{{ user.date_joined|date:'c' }}">{{ user.date_joined|date:"F Y" }}</time>
                         </div>
                     </div>
                 </li>
