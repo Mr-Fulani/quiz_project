@@ -66,6 +66,7 @@ function deleteMessage(messageId) {
     }
 }
 
+
 // Функция для ответа на сообщение
 function replyToMessage(username) {
     const modal = document.createElement('div');
@@ -76,8 +77,9 @@ function replyToMessage(username) {
                 <h3>Reply to ${username}</h3>
                 <span class="close-reply-modal">&times;</span>
             </div>
-            <form id="replyForm" method="POST" action="/messages/send/${username}/" enctype="multipart/form-data">
+            <form id="replyForm" method="POST" action="/messages/send/" enctype="multipart/form-data">
                 <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
+                <input type="hidden" name="recipient_username" value="${username}">
                 <textarea name="content" placeholder="Write your reply..." required></textarea>
                 <div class="attachment-section">
                     <label for="reply-attachments" class="attachment-label">
@@ -118,6 +120,13 @@ function replyToMessage(username) {
     attachmentsInput.onchange = function() {
         selectedFilesContainer.innerHTML = '';
         Array.from(this.files).forEach(file => {
+            // Клиентская проверка размера файла (20 МБ = 20,971,520 байт)
+            const maxFileSize = 20 * 1024 * 1024;
+            if (file.size > maxFileSize) {
+                alert(`Файл "${file.name}" превышает лимит в 20 МБ`);
+                attachmentsInput.value = ''; // Очищаем input
+                return;
+            }
             const fileItem = document.createElement('div');
             fileItem.className = 'selected-file-item';
             fileItem.innerHTML = `
@@ -126,7 +135,6 @@ function replyToMessage(username) {
             `;
             fileItem.querySelector('.remove-file').onclick = function() {
                 fileItem.remove();
-                // Создаем новый FileList без удаленного файла
                 const dt = new DataTransfer();
                 Array.from(attachmentsInput.files)
                     .filter(f => f.name !== file.name)
@@ -146,19 +154,39 @@ function replyToMessage(username) {
         fetch(this.action, {
             method: 'POST',
             body: formData,
-            credentials: 'same-origin' // Важно для CSRF
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === 'sent') {
                 modal.remove();
-                alert('Reply sent successfully!');
-                location.reload();  // Перезагружаем страницу для отображения новых сообщений
+                const notification = document.createElement('div');
+                notification.className = 'message-notification success';
+                notification.textContent = 'Reply sent successfully!';
+                document.querySelector('.messages-container').prepend(notification);
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+                location.reload(); // Обновляем страницу
+            } else {
+                const notification = document.createElement('div');
+                notification.className = 'message-notification error';
+                notification.textContent = data.message || 'Error sending reply. Please try again.';
+                form.prepend(notification);
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error sending reply. Please try again.');
+            const notification = document.createElement('div');
+            notification.className = 'message-notification error';
+            notification.textContent = 'Error sending reply. Please try again.';
+            form.prepend(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         });
     };
 }

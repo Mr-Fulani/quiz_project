@@ -641,40 +641,59 @@ def delete_message(request, message_id):
     return JsonResponse({'status': 'success'})
 
 
+
+
 @login_required
 @require_POST
-def send_message(request, recipient_username):
+def send_message(request):
     """
     Отправляет новое сообщение пользователю.
 
-    Принимает содержимое из POST['content'] и вложения из request.FILES['attachments'],
-    создаёт запись в Message и MessageAttachment. Требует авторизации.
+    Принимает содержимое из POST['content'], вложения из request.FILES['attachments'],
+    и recipient_username из POST['recipient_username']. Ограничивает размер вложений до 20 МБ.
+    Требует авторизации.
     """
+    recipient_username = request.POST.get('recipient_username')
+    if not recipient_username:
+        return JsonResponse({'status': 'error', 'message': 'Получатель не указан'}, status=400)
+
     recipient = get_object_or_404(CustomUser, username=recipient_username)
     content = request.POST.get('content')
 
-    if content:
-        message = Message.objects.create(
-            sender=request.user,
-            recipient=recipient,
-            content=content
+    if not content:
+        return JsonResponse({'status': 'error', 'message': 'Требуется содержимое сообщения'}, status=400)
+
+    # Проверка размера вложений (20 МБ = 20,971,520 байт)
+    max_file_size = 20 * 1024 * 1024  # 20 MB
+    files = request.FILES.getlist('attachments')
+    for file in files:
+        if file.size > max_file_size:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Файл "{file.name}" превышает лимит в 20 МБ'
+            }, status=400)
+
+    message = Message.objects.create(
+        sender=request.user,
+        recipient=recipient,
+        content=content
+    )
+
+    for file in files:
+        MessageAttachment.objects.create(
+            message=message,
+            file=file,
+            filename=file.name
         )
 
-        files = request.FILES.getlist('attachments')
-        for file in files:
-            MessageAttachment.objects.create(
-                message=message,
-                file=file,
-                filename=file.name
-            )
+    return JsonResponse({
+        'status': 'sent',
+        'message_id': message.id,
+        'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    })
 
-        return JsonResponse({
-            'status': 'sent',
-            'message_id': message.id,
-            'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        })
 
-    return JsonResponse({'status': 'error', 'message': 'Требуется содержимое'}, status=400)
+
 
 
 @login_required
@@ -739,22 +758,7 @@ def get_unread_messages_count(request):
 
 
 
-# def index(request):
-#     """
-#     Отображает главную страницу с топ-пользователями.
-#
-#     Использует шаблон blog/index.html, показывает топ-5 пользователей по очкам.
-#     """
-#     User = get_user_model()
-#     top_users = User.objects.exclude(is_staff=True).select_related('profile').order_by('-profile__total_points')[:5]
-#     print("Top users:", list(top_users.values('username', 'profile__total_points', 'profile__avatar')))  # Отладка
-#     personal_info = {
-#         'top_users': top_users
-#     }
-#     context = {
-#         'personal_info': personal_info
-#     }
-#     return render(request, 'blog/index.html', context)
+
 
 
 

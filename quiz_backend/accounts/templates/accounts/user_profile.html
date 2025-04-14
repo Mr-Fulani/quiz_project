@@ -20,7 +20,7 @@
                 {% else %}
                     <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ profile_user.username }}" class="profile-avatar">
                 {% endif %}
-                
+
                 {% if profile_user.profile.is_online %}
                     <span class="online-status online" title="Online"></span>
                 {% else %}
@@ -33,7 +33,7 @@
                     <h3 class="profile-name">{{ profile_user.username }}</h3>
                     <span class="member-since">Member since {{ profile_user.date_joined|date:"F Y" }}</span>
                 </div>
-                
+
                 {% if profile_user.profile.location %}
                 <p class="profile-location">
                     <ion-icon name="location-outline"></ion-icon>
@@ -65,8 +65,9 @@
                 <div id="messageForm" class="message-form" style="display: none;">
                     <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
                         {% csrf_token %}
+                        <input type="hidden" name="recipient_username" value="{{ profile_user.username }}">
                         <textarea name="content" placeholder="Write your message..." required></textarea>
-                        
+
                         <div class="attachment-section">
                             <label for="attachments" class="attachment-label">
                                 <ion-icon name="attach-outline"></ion-icon>
@@ -87,6 +88,8 @@
         </div>
     </section>
 </article>
+
+<link rel="stylesheet" href="{% static 'accounts/css/user_profile.css' %}">
 
 <script>
 function toggleMessageForm() {
@@ -113,13 +116,13 @@ function removeFile(element) {
     const dt = new DataTransfer();
     const files = fileInput.files;
     const fileName = element.previousElementSibling.textContent;
-    
+
     for (let i = 0; i < files.length; i++) {
         if (files[i].name !== fileName) {
             dt.items.add(files[i]);
         }
     }
-    
+
     fileInput.files = dt.files;
     element.parentElement.remove();
 }
@@ -129,11 +132,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (messageForm) {
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             document.querySelectorAll('.message-notification').forEach(note => note.remove());
-            
+
             const formData = new FormData(this);
-            
+
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
@@ -152,15 +155,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.status === 'sent') {
                     document.getElementById('messageForm').style.display = 'none';
-                    
+
                     const notification = document.createElement('div');
                     notification.className = 'message-notification success';
                     notification.textContent = 'Message sent successfully!';
                     messageForm.parentNode.insertBefore(notification, messageForm);
-                    
+
                     messageForm.reset();
                     document.getElementById('selected-files').innerHTML = '';
-                    
+
                     setTimeout(() => {
                         notification.remove();
                     }, 3000);
@@ -170,211 +173,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 const notification = document.createElement('div');
                 notification.className = 'message-notification error';
-                notification.textContent = 'Error sending message. Please try again.';
-                messageForm.parentNode.insertBefore(notification, messageForm);
-                
-                setTimeout(() => {
-                    notification.remove();
-                }, 3000);
+                fetch(messageForm.action, {
+                    method: 'POST',
+                    body: new FormData(messageForm),
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    notification.textContent = data.message || 'Error sending message. Please try again.';
+                    messageForm.parentNode.insertBefore(notification, messageForm);
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                });
             });
         });
     }
 });
 </script>
-
-<style>
-/* Стили для профиля */
-.profile-card {
-    background: var(--eerie-black-2);
-    padding: 20px;
-    border-radius: 20px;
-    display: flex;
-    gap: 25px;
-}
-
-.profile-avatar-box {
-    position: relative;
-    margin: 0;
-}
-
-.profile-avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 20px;
-    object-fit: cover;
-}
-
-.online-status {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--eerie-black-2);
-}
-
-.online-status.online {
-    background: #2ecc71;
-}
-
-.online-status.offline {
-    background: #95a5a6;
-}
-
-.profile-details {
-    flex: 1;
-}
-
-.profile-header {
-    margin-bottom: 15px;
-}
-
-.profile-name {
-    color: var(--light-gray);
-    font-size: 1.5em;
-    margin: 0;
-}
-
-.member-since {
-    color: var(--light-gray-70);
-    font-size: 0.9em;
-}
-
-.profile-location {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--light-gray);
-    margin: 10px 0;
-}
-
-.profile-bio {
-    color: var(--light-gray);
-    line-height: 1.6;
-    margin: 15px 0;
-}
-
-.profile-stats {
-    display: flex;
-    gap: 20px;
-    margin: 20px 0;
-}
-
-.stat {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--light-gray);
-}
-
-.message-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--orange-yellow-crayola);
-    border: none;
-    border-radius: 25px;
-    color: var(--eerie-black-1);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.message-btn:hover {
-    background: var(--vegas-gold);
-}
-
-.message-form {
-    margin-top: 20px;
-    background: var(--eerie-black-1);
-    padding: 20px;
-    border-radius: 15px;
-}
-
-.message-form textarea {
-    width: 100%;
-    min-height: 100px;
-    background: var(--eerie-black-2);
-    border: 1px solid var(--jet);
-    border-radius: 10px;
-    padding: 15px;
-    color: var(--light-gray);
-    margin-bottom: 15px;
-    resize: vertical;
-}
-
-.attachment-section {
-    margin-bottom: 15px;
-}
-
-.attachment-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 8px 15px;
-    background: var(--eerie-black-2);
-    border-radius: 20px;
-    cursor: pointer;
-    color: var(--light-gray);
-}
-
-.selected-files {
-    margin-top: 10px;
-}
-
-.selected-file {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--eerie-black-2);
-    padding: 8px 12px;
-    border-radius: 5px;
-    margin-bottom: 5px;
-}
-
-.remove-file {
-    cursor: pointer;
-    color: var(--light-gray-70);
-}
-
-.remove-file:hover {
-    color: #e74c3c;
-}
-
-.send-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--orange-yellow-crayola);
-    border: none;
-    border-radius: 25px;
-    color: var(--eerie-black-1);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.send-btn:hover {
-    background: var(--vegas-gold);
-}
-
-.message-notification {
-    padding: 10px 15px;
-    border-radius: 5px;
-    margin: 10px 0;
-}
-
-.message-notification.success {
-    background-color: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-}
-
-.message-notification.error {
-    background-color: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
-}
-</style>
-{% endblock %} 
+{% endblock %}
