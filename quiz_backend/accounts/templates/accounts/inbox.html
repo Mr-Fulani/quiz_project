@@ -10,185 +10,87 @@
     <link rel="stylesheet" href="{% static 'accounts/css/inbox.css' %}">
 {% endblock %}
 
-
 {% block content %}
 {% csrf_token %}
 
 <article class="inbox active" data-page="inbox">
     <header>
         <h2 class="h2 article-title">Messages</h2>
-        <div class="inbox-tabs">
-            <button class="tab-btn active" data-tab="incoming">Incoming</button>
-            <button class="tab-btn" data-tab="outgoing">Outgoing</button>
-        </div>
     </header>
 
-    <div class="messages-container">
-        <div id="incoming-messages" class="messages-tab active">
-            {% for message in incoming_messages %}
-                <div class="message-item {% if not message.is_read %}unread{% endif %}" data-message-id="{{ message.id }}">
-                    <div class="message-header">
-                        <div class="sender-info">
-                            {% if message.sender.profile.avatar %}
-                                <img src="{{ message.sender.profile.get_avatar_url }}" 
-                                     alt="{{ message.sender.username }}" 
-                                     class="sender-avatar">
-                            {% else %}
-                                <img src="{% static 'blog/images/avatar/default_avatar.png' %}" 
-                                     alt="{{ message.sender.username }}" 
-                                     class="sender-avatar">
-                            {% endif %}
-                            <div class="sender-details">
-                                <a href="{% url 'accounts:user-profile' username=message.sender.username %}" class="sender-name">
-                                    {{ message.sender.username }}
-                                </a>
-                                <span class="message-date" title="{{ message.created_at|date:'F j, Y H:i' }}">
-                                    {{ message.created_at|naturaltime }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="message-actions">
-                            <button class="reply-btn" onclick="replyToMessage('{{ message.sender.username }}')">
-                                <ion-icon name="return-up-back-outline"></ion-icon>
-                                Reply
-                            </button>
-                            <button class="delete-btn" onclick="deleteMessage({{ message.id }})">
-                                <ion-icon name="trash-outline"></ion-icon>
-                            </button>
+    <div class="chat-container">
+        <!-- Список диалогов -->
+        <div class="dialogs-list">
+            {% for dialog in dialogs %}
+                <div class="dialog-item" data-username="{{ dialog.user.username }}"
+                     onclick="loadConversation('{{ dialog.user.username }}')">
+                    <div class="dialog-avatar">
+                        {% if dialog.user.profile.avatar %}
+                            <img src="{{ dialog.user.profile.get_avatar_url }}"
+                                 alt="{{ dialog.user.username }}">
+                        {% else %}
+                            <img src="{% static 'blog/images/avatar/default_avatar.png' %}"
+                                 alt="{{ dialog.user.username }}">
+                        {% endif %}
+                    </div>
+                    <div class="dialog-info">
+                        <div class="dialog-name">{{ dialog.user.username }}</div>
+                        <div class="dialog-preview">
+                            {{ dialog.last_message.content|truncatechars:30 }}
                         </div>
                     </div>
-
-                    <div class="message-content">
-                        {{ message.content|linebreaks }}
-                    </div>
-                    
-                    {% if message.attachments.exists %}
-                    <div class="message-attachments">
-                        <h4>Attachments:</h4>
-                        <div class="attachments-grid">
-                            {% for attachment in message.attachments.all %}
-                            <div class="attachment-item">
-                                {% if attachment.file.name|lower|slice:"-4:" == '.jpg' or attachment.file.name|lower|slice:"-4:" == '.png' or attachment.file.name|lower|slice:"-4:" == '.gif' or attachment.file.name|lower|slice:"-5:" == '.jpeg' or attachment.file.name|lower|slice:"-5:" == '.webp' %}
-                                    <div class="attachment-preview">
-                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" 
-                                             onclick="openImagePreview('{{ attachment.file.url }}', '{{ attachment.filename }}')">
-                                    </div>
-                                {% else %}
-                                    <div class="attachment-icon">
-                                        {% if attachment.file.name|lower|slice:"-4:" == '.pdf' %}
-                                            <ion-icon name="document-text-outline"></ion-icon>
-                                        {% elif attachment.file.name|lower|slice:"-4:" == '.doc' or attachment.file.name|lower|slice:"-5:" == '.docx' %}
-                                            <ion-icon name="document-outline"></ion-icon>
-                                        {% elif attachment.file.name|lower|slice:"-4:" == '.xls' or attachment.file.name|lower|slice:"-5:" == '.xlsx' %}
-                                            <ion-icon name="grid-outline"></ion-icon>
-                                        {% else %}
-                                            <ion-icon name="document-attach-outline"></ion-icon>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                                <a href="{% url 'blog:download_attachment' attachment.id %}" class="attachment-download" 
-                                   {% if not attachment.file.name|lower|slice:"-4:" in '.jpg,.png,.gif,.pdf' %}download{% endif %}>
-                                    <span class="filename">{{ attachment.filename }}</span>
-                                    <ion-icon name="download-outline"></ion-icon>
-                                </a>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                    {% if dialog.unread_count > 0 %}
+                        <span class="unread-count">{{ dialog.unread_count }}</span>
                     {% endif %}
                 </div>
             {% empty %}
-                <div class="no-messages">
-                    <ion-icon name="mail-outline"></ion-icon>
-                    <p>No incoming messages</p>
+                <div class="no-dialogs">
+                    <ion-icon name="chatbubbles-outline"></ion-icon>
+                    <p>No conversations yet</p>
                 </div>
             {% endfor %}
         </div>
 
-        <div id="outgoing-messages" class="messages-tab">
-            {% for message in outgoing_messages %}
-                <div class="message-item" data-message-id="{{ message.id }}">
-                    <div class="message-header">
-                        <div class="recipient-info">
-                            <img src="{{ message.recipient.profile.get_avatar_url|default:'/static/blog/images/avatar/default_avatar.png' }}" 
-                                 alt="{{ message.recipient.username }}" 
-                                 class="recipient-avatar">
-                            <div class="recipient-details">
-                                <a href="{% url 'accounts:user-profile' username=message.recipient.username %}" class="recipient-name">
-                                    To: {{ message.recipient.username }}
-                                </a>
-                                <span class="message-date" title="{{ message.created_at|date:'F j, Y H:i' }}">
-                                    {{ message.created_at|naturaltime }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="message-actions">
-                            <button class="delete-btn" onclick="deleteMessage({{ message.id }})">
-                                <ion-icon name="trash-outline"></ion-icon>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="message-content">
-                        {{ message.content|linebreaks }}
-                    </div>
-                    
-                    {% if message.attachments.exists %}
-                    <div class="message-attachments">
-                        <h4>Attachments:</h4>
-                        <div class="attachments-grid">
-                            {% for attachment in message.attachments.all %}
-                            <div class="attachment-item">
-                                {% if attachment.file.name|lower|slice:"-4:" == '.jpg' or attachment.file.name|lower|slice:"-4:" == '.png' or attachment.file.name|lower|slice:"-4:" == '.gif' or attachment.file.name|lower|slice:"-5:" == '.jpeg' or attachment.file.name|lower|slice:"-5:" == '.webp' %}
-                                    <div class="attachment-preview">
-                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" 
-                                             onclick="openImagePreview('{{ attachment.file.url }}', '{{ attachment.filename }}')">
-                                    </div>
-                                {% else %}
-                                    <div class="attachment-icon">
-                                        {% if attachment.file.name|lower|slice:"-4:" == '.pdf' %}
-                                            <ion-icon name="document-text-outline"></ion-icon>
-                                        {% elif attachment.file.name|lower|slice:"-4:" == '.doc' or attachment.file.name|lower|slice:"-5:" == '.docx' %}
-                                            <ion-icon name="document-outline"></ion-icon>
-                                        {% elif attachment.file.name|lower|slice:"-4:" == '.xls' or attachment.file.name|lower|slice:"-5:" == '.xlsx' %}
-                                            <ion-icon name="grid-outline"></ion-icon>
-                                        {% else %}
-                                            <ion-icon name="document-attach-outline"></ion-icon>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                                <a href="{% url 'blog:download_attachment' attachment.id %}" class="attachment-download" 
-                                   {% if not attachment.file.name|lower|slice:"-4:" in '.jpg,.png,.gif,.pdf' %}download{% endif %}>
-                                    <span class="filename">{{ attachment.filename }}</span>
-                                    <ion-icon name="download-outline"></ion-icon>
-                                </a>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
+        <!-- Окно чата -->
+        <div class="chat-window">
+            <div class="chat-header">
+                <button class="back-btn" onclick="showDialogsList()">
+                    <ion-icon name="arrow-back-outline"></ion-icon>
+                </button>
+                <h3 id="chat-recipient"></h3>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Сообщения будут загружаться через JS -->
+            </div>
+            <form id="chat-form" class="chat-form" method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                <input type="hidden" name="recipient_username" id="recipient-username">
+                <textarea name="content" placeholder="Type a message..." required></textarea>
+                <!-- В inbox.html, внутри .chat-form-actions -->
+                <div class="chat-form-actions">
+                    <label for="chat-attachments" class="attachment-label">
+                        <ion-icon name="attach-outline"></ion-icon>
+                    </label>
+                    <input type="file" id="chat-attachments" name="attachments" multiple style="display: none;">
+                    <div id="selected-files" class="selected-files"></div>
+                    <button type="submit" class="send-btn">
+                        <ion-icon name="send-outline" class="send-icon"></ion-icon>
+                        <span class="loading-spinner" style="display: none;">⏳</span>
+                    </button>
                 </div>
-            {% empty %}
-                <div class="no-messages">
-                    <ion-icon name="paper-plane-outline"></ion-icon>
-                    <p>No outgoing messages</p>
-                </div>
-            {% endfor %}
+            </form>
         </div>
     </div>
 </article>
 
 <!-- Modal for image preview -->
 <div id="imagePreviewModal" class="modal">
-    <span class="close-modal">&times;</span>
+    <span class="close-modal">×</span>
     <img id="previewImage" src="" alt="">
     <div class="modal-caption"></div>
 </div>
 
-
 {% block scripts %}
     <script src="{% static 'accounts/js/inbox.js' %}"></script>
 {% endblock %}
-
-
-{% endblock %} 
+{% endblock %}

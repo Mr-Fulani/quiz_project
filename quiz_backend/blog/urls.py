@@ -7,7 +7,8 @@ from .views import (
     ResumeView, PortfolioView, BlogView, AboutView,
     ContactView, QuizesView, QuizDetailView, inbox,
     send_message, delete_message, download_attachment,
-    get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView, MaintenanceView
+    get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView,
+    MaintenanceView, get_conversation
 )
 from django.shortcuts import redirect
 
@@ -60,6 +61,10 @@ urlpatterns = [
     path('quiz/<str:quiz_type>/<path:subtopic>/', QuizSubtopicView.as_view(), name='quiz_subtopic'),
 
 
+
+
+
+
     path('messages/', lambda request: redirect('blog:inbox'), name='messages'),
     #   -> Редирект /messages/ -> /inbox/
 
@@ -77,6 +82,9 @@ urlpatterns = [
 
     path('messages/unread/count/', get_unread_messages_count, name='unread_messages_count'),
     #   -> Возвращает JSON с количеством непрочитанных сообщений
+
+    path('messages/conversation/<str:recipient_username>/', get_conversation, name='get_conversation'),
+    #   -> Отображает переписку с конкретным пользователем
 
     path('statistics/', statistics_view, name='statistics'),
     #   -> Отображает общую статистику (blog/statistics.html)

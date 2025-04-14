@@ -7,7 +7,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Q
+from django.db import transaction
+from django.db.models import Count, F, Q, Max
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
@@ -643,6 +644,7 @@ def delete_message(request, message_id):
 
 
 
+
 @login_required
 @require_POST
 def send_message(request):
@@ -651,47 +653,135 @@ def send_message(request):
 
     Принимает содержимое из POST['content'], вложения из request.FILES['attachments'],
     и recipient_username из POST['recipient_username']. Ограничивает размер вложений до 20 МБ.
+    Разрешает отправку с пустым текстом, если есть вложения.
     Требует авторизации.
     """
+    logger.info(f"send_message: Запрос от {request.user.username}")
     recipient_username = request.POST.get('recipient_username')
     if not recipient_username:
+        logger.error("send_message: Получатель не указан")
         return JsonResponse({'status': 'error', 'message': 'Получатель не указан'}, status=400)
 
     recipient = get_object_or_404(CustomUser, username=recipient_username)
-    content = request.POST.get('content')
+    content = request.POST.get('content', '').strip()
+    files = request.FILES.getlist('attachments')
 
-    if not content:
-        return JsonResponse({'status': 'error', 'message': 'Требуется содержимое сообщения'}, status=400)
+    # Проверка: нужен либо текст, либо вложения
+    if not content and not files:
+        logger.error("send_message: Требуется текст или вложения")
+        return JsonResponse({'status': 'error', 'message': 'Требуется текст или вложения'}, status=400)
 
     # Проверка размера вложений (20 МБ = 20,971,520 байт)
     max_file_size = 20 * 1024 * 1024  # 20 MB
-    files = request.FILES.getlist('attachments')
     for file in files:
         if file.size > max_file_size:
+            logger.error(f"send_message: Файл '{file.name}' превышает лимит в 20 МБ")
             return JsonResponse({
                 'status': 'error',
                 'message': f'Файл "{file.name}" превышает лимит в 20 МБ'
             }, status=400)
 
-    message = Message.objects.create(
-        sender=request.user,
-        recipient=recipient,
-        content=content
-    )
+    try:
+        with transaction.atomic():
+            # Проверка на дублирование сообщения (в течение 5 секунд)
+            recent_messages = Message.objects.filter(
+                sender=request.user,
+                recipient=recipient,
+                content=content,
+                created_at__gte=timezone.now() - timezone.timedelta(seconds=5)
+            )
+            if recent_messages.exists() and not files:
+                existing_message = recent_messages.first()
+                logger.warning(
+                    f"send_message: Обнаружено дублирование сообщения от {request.user.username} к {recipient.username}"
+                )
+                return JsonResponse({
+                    'status': 'sent',
+                    'message_id': existing_message.id,
+                    'created_at': existing_message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                })
 
-    for file in files:
-        MessageAttachment.objects.create(
-            message=message,
-            file=file,
-            filename=file.name
+            # Создаём сообщение
+            message = Message.objects.create(
+                sender=request.user,
+                recipient=recipient,
+                content=content
+            )
+            logger.info(f"send_message: Создано сообщение {message.id} от {request.user.username} к {recipient.username}")
+
+            # Добавляем вложения
+            for file in files:
+                attachment = MessageAttachment.objects.create(
+                    message=message,
+                    file=file,
+                    filename=file.name
+                )
+                logger.info(f"send_message: Добавлено вложение {attachment.id} к сообщению {message.id}")
+
+            return JsonResponse({
+                'status': 'sent',
+                'message_id': message.id,
+                'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+    except Exception as e:
+        logger.error(f"send_message: Ошибка при создании сообщения: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': 'Ошибка сервера'}, status=500)
+
+
+
+
+
+
+@login_required
+def get_conversation(request, recipient_username):
+    """
+    Возвращает сообщения между текущим пользователем и указанным recipient_username.
+    Отмечает непрочитанные сообщения как прочитанные.
+    """
+    logger.info(f"get_conversation: Запрос от {request.user.username} для {recipient_username}")
+    recipient = get_object_or_404(CustomUser, username=recipient_username)
+    user = request.user
+
+    # Отмечаем непрочитанные сообщения как прочитанные
+    Message.objects.filter(
+        recipient=user,
+        sender=recipient,
+        is_read=False,
+        is_deleted_by_recipient=False
+    ).update(is_read=True)
+
+    # Получаем сообщения (входящие и исходящие) в хронологическом порядке
+    messages = Message.objects.filter(
+        (
+            Q(sender=user, recipient=recipient, is_deleted_by_sender=False) |
+            Q(sender=recipient, recipient=user, is_deleted_by_recipient=False)
         )
+    ).select_related('sender', 'recipient').prefetch_related('attachments').order_by('created_at')
 
-    return JsonResponse({
-        'status': 'sent',
-        'message_id': message.id,
-        'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-    })
+    # Формируем JSON-ответ
+    messages_data = []
+    for message in messages:
+        attachments = [
+            {
+                'id': att.id,
+                'filename': att.filename,
+                'url': att.file.url,
+                'is_image': att.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))
+            }
+            for att in message.attachments.all()
+        ]
+        messages_data.append({
+            'id': message.id,
+            'content': message.content,
+            'sender_username': message.sender.username,
+            'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_sent_by_user': message.sender == user,
+            'attachments': attachments
+        })
 
+    logger.info(f"get_conversation: Возвращено {len(messages_data)} сообщений")
+    return JsonResponse({'messages': messages_data})
 
 
 
@@ -718,30 +808,40 @@ def download_attachment(request, attachment_id):
 @login_required
 def inbox(request):
     """
-    Отображает страницу входящих и исходящих сообщений.
-
-    Использует шаблон accounts/inbox.html, помечает все непрочитанные сообщения как прочитанные.
-    Требует авторизации.
+    Отображает страницу чата с диалогами.
     """
-    Message.objects.filter(
-        recipient=request.user,
-        is_read=False,
-        is_deleted_by_recipient=False
-    ).update(is_read=True)
+    user = request.user
 
-    incoming_messages = Message.objects.filter(
-        recipient=request.user,
-        is_deleted_by_recipient=False
-    ).select_related('sender').prefetch_related('attachments')
+    # Получаем уникальных собеседников
+    dialogs = Message.objects.filter(
+        Q(sender=user, is_deleted_by_sender=False) | Q(recipient=user, is_deleted_by_recipient=False)
+    ).values('sender', 'recipient').annotate(
+        last_message_id=Max('id')
+    ).distinct().order_by('-last_message_id')
 
-    outgoing_messages = Message.objects.filter(
-        sender=request.user,
-        is_deleted_by_sender=False
-    ).select_related('recipient').prefetch_related('attachments')
+    dialog_list = []
+    seen_users = set()  # Для исключения дубликатов
+    for dialog in dialogs:
+        other_user_id = dialog['recipient'] if dialog['sender'] == user.id else dialog['sender']
+        if other_user_id in seen_users:
+            continue
+        seen_users.add(other_user_id)
+        other_user = CustomUser.objects.get(id=other_user_id)
+        last_message = Message.objects.get(id=dialog['last_message_id'])
+        unread_count = Message.objects.filter(
+            recipient=user,
+            sender=other_user,
+            is_read=False,
+            is_deleted_by_recipient=False
+        ).count()
+        dialog_list.append({
+            'user': other_user,
+            'last_message': last_message,
+            'unread_count': unread_count
+        })
 
     return render(request, 'accounts/inbox.html', {
-        'incoming_messages': incoming_messages,
-        'outgoing_messages': outgoing_messages
+        'dialogs': dialog_list
     })
 
 
@@ -754,6 +854,12 @@ def get_unread_messages_count(request):
     """
     count = Message.objects.filter(recipient=request.user, is_read=False).count()
     return JsonResponse({'count': count})
+
+
+
+
+
+
 
 
 

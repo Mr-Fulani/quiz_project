@@ -1,150 +1,340 @@
-/* inbox.css */
-
-.messages-container {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.message-item {
-    background: var(--eerie-black-2);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    transition: transform 0.3s ease;
-}
-
-.message-item.unread {
-    border-left: 3px solid var(--orange-yellow-crayola);
-}
-
-.message-header {
+/**
+ * Основной контейнер чата
+ * Содержит список диалогов и окно чата, управляет их расположением.
+ */
+.chat-container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
+    height: 550px;
+    background: transparent; /* Для устранения белой полосы */
+    border-radius: 1.25rem;
+    overflow: hidden;
 }
 
-.sender-info {
+/**
+ * Список диалогов
+ * Отображает список чатов с пользователями.
+ */
+.dialogs-container {
+    background: transparent; /* Для устранения белой полосы */
+    border-radius: 1.25rem;
+    overflow: hidden;
+}
+
+.dialogs-list {
+    width: 300px;
+    border-right: 1px solid var(--jet);
+    overflow-y: auto;
+    background: var(--eerie-black-2); /* #1c1c23 */
+}
+
+.dialog-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-.sender-avatar {
+.dialog-item:hover {
+    background: var(--eerie-black-1); /* #212129 */
+}
+
+.dialog-avatar img {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    object-fit: cover;
+    margin-right: 0.75rem;
 }
 
-.sender-details {
-    display: flex;
-    flex-direction: column;
+.dialog-info {
+    flex: 1;
 }
 
-.sender-name {
+.dialog-name {
     color: var(--light-gray);
-    text-decoration: none;
+    font-size: 0.9375rem;
     font-weight: 500;
 }
 
-.message-date {
-    font-size: 0.85em;
+.dialog-preview {
     color: var(--light-gray-70);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.unread-count {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+}
+
+.no-dialogs {
+    text-align: center;
+    padding: 2rem;
+    color: var(--light-gray-70);
+}
+
+.no-dialogs ion-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+/**
+ * Окно чата
+ * Содержит заголовок, сообщения и форму ввода.
+ */
+.chat-window {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    margin: 0 auto;
+    background: #25252d;
+    border-radius: 0.75rem;
+}
+
+/**
+ * Заголовок чата
+ */
+.chat-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--jet);
+}
+
+.chat-header h3 {
+    margin: 0;
+    color: var(--light-gray);
+    font-size: 1.125rem;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 1.25rem;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+/**
+ * Сообщения
+ * Стили для отдельных сообщений, их содержимого и вложений.
+ */
+.message-item {
+    margin-bottom: 1rem;
+    max-width: 70%;
+}
+
+.message-item.sent {
+    margin-left: auto;
+    text-align: right;
 }
 
 .message-content {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+}
+
+.message-item.sent .message-content {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+}
+
+.message-item.received .message-content {
+    background: var(--eerie-black-2);
     color: var(--light-gray);
-    line-height: 1.6;
-    margin-bottom: 15px;
 }
 
-.message-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.message-actions button {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    background: transparent;
+.message-meta {
+    font-size: 0.75rem;
     color: var(--light-gray-70);
-    transition: color 0.3s ease;
+    margin-top: 0.25rem;
 }
 
-.message-actions button:hover {
-    color: var(--orange-yellow-crayola);
+.message-attachments {
+    margin-top: 0.5rem;
 }
 
 .attachments-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .attachment-item {
-    background: var(--eerie-black-1);
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.attachment-preview {
-    width: 100%;
-    height: 150px;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .attachment-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 100px;
+    border-radius: 0.5rem;
     cursor: pointer;
-    transition: transform 0.3s ease;
 }
 
-.attachment-preview img:hover {
-    transform: scale(1.05);
-}
-
-.attachment-icon {
-    height: 100px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2em;
-    color: var(--light-gray-70);
+.attachment-icon ion-icon {
+    font-size: 1.5rem;
+    color: var(--light-gray);
 }
 
 .attachment-download {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    text-decoration: none;
     color: var(--light-gray);
-    background: var(--eerie-black-2);
-    transition: background-color 0.3s ease;
+    font-size: 0.875rem;
+    text-decoration: none;
 }
 
 .attachment-download:hover {
-    background: var(--eerie-black-3);
+    color: var(--orange-yellow-crayola);
 }
 
-.filename {
-    font-size: 0.9em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 80%;
+.message-actions {
+    margin-top: 0.25rem;
 }
 
-/* Modal styles */
+.delete-btn {
+    background: none;
+    border: none;
+    color: var(--light-gray-70);
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.delete-btn:hover {
+    color: #e74c3c;
+}
+
+/**
+ * Форма отправки сообщений
+ */
+.chat-form {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--jet);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chat-form textarea {
+    flex: 1;
+    min-height: 2.5rem;
+    background: var(--eerie-black-2);
+    border: 1px solid var(--jet);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    color: var(--light-gray);
+    resize: none;
+    font-size: 0.9375rem;
+}
+
+.chat-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.attachment-label {
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.attachment-label ion-icon {
+    font-size: 1.25rem;
+    color: var(--light-gray);
+}
+
+.send-btn {
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 1.25rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.send-btn:hover {
+    background: var(--vegas-gold);
+}
+
+.send-btn ion-icon {
+    font-size: 1.25rem;
+    color: var(--eerie-black-1);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.send-btn:disabled .loading-spinner {
+    display: inline;
+}
+
+.send-btn:disabled .send-icon {
+    display: none;
+}
+
+.selected-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.selected-file {
+    background: var(--eerie-black-2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--light-gray);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.remove-file {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--light-gray-70);
+    font-size: 1rem;
+}
+
+.remove-file:hover {
+    color: #e74c3c;
+}
+
+/**
+ * Уведомления
+ * Стили для сообщений об успехе или ошибке.
+ */
+.message-notification {
+    padding: 0.625rem 0.9375rem;
+    border-radius: 0.3125rem;
+    margin: 0.625rem;
+    font-size: 0.875rem;
+}
+
+.message-notification.success {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
+}
+
+.message-notification.error {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+}
+
+/**
+ * Модальное окно
+ * Для отображения увеличенных изображений.
+ */
 .modal {
     display: none;
     position: fixed;
@@ -152,209 +342,160 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
     z-index: 1000;
 }
 
 .modal img {
     max-width: 90%;
-    max-height: 90vh;
-    margin: auto;
-    display: block;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    max-height: 80%;
+    border-radius: 0.5rem;
 }
 
 .close-modal {
     position: absolute;
-    right: 25px;
-    top: 15px;
-    color: #f1f1f1;
-    font-size: 35px;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2rem;
+    color: var(--light-gray);
     cursor: pointer;
 }
 
 .modal-caption {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    color: #f1f1f1;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.7);
-}
-
-.no-messages {
-    text-align: center;
-    padding: 40px;
-    color: var(--light-gray-70);
-}
-
-.no-messages ion-icon {
-    font-size: 3em;
-    margin-bottom: 15px;
-}
-
-/* Reply modal styles */
-.reply-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.reply-modal-content {
-    background: var(--eerie-black-2);
-    border-radius: 15px;
-    width: 90%;
-    max-width: 600px;
-    padding: 20px;
-}
-
-.reply-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.reply-modal-header h3 {
     color: var(--light-gray);
-    margin: 0;
+    margin-top: 0.5rem;
+    font-size: 0.9375rem;
 }
 
-.close-reply-modal {
-    color: var(--light-gray-70);
-    font-size: 24px;
-    cursor: pointer;
+/**
+ * Адаптивность
+ * Стили для адаптации интерфейса на разных устройствах.
+ */
+@media (max-width: 768px) {
+    .chat-container {
+        border-radius: 0;
+        height: 100vh;
+    }
+
+    .dialogs-list {
+        width: 100%;
+        height: 100%;
+        display: block;
+        overflow-y: auto;
+        position: relative;
+        z-index: 1;
+    }
+
+    .dialogs-list.active {
+        display: block;
+    }
+
+    .chat-window {
+        display: none;
+        border-radius: 0;
+        background: #25252d !important; /* Явно задаём фон, чтобы не было прозрачным */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    .chat-window.active {
+        display: flex;
+    }
+
+    .chat-messages {
+        max-height: calc(100vh - 180px);
+        padding: 0.75rem;
+    }
+
+    .chat-header {
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .back-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.25rem;
+        color: var(--light-gray);
+        display: block;
+    }
+
+    .back-btn ion-icon {
+        font-size: 1.5rem;
+    }
+
+    .chat-header h3 {
+        font-size: 1rem;
+        flex: 1;
+    }
+
+    .dialog-item {
+        padding: 0.5rem;
+    }
+
+    .dialog-avatar img {
+        width: 48px; /* Увеличиваем аватарку */
+        height: 48px;
+    }
+
+    .dialog-name {
+        font-size: 0.875rem;
+    }
+
+    .dialog-preview {
+        font-size: 0.75rem;
+    }
+
+    .chat-form {
+        padding: 0.5rem;
+    }
+
+    .chat-form textarea {
+        font-size: 0.875rem;
+    }
+
+    .attachment-preview img {
+        max-width: 80px;
+        max-height: 80px;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+    }
 }
 
-.reply-modal textarea {
-    width: 100%;
-    min-height: 150px;
-    background: var(--eerie-black-1);
-    border: 1px solid var(--jet);
-    border-radius: 10px;
-    padding: 15px;
-    color: var(--light-gray);
-    margin-bottom: 15px;
-    resize: vertical;
+@media (max-width: 480px) {
+    .chat-messages {
+        padding: 0.75rem;
+    }
+
+    .message-item {
+        max-width: 85%;
+    }
+
+    .attachment-preview img {
+        max-width: 80px;
+    }
 }
 
-.attachment-section {
-    margin-bottom: 15px;
-}
+@media (max-width: 480px) {
+    .chat-messages {
+        padding: 0.75rem;
+    }
 
-.attachment-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 8px 15px;
-    background: var(--eerie-black-1);
-    border-radius: 20px;
-    cursor: pointer;
-    color: var(--light-gray);
-}
+    .message-item {
+        max-width: 85%;
+    }
 
-.selected-files {
-    margin-top: 10px;
-}
-
-.selected-file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--eerie-black-1);
-    padding: 8px 12px;
-    border-radius: 5px;
-    margin-bottom: 5px;
-}
-
-.remove-file {
-    cursor: pointer;
-    color: var(--light-gray-70);
-}
-
-.remove-file:hover {
-    color: #e74c3c;
-}
-
-.send-reply-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--orange-yellow-crayola);
-    border: none;
-    border-radius: 25px;
-    color: var(--eerie-black-1);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.send-reply-btn:hover {
-    background: var(--vegas-gold);
-}
-
-.inbox-tabs {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-    margin-bottom: 30px;
-}
-
-.tab-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 25px;
-    background: var(--eerie-black-2);
-    color: var(--light-gray);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.tab-btn.active {
-    background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-}
-
-.messages-tab {
-    display: none;
-}
-
-.messages-tab.active {
-    display: block;
-}
-
-.recipient-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.recipient-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.recipient-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.recipient-name {
-    color: var(--light-gray);
-    text-decoration: none;
-    font-weight: 500;
+    .attachment-preview img {
+        max-width: 80px;
+    }
 }

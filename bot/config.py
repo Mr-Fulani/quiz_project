@@ -48,13 +48,4 @@ MAKE_WEBHOOK_RETRY_DELAY = int(os.getenv("MAKE_WEBHOOK_RETRY_DELAY", 5))  # За
 
 
 
-# Временное логирование для отладки
-logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
-logger.debug(f"S3_BUCKET_NAME: {S3_BUCKET_NAME}")
-logger.debug(f"S3_REGION: {S3_REGION}")
-logger.debug(f"AWS_ACCESS_KEY_ID: {AWS_ACCESS_KEY_ID}")
-logger.debug(f"AWS_SECRET_ACCESS_KEY: {AWS_SECRET_ACCESS_KEY}")
-logger.debug(f"DATABASE_URL: {DATABASE_URL}")
-logger.debug(f"MAKE_WEBHOOK_TIMEOUT: {MAKE_WEBHOOK_TIMEOUT}")
-logger.debug(f"MAKE_WEBHOOK_RETRIES: {MAKE_WEBHOOK_RETRIES}")
-logger.debug(f"MAKE_WEBHOOK_RETRY_DELAY: {MAKE_WEBHOOK_RETRY_DELAY}")
+
