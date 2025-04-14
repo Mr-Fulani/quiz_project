@@ -3,6 +3,8 @@
 console.log("main.js loaded");
 
 document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOMContentLoaded fired");
+
     const elementToggleFunc = function (elem) {
         elem.classList.toggle("active");
     }
@@ -13,82 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
         elementToggleFunc(sidebar);
     });
 
-    const testimonialsItem = document.querySelectorAll('[data-testimonials-item]');
-    const modalContainer = document.querySelector('[data-modal-container]');
-    const modalCloseBtn = document.querySelector('[data-modal-close-btn]');
-    const overlay = document.querySelector('[data-overlay]');
-    const modalImg = document.querySelector('[data-modal-img]');
-    const modalTitle = document.querySelector('[data-modal-title]');
-    const modalText = document.querySelector('[data-modal-text]');
-    const modalDate = document.querySelector('[data-modal-date]');
-    const modalProfileLink = document.querySelector('[data-profile-link]');
-    const isAuthenticated = document.body.dataset.authenticated === 'true'; // Проверка авторизации
-
-    console.log("Found testimonials items:", testimonialsItem.length);
-
-    const testimonialsModalFunc = function () {
-        if (modalContainer && overlay) {
-            modalContainer.classList.toggle('active');
-            overlay.classList.toggle('active');
-            console.log("Modal toggled, active:", modalContainer.classList.contains('active'));
-        } else {
-            console.error("Modal container or overlay not found");
-        }
-    }
-
-    for (let i = 0; i < testimonialsItem.length; i++) {
-        testimonialsItem[i].addEventListener('click', function () {
-            console.log("Card clicked:", i);
-            const avatar = this.querySelector('[data-testimonials-avatar]').src;
-            const alt = this.querySelector('[data-testimonials-avatar]').alt;
-            const title = this.querySelector('[data-testimonials-title]').textContent;
-            const text = this.querySelector('[data-testimonials-text]').innerHTML;
-            const date = this.querySelector('[data-date-joined]') ? this.querySelector('[data-date-joined]').textContent : "14 June, 2023";
-            const username = this.parentElement.getAttribute('data-username');
-
-            console.log("Avatar:", avatar);
-            console.log("Title:", title);
-            console.log("Text:", text);
-            console.log("Date:", date);
-            console.log("Username:", username);
-
-            if (modalImg) modalImg.src = avatar; else console.error("modalImg not found");
-            if (modalImg) modalImg.alt = alt;
-            if (modalTitle) modalTitle.textContent = title; else console.error("modalTitle not found");
-            if (modalText) modalText.innerHTML = text; else console.error("modalText not found");
-            if (modalDate) modalDate.textContent = "Member since: " + date; else console.error("modalDate not found");
-
-            if (modalProfileLink && username) {
-                if (isAuthenticated) {
-                    modalProfileLink.href = `/users/user/${encodeURIComponent(username)}/`;
-                    modalProfileLink.className = 'modal-profile-btn';
-                    modalProfileLink.textContent = 'Перейти в профиль';
-                    modalProfileLink.dataset.username = username;
-                    console.log("Profile link set to:", modalProfileLink.href);
-                } else {
-                    modalProfileLink.href = '#';
-                    modalProfileLink.className = 'open-login-modal';
-                    modalProfileLink.textContent = 'Войдите, чтобы перейти в профиль';
-                    modalProfileLink.dataset.returnUrl = `/users/user/${encodeURIComponent(username)}/`;
-                    delete modalProfileLink.dataset.username; // Удаляем, чтобы не путать с авторизованным состоянием
-                    console.log("Login link set with return URL:", modalProfileLink.dataset.returnUrl);
-                }
-            } else if (!modalProfileLink) {
-                console.error("modalProfileLink not found");
-            } else if (!username) {
-                console.error("Username not found in data-username attribute");
-            }
-
-            testimonialsModalFunc();
-        });
-    }
-
-    if (modalCloseBtn) modalCloseBtn.addEventListener('click', testimonialsModalFunc);
-    if (overlay) overlay.addEventListener('click', testimonialsModalFunc);
-
     /**
      * Логика модального окна для видео.
-     * Отображает видео из YouTube или локального источника.
      */
     const videoItems = document.querySelectorAll('[data-video-item]');
     const videoModalContainer = document.querySelector('[data-video-modal-container]');
@@ -96,9 +24,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const videoOverlay = document.querySelector('[data-video-overlay]');
     const videoPlayer = document.querySelector('[data-video-player]');
 
-    /**
-     * Функция переключения видимости модального окна видео и очистки плеера при закрытии.
-     */
     const videoModalFunc = function () {
         videoModalContainer.classList.toggle('active');
         videoOverlay.classList.toggle('active');
@@ -159,10 +84,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const filterItems = document.querySelectorAll('[data-filter-item]');
 
-    /**
-     * Функция фильтрации элементов по выбранной категории.
-     * @param {string} selectedValue - Значение выбранного фильтра.
-     */
     const filterFunc = function (selectedValue) {
         console.log("Filtering with value:", selectedValue);
         for (let i = 0; i < filterItems.length; i++) {
@@ -177,9 +98,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    /**
-     * Активация кнопок фильтрации для больших экранов.
-     */
     console.log("Filter buttons found:", filterBtn.length);
     let lastClickedBtn = filterBtn[0];
 
@@ -195,9 +113,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /**
-     * Инициализация фильтрации при загрузке страницы.
-     */
     if (filterBtn.length > 0) {
         console.log("Initializing filter with first button");
         filterBtn[0].click();

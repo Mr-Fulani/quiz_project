@@ -35,9 +35,6 @@
                             <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%">
                         </div>
                     {% endif %}
-<!--                    <div class="video-content">-->
-<!--                        <h4 class="h4 video-item-title">{{ video.title }}</h4>-->
-<!--                    </div>-->
                 </div>
             {% endif %}
         {% endwith %}
@@ -109,22 +106,6 @@
         </ul>
     </section>
 
-    <style>
-        .service-link {
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            align-items: flex-start;
-            gap: 16px;
-            padding: 10px;
-        }
-
-        .service-item:hover {
-            transform: scale(1.05);
-            transition: transform 0.3s ease;
-        }
-    </style>
-
     <section class="testimonials">
         <h3 class="h3 testimonials-title">Топ пользователей</h3>
         <ul class="testimonials-list has-scrollbar">
@@ -158,7 +139,7 @@
         </ul>
     </section>
 
-    <!-- Модальное окно -->
+    <!-- Модальное окно для пользователей -->
     <div class="modal-container" data-modal-container>
         <div class="overlay" data-overlay></div>
         <section class="testimonials-modal">
@@ -174,10 +155,18 @@
                 <h4 class="h3 modal-title" data-modal-title></h4>
                 <time data-modal-date></time>
                 <div data-modal-text></div>
-                <!-- Добавляем кнопку для перехода в профиль -->
                 <a href="#" class="modal-profile-btn" data-profile-link>Перейти в профиль</a>
             </div>
         </section>
+    </div>
+
+    <!-- Модальное окно для статистики викторин -->
+    <div id="quizStatsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-stats-modal">×</span>
+            <h3>Статистика</h3>
+            <canvas id="quizStatsChart"></canvas>
+        </div>
     </div>
 
     <section class="resources section-gap">
@@ -186,7 +175,7 @@
         <ul class="resources-list">
             {% for key, resource in personal_info.resources.items %}
             <li class="resources-item">
-                <a href="{{ resource.url }}" target="_blank" class="resources-link">
+                <a href="{{ resource.url }}" target="_blank" class="services-link">
                     <div class="resources-icon-box">
                         <img src="{{ resource.icon }}" alt="{{ resource.name }}" width="40">
                     </div>
@@ -250,53 +239,156 @@
             </li>
         </ul>
     </section>
-
-
 </article>
-
-
 {% endblock %}
 
-<!-- Добавляем необходимые скрипты -->
-{% block extra_js %}
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/testimonials.js' %}"></script>
 <script src="{% static 'blog/js/video_control.js' %}"></script>
 <script>
-    function showQuizStats(quizId) {
-        const modal = document.getElementById('quizStatsModal');
-        const canvas = document.getElementById('quizStatsChart');
-        const ctx = canvas.getContext('2d');
+// Закрываем модальные окна при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Index.html DOMContentLoaded fired");
+    const modalContainer = document.querySelector('[data-modal-container]');
+    if (modalContainer) {
+        modalContainer.classList.remove('active');
+        console.log("Modal container state on load:", modalContainer.classList);
+    }
+    const quizModal = document.getElementById('quizStatsModal');
+    if (quizModal) {
+        quizModal.style.display = 'none';
+        console.log("Quiz modal state on load:", quizModal.style.display);
+    }
+});
 
-        // Показываем модальное окно
-        modal.style.display = "block";
+// Закрываем модальное окно перед переходом на страницу профиля
+document.querySelectorAll('[data-profile-link]').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const href = this.getAttribute('href');
+        const modalContainer = document.querySelector('[data-modal-container]');
+        if (modalContainer) {
+            modalContainer.classList.remove('active');
+            console.log("Modal closed before navigation:", modalContainer.classList);
+        }
+        setTimeout(() => {
+            window.location.href = href;
+        }, 300);
+    });
+});
 
-        // Создаем график
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
-                datasets: [{
-                    label: 'Количество прохождений',
-                    data: [65, 59, 80, 81, 56, 55],
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
+// Закрываем модальное окно карточки по клику на оверлей
+document.querySelector('[data-modal-container]')?.addEventListener('click', function(e) {
+    const overlay = document.querySelector('[data-overlay]');
+    if (e.target === overlay) {
+        this.classList.remove('active');
+        console.log("Testimonials modal closed by overlay click:", this.classList);
+    }
+});
+
+// Закрываем модальное окно графиков по клику вне окна
+document.getElementById('quizStatsModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+        console.log("Quiz modal closed by outside click:", this.style.display);
+    }
+});
+
+// Открываем модальное окно графиков
+function showQuizStats(quizId) {
+    console.log("Showing quiz stats for ID:", quizId);
+    const modal = document.getElementById('quizStatsModal');
+    const canvas = document.getElementById('quizStatsChart');
+    const ctx = canvas.getContext('2d');
+
+    modal.style.display = "block";
+    console.log("Quiz modal opened:", modal.style.display);
+
+    // Создаём градиент для баров
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'hsl(45, 100%, 72%)'); // --orange-yellow-crayola
+    gradient.addColorStop(1, 'hsl(45, 100%, 50%)');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+            datasets: [{
+                label: 'Количество прохождений',
+                data: [65, 59, 80, 81, 56, 55],
+                backgroundColor: gradient,
+                borderColor: 'hsl(45, 100%, 72%)',
+                borderWidth: 1,
+                borderRadius: 8,
+                barThickness: 20
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
             },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'hsl(0, 0%, 90%)', // --white
+                        font: {
+                            size: 14,
+                            family: 'var(--ff-poppins)'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'hsl(0, 0%, 90%)', // --white
+                        font: {
+                            size: 14,
+                            family: 'var(--ff-poppins)'
+                        }
+                    },
+                    grid: {
+                        color: 'hsl(0, 0%, 62%)', // --light-gray
+                        borderDash: [5, 5]
                     }
                 }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'hsl(0, 0%, 90%)', // --white
+                        font: {
+                            size: 14,
+                            family: 'var(--ff-poppins)'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'hsl(240, 2%, 12%)', // --eerie-black-2
+                    titleColor: 'hsl(45, 100%, 72%)', // --orange-yellow-crayola
+                    bodyColor: 'hsl(0, 0%, 90%)', // --white
+                    borderColor: 'hsl(45, 100%, 72%)',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8
+                }
             }
-        });
-    }
+        }
+    });
+}
 
-    // Закрытие модального окна
-    document.querySelector('.close-stats-modal')?.onclick = function() {
-        document.getElementById('quizStatsModal')?.style.display = "none";
+// Закрываем модальное окно графиков по кнопке
+document.querySelector('.close-stats-modal')?.addEventListener('click', function() {
+    const modal = document.getElementById('quizStatsModal');
+    if (modal) {
+        modal.style.display = "none";
+        console.log("Quiz modal closed:", modal.style.display);
     }
+});
 </script>
 {% endblock %}
