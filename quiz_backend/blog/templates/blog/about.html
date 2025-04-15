@@ -97,17 +97,24 @@
     </section>
 
     <section class="testimonials">
-        <h3 class="h3 testimonials-title">Отзывы</h3>
-        
-        {% if user.is_authenticated %}
-        <div class="add-testimonial-button">
-            <button class="btn" type="button">
-                <ion-icon name="add-outline"></ion-icon>
-                Оставить отзыв
-            </button>
+        <div class="testimonials-header">
+            <div class="testimonials-buttons">
+                <div class="view-all-testimonials">
+                    <a href="{% url 'blog:all_testimonials' %}" class="btn">
+                        <ion-icon name="list-outline"></ion-icon>
+                        Все отзывы
+                    </a>
+                </div>
+                {% if user.is_authenticated %}
+                <div class="add-testimonial-button">
+                    <button class="btn" type="button">
+                        <ion-icon name="add-outline"></ion-icon>
+                        Оставить отзыв
+                    </button>
+                </div>
+                {% endif %}
+            </div>
         </div>
-        {% endif %}
-
         <ul class="testimonials-list has-scrollbar">
             {% for testimonial in testimonials %}
             <li class="testimonials-item">
@@ -136,6 +143,8 @@
             {% endfor %}
         </ul>
     </section>
+
+    {% include "blog/includes/testimonial_modals.html" %}
 
     <section class="skill">
         <h3 class="h3 skills-title">My Skills</h3>
@@ -238,49 +247,6 @@
     </section>
 
 </article>
-
-<!-- Модальное окно для просмотра отзыва -->
-<div class="modal-container" data-modal-container>
-    <div class="overlay" data-overlay></div>
-    <section class="testimonials-modal">
-        <button class="modal-close-btn" data-modal-close-btn>
-            <ion-icon name="close-outline"></ion-icon>
-        </button>
-        <div class="modal-img-wrapper">
-            <figure class="modal-avatar-box">
-                <img src="" alt="avatar" data-modal-img>
-            </figure>
-            <div class="modal-content">
-                <h4 class="h3 modal-title" data-modal-title></h4>
-                <time class="modal-date" data-modal-date></time>
-                <div class="modal-text" data-modal-text></div>
-            </div>
-        </div>
-    </section>
-</div>
-
-<!-- Модальное окно для добавления отзыва -->
-<div class="modal-container" id="add-testimonial-modal">
-    <div class="overlay" data-overlay></div>
-    <section class="testimonials-modal">
-        <button class="modal-close-btn">
-            <ion-icon name="close-outline"></ion-icon>
-        </button>
-        <div class="modal-content">
-            <h4 class="h3 modal-title">Оставить отзыв</h4>
-            <form id="testimonial-form" method="POST">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="testimonial-text">Ваш отзыв:</label>
-                    <textarea id="testimonial-text" name="text" rows="5" required 
-                              class="form-control" placeholder="Поделитесь вашим опытом..."></textarea>
-                </div>
-                <button type="submit" class="btn">Отправить отзыв</button>
-            </form>
-        </div>
-    </section>
-</div>
-
 {% endblock %}
 
 {% block scripts %}

@@ -1,0 +1,91 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/css/card_animations.css' %}">
+{% endblock %}
+
+{% block content %}
+<article class="testimonials-page active">
+    <header>
+        <h2 class="h2 article-title">{{ title }}</h2>
+    </header>
+
+    <section class="testimonials">
+        {% if user.is_authenticated %}
+        <div class="add-testimonial-button" style="margin-bottom: 20px;">
+            <button class="btn" type="button">
+                <ion-icon name="add-outline"></ion-icon>
+                Оставить отзыв
+            </button>
+        </div>
+        {% endif %}
+
+        {% if testimonials %}
+        <ul class="testimonials-list">
+            {% for testimonial in testimonials %}
+            <li class="testimonials-item" data-username="{{ testimonial.user.username }}">
+                <div class="content-card" data-testimonials-item>
+                    <figure class="testimonials-avatar-box">
+                        {% if testimonial.user.profile.avatar %}
+                            <img src="{{ testimonial.user.profile.avatar.url }}" 
+                                 alt="avatar" 
+                                 data-testimonials-avatar 
+                                 width="60">
+                        {% else %}
+                            <img src="{% static 'images/default-avatar.png' %}" 
+                                 alt="avatar" 
+                                 data-testimonials-avatar 
+                                 width="60">
+                        {% endif %}
+                    </figure>
+
+                    <div class="testimonials-content">
+                        <h4 class="h4 testimonials-item-title" data-testimonials-title>
+                            {{ testimonial.user.username }}
+                        </h4>
+                        <div class="testimonials-text" data-testimonials-text>
+                            <p>{{ testimonial.text }}</p>
+                        </div>
+                        <time datetime="{{ testimonial.created_at|date:'Y-m-d' }}" 
+                              data-date-joined>
+                            {{ testimonial.created_at|date:"d F, Y" }}
+                        </time>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        {% if is_paginated %}
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; первая</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+                {% endif %}
+
+                <span class="current">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">следующая</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="no-testimonials">Пока нет отзывов</p>
+        {% endif %}
+    </section>
+
+    <!-- Модальные окна -->
+    {% include "blog/includes/testimonial_modals.html" %}
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/testimonials.js' %}"></script>
+{% endblock %} 

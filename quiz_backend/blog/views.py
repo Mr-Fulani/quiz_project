@@ -972,3 +972,66 @@ def add_testimonial(request):
     return JsonResponse({'success': False})
 
 
+class AllTestimonialsView(ListView):
+    """
+    Отображает страницу со всеми одобренными отзывами.
+
+    Attributes:
+        template_name (str): Путь к шаблону
+        model (Model): Модель для получения данных
+        context_object_name (str): Имя переменной контекста для списка отзывов
+        paginate_by (int): Количество отзывов на странице
+    """
+    template_name = 'blog/all_testimonials.html'
+    model = Testimonial
+    context_object_name = 'testimonials'
+    paginate_by = 10
+
+    def get_queryset(self):
+        """
+        Возвращает QuerySet с одобренными отзывами.
+
+        Returns:
+            QuerySet: Отфильтрованный QuerySet с одобренными отзывами,
+                     отсортированными по дате создания (сначала новые)
+        """
+        return Testimonial.objects.filter(is_approved=True).order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        """
+        Добавляет дополнительные данные в контекст шаблона.
+
+        Args:
+            **kwargs: Дополнительные именованные аргументы
+
+        Returns:
+            dict: Обновленный контекст шаблона
+        """
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Все отзывы'
+        return context
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        """
+        Обрабатывает POST-запрос для добавления нового отзыва.
+
+        Args:
+            request: HTTP-запрос
+            *args: Позиционные аргументы
+            **kwargs: Именованные аргументы
+
+        Returns:
+            JsonResponse: JSON-ответ с результатом операции
+        """
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            text = request.POST.get('text')
+            if text:
+                Testimonial.objects.create(
+                    user=request.user,
+                    text=text
+                )
+                return JsonResponse({'success': True})
+        return JsonResponse({'success': False})
+
+

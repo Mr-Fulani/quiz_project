@@ -481,3 +481,39 @@ time[data-modal-date] {
         font-size: 1.3em; /* Как у .modal-title */
     }
 }
+
+/* Добавьте эти стили в конец файла */
+.testimonials-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.testimonials-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.testimonials-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: var(--white);
+    cursor: pointer;
+    border: none;
+    transition: 0.3s ease;
+    text-decoration: none;
+}
+
+.testimonials-buttons .btn:hover {
+    background: var(--primary-color-hover);
+    transform: translateY(-2px);
+}
+
+.testimonials-buttons .btn ion-icon {
+    font-size: 1.2em;
+}

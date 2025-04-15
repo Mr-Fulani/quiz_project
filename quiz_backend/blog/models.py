@@ -396,13 +396,35 @@ class PageVideo(models.Model):
 
 
 class Testimonial(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='testimonials')
-    text = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_approved = models.BooleanField(default=False)  # Для модерации отзывов
+    """
+    Модель для хранения отзывов пользователей.
+
+    Attributes:
+        user (ForeignKey): Связь с пользователем, оставившим отзыв
+        text (TextField): Текст отзыва
+        created_at (DateTimeField): Дата и время создания отзыва
+        is_approved (BooleanField): Статус модерации отзыва
+    """
+    user = models.ForeignKey(
+        get_user_model(), 
+        on_delete=models.CASCADE, 
+        related_name='testimonials',
+        verbose_name="Пользователь"
+    )
+    text = models.TextField(verbose_name="Текст отзыва")
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания"
+    )
+    is_approved = models.BooleanField(
+        default=False,
+        verbose_name="Одобрен"
+    )
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
 
     def __str__(self):
         return f'Отзыв от {self.user.username}'

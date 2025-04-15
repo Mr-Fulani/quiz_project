@@ -8,7 +8,7 @@ from .views import (
     ContactView, QuizesView, QuizDetailView, inbox,
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView,
-    MaintenanceView, get_conversation, add_testimonial
+    MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView
 )
 from django.shortcuts import redirect
 
@@ -97,4 +97,5 @@ urlpatterns = [
     #      /api/categories/, /api/posts/, /api/projects/ и т.д.
 
     path('add-testimonial/', add_testimonial, name='add_testimonial'),
+    path('testimonials/', AllTestimonialsView.as_view(), name='all_testimonials'),
 ]
