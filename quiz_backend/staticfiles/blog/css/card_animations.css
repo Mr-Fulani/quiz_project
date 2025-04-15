@@ -484,14 +484,13 @@ time[data-modal-date] {
 
 /* Добавьте эти стили в конец файла */
 .testimonials-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 20px;
 }
 
 .testimonials-buttons {
     display: flex;
+    justify-content: space-between;  /* Разносим кнопки по краям */
+    align-items: center;
     gap: 10px;
 }
 
@@ -516,4 +515,85 @@ time[data-modal-date] {
 
 .testimonials-buttons .btn ion-icon {
     font-size: 1.2em;
+}
+
+/* Стили для списка отзывов на странице всех отзывов */
+.testimonials-page .testimonials-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* По два отзыва в ряд */
+    gap: 20px;
+    padding: 0;
+    list-style: none;
+    margin: 0;
+}
+
+/* Для мобильных устройств - один отзыв в ряд */
+@media (max-width: 768px) {
+    .testimonials-page .testimonials-list {
+        grid-template-columns: 1fr; /* Один отзыв в ряд */
+    }
+}
+
+/* Стили для пагинации */
+.pagination {
+    margin-top: 30px;
+}
+
+.pagination-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.pagination-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 14px;
+    background: var(--bg-gradient-jet);
+    border: 1px solid var(--border-gradient-onyx);
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: 0.3s ease;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.pagination-buttons .btn:hover {
+    background: var(--bg-gradient-onyx);
+    color: var(--primary-color-hover);
+    transform: translateY(-2px);
+}
+
+.pagination-buttons .btn ion-icon {
+    font-size: 1.2em;
+    color: var(--primary-color);
+}
+
+.pagination-buttons .current-page {
+    color: var(--primary-color);
+    font-size: 0.9em;
+    padding: 10px 20px;
+    background: var(--bg-gradient-jet);
+    border: 1px solid var(--border-gradient-onyx);
+    border-radius: 14px;
+}
+
+/* Адаптив для мобильных устройств */
+@media (max-width: 768px) {
+    .pagination-buttons {
+        gap: 10px;
+    }
+
+    .pagination-buttons .btn {
+        padding: 8px 16px;
+        font-size: 0.85em;
+    }
+
+    .pagination-buttons .current-page {
+        padding: 8px 16px;
+        font-size: 0.85em;
+    }
 }

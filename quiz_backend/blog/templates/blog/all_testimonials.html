@@ -59,21 +59,25 @@
 
         {% if is_paginated %}
         <div class="pagination">
-            <span class="step-links">
+            <div class="pagination-buttons">
                 {% if page_obj.has_previous %}
-                    <a href="?page=1">&laquo; первая</a>
-                    <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="btn">
+                        <ion-icon name="arrow-back-outline"></ion-icon>
+                        Предыдущая
+                    </a>
                 {% endif %}
 
-                <span class="current">
-                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                <span class="current-page">
+                    {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
                 </span>
 
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+                    <a href="?page={{ page_obj.next_page_number }}" class="btn">
+                        Следующая
+                        <ion-icon name="arrow-forward-outline"></ion-icon>
+                    </a>
                 {% endif %}
-            </span>
+            </div>
         </div>
         {% endif %}
         {% else %}

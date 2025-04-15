@@ -388,27 +388,53 @@ time[data-modal-date] {
  * Кнопки и ссылки
  * Общие стили для кнопок и интерактивных ссылок с эффектами.
  */
-.btn {
-    background: var(--orange);
+/* Общий стиль для всех кнопок */
+.btn,
+.pagination-buttons a,
+.add-testimonial-button button {
+    background: var(--gradient-yellow);
+    min-width: 100px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px;
     border-radius: 14px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-size: var(--fs-6);
+    font-weight: var(--fw-500);
+    text-transform: capitalize;
     color: var(--white);
-    display: inline-block;
-    font-weight: bold;
-    padding: 12px 30px;
+    transition: var(--transition-1);
+    cursor: pointer;
+    border: none;
     text-decoration: none;
-    transition: all 0.3s ease;
 }
 
-.btn:hover {
-    background: var(--light-orange, #ff7f50);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
+/* Единый эффект при наведении */
+.btn:hover,
+.pagination-buttons a:hover,
+.add-testimonial-button button:hover {
+    --gradient-yellow: linear-gradient(
+        to right,
+        hsl(45, 100%, 71%),
+        hsl(35, 100%, 68%)
+    );
+    background: var(--gradient-yellow);
 }
 
-.btn:active {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transform: translateY(0);
+/* Стиль для текущей страницы в пагинации */
+.pagination-buttons .current-page {
+    background: var(--eerie-black-1);
+    border-radius: 14px;
+    padding: 0 20px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    font-size: var(--fs-6);
+    font-weight: var(--fw-500);
 }
 
 /**
@@ -515,4 +541,48 @@ time[data-modal-date] {
 
 .testimonials-buttons .btn ion-icon {
     font-size: 1.2em;
+}
+
+/* Стили для списка отзывов на странице всех отзывов */
+.testimonials-page .testimonials-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* По два отзыва в ряд */
+    gap: 20px;
+    padding: 0;
+    list-style: none;
+    margin: 0;
+}
+
+/* Для мобильных устройств - один отзыв в ряд */
+@media (max-width: 768px) {
+    .testimonials-page .testimonials-list {
+        grid-template-columns: 1fr; /* Один отзыв в ряд */
+    }
+}
+
+/* Стили для пагинации */
+.pagination {
+    margin-top: 30px;
+}
+
+.pagination-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Адаптив для мобильных устройств */
+@media (max-width: 768px) {
+    .pagination-buttons {
+        gap: 10px;
+    }
+
+    .pagination-buttons .btn {
+        padding: 10px 20px;
+    }
+
+    .pagination-buttons .current-page {
+        padding: 10px 20px;
+    }
 }

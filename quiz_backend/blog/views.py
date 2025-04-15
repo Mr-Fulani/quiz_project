@@ -980,12 +980,12 @@ class AllTestimonialsView(ListView):
         template_name (str): Путь к шаблону
         model (Model): Модель для получения данных
         context_object_name (str): Имя переменной контекста для списка отзывов
-        paginate_by (int): Количество отзывов на странице
+        paginate_by (int): Количество отзывов на странице (4 отзыва - по 2 в ряд)
     """
     template_name = 'blog/all_testimonials.html'
     model = Testimonial
     context_object_name = 'testimonials'
-    paginate_by = 10
+    paginate_by = 4  # Изменили с 10 на 4
 
     def get_queryset(self):
         """
