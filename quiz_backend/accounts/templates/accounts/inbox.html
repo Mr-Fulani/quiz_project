@@ -3,11 +3,11 @@
 {% load humanize %}
 
 {% block sidebar %}
-    {% include "accounts/user_sidebar.html" %}
+{% include "accounts/user_sidebar.html" %}
 {% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'accounts/css/inbox.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/inbox.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -22,32 +22,32 @@
         <!-- Список диалогов -->
         <div class="dialogs-list">
             {% for dialog in dialogs %}
-                <div class="dialog-item" data-username="{{ dialog.user.username }}"
-                     onclick="loadConversation('{{ dialog.user.username }}')">
-                    <div class="dialog-avatar">
-                        {% if dialog.user.profile.avatar %}
-                            <img src="{{ dialog.user.profile.get_avatar_url }}"
-                                 alt="{{ dialog.user.username }}">
-                        {% else %}
-                            <img src="{% static 'blog/images/avatar/default_avatar.png' %}"
-                                 alt="{{ dialog.user.username }}">
-                        {% endif %}
-                    </div>
-                    <div class="dialog-info">
-                        <div class="dialog-name">{{ dialog.user.username }}</div>
-                        <div class="dialog-preview">
-                            {{ dialog.last_message.content|truncatechars:30 }}
-                        </div>
-                    </div>
-                    {% if dialog.unread_count > 0 %}
-                        <span class="unread-count">{{ dialog.unread_count }}</span>
+            <div class="dialog-item" data-username="{{ dialog.user.username }}"
+                 onclick="loadConversation('{{ dialog.user.username }}')">
+                <div class="dialog-avatar">
+                    {% if dialog.user.profile.avatar %}
+                    <img src="{{ dialog.user.profile.get_avatar_url }}"
+                         alt="{{ dialog.user.username }}">
+                    {% else %}
+                    <img src="{% static 'blog/images/avatar/default_avatar.png' %}"
+                         alt="{{ dialog.user.username }}">
                     {% endif %}
                 </div>
-            {% empty %}
-                <div class="no-dialogs">
-                    <ion-icon name="chatbubbles-outline"></ion-icon>
-                    <p>No conversations yet</p>
+                <div class="dialog-info">
+                    <div class="dialog-name">{{ dialog.user.username }}</div>
+                    <div class="dialog-preview">
+                        {{ dialog.last_message.content|truncatechars:30 }}
+                    </div>
                 </div>
+                {% if dialog.unread_count > 0 %}
+                <span class="unread-count">{{ dialog.unread_count }}</span>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="no-dialogs">
+                <ion-icon name="chatbubbles-outline"></ion-icon>
+                <p>No conversations yet</p>
+            </div>
             {% endfor %}
         </div>
 
@@ -62,7 +62,8 @@
             <div class="chat-messages" id="chat-messages">
                 <!-- Сообщения будут загружаться через JS -->
             </div>
-            <form id="chat-form" class="chat-form" method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
+            <form id="chat-form" class="chat-form" method="POST" action="{% url 'blog:send_message' %}"
+                  enctype="multipart/form-data">
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
                 <input type="hidden" name="recipient_username" id="recipient-username">
                 <textarea name="content" placeholder="Type a message..." required></textarea>
@@ -83,14 +84,9 @@
     </div>
 </article>
 
-<!-- Modal for image preview -->
-<div id="imagePreviewModal" class="modal">
-    <span class="close-modal">×</span>
-    <img id="previewImage" src="" alt="">
-    <div class="modal-caption"></div>
-</div>
+
 
 {% block scripts %}
-    <script src="{% static 'accounts/js/inbox.js' %}"></script>
+<script src="{% static 'accounts/js/inbox.js' %}"></script>
 {% endblock %}
 {% endblock %}

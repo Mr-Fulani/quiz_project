@@ -8,6 +8,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatWindow = document.querySelector('.chat-window');
     let currentUsername = null;
 
+    // Инициализация
+    console.log('DOM загружен, инициализация...');
+    if (!dialogsList || !chatWindow) {
+        console.error('Ошибка: dialogsList или chatWindow не найдены', { dialogsList, chatWindow });
+        return;
+    }
+
+    if (window.innerWidth <= 768) {
+        console.log('Мобильный режим: показываем dialogs-list');
+        dialogsList.classList.add('active');
+        dialogsList.style.display = 'block';
+        chatWindow.classList.remove('active');
+        chatWindow.style.display = 'none';
+    } else {
+        console.log('Десктопный режим: ничего не меняем');
+    }
+
     // Функция показа уведомлений
     function showNotification(message, type) {
         const notification = document.createElement('div');
@@ -19,36 +36,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    // Отображение выбранных файлов
-    attachmentsInput.addEventListener('change', function() {
-        selectedFilesContainer.innerHTML = '';
-        Array.from(this.files).forEach(file => {
-            const fileElement = document.createElement('div');
-            fileElement.className = 'selected-file';
-            fileElement.innerHTML = `
-                <span>${file.name}</span>
-                <button type="button" class="remove-file">
-                    <ion-icon name="close-outline"></ion-icon>
-                </button>
-            `;
-            fileElement.querySelector('.remove-file').addEventListener('click', () => {
-                fileElement.remove();
-                const dataTransfer = new DataTransfer();
-                Array.from(attachmentsInput.files)
-                    .filter(f => f.name !== file.name)
-                    .forEach(f => dataTransfer.items.add(f));
-                attachmentsInput.files = dataTransfer.files;
-            });
-            selectedFilesContainer.appendChild(fileElement);
+    // Отображение количества выбранных файлов
+    if (attachmentsInput && selectedFilesContainer) {
+        const attachmentLabel = document.querySelector('.attachment-label');
+        attachmentsInput.addEventListener('change', function() {
+            const fileCount = this.files.length;
+            // Удаляем существующий счётчик, если он есть
+            const existingCount = attachmentLabel.querySelector('.file-count');
+            if (existingCount) {
+                existingCount.remove();
+            }
+            // Если есть файлы, показываем количество
+            if (fileCount > 0) {
+                const countElement = document.createElement('span');
+                countElement.className = 'file-count';
+                countElement.textContent = fileCount;
+                attachmentLabel.appendChild(countElement);
+            }
+            // Очищаем selected-files, так как список больше не нужен
+            selectedFilesContainer.innerHTML = '';
         });
-    });
 
-    // Функция загрузки диалога
+        // При отправке формы очищаем счётчик
+        chatForm.addEventListener('submit', function() {
+            const existingCount = attachmentLabel.querySelector('.file-count');
+            if (existingCount) {
+                existingCount.remove();
+            }
+        });
+    } else {
+        console.error('Ошибка: attachmentsInput или selectedFilesContainer не найдены', { attachmentsInput, selectedFilesContainer });
+    }
+
     window.loadConversation = function(username) {
         console.log('Загрузка диалога:', username);
         currentUsername = username;
-        recipientInput.value = username;
-        document.getElementById('chat-recipient').textContent = username;
+        if (recipientInput) recipientInput.value = username;
+        const chatRecipient = document.getElementById('chat-recipient');
+        if (chatRecipient) chatRecipient.textContent = username;
 
         // Обнуляем счётчик непрочитанных
         const dialogItem = document.querySelector(`.dialog-item[data-username="${username}"]`);
@@ -61,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.innerWidth <= 768) {
             console.log('Мобильный режим: показываем чат');
             dialogsList.classList.remove('active');
+            dialogsList.style.display = 'none';
             chatWindow.classList.add('active');
             chatWindow.style.display = 'flex';
         }
@@ -72,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .then(response => {
+            console.log('Ответ сервера:', response.status);
             if (!response.ok) {
                 throw new Error(`Ошибка загрузки диалога: ${response.status}`);
             }
@@ -134,6 +161,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ошибка загрузки диалога:', error);
             showNotification('Ошибка загрузки диалога.', 'error');
         });
+    };
+
+    window.showDialogsList = function() {
+        console.log('Показываем список диалогов');
+        if (window.innerWidth <= 768) {
+            dialogsList.classList.add('active');
+            dialogsList.style.display = 'block';
+            chatWindow.classList.remove('active');
+            chatWindow.style.display = 'none';
+        }
     };
 
     // Обработка отправки формы
@@ -292,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Показываем список диалогов');
         if (window.innerWidth <= 768) {
             dialogsList.classList.add('active');
+            dialogsList.style.display = 'block';
             chatWindow.classList.remove('active');
             chatWindow.style.display = 'none';
         }
@@ -360,14 +398,19 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.innerHTML = `
             <div class="modal-content">
                 <img src="${url}" alt="${filename}">
-                <span class="close-modal">×</span>
                 <div class="modal-caption">${filename}</div>
             </div>
         `;
         document.body.appendChild(modal);
         modal.style.display = 'flex';
-        modal.querySelector('.close-modal').addEventListener('click', () => {
-            modal.remove();
+
+        // Закрытие при клике вне области .modal-content
+        modal.addEventListener('click', function(event) {
+            const modalContent = modal.querySelector('.modal-content');
+            // Проверяем, что клик был вне .modal-content
+            if (!modalContent.contains(event.target)) {
+                modal.remove();
+            }
         });
     };
 

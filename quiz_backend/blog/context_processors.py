@@ -55,9 +55,7 @@ def personal_info(request):
                 'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else "Не определено"
             }
             top_users_data.append(user_data)
-            logger.info("=== DEBUG: Added user %s: %s", user.username, user_data)
         except Exception as e:
-            logger.error("=== DEBUG: Error processing user %s: %s", user.username, str(e))
             continue
 
 

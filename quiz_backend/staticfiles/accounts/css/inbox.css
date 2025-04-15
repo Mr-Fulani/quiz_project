@@ -8,6 +8,7 @@
     background: transparent; /* Для устранения белой полосы */
     border-radius: 1.25rem;
     overflow: hidden;
+    position: relative; /* Добавлено для управления наложением */
 }
 
 /**
@@ -25,6 +26,8 @@
     border-right: 1px solid var(--jet);
     overflow-y: auto;
     background: var(--eerie-black-2); /* #1c1c23 */
+    position: relative;
+    z-index: 100; /* Высокий z-index для списка */
 }
 
 .dialog-item {
@@ -33,17 +36,26 @@
     padding: 0.75rem;
     cursor: pointer;
     transition: background 0.2s;
+    position: relative;
+    z-index: 101; /* Убедимся, что элементы диалога поверх */
 }
 
 .dialog-item:hover {
     background: var(--eerie-black-1); /* #212129 */
 }
 
+.dialog-avatar {
+    flex-shrink: 0; /* Предотвращаем сжатие аватарки */
+    margin-right: 0.75rem;
+}
+
 .dialog-avatar img {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    margin-right: 0.75rem;
+    object-fit: cover;
+    display: block;
+    z-index: 101; /* Высокий z-index для аватарки */
 }
 
 .dialog-info {
@@ -95,6 +107,8 @@
     margin: 0 auto;
     background: #25252d;
     border-radius: 0.75rem;
+    position: relative;
+    z-index: 50; /* Меньший z-index, чем у dialogs-list */
 }
 
 /**
@@ -125,6 +139,7 @@
 .message-item {
     margin-bottom: 1rem;
     max-width: 70%;
+    width: fit-content; /* Сообщение занимает ровно столько места, сколько нужно */
 }
 
 .message-item.sent {
@@ -163,12 +178,16 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    width: 100%; /* Ограничиваем ширину контейнера вложений */
+    box-sizing: border-box; /* Учитываем padding и border */
 }
 
 .attachment-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    max-width: 100%; /* Ограничиваем ширину элемента */
+    box-sizing: border-box; /* Учитываем padding и border */
 }
 
 .attachment-preview img {
@@ -186,10 +205,23 @@
     color: var(--light-gray);
     font-size: 0.875rem;
     text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: calc(100% - 110px); /* Учитываем ширину иконки и изображения (100px + gap 10px) */
+    box-sizing: border-box; /* Учитываем padding и border */
 }
 
 .attachment-download:hover {
     color: var(--orange-yellow-crayola);
+}
+
+.filename {
+    display: inline-block;
+    max-width: 100%; /* Ограничиваем ширину названия */
+    overflow: hidden; /* Скрываем лишний текст */
+    text-overflow: ellipsis; /* Добавляем многоточие */
+    white-space: nowrap; /* Запрещаем перенос текста */
 }
 
 .message-actions {
@@ -374,58 +406,151 @@
  * Стили для адаптации интерфейса на разных устройствах.
  */
 @media (max-width: 768px) {
+    /* Контейнер всей области чата (включает .dialogs-list и .chat-window).
+       - height: управляет общей высотой всей области чата (сейчас 70vh - 60px, чтобы учесть нижнее меню; можно изменить на 60vh - 60px или конкретные пиксели, например, 400px).
+       - background: цвет фона (вернули #1a1a1a, чтобы соответствовать тёмной теме сайта).
+       - overflow: hidden убирает внешний скролл страницы; не меняй, чтобы скролл был только внутри .chat-messages.
+    */
     .chat-container {
-        border-radius: 0;
-        height: 100vh;
+        width: 100%;
+        height: calc(70vh - 60px);
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        position: relative;
+        display: block !important;
+        overflow: hidden;
     }
 
+    /* Список диалогов (показывается, когда ты не в чате).
+       - height: совпадает с .chat-container (70vh - 60px), менять не нужно, если меняешь высоту .chat-container.
+       - background: цвет фона (вернули #1a1a1a, чтобы соответствовать тёмной теме).
+       - overflow-y: auto позволяет скроллить список диалогов; не меняй, если не хочешь убрать скролл.
+    */
     .dialogs-list {
         width: 100%;
         height: 100%;
+        padding: 0.5rem;
         display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 10;
+        background: #1a1a1a;
         overflow-y: auto;
-        position: relative;
-        z-index: 1;
     }
 
     .dialogs-list.active {
         display: block;
     }
 
-    .chat-window {
+    .dialogs-list:not(.active) {
         display: none;
-        border-radius: 0;
-        background: #25252d !important; /* Явно задаём фон, чтобы не было прозрачным */
-        position: absolute;
-        top: 0;
-        left: 0;
+    }
+
+    .dialog-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        width: 100%;
+        cursor: pointer;
+        background: #25252d;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+
+    .dialog-avatar {
+        width: 48px;
+        height: 48px;
+        margin-right: 0.75rem;
+    }
+
+    .dialog-avatar img {
         width: 100%;
         height: 100%;
-        margin: 0;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .dialog-info {
+        flex: 1;
+    }
+
+    .dialog-name {
+        font-size: 0.875rem;
+        color: #e0e0e0;
+    }
+
+    .dialog-preview {
+        font-size: 0.75rem;
+        color: #a0a0a0;
+    }
+
+    .unread-count {
+        background: #007bff;
+        color: #fff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+
+    .no-dialogs {
+        text-align: center;
+        color: #a0a0a0;
+        padding: 2rem;
+    }
+
+    .no-dialogs ion-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Окно чата (показывается, когда ты открываешь диалог).
+       - height: совпадает с .chat-container (70vh - 60px), менять не нужно, если меняешь высоту .chat-container.
+       - background: цвет фона всей области чата (вернули #25252d, чтобы соответствовать тёмной теме).
+       - padding-left: убрали 60px, чтобы окно чата занимало всю ширину.
+       - width: 100% с box-sizing: border-box гарантирует, что окно не растянется шире контейнера.
+    */
+    .chat-window {
+        width: 100%;
+        margin-left: 0;
+        padding-left: 0;
+        display: none;
+        background: #25252d;
+        z-index: 5;
+        flex-direction: column;
+        box-sizing: border-box;
+        height: calc(70vh - 60px);
+        position: relative;
     }
 
     .chat-window.active {
         display: flex;
     }
 
-    .chat-messages {
-        max-height: calc(100vh - 180px);
-        padding: 0.75rem;
-    }
-
+    /* Заголовок чата (где кнопка "назад" и имя собеседника).
+       - height: фиксированная высота заголовка (50px); можно изменить, но тогда нужно пересчитать max-height в .chat-messages.
+       - background: цвет фона (вернули #1a1a1a, чтобы соответствовать тёмной теме).
+       - width: 100% гарантирует, что заголовок занимает всю ширину.
+    */
     .chat-header {
-        padding: 0.5rem 1rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        width: 100%;
+        background: #1a1a1a;
+        border-bottom: 1px solid #404040;
+        box-sizing: border-box;
+        flex-shrink: 0;
+        height: 50px;
     }
 
     .back-btn {
         background: none;
         border: none;
         cursor: pointer;
+        color: #a0a0a0;
         font-size: 1.25rem;
-        color: var(--light-gray);
         display: block;
     }
 
@@ -435,54 +560,281 @@
 
     .chat-header h3 {
         font-size: 1rem;
+        color: #e0e0e0;
+        margin: 0;
         flex: 1;
     }
 
-    .dialog-item {
+    /* Область с сообщениями (где отображаются сами сообщения).
+       - max-height: рассчитывается как высота .chat-container (70vh - 60px) минус высота .chat-header (50px) и .chat-form (60px).
+       - Если меняешь высоту .chat-container, .chat-header или .chat-form, пересчитай: max-height = (высота .chat-container) - (высота .chat-header) - (высота .chat-form).
+       - background: цвет фона (вернули #25252d, чтобы соответствовать тёмной теме).
+       - overflow-y: auto обеспечивает скролл только по вертикали.
+       - overflow-x: hidden убирает горизонтальный скролл.
+       - width: 100% с box-sizing: border-box гарантирует, что область не растянется шире .chat-window.
+    */
+    .chat-messages {
+        width: 100%;
+        padding: 0.75rem;
+        overflow-y: auto;
+        overflow-x: hidden; /* Запрещаем горизонтальный скролл */
+        background: #25252d;
+        box-sizing: border-box;
+        flex: 1;
+        max-height: calc(70vh - 60px - 110px);
+    }
+
+    .message-item {
+        margin-bottom: 1rem;
         padding: 0.5rem;
+        border-radius: 8px;
+        max-width: 80%; /* Ограничиваем ширину сообщения */
+        width: fit-content; /* Сообщение занимает ровно столько места, сколько нужно */
     }
 
-    .dialog-avatar img {
-        width: 48px; /* Увеличиваем аватарку */
-        height: 48px;
+    .message-item.sent {
+        background: #333;
+        color: #fff;
+        margin-left: auto; /* Выравнивание к правому краю */
+        margin-right: 0; /* Убираем лишний отступ справа */
     }
 
-    .dialog-name {
+    .message-item.received {
+        background: #333;
+        color: #e0e0e0;
+        margin-right: auto; /* Выравнивание к левому краю */
+        margin-left: 0; /* Убираем лишний отступ слева */
+    }
+
+    .message-content {
         font-size: 0.875rem;
     }
 
-    .dialog-preview {
+    .message-meta {
         font-size: 0.75rem;
+        color: #a0a0a0;
+        margin-top: 0.25rem;
     }
 
-    .chat-form {
-        padding: 0.5rem;
+    .message-attachments {
+        margin-top: 0.5rem;
     }
 
-    .chat-form textarea {
-        font-size: 0.875rem;
+    .attachments-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%; /* Убедимся, что контейнер не растянется */
+    }
+
+    .attachment-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 100%; /* Ограничиваем ширину элемента */
+        box-sizing: border-box; /* Учитываем padding и border */
     }
 
     .attachment-preview img {
         max-width: 80px;
         max-height: 80px;
+    }
+
+    .attachment-icon ion-icon {
+        font-size: 1.5rem;
+        color: #a0a0a0;
+    }
+
+    .attachment-download {
+        color: #e0e0e0;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: calc(100% - 90px); /* Учитываем ширину иконки и изображения */
+        box-sizing: border-box; /* Учитываем padding и border */
+    }
+
+    .attachment-download ion-icon {
+        font-size: 1rem; /* Уменьшаем иконку, чтобы она не влияла на ширину */
+    }
+
+    .filename {
+        display: inline-block;
+        max-width: 100%; /* Ограничиваем ширину названия */
+        overflow: hidden; /* Скрываем лишний текст */
+        text-overflow: ellipsis; /* Добавляем многоточие */
+        white-space: nowrap; /* Запрещаем перенос текста */
+    }
+
+    .message-actions {
+        margin-top: 0.5rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .delete-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #ff4444;
+    }
+
+    /* Форма ввода (где поле для текста, иконка загрузки и кнопка отправки).
+       - height: фиксированная высота формы (60px); можно изменить, но тогда нужно пересчитай max-height в .chat-messages.
+       - background: цвет фона (оставили #1a1a1a, чтобы соответствовать тёмной теме).
+       - width: 100% гарантирует, что форма занимает всю ширину.
+       - padding: уменьшили, чтобы элементы были ближе друг к другу.
+    */
+    .chat-form {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
         width: 100%;
-        height: auto;
-        object-fit: contain;
-    }
-}
-
-@media (max-width: 480px) {
-    .chat-messages {
-        padding: 0.75rem;
+        background: #1a1a1a;
+        border-top: 1px solid #404040;
+        gap: 0.25rem;
+        box-sizing: border-box;
+        flex-shrink: 0;
+        height: 60px;
     }
 
-    .message-item {
-        max-width: 85%;
+    .chat-form textarea {
+        flex: 1;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        border: none;
+        border-radius: 4px;
+        background: #1a1a1a;
+        color: #e0e0e0;
+        resize: none;
+        min-height: 40px;
     }
 
-    .attachment-preview img {
-        max-width: 80px;
+    .chat-form-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        position: relative;
+    }
+
+    .attachment-label {
+        cursor: pointer;
+        color: #a0a0a0;
+        order: -1;
+        position: relative;
+        padding: 0.25rem;
+    }
+
+    .attachment-label ion-icon {
+        font-size: 1.25rem;
+    }
+
+    .attachment-label .file-count {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #007bff;
+        color: #fff;
+        font-size: 0.75rem;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chat-form input[type="file"] {
+        display: none;
+    }
+
+    .selected-files {
+        display: none;
+    }
+
+    .send-btn {
+        background: #007bff;
+        color: #fff;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .send-icon {
+        font-size: 1rem;
+    }
+
+    .loading-spinner {
+        font-size: 1rem;
+    }
+
+    .message-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        z-index: 1000;
+    }
+
+    .message-notification.success {
+        background: #28a745;
+        color: #fff;
+    }
+
+    .message-notification.error {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    /* Модальное окно для медиафайлов.
+       - display: flex делает окно видимым, когда добавляется класс .active.
+       - background: затемнённый фон, кликабельный для закрытия.
+       - pointer-events: auto позволяет кликать по фону.
+    */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        pointer-events: auto;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    /* Контент модального окна (изображение или медиа).
+       - pointer-events: auto позволяет кликать внутри контента, не закрывая модальное окно.
+    */
+    .modal-content {
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+        pointer-events: auto;
+    }
+
+    .modal-content img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .modal-caption {
+        color: #fff;
+        text-align: center;
+        margin-top: 0.5rem;
     }
 }
 
