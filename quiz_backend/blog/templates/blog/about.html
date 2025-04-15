@@ -98,92 +98,44 @@
 
     <section class="testimonials">
         <h3 class="h3 testimonials-title">Отзывы</h3>
+        
+        {% if user.is_authenticated %}
+        <div class="add-testimonial-button">
+            <button class="btn" type="button">
+                <ion-icon name="add-outline"></ion-icon>
+                Оставить отзыв
+            </button>
+        </div>
+        {% endif %}
 
         <ul class="testimonials-list has-scrollbar">
+            {% for testimonial in testimonials %}
             <li class="testimonials-item">
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60" alt="avatar" data-testimonials-avatar width="60">
+                        {% if testimonial.user.profile.avatar %}
+                            <img src="{{ testimonial.user.profile.avatar.url }}" alt="avatar" data-testimonials-avatar width="60">
+                        {% else %}
+                            <img src="{% static 'images/default-avatar.png' %}" alt="avatar" data-testimonials-avatar width="60">
+                        {% endif %}
                     </figure>
 
                     <div class="testimonials-content">
-                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Daniel Lewis</h4>
-
+                        <h4 class="h4 testimonials-item-title" data-testimonials-title>
+                            {{ testimonial.user.username }}
+                        </h4>
                         <div class="testimonials-text" data-testimonials-text>
-                            <p>Richard was hired to create a corporate identity. It's modern, clean and with a beautiful design that got a lot of praises from colleagues and visitors. We were very pleased with the work done. He has a lot of experience and is very concerned about the needs of client.</p>
+                            <p>{{ testimonial.text }}</p>
                         </div>
+                        <time datetime="{{ testimonial.created_at|date:'Y-m-d' }}" data-date-joined>
+                            {{ testimonial.created_at|date:"d F, Y" }}
+                        </time>
                     </div>
                 </div>
             </li>
-
-            <li class="testimonials-item">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60" alt="avatar" data-testimonials-avatar width="60">
-                    </figure>
-
-                    <div class="testimonials-content">
-                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Jessica Miller</h4>
-
-                        <div class="testimonials-text" data-testimonials-text>
-                            <p>Working with Richard has been an absolute pleasure. I was impressed with his attention to detail, his web design skills and his professional approach to our timelines and processes.</p>
-                        </div>
-                    </div>
-                </div>
-            </li>
-
-            <li class="testimonials-item">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60" alt="avatar" data-testimonials-avatar width="60">
-                    </figure>
-
-                    <div class="testimonials-content">
-                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Emily Evans</h4>
-
-                        <div class="testimonials-text" data-testimonials-text>
-                            <p>I couldn't be happier with the website that Richard created for us. His attention to detail and creativity is unmatched. Our clients frequently compliment the design, and it has significantly improved our brand image.</p>
-                        </div>
-                    </div>
-                </div>
-            </li>
-
-            <li class="testimonials-item">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60" alt="avatar" data-testimonials-avatar width="60">
-                    </figure>
-
-                    <div class="testimonials-content">
-                        <h4 class="h4 testimonials-item-title" data-testimonials-title>Henry Williams</h4>
-
-                        <div class="testimonials-text" data-testimonials-text>
-                            <p>I was overwhelmed with the thought of redesigning my online store, but Richard made the process seamless. The site is not only visually appealing but also optimized for conversions. I've seen a 50% increase in traffic since the launch!</p>
-                        </div>
-                    </div>
-                </div>
-            </li>
+            {% endfor %}
         </ul>
     </section>
-
-    <!-- Модальное окно в About -->
-    <div class="modal-container" data-modal-container>
-        <div class="overlay" data-overlay></div>
-        <section class="testimonials-modal">
-            <button class="modal-close-btn" data-modal-close-btn><ion-icon name="close-outline"></ion-icon></button>
-            <div class="modal-img-wrapper">
-                <figure class="modal-avatar-box">
-                    <img src="" alt="" width="200" height="200" data-modal-img> <!-- Увеличили до 200x200 -->
-                </figure>
-                <div class="modal-content">
-                    <h4 class="h3 modal-title" data-modal-title></h4>
-                    <time class="modal-date" data-modal-date></time> <!-- Добавили для даты -->
-                    <div class="modal-text" data-modal-text></div>
-                    <!-- В About нет кнопки профиля, но оставим структуру совместимой -->
-                </div>
-            </div>
-        </section>
-    </div>
 
     <section class="skill">
         <h3 class="h3 skills-title">My Skills</h3>
@@ -287,9 +239,52 @@
 
 </article>
 
+<!-- Модальное окно для просмотра отзыва -->
+<div class="modal-container" data-modal-container>
+    <div class="overlay" data-overlay></div>
+    <section class="testimonials-modal">
+        <button class="modal-close-btn" data-modal-close-btn>
+            <ion-icon name="close-outline"></ion-icon>
+        </button>
+        <div class="modal-img-wrapper">
+            <figure class="modal-avatar-box">
+                <img src="" alt="avatar" data-modal-img>
+            </figure>
+            <div class="modal-content">
+                <h4 class="h3 modal-title" data-modal-title></h4>
+                <time class="modal-date" data-modal-date></time>
+                <div class="modal-text" data-modal-text></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Модальное окно для добавления отзыва -->
+<div class="modal-container" id="add-testimonial-modal">
+    <div class="overlay" data-overlay></div>
+    <section class="testimonials-modal">
+        <button class="modal-close-btn">
+            <ion-icon name="close-outline"></ion-icon>
+        </button>
+        <div class="modal-content">
+            <h4 class="h3 modal-title">Оставить отзыв</h4>
+            <form id="testimonial-form" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="testimonial-text">Ваш отзыв:</label>
+                    <textarea id="testimonial-text" name="text" rows="5" required 
+                              class="form-control" placeholder="Поделитесь вашим опытом..."></textarea>
+                </div>
+                <button type="submit" class="btn">Отправить отзыв</button>
+            </form>
+        </div>
+    </section>
+</div>
+
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script src="{% static 'js/main.js' %}"></script>
-<script src="{% static 'js/video_control.js' %}"></script>
+<script src="{% static 'blog/js/video_control.js' %}"></script>
+<script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}

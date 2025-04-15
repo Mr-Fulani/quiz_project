@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import TemplateView, DetailView, ListView
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
@@ -24,7 +24,7 @@ from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
 
-from .models import Category, Post, Project, Message, MessageAttachment, PageVideo
+from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
 import logging
@@ -162,10 +162,6 @@ class HomePageView(TemplateView):
         return context
 
 
-
-
-
-
 class AboutView(TemplateView):
     """
     Отображает страницу "Обо мне".
@@ -177,16 +173,28 @@ class AboutView(TemplateView):
     def get_context_data(self, **kwargs):
         """
         Добавляет данные в контекст шаблона.
-
-        Пока возвращает базовый контекст, можно расширить при необходимости.
         """
         context = super().get_context_data(**kwargs)
         # Добавляем посты с видео
         context['posts_with_video'] = Post.objects.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
-        context['page_videos'] = PageVideo.objects.filter(page='about')  # Видео для about
+        context['page_videos'] = PageVideo.objects.filter(page='about')
+        context['testimonials'] = Testimonial.objects.filter(is_approved=True)
         return context
+
+    @method_decorator(login_required)
+    @method_decorator(require_http_methods(["POST"]))
+    def post(self, request, *args, **kwargs):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            text = request.POST.get('text')
+            if text:
+                Testimonial.objects.create(
+                    user=request.user,
+                    text=text
+                )
+                return JsonResponse({'success': True})
+        return JsonResponse({'success': False})
 
 
 class PostDetailView(DetailView):
@@ -949,5 +957,18 @@ def statistics_view(request):
 
 class MaintenanceView(TemplateView):
     template_name = 'blog/maintenance.html'
+
+
+@login_required
+def add_testimonial(request):
+    if request.method == 'POST' and request.is_ajax():
+        text = request.POST.get('text')
+        if text:
+            testimonial = Testimonial.objects.create(
+                user=request.user,
+                text=text
+            )
+            return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
 
 

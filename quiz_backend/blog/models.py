@@ -2,6 +2,9 @@
 from django.db import models
 from django.utils.text import slugify
 from accounts.models import CustomUser
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class Category(models.Model):
@@ -390,3 +393,16 @@ class PageVideo(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.get_page_display()})"
+
+
+class Testimonial(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='testimonials')
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_approved = models.BooleanField(default=False)  # Для модерации отзывов
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Отзыв от {self.user.username}'

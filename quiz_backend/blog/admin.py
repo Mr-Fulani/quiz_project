@@ -1,6 +1,6 @@
 # blog/admin.py
 from django.contrib import admin
-from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo
+from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial
 
 
 @admin.register(Category)
@@ -72,3 +72,19 @@ class PageVideoAdmin(admin.ModelAdmin):
     search_fields = ('title',)
     ordering = ('order', 'title')
     fields = ('page', 'title', 'video_url', 'video_file', 'gif', 'order')  # Добавили 'gif'
+
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ('user', 'text', 'created_at', 'is_approved')
+    list_filter = ('is_approved', 'created_at')
+    search_fields = ('user__username', 'text')
+    actions = ['approve_testimonials', 'disapprove_testimonials']
+
+    def approve_testimonials(self, request, queryset):
+        queryset.update(is_approved=True)
+    approve_testimonials.short_description = "Одобрить выбранные отзывы"
+
+    def disapprove_testimonials(self, request, queryset):
+        queryset.update(is_approved=False)
+    disapprove_testimonials.short_description = "Отклонить выбранные отзывы"
