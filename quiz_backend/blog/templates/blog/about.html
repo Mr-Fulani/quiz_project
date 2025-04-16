@@ -105,25 +105,30 @@
                         Все отзывы
                     </a>
                 </div>
-                {% if user.is_authenticated %}
                 <div class="add-testimonial-button">
-                    <button class="btn" type="button">
-                        <ion-icon name="add-outline"></ion-icon>
-                        Оставить отзыв
-                    </button>
+                    {% if user.is_authenticated %}
+                        <button class="btn" type="button">
+                            <ion-icon name="add-outline"></ion-icon>
+                            Оставить отзыв
+                        </button>
+                    {% else %}
+                        <a href="#" class="btn open-login-modal" data-return-url="{{ request.path }}">
+                            <ion-icon name="add-outline"></ion-icon>
+                            Оставить отзыв
+                        </a>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
         <ul class="testimonials-list has-scrollbar">
-            {% for testimonial in testimonials %}
+            {% for testimonial in testimonials|slice:"3" %}
             <li class="testimonials-item">
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
                         {% if testimonial.user.profile.avatar %}
                             <img src="{{ testimonial.user.profile.avatar.url }}" alt="avatar" data-testimonials-avatar width="60">
                         {% else %}
-                            <img src="{% static 'images/default-avatar.png' %}" alt="avatar" data-testimonials-avatar width="60">
+                            <img src="{% static 'blog/images/avatar/default-avatar.png' %}" alt="avatar" data-testimonials-avatar width="60">
                         {% endif %}
                     </figure>
 
@@ -218,7 +223,7 @@
                     <h5 class="h5">Docker</h5>
                     <data value="50">50%</data>
                 </div>
-                
+
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: 50%;"></div>
                 </div>
@@ -252,5 +257,8 @@
 {% block scripts %}
 <script src="{% static 'js/main.js' %}"></script>
 <script src="{% static 'blog/js/video_control.js' %}"></script>
+<script>
+    window.defaultAvatarUrl = '{% static "blog/images/avatar/default-avatar.png" %}';
+</script>
 <script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}

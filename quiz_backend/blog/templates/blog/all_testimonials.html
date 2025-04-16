@@ -12,18 +12,9 @@
     </header>
 
     <section class="testimonials">
-        {% if user.is_authenticated %}
-        <div class="add-testimonial-button" style="margin-bottom: 20px;">
-            <button class="btn" type="button">
-                <ion-icon name="add-outline"></ion-icon>
-                Оставить отзыв
-            </button>
-        </div>
-        {% endif %}
-
         {% if testimonials %}
         <ul class="testimonials-list">
-            {% for testimonial in testimonials %}
+            {% for testimonial in testimonials|slice:"3" %}
             <li class="testimonials-item" data-username="{{ testimonial.user.username }}">
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
@@ -33,9 +24,9 @@
                                  data-testimonials-avatar 
                                  width="60">
                         {% else %}
-                            <img src="{% static 'images/default-avatar.png' %}" 
-                                 alt="avatar" 
-                                 data-testimonials-avatar 
+                            <img src="{% static 'blog/images/avatar/default-avatar.png' %}"
+                                 alt="avatar"
+                                 data-testimonials-avatar
                                  width="60">
                         {% endif %}
                     </figure>
@@ -47,7 +38,7 @@
                         <div class="testimonials-text" data-testimonials-text>
                             <p>{{ testimonial.text }}</p>
                         </div>
-                        <time datetime="{{ testimonial.created_at|date:'Y-m-d' }}" 
+                        <time datetime="{{ testimonial.created_at|date:'Y-m-d' }}"
                               data-date-joined>
                             {{ testimonial.created_at|date:"d F, Y" }}
                         </time>
@@ -91,5 +82,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+    window.defaultAvatarUrl = '{% static "blog/images/avatar/default-avatar.png" %}';
+</script>
 <script src="{% static 'js/testimonials.js' %}"></script>
-{% endblock %} 
+{% endblock %}
