@@ -3,9 +3,11 @@ import random
 from datetime import datetime, timedelta
 
 from accounts.models import CustomUser
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, F, Q, Max
@@ -29,7 +31,7 @@ from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
 import logging
 
-
+from accounts.models import DjangoAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -334,6 +336,67 @@ class ContactView(TemplateView):
     Использует шаблон blog/contact.html.
     """
     template_name = 'blog/contact.html'
+
+
+
+
+
+
+
+
+
+@require_POST
+def contact_form_submit(request):
+    logger.info("Получен POST-запрос на /contact/submit/")
+    fullname = request.POST.get('fullname')
+    email = request.POST.get('email')
+    message_text = request.POST.get('message')
+
+    if not all([fullname, email, message_text]):
+        logger.warning("Не все поля формы заполнены")
+        return JsonResponse({'status': 'error', 'message': 'Все поля обязательны'}, status=400)
+
+    try:
+        # Находим администратора
+        admin_email = settings.EMAIL_ADMIN[0] if settings.EMAIL_ADMIN else None
+        logger.info(f"settings.EMAIL_ADMIN: {settings.EMAIL_ADMIN}")
+        admin_user = None
+        if admin_email:
+            admin_user = CustomUser.objects.filter(email=admin_email).first()
+            if not admin_user:
+                logger.warning(f"Администратор с email {admin_email} не найден")
+
+        # Отправляем письмо
+        subject = f'Новое сообщение от {fullname} ({email})'
+        message = f'Имя: {fullname}\nEmail: {email}\nСообщение:\n{message_text}'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = settings.EMAIL_ADMIN
+
+        logger.info(f"Отправка письма на {recipient_list}")
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipient_list,
+            fail_silently=False,
+        )
+
+        # Сохраняем сообщение в базе
+        message_obj = Message.objects.create(
+            sender=None,  # Для неавторизованных пользователей
+            recipient=admin_user,  # Привязываем администратора
+            content=message_text,
+            fullname=fullname,
+            email=email,
+            is_read=False
+        )
+        logger.info(f"Сообщение сохранено в базе от {email} для {admin_user or 'No recipient'}")
+
+        logger.info(f"Сообщение успешно отправлено от {email}")
+        return JsonResponse({'status': 'success', 'message': 'Сообщение отправлено'})
+    except Exception as e:
+        logger.error(f"Ошибка отправки сообщения: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': f'Ошибка отправки: {str(e)}'}, status=500)
 
 
 

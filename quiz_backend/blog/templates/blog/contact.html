@@ -18,7 +18,8 @@
     <section class="contact-form">
         <h3 class="h3 form-title">Contact Form</h3>
 
-        <form action="#" class="form" data-form>
+        <form action="{% url 'blog:contact_form_submit' %}" method="POST" class="form" data-form>
+            {% csrf_token %}
             <div class="input-wrapper">
                 <input type="text" name="fullname" class="form-input" placeholder="Full name" required>
                 <input type="email" name="email" class="form-input" placeholder="Email address" required>
@@ -33,4 +34,65 @@
         </form>
     </section>
 </article>
-{% endblock %} 
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('[data-form]');
+        const inputs = form.querySelectorAll('.form-input');
+        const submitBtn = form.querySelector('.form-btn');
+
+        // Проверяем, заполнены ли поля
+        function checkInputs() {
+            let allFilled = true;
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    allFilled = false;
+                }
+            });
+            submitBtn.disabled = !allFilled;
+        }
+
+        // Отправка формы через AJAX
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            console.log('Отправка формы на:', form.action); // Для отладки
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+            })
+                .then(response => {
+                    console.log('Ответ сервера:', response); // Для отладки
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Данные ответа:', data); // Для отладки
+                    if (data.status === 'success') {
+                        alert('Сообщение отправлено!');
+                        form.reset();
+                        submitBtn.disabled = true;
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error); // Для отладки
+                    alert('Ошибка сервера');
+                });
+        });
+
+        // Проверяем поля при вводе
+        inputs.forEach(input => {
+            input.addEventListener('input', checkInputs);
+        });
+
+        // Проверяем при загрузке
+        checkInputs();
+    });
+</script>
+{% endblock %}

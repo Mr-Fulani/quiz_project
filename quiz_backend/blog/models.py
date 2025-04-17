@@ -289,21 +289,34 @@ class MessageAttachment(models.Model):
         return f"Attachment {self.filename} for message {self.message.id}"
 
 
+
+
 class Message(models.Model):
     """Модель сообщений между пользователями."""
     sender = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
+        null=True, blank=True,  # Разрешить NULL для анонимных отправителей
         related_name="sent_messages",
         verbose_name="Отправитель"
     )
     recipient = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
+        null=True, blank=True,
         related_name="received_messages",
         verbose_name="Получатель"
     )
     content = models.TextField(verbose_name="Содержимое сообщения")
+    fullname = models.CharField(
+        max_length=255,
+        default="Unknown",  # Значение по умолчанию
+        verbose_name="Полное имя"
+    )
+    email = models.EmailField(
+        default="unknown@example.com",  # Значение по умолчанию
+        verbose_name="Email"
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата создания"
@@ -323,7 +336,7 @@ class Message(models.Model):
 
     def __str__(self):
         """Возвращает строковое представление сообщения."""
-        return f"Message from {self.sender} to {self.recipient}"
+        return f"Message from {self.fullname} ({self.email}) to {self.recipient or 'No recipient'}"
 
     def soft_delete(self, user):
         """Выполняет мягкое удаление сообщения для указанного пользователя."""

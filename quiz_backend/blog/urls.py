@@ -8,7 +8,7 @@ from .views import (
     ContactView, QuizesView, QuizDetailView, inbox,
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView,
-    MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView
+    MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit
 )
 from django.shortcuts import redirect
 
@@ -98,4 +98,8 @@ urlpatterns = [
 
     path('add-testimonial/', add_testimonial, name='add_testimonial'),
     path('testimonials/', AllTestimonialsView.as_view(), name='all_testimonials'),
+
+
+    path('contact/submit/', contact_form_submit, name='contact_form_submit'),
+
 ]
