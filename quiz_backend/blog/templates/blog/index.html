@@ -109,7 +109,7 @@
     <section class="testimonials">
         <h3 class="h3 testimonials-title">Топ пользователей</h3>
         <ul class="testimonials-list has-scrollbar">
-            {% for user in personal_info.top_users %}
+            {% for user in personal_info.top_users|slice:"3" %}
                 <li class="testimonials-item" data-username="{{ user.name }}">
                     <div class="content-card" data-testimonials-item>
                         <figure class="testimonials-avatar-box">
@@ -142,7 +142,7 @@
     <!-- Модальное окно для пользователей -->
     <div class="modal-container" data-modal-container>
         <div class="overlay" data-overlay></div>
-        <section class="testimonials-modal">
+        <section class="testimonials-modal top-user-modal">
             <button class="modal-close-btn" data-modal-close-btn>
                 <ion-icon name="close-outline"></ion-icon>
             </button>

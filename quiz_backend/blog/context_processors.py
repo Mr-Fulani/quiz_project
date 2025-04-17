@@ -30,7 +30,7 @@ def personal_info(request):
                 output_field=IntegerField(),
             )
         )
-    ).order_by('-total_score')[:5]
+    ).order_by('-total_score')[:3]
 
 
     # Формируем данные

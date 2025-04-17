@@ -2,443 +2,487 @@
  * Карточки сервисов (service)
  * Стили для элементов сервисов, включая ссылки, иконки и эффекты при наведении.
  */
-.service-icon-box img {
-    transition: transform 0.3s ease;
+.service-icon-box img { /* Выбирает изображения внутри блока с классом service-icon-box */
+    transition: transform 0.3s ease; /* Делает плавное изменение (анимацию) свойства transform за 0.3 секунды */
 }
 
-.service-item {
-    cursor: pointer;
-    transition: transform 0.3s ease;
+.service-item { /* Выбирает элементы с классом service-item (карточки сервисов) */
+    cursor: pointer; /* Меняет курсор на "руку", чтобы показать, что можно кликнуть */
+    transition: transform 0.3s ease; /* Плавная анимация изменения transform за 0.3 секунды */
 }
 
-.service-item:hover {
-    transform: scale(1.05);
+.service-item:hover { /* Стили при наведении на элемент service-item */
+    transform: scale(1.05); /* Увеличивает карточку на 5% (становится чуть больше) */
 }
 
-.service-item:hover .service-icon-box img {
-    transform: rotate(360deg);
+.service-item:hover .service-icon-box img { /* Выбирает изображения внутри service-icon-box, когда наведено на service-item */
+    transform: rotate(360deg); /* Поворачивает иконку на 360 градусов (полный круг) при наведении */
 }
 
-.service-item:hover .service-content-box h4 {
-    color: var(--orange);
+.service-item:hover .service-content-box h4 { /* Выбирает заголовок h4 внутри service-content-box при наведении на service-item */
+    color: var(--orange); /* Меняет цвет текста заголовка на оранжевый (переменная --orange) */
 }
 
-.service-link {
-    align-items: flex-start;
-    color: inherit;
-    display: flex;
-    gap: 16px;
-    padding: 10px;
-    text-decoration: none;
+.service-link { /* Выбирает элементы с классом service-link (ссылки сервисов) */
+    align-items: flex-start; /* Выравнивает содержимое по верхнему краю */
+    color: inherit; /* Наследует цвет текста от родителя */
+    display: flex; /* Использует гибкое выравнивание (flexbox) */
+    gap: 16px; /* Добавляет расстояние 16px между элементами внутри */
+    padding: 10px; /* Внутренние отступы 10px со всех сторон */
+    text-decoration: none; /* Убирает подчеркивание у ссылки */
 }
 
 /**
  * Карточки топовых пользователей (testimonials)
  * Стили для карточек пользователей, включая аватар, текст и эффекты при наведении.
  */
-.testimonials .testimonials-item {
-    cursor: pointer;
-    transition: transform 0.3s ease;
-    width: 100%;
+.testimonials .testimonials-item { /* Выбирает элементы testimonials-item внутри блока testimonials */
+    cursor: pointer; /* Курсор "рука" для кликабельности */
+    transition: transform 0.3s ease; /* Плавная анимация transform за 0.3 секунды */
+    width: 100%; /* Занимает всю доступную ширину */
 }
 
-.testimonials .testimonials-item .content-card {
-    align-items: flex-start !important;
-    background: var(--eerie-black-1);
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 25px;
-    min-height: 200px;
-    padding: 25px !important;
-    position: relative;
-    width: 100%;
+.testimonials .testimonials-item .content-card { /* Выбирает content-card внутри testimonials-item */
+    align-items: flex-start !important; /* Выравнивает элементы по верхнему краю (приоритет с !important) */
+    background: var(--eerie-black-1); /* Устанавливает тёмный фон (переменная --eerie-black-1) */
+    display: flex !important; /* Использует flexbox (приоритет) */
+    flex-direction: row !important; /* Элементы располагаются в строку (приоритет) */
+    gap: 10px; /* Расстояние 25px между элементами (например, аватар и текст) */
+    min-height: 200px; /* Минимальная высота карточки 200px */
+    padding: 25px !important; /* Внутренние отступы 25px (приоритет) */
+    position: relative; /* Относительное позиционирование для вложенных элементов */
+    width: 100%; /* Полная ширина */
 }
 
-.testimonials .testimonials-avatar-box {
-    border: 2px solid var(--border-color);
-    flex-shrink: 0;
-    height: 150px;
-    left: 10px;
-    margin: 0 !important;
-    overflow: hidden;
-    position: absolute;
-    top: 25px;
-    width: 120px;
+.testimonials .testimonials-avatar-box { /* Выбирает аватар внутри testimonials */
+    border: 2px solid var(--border-color); /* Граница 2px, цвет из переменной --border-color */
+    flex-shrink: 0; /* Запрещает сжатие элемента */
+    height: 150px; /* Высота аватара 150px */
+    left: 10px; /* Смещение влево на 10px */
+    margin: 0 !important; /* Убирает все внешние отступы (приоритет) */
+    overflow: hidden; /* Скрывает содержимое, выходящее за границы */
+    position: absolute; /* Абсолютное позиционирование относительно content-card */
+    top: 25px; /* Смещение сверху на 25px */
+    width: 120px; /* Ширина аватара 120px */
 }
 
-.testimonials .testimonials-avatar-box img {
-    height: 100% !important;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-    width: 100% !important;
+.testimonials .testimonials-avatar-box img { /* Выбирает изображение внутри аватара */
+    height: 100% !important; /* Занимает всю высоту контейнера (приоритет) */
+    object-fit: cover; /* Масштабирует изображение, обрезая края, чтобы заполнить контейнер */
+    transition: transform 0.3s ease; /* Плавная анимация transform за 0.3 секунды */
+    width: 100% !important; /* Занимает всю ширину контейнера (приоритет) */
 }
 
-.testimonials .testimonials-content {
-    margin-left: 160px;
-    width: calc(100% - 160px);
+.testimonials .testimonials-content { /* Выбирает блок с контентом внутри testimonials */
+    margin-left: 160px; /* Отступ слева 160px, чтобы учесть ширину аватара и его позицию */
+    width: calc(100% - 160px); /* Ширина = 100% минус 160px (место для аватара) */
 }
 
-.testimonials .testimonials-item-title {
-    color: var(--white);
-    font-size: 1.2em;
-    margin: 0 0 5px 0 !important;
-    transition: color 0.3s ease;
+.testimonials .testimonials-item-title { /* Выбирает заголовок карточки */
+    color: var(--white); /* Белый цвет текста (переменная --white) */
+    font-size: 1.2em; /* Размер шрифта 1.2em (чуть больше стандартного) */
+    margin: 0 0 5px 0 !important; /* Отступы: 0 сверху/снизу, 5px снизу (приоритет) */
+    transition: color 0.3s ease; /* Плавная смена цвета текста за 0.3 секунды */
 }
 
-.testimonials .testimonials-text {
-    color: var(--light-gray);
-    display: -webkit-box;
-    line-height: 1.6;
-    margin-top: 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+.testimonials .testimonials-text { /* Выбирает текст отзыва */
+    color: var(--light-gray); /* Светло-серый цвет текста (переменная --light-gray) */
+    display: -webkit-box; /* Использует устаревший способ обрезки текста (для старых браузеров) */
+    line-height: 1.6; /* Высота строки 1.6 (для читаемости) */
+    margin-top: 10px; /* Отступ сверху 10px */
+    overflow: hidden; /* Закомментировано: скрывает текст, выходящий за границы */
+    text-overflow: ellipsis; /* Добавляет многоточие (...) при обрезке текста */
+    -webkit-box-orient: vertical; /* Ориентация текста для обрезки (вертикальная) */
+    -webkit-line-clamp: 3; /* Ограничивает текст 3 строками (обрезает с многоточием) */
 }
 
-.testimonials .user-stats {
-    color: var(--light-gray);
-    display: flex;
-    font-size: 0.9em;
-    gap: 15px;
-    margin: 10px 0;
+.testimonials .user-stats { /* Выбирает блок статистики пользователя */
+    color: var(--light-gray); /* Светло-серый цвет текста */
+    display: flex; /* Использует flexbox */
+    font-size: 0.9em; /* Размер шрифта 0.9em (чуть меньше стандартного) */
+    gap: 15px; /* Расстояние 15px между элементами статистики */
+    margin: 10px 0; /* Отступы 10px сверху и снизу */
 }
 
 .testimonials .rank,
-.testimonials .score {
-    display: inline-block;
-    margin-right: 15px;
+.testimonials .score { /* Выбирает элементы ранга и очков */
+    display: inline-block; /* Отображает элементы в строку */
+    margin-right: 15px; /* Отступ справа 15px */
 }
 
-.testimonials .testimonials-item:hover {
-    transform: translateY(-5px);
+.testimonials .testimonials-item:hover { /* Стили при наведении на карточку */
+    transform: translateY(-5px); /* Сдвигает карточку вверх на 5px (эффект поднятия) */
 }
 
-.testimonials .testimonials-item:hover .testimonials-avatar-box img {
-    transform: scale(1.15);
+.testimonials .testimonials-item:hover .testimonials-avatar-box img { /* Изображение аватара при наведении */
+    transform: scale(1.15); /* Увеличивает изображение на 15% */
 }
 
-.testimonials .testimonials-item:hover .testimonials-item-title {
-    color: var(--orange);
+.testimonials .testimonials-item:hover .testimonials-item-title { /* Заголовок при наведении */
+    color: var(--orange); /* Меняет цвет заголовка на оранжевый */
 }
 
 /**
  * Модальное окно для топовых пользователей (testimonials-modal)
  * Стили для модального окна с информацией о пользователе, включая аватар, текст и кнопку.
  */
-.modal-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+.modal-container { /* Фиксирует модалку на весь экран */
+    position: fixed; /* Фиксированное положение (не скроллится) */
+    top: 0; /* Прилепляет к верхнему краю экрана */
+    left: 0; /* Прилепляет к левому краю экрана */
+    width: 100%; /* Полная ширина экрана */
+    height: 100vh; /* Полная высота экрана */
+    display: none; /* Скрывает модалку по умолчанию */
+    justify-content: center; /* Центрирует содержимое по горизонтали */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    z-index: 1000; /* Помещает модалку поверх других элементов */
+    opacity: 0; /* Модалка невидима при закрытии */
+    transition: opacity 0.3s ease; /* Плавная смена прозрачности за 0.3 секунды */
 }
 
-.modal-container.active {
-    display: flex;
-    opacity: 1;
+.modal-container.active { /* Показывает модалку, когда добавлен класс active */
+    display: flex; /* Включает flexbox для центрирования */
+    opacity: 1; /* Делает модалку полностью видимой */
 }
 
-.modal-container.active .testimonials-modal {
-    background: hsl(240, 2%, 12%) !important;
-    opacity: 1 !important;
-    transform: scale(1);
-    transition: transform 0.3s ease, opacity 0.3s ease;
+.modal-container.active .testimonials-modal { /* Анимация открытия модалки */
+    background: hsl(240, 2%, 12%) !important; /* Устанавливает тёмный фон (приоритет) */
+    opacity: 1 !important; /* Полная видимость (приоритет) */
+    transform: scale(1); /* Возвращает нормальный размер (был уменьшен) */
+    transition: transform 0.3s ease, opacity 0.3s ease; /* Плавная анимация масштаба и прозрачности */
 }
 
-.overlay {
-    background: rgba(0, 0, 0, 0.9);
-    height: 100%;
-    left: 0;
-    opacity: 0;
-    position: fixed;
-    top: 0;
-    transition: opacity 0.3s ease;
-    visibility: hidden;
-    width: 100%;
+
+.overlay { /* Темный фон за модалкой */
+    background: rgba(0, 0, 0, 0.9); /* Чёрный фон с прозрачностью 90% */
+    height: 100%; /* Полная высота */
+    left: 0; /* Прилепляет к левому краю */
+    opacity: 0; /* Невидим при закрытии */
+    position: fixed; /* Фиксированное положение */
+    top: 0; /* Прилепляет к верхнему краю */
+    transition: opacity 0.3s ease; /* Плавная смена прозрачности */
+    visibility: hidden; /* Скрывает элемент */
+    width: 100%; /* Полная ширина */
 }
 
-.overlay.active {
-    opacity: 1;
-    visibility: visible;
+.overlay.active { /* Показывает фон, когда добавлен класс active */
+    opacity: 1; /* Полная видимость */
+    visibility: visible; /* Делает элемент видимым */
 }
 
-.testimonials-modal {
-    background: #1e1e1e;
-    border-radius: 12px;
-    padding: 20px;
-    width: 90%;
-    max-width: 600px;
-    position: relative;
-    margin: 20px auto;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    transform: scale(0.9);
-    opacity: 0;
+section.testimonials-modal { /* Увеличиваем специфичность, чтобы перекрыть конфликты */
+    background: #1e1e1e; /* Тёмный фон */
+    border-radius: 12px; /* Скругленные углы 12px */
+    padding: 20px; /* Внутренние отступы 20px */
+    width: 90%; /* Ширина 90% от экрана */
+    max-width: 700px; /* Максимальная ширина 700px */
+    position: relative; /* Относительное позиционирование для вложенных элементов */
+    margin: 20px auto; /* Отступы 20px сверху/снизу и центрирование по горизонтали */
+    box-shadow: none !important; /* Убираем тени с максимальным приоритетом */
+    transform: scale(0.9); /* Уменьшает модалку при закрытии */
+    opacity: 0; /* Прозрачность при закрытии */
 }
 
-.testimonials-modal .modal-content {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+/**
+ * Настройка контейнера модалки топ юзеров для корректного смещения контента
+ * Применяется только к модалке с классом .top-user-modal.
+ * Устанавливает overflow: visible, чтобы .modal-content мог выйти за пределы контейнера при смещении.
+ */
+section.testimonials-modal.top-user-modal {
+    overflow: visible; /* Разрешает .modal-content выходить за пределы контейнера */
 }
 
-.testimonials-modal textarea {
-    width: 100%;
-    min-height: 200px;
-    background: #2a2a2a;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    padding: 12px;
-    color: #fff;
-    font-size: 16px;
-    line-height: 1.5;
-    resize: vertical;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+section.testimonials-modal .modal-content { /* Контейнер для текста внутри модалки */
+    display: flex; /* Использует flexbox */
+    flex-direction: column; /* Элементы располагаются в колонку */
+    gap: 15px; /* Расстояние 15px между элементами (заголовок, текст, кнопка) */
 }
 
-.testimonials-modal textarea:focus {
-    border-color: var(--orange-yellow-crayola);
-    box-shadow: 0 0 8px rgba(255, 180, 0, 0.3);
-    outline: none;
+/**
+ * Смещение и центрирование текста в модалке топ юзеров на десктопе
+ * Применяется только к модалке с классом .top-user-modal на экранах шире 768px.
+ * Сдвигает .modal-content влево на 50px и центрирует содержимое внутри.
+ * Не затрагивает модалку отзывов, так как они не имеют класс .top-user-modal.
+ */
+@media (min-width: 769px) {
+    section.testimonials-modal.top-user-modal .modal-content {
+        margin-left: -50px; /* Сдвигаем блок влево на 50px */
+        text-align: center; /* Центрируем текст */
+        max-width: 400px; /* Ограничиваем ширину */
+        margin-right: auto; /* Центрируем блок */
+        margin-left: auto; /* Центрируем блок, но margin-left: -50px перезапишет */
+    }
 }
 
-.testimonials-modal .btn {
-    align-self: center;
-    min-width: 180px;
-    padding: 10px 20px;
-    border-radius: 10px;
-    background: var(--orange-yellow-crayola);
-    color: var(--smoky-black);
-    font-weight: 500;
-    transition: transform 0.2s ease, background 0.3s ease;
+@media (min-width: 769px) {
+    section.testimonials-modal.top-user-modal .modal-profile-btn {
+        display: block; /* Делаем кнопку блочной, чтобы margin: auto работал */
+        margin: 0 auto; /* Центрируем кнопку */
+    }
 }
 
-.testimonials-modal .btn:hover {
-    background: hsl(45, 100%, 65%);
-    transform: scale(1.05);
+section.testimonials-modal textarea { /* Стиль текстового поля внутри модалки */
+    width: 100%; /* Полная ширина */
+    min-height: 200px; /* Минимальная высота 200px */
+    background: #2a2a2a; /* Тёмный фон */
+    border: 1px solid #3a3a3a; /* Граница 1px серого цвета */
+    border-radius: 8px; /* Скругленные углы 8px */
+    padding: 12px; /* Внутренние отступы 12px */
+    color: #fff; /* Белый цвет текста */
+    font-size: 16px; /* Размер шрифта 16px */
+    line-height: 1.5; /* Высота строки 1.5 */
+    resize: vertical; /* Разрешает изменение высоты (вертикально) */
+    transition: border-color 0.3s ease; /* Плавная анимация границы и тени */
 }
 
-.testimonials-modal .btn:active {
-    transform: scale(0.95);
+section.testimonials-modal textarea:focus { /* Стиль текстового поля при фокусе */
+    border-color: var(--orange-yellow-crayola); /* Меняет цвет границы на оранжевый */
+    box-shadow: 0 0 8px rgba(255, 180, 0, 0.3); /* Добавляет оранжевую тень при фокусе */
+    outline: none; /* Убирает стандартную обводку браузера */
 }
 
-.modal-img-wrapper {
-    align-items: flex-start;
-    display: flex;
-    gap: 25px;
-    justify-content: space-between;
-    width: 100%;
+section.testimonials-modal .btn { /* Стиль кнопки внутри модалки */
+    align-self: center; /* Центрирует кнопку по горизонтали */
+    min-width: 180px; /* Минимальная ширина 180px */
+    padding: 10px 20px; /* Отступы внутри кнопки */
+    border-radius: 10px; /* Скругленные углы 10px */
+    background: var(--orange-yellow-crayola); /* Оранжевый фон */
+    color: var(--smoky-black); /* Тёмный цвет текста */
+    font-weight: 500; /* Жирность шрифта 500 */
+    transition: transform 0.2s ease, background 0.3s ease; /* Плавная анимация масштаба и фона */
 }
 
-.modal-avatar-box {
-    border: 2px solid var(--border-color);
-    flex-shrink: 0;
-    height: 200px !important;
-    margin: 0 !important;
-    overflow: hidden;
-    width: 200px !important;
+section.testimonials-modal .btn:hover { /* Стиль кнопки при наведении */
+    background: hsl(45, 100%, 65%); /* Меняет цвет фона на более светлый оранжевый */
+    transform: scale(1.05); /* Увеличивает кнопку на 5% */
 }
 
-.modal-avatar-box img {
-    height: 100% !important;
-    object-fit: cover;
-    width: 100% !important;
+section.testimonials-modal .btn:active { /* Стиль кнопки при нажатии */
+    transform: scale(0.95); /* Уменьшает кнопку на 5% */
 }
 
-.modal-content {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 15px;
-    min-width: 0;
-    padding-right: 15px;
-    text-align: left;
+section.testimonials-modal .modal-img-wrapper { /* Контейнер для аватара и текста в модалке */
+    align-items: flex-start; /* Выравнивает элементы по верхнему краю */
+    display: flex; /* Использует flexbox */
+    flex-wrap: wrap; /* Переносит элементы на новую строку, если не помещаются */
+    gap: 5px !important; /* Расстояние между аватаркой и текстом 10px с приоритетом */
+    width: 100%; /* Полная ширина */
+    margin: 0 !important; /* Убирает внешние отступы (приоритет) */
 }
 
-.modal-title {
-    color: var(--white);
-    font-size: 1.5em;
-    font-weight: bold;
-    margin: 0 !important;
+@media (min-width: 769px) {
+    section.testimonials-modal.top-user-modal {
+        gap: 5px !important;
+    }
 }
 
-time[data-modal-date] {
-    color: var(--light-gray, #a1a1a1);
-    display: block;
-    font-size: 0.9rem;
-    margin-bottom: 15px;
+section.testimonials-modal .modal-avatar-box { /* Контейнер аватара в модалке */
+    border: 2px solid var(--border-color); /* Граница 2px */
+    flex-shrink: 0; /* Запрещает сжатие */
+    height: 200px !important; /* Фиксированная высота 200px (приоритет) */
+    margin: 0 !important; /* Убирает внешние отступы (приоритет) */
+    overflow: hidden; /* Скрывает содержимое за границами */
+    width: 200px !important; /* Фиксированная ширина 200px (приоритет) */
 }
 
-[data-modal-text] p {
-    font-size: 0.9rem;
-    margin: 5px 0;
+section.testimonials-modal .modal-avatar-box img { /* Изображение аватара */
+    height: 100% !important; /* Полная высота контейнера (приоритет) */
+    object-fit: cover; /* Масштабирует изображение с обрезкой */
+    width: 100% !important; /* Полная ширина контейнера (приоритет) */
 }
 
-.modal-date {
-    color: var(--light-gray-70);
-    font-size: 0.9em;
+section.testimonials-modal .modal-content { /* Контейнер текста в модалке */
+    display: flex; /* Использует flexbox */
+    flex-direction: column; /* Элементы в колонку */
+    gap: 5px; /* Расстояние 15px между элементами */
+    max-width: 100%; /* Максимальная ширина 100% */
+    box-sizing: border-box; /* Учитывает padding в ширине */
+    padding: 0 !important; /* Убирает внутренние отступы (приоритет) */
 }
 
-.modal-text {
-    color: var(--light-gray);
-    font-size: 1em;
-    line-height: 1.6;
-    margin: 0;
-    max-width: 100%;
-    word-wrap: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 10;
-    -webkit-box-orient: vertical;
+section.testimonials-modal .modal-title { /* Заголовок модалки */
+    color: var(--white); /* Белый цвет текста */
+    font-size: 1.5em; /* Размер шрифта 1.5em */
+    font-weight: bold; /* Жирный шрифт */
+    margin: 0 !important; /* Убирает отступы (приоритет) */
 }
 
-.modal-close-btn {
-    align-items: center;
-    background: var(--orange-yellow-crayola);
-    border-radius: 8px;
-    color: var(--smoky-black);
-    display: flex;
-    font-size: 18px;
-    height: 32px;
-    justify-content: center;
-    opacity: 0.9;
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    transition: var(--transition1);
-    width: 32px;
+section.testimonials-modal time[data-modal-date] { /* Элемент даты (тег time с атрибутом data-modal-date) */
+    color: var(--light-gray, #a1a1a1); /* Светло-серый цвет (или #a1a1a1 как запасной) */
+    display: block; /* Делает элемент блочным (на всю ширину) */
+    font-size: 0.9rem; /* Размер шрифта 0.9rem */
+    margin-bottom: 15px; /* Отступ снизу 15px */
 }
 
-.modal-close-btn:hover,
-.modal-close-btn:focus {
-    background: hsl(45, 100%, 65%);
-    opacity: 1;
+section.testimonials-modal [data-modal-text] p { /* Параграфы внутри блока с атрибутом data-modal-text */
+    font-size: 0.9rem; /* Размер шрифта 0.9rem */
+    margin: 5px 0; /* Отступы 5px сверху и снизу */
 }
 
-.modal-profile-btn {
-    background: var(--orange-yellow-crayola);
-    border-radius: 8px;
-    color: var(--smoky-black);
-    display: inline-block;
-    font-size: var(--fs6);
-    font-weight: var(--fw500);
-    margin-top: 15px;
-    padding: 10px 20px;
-    text-align: center;
-    text-transform: capitalize;
-    transition: var(--transition1);
+section.testimonials-modal .modal-date { /* Элемент с классом modal-date */
+    color: var(--light-gray-70); /* Светло-серый цвет */
+    font-size: 0.9em; /* Размер шрифта 0.9em */
 }
 
-.modal-profile-btn:hover,
-.modal-profile-btn:focus {
-    background: hsl(45, 100%, 65%);
-    color: var(--smoky-black);
+section.testimonials-modal .modal-text { /* Текст модалки */
+    color: var(--light-gray); /* Светло-серый цвет */
+    font-size: 1em; /* Размер шрифта 1em */
+    line-height: 1.6; /* Высота строки 1.6 */
+    margin: 0; /* Убирает отступы */
+    max-width: 100%; /* Максимальная ширина 100% */
+    word-wrap: break-word; /* Переносит слова на новую строку */
+}
+
+section.testimonials-modal .modal-text p { /* Параграфы в тексте модалки */
+    margin: 0 0 8px 0; /* Отступ снизу 8px */
+}
+
+section.testimonials-modal .modal-close-btn { /* Кнопка закрытия модалки */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    background: var(--orange-yellow-crayola); /* Оранжевый фон */
+    border-radius: 8px; /* Скругленные углы 8px */
+    color: var(--smoky-black); /* Тёмный цвет текста */
+    display: flex; /* Использует flexbox */
+    font-size: 18px; /* Размер шрифта 18px */
+    height: 32px; /* Высота 32px */
+    justify-content: center; /* Центрирует содержимое по горизонтали */
+    opacity: 0.9; /* Прозрачность 90% */
+    position: absolute; /* Абсолютное позиционирование */
+    right: 15px; /* Смещение справа 15px */
+    top: 15px; /* Смещение сверху 15px */
+    transition: var(--transition1); /* Плавная анимация (переменная) */
+    width: 32px; /* Ширина 32px */
+}
+
+section.testimonials-modal .modal-close-btn:hover,
+section.testimonials-modal .modal-close-btn:focus { /* Стиль кнопки закрытия при наведении или фокусе */
+    background: hsl(45, 100%, 65%); /* Светлый оранжевый фон */
+    opacity: 1; /* Полная видимость */
+}
+
+section.testimonials-modal .modal-profile-btn { /* Кнопка "Перейти в профиль" */
+    background: var(--orange-yellow-crayola); /* Оранжевый фон */
+    border-radius: 8px; /* Скругленные углы 8px */
+    color: var(--smoky-black); /* Тёмный цвет текста */
+    display: inline-block; /* Отображает как блочный элемент */
+    font-size: var(--fs6); /* Размер шрифта из переменной --fs6 */
+    font-weight: var(--fw500); /* Жирность шрифта из переменной --fw500 */
+    margin-top: 15px; /* Отступ сверху 15px */
+    padding: 10px 20px; /* Внутренние отступы */
+    text-align: center; /* Центрирует текст */
+    text-transform: capitalize; /* Делает первые буквы заглавными */
+    transition: var(--transition1); /* Плавная анимация (переменная) */
+}
+
+@media (min-width: 769px) { /* Стили для экранов шире 769px (десктоп) */
+    section.testimonials-modal .modal-profile-btn { /* Кнопка "Перейти в профиль" на десктопе */
+        align-self: flex-start; /* Выравнивает кнопку влево */
+    }
+}
+
+section.testimonials-modal .modal-profile-btn:hover,
+section.testimonials-modal .modal-profile-btn:focus { /* Стиль кнопки при наведении или фокусе */
+    background: hsl(45, 100%, 65%); /* Светлый оранжевый фон */
+    color: var(--smoky-black); /* Тёмный цвет текста */
 }
 
 /**
  * Модальное окно для графиков (quizStatsModal)
  * Стили для модального окна с графиками, включая оверлей, контент и кнопку закрытия.
  */
-.modal {
-    display: none;
-    height: 100%;
-    left: 0;
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 1000;
+.modal { /* Общий стиль модального окна */
+    display: none; /* Скрывает модалку по умолчанию */
+    height: 100%; /* Полная высота */
+    left: 0; /* Прилепляет к левому краю */
+    position: fixed; /* Фиксированное положение */
+    top: 0; /* Прилепляет к верхнему краю */
+    width: 100%; /* Полная ширина */
+    z-index: 1000; /* Поверх других элементов */
 }
 
-.modal.active {
-    display: block;
+.modal.active { /* Показывает модалку, когда добавлен класс active */
+    display: block; /* Делает модалку видимой */
 }
 
-.modal-content {
-    background: hsl(240, 2%, 12%) !important;
-    border-radius: 14px;
-    box-shadow: var(--shadow5);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    margin: 20px auto;
-    max-width: 700px;
-    min-height: 350px;
-    padding: 25px;
-    position: relative;
-    width: 90%;
+.modal-content { /* Контейнер содержимого модалки (для графиков) */
+    background: hsl(240, 2%, 12%) !important; /* Тёмный фон (приоритет) */
+    border-radius: 14px; /* Скругленные углы 14px */
+    box-shadow: var(--shadow5); /* Тень (переменная --shadow5, может конфликтовать) */
+    display: flex; /* Использует flexbox */
+    flex-direction: column; /* Элементы в колонку */
+    gap: 20px; /* Расстояние 20px между элементами */
+    margin: 20px auto; /* Отступы 20px и центрирование */
+    max-width: 700px; /* Максимальная ширина 700px */
+    min-height: 350px; /* Минимальная высота 350px */
+    padding: 25px; /* Внутренние отступы 25px */
+    position: relative; /* Относительное позиционирование */
+    width: 90%; /* Ширина 90% */
 }
 
-.modal-content h3 {
-    color: var(--white);
-    font-size: 1.5em;
-    font-weight: bold;
-    margin: 0 0 15px 0;
+.modal-content h3 { /* Заголовок внутри модалки */
+    color: var(--white); /* Белый цвет текста */
+    font-size: 1.5em; /* Размер шрифта 1.5em */
+    font-weight: bold; /* Жирный шрифт */
+    margin: 0 0 15px 0; /* Отступ снизу 15px */
 }
 
-.close-stats-modal {
-    align-items: center;
-    background: var(--orange-yellow-crayola);
-    border-radius: 8px;
-    color: var(--smoky-black);
-    cursor: pointer;
-    display: flex;
-    font-size: 18px;
-    height: 32px;
-    justify-content: center;
-    opacity: 0.9;
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    transition: var(--transition1);
-    width: 32px;
+.close-stats-modal { /* Кнопка закрытия модалки для графиков */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    background: var(--orange-yellow-crayola); /* Оранжевый фон */
+    border-radius: 8px; /* Скругленные углы 8px */
+    color: var(--smoky-black); /* Тёмный цвет текста */
+    cursor: pointer; /* Курсор "рука" */
+    display: flex; /* Использует flexbox */
+    font-size: 18px; /* Размер шрифта 18px */
+    height: 32px; /* Высота 32px */
+    justify-content: center; /* Центрирует содержимое по горизонтали */
+    opacity: 0.9; /* Прозрачность 90% */
+    position: absolute; /* Абсолютное позиционирование */
+    right: 15px; /* Смещение справа 15px */
+    top: 15px; /* Смещение сверху 15px */
+    transition: var(--transition1); /* Плавная анимация (переменная) */
+    width: 32px; /* Ширина 32px */
 }
 
 .close-stats-modal:hover,
-.close-stats-modal:focus {
-    background: hsl(45, 100%, 65%);
-    opacity: 1;
+.close-stats-modal:focus { /* Стиль кнопки при наведении или фокусе */
+    background: hsl(45, 100%, 65%); /* Светлый оранжевый фон */
+    opacity: 1; /* Полная видимость */
 }
 
 /**
  * Карточки навыков и викторин (skills, quiz)
  * Стили для карточек навыков и викторин с эффектами при наведении.
  */
-.quiz-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
+.quiz-card { /* Выбирает карточки викторин */
+    cursor: pointer; /* Курсор "рука" */
+    transition: all 0.3s ease; /* Плавная анимация всех свойств за 0.3 секунды */
 }
 
-.quiz-card:hover {
-    background: var(--border-gradient-onyx);
-    transform: translateX(10px);
+.quiz-card:hover { /* Стиль карточки при наведении */
+    background: var(--border-gradient-onyx); /* Градиентный фон (переменная) */
+    transform: translateX(10px); /* Сдвигает карточку вправо на 10px */
 }
 
-.quiz-card:hover .skills-progress-fill {
-    background: var(--orange);
+.quiz-card:hover .skills-progress-fill { /* Полоса прогресса при наведении */
+    background: var(--orange); /* Оранжевый цвет */
 }
 
-.quiz-card:hover .title-wrapper {
-    color: var(--orange);
+.quiz-card:hover .title-wrapper { /* Заголовок при наведении */
+    color: var(--orange); /* Оранжевый цвет текста */
 }
 
-.skills-item {
-    transition: all 0.3s ease;
+.skills-item { /* Выбирает карточки навыков */
+    transition: all 0.3s ease; /* Плавная анимация всех свойств за 0.3 секунды */
 }
 
-.skills-item:hover {
-    background: var(--border-gradient-onyx);
-    transform: translateX(10px);
+.skills-item:hover { /* Стиль карточки при наведении */
+    background: var(--border-gradient-onyx); /* Градиентный фон */
+    transform: translateX(10px); /* Сдвигает карточку вправо на 10px */
 }
 
-.skills-item:hover .title-wrapper {
-    color: var(--orange);
+.skills-item:hover .title-wrapper { /* Заголовок при наведении */
+    color: var(--orange); /* Оранжевый цвет текста */
 }
 
 /**
@@ -447,331 +491,331 @@ time[data-modal-date] {
  */
 .btn,
 .pagination-buttons a,
-.add-testimonial-button button {
-    background: var(--gradient-yellow);
-    width: auto;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 0 15px;
-    border-radius: 12px;
-    font-size: var(--fs-6);
-    font-weight: var(--fw-500);
-    text-transform: capitalize;
-    color: var(--white);
-    transition: var(--transition-1);
-    cursor: pointer;
-    border: none;
-    text-decoration: none;
+.add-testimonial-button button { /* Выбирает кнопки, ссылки пагинации и кнопку добавления отзыва */
+    background: var(--gradient-yellow); /* Градиентный фон (переменная) */
+    width: auto; /* Ширина по содержимому */
+    height: 40px; /* Высота 40px */
+    display: flex; /* Использует flexbox */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    justify-content: center; /* Центрирует содержимое по горизонтали */
+    gap: 8px; /* Расстояние 8px между элементами (например, текст и иконка) */
+    padding: 0 15px; /* Отступы внутри */
+    border-radius: 12px; /* Скругленные углы 12px */
+    font-size: var(--fs-6); /* Размер шрифта из переменной --fs-6 */
+    font-weight: var(--fw-500); /* Жирность шрифта из переменной --fw-500 */
+    text-transform: capitalize; /* Делает первые буквы заглавными */
+    color: var(--white); /* Белый цвет текста */
+    transition: var(--transition-1); /* Плавная анимация (переменная) */
+    cursor: pointer; /* Курсор "рука" */
+    border: none; /* Убирает границу */
+    text-decoration: none; /* Убирает подчеркивание у ссылок */
 }
 
 .btn:hover,
 .pagination-buttons a:hover,
-.add-testimonial-button button:hover {
+.add-testimonial-button button:hover { /* Стиль при наведении */
     --gradient-yellow: linear-gradient(
         to right,
         hsl(45, 100%, 71%),
         hsl(35, 100%, 68%)
-    );
-    background: var(--gradient-yellow);
+    ); /* Меняет переменную --gradient-yellow на новый градиент */
+    background: var(--gradient-yellow); /* Применяет новый градиент */
 }
 
-.pagination-buttons .current-page {
-    background: var(--eerie-black-1);
-    border-radius: 12px;
-    padding: 0 15px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white);
-    font-size: var(--fs-6);
-    font-weight: var(--fw-500);
+.pagination-buttons .current-page { /* Стиль текущей страницы в пагинации */
+    background: var(--eerie-black-1); /* Тёмный фон */
+    border-radius: 12px; /* Скругленные углы 12px */
+    padding: 0 15px; /* Отступы внутри */
+    height: 40px; /* Высота 40px */
+    display: flex; /* Использует flexbox */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    justify-content: center; /* Центрирует содержимое по горизонтали */
+    color: var(--white); /* Белый цвет текста */
+    font-size: var(--fs-6); /* Размер шрифта из переменной */
+    font-weight: var(--fw-500); /* Жирность шрифта из переменной */
 }
 
 /**
  * Иконки социальных сетей
  * Стили для иконок соцсетей с эффектами при наведении.
  */
-.social-icons {
-    display: flex;
-    gap: 15px;
-    margin-top: 10px;
+.social-icons { /* Выбирает блок с иконками соцсетей */
+    display: flex; /* Использует flexbox */
+    gap: 15px; /* Расстояние 15px между иконками */
+    margin-top: 10px; /* Отступ сверху 10px */
 }
 
-.social-link {
-    display: inline-block;
-    transition: transform 0.3s ease;
+.social-link { /* Выбирает ссылки соцсетей */
+    display: inline-block; /* Отображает как блочный элемент */
+    transition: transform 0.3s ease; /* Плавная анимация масштаба */
 }
 
-.social-link img {
-    height: 24px;
-    object-fit: contain;
-    width: 24px;
+.social-link img { /* Выбирает изображения внутри ссылок */
+    height: 24px; /* Высота 24px */
+    object-fit: contain; /* Масштабирует изображение, сохраняя пропорции */
+    width: 24px; /* Ширина 24px */
 }
 
-.social-link:hover {
-    transform: scale(1.2);
+.social-link:hover { /* Стиль ссылки при наведении */
+    transform: scale(1.2); /* Увеличивает иконку на 20% */
 }
 
 /**
  * Адаптивность для мобильных устройств
  * Стили для модальных окон на экранах меньше 600px.
  */
-@media (max-width: 600px) {
-    .modal-img-wrapper {
-        align-items: center;
-        flex-direction: column;
-        gap: 15px;
+@media (max-width: 600px) { /* Стили для экранов уже 600px */
+    .modal-img-wrapper { /* Контейнер аватара и текста */
+        align-items: center; /* Центрирует элементы */
+        flex-direction: column; /* Располагает элементы в колонку */
+        gap: 10px; /* Расстояние 15px между элементами */
     }
 
-    .modal-avatar-box {
-        height: 120px !important;
-        width: 120px !important;
+    .modal-avatar-box { /* Аватар */
+        height: 120px !important; /* Уменьшает высоту до 120px (приоритет) */
+        width: 120px !important; /* Уменьшает ширину до 120px (приоритет) */
     }
 
-    .modal-content {
-        padding-right: 0;
-        text-align: center;
-        width: 100%;
+    .modal-content { /* Контейнер текста */
+        padding-right: 0; /* Убирает отступ справа */
+        text-align: center; /* Центрирует текст */
+        width: 100%; /* Полная ширина */
     }
 
-    .modal-date {
-        font-size: 0.85em;
+    .modal-date { /* Дата */
+        font-size: 0.85em; /* Уменьшает размер шрифта до 0.85em */
     }
 
-    .modal-text {
-        font-size: 0.95em;
+    .modal-text { /* Текст */
+        font-size: 0.95em; /* Уменьшает размер шрифта до 0.95em */
     }
 
-    .modal-title {
-        font-size: 1.3em;
+    .modal-title { /* Заголовок */
+        font-size: 1.3em; /* Уменьшает размер шрифта до 1.3em */
     }
 
-    .modal-content {
-        padding: 15px;
-        width: 95%;
+    .modal-content { /* Контейнер (повторное определение, перезаписывает выше) */
+        padding: 15px; /* Уменьшает внутренние отступы до 15px */
+        width: 95%; /* Ширина 95% */
     }
 
-    .modal-content h3 {
-        font-size: 1.3em;
+    .modal-content h3 { /* Заголовок внутри модалки */
+        font-size: 1.3em; /* Уменьшает размер шрифта до 1.3em */
     }
 }
 
 /**
  * Адаптивность для мобильных устройств (модальное окно добавления отзыва)
  */
-@media (max-width: 768px) {
-    .testimonials-modal {
-        width: 92%;
-        padding: 15px;
-        margin: 10px auto;
-        border-radius: 12px;
-        border: 1px solid #333;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        transform: scale(0.95);
-        transition: transform 0.3s ease, opacity 0.3s ease;
+@media (max-width: 768px) { /* Стили для экранов уже 768px */
+    .testimonials-modal { /* Модалка на мобильных */
+        width: 92%; /* Ширина 92% */
+        padding: 15px; /* Внутренние отступы 15px */
+        margin: 10px auto; /* Отступы 10px и центрирование */
+        border-radius: 12px; /* Скругленные углы 12px */
+        border: 1px solid #333; /* Граница 1px серого цвета */
+        /*box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); !* Тень (перебивает box-shadow: none на мобильных) *!*/
+        transform: scale(0.95); /* Уменьшает модалку на 5% */
+        transition: transform 0.3s ease, opacity 0.3s ease; /* Плавная анимация масштаба и прозрачности */
     }
 
-    .testimonials-modal.active {
-        transform: scale(1);
-        opacity: 1;
+    .testimonials-modal.active { /* Модалка при открытии */
+        transform: scale(1); /* Возвращает нормальный размер */
+        opacity: 1; /* Полная видимость */
     }
 
-    .testimonials-modal .modal-content {
-        gap: 12px;
+    .testimonials-modal .modal-content { /* Контейнер текста */
+        gap: 12px; /* Уменьшает расстояние между элементами до 12px */
     }
 
-    .testimonials-modal .modal-title {
-        font-size: 1.2em;
-        color: var(--white);
-        text-align: center;
-        margin-bottom: 8px;
+    .testimonials-modal .modal-title { /* Заголовок */
+        font-size: 1.2em; /* Уменьшает размер шрифта до 1.2em */
+        color: var(--white); /* Белый цвет текста */
+        text-align: center; /* Центрирует текст */
+        margin-bottom: 8px; /* Отступ снизу 8px */
     }
 
-    .testimonials-modal .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+    .testimonials-modal .form-group { /* Группа формы (например, поля ввода) */
+        display: flex; /* Использует flexbox */
+        flex-direction: column; /* Элементы в колонку */
+        gap: 6px; /* Расстояние 6px между элементами */
     }
 
-    .testimonials-modal .form-group label {
-        font-size: 0.9em;
-        color: var(--light-gray);
-        font-weight: 500;
+    .testimonials-modal .form-group label { /* Метки формы */
+        font-size: 0.9em; /* Размер шрифта 0.9em */
+        color: var(--light-gray); /* Светло-серый цвет */
+        font-weight: 500; /* Жирность 500 */
     }
 
-    .testimonials-modal textarea {
-        min-height: 220px;
-        background: #222;
-        border: 1px solid #3a3a3a;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 14px;
-        color: #e0e0e0;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    .testimonials-modal textarea { /* Текстовое поле */
+        min-height: 220px; /* Минимальная высота 220px */
+        background: #222; /* Тёмный фон */
+        border: 1px solid #3a3a3a; /* Граница 1px */
+        border-radius: 8px; /* Скругленные углы 8px */
+        padding: 10px; /* Внутренние отступы 10px */
+        font-size: 14px; /* Размер шрифта 14px */
+        color: #e0e0e0; /* Светло-серый цвет текста */
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); /* Внутренняя тень */
     }
 
-    .testimonials-modal textarea:focus {
-        border-color: var(--orange-yellow-crayola);
-        box-shadow: 0 0 8px rgba(255, 180, 0, 0.3);
+    .testimonials-modal textarea:focus { /* Текстовое поле при фокусе */
+        border-color: var(--orange-yellow-crayola); /* Оранжевая граница */
+        box-shadow: 0 0 8px rgba(255, 180, 0, 0.3); /* Оранжевая внешняя тень */
     }
 
-    .testimonials-modal .btn {
-        min-width: 140px;
-        height: 36px;
-        padding: 8px 16px;
-        font-size: 13px;
-        border-radius: 8px;
-        margin-top: 10px;
+    .testimonials-modal .btn { /* Кнопка */
+        min-width: 140px; /* Минимальная ширина 140px */
+        height: 36px; /* Высота 36px */
+        padding: 8px 16px; /* Отступы внутри */
+        font-size: 13px; /* Размер шрифта 13px */
+        border-radius: 8px; /* Скругленные углы 8px */
+        margin-top: 10px; /* Отступ сверху 10px */
     }
 
-    .modal-close-btn {
-        right: 10px;
-        top: 10px;
-        width: 26px;
-        height: 26px;
-        font-size: 15px;
-        border-radius: 6px;
+    .modal-close-btn { /* Кнопка закрытия */
+        right: 10px; /* Смещение справа 10px */
+        top: 10px; /* Смещение сверху 10px */
+        width: 26px; /* Ширина 26px */
+        height: 26px; /* Высота 26px */
+        font-size: 15px; /* Размер шрифта 15px */
+        border-radius: 6px; /* Скругленные углы 6px */
     }
 
-    .testimonials-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
+    .testimonials-buttons { /* Блок кнопок */
+        display: flex; /* Использует flexbox */
+        justify-content: space-between; /* Распределяет кнопки по краям */
+        align-items: center; /* Центрирует по вертикали */
+        gap: 10px; /* Расстояние 10px между кнопками */
     }
 
-    .testimonials-buttons .btn {
-        padding: 8px 12px;
-        font-size: 14px;
-        min-width: auto;
+    .testimonials-buttons .btn { /* Кнопки внутри блока */
+        padding: 8px 12px; /* Отступы внутри */
+        font-size: 14px; /* Размер шрифта 14px */
+        min-width: auto; /* Убирает минимальную ширину */
     }
 
-    .testimonials .testimonials-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 100%;
-        font-size: 0.95em;
+    .testimonials .testimonials-text { /* Текст отзыва */
+        overflow: hidden; /* Скрывает текст за границами */
+        text-overflow: ellipsis; /* Добавляет многоточие при обрезке */
+        white-space: nowrap; /* Запрещает перенос текста */
+        max-width: 100%; /* Максимальная ширина 100% */
+        font-size: 0.95em; /* Размер шрифта 0.95em */
     }
 
-    .modal-text {
-        font-size: 0.95em;
-        -webkit-line-clamp: 6;
+    .modal-text { /* Текст модалки */
+        font-size: 0.95em; /* Размер шрифта 0.95em */
+        -webkit-line-clamp: 6; /* Ограничивает текст 6 строками */
     }
 }
 
 /* Стили для списка отзывов на странице всех отзывов */
-.testimonials-page .testimonials-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    padding: 0;
-    list-style: none;
-    margin: 0;
+.testimonials-page .testimonials-list { /* Список отзывов на странице */
+    display: grid; /* Использует сетку (grid) */
+    grid-template-columns: repeat(2, 1fr); /* Два столбца одинаковой ширины */
+    gap: 20px; /* Расстояние 20px между карточками */
+    padding: 0; /* Убирает внутренние отступы */
+    list-style: none; /* Убирает маркеры списка */
+    margin: 0; /* Убирает внешние отступы */
 }
 
-@media (max-width: 768px) {
-    .testimonials-page .testimonials-list {
-        grid-template-columns: 1fr;
+@media (max-width: 768px) { /* Стили для экранов уже 768px */
+    .testimonials-page .testimonials-list { /* Список отзывов */
+        grid-template-columns: 1fr; /* Один столбец */
     }
 }
 
 /* Стили для пагинации */
-.pagination {
-    margin-top: 30px;
+.pagination { /* Блок пагинации */
+    margin-top: 30px; /* Отступ сверху 30px */
 }
 
-.pagination-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
+.pagination-buttons { /* Кнопки пагинации */
+    display: flex; /* Использует flexbox */
+    justify-content: center; /* Центрирует кнопки */
+    align-items: center; /* Центрирует по вертикали */
+    gap: 20px; /* Расстояние 20px между кнопками */
 }
 
-@media (max-width: 768px) {
-    .pagination-buttons {
-        gap: 10px;
+@media (max-width: 768px) { /* Стили для экранов уже 768px */
+    .pagination-buttons { /* Кнопки пагинации */
+        gap: 10px; /* Уменьшает расстояние до 10px */
     }
 
-    .pagination-buttons .btn {
-        padding: 10px 20px;
+    .pagination-buttons .btn { /* Кнопки пагинации */
+        padding: 10px 20px; /* Отступы внутри */
     }
 
-    .pagination-buttons .current-page {
-        padding: 10px 20px;
+    .pagination-buttons .current-page { /* Текущая страница */
+        padding: 10px 20px; /* Отступы внутри */
     }
 }
 
 /* Мобильные стили */
-@media (max-width: 768px) {
-    .testimonials-header {
-        margin-bottom: 15px;
+@media (max-width: 768px) { /* Стили для экранов уже 768px */
+    .testimonials-header { /* Заголовок отзывов */
+        margin-bottom: 15px; /* Отступ снизу 15px */
     }
 }
 
 /* Стили для кнопок в заголовке отзывов (десктоп) */
-.testimonials-buttons {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    width: 100%;
+.testimonials-buttons { /* Блок кнопок */
+    display: flex; /* Использует flexbox */
+    justify-content: space-between; /* Распределяет кнопки по краям */
+    align-items: center; /* Центрирует по вертикали */
+    gap: 20px; /* Расстояние 20px между кнопками */
+    width: 100%; /* Полная ширина */
 }
 
-.testimonials-buttons .view-all-testimonials {
-    flex: 0 0 auto;
+.testimonials-buttons .view-all-testimonials { /* Кнопка "Посмотреть все отзывы" */
+    flex: 0 0 auto; /* Не растягивается, занимает место по содержимому */
 }
 
-.testimonials-buttons .add-testimonial-button {
-    flex: 0 0 auto;
+.testimonials-buttons .add-testimonial-button { /* Кнопка "Добавить отзыв" */
+    flex: 0 0 auto; /* Не растягивается, занимает место по содержимому */
 }
 
-.testimonials-buttons .btn {
-    width: auto;
-    padding: 8px 16px;
-    font-size: 14px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.testimonials-buttons .btn { /* Кнопки внутри блока */
+    width: auto; /* Ширина по содержимому */
+    padding: 8px 16px; /* Отступы внутри */
+    font-size: 14px; /* Размер шрифта 14px */
+    height: 36px; /* Высота 36px */
+    border-radius: 10px; /* Скругленные углы 10px */
+    display: flex; /* Использует flexbox */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    gap: 8px; /* Расстояние 8px между элементами */
 }
 
-.message-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    border-radius: 8px;
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-    z-index: 1000;
-    animation: slideIn 0.3s ease-out;
+.message-notification { /* Уведомление */
+    position: fixed; /* Фиксированное положение */
+    top: 20px; /* Смещение сверху 20px */
+    right: 20px; /* Смещение справа 20px */
+    padding: 15px 25px; /* Отступы внутри */
+    border-radius: 8px; /* Скругленные углы 8px */
+    background: rgba(46, 204, 113, 0.2); /* Зелёный фон с прозрачностью */
+    color: #2ecc71; /* Зелёный цвет текста */
+    border: 1px solid #2ecc71; /* Зелёная граница */
+    z-index: 1000; /* Поверх других элементов */
+    animation: slideIn 0.3s ease-out; /* Анимация появления */
 }
 
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
+@keyframes slideIn { /* Определение анимации slideIn */
+    from { /* Начальное состояние */
+        transform: translateX(100%); /* Сдвиг вправо на 100% (вне экрана) */
+        opacity: 0; /* Невидим */
     }
-    to {
-        transform: translateX(0);
-        opacity: 1;
+    to { /* Конечное состояние */
+        transform: translateX(0); /* Возвращает на место */
+        opacity: 1; /* Полная видимость */
     }
 }
 
-@media (max-width: 768px) {
-    .message-notification {
-        top: auto;
-        bottom: 20px;
-        right: 50%;
-        transform: translateX(50%);
-        width: 90%;
-        text-align: center;
+@media (max-width: 768px) { /* Стили для экранов уже 768px */
+    .message-notification { /* Уведомление */
+        top: auto; /* Убирает фиксированное положение сверху */
+        bottom: 20px; /* Прилепляет к нижнему краю с отступом 20px */
+        right: 50%; /* Центрирует по горизонтали */
+        transform: translateX(50%); /* Сдвигает на 50% влево для точного центрирования */
+        width: 90%; /* Ширина 90% */
+        text-align: center; /* Центрирует текст */
     }
 }
