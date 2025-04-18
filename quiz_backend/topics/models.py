@@ -24,9 +24,16 @@ class Topic(models.Model):
         null=True,
         help_text='Описание темы'
     )
+    icon = models.CharField(
+        max_length=255,
+        default='/static/blog/images/icons/default-icon.png',
+        help_text='Путь к иконке темы (например, blog/images/icons/java-icon.png)'
+    )
 
     def __str__(self):
         return self.name
+
+
 
 class Subtopic(models.Model):
     class Meta:
@@ -54,9 +61,10 @@ class Subtopic(models.Model):
         return f"{self.topic.name} - {self.name}"
 
     def clean(self):
-        # Убедимся, что название подтемы уникально в рамках темы
         if Subtopic.objects.filter(
             topic=self.topic,
             name=self.name
         ).exclude(id=self.id).exists():
             raise ValidationError('Подтема с таким названием уже существует в данной теме')
+
+

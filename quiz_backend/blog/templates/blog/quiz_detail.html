@@ -11,26 +11,54 @@
         <h2 class="h2 article-title">Опросы по теме {{ topic.name }}</h2>
     </header>
 
-    <section class="about-text">
-        <p>Выберите подтему для тестирования знаний по {{ topic.name }}.</p>
+
+    <section class="service">
+        <h3 class="h3 service-title">Доступные подтемы</h3>
 
         {% if subtopics %}
-          <ul>
+          <ul class="service-list">
             {% for subtopic in subtopics %}
-              <li><a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name %}">{{ subtopic.name }}</a></li>
+              <li class="service-item">
+                <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|lower %}" class="service-link">
+                  <div class="service-icon-box">
+                    <img src="{{ topic.icon }}" alt="{{ subtopic.name }} иконка" width="40">
+                    <!-- Отладка: Иконка {{ topic.icon }} для подтемы {{ subtopic.name }} -->
+                  </div>
+                  <div class="service-content-box">
+                    <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>
+                    <p class="service-item-text">Тест по подтеме {{ subtopic.name }}.</p>
+                  </div>
+                </a>
+              </li>
             {% endfor %}
           </ul>
         {% else %}
           <p>Нет доступных подтем для {{ topic.name }}.</p>
         {% endif %}
-
-        <div class="user-progress">
-            {% if user.is_authenticated %}
-                <a href="{% url 'accounts:profile' %}#statistics">Посмотреть мой прогресс</a>
-            {% else %}
-                <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
-            {% endif %}
-        </div>
     </section>
+
+    <div class="user-progress">
+        {% if user.is_authenticated %}
+            <a href="{% url 'accounts:profile' %}#statistics">Посмотреть мой прогресс</a>
+        {% else %}
+            <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
+        {% endif %}
+    </div>
 </article>
+
+<style>
+  .service-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 10px;
+  }
+
+  .service-item:hover {
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+  }
+</style>
 {% endblock %}

@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
         item.addEventListener('click', function () {
             console.log("Testimonial clicked");
             const avatarImg = this.querySelector('[data-testimonials-avatar]');
-            const defaultAvatarUrl = '/static/images/default-avatar.png'; // URL дефолтной аватарки
+            const defaultAvatarUrl = '/static/images/default_avatar.png'; // URL дефолтной аватарки
 
             // Если у изображения нет src или оно не загрузилось, используем дефолтную
             const avatar = avatarImg && avatarImg.src ? avatarImg.src : defaultAvatarUrl;

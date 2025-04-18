@@ -20,7 +20,8 @@
           <li class="service-item">
             <a href="{% url 'blog:quiz_detail' quiz_type=topic.name|lower %}" class="service-link">
               <div class="service-icon-box">
-                <img src="https://cdn-icons-png.flaticon.com/512/5968/5968350.png" alt="{{ topic.name }} icon" width="40">
+                <img src="{{ topic.icon }}" alt="{{ topic.name }} иконка" width="40">
+                <!-- Отладка: Иконка {{ topic.icon }} для темы {{ topic.name }} -->
               </div>
               <div class="service-content-box">
                 <h4 class="h4 service-item-title">{{ topic.name }}</h4>
@@ -34,7 +35,6 @@
       <p>Нет доступных тем.</p>
     {% endif %}
   </section>
-  
 
   <div class="user-score">
     {% if user.is_authenticated %}

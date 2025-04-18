@@ -24,7 +24,7 @@
                                  data-testimonials-avatar 
                                  width="60">
                         {% else %}
-                            <img src="{% static 'blog/images/avatar/default-avatar.png' %}"
+                            <img src="{% static 'blog/images/avatar/default_avatar.png' %}"
                                  alt="avatar"
                                  data-testimonials-avatar
                                  width="60">
@@ -83,7 +83,7 @@
 
 {% block scripts %}
 <script>
-    window.defaultAvatarUrl = '{% static "blog/images/avatar/default-avatar.png" %}';
+    window.defaultAvatarUrl = '{% static "blog/images/avatar/default_avatar.png" %}';
 </script>
 <script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}
