@@ -38,9 +38,9 @@
 
   <div class="user-score">
     {% if user.is_authenticated %}
-    <a href="{% url 'accounts:profile' %}">Посмотреть мои результаты</a>
+    <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">Посмотреть мой прогресс</a>
     {% else %}
-        <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы увидеть результаты</a>
+        <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
     {% endif %}
   </div>
 </article>
