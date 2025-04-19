@@ -2742,3 +2742,44 @@ article .video .video-content {
 
 
 /* ================================================== */
+
+
+/**
+ * Стили для сообщения о пустом контенте.
+ */
+.no-content-message {
+    display: none;
+    opacity: 0;
+    text-align: center;
+    padding: 40px 20px;
+    margin: 20px auto;
+    max-width: 600px;
+    background: var(--bg-gradient-jet);
+    border: 1px solid var(--jet);
+    border-radius: 12px;
+    box-shadow: var(--shadow2);
+    color: var(--white2);
+    font-size: 18px;
+    line-height: 1.5;
+    transition: opacity 0.3s ease;
+}
+
+.no-content-message h3 {
+    color: var(--orange-yellow-crayola);
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.no-content-message p {
+    margin: 0;
+}
+
+/* Опционально: стили для картинки */
+.no-content-message img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+

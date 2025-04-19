@@ -1,3 +1,6 @@
+/**
+ * JavaScript для dashboard: вкладки, аватар, настройки, сообщения, вложения, мобильное меню.
+ */
 document.addEventListener('DOMContentLoaded', function () {
     // ================================
     // 1. Переключение вкладок (Tabs)
@@ -7,11 +10,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // Убираем класс active у всех кнопок и блоков
             tabs.forEach(t => t.classList.remove('active'));
             contents.forEach(c => c.classList.remove('active'));
-
-            // Добавляем класс active для выбранной кнопки и соответствующего контента
             tab.classList.add('active');
             document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
         });
@@ -22,23 +22,79 @@ document.addEventListener('DOMContentLoaded', function () {
     // ================================
     const avatarUpload = document.getElementById('avatar-form');
     if (avatarUpload) {
-        avatarUpload.addEventListener('change', function () {
-            this.submit();
+        const avatarInput = avatarUpload.querySelector('#id_avatar');
+        avatarInput.addEventListener('change', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(avatarUpload);
+            try {
+                const response = await fetch(avatarUpload.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    showNotification('Avatar updated successfully!', 'success');
+                    const avatarImg = document.querySelector('.profile-avatar img');
+                    avatarImg.src = data.avatar_url;
+                } else {
+                    showNotification(data.message || 'Failed to update avatar', 'error');
+                }
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                showNotification('Failed to update avatar', 'error');
+            }
+        });
+        // Предотвращаем стандартную отправку формы
+        avatarUpload.addEventListener('submit', (e) => e.preventDefault());
+    }
+
+    // ================================
+    // 3. Personal Info Form
+    // ================================
+    const personalInfoForm = document.getElementById('personal-info-form');
+    if (personalInfoForm) {
+        personalInfoForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                if (response.ok) {
+                    showNotification('Profile updated successfully!', 'success');
+                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl;
+                    window.location.href = dashboardUrl;
+                } else {
+                    const data = await response.json();
+                    showNotification(data.message || 'Failed to update profile', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showNotification('Failed to update profile', 'error');
+            }
         });
     }
 
     // ================================
-    // 3. Обработка настроек
+    // 4. Обработка настроек
     // ================================
     const settingsToggles = document.querySelectorAll('.settings-list input[type="checkbox"]');
     settingsToggles.forEach(toggle => {
         toggle.addEventListener('change', async function () {
             try {
-                const response = await fetch('{% url "accounts:update_settings" %}', {
+                const response = await fetch('/users/settings/update/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     body: JSON.stringify({
                         setting: this.name,
@@ -46,15 +102,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     })
                 });
                 if (!response.ok) throw new Error('Settings update failed');
+                showNotification('Settings updated successfully!', 'success');
             } catch (error) {
                 console.error('Error:', error);
-                this.checked = !this.checked; // Возвращаем переключатель в исходное состояние при ошибке
+                this.checked = !this.checked;
+                showNotification('Failed to update settings', 'error');
             }
         });
     });
 
     // ===============================================
-    // 4. Переключение между входящими и отправленными
+    // 5. Переключение между входящими и отправленными
     // ===============================================
     const filterBtns = document.querySelectorAll('.filter-btn');
     const messageLists = document.querySelectorAll('.messages-list');
@@ -63,14 +121,13 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', () => {
             filterBtns.forEach(b => b.classList.remove('active'));
             messageLists.forEach(l => l.classList.remove('active'));
-
             btn.classList.add('active');
             document.querySelector(`[data-messages="${btn.dataset.filter}"]`).classList.add('active');
         });
     });
 
     // ===============================================
-    // 5. Показать/скрыть форму сообщения
+    // 6. Показать/скрыть форму сообщения
     // ===============================================
     const showMessageBtn = document.getElementById('showMessageForm');
     const messageForm = document.getElementById('messageForm');
@@ -89,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===============================================
-    // 6. Удаление сообщений
+    // 7. Удаление сообщений
     // ===============================================
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -113,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ===============================================
-    // 7. Обработка выбора файлов для вложений
+    // 8. Обработка выбора файлов для вложений
     // ===============================================
     const attachmentsInput = document.getElementById('attachments');
     const selectedFilesContainer = document.getElementById('selected-files');
@@ -127,30 +184,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 fileItem.innerHTML = `
                     <span class="file-name">${file.name}</span>
                     <ion-icon name="close-outline" class="remove-file"></ion-icon>
-                  `;
-
+                `;
                 fileItem.querySelector('.remove-file').addEventListener('click', function () {
                     fileItem.remove();
-                    // Создаем новый FileList без удаленного файла
                     const dt = new DataTransfer();
                     Array.from(attachmentsInput.files)
                         .filter(f => f.name !== file.name)
                         .forEach(f => dt.items.add(f));
                     attachmentsInput.files = dt.files;
                 });
-
                 selectedFilesContainer.appendChild(fileItem);
             });
         });
     }
 
     // ===============================================
-    // 8. Отправка формы сообщения
+    // 9. Отправка формы сообщения
     // ===============================================
     if (messageForm) {
         messageForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-
             const formData = new FormData(this);
             try {
                 const response = await fetch(this.action, {
@@ -160,16 +213,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     }
                 });
-
                 const data = await response.json();
                 if (data.status === 'sent') {
-                    // Очищаем форму
                     this.reset();
                     selectedFilesContainer.innerHTML = '';
-                    // Скрываем форму
                     this.style.display = 'none';
                     document.getElementById('showMessageForm').style.display = 'block';
-                    // Показываем уведомление
                     showNotification('Message sent successfully!', 'success');
                 }
             } catch (error) {
@@ -180,17 +229,57 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===============================================
-    // 9. Обработка параметра URL "tab" для переключения вкладок
+    // 10. Обработка параметра URL "tab" для переключения вкладок
     // ===============================================
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab');
-
     if (activeTab) {
-        // Ищем кнопку вкладки, у которой data-tab равен значению параметра
         const tabButton = document.querySelector(`.profile-tabs .tab-btn[data-tab="${activeTab}"]`);
         if (tabButton) {
-            // Имитируем клик для переключения вкладки
             tabButton.click();
         }
+    }
+
+    // ================================
+    // 11. Мобильное меню
+    // ================================
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const mobileMenuContent = document.querySelector('.mobile-menu-content');
+    const mobileTabs = document.querySelectorAll('.mobile-tab-btn');
+
+    if (mobileMenuBtn && mobileMenuContent) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenuContent.classList.toggle('active');
+        });
+        mobileTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                if (!tab.href) {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+                    mobileTabs.forEach(mt => mt.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+                    mobileMenuContent.classList.remove('active');
+                }
+            });
+        });
+        document.addEventListener('click', (e) => {
+            if (!mobileMenuBtn.contains(e.target) && !mobileMenuContent.contains(e.target)) {
+                mobileMenuContent.classList.remove('active');
+            }
+        });
+    }
+
+    // ===============================================
+    // 12. Функция для показа уведомлений
+    // ===============================================
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
     }
 });

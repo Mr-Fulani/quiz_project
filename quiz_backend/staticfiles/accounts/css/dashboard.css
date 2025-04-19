@@ -321,3 +321,57 @@ input:checked + .slider:before {
     margin-top: 40px; /* Отступ сверху */
     text-align: center; /* Выравнивание по центру */
 }
+
+
+
+/* ==========================================
+    Уведомления (Notifications)
+   ========================================== */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.notification.success {
+    background-color: #28a745;
+}
+
+.notification.error {
+    background-color: #dc3545;
+}
+
+
+
+/* ==========================================
+   Стили для кнопки "Сбросить пароль"
+   ========================================== */
+
+.security-form .input-wrapper {
+    display: grid;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.security-form .error {
+    color: var(--bittersweet-shimmer);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.security-form .success {
+    color: var(--orange-yellow-crayola);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    background: var(--bg-gradient-jet);
+    padding: 0.75rem;
+    border-radius: 6px;
+    text-align: center;
+}

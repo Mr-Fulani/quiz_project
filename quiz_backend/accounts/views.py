@@ -1,10 +1,35 @@
+import json
+import os
+import re
+
+from blog.models import Message
+from django import forms
+from django.contrib import messages
+from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LogoutView
+from django.core.paginator import Paginator
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
+from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.views.generic import DetailView, ListView, UpdateView, TemplateView
 from rest_framework import generics, status, permissions
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth import login, logout, update_session_auth_hash
+from tasks.models import TaskStatistics
+
+from .forms import  PersonalInfoForm
 from .models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, Profile
 from .serializers import (
     UserSerializer,
@@ -14,28 +39,6 @@ from .serializers import (
     SubscriptionSerializer,
     AdminSerializer
 )
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from rest_framework.permissions import AllowAny
-from django.contrib import messages
-from .forms import CustomUserCreationForm, ProfileEditForm, PersonalInfoForm
-from django.contrib.auth.views import LoginView, LogoutView
-from django.views.generic import RedirectView, DetailView, ListView, UpdateView, TemplateView
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from django.http import JsonResponse, HttpResponseRedirect
-import re
-from tasks.models import TaskStatistics
-from django.utils import timezone
-import json
-from django.db.models import Count, Q
-from django.db import models
-
-from blog.models import Message
 
 
 class LoginView(APIView):
@@ -83,9 +86,6 @@ class RegisterView(generics.CreateAPIView):
         # Получаем next или используем главную
         next_url = request.POST.get('next', '/')
         return HttpResponseRedirect(f"{next_url}?registration_success=true")
-
-
-
 
 
 class ProfileUpdateView(generics.UpdateAPIView):
@@ -242,6 +242,204 @@ class CustomObtainAuthToken(ObtainAuthToken):
 
 
 
+
+
+
+
+
+class CustomPasswordChangeForm(forms.Form):
+    """
+    Кастомная форма смены пароля с переводом ошибок на русский.
+    """
+    old_password = forms.CharField(
+        label="Текущий пароль",
+        widget=forms.PasswordInput,
+        error_messages={
+            'required': 'Поле текущего пароля обязательно.',
+        }
+    )
+    new_password1 = forms.CharField(
+        label="Новый пароль",
+        widget=forms.PasswordInput,
+        error_messages={
+            'required': 'Поле нового пароля обязательно.',
+        }
+    )
+    new_password2 = forms.CharField(
+        label="Подтверждение пароля",
+        widget=forms.PasswordInput,
+        error_messages={
+            'required': 'Поле подтверждения пароля обязательно.',
+        }
+    )
+
+    error_messages = {
+        'password_mismatch': 'Поля нового пароля и подтверждения не совпадают.',
+        'password_incorrect': 'Текущий пароль введён неверно.',
+        'password_too_short': 'Пароль слишком короткий. Минимальная длина — 8 символов.',
+        'password_entirely_numeric': 'Пароль не может состоять только из цифр. Добавьте буквы или символы.',
+        'password_too_common': 'Пароль должен содержать буквы, цифры и хотя бы один специальный символ (например, !, @, #).',
+    }
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        self.fields['new_password1'].min_length = 8
+
+    def clean_old_password(self):
+        old_password = self.cleaned_data.get('old_password')
+        if not self.user.check_password(old_password):
+            raise forms.ValidationError(
+                self.error_messages['password_incorrect'],
+                code='password_incorrect',
+            )
+        return old_password
+
+    def clean_new_password2(self):
+        new_password1 = self.cleaned_data.get('new_password1')
+        new_password2 = self.cleaned_data.get('new_password2')
+        if new_password1 and new_password2 and new_password1 != new_password2:
+            raise forms.ValidationError(
+                self.error_messages['password_mismatch'],
+                code='password_mismatch',
+            )
+        return new_password2
+
+    def clean_new_password1(self):
+        new_password1 = self.cleaned_data.get('new_password1')
+        if new_password1:
+            if len(new_password1) < 8:
+                raise forms.ValidationError(
+                    self.error_messages['password_too_short'],
+                    code='password_too_short',
+                )
+            if new_password1.isdigit():
+                raise forms.ValidationError(
+                    self.error_messages['password_entirely_numeric'],
+                    code='password_entirely_numeric',
+                )
+            # Проверка на сложность (буквы, цифры, символы)
+            has_letter = any(c.isalpha() for c in new_password1)
+            has_digit = any(c.isdigit() for c in new_password1)
+            has_symbol = any(not c.isalnum() for c in new_password1)
+            if not (has_letter and has_digit and has_symbol):
+                raise forms.ValidationError(
+                    self.error_messages['password_too_common'],
+                    code='password_too_common',
+                )
+        return new_password1
+
+    def save(self):
+        new_password = self.cleaned_data['new_password1']
+        self.user.set_password(new_password)
+        self.user.save()
+
+
+
+@login_required
+def change_password(request):
+    """
+    Обработка формы смены пароля с использованием CustomPasswordChangeForm.
+    Ошибки отображаются только в форме, успех через флаг success.
+    """
+    success = False
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, form.user)
+            success = True
+            form = CustomPasswordChangeForm(user=request.user)  # Очистка формы после успеха
+        else:
+            print(f"Password form errors: {form.errors}")
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+
+    return render(request, 'accounts/dashboard.html', {
+        'password_form': form,
+        'personal_info_form': PersonalInfoForm(instance=request.user.profile, user=request.user),
+        'profile_user': request.user,
+        'is_owner': True,
+        'user_settings': request.user.profile,
+        'active_tab': 'security',
+        'password_change_success': success,
+    })
+
+
+
+@login_required
+def update_personal_info(request):
+    """
+    Обработка формы PersonalInfoForm или загрузки аватара.
+    Устанавливает active_tab='personal' по умолчанию.
+    """
+    if request.method == 'POST':
+        print(f"POST data: {request.POST}")
+        print(f"FILES: {request.FILES}")
+        if 'avatar' in request.FILES and 'personal_info' not in request.POST:
+            profile = request.user.profile
+            old_avatar = profile.avatar
+            form = PersonalInfoForm(
+                request.POST,
+                request.FILES,
+                instance=profile,
+                user=request.user,
+                avatar_only=True
+            )
+            if form.is_valid():
+                if old_avatar and old_avatar.name and old_avatar != form.cleaned_data['avatar']:
+                    try:
+                        if os.path.isfile(old_avatar.path):
+                            os.remove(old_avatar.path)
+                    except Exception as e:
+                        print(f"Error deleting old avatar: {e}")
+                form.save()
+                messages.success(request, 'Аватар успешно обновлён!')
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'success', 'avatar_url': profile.get_avatar_url})
+                return redirect('accounts:dashboard')
+            else:
+                print(f"Avatar form errors: {form.errors}")
+                messages.error(request, 'Недопустимый файл аватара.')
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'error', 'message': 'Недопустимый файл аватара'}, status=400)
+                return redirect('accounts:dashboard')
+        else:
+            form = PersonalInfoForm(
+                request.POST,
+                request.FILES,
+                instance=request.user.profile,
+                user=request.user
+            )
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Профиль успешно обновлён!')
+                return redirect('accounts:dashboard')
+            else:
+                print(f"Form errors: {form.errors}")
+                messages.error(request, 'Исправьте ошибки в форме.')
+    else:
+        form = PersonalInfoForm(instance=request.user.profile, user=request.user)
+
+    return render(request, 'accounts/dashboard.html', {
+        'personal_info_form': form,
+        'profile_user': request.user,
+        'is_owner': True,
+        'user_settings': request.user.profile,
+        'active_tab': 'personal',  # По умолчанию Personal Info
+    })
+
+
+
+
+
+
+
+
+
+
+
+
 class UserProfileView(LoginRequiredMixin, DetailView):
     """
     DetailView для профиля пользователя (CustomUser),
@@ -277,47 +475,6 @@ class UserListView(LoginRequiredMixin, ListView):
         return CustomUser.objects.exclude(is_staff=True).select_related('profile').order_by('-date_joined')
 
 
-class ProfileEditView(LoginRequiredMixin, UpdateView):
-    """
-    UpdateView для редактирования профиля (Profile),
-    шаблон 'accounts/profile_edit.html'.
-    Поля: avatar, bio, location, website.
-    """
-    model = Profile
-    template_name = 'accounts/profile_edit.html'
-    fields = ['avatar', 'bio', 'location', 'website']
-    success_url = reverse_lazy('user-profile')
-
-    def get_object(self, queryset=None):
-        """
-        Возвращаем профиль текущего пользователя.
-        """
-        return self.request.user.profile
-
-    def get_success_url(self):
-        """
-        Перенаправляем на user-profile (по username текущего пользователя).
-        """
-        return reverse_lazy('user-profile', kwargs={'username': self.request.user.username})
-
-
-@login_required
-def profile_edit(request):
-    """
-    Функция-альтернатива ProfileEditView. При GET выдаёт форму ProfileEditForm,
-    при POST сохраняет изменения в профиле.
-    """
-    if request.method == 'POST':
-        form = ProfileEditForm(request.POST, request.FILES, instance=request.user.profile)
-        if form.is_valid():
-            form.save()
-            return redirect('blog:profile')
-    else:
-        form = ProfileEditForm(instance=request.user.profile)
-
-    return render(request, 'accounts/profile_edit.html', {'form': form})
-
-
 @login_required
 def user_list(request):
     """
@@ -335,53 +492,6 @@ def user_list(request):
         'is_paginated': users.has_other_pages(),
         'page_obj': users,
     })
-
-
-@login_required
-def change_password(request):
-    """
-    Позволяет поменять пароль (current_password, new_password1, new_password2).
-    Проверяет правильность, сложность, совпадение.
-    Если всё ок - set_password, update_session_auth_hash.
-    """
-    if request.method == 'POST':
-        current_password = request.POST.get('current_password')
-        new_password1 = request.POST.get('new_password1')
-        new_password2 = request.POST.get('new_password2')
-
-        errors = {}
-
-        if not request.user.check_password(current_password):
-            errors['current_password'] = ['Current password is incorrect.']
-
-        if new_password1 != new_password2:
-            errors['new_password2'] = ['Passwords do not match.']
-
-        if len(new_password1) < 8:
-            errors['new_password1'] = ['Password must be at least 8 characters long.']
-        elif not re.search(r'[A-Z]', new_password1):
-            errors['new_password1'] = ['Password must contain at least one uppercase letter.']
-        elif not re.search(r'[a-z]', new_password1):
-            errors['new_password1'] = ['Password must contain at least one lowercase letter.']
-        elif not re.search(r'\d', new_password1):
-            errors['new_password1'] = ['Password must contain at least one number.']
-
-        if errors:
-            for field, field_errors in errors.items():
-                messages.error(request, field_errors[0])
-            return redirect('blog:profile')
-
-        request.user.set_password(new_password1)
-        request.user.save()
-        update_session_auth_hash(request, request.user)
-
-        messages.success(request, 'Password successfully changed!')
-        return redirect('blog:profile')
-
-    return redirect('blog:profile')
-
-
-
 
 
 
@@ -455,6 +565,7 @@ def profile_view(request, username, is_dashboard=False):
     if is_dashboard:
         context.update({
             'personal_info_form': PersonalInfoForm(instance=profile_user.profile, user=profile_user),
+            'user_settings': profile_user.profile,  # Для вкладки Settings
         })
 
     return render(request, template_name, context)
@@ -544,3 +655,13 @@ def update_settings(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+
+
+
+
+
+
+
+

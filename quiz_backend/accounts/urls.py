@@ -2,9 +2,13 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 from . import views
-from .views import dashboard_view, profile_redirect_view, profile_view, update_settings
+from .views import dashboard_view, profile_redirect_view, profile_view, update_settings, update_personal_info
+
+
 
 app_name = 'accounts'
+
+
 
 urlpatterns = [
     # # Регистрация нового пользователя
@@ -25,7 +29,7 @@ urlpatterns = [
     #   -> Деактивация профиля (изменение is_active и т.д.)
     path('profile/<str:username>/', views.UserProfileView.as_view(), name='user-profile'),
     #   -> Просмотр профиля пользователя по username (DetailView)
-    path('profile/edit/', views.profile_edit, name='profile_edit'),
+    # path('profile/edit/', views.profile_edit, name='profile_edit'),
     #   -> Функциональное представление для редактирования (форма)
 
     # Управление подписками
@@ -53,9 +57,9 @@ urlpatterns = [
     #   -> Функция, выводящая список пользователей (не staff), с пагинацией
     path('user/<str:username>/', views.UserProfileView.as_view(), name='user-profile'),
     #   -> DetailView профиля (аналогично profile/<str:username>/)
-    path('user/<str:username>/edit/', views.profile_edit, name='profile_edit'),
+    # path('user/<str:username>/edit/', views.profile_edit, name='profile_edit'),
     #   -> Редактирование профиля
-    path('change-password/', views.change_password, name='change_password'),
+    path('dashboard/change-password/', views.change_password, name='change_password'),
     #   -> Смена пароля (функция change_password)
 
     path('dashboard/', dashboard_view, name='dashboard'),
@@ -67,7 +71,10 @@ urlpatterns = [
     path('profile/<str:username>/', profile_view, name='user_profile'),
     #   -> Просмотр профиля пользователя (profile_view)
 
-    path('dashboard/update-settings/', update_settings, name='update_settings'),
+    path('settings/update/', views.update_settings, name='update_settings'),
     #   -> AJAX-вьюха для обновления настроек профиля
+
+    path('dashboard/update-personal-info/', update_personal_info, name='update_personal_info')
+    #   -> AJAX-вьюха для обновления личной информации профиля
 
 ]

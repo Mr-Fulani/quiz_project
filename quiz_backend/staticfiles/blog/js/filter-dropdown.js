@@ -1,6 +1,7 @@
 /**
  * Управление выпадающим меню фильтров и функциональностью фильтрации.
  * Инициализирует фильтр "All"/"Все" по умолчанию, отображая все элементы.
+ * Показывает сообщение, если нет контента в категории.
  * Не закрывает меню на десктопе (> 580px).
  * Использует GSAP для анимации.
  */
@@ -9,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropdown = document.querySelector('[data-filter-dropdown]');
     const filterButtons = document.querySelectorAll('[data-filter-btn]');
     const filterItems = document.querySelectorAll('[data-filter-item]');
+    const noContentMessage = document.querySelector('.no-content-message');
 
     if (!dropdown) {
         console.error('Filter dropdown not found');
@@ -16,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Применяет фильтр к элементам.
+     * Применяет фильтр к элементам и управляет сообщением о пустом контенте.
      * @param {string} filterValue - Значение фильтра (например, 'all', 'web').
      */
     function applyFilter(filterValue) {
@@ -36,19 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Filter applied:', normalizedFilterValue);
         console.log('Available categories:', [...filterItems].map(item => item.dataset.category?.toLowerCase() || 'undefined'));
 
+        let visibleItems = 0;
         filterItems.forEach(item => {
             const itemCategory = item.dataset.category?.toLowerCase() || '';
             console.log(`Item category: ${itemCategory}, Filter: ${normalizedFilterValue}`);
             if (normalizedFilterValue === 'all' || normalizedFilterValue === 'все' || normalizedFilterValue === 'всё' ||
                 itemCategory === normalizedFilterValue) {
                 item.classList.remove('hidden');
-                item.style.display = 'block'; // Принудительно убираем display: none
+                item.style.display = 'block';
                 gsap.to(item, {
                     opacity: 1,
                     duration: 0.3,
                     ease: 'power2.out',
-                    overwrite: 'auto' // Перезаписываем конфликтующие анимации
+                    overwrite: 'auto'
                 });
+                visibleItems++;
             } else {
                 gsap.to(item, {
                     opacity: 0,
@@ -61,6 +65,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
+
+        // Показываем/скрываем сообщение о пустом контенте
+        if (noContentMessage) {
+            if (visibleItems === 0) {
+                noContentMessage.style.display = 'block';
+                gsap.to(noContentMessage, {
+                    opacity: 1,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            } else {
+                gsap.to(noContentMessage, {
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        noContentMessage.style.display = 'none';
+                    }
+                });
+            }
+        }
     }
 
     // Инициализация: пытаемся найти "All", "Все", "Всё" или первую кнопку
@@ -74,14 +99,14 @@ document.addEventListener('DOMContentLoaded', () => {
     filterItems.forEach(item => {
         item.classList.remove('hidden');
         item.style.display = 'block';
-        item.style.opacity = '0'; // Устанавливаем начальную прозрачность
+        item.style.opacity = '0';
     });
     applyFilter(defaultFilter);
 
     // Открытие/закрытие выпадающего меню (только для мобильной версии)
     if (toggleBtn) {
         toggleBtn.addEventListener('click', () => {
-            if (window.innerWidth > 580) return; // Не открываем на десктопе
+            if (window.innerWidth > 580) return;
             const isActive = dropdown.classList.toggle('active');
             toggleBtn.classList.toggle('active');
 
@@ -110,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Закрытие меню при клике вне (только для мобильной версии)
     document.addEventListener('click', (e) => {
-        if (window.innerWidth > 580) return; // Не закрываем на десктопе
+        if (window.innerWidth > 580) return;
         if (!dropdown.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)) {
             dropdown.classList.remove('active');
             if (toggleBtn) toggleBtn.classList.remove('active');
