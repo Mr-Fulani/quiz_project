@@ -1,19 +1,73 @@
 /**
- * JavaScript для dashboard: вкладки, аватар, настройки, сообщения, вложения, мобильное меню.
+ * JavaScript для dashboard: вкладки, аватар, настройки, мобильное меню.
  */
 document.addEventListener('DOMContentLoaded', function () {
     // ================================
     // 1. Переключение вкладок (Tabs)
     // ================================
     const tabs = document.querySelectorAll('.tab-btn');
+    const mobileTabs = document.querySelectorAll('.mobile-tab-btn');
     const contents = document.querySelectorAll('.tab-content');
 
+    /**
+     * Переключает вкладки и загружает содержимое через AJAX, если есть data-url.
+     * @param {HTMLElement} tab - Кнопка вкладки.
+     * @param {boolean} isMobile - Флаг мобильного меню.
+     */
+    function switchTab(tab, isMobile = false) {
+        // Удаляем класс active у всех вкладок и контента
+        tabs.forEach(t => t.classList.remove('active'));
+        mobileTabs.forEach(mt => mt.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+
+        // Добавляем класс active для текущей вкладки
+        tab.classList.add('active');
+        const tabId = tab.dataset.tab;
+        const content = document.querySelector(`[data-tab-content="${tabId}"]`);
+        content.classList.add('active');
+
+        // Если есть data-url, загружаем содержимое через AJAX
+        if (tab.dataset.url) {
+            const contentContainer = content.querySelector(`#${tabId}-content`);
+            if (contentContainer) {
+                fetch(tab.dataset.url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(data => {
+                    contentContainer.innerHTML = data;
+
+                    // Если загружаем Statistics, инициализируем графики
+                    if (tabId === 'statistics') {
+                        initializeCharts();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading content:', error);
+                    showNotification('Failed to load content', 'error');
+                });
+            }
+        }
+
+        // Закрываем мобильное меню, если это мобильная вкладка
+        if (isMobile) {
+            document.querySelector('.mobile-menu-content').classList.remove('active');
+        }
+    }
+
+    // Переключение вкладок для десктопных кнопок
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
+            switchTab(tab);
+        });
+    });
+
+    // Переключение вкладок для мобильных кнопок
+    mobileTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTab(tab, true);
         });
     });
 
@@ -111,157 +165,27 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ===============================================
-    // 5. Переключение между входящими и отправленными
-    // ===============================================
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const messageLists = document.querySelectorAll('.messages-list');
-
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            messageLists.forEach(l => l.classList.remove('active'));
-            btn.classList.add('active');
-            document.querySelector(`[data-messages="${btn.dataset.filter}"]`).classList.add('active');
-        });
-    });
-
-    // ===============================================
-    // 6. Показать/скрыть форму сообщения
-    // ===============================================
-    const showMessageBtn = document.getElementById('showMessageForm');
-    const messageForm = document.getElementById('messageForm');
-    const cancelBtn = document.getElementById('cancelMessage');
-
-    if (showMessageBtn && messageForm && cancelBtn) {
-        showMessageBtn.addEventListener('click', () => {
-            messageForm.style.display = 'block';
-            showMessageBtn.style.display = 'none';
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            messageForm.style.display = 'none';
-            showMessageBtn.style.display = 'block';
-        });
-    }
-
-    // ===============================================
-    // 7. Удаление сообщений
-    // ===============================================
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to delete this message?')) {
-                const messageId = btn.dataset.messageId;
-                try {
-                    const response = await fetch(`/messages/delete/${messageId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                        }
-                    });
-                    if (response.ok) {
-                        btn.closest('.message-item').remove();
-                    }
-                } catch (error) {
-                    console.error('Error deleting message:', error);
-                }
-            }
-        });
-    });
-
-    // ===============================================
-    // 8. Обработка выбора файлов для вложений
-    // ===============================================
-    const attachmentsInput = document.getElementById('attachments');
-    const selectedFilesContainer = document.getElementById('selected-files');
-
-    if (attachmentsInput) {
-        attachmentsInput.addEventListener('change', function () {
-            selectedFilesContainer.innerHTML = '';
-            Array.from(this.files).forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <span class="file-name">${file.name}</span>
-                    <ion-icon name="close-outline" class="remove-file"></ion-icon>
-                `;
-                fileItem.querySelector('.remove-file').addEventListener('click', function () {
-                    fileItem.remove();
-                    const dt = new DataTransfer();
-                    Array.from(attachmentsInput.files)
-                        .filter(f => f.name !== file.name)
-                        .forEach(f => dt.items.add(f));
-                    attachmentsInput.files = dt.files;
-                });
-                selectedFilesContainer.appendChild(fileItem);
-            });
-        });
-    }
-
-    // ===============================================
-    // 9. Отправка формы сообщения
-    // ===============================================
-    if (messageForm) {
-        messageForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            try {
-                const response = await fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                });
-                const data = await response.json();
-                if (data.status === 'sent') {
-                    this.reset();
-                    selectedFilesContainer.innerHTML = '';
-                    this.style.display = 'none';
-                    document.getElementById('showMessageForm').style.display = 'block';
-                    showNotification('Message sent successfully!', 'success');
-                }
-            } catch (error) {
-                console.error('Error sending message:', error);
-                showNotification('Failed to send message', 'error');
-            }
-        });
-    }
-
-    // ===============================================
-    // 10. Обработка параметра URL "tab" для переключения вкладок
-    // ===============================================
+    // ================================
+    // 5. Обработка параметра URL "tab" для переключения вкладок
+    // ================================
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab');
     if (activeTab) {
         const tabButton = document.querySelector(`.profile-tabs .tab-btn[data-tab="${activeTab}"]`);
         if (tabButton) {
-            tabButton.click();
+            switchTab(tabButton);
         }
     }
 
     // ================================
-    // 11. Мобильное меню
+    // 6. Мобильное меню
     // ================================
     const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
     const mobileMenuContent = document.querySelector('.mobile-menu-content');
-    const mobileTabs = document.querySelectorAll('.mobile-tab-btn');
 
     if (mobileMenuBtn && mobileMenuContent) {
         mobileMenuBtn.addEventListener('click', () => {
             mobileMenuContent.classList.toggle('active');
-        });
-        mobileTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                if (!tab.href) {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    contents.forEach(c => c.classList.remove('active'));
-                    mobileTabs.forEach(mt => mt.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
-                    mobileMenuContent.classList.remove('active');
-                }
-            });
         });
         document.addEventListener('click', (e) => {
             if (!mobileMenuBtn.contains(e.target) && !mobileMenuContent.contains(e.target)) {
@@ -270,9 +194,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ===============================================
-    // 12. Функция для показа уведомлений
-    // ===============================================
+    // ================================
+    // 7. Функция для показа уведомлений
+    // ================================
     function showNotification(message, type) {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
@@ -281,5 +205,75 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             notification.remove();
         }, 3000);
+    }
+
+    // ================================
+    // 8. Инициализация графиков (Statistics)
+    // ================================
+    function initializeCharts() {
+        const activityChartCanvas = document.getElementById('activityChart');
+        const categoriesChartCanvas = document.getElementById('categoriesChart');
+        const scoresChartCanvas = document.getElementById('scoresChart');
+
+        if (!activityChartCanvas || !categoriesChartCanvas || !scoresChartCanvas) return;
+
+        // Предполагаем, что данные для графиков передаются через атрибуты data-*
+        const activityDates = JSON.parse(activityChartCanvas.dataset.dates || '[]');
+        const activityData = JSON.parse(activityChartCanvas.dataset.data || '[]');
+        const categoriesLabels = JSON.parse(categoriesChartCanvas.dataset.labels || '[]');
+        const categoriesData = JSON.parse(categoriesChartCanvas.dataset.data || '[]');
+        const scoresDistribution = JSON.parse(scoresChartCanvas.dataset.distribution || '[]');
+
+        Chart.defaults.color = '#fff';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+        new Chart(activityChartCanvas, {
+            type: 'line',
+            data: {
+                labels: activityDates,
+                datasets: [{
+                    label: 'Решено задач',
+                    data: activityData,
+                    borderColor: '#f5a623',
+                    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        new Chart(categoriesChartCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: categoriesLabels,
+                datasets: [{
+                    data: categoriesData,
+                    backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        new Chart(scoresChartCanvas, {
+            type: 'bar',
+            data: {
+                labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
+                datasets: [{
+                    label: 'Количество задач',
+                    data: scoresDistribution,
+                    backgroundColor: '#4a90e2'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
     }
 });

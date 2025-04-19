@@ -1,10 +1,14 @@
+/**
+ * JavaScript для профиля: обработка форм, автозаполнение локации, смена пароля.
+ */
 document.addEventListener('DOMContentLoaded', function() {
-    // Функция для отображения ошибок формы
+    /**
+     * Показывает ошибки формы под соответствующими полями.
+     * @param {HTMLFormElement} form - Форма.
+     * @param {Object} errors - Объект с ошибками.
+     */
     function showFormErrors(form, errors) {
-        // Очищаем предыдущие ошибки
         form.querySelectorAll('.error-message').forEach(el => el.remove());
-
-        // Добавляем новые ошибки
         Object.entries(errors).forEach(([field, messages]) => {
             const input = form.querySelector(`[name="${field}"]`);
             if (input) {
@@ -17,11 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Функция для показа уведомлений
+    /**
+     * Показывает уведомление с сообщением.
+     * @param {string} message - Текст уведомления.
+     * @param {string} type - Тип уведомления ('success' или 'error').
+     */
     function showNotification(message, type = 'success') {
-        // Удаляем предыдущие уведомления
         document.querySelectorAll('.notification').forEach(n => n.remove());
-
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
@@ -30,20 +36,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span>${message}</span>
             </div>
         `;
-
         document.body.appendChild(notification);
-
-        // Анимация появления
         setTimeout(() => notification.classList.add('show'), 100);
-
-        // Автоматическое скрытие через 3 секунды
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
 
-    // Вспомогательная функция debounce
+    /**
+     * Debounce-функция для задержки выполнения.
+     * @param {Function} func - Функция для выполнения.
+     * @param {number} wait - Задержка в миллисекундах.
+     * @returns {Function} Обёрнутая функция.
+     */
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -56,102 +62,17 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Функция для генерации URL профиля
-    function getProfileUrl(username) {
-        return `/profile/${username}/`;
-    }
-
-    // Сохраняем активную вкладку при переключении
-    document.querySelectorAll('[data-tab-btn]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            localStorage.setItem('activeTab', this.dataset.tabBtn);
-        });
-    });
-
-    // Восстанавливаем активную вкладку при загрузке
-    const activeTab = localStorage.getItem('activeTab');
-    if (activeTab) {
-        document.querySelector(`[data-tab-btn="${activeTab}"]`)?.click();
-    }
-
-    // Обработка переключения табов
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabName = btn.dataset.tab;
-
-            // Убираем активный класс у всех кнопок и контента
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-
-            // Добавляем активный класс нужной кнопке и контенту
-            btn.classList.add('active');
-            document.querySelector(`[data-tab-content="${tabName}"]`).classList.add('active');
-        });
-    });
-
-    // Автоматическая отправка формы при выборе нового аватара
-    const avatarInput = document.getElementById('id_avatar');
-    const avatarForm = document.getElementById('avatar-form');
-    const avatarImg = document.querySelector('.avatar-img');
-
-    if (avatarInput && avatarForm) {
-        avatarInput.addEventListener('change', function(e) {
-            console.log('File selected:', this.files[0]); // Отладочный вывод
-            avatarForm.submit();
-        });
-    }
-
-    // Обработка настроек профиля
-    const settingsToggles = document.querySelectorAll('.settings-list input[type="checkbox"]');
-    settingsToggles.forEach(toggle => {
-        toggle.addEventListener('change', async function() {
-            try {
-                const response = await fetch('/profile/update-settings/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({
-                        setting: this.name,
-                        value: this.checked
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Settings update failed');
-                }
-
-                showNotification('Settings updated successfully!', 'success');
-            } catch (error) {
-                console.error('Error:', error);
-                // Возвращаем переключатель в предыдущее состояние
-                this.checked = !this.checked;
-                showNotification('Failed to update settings', 'error');
-            }
-        });
-    });
-
-    // Обработка ссылок на профиль с моими дополнениями
+    // Обработка ссылок на профиль
     document.querySelectorAll('[data-profile-link]').forEach(link => {
         link.addEventListener('click', function(e) {
             const username = this.dataset.username;
             const href = this.href;
-
-            // Если username есть или href уже установлен и не ведёт на логин, не вмешиваемся
             if (username || (href && href !== '#' && !href.includes('login'))) {
-                console.log("Link has username or valid href, proceeding:", href);
-                return; // Позволяем перейти по ссылке
+                return;
             }
-
-            // Если username нет и href не установлен, перенаправляем на логин
             e.preventDefault();
             const loginUrl = window.loginUrl || '/?open_login=true';
             window.location.href = `${loginUrl}?next=${encodeURIComponent(window.location.pathname)}`;
-            console.log("Redirecting to login:", window.location.href);
         });
     });
 
@@ -197,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 300));
 
-        // Обработка выбора локации
         suggestions.addEventListener('click', (e) => {
             const item = e.target.closest('.location-item');
             if (item) {
@@ -206,7 +126,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Скрываем подсказки при клике вне
         document.addEventListener('click', (e) => {
             if (!locationInput.contains(e.target) && !suggestions.contains(e.target)) {
                 suggestions.style.display = 'none';
@@ -214,85 +133,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Инициализация графиков статистики
-    // Настройка общего стиля для графиков
-    Chart.defaults.color = '#fff';
-    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
-
-    // График активности
-    new Chart(document.getElementById('activityChart'), {
-        type: 'line',
-        data: {
-            labels: activity_dates,
-            datasets: [{
-                label: 'Решено задач',
-                data: activity_data,
-                borderColor: '#f5a623',
-                backgroundColor: 'rgba(245, 166, 35, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-
-    // График по темам
-    new Chart(document.getElementById('topicsChart'), {
-        type: 'doughnut',
-        data: {
-            labels: topics_labels,
-            datasets: [{
-                data: topics_data,
-                backgroundColor: [
-                    '#f5a623',
-                    '#4a90e2',
-                    '#50e3c2',
-                    '#e54d42',
-                    '#b8e986'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-
-    // График по сложности
-    new Chart(document.getElementById('difficultyChart'), {
-        type: 'bar',
-        data: {
-            labels: ['Легкий', 'Средний', 'Сложный'],
-            datasets: [{
-                label: 'Количество задач',
-                data: difficulty_data,
-                backgroundColor: '#4a90e2'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-
     // Обработчик отправки формы смены пароля
     document.querySelector('form[action*="change-password"]')?.addEventListener('submit', async function(e) {
         e.preventDefault();
-
-        // Очищаем предыдущие ошибки
         this.querySelectorAll('.error-message').forEach(el => el.remove());
 
         try {
@@ -307,7 +150,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (!response.ok) {
-                // Показываем ошибки под каждым полем
                 Object.entries(data.errors).forEach(([field, messages]) => {
                     const input = this.querySelector(`[name="${field}"]`);
                     if (input) {
@@ -319,11 +161,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             } else {
-                // Успешная смена пароля
                 showNotification('Password changed successfully!', 'success');
-                this.reset(); // Очищаем форму
-
-                // Добавляем зеленую подсветку полей на короткое время
+                this.reset();
                 this.querySelectorAll('input').forEach(input => {
                     input.classList.add('success');
                     setTimeout(() => input.classList.remove('success'), 2000);

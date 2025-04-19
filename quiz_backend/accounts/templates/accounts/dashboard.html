@@ -37,8 +37,6 @@
                 <button class="mobile-tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">Personal Info</button>
                 <button class="mobile-tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">Settings</button>
                 <button class="mobile-tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">Security</button>
-                <a href="{% url 'blog:statistics' %}?view=personal" class="mobile-tab-btn">Quiz Statistics</a>
-                <a href="{% url 'blog:inbox' %}" class="mobile-tab-btn">Messages</a>
             </div>
         </div>
 
@@ -47,8 +45,6 @@
             <button class="tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">Personal Info</button>
             <button class="tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">Settings</button>
             <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">Security</button>
-            <a href="{% url 'blog:statistics' %}?view=personal" class="tab-btn">Quiz Statistics</a>
-            <a href="{% url 'blog:inbox' %}" class="tab-btn">Messages</a>
         </div>
 
         <!-- Personal Info Tab -->
