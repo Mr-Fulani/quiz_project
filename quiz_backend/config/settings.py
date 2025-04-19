@@ -202,10 +202,14 @@ REST_FRAMEWORK = {
 }
 
 # Настройки безопасности
-CSRF_COOKIE_SECURE = True  # Только для HTTPS
-CSRF_COOKIE_HTTPONLY = True
-CSRF_USE_SESSIONS = True
-CSRF_COOKIE_SAMESITE = 'Strict'
+# settings.py
+CSRF_COOKIE_SECURE = False  # Для HTTP
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+SESSION_COOKIE_SECURE = False  # Для HTTP
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Разрешаем CSRF для конкретных доменов
 CSRF_TRUSTED_ORIGINS = [

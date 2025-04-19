@@ -1,7 +1,9 @@
+# accounts/forms.py
 import re
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
 from .models import CustomUser, Profile
 
 class CustomUserCreationForm(UserCreationForm):
@@ -33,19 +35,18 @@ class PersonalInfoForm(forms.ModelForm):
     bio = forms.CharField(widget=forms.Textarea, required=False)
     location = forms.CharField(max_length=100, required=False)
     birth_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), required=False)
-    website = forms.URLField(required=False)
-    github = forms.URLField(required=False)
-    linkedin = forms.URLField(required=False)
-    telegram = forms.URLField(required=False)
-    twitter = forms.URLField(required=False)
-    instagram = forms.URLField(required=False)
-    facebook = forms.URLField(required=False)
-    youtube = forms.URLField(required=False)
+    website = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://example.com'}))
+    github = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://github.com/username'}))
+    linkedin = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://linkedin.com/in/username'}))
+    telegram = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'placeholder': '@username или https://t.me/username'}))
+    instagram = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://instagram.com/username'}))
+    facebook = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://facebook.com/username'}))
+    youtube = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://youtube.com/channel/username'}))
 
     class Meta:
         model = Profile
         fields = ['avatar', 'bio', 'location', 'birth_date', 'website', 'github', 'linkedin',
-                  'telegram', 'twitter', 'instagram', 'facebook', 'youtube']
+                  'telegram', 'instagram', 'facebook', 'youtube']
 
     def __init__(self, *args, **kwargs):
         """
@@ -59,6 +60,24 @@ class PersonalInfoForm(forms.ModelForm):
         if self.user:
             self.fields['username'].initial = self.user.username
             self.fields['email'].initial = self.user.email
+
+    def clean_telegram(self):
+        """
+        Валидация поля Telegram.
+        Принимает формат @username или URL (https://t.me/username).
+        """
+        telegram = self.cleaned_data.get('telegram', '').strip()
+        if not telegram:
+            return telegram
+        # Проверяем формат @username
+        if telegram.startswith('@'):
+            if not re.match(r'^@[A-Za-z0-9_]{5,}$', telegram):
+                raise ValidationError('Имя пользователя Telegram должно начинаться с @ и содержать минимум 5 символов (буквы, цифры, подчёркивания).')
+            return f'https://t.me/{telegram[1:]}'  # Преобразуем в URL
+        # Проверяем формат URL
+        if not re.match(r'^https?://(t\.me|telegram\.me)/[A-Za-z0-9_]{5,}$', telegram):
+            raise ValidationError('Введите корректный URL Telegram (например, https://t.me/username) или имя пользователя (например, @username).')
+        return telegram
 
     def clean(self):
         """
@@ -95,4 +114,3 @@ class PersonalInfoForm(forms.ModelForm):
         if commit:
             profile.save()
         return profile
-

@@ -53,19 +53,31 @@ class LoginView(APIView):
         Получаем логин/пароль из request.data,
         если ок, login(request, user) и возвращаем JSON с данными пользователя.
         """
+        print(f"Login request data: {request.data}")
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
             login(request, user)
-            return Response(UserSerializer(user).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            print(f"User {user.username} logged in")
+            # Получаем параметр next из формы
+            next_url = request.POST.get('next', '/')
+            return Response({
+                'success': True,
+                'user': UserSerializer(user).data,
+                'next': next_url
+            })
+        print(f"Login errors: {serializer.errors}")
+        return Response({'error': 'Неверный логин или пароль'}, status=status.HTTP_400_BAD_REQUEST)
 
 class CustomLogoutView(LogoutView):
     """
     При логауте перенаправляет на '/' (next_page='/').
     """
     next_page = '/'
+
+    def post(self, request, *args, **kwargs):
+        print(f"Logout request: {request.POST}")
+        return super().post(request, *args, **kwargs)
 
 
 class RegisterView(generics.CreateAPIView):

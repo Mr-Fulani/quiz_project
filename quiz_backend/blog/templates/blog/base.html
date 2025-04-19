@@ -78,9 +78,9 @@
         <i style="--clr:#ff0057;"></i>
         <i style="--clr:#fffd44;"></i>
         <div class="login">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn">×</span>
             <h2>Login</h2>
-            <form method="post" action="{% url 'login' %}">
+            <form method="post" action="{% url 'accounts:accounts_login' %}" class="login-form">
                 {% csrf_token %}
                 <div class="inputBx">
                     <input type="text" name="username" placeholder="Username" required>
@@ -91,18 +91,14 @@
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <mask id="eye-open">
-                                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12V20H12H1V12Z" fill="#D9D9D9"
-                                          stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+                                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12V20H12H1V12Z" fill="#D9D9D9" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
                                 </mask>
                                 <mask id="eye-closed">
                                     <path d="M1 12C1 12 5 20 12 20C19 20 23 12 23 12V20H12H1V12Z" fill="#D9D9D9"/>
                                 </mask>
                             </defs>
-                            <path class="lid lid--upper" d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12" stroke="currentColor"
-                                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path class="lid lid--lower" d="M1 12C1 12 5 20 12 20C19 20 23 12 23 12"
-                                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                                  stroke-linejoin="round"/>
+                            <path class="lid lid--upper" d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path class="lid lid--lower" d="M1 12C1 12 5 20 12 20C19 20 23 12 23 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             <g mask="url(#eye-open)">
                                 <g class="eye">
                                     <circle cy="12" cx="12" r="4" fill="currentColor"/>
@@ -113,6 +109,7 @@
                         <span class="sr-only">Reveal</span>
                     </button>
                 </div>
+                <div class="error-message" style="color: red;"></div>
                 <div class="inputBx">
                     <input type="submit" value="Sign in">
                 </div>

@@ -6,6 +6,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const registerModal = document.getElementById('register-modal');
     const forgotModal = document.getElementById('forgot-modal');
 
+    // Отправка формы логина через AJAX
+    const loginForm = loginModal.querySelector('.login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+
+            const formData = new FormData(loginForm);
+            const errorMessage = loginModal.querySelector('.error-message');
+
+            fetch(loginForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Login failed');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Успешный вход
+                const nextUrl = data.next || '/';
+                window.location.href = nextUrl; // Перенаправление
+            })
+            .catch(error => {
+                // Ошибка (например, неверный пароль)
+                errorMessage.textContent = error.message || 'An error occurred';
+            });
+        });
+    }
+
     /**
      * Проверяет URL-параметры и автоматически открывает соответствующее модальное окно,
      * если в URL есть 'open_login', 'open_register' или 'open_forgot'.

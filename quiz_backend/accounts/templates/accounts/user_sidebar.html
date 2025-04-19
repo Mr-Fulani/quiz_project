@@ -83,9 +83,9 @@
       <ul class="social-list">
         {% if user_profile.telegram %}
         <li class="social-item">
-          <a href="https://t.me/{{ user_profile.telegram }}" class="social-link" target="_blank" rel="noopener noreferrer">
-            <ion-icon name="paper-plane"></ion-icon>
-          </a>
+            <a href="{% if user_profile.telegram %}tg://resolve?domain={{ user_profile.telegram|cut:'https://t.me/'|cut:'@' }}{% endif %}" class="social-link" target="_blank" rel="noopener noreferrer">
+                <ion-icon name="paper-plane"></ion-icon>
+            </a>
         </li>
         {% endif %}
         {% if user_profile.github %}

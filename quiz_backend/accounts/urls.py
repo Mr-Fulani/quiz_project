@@ -17,6 +17,7 @@ urlpatterns = [
     # Регистрация: GET и POST обрабатываются в RegisterView
     path('register/', views.RegisterView.as_view(), name='register'),
     path('login/', RedirectView.as_view(url='/?open_login=true'), name='login'),
+    path('accounts/login/', views.LoginView.as_view(), name='accounts_login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
 
  
