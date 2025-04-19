@@ -2576,43 +2576,210 @@ article .video .video-content {
 
 
 
+
 /**
- * Стили для меню фильтров на страницах постов и портфолио в мобильной версии.
- * Обеспечивают компактное расположение с горизонтальной прокруткой.
+ * Стили для заголовка и выпадающего меню фильтров в мобильной версии.
+ * Заголовок слева, кнопка фильтров справа, выпадающее меню с анимацией.
  */
+
 @media (max-width: 580px) {
-    .filter-list {
-        display: flex; /* Горизонтальное расположение */
-        flex-wrap: nowrap; /* Отключаем перенос элементов */
-        overflow-x: auto; /* Горизонтальная прокрутка */
-        padding: 10px 0; /* Внутренние отступы */
-        margin: 0 -15px; /* Компенсация боковых отступов контейнера */
-        gap: 10px; /* Зазор между элементами */
-        list-style: none; /* Убираем маркеры списка */
-        scrollbar-width: none; /* Скрываем полосу прокрутки (Firefox) */
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        position: relative;
     }
 
-    .filter-list::-webkit-scrollbar {
-        display: none; /* Скрываем полосу прокрутки (Chrome, Safari) */
+    .filter-toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 12px;
+        background: var(--border-gradient-onyx);
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        color: var(--orange-yellow-crayola);
+        cursor: pointer;
+        position: relative;
+        transition: background 0.3s ease, color 0.3s ease;
+        z-index: 1;
     }
 
-    .filter-item {
-        flex: 0 0 auto; /* Элементы не растягиваются */
+    .filter-toggle-btn::before {
+        content: '';
+        position: absolute;
+        inset: 1px;
+        background: var(--bg-gradient-jet);
+        border-radius: inherit;
+        z-index: -1;
+        transition: background 0.3s ease;
+    }
+
+    .filter-toggle-btn:hover,
+    .filter-toggle-btn:focus {
+        background: var(--bg-gradient-yellow1);
+        color: var(--orange-yellow-crayola);
+    }
+
+    .filter-toggle-btn:hover::before,
+    .filter-toggle-btn:focus::before {
+        background: var(--bg-gradient-yellow2, linear-gradient(45deg, hsl(45, 100%, 71%), hsl(35, 100%, 68%)));
+    }
+
+    .filter-toggle-btn ion-icon {
+        font-size: 16px;
+        transition: transform 0.3s ease;
+    }
+
+    .filter-toggle-btn.active ion-icon {
+        transform: rotate(180deg);
+    }
+
+    .filter-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 15px;
+        background: var(--border-gradient-onyx);
+        border: 1px solid var(--jet);
+        border-radius: 12px;
+        box-shadow: var(--shadow2);
+        padding: 10px;
+        min-width: 150px;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+    }
+
+    .filter-dropdown::before {
+        content: '';
+        position: absolute;
+        inset: 1px;
+        background: var(--eerie-black2);
+        border-radius: inherit;
+        z-index: -1;
+    }
+
+    .filter-dropdown.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
     }
 
     .filter-item button {
-        font-size: 14px; /* Уменьшенный размер шрифта */
-        padding: 8px 16px; /* Компактные отступы */
-        border-radius: 20px; /* Скругление углов */
-        transition: background-color 0.3s, color 0.3s; /* Плавный переход */
-        white-space: nowrap; /* Текст не переносится */
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        background: none;
+        border: none;
+        text-align: left;
+        font-size: 14px;
+        color: var(--white2);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, color 0.3s ease;
     }
 
+    .filter-item button:hover,
     .filter-item button.active {
-        background-color: var(--primary-color); /* Цвет активной кнопки (замените на ваш цвет) */
-        color: #fff; /* Белый текст для активной кнопки */
+        background: var(--bg-gradient-yellow1);
+        color: var(--orange-yellow-crayola);
+    }
+
+    .blog-post-item,
+    .portfolio-item {
+        display: block;
+        transition: opacity 0.3s ease;
+    }
+
+    .blog-post-item.hidden,
+    .portfolio-item.hidden {
+        display: none;
     }
 }
 
+@media (min-width: 580px) {
+    .filter-toggle-btn {
+        display: none !important;
+    }
+
+    .filter-dropdown {
+        display: flex !important;
+        position: static !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        gap: 20px; /* Увеличено с 15px до 20px */
+        margin-bottom: 30px; /* Добавлено расстояние до контента */
+    }
+
+    .filter-item button {
+        padding: 10px 20px;
+        border-radius: 20px;
+        color: var(--white2);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .filter-item button:hover,
+    .filter-item button.active {
+        background: var(--bg-gradient-yellow1);
+        color: var(--orange-yellow-crayola);
+    }
+
+    .blog-post-item,
+    .portfolio-item {
+        display: block;
+    }
+}
+
+
+
+/* ================================================== */
+
+
+/**
+ * Стили для сообщения о пустом контенте.
+ */
+.no-content-message {
+    display: none;
+    opacity: 0;
+    text-align: center;
+    padding: 40px 20px;
+    margin: 20px auto;
+    max-width: 600px;
+    background: var(--bg-gradient-jet);
+    border: 1px solid var(--jet);
+    border-radius: 12px;
+    box-shadow: var(--shadow2);
+    color: var(--white2);
+    font-size: 18px;
+    line-height: 1.5;
+    transition: opacity 0.3s ease;
+}
+
+.no-content-message h3 {
+    color: var(--orange-yellow-crayola);
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.no-content-message p {
+    margin: 0;
+}
+
+/* Опционально: стили для картинки */
+.no-content-message img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
 
 

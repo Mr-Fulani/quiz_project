@@ -4,12 +4,13 @@
 
 {% block content %}
 <article class="blog active" data-page="portfolio">
-    <header>
+    <header class="filter-header">
         <h2 class="h2 article-title">Portfolio</h2>
-    </header>
-
-    <section class="blog-posts">
-        <ul class="filter-list">
+        <button class="filter-toggle-btn" data-filter-toggle>
+            <span>Filter</span>
+            <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+        <ul class="filter-dropdown" data-filter-dropdown>
             <li class="filter-item">
                 <button class="active" data-filter-btn>All</button>
             </li>
@@ -19,7 +20,9 @@
             </li>
             {% endfor %}
         </ul>
+    </header>
 
+    <section class="blog-posts">
         <ul class="blog-posts-list">
             {% for project in projects %}
             <li class="blog-post-item" data-filter-item data-category="{{ project.category.name|lower }}">
@@ -64,10 +67,18 @@
                     </div>
                 </a>
             </li>
-            {% empty %}
-            <p>No projects available.</p>
             {% endfor %}
+            <div class="no-content-message">
+                <h3>Пока здесь пусто, но мы активно работаем!</h3>
+                <p>Новые проекты скоро появятся, следите за обновлениями!</p>
+                <!-- Опционально: картинка -->
+                <!-- <img src="{% static 'blog/images/no-content-placeholder.png' %}" alt="No content"> -->
+            </div>
         </ul>
     </section>
 </article>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
+<script type="module" src="{% static 'blog/js/filter-dropdown.js' %}"></script>
 {% endblock %}

@@ -8,12 +8,13 @@
 
 {% block content %}
 <article class="blog active" data-page="blog">
-    <header>
+    <header class="filter-header">
         <h2 class="h2 article-title">Posts</h2>
-    </header>
-
-    <section class="blog-posts">
-        <ul class="filter-list">
+        <button class="filter-toggle-btn" data-filter-toggle>
+            <span>Filter</span>
+            <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+        <ul class="filter-dropdown" data-filter-dropdown>
             <li class="filter-item">
                 <button class="active" data-filter-btn>All</button>
             </li>
@@ -23,7 +24,9 @@
             </li>
             {% endfor %}
         </ul>
+    </header>
 
+    <section class="blog-posts">
         <ul class="blog-posts-list">
             {% for post in posts %}
             <li class="blog-post-item" data-filter-item data-category="{{ post.category.name|lower }}">
@@ -64,9 +67,13 @@
                     </div>
                 </a>
             </li>
-            {% empty %}
-            <p>No posts available.</p>
             {% endfor %}
+            <div class="no-content-message">
+                <h3>Пока здесь пусто, но мы активно работаем!</h3>
+                <p>Новые посты скоро появятся, следите за обновлениями!</p>
+                <!-- Опционально: картинка -->
+                <!-- <img src="{% static 'blog/images/no-content-placeholder.png' %}" alt="No content"> -->
+            </div>
         </ul>
 
         {% if posts.has_other_pages %}
@@ -97,4 +104,5 @@
 <script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
 <script src="https://unpkg.com/gsap@3.11.0/dist/ScrollTrigger.min.js"></script>
 <script type="module" src="{% static 'js/bee-scroll.js' %}"></script>
+<script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
 {% endblock %}
