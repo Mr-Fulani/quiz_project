@@ -1,9 +1,71 @@
+/* ==========================================
+   Основной контейнер профиля
+   ========================================== */
 .profile-container {
     max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
 }
 
+/* ==========================================
+   Стили для навигационных вкладок
+   ========================================== */
+.profile-tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    background: var(--border-gradient-onyx);
+    color: var(--light-gray);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.tab-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--orange-yellow-crayola),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.tab-btn:hover::before {
+    left: 100%;
+}
+
+.tab-btn.active {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    transform: translateY(-2px);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ==========================================
+   Шапка профиля (аватар + информация)
+   ========================================== */
 .profile-header {
     display: flex;
     gap: 30px;
@@ -14,7 +76,6 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-/* Сбрасываем все возможные стили для аватара */
 .profile-content .profile-avatar,
 .profile-avatar {
     position: relative;
@@ -36,7 +97,6 @@
     transition: transform 0.3s ease;
 }
 
-/* Сбрасываем все возможные круглые стили */
 .profile-content .profile-avatar *,
 .profile-avatar * {
     border-radius: 20px !important;
@@ -84,6 +144,119 @@
     flex: 1;
 }
 
+.profile-info.readonly h3 {
+    color: var(--light-gray);
+    margin-bottom: 10px;
+}
+
+.info-section {
+    margin-bottom: 20px;
+}
+
+.info-section p {
+    color: var(--light-gray);
+    line-height: 1.6;
+}
+
+/* ==========================================
+   Стили для карточек профиля
+   ========================================== */
+.profile-card {
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+}
+
+/* ==========================================
+   Сетка со статистикой
+   ========================================== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    background: var(--bg-gradient-onyx);
+    padding: 13px;
+    border-radius: 8px;
+    font-size: 24px;
+    color: var(--orange-yellow-crayola);
+}
+
+.stat-info h4 {
+    color: var(--light-gray-70);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.stat-info p,
+.stat-number {
+    color: var(--light-gray);
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stat-text {
+    color: var(--light-gray);
+    font-size: 1.1em;
+}
+
+/* ==========================================
+   Блок с графиками
+   ========================================== */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.chart-container {
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 14px;
+}
+
+.chart-container h4 {
+    color: var(--light-gray-70);
+    font-size: 16px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+canvas {
+    width: 100% !important;
+    height: 300px !important;
+}
+
+/* ==========================================
+   Telegram бейдж
+   ========================================== */
 .telegram-badge {
     background: #0088cc;
     color: white;
@@ -100,6 +273,18 @@
     font-size: 1.1em;
 }
 
+.telegram-notice {
+    padding: 15px;
+    background-color: rgba(0, 136, 204, 0.1);
+    border: 1px solid #0088cc;
+    border-radius: 5px;
+    color: #0088cc;
+    text-align: center;
+}
+
+/* ==========================================
+   Биография
+   ========================================== */
 .profile-bio {
     margin-top: 20px;
     line-height: 1.6;
@@ -122,38 +307,9 @@
     opacity: 1;
 }
 
-.profile-stats {
-    margin: 40px 0;
-}
-
-.profile-stats .stat-card {
-    background: var(--border-gradient-onyx);
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    transition: transform 0.3s ease;
-}
-
-.profile-stats .stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.stat-card h4 {
-    color: var(--light-gray);
-    margin-bottom: 10px;
-}
-
-.stat-number {
-    font-size: 2em;
-    font-weight: bold;
-    color: var(--orange-yellow-crayola);
-}
-
-.stat-text {
-    color: var(--light-gray);
-    font-size: 1.1em;
-}
-
+/* ==========================================
+   Последние достижения
+   ========================================== */
 .recent-achievements {
     background: var(--background-secondary);
     padding: 20px;
@@ -172,11 +328,437 @@
     padding: 20px;
 }
 
+/* ==========================================
+   Сообщения
+   ========================================== */
+.messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.message-item {
+    background: var(--border-gradient-onyx);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.message-item.unread {
+    border-left: 3px solid var(--orange-yellow-crayola);
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.message-sender {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message-header .sender {
+    color: var(--orange-yellow-crayola);
+    text-decoration: none;
+}
+
+.message-header .date {
+    color: var(--light-gray);
+    font-size: 0.9em;
+}
+
+.message-content {
+    color: var(--light-gray);
+    margin-bottom: 10px;
+}
+
+.message-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.reply-btn {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    padding: 5px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+.reply-btn:hover {
+    opacity: 0.9;
+}
+
+.message-attachments {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.attachment-list {
+    list-style: none;
+    padding: 0;
+}
+
+.attachment-item {
+    margin: 5px 0;
+}
+
+.attachment-link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--light-gray);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.attachment-link:hover {
+    color: var(--orange-yellow-crayola);
+}
+
+/* ==========================================
+   Кнопка "New Message"
+   ========================================== */
+.compose-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 25px;
+    color: var(--eerie-black-1);
+    cursor: pointer;
+}
+
+/* ==========================================
+   Форма отправки сообщения
+   ========================================== */
+.message-form {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--border-gradient-onyx);
+    border-radius: 12px;
+}
+
+.message-form textarea {
+    width: 100%;
+    min-height: 100px;
+    margin-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    color: var(--light-gray);
+    margin-bottom: 5px;
+}
+
+.selected-files {
+    margin-top: 10px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background: var(--eerie-black-2);
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.file-item .remove-file {
+    cursor: pointer;
+    color: #ff6b6b;
+}
+
+/* ==========================================
+   Модальное окно
+   ========================================== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background: var(--eerie-black-2);
+    margin: 15% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 12px;
+}
+
+.close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--light-gray);
+}
+
+/* ==========================================
+   Загрузка файлов
+   ========================================== */
+.file-upload {
+    margin: 10px 0;
+}
+
+.file-upload label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.delete-btn {
+    background: #dc3545;
+    margin-left: 10px;
+    color: #fff;
+    border-radius: 15px;
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+}
+
+/* ==========================================
+   Социальные ссылки
+   ========================================== */
+.social-links {
+    margin: 30px 0;
+    display: grid;
+    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.social-links a {
+    display: inline-flex;
+    align-items: center;
+    color: var(--light-gray);
+    text-decoration: none;
+}
+
+.social-links ion-icon {
+    font-size: 24px;
+    color: var(--orange-yellow-crayola);
+    transition: transform 0.3s ease;
+}
+
+.social-links a:hover ion-icon {
+    transform: scale(1.1);
+}
+
+.social-input {
+    position: relative;
+}
+
+.social-input input {
+    padding-left: 40px !important;
+    width: 100%;
+}
+
+.social-input ion-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: var(--orange-yellow-crayola);
+    transition: all 0.3s ease;
+}
+
+.social-input:hover ion-icon {
+    transform: translateY(-50%) scale(1.1);
+}
+
+/* ==========================================
+   Кнопка отправки формы
+   ========================================== */
+.form-submit-wrapper {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.form-btn {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    padding: 12px 35px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.form-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 170, 0, 0.3);
+}
+
+/* ==========================================
+   Поля формы
+   ========================================== */
+.form-input {
+    background: var(--border-gradient-onyx);
+    color: var(--light-gray);
+    padding: 12px;
+    border: 1px solid var(--jet);
+    border-radius: 8px;
+    width: 100%;
+    margin-bottom: 15px;
+    transition: border-color 0.3s ease, all 0.3s ease;
+}
+
+.form-input:focus {
+    border-color: var(--orange-yellow-crayola);
+    outline: none;
+}
+
+.form-input.error {
+    border-color: #f44336;
+    animation: shake 0.5s;
+}
+
+.form-input.success {
+    border-color: #4CAF50;
+}
+
+/* ==========================================
+   Локация
+   ========================================== */
+.location-wrapper {
+    position: relative;
+}
+
+.location-input {
+    width: 100%;
+}
+
+.location-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.location-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.location-item:hover {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+}
+
+/* ==========================================
+   Обязательные поля
+   ========================================== */
+label:has(+ input[required]) {
+    position: relative;
+}
+
+label:has(+ input[required])::after {
+    content: '*';
+    color: var(--orange-yellow-crayola);
+    margin-left: 4px;
+}
+
+/* ==========================================
+   Уведомления
+   ========================================== */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    z-index: 1000;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification.success {
+    background-color: #4CAF50;
+}
+
+.notification.error {
+    background-color: #f44336;
+}
+
+/* ==========================================
+   Сообщения об ошибках и успехе
+   ========================================== */
 .error-message {
-    color: #ff4444;
+    color: #f44336;
     font-size: 0.9em;
     margin-top: 5px;
     margin-bottom: 10px;
+    animation: slideDown 0.3s ease;
 }
 
 .messages {
@@ -202,16 +784,9 @@
     color: #dc3545;
 }
 
-.telegram-notice {
-    padding: 15px;
-    background-color: rgba(0, 136, 204, 0.1);
-    border: 1px solid #0088cc;
-    border-radius: 5px;
-    color: #0088cc;
-    text-align: center;
-}
-
-/* Стили для переключателей в настройках */
+/* ==========================================
+   Переключатели (switch)
+   ========================================== */
 .switch {
     position: relative;
     display: inline-block;
@@ -257,412 +832,173 @@ input:checked + .slider:before {
     transform: translateX(26px);
 }
 
-/* Стили для форм */
-.form-input {
-    background: var(--border-gradient-onyx);
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* ==========================================
+   Приватное уведомление
+   ========================================== */
+.private-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem;
     color: var(--light-gray);
-    padding: 12px;
-    border: 1px solid var(--jet);
-    border-radius: 8px;
-    width: 100%;
-    margin-bottom: 15px;
-    transition: border-color 0.3s ease;
 }
 
-.form-input:focus {
-    border-color: var(--orange-yellow-crayola);
-    outline: none;
+.private-notice ion-icon {
+    font-size: 3rem;
 }
 
-.form-btn {
+/* ==========================================
+   Стили для сообщений из user_profile.css
+   ========================================== */
+.message-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
     background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-    padding: 12px 24px;
     border: none;
-    border-radius: 8px;
+    border-radius: 1.5625rem;
+    color: var(--eerie-black-1);
     cursor: pointer;
-    transition: opacity 0.3s ease;
+    transition: background-color 0.3s ease;
+    font-size: 0.9375rem;
 }
 
-.form-btn:hover {
-    opacity: 0.9;
+.message-btn:hover {
+    background: var(--vegas-gold);
 }
 
-/* Адаптивность */
-@media (max-width: 768px) {
-    .profile-header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .input-wrapper {
-        flex-direction: column;
-    }
-}
-
-/* Стили для сообщений */
 .message-form {
-    margin-top: 20px;
-    padding: 20px;
-    background: var(--border-gradient-onyx);
-    border-radius: 12px;
+    margin-top: 1.25rem;
+    background: var(--eerie-black-1);
+    padding: 1.25rem;
+    border-radius: 0.9375rem;
 }
 
 .message-form textarea {
     width: 100%;
-    min-height: 100px;
-    margin-bottom: 10px;
-}
-
-.messages-container .message-item {
-    padding: 15px;
-    margin-bottom: 15px;
-    background: var(--border-gradient-onyx);
-    border-radius: 12px;
-    transition: transform 0.3s ease;
-}
-
-.messages-container .message-item.unread {
-    border-left: 3px solid var(--orange-yellow-crayola);
-}
-
-.message-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.message-header .sender {
-    color: var(--orange-yellow-crayola);
-    text-decoration: none;
-}
-
-.message-header .date {
-    color: var(--light-gray);
-    font-size: 0.9em;
-}
-
-.message-content {
-    color: var(--light-gray);
-    margin-bottom: 10px;
-}
-
-.message-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.reply-btn {
-    background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-    padding: 5px 15px;
-    border-radius: 6px;
-    text-decoration: none;
-    transition: opacity 0.3s ease;
-}
-
-.reply-btn:hover {
-    opacity: 0.9;
-}
-
-/* Добавьте эти стили к существующим */
-
-.message-attachments {
-    margin: 10px 0;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-}
-
-.attachment-list {
-    list-style: none;
-    padding: 0;
-}
-
-.attachment-item {
-    margin: 5px 0;
-}
-
-.attachment-link {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: var(--light-gray);
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.attachment-link:hover {
-    color: var(--orange-yellow-crayola);
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-}
-
-.modal-content {
-    position: relative;
+    min-height: 6.25rem;
     background: var(--eerie-black-2);
-    margin: 15% auto;
-    padding: 20px;
-    width: 80%;
-    max-width: 600px;
-    border-radius: 12px;
-}
-
-.close {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    font-size: 28px;
-    cursor: pointer;
+    border: 1px solid var(--jet);
+    border-radius: 0.625rem;
+    padding: 0.9375rem;
     color: var(--light-gray);
+    margin-bottom: 0.9375rem;
+    resize: vertical;
+    font-size: 0.9375rem;
 }
 
-.file-upload {
-    margin: 10px 0;
+.attachment-section {
+    margin-bottom: 0.9375rem;
 }
 
-.file-upload label {
+.attachment-label {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 8px 15px;
-    background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-    border-radius: 6px;
+    gap: 0.3125rem;
+    padding: 0.5rem 0.9375rem;
+    background: var(--eerie-black-2);
+    border-radius: 1.25rem;
     cursor: pointer;
-}
-
-.file-upload input[type="file"] {
-    display: none;
-}
-
-.file-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 5px 10px;
-    margin: 5px 0;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-}
-
-.delete-btn {
-    background: #dc3545;
-    margin-left: 10px;
-}
-
-.delete-btn:hover {
-    background: #c82333;
-}
-
-/* Стили для социальных сетей */
-.social-links {
-    margin: 30px 0;
-    display: grid;
-    gap: 15px;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-.social-input {
-    position: relative;
-}
-
-.social-input input {
-    padding-left: 40px !important;
-    width: 100%;
-}
-
-.social-input ion-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
-    color: var(--orange-yellow-crayola);
-    transition: all 0.3s ease;
-}
-
-.social-input:hover ion-icon {
-    transform: translateY(-50%) scale(1.1);
-}
-
-/* Стиль для кнопки сохранения */
-.form-submit-wrapper {
-    margin-top: 40px;
-    text-align: center;
-}
-
-.form-btn {
-    background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-    padding: 12px 35px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    font-size: 16px;
-}
-
-.form-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 170, 0, 0.3);
-}
-
-/* Стили для локации */
-.location-wrapper {
-    position: relative;
-}
-
-.location-suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--background-secondary);
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 100;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.location-item {
-    padding: 10px;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.location-item:hover {
-    background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-}
-
-/* Стили для обязательных полей */
-label:has(+ input[required]) {
-    position: relative;
-}
-
-label:has(+ input[required])::after {
-    content: '*';
-    color: var(--orange-yellow-crayola);
-    margin-left: 4px;
-}
-
-/* Стили для навигационных кнопок */
-.profile-tabs {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-}
-
-.tab-btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 12px;
-    background: var(--border-gradient-onyx);
     color: var(--light-gray);
+    font-size: 0.875rem;
+}
+
+.selected-files {
+    margin-top: 0.625rem;
+}
+
+.selected-file {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--eerie-black-2);
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.3125rem;
+    margin-bottom: 0.3125rem;
+    font-size: 0.875rem;
+}
+
+.remove-file {
     cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+    color: var(--light-gray-70);
 }
 
-.tab-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        to right,
-        transparent,
-        var(--orange-yellow-crayola),
-        transparent
-    );
-    transition: 0.5s;
+.remove-file:hover {
+    color: #e74c3c;
 }
 
-.tab-btn:hover::before {
-    left: 100%;
-}
-
-.tab-btn.active {
-    background: var(--orange-yellow-crayola);
-    color: var(--eerie-black-1);
-    transform: translateY(-2px);
-}
-
-/* Стили для уведомлений */
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    border-radius: 8px;
-    color: white;
-    z-index: 1000;
-    transform: translateX(120%);
-    transition: transform 0.3s ease;
-}
-
-.notification.show {
-    transform: translateX(0);
-}
-
-.notification-content {
+.send-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 1.5625rem;
+    color: var(--eerie-black-1);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.9375rem;
 }
 
-.notification.success {
-    background-color: #4CAF50;
+.send-btn:hover {
+    background: var(--vegas-gold);
 }
 
-.notification.error {
-    background-color: #f44336;
+.message-notification {
+    padding: 0.625rem 0.9375rem;
+    border-radius: 0.3125rem;
+    margin: 0.625rem 0;
+    font-size: 0.875rem;
 }
 
-/* Стили для полей формы */
-.form-input {
-    border: 1px solid var(--jet);
-    transition: all 0.3s ease;
+.message-notification.success {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
 }
 
-.form-input.error {
-    border-color: #f44336;
-    animation: shake 0.5s;
+.message-notification.error {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
 }
 
-.form-input.success {
-    border-color: #4CAF50;
+/* ==========================================
+   Стили для кнопки перехода на профиль
+   ========================================== */
+.view-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 1.5625rem;
+    color: var(--eerie-black-1);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.9375rem;
+    text-decoration: none;
 }
 
-.error-message {
-    color: #f44336;
-    font-size: 0.9em;
-    margin-top: 5px;
-    animation: slideDown 0.3s ease;
+.view-profile-btn:hover {
+    background: var(--vegas-gold);
 }
 
-/* Анимации */
+/* ==========================================
+   Анимации
+   ========================================== */
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-10px); }
@@ -677,5 +1013,72 @@ label:has(+ input[required])::after {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* ==========================================
+   Адаптивность
+   ========================================== */
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .profile-avatar img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-wrapper {
+        height: 250px;
+    }
+
+    .stat-info p {
+        font-size: 20px;
+    }
+
+    .input-wrapper {
+        flex-direction: column;
+    }
+
+    .message-btn,
+    .send-btn,
+    .view-profile-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .message-form {
+        padding: 1rem;
+    }
+
+    .message-form textarea {
+        min-height: 5rem;
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .message-btn,
+    .send-btn,
+    .view-profile-btn,
+    .message-notification {
+        font-size: 0.8125rem;
+    }
+
+    .message-form textarea,
+    .attachment-label {
+        font-size: 0.8125rem;
     }
 }

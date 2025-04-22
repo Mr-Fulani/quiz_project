@@ -1,442 +1,65 @@
 /* ==========================================
-   Стили для навигационных вкладок
+   Основной контейнер профиля
    ========================================== */
-.profile-tabs {
-    display: flex; /* Флексбокс для горизонтального расположения */
-    gap: 15px; /* Расстояние между кнопками */
-    margin-bottom: 30px; /* Отступ снизу */
-    flex-wrap: wrap; /* Перенос кнопок на новую строку при необходимости */
+.profile-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
 }
-
-.tab-btn {
-    padding: 12px 24px; /* Внутренний отступ */
-    border: none; /* Убираем границы */
-    border-radius: 12px; /* Скругление углов */
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    color: var(--light-gray); /* Цвет текста */
-    cursor: pointer; /* Курсор указывает на возможность клика */
-    transition: all 0.3s ease; /* Анимация при наведении */
-    position: relative; /* Позиционирование для анимации */
-    overflow: hidden; /* Скрываем выходящие за пределы элементы */
-}
-
-.tab-btn::before {
-    content: ''; /* Создание псевдоэлемента */
-    position: absolute; /* Абсолютное позиционирование */
-    top: 0;
-    left: -100%;
-    width: 100%; /* Занимает всю ширину */
-    height: 100%; /* Занимает всю высоту */
-    background: linear-gradient(
-        to right,
-        transparent,
-        var(--orange-yellow-crayola),
-        transparent
-    ); /* Градиентная анимация */
-    transition: 0.5s; /* Плавность анимации */
-}
-
-.tab-btn:hover::before {
-    left: 100%; /* Движение градиента при наведении */
-}
-
-.tab-btn.active {
-    background: var(--orange-yellow-crayola); /* Фон активной кнопки */
-    color: var(--eerie-black-1); /* Цвет текста активной кнопки */
-    transform: translateY(-2px); /* Лёгкое поднятие */
-}
-
-/* ==========================================
-   Стили для карточек профиля
-   ========================================== */
-.profile-card {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    padding: 20px; /* Внутренний отступ */
-    border-radius: 14px; /* Скругление углов */
-    margin-bottom: 20px; /* Отступ снизу */
-}
-
-/* ==========================================
-   Шапка профиля (аватар + информация)
-   ========================================== */
-.profile-header {
-    display: flex; /* Флексбокс для выравнивания */
-    gap: 20px; /* Расстояние между элементами */
-    margin-bottom: 30px; /* Отступ снизу */
-}
-
-.profile-avatar img {
-    width: 100px; /* Ширина аватара */
-    height: 100px; /* Высота аватара */
-    border-radius: 50%; /* Круглая форма */
-    object-fit: cover; /* Сохранение пропорций изображения */
-}
-
-/* ==========================================
-   Сетка со статистикой
-   ========================================== */
-.stats-cards {
-    display: grid; /* Сетка для статистики */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Адаптивная сетка */
-    gap: 20px; /* Расстояние между карточками */
-    margin-bottom: 30px; /* Отступ снизу */
-}
-
-.stat-card {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    padding: 20px; /* Внутренний отступ */
-    border-radius: 10px; /* Скругление углов */
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    gap: 15px; /* Расстояние между элементами */
-}
-
-.stat-icon {
-    font-size: 24px; /* Размер иконки */
-    color: var(--orange-yellow-crayola); /* Цвет иконки */
-}
-
-.stat-info h4 {
-    margin: 0; /* Убираем отступы */
-    color: var(--light-gray-70); /* Цвет заголовка */
-    font-size: 14px; /* Размер шрифта */
-}
-
-.stat-info p {
-    margin: 5px 0 0; /* Убираем лишние отступы */
-    color: var(--light-gray); /* Цвет текста */
-    font-size: 24px; /* Размер шрифта */
-    font-weight: bold; /* Жирный текст */
-}
-
-/* ==========================================
-   Блок с графиками
-   ========================================== */
-.stats-charts {
-    display: grid; /* Сетка для графиков */
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Адаптивная сетка */
-    gap: 20px; /* Расстояние между графиками */
-    margin-top: 30px; /* Отступ сверху */
-}
-
-.chart-container {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    padding: 20px; /* Внутренний отступ */
-    border-radius: 10px; /* Скругление углов */
-}
-
-.chart-container h4 {
-    margin: 0 0 15px; /* Убираем лишние отступы */
-    color: var(--light-gray-70); /* Цвет заголовка */
-    text-align: center; /* Выравнивание по центру */
-}
-
-canvas {
-    width: 100% !important; /* Полная ширина графика */
-    height: 300px !important; /* Фиксированная высота */
-}
-
-/* ==========================================
-   Настройки (Settings Tab)
-   ========================================== */
-.setting-item {
-    display: flex; /* Флексбокс для выравнивания */
-    justify-content: space-between; /* Расположение элементов */
-    align-items: center; /* Вертикальное центрирование */
-    padding: 10px 0; /* Внутренний отступ */
-    border-bottom: 1px solid var(--jet); /* Нижняя граница */
-}
-
-/* ==========================================
-   Переключатели (switch)
-   ========================================== */
-.switch {
-    position: relative; /* Позиционирование */
-    display: inline-block; /* Блочный элемент */
-    width: 60px; /* Ширина */
-    height: 34px; /* Высота */
-}
-
-.switch input {
-    opacity: 0; /* Прозрачность */
-    width: 0; /* Убираем ширину */
-    height: 0; /* Убираем высоту */
-}
-
-.slider {
-    position: absolute; /* Абсолютное позиционирование */
-    cursor: pointer; /* Курсор указывает на возможность клика */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--jet); /* Фоновый цвет */
-    transition: .4s; /* Анимация */
-    border-radius: 34px; /* Скругление углов */
-}
-
-.slider:before {
-    position: absolute; /* Псевдоэлемент для кружка */
-    content: "";
-    height: 26px; /* Высота */
-    width: 26px; /* Ширина */
-    left: 4px; /* Расположение слева */
-    bottom: 4px; /* Расположение снизу */
-    background-color: #fff; /* Цвет фона */
-    transition: .4s; /* Анимация */
-    border-radius: 50%; /* Круглая форма */
-}
-
-input:checked + .slider {
-    background-color: var(--orange-yellow-crayola); /* Цвет при активации */
-}
-
-input:checked + .slider:before {
-    transform: translateX(26px); /* Перемещение кружка */
-}
-
-.slider.round {
-    border-radius: 34px; /* Скругление углов */
-}
-
-.slider.round:before {
-    border-radius: 50%; /* Круглая форма */
-}
-
-/* ==========================================
-   Контент вкладок (tab-content)
-   ========================================== */
-.tab-content {
-    display: none; /* Скрыть контент по умолчанию */
-}
-
-.tab-content.active {
-    display: block; /* Показать активный контент */
-}
-
-/* ==========================================
-   Сообщения (Messages Tab)
-   ========================================== */
-.messages-header {
-    display: flex; /* Флексбокс для выравнивания */
-    justify-content: space-between; /* Расположение элементов */
-    align-items: center; /* Вертикальное центрирование */
-    margin-bottom: 20px; /* Отступ снизу */
-}
-
-.message-item {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    border-radius: 12px; /* Скругление углов */
-    padding: 15px; /* Внутренний отступ */
-    margin-bottom: 15px; /* Отступ снизу */
-}
-
-.message-item.unread {
-    border-left: 3px solid var(--orange-yellow-crayola); /* Маркер непрочитанных сообщений */
-}
-
-.message-header {
-    display: flex; /* Флексбокс для выравнивания */
-    justify-content: space-between; /* Расположение элементов */
-    align-items: center; /* Вертикальное центрирование */
-    margin-bottom: 10px; /* Отступ снизу */
-}
-
-.message-sender {
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    gap: 10px; /* Расстояние между элементами */
-}
-
-.message-actions {
-    display: flex; /* Флексбокс для выравнивания */
-    gap: 10px; /* Расстояние между элементами */
-}
-
-.delete-btn {
-    background: var(--eerie-black-2); /* Фоновый цвет */
-    color: #ff6b6b; /* Цвет текста */
-    border-radius: 15px; /* Скругление углов */
-    padding: 5px 10px; /* Внутренний отступ */
-    border: none; /* Убираем границы */
-    cursor: pointer; /* Курсор указывает на возможность клика */
-}
-
-/* ==========================================
-   Кнопка "New Message"
-   ========================================== */
-.compose-btn {
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    gap: 8px; /* Расстояние между элементами */
-    padding: 10px 20px; /* Внутренний отступ */
-    background: var(--orange-yellow-crayola); /* Фоновый цвет */
-    border: none; /* Убираем границы */
-    border-radius: 25px; /* Скругление углов */
-    color: var(--eerie-black-1); /* Цвет текста */
-    cursor: pointer; /* Курсор указывает на возможность клика */
-}
-
-/* ==========================================
-   Форма отправки сообщения
-   ========================================== */
-.message-form {
-    margin-top: 15px; /* Отступ сверху */
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    border-radius: 12px; /* Скругление углов */
-    padding: 20px; /* Внутренний отступ */
-}
-
-.selected-files {
-    margin-top: 10px; /* Отступ сверху */
-}
-
-.file-item {
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    justify-content: space-between; /* Расположение элементов */
-    padding: 5px 10px; /* Внутренний отступ */
-    background: var(--eerie-black-2); /* Фоновый цвет */
-    border-radius: 5px; /* Скругление углов */
-    margin-bottom: 5px; /* Отступ снизу */
-}
-
-.file-item .remove-file {
-    cursor: pointer; /* Курсор указывает на возможность клика */
-    color: #ff6b6b; /* Цвет текста */
-}
-
-/* ==========================================
-   Социальные поля (GitHub, LinkedIn и т.п.)
-   ========================================== */
-.social-input svg {
-    color: var(--light-gray); /* Цвет иконки */
-    margin-right: 10px; /* Расстояние справа */
-}
-
-/* ==========================================
-   Кнопка отправки формы
-   ========================================== */
-.form-submit-wrapper {
-    margin-top: 40px; /* Отступ сверху */
-    text-align: center; /* Выравнивание по центру */
-}
-
-
-
-/* ==========================================
-    Уведомления (Notifications)
-   ========================================== */
-
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 20px;
-    border-radius: 5px;
-    color: #fff;
-    font-size: 14px;
-    z-index: 1000;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.notification.success {
-    background-color: #28a745;
-}
-
-.notification.error {
-    background-color: #dc3545;
-}
-
-
-
-/* ==========================================
-   Стили для кнопки "Сбросить пароль"
-   ========================================== */
-
-.security-form .input-wrapper {
-    display: grid;
-    gap: 25px;
-    margin-bottom: 25px;
-}
-
-.security-form .error {
-    color: var(--bittersweet-shimmer);
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-}
-
-.security-form .success {
-    color: var(--orange-yellow-crayola);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    background: var(--bg-gradient-jet);
-    padding: 0.75rem;
-    border-radius: 6px;
-    text-align: center;
-}
-
-
-
-
-
-
-
-
 
 /* ==========================================
    Стили для навигационных вкладок
    ========================================== */
 .profile-tabs {
-    display: flex; /* Флексбокс для горизонтального расположения */
-    gap: 15px; /* Расстояние между кнопками */
-    margin-bottom: 30px; /* Отступ снизу */
-    flex-wrap: wrap; /* Перенос кнопок на новую строку при необходимости */
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
 }
 
 .tab-btn {
-    padding: 12px 24px; /* Внутренний отступ */
-    border: none; /* Убираем границы */
-    border-radius: 12px; /* Скругление углов */
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    color: var(--light-gray); /* Цвет текста */
-    cursor: pointer; /* Курсор указывает на возможность клика */
-    transition: all 0.3s ease; /* Анимация при наведении */
-    position: relative; /* Позиционирование для анимации */
-    overflow: hidden; /* Скрываем выходящие за пределы элементы */
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    background: var(--border-gradient-onyx);
+    color: var(--light-gray);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .tab-btn::before {
-    content: ''; /* Создание псевдоэлемента */
-    position: absolute; /* Абсолютное позиционирование */
+    content: '';
+    position: absolute;
     top: 0;
     left: -100%;
-    width: 100%; /* Занимает всю ширину */
-    height: 100%; /* Занимает всю высоту */
+    width: 100%;
+    height: 100%;
     background: linear-gradient(
         to right,
         transparent,
         var(--orange-yellow-crayola),
         transparent
-    ); /* Градиентная анимация */
-    transition: 0.5s; /* Плавность анимации */
+    );
+    transition: 0.5s;
 }
 
 .tab-btn:hover::before {
-    left: 100%; /* Движение градиента при наведении */
+    left: 100%;
 }
 
 .tab-btn.active {
-    background: var(--orange-yellow-crayola); /* Фон активной кнопки */
-    color: var(--eerie-black-1); /* Цвет текста активной кнопки */
-    transform: translateY(-2px); /* Лёгкое поднятие */
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    transform: translateY(-2px);
 }
 
 /* ==========================================
    Стили для мобильного меню
    ========================================== */
 .mobile-menu {
-    display: none; /* Скрываем на десктопе по умолчанию */
+    display: none;
     position: relative;
     margin-bottom: 20px;
 }
@@ -460,7 +83,7 @@ input:checked + .slider:before {
 }
 
 .mobile-menu-content {
-    display: none; /* Скрыто по умолчанию */
+    display: none;
     position: absolute;
     top: 50px;
     left: 0;
@@ -473,7 +96,7 @@ input:checked + .slider:before {
 }
 
 .mobile-menu-content.active {
-    display: block; /* Показываем при активации */
+    display: block;
 }
 
 .mobile-tab-btn {
@@ -493,302 +116,748 @@ input:checked + .slider:before {
 }
 
 /* ==========================================
-   Стили для карточек профиля
-   ========================================== */
-.profile-card {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    padding: 20px; /* Внутренний отступ */
-    border-radius: 14px; /* Скругление углов */
-    margin-bottom: 20px; /* Отступ снизу */
-}
-
-/* ==========================================
    Шапка профиля (аватар + информация)
    ========================================== */
 .profile-header {
-    display: flex; /* Флексбокс для выравнивания */
-    gap: 20px; /* Расстояние между элементами */
-    margin-bottom: 30px; /* Отступ снизу */
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+    background: var(--background-secondary);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.profile-avatar img {
-    width: 100px; /* Ширина аватара */
-    height: 100px; /* Высота аватара */
-    border-radius: 50%; /* Круглая форма */
-    object-fit: cover; /* Сохранение пропорций изображения */
+/* Стили для аватара */
+.profile-content .profile-avatar,
+.profile-avatar {
+    position: relative;
+    border-radius: 20px;
+    margin-bottom: 15px;
+    width: 200px;
+    height: 250px;
+    overflow: hidden;
+    box-shadow: var(--shadow-1);
+}
+
+.profile-content .profile-avatar img,
+.profile-avatar img,
+.avatar-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 20px !important;
+    transition: transform 0.3s ease;
+}
+
+.profile-content .profile-avatar *,
+.profile-avatar * {
+    border-radius: 20px !important;
+}
+
+.profile-avatar:hover img {
+    transform: scale(1.1);
+}
+
+.avatar-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.avatar-overlay:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.avatar-overlay ion-icon {
+    color: white;
+    font-size: 24px;
+}
+
+#id_avatar {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    border: 0;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+/* ==========================================
+   Стили для карточек профиля
+   ========================================== */
+.profile-card {
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 20px;
 }
 
 /* ==========================================
    Сетка со статистикой
    ========================================== */
 .stats-cards {
-    display: grid; /* Сетка для статистики */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Адаптивная сетка */
-    gap: 20px; /* Расстояние между карточками */
-    margin-bottom: 30px; /* Отступ снизу */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    padding: 20px; /* Внутренний отступ */
-    border-radius: 10px; /* Скругление углов */
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    gap: 15px; /* Расстояние между элементами */
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
 }
 
 .stat-icon {
-    font-size: 24px; /* Размер иконки */
-    color: var(--orange-yellow-crayola); /* Цвет иконки */
+    font-size: 24px;
+    color: var(--orange-yellow-crayola);
 }
 
 .stat-info h4 {
-    margin: 0; /* Убираем отступы */
-    color: var(--light-gray-70); /* Цвет заголовка */
-    font-size: 14px; /* Размер шрифта */
+    margin: 0;
+    color: var(--light-gray-70);
+    font-size: 14px;
 }
 
-.stat-info p {
-    margin: 5px 0 0; /* Убираем лишние отступы */
-    color: var(--light-gray); /* Цвет текста */
-    font-size: 24px; /* Размер шрифта */
-    font-weight: bold; /* Жирный текст */
+.stat-info p,
+.stat-number {
+    margin: 5px 0 0;
+    color: var(--light-gray);
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.stat-text {
+    color: var(--light-gray);
+    font-size: 1.1em;
 }
 
 /* ==========================================
-   Блок с графиками
+   Блог с графиками
    ========================================== */
 .stats-charts {
-    display: grid; /* Сетка для графиков */
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Адаптивная сетка */
-    gap: 20px; /* Расстояние между графиками */
-    margin-top: 30px; /* Отступ сверху */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
 }
 
 .chart-container {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    padding: 20px; /* Внутренний отступ */
-    border-radius: 10px; /* Скругление углов */
+    background: var(--border-gradient-onyx);
+    padding: 20px;
+    border-radius: 10px;
 }
 
 .chart-container h4 {
-    margin: 0 0 15px; /* Убираем лишние отступы */
-    color: var(--light-gray-70); /* Цвет заголовка */
-    text-align: center; /* Выравнивание по центру */
+    margin: 0 0 15px;
+    color: var(--light-gray-70);
+    text-align: center;
 }
 
 canvas {
-    width: 100% !important; /* Полная ширина графика */
-    height: 300px !important; /* Фиксированная высота */
+    width: 100% !important;
+    height: 300px !important;
 }
 
 /* ==========================================
-   Настройки (Settings Tab)
+   Telegram бейдж
    ========================================== */
-.setting-item {
-    display: flex; /* Флексбокс для выравнивания */
-    justify-content: space-between; /* Расположение элементов */
-    align-items: center; /* Вертикальное центрирование */
-    padding: 10px 0; /* Внутренний отступ */
-    border-bottom: 1px solid var(--jet); /* Нижняя граница */
+.telegram-badge {
+    background: #0088cc;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    margin: 10px 0;
+}
+
+.telegram-badge i {
+    font-size: 1.1em;
+}
+
+.telegram-notice {
+    padding: 15px;
+    background-color: rgba(0, 136, 204, 0.1);
+    border: 1px solid #0088cc;
+    border-radius: 5px;
+    color: #0088cc;
+    text-align: center;
 }
 
 /* ==========================================
-   Переключатели (switch)
+   Биография
    ========================================== */
-.switch {
-    position: relative; /* Позиционирование */
-    display: inline-block; /* Блочный элемент */
-    width: 60px; /* Ширина */
-    height: 34px; /* Высота */
+.profile-bio {
+    margin-top: 20px;
+    line-height: 1.6;
 }
 
-.switch input {
-    opacity: 0; /* Прозрачность */
-    width: 0; /* Убираем ширину */
-    height: 0; /* Убираем высоту */
+.bio-edit {
+    position: relative;
+    cursor: pointer;
 }
 
-.slider {
-    position: absolute; /* Абсолютное позиционирование */
-    cursor: pointer; /* Курсор указывает на возможность клика */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--jet); /* Фоновый цвет */
-    transition: .4s; /* Анимация */
-    border-radius: 34px; /* Скругление углов */
+.bio-edit i {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    opacity: 0;
+    transition: 0.3s;
 }
 
-.slider:before {
-    position: absolute; /* Псевдоэлемент для кружка */
-    content: "";
-    height: 26px; /* Высота */
-    width: 26px; /* Ширина */
-    left: 4px; /* Расположение слева */
-    bottom: 4px; /* Расположение снизу */
-    background-color: #fff; /* Цвет фона */
-    transition: .4s; /* Анимация */
-    border-radius: 50%; /* Круглая форма */
-}
-
-input:checked + .slider {
-    background-color: var(--orange-yellow-crayola); /* Цвет при активации */
-}
-
-input:checked + .slider:before {
-    transform: translateX(26px); /* Перемещение кружка */
-}
-
-.slider.round {
-    border-radius: 34px; /* Скругление углов */
-}
-
-.slider.round:before {
-    border-radius: 50%; /* Круглая форма */
+.bio-edit:hover i {
+    opacity: 1;
 }
 
 /* ==========================================
-   Контент вкладок (tab-content)
+   Последние достижения
    ========================================== */
-.tab-content {
-    display: none; /* Скрыть контент по умолчанию */
+.recent-achievements {
+    background: var(--background-secondary);
+    padding: 20px;
+    border-radius: 15px;
+    margin-top: 40px;
 }
 
-.tab-content.active {
-    display: block; /* Показать активный контент */
+.recent-achievements h3 {
+    margin-bottom: 20px;
+    color: var(--orange-yellow-crayola);
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--light-gray);
+    padding: 20px;
 }
 
 /* ==========================================
-   Сообщения (Messages Tab)
+   Сообщения
    ========================================== */
 .messages-header {
-    display: flex; /* Флексбокс для выравнивания */
-    justify-content: space-between; /* Расположение элементов */
-    align-items: center; /* Вертикальное центрирование */
-    margin-bottom: 20px; /* Отступ снизу */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
 .message-item {
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    border-radius: 12px; /* Скругление углов */
-    padding: 15px; /* Внутренний отступ */
-    margin-bottom: 15px; /* Отступ снизу */
+    background: var(--border-gradient-onyx);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
 }
 
 .message-item.unread {
-    border-left: 3px solid var(--orange-yellow-crayola); /* Маркер непрочитанных сообщений */
+    border-left: 3px solid var(--orange-yellow-crayola);
 }
 
 .message-header {
-    display: flex; /* Флексбокс для выравнивания */
-    justify-content: space-between; /* Расположение элементов */
-    align-items: center; /* Вертикальное центрирование */
-    margin-bottom: 10px; /* Отступ снизу */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
 .message-sender {
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    gap: 10px; /* Расстояние между элементами */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message-header .sender {
+    color: var(--orange-yellow-crayola);
+    text-decoration: none;
+}
+
+.message-header .date {
+    color: var(--light-gray);
+    font-size: 0.9em;
+}
+
+.message-content {
+    color: var(--light-gray);
+    margin-bottom: 10px;
 }
 
 .message-actions {
-    display: flex; /* Флексбокс для выравнивания */
-    gap: 10px; /* Расстояние между элементами */
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
 }
 
-.delete-btn {
-    background: var(--eerie-black-2); /* Фоновый цвет */
-    color: #ff6b6b; /* Цвет текста */
-    border-radius: 15px; /* Скругление углов */
-    padding: 5px 10px; /* Внутренний отступ */
-    border: none; /* Убираем границы */
-    cursor: pointer; /* Курсор указывает на возможность клика */
+.reply-btn {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    padding: 5px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+.reply-btn:hover {
+    opacity: 0.9;
+}
+
+.message-attachments {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.attachment-list {
+    list-style: none;
+    padding: 0;
+}
+
+.attachment-item {
+    margin: 5px 0;
+}
+
+.attachment-link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--light-gray);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.attachment-link:hover {
+    color: var(--orange-yellow-crayola);
 }
 
 /* ==========================================
    Кнопка "New Message"
    ========================================== */
 .compose-btn {
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    gap: 8px; /* Расстояние между элементами */
-    padding: 10px 20px; /* Внутренний отступ */
-    background: var(--orange-yellow-crayola); /* Фоновый цвет */
-    border: none; /* Убираем границы */
-    border-radius: 25px; /* Скругление углов */
-    color: var(--eerie-black-1); /* Цвет текста */
-    cursor: pointer; /* Курсор указывает на возможность клика */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--orange-yellow-crayola);
+    border: none;
+    border-radius: 25px;
+    color: var(--eerie-black-1);
+    cursor: pointer;
 }
 
 /* ==========================================
    Форма отправки сообщения
    ========================================== */
 .message-form {
-    margin-top: 15px; /* Отступ сверху */
-    background: var(--border-gradient-onyx); /* Фоновый градиент */
-    border-radius: 12px; /* Скругление углов */
-    padding: 20px; /* Внутренний отступ */
+    margin-top: 15px;
+    background: var(--border-gradient-onyx);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.message-form textarea {
+    width: 100%;
+    min-height: 100px;
+    margin-bottom: 10px;
 }
 
 .selected-files {
-    margin-top: 10px; /* Отступ сверху */
+    margin-top: 10px;
 }
 
 .file-item {
-    display: flex; /* Флексбокс для выравнивания */
-    align-items: center; /* Вертикальное центрирование */
-    justify-content: space-between; /* Расположение элементов */
-    padding: 5px 10px; /* Внутренний отступ */
-    background: var(--eerie-black-2); /* Фоновый цвет */
-    border-radius: 5px; /* Скругление углов */
-    margin-bottom: 5px; /* Отступ снизу */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background: var(--eerie-black-2);
+    border-radius: 5px;
+    margin-bottom: 5px;
 }
 
 .file-item .remove-file {
-    cursor: pointer; /* Курсор указывает на возможность клика */
-    color: #ff6b6b; /* Цвет текста */
+    cursor: pointer;
+    color: #ff6b6b;
 }
 
 /* ==========================================
-   Социальные поля (GitHub, LinkedIn и т.п.)
+   Модальное окно
    ========================================== */
-.social-input svg {
-    color: var(--light-gray); /* Цвет иконки */
-    margin-right: 10px; /* Расстояние справа */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background: var(--eerie-black-2);
+    margin: 15% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 12px;
+}
+
+.close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--light-gray);
+}
+
+/* ==========================================
+   Загрузка файлов
+   ========================================== */
+.file-upload {
+    margin: 10px 0;
+}
+
+.file-upload label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.delete-btn {
+    background: #dc3545;
+    margin-left: 10px;
+    color: #fff;
+    border-radius: 15px;
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+}
+
+/* ==========================================
+   Социальные ссылки
+   ========================================== */
+.social-links {
+    margin: 30px 0;
+    display: grid;
+    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.social-input {
+    position: relative;
+}
+
+.social-input input {
+    padding-left: 40px !important;
+    width: 100%;
+}
+
+.social-input ion-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: var(--orange-yellow-crayola);
+    transition: all 0.3s ease;
+}
+
+.social-input:hover ion-icon {
+    transform: translateY(-50%) scale(1.1);
 }
 
 /* ==========================================
    Кнопка отправки формы
    ========================================== */
 .form-submit-wrapper {
-    margin-top: 40px; /* Отступ сверху */
-    text-align: center; /* Выравнивание по центру */
+    margin-top: 40px;
+    text-align: center;
+}
+
+.form-btn {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    padding: 12px 35px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.form-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 170, 0, 0.3);
 }
 
 /* ==========================================
-   Уведомления (Notifications)
+   Поля формы
+   ========================================== */
+.form-input {
+    background: var(--border-gradient-onyx);
+    color: var(--light-gray);
+    padding: 12px;
+    border: 1px solid var(--jet);
+    border-radius: 8px;
+    width: 100%;
+    margin-bottom: 15px;
+    transition: border-color 0.3s ease, all 0.3s ease;
+}
+
+.form-input:focus {
+    border-color: var(--orange-yellow-crayola);
+    outline: none;
+}
+
+.form-input.error {
+    border-color: #f44336;
+    animation: shake 0.5s;
+}
+
+.form-input.success {
+    border-color: #4CAF50;
+}
+
+/* ==========================================
+   Локация
+   ========================================== */
+.location-wrapper {
+    position: relative;
+}
+
+.location-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.location-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.location-item:hover {
+    background: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+}
+
+/* ==========================================
+   Обязательные поля
+   ========================================== */
+label:has(+ input[required]) {
+    position: relative;
+}
+
+label:has(+ input[required])::after {
+    content: '*';
+    color: var(--orange-yellow-crayola);
+    margin-left: 4px;
+}
+
+/* ==========================================
+   Уведомления
    ========================================== */
 .notification {
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 15px 20px;
-    border-radius: 5px;
-    color: #fff;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
     font-size: 14px;
     z-index: 1000;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .notification.success {
-    background-color: #28a745;
+    background-color: #4CAF50;
 }
 
 .notification.error {
-    background-color: #dc3545;
+    background-color: #f44336;
+}
+
+/* ==========================================
+   Сообщения об ошибках и успехе
+   ========================================== */
+.error-message {
+    color: #f44336;
+    font-size: 0.9em;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    animation: slideDown 0.3s ease;
+}
+
+.messages {
+    margin-bottom: 20px;
+}
+
+.message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+
+.message.success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid #28a745;
+    color: #28a745;
+}
+
+.message.error {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+/* ==========================================
+   Настройки (Settings Tab)
+   ========================================== */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--jet);
+}
+
+/* ==========================================
+   Переключатели (switch)
+   ========================================== */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--jet);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--orange-yellow-crayola);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* ==========================================
+   Контент вкладок (tab-content)
+   ========================================== */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 /* ==========================================
@@ -817,20 +886,37 @@ input:checked + .slider:before {
 }
 
 /* ==========================================
+   Анимации
+   ========================================== */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================
    Медиа-запросы для мобильного вида
    ========================================== */
 @media (max-width: 768px) {
-    /* Показываем мобильное меню */
     .mobile-menu {
         display: block;
     }
 
-    /* Скрываем десктопные вкладки */
     .profile-tabs {
         display: none;
     }
 
-    /* Адаптируем контент */
     .profile-content {
         padding: 15px;
     }
@@ -842,12 +928,22 @@ input:checked + .slider:before {
     .profile-header {
         flex-direction: column;
         align-items: center;
+        text-align: center;
         gap: 15px;
     }
 
     .profile-avatar img {
         width: 80px;
         height: 80px;
+        border-radius: 50%;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .input-wrapper {
+        flex-direction: column;
     }
 
     .security-form .input-wrapper {
@@ -881,12 +977,10 @@ input:checked + .slider:before {
    Медиа-запросы для десктопного вида
    ========================================== */
 @media (min-width: 769px) {
-    /* Скрываем мобильное меню */
     .mobile-menu {
         display: none;
     }
 
-    /* Показываем десктопные вкладки */
     .profile-tabs {
         display: flex;
     }

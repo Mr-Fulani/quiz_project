@@ -537,6 +537,8 @@ def profile_redirect_view(request):
     return redirect('accounts:dashboard')
 
 
+
+
 @login_required
 def profile_view(request, username, is_dashboard=False):
     """
@@ -567,33 +569,96 @@ def profile_view(request, username, is_dashboard=False):
     else:
         stats['success_rate'] = 0
 
+    # Сообщения для вкладки Messages
+    inbox_messages = profile_user.received_messages.all().order_by('-created_at')[:10] if is_owner else []
+    sent_messages = profile_user.sent_messages.all().order_by('-created_at')[:10] if is_owner else []
+
+    # Данные для графиков
+    # Activity Chart: показываем все попытки пользователя (без ограничения по 30 дням)
+    activity_stats = TaskStatistics.objects.filter(
+        user=profile_user,
+        last_attempt_date__isnull=False  # Исключаем записи с last_attempt_date=None
+    ).annotate(
+        date=TruncDate('last_attempt_date')
+    ).values('date').annotate(
+        count=Count('id')
+    ).order_by('date')
+
+    activity_dates = [stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data']
+    activity_data = [stat['count'] for stat in activity_stats] or [0]
+    has_activity_data = len(activity_stats) > 0
+
+    # Categories Chart: попытки пользователя по темам
+    category_stats = TaskStatistics.objects.filter(user=profile_user).values(
+        'task__topic__name'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')[:5]
+    categories_labels = [stat['task__topic__name'] if stat['task__topic__name'] else 'Unknown' for stat in category_stats] or ['No data']
+    categories_data = [stat['count'] for stat in category_stats] or [0]
+    has_categories_data = len(category_stats) > 0
+
+    # Scores Chart: распределение по количеству попыток (attempts вместо score)
+    attempts = TaskStatistics.objects.filter(user=profile_user).values('attempts').annotate(count=Count('id'))
+    attempts_distribution = [0] * 5  # Диапазоны: 1-5, 6-10, 11-15, 16-20, 21-25
+    for attempt in attempts:
+        # Если attempts=None, считаем его как 0
+        attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
+        if attempts_value > 0:  # Игнорируем attempts=0 для распределения
+            bin_index = min((attempts_value - 1) // 5, 4)
+            attempts_distribution[bin_index] += attempt['count']
+        elif attempts_value == 0:
+            attempts_distribution[0] += attempt['count']  # attempts=0 попадает в первый диапазон
+    has_attempts_data = any(attempts_distribution)
+
+    # Отладка
+    print(f"\nDebug chart data for user {profile_user.username}:")
+    print(f"Activity dates: {activity_dates}")
+    print(f"Activity data: {activity_data}")
+    print(f"Has activity data: {has_activity_data}")
+    print(f"Categories labels: {categories_labels}")
+    print(f"Categories data: {categories_data}")
+    print(f"Has categories data: {has_categories_data}")
+    print(f"Attempts distribution: {attempts_distribution}")
+    print(f"Has attempts data: {has_attempts_data}")
+
     context = {
         'profile_user': profile_user,
         'is_owner': is_owner,
         'stats': stats,
-        'chart_data': get_user_chart_data(profile_user),
+        'activity_dates': activity_dates,
+        'activity_data': activity_data,
+        'has_activity_data': has_activity_data,
+        'categories_labels': categories_labels,
+        'categories_data': categories_data,
+        'has_categories_data': has_categories_data,
+        'attempts_distribution': attempts_distribution,
+        'has_attempts_data': has_attempts_data,
+        'inbox_messages': inbox_messages,
+        'sent_messages': sent_messages,
     }
 
     if is_dashboard:
         context.update({
             'personal_info_form': PersonalInfoForm(instance=profile_user.profile, user=profile_user),
-            'user_settings': profile_user.profile,  # Для вкладки Settings
+            'user_settings': profile_user.profile,
         })
 
     return render(request, template_name, context)
 
 
+
 def get_user_chart_data(user):
     """
     Возвращает словарь с данными для трёх видов графиков:
-    - activity (активность за последние 30 дней)
+    - activity (активность за всё время - убрали last_30_days для теста)
     - topics (топ-5 тем)
     - difficulty (статистика по уровню сложности)
     """
-    last_30_days = timezone.now() - timezone.timedelta(days=30)
+    # last_30_days = timezone.now() - timezone.timedelta(days=30)
     activity_stats = TaskStatistics.objects.filter(
-        user=user,
-        last_attempt_date__gte=last_30_days
+        user=user
+        # last_attempt_date__gte=last_30_days
     ).annotate(
         date=TruncDate('last_attempt_date')
     ).values('date').annotate(
@@ -615,27 +680,63 @@ def get_user_chart_data(user):
         successful=Count('id', filter=Q(successful=True))
     )
 
-    return {
-        'activity': {
-            'labels': [stat['date'].strftime('%d.%m') for stat in activity_stats],
-            'attempts': [stat['attempts'] for stat in activity_stats],
-            'successful': [stat['successful'] for stat in activity_stats]
-        },
-        'topics': {
-            'labels': [stat['task__topic__name'] for stat in topic_stats],
-            'success_rates': [
+    # Отладочный вывод
+    print(f"\nDebug get_user_chart_data for user {user.username}:")
+    print(f"Activity stats: {list(activity_stats)}")
+    print(f"Topic stats: {list(topic_stats)}")
+    print(f"Difficulty stats: {list(difficulty_stats)}")
+
+    # Формат для Chart.js
+    activity_data = {
+        'labels': [stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data'],
+        'datasets': [
+            {
+                'label': 'Attempts',
+                'data': [stat['attempts'] for stat in activity_stats] or [0],
+                'borderColor': '#ffaa00',
+                'fill': False
+            },
+            {
+                'label': 'Successful',
+                'data': [stat['successful'] for stat in activity_stats] or [0],
+                'borderColor': '#00ff00',
+                'fill': False
+            }
+        ]
+    }
+
+    topics_data = {
+        'labels': [stat['task__topic__name'] for stat in topic_stats] or ['No data'],
+        'datasets': [{
+            'label': 'Success Rate (%)',
+            'data': [
                 round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
                 for stat in topic_stats
-            ]
-        },
-        'difficulty': {
-            'labels': [stat['task__difficulty'] for stat in difficulty_stats],
-            'success_rates': [
+            ] or [0],
+            'backgroundColor': '#ffaa00'
+        }]
+    }
+
+    difficulty_data = {
+        'labels': [stat['task__difficulty'] for stat in difficulty_stats] or ['No data'],
+        'datasets': [{
+            'label': 'Success Rate (%)',
+            'data': [
                 round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
                 for stat in difficulty_stats
-            ]
-        }
+            ] or [0],
+            'backgroundColor': ['#ffaa00', '#ffd700', '#ffa500']
+        }]
     }
+
+    return {
+        'activity': activity_data,
+        'topics': topics_data,
+        'difficulty': difficulty_data
+    }
+
+
+
 
 
 @login_required

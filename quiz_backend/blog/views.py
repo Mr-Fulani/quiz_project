@@ -950,6 +950,11 @@ def custom_404(request, exception=None):
     return redirect('404')
 
 
+
+
+
+
+@login_required
 def statistics_view(request):
     """
     Отображает страницу статистики по квизам и пользователям.
@@ -960,6 +965,7 @@ def statistics_view(request):
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)
 
+    # Общая статистика (для view != personal)
     context = {
         'total_users': CustomUser.objects.count(),
         'total_quizzes_completed': TaskStatistics.objects.count(),
@@ -969,15 +975,12 @@ def statistics_view(request):
             (start_date + timedelta(n)).strftime('%d.%m')
             for n in range(31)
         ]),
-        'activity_data': json.dumps(
-            list(
-                TaskStatistics.objects.filter(last_attempt_date__gte=start_date)
-                .annotate(date=TruncDate('last_attempt_date'))
-                .values('date')
-                .annotate(count=Count('id'))
-                .values_list('count', flat=True)
-            )
-        ),
+        'activity_data': json.dumps([
+            TaskStatistics.objects.filter(
+                last_attempt_date__date=(start_date + timedelta(n))
+            ).count()
+            for n in range(31)
+        ]),
         'categories_labels': json.dumps(
             list(
                 Topic.objects.annotate(task_count=Count('tasks'))
@@ -991,35 +994,75 @@ def statistics_view(request):
             )
         ),
         'scores_distribution': json.dumps([
-            TaskStatistics.objects.filter(attempts__gt=0, attempts__lte=i + 5).count()
+            TaskStatistics.objects.filter(attempts__gt=i, attempts__lte=i + 5).count()
             for i in range(0, 25, 5)
-        ])
+        ]),
     }
 
+    # Личная статистика (для view=personal)
     if request.user.is_authenticated and request.GET.get('view') == "personal":
-        try:
-            stats = request.user.statistics.first()
-        except AttributeError:
-            stats = None
+        user = request.user
 
-        if stats:
-            context['user_stats'] = {
-                'successful_attempts': 1 if stats.successful else 0,
-                'total_attempts': stats.attempts,
-                'success_rate': 100.0 if stats.successful else 0.0,
-            }
-        else:
-            context['user_stats'] = {
-                'successful_attempts': 0,
-                'total_attempts': 0,
-                'success_rate': 0.0,
-            }
+        # Базовая статистика пользователя
+        stats = {
+            'total_attempts': TaskStatistics.objects.filter(user=user).count(),
+            'successful_attempts': TaskStatistics.objects.filter(user=user, successful=True).count(),
+        }
+        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1) if stats['total_attempts'] > 0 else 0
+
+        # Activity Chart
+        activity_stats = TaskStatistics.objects.filter(
+            user=user,
+            last_attempt_date__isnull=False
+        ).annotate(
+            date=TruncDate('last_attempt_date')
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        activity_dates = json.dumps([stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data'])
+        activity_data = json.dumps([stat['count'] for stat in activity_stats] or [0])
+
+        # Categories Chart
+        category_stats = TaskStatistics.objects.filter(user=user).values(
+            'task__topic__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')[:5]
+        categories_labels = json.dumps([stat['task__topic__name'] if stat['task__topic__name'] else 'Unknown' for stat in category_stats] or ['No data'])
+        categories_data = json.dumps([stat['count'] for stat in category_stats] or [0])
+
+        # Attempts Chart (ранее Scores Chart)
+        attempts = TaskStatistics.objects.filter(user=user).values('attempts').annotate(count=Count('id'))
+        attempts_distribution = [0] * 5  # Диапазоны: 1-5, 6-10, 11-15, 16-20, 21-25
+        for attempt in attempts:
+            attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
+            if attempts_value > 0:
+                bin_index = min((attempts_value - 1) // 5, 4)
+                attempts_distribution[bin_index] += attempt['count']
+            elif attempts_value == 0:
+                attempts_distribution[0] += attempt['count']
+        scores_distribution = json.dumps(attempts_distribution)
+
+        # Добавляем личную статистику в контекст
+        context.update({
+            'user_stats': stats,
+            'activity_dates': activity_dates,
+            'activity_data': activity_data,
+            'categories_labels': categories_labels,
+            'categories_data': categories_data,
+            'scores_distribution': scores_distribution,
+        })
 
     return render(request, 'accounts/statistics.html', context)
 
 
+
+
+
 class MaintenanceView(TemplateView):
     template_name = 'blog/maintenance.html'
+
+
 
 
 @login_required

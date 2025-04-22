@@ -1,5 +1,5 @@
 /**
- * JavaScript для профиля: обработка форм, автозаполнение локации, смена пароля.
+ * JavaScript для профиля: переключение вкладок, обработка форм, автозаполнение локации, смена пароля, отправка сообщений.
  */
 document.addEventListener('DOMContentLoaded', function() {
     /**
@@ -60,6 +60,108 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
+    }
+
+    // Инициализация вкладок при загрузке
+    function initializeTabs() {
+        console.log('Initializing tabs...');
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.querySelector('.tab-content[data-tab-content="info"]').classList.add('active');
+    }
+
+    // Переключение вкладок
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            console.log(`Switching to tab: ${tabName}`);
+
+            // Удаляем класс active у всех кнопок и контента
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Добавляем класс active текущей кнопке и контенту
+            this.classList.add('active');
+            document.querySelector(`.tab-content[data-tab-content="${tabName}"]`).classList.add('active');
+        });
+    });
+
+    // Вызываем инициализацию вкладок
+    initializeTabs();
+
+    // Обработка загрузки файлов
+    const fileInput = document.getElementById('attachments');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const container = document.getElementById('selected-files');
+            container.innerHTML = '';
+            Array.from(this.files).forEach(file => {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'selected-file';
+                fileDiv.innerHTML = `
+                    <span class="filename">${file.name}</span>
+                    <ion-icon name="close-outline" class="remove-file" onclick="removeFile(this)"></ion-icon>
+                `;
+                container.appendChild(fileDiv);
+            });
+        });
+    }
+
+    // Удаление файла из списка
+    window.removeFile = function(element) {
+        const fileInput = document.getElementById('attachments');
+        const dt = new DataTransfer();
+        const files = fileInput.files;
+        const fileName = element.previousElementSibling.textContent;
+
+        for (let i = 0; i < files.length; i++) {
+            if (files[i].name !== fileName) {
+                dt.items.add(files[i]);
+            }
+        }
+
+        fileInput.files = dt.files;
+        element.parentElement.remove();
+    };
+
+    // Асинхронная отправка формы сообщения
+    const messageForm = document.querySelector('.message-form form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.message-notification').forEach(note => note.remove());
+
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'sent') {
+                    showNotification('Message sent successfully!', 'success');
+                    this.reset();
+                    document.getElementById('selected-files').innerHTML = '';
+                } else {
+                    if (data.errors) {
+                        showFormErrors(this, data.errors);
+                    }
+                    showNotification(data.message || 'Error sending message. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error sending message. Please try again.', 'error');
+            }
+        });
     }
 
     // Обработка ссылок на профиль

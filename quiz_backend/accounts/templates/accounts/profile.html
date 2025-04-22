@@ -4,11 +4,31 @@
 {% load form_tags %}
 
 {% block sidebar %}
-  {% include 'blog/sidebar.html' %}
+  {% include 'accounts/sidebar.html' %}
 {% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}">
+<style>
+  /* Анимация затухания */
+  .fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .chart-container {
+    margin-bottom: 2rem;
+  }
+  .chart-wrapper {
+    position: relative;
+    height: 300px;
+    width: 100%;
+  }
+  .no-data-message {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -22,9 +42,7 @@
       <div class="profile-tabs">
         <button class="tab-btn active" data-tab="info">Info</button>
         <button class="tab-btn" data-tab="statistics">Statistics</button>
-        {% if not is_owner %}
-          <button class="tab-btn" data-tab="contact">Contact</button>
-        {% endif %}
+        <button class="tab-btn" data-tab="messages">Messages</button>
       </div>
 
       <!-- Info Tab -->
@@ -76,7 +94,7 @@
       <div class="tab-content" data-tab-content="statistics">
         <div class="profile-card">
           <h3 class="h3">Quiz Performance</h3>
-          
+
           <!-- Stats Cards Grid -->
           <div class="stats-grid">
             <div class="stat-card">
@@ -88,7 +106,7 @@
                 <p>{{ stats.total_attempts }}</p>
               </div>
             </div>
-            
+
             <div class="stat-card">
               <div class="stat-icon">
                 <ion-icon name="checkmark-circle-outline"></ion-icon>
@@ -98,7 +116,7 @@
                 <p>{{ stats.successful_attempts }}</p>
               </div>
             </div>
-            
+
             <div class="stat-card">
               <div class="stat-icon">
                 <ion-icon name="trending-up-outline"></ion-icon>
@@ -110,31 +128,43 @@
             </div>
           </div>
 
-          {% if profile_user.profile.is_public %}
+          {% if profile_user.profile.is_public or is_owner %}
             <!-- Charts Grid -->
             <div class="charts-grid">
               <!-- Activity Chart -->
               <div class="chart-container">
                 <h4>Activity Over Time</h4>
-                <div class="chart-wrapper">
-                  <canvas id="activityChart"></canvas>
-                </div>
+                {% if has_activity_data %}
+                  <div class="chart-wrapper">
+                    <canvas id="activityChart"></canvas>
+                  </div>
+                {% else %}
+                  <p class="no-data-message">Нет данных об активности</p>
+                {% endif %}
               </div>
 
-              <!-- Topics Chart -->
+              <!-- Categories Chart -->
               <div class="chart-container">
-                <h4>Performance by Topic</h4>
-                <div class="chart-wrapper">
-                  <canvas id="topicsChart"></canvas>
-                </div>
+                <h4>Performance by Category</h4>
+                {% if has_categories_data %}
+                  <div class="chart-wrapper">
+                    <canvas id="categoriesChart"></canvas>
+                  </div>
+                {% else %}
+                  <p class="no-data-message">Нет данных по категориям</p>
+                {% endif %}
               </div>
 
-              <!-- Difficulty Chart -->
+              <!-- Attempts Chart -->
               <div class="chart-container">
-                <h4>Performance by Difficulty</h4>
-                <div class="chart-wrapper">
-                  <canvas id="difficultyChart"></canvas>
-                </div>
+                <h4>Attempts Distribution</h4>
+                {% if has_attempts_data %}
+                  <div class="chart-wrapper">
+                    <canvas id="attemptsChart"></canvas>
+                  </div>
+                {% else %}
+                  <p class="no-data-message">Нет данных по попыткам</p>
+                {% endif %}
               </div>
             </div>
           {% else %}
@@ -146,391 +176,117 @@
         </div>
       </div>
 
-      <!-- Contact Tab -->
-      {% if not is_owner %}
-      <div class="tab-content" data-tab-content="contact">
+      <!-- Messages Tab -->
+      <div class="tab-content" data-tab-content="messages">
         <div class="profile-card">
-          <h3 class="h3">Send Message</h3>
-          <form class="message-form" method="post" action="{% url 'blog:send_message' %}">
-            {% csrf_token %}
-            <input type="hidden" name="recipient" value="{{ profile_user.username }}">
-            
-            <div class="form-group">
-              <label for="subject">Subject:</label>
-              <input type="text" id="subject" name="subject" class="form-input" required>
+          {% if is_owner %}
+            <!-- Пустой блок, перенаправление через JavaScript -->
+          {% else %}
+            <h3 class="h3">Send Message</h3>
+            <div id="messageForm" class="message-form">
+              <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="recipient_username" value="{{ profile_user.username }}">
+                <textarea name="content" placeholder="Write your message..." required></textarea>
+
+                <div class="attachment-section">
+                  <label for="attachments" class="attachment-label">
+                    <ion-icon name="attach-outline"></ion-icon>
+                    Add Files
+                  </label>
+                  <input type="file" id="attachments" name="attachments" multiple style="display: none;">
+                  <div id="selected-files" class="selected-files"></div>
+                </div>
+
+                <button type="submit" class="send-btn">
+                  <ion-icon name="send-outline"></ion-icon>
+                  Send
+                </button>
+              </form>
             </div>
-            
-            <div class="form-group">
-              <label for="content">Message:</label>
-              <textarea id="content" name="content" class="form-input" required></textarea>
-            </div>
-            
-            <div class="form-submit-wrapper">
-              <button type="submit" class="form-btn">Send Message</button>
-            </div>
-          </form>
+          {% endif %}
         </div>
       </div>
-      {% endif %}
     </section>
   </article>
 
-  <!-- JavaScript для графиков -->
-  {% if profile_user.profile.is_public %}
+  <!-- JavaScript -->
+  {% if profile_user.profile.is_public or is_owner %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // ... тот же JavaScript для графиков, что и в dashboard.html ...
+      {% if has_activity_data %}
+      new Chart(document.getElementById('activityChart'), {
+        type: 'line',
+        data: {
+          labels: {{ activity_dates|safe }},
+          datasets: [{
+            label: 'Решено задач',
+            data: {{ activity_data|safe }},
+            borderColor: '#f5a623',
+            backgroundColor: 'rgba(245, 166, 35, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+      {% endif %}
+
+      {% if has_categories_data %}
+      new Chart(document.getElementById('categoriesChart'), {
+        type: 'doughnut',
+        data: {
+          labels: {{ categories_labels|safe }},
+          datasets: [{
+            data: {{ categories_data|safe }},
+            backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+      {% endif %}
+
+      {% if has_attempts_data %}
+      new Chart(document.getElementById('attemptsChart'), {
+        type: 'bar',
+        data: {
+          labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
+          datasets: [{
+            label: 'Количество задач',
+            data: {{ attempts_distribution|safe }},
+            backgroundColor: '#4a90e2'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+      {% endif %}
     });
   </script>
   {% endif %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const messagesTab = document.querySelector('button[data-tab="messages"]');
+      const isOwner = {{ is_owner|lower }};
 
-  <style>
-    .profile-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .tab-btn {
-      padding: 10px 20px;
-      border: none;
-      background: var(--border-gradient-onyx);
-      color: var(--light-gray);
-      cursor: pointer;
-      border-radius: 8px;
-    }
-    .tab-btn.active {
-      background: var(--orange-yellow-crayola);
-      color: var(--eerie-black-1);
-    }
-    .profile-card {
-      background: var(--border-gradient-onyx);
-      padding: 20px;
-      border-radius: 14px;
-    }
-    .profile-header {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .profile-avatar img {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .stat-card {
-      background: var(--border-gradient-onyx);
-      padding: 20px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    .stat-icon {
-      background: var(--bg-gradient-onyx);
-      padding: 13px;
-      border-radius: 8px;
-      font-size: 24px;
-      color: var(--orange-yellow-crayola);
-    }
-    .stat-info h4 {
-      color: var(--light-gray-70);
-      font-size: 14px;
-      margin-bottom: 5px;
-    }
-    .stat-info p {
-      color: var(--light-gray);
-      font-size: 24px;
-      font-weight: bold;
-      margin: 0;
-    }
-    .setting-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--jet);
-    }
-    /* Switch styling */
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 34px;
-    }
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--jet);
-      transition: .4s;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 26px;
-      width: 26px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .4s;
-    }
-    input:checked + .slider {
-      background-color: var(--orange-yellow-crayola);
-    }
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-    .slider.round {
-      border-radius: 34px;
-    }
-    .slider.round:before {
-      border-radius: 50%;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    /* Стили для сообщений */
-    .messages-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .message-filters {
-      display: flex;
-      gap: 10px;
-    }
-
-    .filter-btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 20px;
-      background: var(--border-gradient-onyx);
-      color: var(--light-gray);
-      cursor: pointer;
-    }
-
-    .filter-btn.active {
-      background: var(--orange-yellow-crayola);
-      color: var(--eerie-black-1);
-    }
-
-    .message-item {
-      background: var(--border-gradient-onyx);
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-
-    .message-item.unread {
-      border-left: 3px solid var(--orange-yellow-crayola);
-    }
-
-    .message-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .message-sender {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .sender-avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-    }
-
-    .message-content {
-      color: var(--light-gray);
-      margin-bottom: 10px;
-    }
-
-    .message-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .reply-btn, .delete-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 15px;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-
-    .reply-btn {
-      background: var(--jet);
-      color: var(--light-gray);
-    }
-
-    .delete-btn {
-      background: var(--eerie-black-2);
-      color: #ff6b6b;
-    }
-
-    .message-form-container {
-      margin-top: 20px;
-    }
-
-    .compose-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      background: var(--orange-yellow-crayola);
-      border: none;
-      border-radius: 25px;
-      color: var(--eerie-black-1);
-      cursor: pointer;
-    }
-
-    .message-form {
-      margin-top: 15px;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .messages-list {
-      display: none;
-    }
-
-    .messages-list.active {
-      display: block;
-    }
-
-    .attachments-container {
-      margin: 10px 0;
-    }
-
-    .file-upload {
-      position: relative;
-      display: inline-block;
-    }
-
-    .file-upload-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 8px 15px;
-      background: var(--jet);
-      color: var(--light-gray);
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-
-    .file-upload-input {
-      display: none;
-    }
-
-    .selected-files {
-      margin-top: 10px;
-    }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 5px 10px;
-      background: var(--eerie-black-2);
-      border-radius: 5px;
-      margin-bottom: 5px;
-    }
-
-    .file-item .remove-file {
-      cursor: pointer;
-      color: #ff6b6b;
-    }
-
-    /* Charts Grid */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-top: 30px;
-    }
-
-    .chart-container {
-      background: var(--border-gradient-onyx);
-      padding: 20px;
-      border-radius: 14px;
-    }
-
-    .chart-container h4 {
-      color: var(--light-gray-70);
-      font-size: 16px;
-      margin-bottom: 15px;
-      text-align: center;
-    }
-
-    .chart-wrapper {
-      position: relative;
-      height: 300px;
-      width: 100%;
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-      .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      if (messagesTab && isOwner) {
+        messagesTab.addEventListener('click', function(event) {
+          event.preventDefault();
+          document.body.classList.add('fade-out');
+          setTimeout(() => {
+            window.location.href = "{% url 'blog:inbox' %}";
+          }, 300);
+        });
       }
-
-      .charts-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .chart-wrapper {
-        height: 250px;
-      }
-
-      .stat-info p {
-        font-size: 20px;
-      }
-    }
-
-    .private-notice {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      padding: 2rem;
-      color: var(--light-gray);
-    }
-
-    .private-notice ion-icon {
-      font-size: 3rem;
-    }
-  </style>
+    });
+  </script>
+  <script src="{% static 'accounts/js/profile.js' %}"></script>
 {% endblock %}

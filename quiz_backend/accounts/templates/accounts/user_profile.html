@@ -57,32 +57,10 @@
                 </div>
 
                 {% if user.is_authenticated and user != profile_user %}
-                <button class="message-btn" onclick="toggleMessageForm()">
-                    <ion-icon name="mail-outline"></ion-icon>
-                    Send Message
-                </button>
-
-                <div id="messageForm" class="message-form" style="display: none;">
-                    <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="recipient_username" value="{{ profile_user.username }}">
-                        <textarea name="content" placeholder="Write your message..." required></textarea>
-
-                        <div class="attachment-section">
-                            <label for="attachments" class="attachment-label">
-                                <ion-icon name="attach-outline"></ion-icon>
-                                Add Files
-                            </label>
-                            <input type="file" id="attachments" name="attachments" multiple style="display: none;">
-                            <div id="selected-files" class="selected-files"></div>
-                        </div>
-
-                        <button type="submit" class="send-btn">
-                            <ion-icon name="send-outline"></ion-icon>
-                            Send
-                        </button>
-                    </form>
-                </div>
+                <a href="{% url 'accounts:full_profile' profile_user.username %}" class="view-profile-btn">
+                    <ion-icon name="person-outline"></ion-icon>
+                    View Full Profile
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -90,108 +68,4 @@
 </article>
 
 <link rel="stylesheet" href="{% static 'accounts/css/user_profile.css' %}">
-
-<script>
-function toggleMessageForm() {
-    const form = document.getElementById('messageForm');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
-
-document.getElementById('attachments')?.addEventListener('change', function() {
-    const container = document.getElementById('selected-files');
-    container.innerHTML = '';
-    Array.from(this.files).forEach(file => {
-        const fileDiv = document.createElement('div');
-        fileDiv.className = 'selected-file';
-        fileDiv.innerHTML = `
-            <span class="filename">${file.name}</span>
-            <ion-icon name="close-outline" class="remove-file" onclick="removeFile(this)"></ion-icon>
-        `;
-        container.appendChild(fileDiv);
-    });
-});
-
-function removeFile(element) {
-    const fileInput = document.getElementById('attachments');
-    const dt = new DataTransfer();
-    const files = fileInput.files;
-    const fileName = element.previousElementSibling.textContent;
-
-    for (let i = 0; i < files.length; i++) {
-        if (files[i].name !== fileName) {
-            dt.items.add(files[i]);
-        }
-    }
-
-    fileInput.files = dt.files;
-    element.parentElement.remove();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const messageForm = document.querySelector('.message-form form');
-    if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            document.querySelectorAll('.message-notification').forEach(note => note.remove());
-
-            const formData = new FormData(this);
-
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'sent') {
-                    document.getElementById('messageForm').style.display = 'none';
-
-                    const notification = document.createElement('div');
-                    notification.className = 'message-notification success';
-                    notification.textContent = 'Message sent successfully!';
-                    messageForm.parentNode.insertBefore(notification, messageForm);
-
-                    messageForm.reset();
-                    document.getElementById('selected-files').innerHTML = '';
-
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 3000);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                const notification = document.createElement('div');
-                notification.className = 'message-notification error';
-                fetch(messageForm.action, {
-                    method: 'POST',
-                    body: new FormData(messageForm),
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    notification.textContent = data.message || 'Error sending message. Please try again.';
-                    messageForm.parentNode.insertBefore(notification, messageForm);
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 3000);
-                });
-            });
-        });
-    }
-});
-</script>
 {% endblock %}

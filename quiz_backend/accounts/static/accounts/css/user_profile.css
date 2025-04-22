@@ -2,7 +2,7 @@
  * Стили для страницы профиля пользователя
  *
  * Этот файл содержит стили для отображения страницы профиля пользователя,
- * включая карточку профиля, форму отправки сообщений, уведомления и прикрепленные файлы.
+ * включая карточку профиля и элементы интерфейса.
  * Стили адаптированы для различных устройств и размеров экрана.
  */
 
@@ -29,6 +29,11 @@
     height: 12rem;
     border-radius: 1.25rem;
     object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
 }
 
 /* Индикатор статуса онлайн/оффлайн */
@@ -109,129 +114,23 @@
     font-size: 0.9375rem;
 }
 
-/* Кнопка отправки сообщения */
-.message-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    background: var(--orange-yellow-crayola);
-    border: none;
-    border-radius: 1.5625rem;
-    color: var(--eerie-black-1);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    font-size: 0.9375rem;
-}
-
-.message-btn:hover {
-    background: var(--vegas-gold);
-}
-
-/* Форма отправки сообщения */
-.message-form {
-    margin-top: 1.25rem;
-    background: var(--eerie-black-1);
-    padding: 1.25rem;
-    border-radius: 0.9375rem;
-}
-
-/* Текстовое поле формы */
-.message-form textarea {
-    width: 100%;
-    min-height: 6.25rem;
-    background: var(--eerie-black-2);
-    border: 1px solid var(--jet);
-    border-radius: 0.625rem;
-    padding: 0.9375rem;
-    color: var(--light-gray);
-    margin-bottom: 0.9375rem;
-    resize: vertical;
-    font-size: 0.9375rem;
-}
-
-/* Секция прикрепления файлов */
-.attachment-section {
-    margin-bottom: 0.9375rem;
-}
-
-/* Метка для прикрепления файлов */
-.attachment-label {
+/* Кнопка перехода на профиль */
+.view-profile-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.3125rem;
-    padding: 0.5rem 0.9375rem;
-    background: var(--eerie-black-2);
-    border-radius: 1.25rem;
-    cursor: pointer;
-    color: var(--light-gray);
-    font-size: 0.875rem;
-}
-
-/* Контейнер выбранных файлов */
-.selected-files {
-    margin-top: 0.625rem;
-}
-
-/* Элемент выбранного файла */
-.selected-file {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--eerie-black-2);
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.3125rem;
-    margin-bottom: 0.3125rem;
-    font-size: 0.875rem;
-}
-
-/* Иконка удаления файла */
-.remove-file {
-    cursor: pointer;
-    color: var(--light-gray-70);
-}
-
-.remove-file:hover {
-    color: #e74c3c;
-}
-
-/* Кнопка отправки формы */
-.send-btn {
-    display: flex;
-    align-items: center;
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
     background: var(--orange-yellow-crayola);
-    border: none;
     border-radius: 1.5625rem;
     color: var(--eerie-black-1);
     cursor: pointer;
     transition: background-color 0.3s ease;
     font-size: 0.9375rem;
+    text-decoration: none;
 }
 
-.send-btn:hover {
+.view-profile-btn:hover {
     background: var(--vegas-gold);
-}
-
-/* Уведомления */
-.message-notification {
-    padding: 0.625rem 0.9375rem;
-    border-radius: 0.3125rem;
-    margin: 0.625rem 0;
-    font-size: 0.875rem;
-}
-
-.message-notification.success {
-    background-color: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-}
-
-.message-notification.error {
-    background-color: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
 }
 
 /* Адаптивные стили */
@@ -260,18 +159,8 @@
         font-size: 1.25rem;
     }
 
-    .message-btn,
-    .send-btn {
+    .view-profile-btn {
         padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-    }
-
-    .message-form {
-        padding: 1rem;
-    }
-
-    .message-form textarea {
-        min-height: 5rem;
         font-size: 0.875rem;
     }
 }
@@ -294,14 +183,7 @@
     .profile-location,
     .profile-bio,
     .stat,
-    .message-btn,
-    .send-btn,
-    .message-notification {
-        font-size: 0.8125rem;
-    }
-
-    .message-form textarea,
-    .attachment-label {
+    .view-profile-btn {
         font-size: 0.8125rem;
     }
 }

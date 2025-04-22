@@ -13,10 +13,39 @@
 
     {% comment %}
       Если GET-параметр view=personal присутствует и пользователь авторизован,
-      включаем шаблон с личной статистикой.
+      показываем личную статистику.
     {% endcomment %}
     {% if request.GET.view == "personal" and user.is_authenticated %}
-        {% include "accounts/user_statistics.html" %}
+        <!-- Личная статистика -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <ion-icon name="document-text-outline"></ion-icon>
+                </div>
+                <div class="stat-details">
+                    <h3>{{ user_stats.total_attempts }}</h3>
+                    <p>Всего попыток</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <ion-icon name="checkmark-circle-outline"></ion-icon>
+                </div>
+                <div class="stat-details">
+                    <h3>{{ user_stats.successful_attempts }}</h3>
+                    <p>Успешных</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <ion-icon name="trending-up-outline"></ion-icon>
+                </div>
+                <div class="stat-details">
+                    <h3>{{ user_stats.success_rate }}%</h3>
+                    <p>Успешность</p>
+                </div>
+            </div>
+        </div>
     {% else %}
         <!-- Общая статистика -->
         <div class="stats-cards">
