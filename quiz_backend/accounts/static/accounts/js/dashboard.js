@@ -175,6 +175,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (tabButton) {
             switchTab(tabButton);
         }
+    } else {
+        // Если параметр tab не задан, по умолчанию активируем вкладку "Personal Info"
+        const defaultTabButton = document.querySelector('.profile-tabs .tab-btn[data-tab="personal"]');
+        if (defaultTabButton) {
+            switchTab(defaultTabButton);
+        }
     }
 
     // ================================

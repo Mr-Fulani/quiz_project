@@ -4,289 +4,378 @@
 {% load form_tags %}
 
 {% block sidebar %}
-  {% include 'accounts/sidebar.html' %}
+{% include 'accounts/sidebar.html' %}
 {% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}">
 <style>
-  /* Анимация затухания */
-  .fade-out {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  .chart-container {
-    margin-bottom: 2rem;
-  }
-  .chart-wrapper {
-    position: relative;
-    height: 300px;
-    width: 100%;
-  }
-  .no-data-message {
-    text-align: center;
-    color: #888;
-    font-style: italic;
-  }
+    /* Анимация затухания */
+    .fade-out {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .chart-container {
+        margin-bottom: 2rem;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+
+    .no-data-message {
+        text-align: center;
+        color: #888;
+        font-style: italic;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-  <article class="profile active" data-page="profile">
+<article class="profile active" data-page="profile">
     <header>
-      <h2 class="h2 article-title">{{ profile_user.username }}'s Profile</h2>
+        <h2 class="h2 article-title">{{ profile_user.username }}'s Profile</h2>
     </header>
 
     <section class="profile-content">
-      <!-- Profile Navigation -->
-      <div class="profile-tabs">
-        <button class="tab-btn active" data-tab="info">Info</button>
-        <button class="tab-btn" data-tab="statistics">Statistics</button>
-        <button class="tab-btn" data-tab="messages">Messages</button>
-      </div>
+        <!-- Profile Navigation -->
+        <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="info">Info</button>
+            <button class="tab-btn" data-tab="statistics">Statistics</button>
+            <button class="tab-btn" data-tab="messages">Messages</button>
+        </div>
 
-      <!-- Info Tab -->
-      <div class="tab-content active" data-tab-content="info">
-        <div class="profile-card">
-          <div class="profile-header">
-            <div class="profile-avatar">
-              <img src="{{ profile_user.profile.get_avatar_url }}" alt="{{ profile_user.username }}">
-            </div>
+        <!-- Info Tab -->
+        <div class="tab-content active" data-tab-content="info">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img src="{{ profile_user.profile.get_avatar_url }}" alt="{{ profile_user.username }}">
+                    </div>
 
-            <div class="profile-info readonly">
-              <div class="info-section">
-                <h3>About</h3>
-                <p>{{ profile_user.profile.bio|default:"No bio available" }}</p>
-              </div>
+                    <div class="profile-info readonly">
+                        <div class="info-section">
+                            <h3>About</h3>
+                            <p>{{ profile_user.profile.bio|default:"No bio available" }}</p>
+                        </div>
 
-              <div class="info-section">
-                <h3>Location</h3>
-                <p>{{ profile_user.profile.location|default:"Not specified" }}</p>
-              </div>
+                        <div class="info-section">
+                            <h3>Location</h3>
+                            <p>{{ profile_user.profile.location|default:"Not specified" }}</p>
+                        </div>
 
-              {% if profile_user.profile.is_public %}
-                <div class="social-links">
-                  {% if profile_user.profile.github %}
-                    <a href="{{ profile_user.profile.github }}" target="_blank" rel="noopener noreferrer">
-                      <ion-icon name="logo-github"></ion-icon>
-                    </a>
-                  {% endif %}
+                        {% if profile_user.profile.is_public %}
+                        <div class="social-links">
+                            {% if profile_user.profile.github %}
+                            <a href="{{ profile_user.profile.github }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="logo-github"></ion-icon>
+                            </a>
+                            {% endif %}
 
-                  {% if profile_user.profile.telegram %}
-                    <a href="{{ profile_user.profile.telegram }}" target="_blank" rel="noopener noreferrer">
-                      <ion-icon name="paper-plane"></ion-icon>
-                    </a>
-                  {% endif %}
+                            {% if profile_user.profile.telegram %}
+                            <a href="{{ profile_user.profile.telegram }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="paper-plane"></ion-icon>
+                            </a>
+                            {% endif %}
 
-                  {% if profile_user.profile.linkedin %}
-                    <a href="{{ profile_user.profile.linkedin }}" target="_blank" rel="noopener noreferrer">
-                      <ion-icon name="logo-linkedin"></ion-icon>
-                    </a>
-                  {% endif %}
+                            {% if profile_user.profile.linkedin %}
+                            <a href="{{ profile_user.profile.linkedin }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="logo-linkedin"></ion-icon>
+                            </a>
+                            {% endif %}
+
+                            {% if profile_user.profile.instagram %}
+                            <a href="{{ profile_user.profile.instagram }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="logo-instagram"></ion-icon>
+                            </a>
+                            {% endif %}
+
+                            {% if profile_user.profile.facebook %}
+                            <a href="{{ profile_user.profile.facebook }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="logo-facebook"></ion-icon>
+                            </a>
+                            {% endif %}
+
+                            {% if profile_user.profile.youtube %}
+                            <a href="{{ profile_user.profile.youtube }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="logo-youtube"></ion-icon>
+                            </a>
+                            {% endif %}
+
+                            {% if profile_user.profile.website %}
+                            <a href="{{ profile_user.profile.website }}" target="_blank" rel="noopener noreferrer">
+                                <ion-icon name="globe-outline"></ion-icon>
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-              {% endif %}
             </div>
-          </div>
         </div>
-      </div>
 
-      <!-- Statistics Tab -->
-      <div class="tab-content" data-tab-content="statistics">
-        <div class="profile-card">
-          <h3 class="h3">Quiz Performance</h3>
+        <!-- Statistics Tab -->
+        <div class="tab-content" data-tab-content="statistics">
+            <div class="profile-card">
+                <h3 class="h3">Quiz Performance</h3>
 
-          <!-- Stats Cards Grid -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <ion-icon name="document-text-outline"></ion-icon>
-              </div>
-              <div class="stat-info">
-                <h4>Total Attempts</h4>
-                <p>{{ stats.total_attempts }}</p>
-              </div>
-            </div>
+                <!-- Stats Cards Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <ion-icon name="document-text-outline"></ion-icon>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Total Attempts</h4>
+                            <p>{{ stats.total_attempts }}</p>
+                        </div>
+                    </div>
 
-            <div class="stat-card">
-              <div class="stat-icon">
-                <ion-icon name="checkmark-circle-outline"></ion-icon>
-              </div>
-              <div class="stat-info">
-                <h4>Successful</h4>
-                <p>{{ stats.successful_attempts }}</p>
-              </div>
-            </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Successful</h4>
+                            <p>{{ stats.successful_attempts }}</p>
+                        </div>
+                    </div>
 
-            <div class="stat-card">
-              <div class="stat-icon">
-                <ion-icon name="trending-up-outline"></ion-icon>
-              </div>
-              <div class="stat-info">
-                <h4>Success Rate</h4>
-                <p>{{ stats.success_rate }}%</p>
-              </div>
-            </div>
-          </div>
-
-          {% if profile_user.profile.is_public or is_owner %}
-            <!-- Charts Grid -->
-            <div class="charts-grid">
-              <!-- Activity Chart -->
-              <div class="chart-container">
-                <h4>Activity Over Time</h4>
-                {% if has_activity_data %}
-                  <div class="chart-wrapper">
-                    <canvas id="activityChart"></canvas>
-                  </div>
-                {% else %}
-                  <p class="no-data-message">Нет данных об активности</p>
-                {% endif %}
-              </div>
-
-              <!-- Categories Chart -->
-              <div class="chart-container">
-                <h4>Performance by Category</h4>
-                {% if has_categories_data %}
-                  <div class="chart-wrapper">
-                    <canvas id="categoriesChart"></canvas>
-                  </div>
-                {% else %}
-                  <p class="no-data-message">Нет данных по категориям</p>
-                {% endif %}
-              </div>
-
-              <!-- Attempts Chart -->
-              <div class="chart-container">
-                <h4>Attempts Distribution</h4>
-                {% if has_attempts_data %}
-                  <div class="chart-wrapper">
-                    <canvas id="attemptsChart"></canvas>
-                  </div>
-                {% else %}
-                  <p class="no-data-message">Нет данных по попыткам</p>
-                {% endif %}
-              </div>
-            </div>
-          {% else %}
-            <div class="private-notice">
-              <ion-icon name="lock-closed-outline"></ion-icon>
-              <p>Detailed statistics are private</p>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Messages Tab -->
-      <div class="tab-content" data-tab-content="messages">
-        <div class="profile-card">
-          {% if is_owner %}
-            <!-- Пустой блок, перенаправление через JavaScript -->
-          {% else %}
-            <h3 class="h3">Send Message</h3>
-            <div id="messageForm" class="message-form">
-              <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <input type="hidden" name="recipient_username" value="{{ profile_user.username }}">
-                <textarea name="content" placeholder="Write your message..." required></textarea>
-
-                <div class="attachment-section">
-                  <label for="attachments" class="attachment-label">
-                    <ion-icon name="attach-outline"></ion-icon>
-                    Add Files
-                  </label>
-                  <input type="file" id="attachments" name="attachments" multiple style="display: none;">
-                  <div id="selected-files" class="selected-files"></div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <ion-icon name="trending-up-outline"></ion-icon>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Success Rate</h4>
+                            <p>{{ stats.success_rate }}%</p>
+                        </div>
+                    </div>
                 </div>
 
-                <button type="submit" class="send-btn">
-                  <ion-icon name="send-outline"></ion-icon>
-                  Send
-                </button>
-              </form>
+                {% if profile_user.profile.is_public or is_owner %}
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <!-- Activity Chart -->
+                    <div class="chart-container">
+                        <h4>Activity Over Time</h4>
+                        {% if has_activity_data %}
+                        <div class="chart-wrapper">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                        {% else %}
+                        <p class="no-data-message">Нет данных об активности</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Categories Chart -->
+                    <div class="chart-container">
+                        <h4>Performance by Category</h4>
+                        {% if has_categories_data %}
+                        <div class="chart-wrapper">
+                            <canvas id="categoriesChart"></canvas>
+                        </div>
+                        {% else %}
+                        <p class="no-data-message">Нет данных по категориям</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Attempts Chart -->
+                    <div class="chart-container">
+                        <h4>Attempts Distribution</h4>
+                        {% if has_attempts_data %}
+                        <div class="chart-wrapper">
+                            <canvas id="attemptsChart"></canvas>
+                        </div>
+                        {% else %}
+                        <p class="no-data-message">Нет данных по попыткам</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="private-notice">
+                    <ion-icon name="lock-closed-outline"></ion-icon>
+                    <p>Detailed statistics are private</p>
+                </div>
+                {% endif %}
             </div>
-          {% endif %}
         </div>
-      </div>
+
+        <!-- Messages Tab -->
+        <div class="tab-content" data-tab-content="messages">
+            <div class="profile-card">
+                {% if is_owner %}
+                <!-- Пустой блок, перенаправление через JavaScript -->
+                {% else %}
+                <h3 class="h3">Send Message</h3>
+                <div id="messageForm" class="message-form">
+                    <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="recipient_username" value="{{ profile_user.username }}">
+                        <textarea name="content" placeholder="Write your message..." required></textarea>
+
+                        <div class="attachment-section">
+                            <label for="attachments" class="attachment-label">
+                                <ion-icon name="attach-outline"></ion-icon>
+                                Add Files
+                            </label>
+                            <input type="file" id="attachments" name="attachments" multiple style="display: none;">
+                            <div id="selected-files" class="selected-files"></div>
+                        </div>
+
+                        <button type="submit" class="send-btn">
+                            <ion-icon name="send-outline"></ion-icon>
+                            Send
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </section>
-  </article>
+</article>
 
-  <!-- JavaScript -->
-  {% if profile_user.profile.is_public or is_owner %}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      {% if has_activity_data %}
-      new Chart(document.getElementById('activityChart'), {
-        type: 'line',
-        data: {
-          labels: {{ activity_dates|safe }},
-          datasets: [{
+<!-- JavaScript -->
+{% if profile_user.profile.is_public or is_owner %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        {%
+            if has_activity_data %
+        }
+        new Chart(document.getElementById('activityChart'), {
+            type: 'line',
+            data: {
+                labels: {
+        {
+            activity_dates | safe
+        }
+    },
+        datasets: [{
             label: 'Решено задач',
-            data: {{ activity_data|safe }},
-            borderColor: '#f5a623',
-            backgroundColor: 'rgba(245, 166, 35, 0.1)',
-            tension: 0.4,
-            fill: true
-          }]
-        },
+            data: {{activity_data | safe
+    }
+    },
+        borderColor: '#f5a623',
+            backgroundColor
+    :
+        'rgba(245, 166, 35, 0.1)',
+            tension
+    :
+        0.4,
+            fill
+    :
+        true
+    }]
+    },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } }
+            responsive: true,
+                maintainAspectRatio
+        :
+            false,
+                plugins
+        :
+            {
+                legend: {
+                    display: false
+                }
+            }
         }
-      });
-      {% endif %}
+    })
+        ;
+        {%
+            endif %
+        }
 
-      {% if has_categories_data %}
-      new Chart(document.getElementById('categoriesChart'), {
-        type: 'doughnut',
-        data: {
-          labels: {{ categories_labels|safe }},
-          datasets: [{
-            data: {{ categories_data|safe }},
-            backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-      {% endif %}
-
-      {% if has_attempts_data %}
-      new Chart(document.getElementById('attemptsChart'), {
-        type: 'bar',
-        data: {
-          labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
-          datasets: [{
-            label: 'Количество задач',
-            data: {{ attempts_distribution|safe }},
-            backgroundColor: '#4a90e2'
-          }]
-        },
+        {%
+            if has_categories_data %
+        }
+        new Chart(document.getElementById('categoriesChart'), {
+            type: 'doughnut',
+            data: {
+                labels: {
+        {
+            categories_labels | safe
+        }
+    },
+        datasets: [{
+            data: {{categories_data | safe
+    }
+    },
+        backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
+    }]
+    },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } }
+            responsive: true, maintainAspectRatio
+        :
+            false
         }
-      });
-      {% endif %}
-    });
-  </script>
-  {% endif %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const messagesTab = document.querySelector('button[data-tab="messages"]');
-      const isOwner = {{ is_owner|lower }};
+    })
+        ;
+        {%
+            endif %
+        }
 
-      if (messagesTab && isOwner) {
-        messagesTab.addEventListener('click', function(event) {
-          event.preventDefault();
-          document.body.classList.add('fade-out');
-          setTimeout(() => {
-            window.location.href = "{% url 'blog:inbox' %}";
-          }, 300);
-        });
-      }
+        {%
+            if has_attempts_data %
+        }
+        new Chart(document.getElementById('attemptsChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
+                    datasets: [{
+                        label: 'Количество задач',
+                        data: {{attempts_distribution | safe
+                }
+            },
+            backgroundColor
+    :
+        '#4a90e2'
+    }]
+    },
+        options: {
+            responsive: true,
+                maintainAspectRatio
+        :
+            false,
+                plugins
+        :
+            {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    })
+        ;
+        {%
+            endif %
+        }
     });
-  </script>
-  <script src="{% static 'accounts/js/profile.js' %}"></script>
+</script>
+{% endif %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const messagesTab = document.querySelector('button[data-tab="messages"]');
+        const isOwner = {
+        {
+            is_owner | lower
+        }
+    }
+        ;
+
+        if (messagesTab && isOwner) {
+            messagesTab.addEventListener('click', function (event) {
+                event.preventDefault();
+                document.body.classList.add('fade-out');
+                setTimeout(() => {
+                    window.location.href = "{% url 'blog:inbox' %}";
+                }, 300);
+            });
+        }
+    });
+</script>
+<script src="{% static 'accounts/js/profile.js' %}"></script>
 {% endblock %}

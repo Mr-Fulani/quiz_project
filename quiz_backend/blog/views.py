@@ -1,10 +1,11 @@
 import json
+import logging
 import random
 from datetime import datetime, timedelta
 
 from accounts.models import CustomUser
+from accounts.models import DjangoAdmin
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
@@ -12,7 +13,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, F, Q, Max
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
+from django.http import JsonResponse, FileResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -28,10 +29,6 @@ from topics.models import Topic, Subtopic
 
 from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
-
-import logging
-
-from accounts.models import DjangoAdmin
 
 logger = logging.getLogger(__name__)
 
