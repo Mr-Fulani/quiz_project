@@ -110,32 +110,86 @@ document.addEventListener('DOMContentLoaded', function () {
     // 3. Personal Info Form
     // ================================
     const personalInfoForm = document.getElementById('personal-info-form');
+    const securityForm = document.querySelector('.security-form');
+
     if (personalInfoForm) {
         personalInfoForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+            console.log('Submitting personal-info-form');
             const formData = new FormData(this);
+            console.log('Sending form data:', Object.fromEntries(formData));
             try {
                 const response = await fetch(this.action, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
-                if (response.ok) {
-                    showNotification('Profile updated successfully!', 'success');
-                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl;
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                if (response.ok && data.status === 'success') {
+                    showNotification('Профиль успешно обновлён!', 'success');
+                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/users/dashboard/';
                     window.location.href = dashboardUrl;
                 } else {
-                    const data = await response.json();
-                    showNotification(data.message || 'Failed to update profile', 'error');
+                    showNotification(data.message || 'Не удалось обновить профиль', 'error');
                 }
             } catch (error) {
-                console.error('Error updating profile:', error);
-                showNotification('Failed to update profile', 'error');
+                console.error('Personal info form submission error:', error);
+                showNotification('Не удалось обновить профиль', 'error');
             }
         });
     }
+
+    if (securityForm) {
+        securityForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            console.log('Submitting security-form');
+            const formData = new FormData(this);
+            console.log('Sending security form data:', Object.fromEntries(formData));
+            // Очищаем предыдущие ошибки
+            document.querySelectorAll('.security-form .error').forEach(el => el.remove());
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                console.log('Security form response status:', response.status);
+                const data = await response.json();
+                console.log('Security form response data:', data);
+                if (response.ok && data.status === 'success') {
+                    showNotification('Пароль успешно изменён!', 'success');
+                    window.location.reload(); // Обновляем страницу
+                } else {
+                    // Отображаем ошибки в форме
+                    if (data.errors) {
+                        const errors = JSON.parse(data.errors);
+                        for (const [field, errorList] of Object.entries(errors)) {
+                            const input = document.querySelector(`#id_${field}`);
+                            if (input) {
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'error';
+                                errorDiv.textContent = errorList.map(e => e.message).join(' ');
+                                input.parentNode.appendChild(errorDiv);
+                            }
+                        }
+                    }
+                    showNotification(data.message || 'Не удалось сменить пароль', 'error');
+                }
+            } catch (error) {
+                console.error('Security form submission error:', error);
+                showNotification('Не удалось сменить пароль', 'error');
+            }
+        });
+    }
+
 
     // ================================
     // 4. Обработка настроек

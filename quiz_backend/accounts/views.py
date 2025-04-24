@@ -348,24 +348,43 @@ class CustomPasswordChangeForm(forms.Form):
 
 
 
+
+
 @login_required
 def change_password(request):
     """
     Обработка формы смены пароля с использованием CustomPasswordChangeForm.
-    Ошибки отображаются только в форме, успех через флаг success.
+    Поддерживает AJAX и HTML-ответы.
     """
     success = False
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if request.method == 'POST':
         form = CustomPasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
+            print("Saving new password")
             form.save()
             update_session_auth_hash(request, form.user)
             success = True
             form = CustomPasswordChangeForm(user=request.user)  # Очистка формы после успеха
+            if is_ajax:
+                return JsonResponse({'status': 'success', 'message': 'Пароль успешно изменён!'})
         else:
             print(f"Password form errors: {form.errors}")
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Исправьте ошибки в форме',
+                    'errors': form.errors.as_json()
+                }, status=400)
     else:
         form = CustomPasswordChangeForm(user=request.user)
+
+    if is_ajax:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Некорректный запрос'
+        }, status=400)
 
     return render(request, 'accounts/dashboard.html', {
         'password_form': form,
@@ -379,17 +398,24 @@ def change_password(request):
 
 
 
+
+
+
+
 @login_required
 def update_personal_info(request):
     """
     Обработка формы PersonalInfoForm или загрузки аватара.
-    Устанавливает active_tab='personal' по умолчанию.
+    Возвращает JsonResponse для AJAX-запросов.
     """
     if request.method == 'POST':
         print(f"POST data: {request.POST}")
         print(f"FILES: {request.FILES}")
+        profile = request.user.profile
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        # Проверяем, является ли запрос загрузкой аватара
         if 'avatar' in request.FILES and 'personal_info' not in request.POST:
-            profile = request.user.profile
             old_avatar = profile.avatar
             form = PersonalInfoForm(
                 request.POST,
@@ -406,30 +432,61 @@ def update_personal_info(request):
                     except Exception as e:
                         print(f"Error deleting old avatar: {e}")
                 form.save()
-                messages.success(request, 'Аватар успешно обновлён!')
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                if is_ajax:
                     return JsonResponse({'status': 'success', 'avatar_url': profile.get_avatar_url})
+                messages.success(request, 'Аватар успешно обновлён!')
                 return redirect('accounts:dashboard')
             else:
                 print(f"Avatar form errors: {form.errors}")
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'Недопустимый файл аватара', 'errors': form.errors.as_json()}, status=400)
                 messages.error(request, 'Недопустимый файл аватара.')
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({'status': 'error', 'message': 'Недопустимый файл аватара'}, status=400)
                 return redirect('accounts:dashboard')
         else:
             form = PersonalInfoForm(
                 request.POST,
                 request.FILES,
-                instance=request.user.profile,
+                instance=profile,
                 user=request.user
             )
+            print(f"Form created with data: {form.data}")
             if form.is_valid():
-                form.save()
+                print(f"Form is valid, cleaned data: {form.cleaned_data}")
+                # Сохраняем поля CustomUser
+                user = request.user
+                user.username = form.cleaned_data['username']
+                user.email = form.cleaned_data['email']
+                user.first_name = form.cleaned_data['first_name']
+                user.last_name = form.cleaned_data['last_name']
+                user.save()
+                print(f"User {user.username} saved with email: {user.email}, first_name: {user.first_name}")
+
+                # Сохраняем поля Profile
+                profile = form.save(commit=False)
+                profile.bio = form.cleaned_data['bio']
+                profile.location = form.cleaned_data['location']
+                profile.website = form.cleaned_data['website']
+                profile.github = form.cleaned_data['github']
+                profile.linkedin = form.cleaned_data['linkedin']
+                profile.telegram = form.cleaned_data['telegram']
+                profile.instagram = form.cleaned_data['instagram']
+                profile.facebook = form.cleaned_data['facebook']
+                profile.youtube = form.cleaned_data['youtube']
+                if form.cleaned_data.get('birth_date'):
+                    profile.birth_date = form.cleaned_data['birth_date']
+                profile.save()
+                print(f"Profile saved with bio: {profile.bio}, location: {profile.location}, website: {profile.website}")
+
+                if is_ajax:
+                    return JsonResponse({'status': 'success', 'avatar_url': profile.get_avatar_url})
                 messages.success(request, 'Профиль успешно обновлён!')
                 return redirect('accounts:dashboard')
             else:
-                print(f"Form errors: {form.errors}")
+                print(f"Form errors: {form.errors.as_json()}")
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'Исправьте ошибки в форме', 'errors': form.errors.as_json()}, status=400)
                 messages.error(request, 'Исправьте ошибки в форме.')
+                return redirect('accounts:dashboard')
     else:
         form = PersonalInfoForm(instance=request.user.profile, user=request.user)
 
@@ -438,7 +495,7 @@ def update_personal_info(request):
         'profile_user': request.user,
         'is_owner': True,
         'user_settings': request.user.profile,
-        'active_tab': 'personal',  # По умолчанию Personal Info
+        'active_tab': 'personal',
     })
 
 

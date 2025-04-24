@@ -113,26 +113,46 @@ document.addEventListener('DOMContentLoaded', function () {
     if (personalInfoForm) {
         personalInfoForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true; // Отключаем кнопку во время запроса
             const formData = new FormData(this);
             try {
                 const response = await fetch(this.action, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
-                if (response.ok) {
-                    showNotification('Profile updated successfully!', 'success');
-                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl;
+                console.log('Статус ответа:', response.status);
+                console.log('Тип ответа:', response.headers.get('content-type'));
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (error) {
+                    console.error('Ошибка парсинга JSON:', error);
+                    showNotification('Сервер вернул неверный ответ', 'error');
+                    submitButton.disabled = false;
+                    return;
+                }
+
+                console.log('Данные ответа:', data);
+
+                if (response.ok && data.status === 'success') {
+                    showNotification('Профиль успешно обновлён!', 'success');
+                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/users/dashboard/';
                     window.location.href = dashboardUrl;
                 } else {
-                    const data = await response.json();
-                    showNotification(data.message || 'Failed to update profile', 'error');
+                    const errorMsg = data.errors ? JSON.parse(data.errors) : data.message;
+                    showNotification(errorMsg || 'Не удалось обновить профиль', 'error');
+                    submitButton.disabled = false;
                 }
             } catch (error) {
-                console.error('Error updating profile:', error);
-                showNotification('Failed to update profile', 'error');
+                console.error('Ошибка обновления профиля:', error);
+                showNotification('Не удалось обновить профиль', 'error');
+                submitButton.disabled = false;
             }
         });
     }

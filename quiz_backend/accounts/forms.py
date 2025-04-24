@@ -34,7 +34,12 @@ class PersonalInfoForm(forms.ModelForm):
     last_name = forms.CharField(max_length=150, required=False)
     bio = forms.CharField(widget=forms.Textarea, required=False)
     location = forms.CharField(max_length=100, required=False)
-    birth_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), required=False)
+    birth_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False,
+        input_formats=['%Y-%m-%d'],  # Принимаем только YYYY-MM-DD
+    )
+
     website = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://example.com'}))
     github = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://github.com/username'}))
     linkedin = forms.URLField(required=False, widget=forms.URLInput(attrs={'placeholder': 'https://linkedin.com/in/username'}))
@@ -60,6 +65,14 @@ class PersonalInfoForm(forms.ModelForm):
         if self.user:
             self.fields['username'].initial = self.user.username
             self.fields['email'].initial = self.user.email
+            self.fields['first_name'].initial = self.user.first_name or ''
+            self.fields['last_name'].initial = self.user.last_name or ''
+            if self.instance and self.instance.birth_date:
+                # Явно форматируем дату в YYYY-MM-DD
+                self.fields['birth_date'].initial = self.instance.birth_date.strftime('%Y-%m-%d')
+                print(f"Form initialized with birth_date: {self.fields['birth_date'].initial}")
+            else:
+                print(f"No birth_date in instance: {self.instance}")
 
     def clean_telegram(self):
         """
@@ -79,11 +92,16 @@ class PersonalInfoForm(forms.ModelForm):
             raise ValidationError('Введите корректный URL Telegram (например, https://t.me/username) или имя пользователя (например, @username).')
         return telegram
 
+    def clean_website(self):
+        website = self.cleaned_data.get('website')
+        if isinstance(website, list):
+            # Берём первое непустое значение из списка
+            website = next((item for item in website if item), '')
+        if website and not website.startswith(('http://', 'https://')):
+            website = f'https://{website}'
+        return website
+
     def clean(self):
-        """
-        Валидация формы.
-        Пропускает username и email, если они не изменены или avatar_only=True.
-        """
         cleaned_data = super().clean()
         if self.avatar_only:
             return cleaned_data
@@ -96,10 +114,6 @@ class PersonalInfoForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        """
-        Сохранение формы.
-        Обновляет username и email в CustomUser, остальные поля в Profile.
-        """
         profile = super().save(commit=False)
         user = self.user
         if not self.avatar_only:
@@ -109,6 +123,16 @@ class PersonalInfoForm(forms.ModelForm):
             user.last_name = self.cleaned_data.get('last_name', '')
             if commit:
                 user.save()
+        # Явно устанавливаем все поля Profile
+        profile.bio = self.cleaned_data['bio']
+        profile.location = self.cleaned_data['location']
+        profile.website = self.cleaned_data['website']
+        profile.github = self.cleaned_data['github']
+        profile.linkedin = self.cleaned_data['linkedin']
+        profile.telegram = self.cleaned_data['telegram']
+        profile.instagram = self.cleaned_data['instagram']
+        profile.facebook = self.cleaned_data['facebook']
+        profile.youtube = self.cleaned_data['youtube']
         if self.cleaned_data.get('birth_date'):
             profile.birth_date = self.cleaned_data['birth_date']
         if commit:
