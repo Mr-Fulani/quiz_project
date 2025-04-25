@@ -47,13 +47,16 @@ class Lightning {
             if (i != segments) {
                 dv.Y1 += l * Math.random();
                 dv.X1 += l * Math.random();
+                // Ограничиваем координаты в пределах canvas
+                dv.X1 = Math.max(0, Math.min(dv.X1, context.canvas.width / window.devicePixelRatio));
+                dv.Y1 = Math.max(0, Math.min(dv.Y1, context.canvas.height / window.devicePixelRatio));
             }
 
             var r = new Vector(refv.X1, refv.Y1, dv.X1, dv.Y1);
 
             this.Line(context, r, {
                 Color: this.config.GlowColor,
-                Width: this.config.GlowWidth * lR,
+                Width: this.config.GlowWidth * lR * 1.5,
                 Blur: this.config.GlowBlur * lR,
                 BlurColor: this.config.GlowColor,
                 Alpha: this.Random(this.config.GlowAlpha, this.config.GlowAlpha * 2) / 100
@@ -61,7 +64,7 @@ class Lightning {
 
             this.Line(context, r, {
                 Color: this.config.Color,
-                Width: this.config.Width,
+                Width: this.config.Width * 1.5,
                 Blur: this.config.Blur,
                 BlurColor: this.config.BlurColor,
                 Alpha: this.config.Alpha
@@ -78,7 +81,7 @@ class Lightning {
 
     Circle(context, p, lR) {
         context.beginPath();
-        context.arc(p.X1 + Math.random() * 10 * lR, p.Y1 + Math.random() * 10 * lR, 5, 0, 2 * Math.PI, false);
+        context.arc(p.X1 + Math.random() * 10 * lR, p.Y1 + Math.random() * 10 * lR, 8, 0, 2 * Math.PI, false);
         context.fillStyle = 'white';
         context.shadowBlur = 100;
         context.shadowColor = "#2319FF";
@@ -106,97 +109,120 @@ class Lightning {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing lightning effect');
 
-    // Создаём глобальный canvas для молний и конфетти
-    const lightningCanvas = document.createElement('canvas');
-    lightningCanvas.id = 'lightning-canvas';
-    lightningCanvas.style.position = 'fixed';
-    lightningCanvas.style.top = '0';
-    lightningCanvas.style.left = '0';
-    lightningCanvas.style.width = '100%';
-    lightningCanvas.style.height = '100%';
-    lightningCanvas.style.pointerEvents = 'none';
-    lightningCanvas.style.zIndex = '1000';
-    lightningCanvas.style.display = 'none';
-    document.body.appendChild(lightningCanvas);
+    // Проверяем, существует ли уже canvas
+    let lightningCanvas = document.getElementById('lightning-canvas');
+    if (!lightningCanvas) {
+        // Создаём глобальный canvas для молний и конфетти
+        lightningCanvas = document.createElement('canvas');
+        lightningCanvas.id = 'lightning-canvas';
+        lightningCanvas.style.position = 'fixed';
+        lightningCanvas.style.top = '0';
+        lightningCanvas.style.left = '0';
+        lightningCanvas.style.width = '100vw';
+        lightningCanvas.style.height = '100vh';
+        lightningCanvas.style.pointerEvents = 'none';
+        lightningCanvas.style.zIndex = '9999';
+        lightningCanvas.style.display = 'none';
+        document.body.appendChild(lightningCanvas);
+    }
 
-    lightningCanvas.width = window.innerWidth;
-    lightningCanvas.height = window.innerHeight;
+    // Устанавливаем размеры canvas с учетом Retina
+    function updateCanvasSize() {
+        lightningCanvas.width = window.innerWidth * window.devicePixelRatio;
+        lightningCanvas.height = window.innerHeight * window.devicePixelRatio;
+        lightningCanvas.style.width = window.innerWidth + 'px';
+        lightningCanvas.style.height = window.innerHeight + 'px';
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        console.log(`Canvas resized to ${lightningCanvas.width}x${lightningCanvas.height}`);
+    }
+
+    updateCanvasSize();
     const ctx = lightningCanvas.getContext('2d');
 
     // Конфигурация молнии
     const lightningConfig = {
         Segments: 40,
         Threshold: 0.5,
-        Width: 1.5,
+        Width: 2.0,
         Color: "white",
-        Blur: 10,
+        Blur: 15,
         BlurColor: "white",
         Alpha: 1,
         GlowColor: "#0000FF",
-        GlowWidth: 40,
-        GlowBlur: 100,
-        GlowAlpha: 30
+        GlowWidth: 50,
+        GlowBlur: 120,
+        GlowAlpha: 40
     };
 
     const lightning = new Lightning(lightningConfig);
 
     // Точки начала молний
-    const lightningPoints = [
-        new Vector(0, 0, 0, 0),
-        new Vector(0, 0, lightningCanvas.width, 0),
-        new Vector(0, 0, 0, lightningCanvas.height),
-        new Vector(0, 0, lightningCanvas.width, lightningCanvas.height),
-        new Vector(0, 0, lightningCanvas.width / 2, 0),
-        new Vector(0, 0, 0, lightningCanvas.height / 2),
-        new Vector(0, 0, lightningCanvas.width, lightningCanvas.height / 2),
-        new Vector(0, 0, lightningCanvas.width / 2, lightningCanvas.height)
-    ];
+    let lightningPoints = [];
+
+    function updateLightningPoints() {
+        lightningPoints = [
+            new Vector(0, 0, 0, 0),
+            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio, 0),
+            new Vector(0, 0, 0, lightningCanvas.height / window.devicePixelRatio),
+            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio, lightningCanvas.height / window.devicePixelRatio),
+            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio / 2, 0),
+            new Vector(0, 0, 0, lightningCanvas.height / window.devicePixelRatio / 2),
+            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio, lightningCanvas.height / window.devicePixelRatio / 2),
+            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio / 2, lightningCanvas.height / window.devicePixelRatio)
+        ];
+    }
+
+    updateLightningPoints();
 
     // Обновление размеров canvas
     window.addEventListener('resize', function() {
-        lightningCanvas.width = window.innerWidth;
-        lightningCanvas.height = window.innerHeight;
-        lightningPoints[1] = new Vector(0, 0, lightningCanvas.width, 0);
-        lightningPoints[2] = new Vector(0, 0, 0, lightningCanvas.height);
-        lightningPoints[3] = new Vector(0, 0, lightningCanvas.width, lightningCanvas.height);
-        lightningPoints[4] = new Vector(0, 0, lightningCanvas.width / 2, 0);
-        lightningPoints[5] = new Vector(0, 0, 0, lightningCanvas.height / 2);
-        lightningPoints[6] = new Vector(0, 0, lightningCanvas.width, lightningCanvas.height / 2);
-        lightningPoints[7] = new Vector(0, 0, lightningCanvas.width / 2, lightningCanvas.height);
+        updateCanvasSize();
+        updateLightningPoints();
     });
 
     // Создаём объекты Audio
     const thunderSound = new Audio('/static/blog/sounds/thunder.mp3');
     thunderSound.preload = 'auto';
-    thunderSound.volume = 0.5;
+    thunderSound.volume = 0.3; // Исправлено с 0.3 на 0.7
 
     const successSound = new Audio('/static/blog/sounds/success.mp3');
     successSound.preload = 'auto';
-    successSound.volume = 0.5;
+    successSound.volume = 0.3; // Исправлено с 0.3 на 0.7
+
+    // Функция проигрывания звука с обработкой ошибок
+    function playSound(sound) {
+        sound.currentTime = 0;
+        sound.play().catch(error => {
+            console.error('Error playing sound:', error);
+            document.body.addEventListener('touchstart', function soundTrigger() {
+                sound.play().catch(e => console.error('Still cannot play sound:', e));
+                document.body.removeEventListener('touchstart', soundTrigger);
+            }, { once: true });
+        });
+    }
 
     // Функция показа эффекта молнии со звуком (неправильный ответ)
     window.showLightningEffect = function(element) {
         console.log('Showing lightning effect for', element);
 
         const rect = element.getBoundingClientRect();
-        const targetX = rect.left + rect.width / 2;
-        const targetY = rect.top + rect.height / 2;
+        const scrollX = window.scrollX || window.pageXOffset;
+        const scrollY = window.scrollY || window.pageYOffset;
+        const targetX = Math.max(0, Math.min(rect.left + rect.width / 2 + scrollX, lightningCanvas.width / window.devicePixelRatio));
+        const targetY = Math.max(0, Math.min(rect.top + rect.height / 2 + scrollY, lightningCanvas.height / window.devicePixelRatio));
         const target = new Vector(0, 0, targetX, targetY);
 
         lightningCanvas.style.display = 'block';
+        lightningCanvas.style.opacity = '1';
 
-        // Проигрываем звук грома
-        thunderSound.currentTime = 0;
-        thunderSound.play().catch(error => {
-            console.error('Error playing thunder sound:', error);
-        });
+        playSound(thunderSound);
 
         let frames = 0;
-        const maxFrames = 30;
+        const maxFrames = 40;
 
         function animate() {
             ctx.clearRect(0, 0, lightningCanvas.width, lightningCanvas.height);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
             ctx.fillRect(0, 0, lightningCanvas.width, lightningCanvas.height);
 
             lightningPoints.forEach(point => {
@@ -212,6 +238,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         animate();
+        element.classList.add('incorrect');
+
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
     };
 
     // Функция показа эффекта конфетти (правильный ответ)
@@ -223,34 +254,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const ctx = canvas.getContext('2d');
         const particles = [];
 
-        // Начальная позиция — центр элемента
         const startX = rect.left + rect.width / 2;
         const startY = rect.top + rect.height / 2;
 
-        // Создаём частицы конфетти
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 150; i++) {
             particles.push({
                 x: startX,
                 y: startY,
-                speed: Math.random() * 5 + 2,
-                angle: Math.random() * 2 * Math.PI, // Во все стороны
-                size: Math.random() * 5 + 2,
+                speed: Math.random() * 6 + 3,
+                angle: Math.random() * 2 * Math.PI,
+                size: Math.random() * 6 + 3,
                 color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-                life: 60
+                life: 80
             });
         }
 
-        // Проигрываем звук успеха
-        successSound.currentTime = 0;
-        successSound.play().catch(error => {
-            console.error('Error playing success sound:', error);
-        });
+        playSound(successSound);
 
         function animateConfetti() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles.forEach((p, i) => {
                 p.x += Math.cos(p.angle) * p.speed;
-                p.y += Math.sin(p.angle) * p.speed + 0.1; // Гравитация
+                p.y += Math.sin(p.angle) * p.speed + 0.1;
                 p.life--;
 
                 ctx.fillStyle = p.color;
@@ -264,40 +289,56 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         canvas.style.display = 'block';
+        canvas.style.opacity = '1';
         animateConfetti();
+        element.classList.add('correct');
     };
 
-    // Привязка к answer-option
-    const answerOptions = document.querySelectorAll('.answer-option');
-    if (answerOptions.length > 0) {
-        console.log('Answer options found:', answerOptions.length);
-        answerOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                console.log('Option clicked:', this.dataset.answer, 'Correct:', this.dataset.correct);
-                const isCorrect = this.dataset.correct === 'true';
+    // Универсальный обработчик событий для ответов
+    function setupAnswerHandlers() {
+        const answerOptions = document.querySelectorAll('.answer-option');
+        if (answerOptions.length > 0) {
+            console.log('Answer options found:', answerOptions.length);
 
-                // Очистка предыдущих эффектов
-                option.parentElement.querySelectorAll('.answer-option').forEach(opt => {
-                    opt.classList.remove('correct-answer', 'shake');
-                });
-
-                if (!isCorrect) {
-                    showLightningEffect(this);
-                    this.classList.add('shake');
-                    setTimeout(() => this.classList.remove('shake'), 500);
-
-                    // Вибрация (только для мобильных устройств)
-                    if (navigator.vibrate) {
-                        navigator.vibrate(200);
-                    }
-                } else {
-                    showConfetti(this); // Конфетти для правильного ответа
-                    this.classList.add('correct-answer');
-                    setTimeout(() => this.classList.remove('correct-answer'), 1000);
-                }
+            answerOptions.forEach(option => {
+                option.removeEventListener('click', handleAnswerSelection);
+                option.removeEventListener('touchend', handleAnswerSelection);
+                option.addEventListener('click', handleAnswerSelection);
+                option.addEventListener('touchend', handleAnswerSelection);
             });
-        });
-    } else {
-        console.log('No answer options found');
+        } else {
+            console.log('No answer options found');
+        }
     }
+
+    // Функция обработки выбора ответа
+    function handleAnswerSelection(event) {
+        event.preventDefault();
+
+        const option = this;
+        console.log('Option selected:', option.dataset.answer, 'Correct:', option.dataset.correct);
+        const isCorrect = option.dataset.correct === 'true';
+
+        const parent = option.parentElement;
+        parent.querySelectorAll('.answer-option').forEach(opt => {
+            opt.style.pointerEvents = 'none';
+            opt.classList.remove('active');
+        });
+
+        option.classList.add('active');
+
+        if (!isCorrect) {
+            showLightningEffect(option);
+        } else {
+            showConfetti(option);
+        }
+    }
+
+    // Инициализируем обработчики сразу
+    setupAnswerHandlers();
+
+    // Перепривязываем обработчики при динамической загрузке
+    document.addEventListener('DOMContentLoaded', setupAnswerHandlers);
+    document.addEventListener('page:loaded', setupAnswerHandlers);
+    document.addEventListener('turbolinks:load', setupAnswerHandlers);
 });

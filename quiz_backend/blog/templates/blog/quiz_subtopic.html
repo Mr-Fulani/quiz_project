@@ -3,6 +3,7 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 {% endblock %}
 
 {% block content %}
@@ -57,5 +58,32 @@
 {% endblock %}
 
 {% block scripts %}
+    <!-- Загружаем только один JS файл -->
     <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
+    <!-- Инициализируем дополнительную обработку событий для мобильных устройств -->
+    <script>
+        // Проверка на мобильное устройство
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            console.log("Mobile device detected, enabling touch optimizations");
+            document.documentElement.classList.add('mobile-device');
+
+            // Предзагрузка звуков для iOS
+            document.addEventListener('touchstart', function initAudio() {
+                const sounds = [
+                    new Audio('/static/blog/sounds/thunder.mp3'),
+                    new Audio('/static/blog/sounds/success.mp3')
+                ];
+
+                sounds.forEach(sound => {
+                    sound.volume = 0;
+                    sound.play().catch(e => console.log('Sound preload error:', e));
+                    setTimeout(() => { sound.pause(); sound.volume = 0.3; }, 10);
+                });
+
+                document.removeEventListener('touchstart', initAudio);
+            }, { once: true });
+        }
+    </script>
 {% endblock %}

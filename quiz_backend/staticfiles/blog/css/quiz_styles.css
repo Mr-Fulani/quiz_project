@@ -25,15 +25,16 @@
  * Контейнер изображения или кода
  */
 .task-image {
-    width: 100% !important; /* Растягиваем на всю ширину столбца в сетке */
+    width: 100% !important;
     overflow: hidden;
-    background-color: #1a1a1a; /* Тёмный фон для кода */
-    border-radius: 15px;
-    border: 5px solid #87CEEB; /* Синие границы, как на скриншоте */
-    padding: 10px; /* Внутренний отступ для кода */
-    box-sizing: border-box; /* Учитываем padding и border */
-    height: auto; /* Сохраняем пропорции */
+    background: none; /* убираем фон */
+    border: none; /* убираем рамку */
+    padding: 0; /* убираем внутренний отступ */
+    box-sizing: border-box;
+    height: auto;
+    border-radius: 10px; /* ✅ оставляем лёгкое скругление */
 }
+
 
 /**
  * Изображение или код внутри контейнера
@@ -41,7 +42,7 @@
 .task-image img {
     width: 100% !important; /* Растягиваем на всю ширину .task-image */
     object-fit: contain;
-    border-radius: 15px;
+    border-radius: 0;
     display: block;
     height: auto; /* Сохраняем пропорции */
     max-width: none !important; /* Убираем ограничение max-width */
@@ -63,36 +64,51 @@
  * Стили для отдельных вариантов ответов
  */
 .answer-option {
-    display: inline-block;
+    display: block; /* Меняем с inline-block на block для полной ширины */
     padding: 10px 15px;
-    margin: 5px;
+    margin: 5px 0; /* Убираем горизонтальные отступы */
     background-color: #008080;
     border-radius: 5px;
     cursor: pointer;
-    display: block; /* Перенесено из quiz_subtopic.html */
+    transition: background-color 0.3s, color 0.3s; /* Добавляем плавный переход */
+    color: white; /* Базовый цвет текста */
+    text-align: center; /* Центрируем текст */
+    user-select: none; /* Запрещаем выделение текста */
+    position: relative; /* Для позиционирования эффектов */
 }
 
 /**
  * Эффект наведения для варианта ответа
  */
 .answer-option:hover {
-    background-color: #e0e0e0;
+    background-color: #006666; /* Темнее чем базовый цвет */
 }
 
 /**
- * Стиль для правильного ответа
+ * Эффект активного нажатия
  */
-.answer-option.correct {
-    background-color: #4CAF50;
-    color: white;
+.answer-option:active {
+    transform: scale(0.98); /* Немного уменьшаем при нажатии */
 }
 
 /**
- * Стиль для неправильного ответа
+ * Стиль для правильного ответа - теперь !important для приоритета
  */
-.answer-option.incorrect {
-    background-color: #f44336;
-    color: white;
+.answer-option.correct,
+.answer-option[data-correct="true"].active {
+    background-color: #4CAF50 !important;
+    color: white !important;
+    box-shadow: 0 0 10px #4CAF50 !important;
+}
+
+/**
+ * Стиль для неправильного ответа - теперь !important для приоритета
+ */
+.answer-option.incorrect,
+.answer-option[data-correct="false"].active {
+    background-color: #f44336 !important;
+    color: white !important;
+    box-shadow: 0 0 10px #f44336 !important;
 }
 
 /**
@@ -155,26 +171,15 @@
 }
 
 /**
- * Стили для вариантов ответов (перенесено из quiz_subtopic.html)
+ * Стили для вариантов ответов (объединены с .answer-option)
  */
 .quiz-option {
-    cursor: pointer;
-    padding: 10px 15px;
-    margin: 5px 0;
-    border-radius: 5px;
-    background-color: #008080;
+    /* Дополнительные стили уже в .answer-option */
     transition: all 0.3s ease;
 }
 
 /**
- * Эффект наведения для варианта ответа (перенесено из quiz_subtopic.html)
- */
-.quiz-option:hover {
-    background-color: #e0e0e0;
-}
-
-/**
- * Анимация для эффекта тряски (перенесено из quiz_subtopic.html)
+ * Анимация для эффекта тряски
  */
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
@@ -183,7 +188,7 @@
 }
 
 /**
- * Анимация для эффекта свечения (перенесено из quiz_subtopic.html)
+ * Анимация для эффекта свечения
  */
 @keyframes glow {
     0%   { box-shadow: 0 0 5px #00ff00; }
@@ -192,24 +197,89 @@
 }
 
 /**
- * Применение анимации свечения для правильного ответа (перенесено из quiz_subtopic.html)
+ * Стиль для canvas эффектов
  */
-.correct-answer {
-    animation: glow 1s;
+#lightning-canvas {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    z-index: 9999 !important; /* Очень высокий z-index */
 }
 
 /**
- * Применение анимации тряски для неправильного ответа (перенесено из quiz_subtopic.html)
- */
-.shake {
-    animation: shake 0.5s;
-}
-
-/**
- * Стиль для кода (чтобы фон не мешал) (перенесено из quiz_subtopic.html)
+ * Стиль для кода (чтобы фон не мешал)
  */
 pre.code-block {
     margin: 0;
     padding: 0;
     background-color: transparent; /* Фон задаётся в .task-image */
+}
+
+
+@media (max-width: 768px) {
+    .task-detail {
+        padding: 10px;
+        margin: 10px;
+    }
+
+    .tasks {
+        gap: 15px;
+    }
+
+    .task-image {
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .task-image img {
+        border-radius: 8px;
+    }
+
+    .answers {
+        padding: 12px;
+        margin: 15px 0;
+    }
+
+    .answer-option,
+    .quiz-option {
+        font-size: 18px; /* Увеличим шрифт */
+        padding: 15px;
+        margin: 10px 0;
+        min-height: 30px; /* Минимальная высота для стабильности */
+    }
+
+    .pagination {
+        margin-top: 15px;
+    }
+
+    .pagination a.btn {
+        padding: 12px 18px;
+        font-size: 16px;
+        margin: 0 5px;
+    }
+
+    /* Усиление эффектов для мобильной версии */
+    .answer-option.correct,
+    .answer-option[data-correct="true"].active {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        box-shadow: 0 0 15px #4CAF50 !important;
+        font-weight: bold !important;
+    }
+
+    .answer-option.incorrect,
+    .answer-option[data-correct="false"].active {
+        background-color: #f44336 !important;
+        color: white !important;
+        box-shadow: 0 0 15px #f44336 !important;
+        font-weight: bold !important;
+    }
+
+    /* Улучшаем видимость canvas на мобильных */
+    #lightning-canvas {
+        opacity: 1 !important;
+    }
 }
