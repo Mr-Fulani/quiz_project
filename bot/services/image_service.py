@@ -268,7 +268,23 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     code_y = console_y0 + padding_top
     image.paste(code_img, (code_x, code_y), code_img)
 
-    return image
+    # Приводим итоговое изображение к 16:9, масштабируя, центрируя контент
+    target_ratio = 16 / 9
+    final_width = max(width, 1920)
+    final_height = int(final_width / target_ratio)
+
+    if final_height < height:
+        final_height = max(height, 1080)
+        final_width = int(final_height * target_ratio)
+
+    final_image = Image.new("RGB", (final_width, final_height), background_color)
+
+    paste_x = (final_width - width) // 2
+    paste_y = (final_height - height) // 2
+
+    final_image.paste(image, (paste_x, paste_y))
+
+    return final_image
 
 
 def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):
@@ -308,3 +324,28 @@ def save_and_show_image(image: Image.Image, filename: str = "console_image.png")
 #
 #     image = generate_console_image(formatted_text, language, logo_path)
 #     save_and_show_image(image)
+#
+#     if __name__ == "__main__":
+#         test_text = """
+#     def hello_world():
+#         print("Hello, World!")
+#         return
+#
+#     def long_function_name(argument1, argument2, argument3, argument4, argument5, argument6):
+#         if argument1 and argument2:
+#             print("This is a long function with many arguments and logic.")
+#         else:
+#             print("Short branch.")
+#         return
+#         """
+#
+#         test_language = 'python'
+#         test_logo_path = logo_path  # или укажи вручную путь
+#
+#         image = generate_console_image(test_text, test_language, test_logo_path)
+#
+#         # Проверка размеров
+#         print(f"Image size: {image.size}")
+#         print(f"Aspect ratio: {image.size[0] / image.size[1]:.2f}")
+#
+#         save_and_show_image(image, "test_output.png")

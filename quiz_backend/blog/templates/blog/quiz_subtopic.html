@@ -3,40 +3,6 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
-    <style>
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-        @keyframes glow {
-            0%   { box-shadow: 0 0 5px #00ff00; }
-            50%  { box-shadow: 0 0 20px #00ff00; }
-            100% { box-shadow: 0 0 5px #00ff00; }
-        }
-        .correct-answer {
-            animation: glow 1s;
-        }
-        .shake {
-            animation: shake 0.5s;
-        }
-        .task-item {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .answer-option {
-            cursor: pointer;
-            display: block;
-            padding: 5px;
-            margin: 5px 0;
-        }
-        /* Стиль для кода */
-        pre.code-block {
-            margin: 0;
-            padding: 0;
-            background-color: transparent; /* Фон задаётся в .task-image */
-        }
-    </style>
 {% endblock %}
 
 {% block content %}
