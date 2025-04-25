@@ -47,16 +47,13 @@ class Lightning {
             if (i != segments) {
                 dv.Y1 += l * Math.random();
                 dv.X1 += l * Math.random();
-                // Ограничиваем координаты в пределах canvas
-                dv.X1 = Math.max(0, Math.min(dv.X1, context.canvas.width / window.devicePixelRatio));
-                dv.Y1 = Math.max(0, Math.min(dv.Y1, context.canvas.height / window.devicePixelRatio));
             }
 
             var r = new Vector(refv.X1, refv.Y1, dv.X1, dv.Y1);
 
             this.Line(context, r, {
                 Color: this.config.GlowColor,
-                Width: this.config.GlowWidth * lR * 1.5,
+                Width: this.config.GlowWidth * lR * 1.5, // Увеличиваем ширину для мобильных
                 Blur: this.config.GlowBlur * lR,
                 BlurColor: this.config.GlowColor,
                 Alpha: this.Random(this.config.GlowAlpha, this.config.GlowAlpha * 2) / 100
@@ -64,7 +61,7 @@ class Lightning {
 
             this.Line(context, r, {
                 Color: this.config.Color,
-                Width: this.config.Width * 1.5,
+                Width: this.config.Width * 1.5, // Увеличиваем ширину для мобильных
                 Blur: this.config.Blur,
                 BlurColor: this.config.BlurColor,
                 Alpha: this.config.Alpha
@@ -81,7 +78,7 @@ class Lightning {
 
     Circle(context, p, lR) {
         context.beginPath();
-        context.arc(p.X1 + Math.random() * 10 * lR, p.Y1 + Math.random() * 10 * lR, 8, 0, 2 * Math.PI, false);
+        context.arc(p.X1 + Math.random() * 10 * lR, p.Y1 + Math.random() * 10 * lR, 8, 0, 2 * Math.PI, false); // Увеличиваем радиус
         context.fillStyle = 'white';
         context.shadowBlur = 100;
         context.shadowColor = "#2319FF";
@@ -118,57 +115,54 @@ document.addEventListener('DOMContentLoaded', function() {
         lightningCanvas.style.position = 'fixed';
         lightningCanvas.style.top = '0';
         lightningCanvas.style.left = '0';
-        lightningCanvas.style.width = '100vw';
-        lightningCanvas.style.height = '100vh';
+        lightningCanvas.style.width = '100vw'; // Используем vw вместо %
+        lightningCanvas.style.height = '100vh'; // Используем vh вместо %
         lightningCanvas.style.pointerEvents = 'none';
-        lightningCanvas.style.zIndex = '9999';
+        lightningCanvas.style.zIndex = '9999'; // Увеличиваем z-index
         lightningCanvas.style.display = 'none';
         document.body.appendChild(lightningCanvas);
     }
 
-    // Устанавливаем размеры canvas с учетом Retina
+    // Устанавливаем размеры canvas в пикселях
     function updateCanvasSize() {
-        lightningCanvas.width = window.innerWidth * window.devicePixelRatio;
-        lightningCanvas.height = window.innerHeight * window.devicePixelRatio;
-        lightningCanvas.style.width = window.innerWidth + 'px';
-        lightningCanvas.style.height = window.innerHeight + 'px';
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        lightningCanvas.width = window.innerWidth;
+        lightningCanvas.height = window.innerHeight;
         console.log(`Canvas resized to ${lightningCanvas.width}x${lightningCanvas.height}`);
     }
 
     updateCanvasSize();
     const ctx = lightningCanvas.getContext('2d');
 
-    // Конфигурация молнии
+    // Конфигурация молнии - усилили яркость и ширину для мобильных
     const lightningConfig = {
         Segments: 40,
         Threshold: 0.5,
-        Width: 2.0,
+        Width: 2.0, // Увеличено
         Color: "white",
-        Blur: 15,
+        Blur: 15, // Увеличено
         BlurColor: "white",
         Alpha: 1,
         GlowColor: "#0000FF",
-        GlowWidth: 50,
-        GlowBlur: 120,
-        GlowAlpha: 40
+        GlowWidth: 50, // Увеличено
+        GlowBlur: 120, // Увеличено
+        GlowAlpha: 40 // Увеличено
     };
 
     const lightning = new Lightning(lightningConfig);
 
-    // Точки начала молний
+    // Точки начала молний - будут обновляться при изменении размеров
     let lightningPoints = [];
 
     function updateLightningPoints() {
         lightningPoints = [
             new Vector(0, 0, 0, 0),
-            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio, 0),
-            new Vector(0, 0, 0, lightningCanvas.height / window.devicePixelRatio),
-            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio, lightningCanvas.height / window.devicePixelRatio),
-            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio / 2, 0),
-            new Vector(0, 0, 0, lightningCanvas.height / window.devicePixelRatio / 2),
-            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio, lightningCanvas.height / window.devicePixelRatio / 2),
-            new Vector(0, 0, lightningCanvas.width / window.devicePixelRatio / 2, lightningCanvas.height / window.devicePixelRatio)
+            new Vector(0, 0, lightningCanvas.width, 0),
+            new Vector(0, 0, 0, lightningCanvas.height),
+            new Vector(0, 0, lightningCanvas.width, lightningCanvas.height),
+            new Vector(0, 0, lightningCanvas.width / 2, 0),
+            new Vector(0, 0, 0, lightningCanvas.height / 2),
+            new Vector(0, 0, lightningCanvas.width, lightningCanvas.height / 2),
+            new Vector(0, 0, lightningCanvas.width / 2, lightningCanvas.height)
         ];
     }
 
@@ -180,20 +174,24 @@ document.addEventListener('DOMContentLoaded', function() {
         updateLightningPoints();
     });
 
-    // Создаём объекты Audio
+    // Создаём объекты Audio с фоллбэком
     const thunderSound = new Audio('/static/blog/sounds/thunder.mp3');
     thunderSound.preload = 'auto';
-    thunderSound.volume = 0.3; // Исправлено с 0.3 на 0.7
+    thunderSound.volume = 0.3; // Увеличиваем громкость
 
     const successSound = new Audio('/static/blog/sounds/success.mp3');
     successSound.preload = 'auto';
-    successSound.volume = 0.3; // Исправлено с 0.3 на 0.7
+    successSound.volume = 0.3; // Увеличиваем громкость
 
     // Функция проигрывания звука с обработкой ошибок
     function playSound(sound) {
+        // Перезагружаем звук если он уже играл
         sound.currentTime = 0;
+
+        // Пытаемся проиграть звук
         sound.play().catch(error => {
             console.error('Error playing sound:', error);
+            // Для iOS и некоторых мобильных браузеров требуется взаимодействие с пользователем
             document.body.addEventListener('touchstart', function soundTrigger() {
                 sound.play().catch(e => console.error('Still cannot play sound:', e));
                 document.body.removeEventListener('touchstart', soundTrigger);
@@ -206,25 +204,26 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Showing lightning effect for', element);
 
         const rect = element.getBoundingClientRect();
-        const scrollX = window.scrollX || window.pageXOffset;
-        const scrollY = window.scrollY || window.pageYOffset;
-        const targetX = Math.max(0, Math.min(rect.left + rect.width / 2 + scrollX, lightningCanvas.width / window.devicePixelRatio));
-        const targetY = Math.max(0, Math.min(rect.top + rect.height / 2 + scrollY, lightningCanvas.height / window.devicePixelRatio));
+        const targetX = rect.left + rect.width / 2;
+        const targetY = rect.top + rect.height / 2;
         const target = new Vector(0, 0, targetX, targetY);
 
+        // Явно задаем display: block и прозрачность
         lightningCanvas.style.display = 'block';
         lightningCanvas.style.opacity = '1';
 
+        // Проигрываем звук грома
         playSound(thunderSound);
 
         let frames = 0;
-        const maxFrames = 40;
+        const maxFrames = 40; // Увеличиваем для мобильных
 
         function animate() {
             ctx.clearRect(0, 0, lightningCanvas.width, lightningCanvas.height);
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Увеличиваем непрозрачность фона
             ctx.fillRect(0, 0, lightningCanvas.width, lightningCanvas.height);
 
+            // Чистим и рисуем молнии
             lightningPoints.forEach(point => {
                 lightning.Cast(ctx, point, target);
             });
@@ -238,8 +237,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         animate();
+
+        // Добавляем класс к элементу сразу
         element.classList.add('incorrect');
 
+        // Вибрация для мобильных устройств
         if (navigator.vibrate) {
             navigator.vibrate([100, 50, 100]);
         }
@@ -254,28 +256,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const ctx = canvas.getContext('2d');
         const particles = [];
 
+        // Начальная позиция — центр элемента
         const startX = rect.left + rect.width / 2;
         const startY = rect.top + rect.height / 2;
 
+        // Создаём больше частиц для мобильных
         for (let i = 0; i < 150; i++) {
             particles.push({
                 x: startX,
                 y: startY,
-                speed: Math.random() * 6 + 3,
-                angle: Math.random() * 2 * Math.PI,
-                size: Math.random() * 6 + 3,
+                speed: Math.random() * 6 + 3, // Быстрее
+                angle: Math.random() * 2 * Math.PI, // Во все стороны
+                size: Math.random() * 6 + 3, // Крупнее
                 color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-                life: 80
+                life: 80 // Дольше живут
             });
         }
 
+        // Проигрываем звук успеха
         playSound(successSound);
 
         function animateConfetti() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles.forEach((p, i) => {
                 p.x += Math.cos(p.angle) * p.speed;
-                p.y += Math.sin(p.angle) * p.speed + 0.1;
+                p.y += Math.sin(p.angle) * p.speed + 0.1; // Гравитация
                 p.life--;
 
                 ctx.fillStyle = p.color;
@@ -291,18 +296,23 @@ document.addEventListener('DOMContentLoaded', function() {
         canvas.style.display = 'block';
         canvas.style.opacity = '1';
         animateConfetti();
+
+        // Добавляем класс к элементу сразу
         element.classList.add('correct');
     };
 
-    // Универсальный обработчик событий для ответов
+    // Универсальный обработчик событий для ответов (работает для клика и касания)
     function setupAnswerHandlers() {
         const answerOptions = document.querySelectorAll('.answer-option');
         if (answerOptions.length > 0) {
             console.log('Answer options found:', answerOptions.length);
 
             answerOptions.forEach(option => {
+                // Удаляем предыдущие обработчики если они были
                 option.removeEventListener('click', handleAnswerSelection);
                 option.removeEventListener('touchend', handleAnswerSelection);
+
+                // Добавляем новые обработчики
                 option.addEventListener('click', handleAnswerSelection);
                 option.addEventListener('touchend', handleAnswerSelection);
             });
@@ -313,18 +323,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Функция обработки выбора ответа
     function handleAnswerSelection(event) {
-        event.preventDefault();
+        event.preventDefault(); // Предотвращаем дефолтное поведение для touchend
 
         const option = this;
         console.log('Option selected:', option.dataset.answer, 'Correct:', option.dataset.correct);
         const isCorrect = option.dataset.correct === 'true';
 
+        // Отключаем все варианты ответов в этой группе
         const parent = option.parentElement;
         parent.querySelectorAll('.answer-option').forEach(opt => {
             opt.style.pointerEvents = 'none';
-            opt.classList.remove('active');
+            opt.classList.remove('active'); // Убираем активный класс со всех
         });
 
+        // Добавляем активный класс к выбранному
         option.classList.add('active');
 
         if (!isCorrect) {
@@ -337,8 +349,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализируем обработчики сразу
     setupAnswerHandlers();
 
-    // Перепривязываем обработчики при динамической загрузке
+    // Перепривязываем обработчики при динамической загрузке контента (например, при пагинации)
     document.addEventListener('DOMContentLoaded', setupAnswerHandlers);
     document.addEventListener('page:loaded', setupAnswerHandlers);
+
+    // Также привязываем к событию загрузки страницы через AJAX, если оно используется
     document.addEventListener('turbolinks:load', setupAnswerHandlers);
 });

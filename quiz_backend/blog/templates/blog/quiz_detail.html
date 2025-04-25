@@ -8,9 +8,8 @@
 {% block content %}
 <article class="quiz-detail active" data-page="quiz-detail">
     <header>
-        <h2 class="h2 article-title">Опросы по теме {{ topic.name }}</h2>
+        <h2 class="h2 article-title">{{ topic.name }}</h2>
     </header>
-
 
     <section class="service">
         <h3 class="h3 service-title">Доступные подтемы</h3>
@@ -19,10 +18,9 @@
           <ul class="service-list">
             {% for subtopic in subtopics %}
               <li class="service-item">
-                <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|lower %}" class="service-link">
+                <a href="{% url 'blog:quiz_difficulty' quiz_type=topic.name|lower subtopic=subtopic.name|slugify %}">
                   <div class="service-icon-box">
                     <img src="{{ topic.icon }}" alt="{{ subtopic.name }} иконка" width="40">
-                    <!-- Отладка: Иконка {{ topic.icon }} для подтемы {{ subtopic.name }} -->
                   </div>
                   <div class="service-content-box">
                     <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>

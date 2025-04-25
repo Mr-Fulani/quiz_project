@@ -1,0 +1,61 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block sidebar %}
+    {% include 'accounts/user_sidebar.html' %}
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<article class="quiz-difficulty active" data-page="quiz-difficulty">
+    <header>
+        <h2 class="h2 article-title">Difficulty</h2>
+    </header>
+    <section class="service">
+        <h3 class="h3 service-title">Доступные уровни сложности</h3>
+        {% if difficulties %}
+            <ul class="service-list">
+                {% for difficulty in difficulties %}
+                    <li class="service-item">
+                        <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify difficulty=difficulty.value|lower %}" class="service-link">
+                            <div class="service-icon-box">
+                                <img src="{{ topic.icon }}" alt="{{ difficulty.name }} иконка" width="40">
+                            </div>
+                            <div class="service-content-box">
+                                <h4 class="h4 service-item-title">{{ difficulty.name }}</h4>
+                                <p class="service-item-text">Задачи уровня {{ difficulty.name }}.</p>
+                            </div>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Нет доступных уровней сложности.</p>
+        {% endif %}
+    </section>
+    <div class="user-score">
+        {% if user.is_authenticated %}
+            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">Посмотреть мой прогресс</a>
+        {% else %}
+            <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
+        {% endif %}
+    </div>
+</article>
+<style>
+    .service-link {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 10px;
+    }
+    .service-item:hover {
+        transform: scale(1.05);
+        transition: transform 0.3s ease;
+    }
+</style>
+{% endblock %}

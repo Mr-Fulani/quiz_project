@@ -422,10 +422,26 @@ class QuizesView(ListView):
 
 
 class QuizDetailView(ListView):
+    """
+    Отображает страницу подтем для выбранной темы.
+
+    Использует шаблон blog/quiz_detail.html, показывает подтемы, у которых есть
+    опубликованные задачи.
+
+    Attributes:
+        template_name (str): Путь к шаблону.
+        context_object_name (str): Имя переменной контекста для подтем.
+    """
     template_name = 'blog/quiz_detail.html'
     context_object_name = 'subtopics'
 
     def get_queryset(self):
+        """
+        Возвращает список подтем для темы с опубликованными задачами.
+
+        Returns:
+            QuerySet: Подтемы с published=True задачами.
+        """
         logger.info("QuizDetailView is running!")
         topic_name = self.kwargs['quiz_type'].lower()
         logger.info(f"Processing topic: {topic_name}")
@@ -435,6 +451,15 @@ class QuizDetailView(ListView):
         return subtopics
 
     def get_context_data(self, **kwargs):
+        """
+        Добавляет данные в контекст шаблона.
+
+        Args:
+            **kwargs: Дополнительные аргументы.
+
+        Returns:
+            dict: Контекст с темой и подтемами.
+        """
         context = super().get_context_data(**kwargs)
         context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
         logger.info(f"Context topic: {context['topic']}")
@@ -443,89 +468,256 @@ class QuizDetailView(ListView):
 
 
 
+def quiz_difficulty(request, quiz_type, subtopic):
+    """
+    Отображает подтемы и уровни сложности для темы, только если есть задачи.
+
+    Фильтрует подтемы и сложности по наличию опубликованных задач.
+
+    Args:
+        request: HTTP-запрос.
+        quiz_type (str): Название темы (в нижнем регистре).
+        subtopic (str): Название подтемы (в нижнем регистре).
+
+    Returns:
+        HttpResponse: Рендеринг шаблона blog/quiz_difficulty.html.
+    """
+    logger.info(f"Rendering quiz_difficulty: {quiz_type}/{subtopic}")
+    topic = get_object_or_404(Topic, name__iexact=quiz_type)
+    subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic.replace('-', ' '))
+
+    # Фильтр доступных сложностей
+    difficulties = []
+    for diff in ['easy', 'medium', 'hard']:
+        if Task.objects.filter(
+            topic=topic,
+            subtopic=subtopic,
+            published=True,
+            difficulty=diff
+        ).exists() or Task.objects.filter(
+            topic=topic,
+            subtopic__isnull=True,
+            published=True,
+            difficulty=diff
+        ).exists():
+            difficulties.append({'value': diff, 'name': diff.title()})
+
+    return render(request, 'blog/quiz_difficulty.html', {
+        'topic': topic,
+        'subtopic': subtopic,
+        'difficulties': difficulties,
+    })
 
 
-class QuizSubtopicView(ListView):
-    template_name = 'blog/quiz_subtopic.html'
-    context_object_name = 'tasks'
-    paginate_by = 3  # 3 задачи на страницу
 
-    def get_queryset(self):
-        topic_name = self.kwargs['quiz_type']
-        subtopic_name = self.kwargs['subtopic']
-        topic = get_object_or_404(Topic, name__iexact=topic_name)
-        subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
-        return Task.objects.filter(topic=topic, subtopic=subtopic, published=True).order_by('id')
+def quiz_subtopic(request, quiz_type, subtopic, difficulty):
+    """
+    Отображает задачи для подтемы и уровня сложности.
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        topic_name = self.kwargs['quiz_type']
-        subtopic_name = self.kwargs['subtopic']
-        topic = get_object_or_404(Topic, name__iexact=topic_name)
-        subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
+    Фильтрует задачи по теме, подтеме, сложности и published=True. Если задач нет,
+    показывает сообщение с кнопкой возврата.
 
-        # Определяем предпочитаемый язык (можно сделать динамическим через request.user)
-        preferred_language = self.request.user.language if self.request.user.is_authenticated else 'ru'
+    Args:
+        request: HTTP-запрос.
+        quiz_type (str): Название темы (в нижнем регистре).
+        subtopic (str): Название подтемы (в нижнем регистре, с дефисами).
+        difficulty (str): Уровень сложности (в нижнем регистре).
 
-        # Словарь для "Я не знаю, но хочу узнать!"
-        dont_know_option_dict = {
-            'ru': "Я не знаю, но хочу узнать",
-            'en': "I don't know, but I want to learn",
-            'es': "No lo sé, pero quiero aprender",
-            'tr': "Bilmiyorum, ama öğrenmek istiyorum",
-            'ar': "لا أعرف، ولكن أريد أن أتعلم",
-            'fr': "Je ne sais pas, mais je veux apprendre",
-            'de': "Ich weiß es nicht, aber ich möchte lernen",
-            'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
-            'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
-            'tj': "Ман намедонам, аммо мехоҳам омӯзам",
-            'uz': "Bilmayman, lekin o‘rganmoqchiman",
-            'kz': "Білмеймін, бірақ үйренгім келеді"
-        }
+    Returns:
+        HttpResponse: Рендеринг шаблона blog/quiz_subtopic.html.
+    """
+    logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
+    topic = get_object_or_404(Topic, name__iexact=quiz_type)
+    subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic.replace('-', ' '))
 
-        # Добавляем переводы и перемешанные ответы для каждой задачи
-        for task in context['page_obj']:
-            # Сначала пытаемся найти перевод на предпочитаемом языке
-            translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first()
+    # Фильтр задач
+    tasks = Task.objects.filter(
+        topic=topic,
+        subtopic=subtopic,
+        published=True,
+        difficulty=difficulty.lower()
+    ).select_related('subtopic', 'topic').prefetch_related('translations')
 
-            # Если перевода на предпочитаемом языке нет, берём первый доступный
-            if not translation:
-                translation = TaskTranslation.objects.filter(task=task).first()
+    # Проверка subtopic=None
+    if not tasks.exists():
+        tasks = Task.objects.filter(
+            topic=topic,
+            subtopic__isnull=True,
+            published=True,
+            difficulty=difficulty.lower()
+        )
+        if tasks.exists():
+            logger.warning(f"Found {tasks.count()} tasks with null subtopic")
 
-            # Присваиваем перевод задаче
-            task.translation = translation
-            if translation:
-                # Парсим answers, если это строка JSON
-                if isinstance(translation.answers, str):
-                    try:
-                        answers = json.loads(translation.answers)
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
-                        answers = []
-                else:
-                    answers = translation.answers
+    logger.info(f"Found {tasks.count()} tasks")
 
-                # Перемешиваем варианты
-                options = answers[:]
-                correct_answer = translation.correct_answer
-                random.shuffle(options)
-                correct_option_id = options.index(correct_answer)
+    # Пагинация
+    paginator = Paginator(tasks, 3)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-                # Добавляем "Я не знаю, но хочу узнать!" в конец
-                dont_know_option = dont_know_option_dict.get(translation.language, "Я не знаю, но хочу узнать")
-                options.append(dont_know_option)
+    # Контекст
+    context = {
+        'topic': topic,
+        'subtopic': subtopic,
+        'page_obj': page_obj,
+        'paginator': paginator,
+    }
 
-                # Присваиваем перемешанные варианты и правильный ответ
-                task.answers = options
-                task.correct_answer = correct_answer
-            else:
-                # Если перевода нет, задаём пустые значения
-                task.answers = []
-                task.correct_answer = None
+    # Сообщение об отсутствии задач
+    if not tasks.exists():
+        difficulty_names = {'easy': 'Легкий', 'medium': 'Средний', 'hard': 'Сложный'}
+        context['no_tasks_message'] = (
+            f'Нет задач для уровня сложности "{difficulty_names.get(difficulty.lower(), difficulty)}" '
+            f'в подтеме "{subtopic.name}".'
+        )
 
-        context['topic'] = topic
-        context['subtopic'] = subtopic
-        return context
+    # Обработка переводов
+    preferred_language = request.user.language if request.user.is_authenticated else 'ru'
+    dont_know_option_dict = {
+        'ru': "Я не знаю, но хочу узнать",
+        'en': "I don't know, but I want to learn",
+        'es': "No lo sé, pero quiero aprender",
+        'tr': "Bilmiyorum, ama öğrenmek istiyorum",
+        'ar': "لا أعرف، ولكن أريد أن أتعلم",
+        'fr': "Je ne sais pas, mais je veux apprendre",
+        'de': "Ich weiß es nicht, aber ich möchte lernen",
+        'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
+        'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
+        'tj': "Ман намедонам, аммо мехоҳам омӯзам",
+        'uz': "Bilmayman, lekin o‘rganmoqchiman",
+        'kz': "Білмеймін, бірақ үйренгім келеді"
+    }
+
+    for task in page_obj:
+        translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first() or \
+                      TaskTranslation.objects.filter(task=task).first()
+        task.translation = translation
+        if translation:
+            try:
+                answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
+            except json.JSONDecodeError as e:
+                logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
+                answers = []
+            options = answers[:]
+            random.shuffle(options)
+            dont_know_option = dont_know_option_dict.get(translation.language, "Я не знаю, но хочу узнать")
+            options.append(dont_know_option)
+            task.answers = options
+            task.correct_answer = translation.correct_answer
+        else:
+            task.answers = []
+            task.correct_answer = None
+
+    return render(request, 'blog/quiz_subtopic.html', context)
+
+
+
+
+
+# class QuizSubtopicView(ListView):
+#     """
+#     Отображает страницу задач для выбранной подтемы с учётом уровня сложности.
+#
+#     Использует шаблон blog/quiz_subtopic.html, показывает 3 задачи на страницу,
+#     фильтрует по теме, подтеме и уровню сложности.
+#     """
+#     template_name = 'blog/quiz_subtopic.html'
+#     context_object_name = 'tasks'
+#     paginate_by = 3  # 3 задачи на страницу
+#
+#     def get_queryset(self):
+#         """
+#         Возвращает список задач для подтемы и уровня сложности.
+#
+#         Returns:
+#             QuerySet: Задачи с published=True, отфильтрованные по теме, подтеме и сложности.
+#         """
+#         topic_name = self.kwargs['quiz_type'].lower()
+#         subtopic_name = self.kwargs['subtopic'].lower()
+#         difficulty = self.kwargs.get('difficulty', '').lower()
+#         topic = get_object_or_404(Topic, name__iexact=topic_name)
+#         subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
+#         queryset = Task.objects.filter(
+#             topic=topic,
+#             subtopic=subtopic,
+#             published=True
+#         )
+#         if difficulty:
+#             queryset = queryset.filter(difficulty=difficulty)
+#         return queryset.order_by('id')
+#
+#     def get_context_data(self, **kwargs):
+#         """
+#         Добавляет данные в контекст шаблона.
+#
+#         Включает тему, подтему, переводы задач и перемешанные ответы.
+#
+#         Args:
+#             **kwargs: Дополнительные аргументы.
+#
+#         Returns:
+#             dict: Контекст с задачами, темой и подтемой.
+#         """
+#         context = super().get_context_data(**kwargs)
+#         topic_name = self.kwargs['quiz_type'].lower()
+#         subtopic_name = self.kwargs['subtopic'].lower()
+#         topic = get_object_or_404(Topic, name__iexact=topic_name)
+#         subtopic = get_object_or_404(Subtopic, topic=topic, name__iexact=subtopic_name)
+#
+#         # Определяем предпочитаемый язык
+#         preferred_language = self.request.user.language if self.request.user.is_authenticated else 'ru'
+#
+#         # Словарь для "Я не знаю, но хочу узнать!"
+#         dont_know_option_dict = {
+#             'ru': "Я не знаю, но хочу узнать",
+#             'en': "I don't know, but I want to learn",
+#             'es': "No lo sé, pero quiero aprender",
+#             'tr': "Bilmiyorum, ama öğrenmek istiyorum",
+#             'ar': "لا أعرف، ولكن أريد أن أتعلم",
+#             'fr': "Je ne sais pas, mais je veux apprendre",
+#             'de': "Ich weiß es nicht, aber ich möchte lernen",
+#             'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
+#             'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
+#             'tj': "Ман намедонам, аммо мехоҳам омӯзам",
+#             'uz': "Bilmayman, lekin o‘rganmoqchiman",
+#             'kz': "Білмеймін, бірақ үйренгім келеді"
+#         }
+#
+#         # Добавляем переводы и перемешанные ответы для каждой задачи
+#         for task in context['page_obj']:
+#             translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first()
+#             if not translation:
+#                 translation = TaskTranslation.objects.filter(task=task).first()
+#
+#             task.translation = translation
+#             if translation:
+#                 if isinstance(translation.answers, str):
+#                     try:
+#                         answers = json.loads(translation.answers)
+#                     except json.JSONDecodeError as e:
+#                         logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
+#                         answers = []
+#                 else:
+#                     answers = translation.answers
+#
+#                 options = answers[:]
+#                 correct_answer = translation.correct_answer
+#                 random.shuffle(options)
+#                 correct_option_id = options.index(correct_answer)
+#
+#                 dont_know_option = dont_know_option_dict.get(translation.language, "Я не знаю, но хочу узнать")
+#                 options.append(dont_know_option)
+#
+#                 task.answers = options
+#                 task.correct_answer = correct_answer
+#             else:
+#                 task.answers = []
+#                 task.correct_answer = None
+#
+#         context['topic'] = topic
+#         context['subtopic'] = subtopic
+#         return context
 
 
 

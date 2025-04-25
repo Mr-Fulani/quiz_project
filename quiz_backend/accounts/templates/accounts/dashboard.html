@@ -134,6 +134,50 @@
         </div>
 
         <!-- Settings Tab -->
+        <div class="tab-content" data-tab-content="settings">
+            <div class="profile-card">
+                <h3 class="card-title">Settings</h3>
+                {% csrf_token %}
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Public Profile</h4>
+                            <p>Allow others to view your profile</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="is_public"
+                                   {% if user_settings.is_public %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Email Notifications</h4>
+                            <p>Receive email notifications</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="email_notifications"
+                                   {% if user_settings.email_notifications %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Dark Mode</h4>
+                            <p>Enable dark mode for the dashboard</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" name="dark_mode"
+                                   {% if user_settings.dark_mode %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
         <div class="tab-content {% if active_tab == 'security' %}active{% endif %}" data-tab-content="security">
             <div class="profile-card">
                 <h3 class="h3">Настройки безопасности</h3>
@@ -148,42 +192,6 @@
                             {{ error }}
                         {% endfor %}
                     </div>
-                    {% endif %}
-                    <div class="input-wrapper">
-                        <label for="id_old_password">Текущий пароль</label>
-                        <input type="password" id="id_old_password" name="old_password" class="form-input" required>
-                        {% if password_form.old_password.errors %}
-                            <div class="error">{{ password_form.old_password.errors }}</div>
-                        {% endif %}
-
-                        <label for="id_new_password1">Новый пароль</label>
-                        <input type="password" id="id_new_password1" name="new_password1" class="form-input" required minlength="8" placeholder="Минимум 8 символов, буквы, цифры, символы">
-                        {% if password_form.new_password1.errors %}
-                            <div class="error">{{ password_form.new_password1.errors }}</div>
-                        {% endif %}
-
-                        <label for="id_new_password2">Подтверждение пароля</label>
-                        <input type="password" id="id_new_password2" name="new_password2" class="form-input" required minlength="8" placeholder="Повторите новый пароль">
-                        {% if password_form.new_password2.errors %}
-                            <div class="error">{{ password_form.new_password2.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <button class="form-btn" type="submit">
-                        <span>Сменить пароль</span>
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Security Tab -->
-        <div class="tab-content {% if active_tab == 'security' %}active{% endif %}" data-tab-content="security">
-            <div class="profile-card">
-                <h3 class="h3">Настройки безопасности</h3>
-                <form class="form security-form" method="post" action="{% url 'accounts:change_password' %}">
-                    {% csrf_token %}
-                    {% if password_change_success %}
-                    <div class="success">Пароль успешно изменён!</div>
                     {% endif %}
                     <div class="input-wrapper">
                         <label for="id_old_password">Текущий пароль</label>

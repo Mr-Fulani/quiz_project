@@ -125,8 +125,11 @@
 .pagination a.btn {
     padding: 8px 16px;
     margin: 0 10px;
-    background-color: #008CBA;
-    color: white;
+    background-color: var(--orange-yellow-crayola);
+    color: var(--eerie-black-1);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
     text-decoration: none;
     border-radius: 5px;
 }
@@ -135,7 +138,7 @@
  * Эффект наведения для кнопок пагинации
  */
 .pagination a.btn:hover {
-    background-color: #006d9e;
+    background-color: var(--vegas-gold);
 }
 
 /**

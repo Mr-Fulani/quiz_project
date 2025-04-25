@@ -7,8 +7,9 @@ from .views import (
     ResumeView, PortfolioView, BlogView, AboutView,
     ContactView, QuizesView, QuizDetailView, inbox,
     send_message, delete_message, download_attachment,
-    get_unread_messages_count, statistics_view, QuizSubtopicView, submit_task_answer, UniqueQuizTaskView,
-    MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit
+    get_unread_messages_count, statistics_view, submit_task_answer, UniqueQuizTaskView,
+    MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
+    quiz_difficulty
 )
 from django.shortcuts import redirect
 
@@ -54,11 +55,10 @@ urlpatterns = [
     path('debug/', debug_view, name='debug_view'),
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
-    # Сначала более специфичный маршрут с task_id
     path('quiz/<str:quiz_type>/<path:subtopic>/<int:task_id>/', UniqueQuizTaskView.as_view(), name='quiz_task_detail'),
     path('quiz/<str:quiz_type>/<path:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),
-    # Затем общий маршрут для subtopic
-    path('quiz/<str:quiz_type>/<path:subtopic>/', QuizSubtopicView.as_view(), name='quiz_subtopic'),
+    path('quiz/<str:quiz_type>/<slug:subtopic>/', quiz_difficulty, name='quiz_difficulty'),
+    path('quiz/<str:quiz_type>/<str:subtopic>/<str:difficulty>/', quiz_subtopic, name='quiz_subtopic'),
 
 
 
