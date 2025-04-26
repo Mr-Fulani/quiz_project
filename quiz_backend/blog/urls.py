@@ -55,11 +55,10 @@ urlpatterns = [
     path('debug/', debug_view, name='debug_view'),
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
-    path('quiz/<str:quiz_type>/<path:subtopic>/<int:task_id>/', UniqueQuizTaskView.as_view(), name='quiz_task_detail'),
-    path('quiz/<str:quiz_type>/<path:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),
+    path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/', UniqueQuizTaskView.as_view(), name='quiz_task_detail'),
+    path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/', quiz_difficulty, name='quiz_difficulty'),
-    path('quiz/<str:quiz_type>/<str:subtopic>/<str:difficulty>/', quiz_subtopic, name='quiz_subtopic'),
-
+    path('quiz/<str:quiz_type>/<slug:subtopic>/<str:difficulty>/', quiz_subtopic, name='quiz_subtopic'),
 
 
 

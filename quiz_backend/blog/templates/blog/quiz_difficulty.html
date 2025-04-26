@@ -20,7 +20,7 @@
             <ul class="service-list">
                 {% for difficulty in difficulties %}
                     <li class="service-item">
-                        <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify difficulty=difficulty.value|lower %}" class="service-link">
+                        <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|slugify difficulty=difficulty.value|lower %}" class="service-link">
                             <div class="service-icon-box">
                                 <img src="{{ topic.icon }}" alt="{{ difficulty.name }} иконка" width="40">
                             </div>

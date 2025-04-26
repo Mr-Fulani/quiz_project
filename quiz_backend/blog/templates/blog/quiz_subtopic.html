@@ -1,5 +1,6 @@
 {% extends "blog/base.html" %}
 {% load static %}
+{% load blog_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
@@ -17,7 +18,7 @@
             <div class="task-item" data-task-id="{{ task.id }}">
                 {% if task.image_url %}
                     <div class="task-image">
-                        <img src="{{ task.image_url }}" alt="Task {{ task.id }} question">
+                        <img src="{{ task.image_url|safe_url }}" alt="Task {{ task.id }} question">
                     </div>
                 {% else %}
                     <p>Изображение отсутствует.</p>
