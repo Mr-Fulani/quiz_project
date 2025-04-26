@@ -547,10 +547,11 @@ class UserListView(LoginRequiredMixin, ListView):
 @login_required
 def user_list(request):
     """
-    Ещё одно отображение списка пользователей (не себя),
-    по 12 на страницу, шаблон 'accounts/user_list.html'.
+    Отображение списка активных пользователей (кроме текущего),
+    отсортированных по последнему посещению, по 12 на страницу.
+    Шаблон: 'accounts/user_list.html'.
     """
-    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id)
+    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).select_related('profile').order_by('-profile__last_seen')
     paginator = Paginator(users_list, 12)
 
     page = request.GET.get('page')
@@ -561,7 +562,6 @@ def user_list(request):
         'is_paginated': users.has_other_pages(),
         'page_obj': users,
     })
-
 
 
 

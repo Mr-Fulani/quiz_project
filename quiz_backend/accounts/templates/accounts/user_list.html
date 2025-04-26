@@ -22,7 +22,7 @@
                 <h3 class="client-name">
                     <a href="{% url 'accounts:user_profile' username=user.username %}">{{ user.username }}</a>
                 </h3>
-                
+
                 {% if user.profile.location %}
                 <p class="client-location">
                     <ion-icon name="location-outline"></ion-icon>
@@ -170,4 +170,4 @@
     padding: 40px;
 }
 </style>
-{% endblock %} 
+{% endblock %}
