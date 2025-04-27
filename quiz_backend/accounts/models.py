@@ -1,12 +1,13 @@
-from django.contrib.auth.models import AbstractUser, Group, Permission
+from datetime import timedelta
+
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, Group, Permission, User
+from django.core.cache import cache
 from django.db import models
-from django.utils import timezone
-from django.core.validators import MinLengthValidator, RegexValidator
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from datetime import timedelta
-from django.core.cache import cache
-from django.db.models import Count, Q
+from django.utils import timezone
 
 
 
@@ -88,8 +89,8 @@ class CustomUser(AbstractUser):
     
     def calculate_rating(self):
         from tasks.models import TaskStatistics
-        from django.db.models import Count, Case, When, IntegerField
-        
+        from django.db.models import Count
+
         # Получаем статистику по сложности
         difficulty_stats = TaskStatistics.objects.filter(
             user=self,
@@ -114,6 +115,30 @@ class CustomUser(AbstractUser):
             rating += count * multipliers.get(difficulty, 1)
             
         return rating
+
+
+
+
+
+
+
+class TelegramUser(models.Model):
+    telegram_id = models.BigIntegerField(unique=True)
+    username = models.CharField(max_length=255, blank=True, null=True)
+    first_name = models.CharField(max_length=255, blank=True, null=True)
+    last_name = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+    linked_user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                       help_text="Если телеграм пользователь привязан к пользователю сайта.")
+
+    def __str__(self):
+        return self.username or f"TelegramUser {self.telegram_id}"
+
+
+
+
 
 
 

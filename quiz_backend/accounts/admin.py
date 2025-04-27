@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, Profile, UserChannelSubscription
+from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, Profile, UserChannelSubscription, TelegramUser
 from .utils.telegram_notifications import notify_admin
 
 
@@ -146,3 +146,13 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     list_display = ["id", "user", "channel", "subscription_status", "subscribed_at", "unsubscribed_at"]
     list_filter = ["subscription_status", "channel"]
     search_fields = ["user__username", "channel__group_name"]
+
+
+
+
+
+
+@admin.register(TelegramUser)
+class TelegramUserAdmin(admin.ModelAdmin):
+    list_display = ('telegram_id', 'username', 'first_name', 'last_name', 'linked_user')
+    search_fields = ('telegram_id', 'username', 'first_name', 'last_name')
