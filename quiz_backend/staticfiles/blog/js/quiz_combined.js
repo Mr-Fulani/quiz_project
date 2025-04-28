@@ -135,17 +135,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Конфигурация молнии - усилили яркость и ширину для мобильных
     const lightningConfig = {
-        Segments: 40,
-        Threshold: 0.5,
-        Width: 2.0, // Увеличено
+        Segments: 35, // Немного уменьшили
+        Threshold: 0.8, // Немного уменьшили
+        Width: 2.5, // Сбалансировали
         Color: "white",
-        Blur: 15, // Увеличено
+        Blur: 15, // Уменьшили свечение
         BlurColor: "white",
-        Alpha: 1,
-        GlowColor: "#0000FF",
-        GlowWidth: 50, // Увеличено
-        GlowBlur: 120, // Увеличено
-        GlowAlpha: 40 // Увеличено
+        Alpha: 0.9, // Немного уменьшили
+        GlowColor: "#2266FF", // Менее яркий синий
+        GlowWidth: 45, // Уменьшили
+        GlowBlur: 100, // Уменьшили
+        GlowAlpha: 40 // Уменьшили для меньшей интенсивности
     };
 
     const lightning = new Lightning(lightningConfig);
@@ -201,31 +201,74 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Функция показа эффекта молнии со звуком (неправильный ответ)
     window.showLightningEffect = function(element) {
-        console.log('Showing lightning effect for', element);
+        console.log('Showing balanced lightning effect for mobile');
 
         const rect = element.getBoundingClientRect();
         const targetX = rect.left + rect.width / 2;
         const targetY = rect.top + rect.height / 2;
         const target = new Vector(0, 0, targetX, targetY);
 
-        // Явно задаем display: block и прозрачность
+        // Активируем canvas
         lightningCanvas.style.display = 'block';
         lightningCanvas.style.opacity = '1';
 
         // Проигрываем звук грома
         playSound(thunderSound);
 
+        // Проверяем, мобильное ли устройство
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isSmallScreen = window.innerWidth < 768;
+
         let frames = 0;
-        const maxFrames = 40; // Увеличиваем для мобильных
+        const maxFrames = isMobile ? 45 : 40; // Немного уменьшили
+
+        // Создаем точки начала молний
+        let customLightningPoints = [];
+
+        if (isMobile || isSmallScreen) {
+            // Меньше точек для сбалансированного эффекта
+            customLightningPoints = [
+                // Молнии сверху и снизу (самые важные для видимости)
+                new Vector(0, 0, targetX - 50, 0),
+                new Vector(0, 0, targetX + 50, 0),
+                new Vector(0, 0, targetX, 0),
+                new Vector(0, 0, targetX - 50, lightningCanvas.height),
+                new Vector(0, 0, targetX + 50, lightningCanvas.height),
+                new Vector(0, 0, targetX, lightningCanvas.height),
+
+                // Молнии с боков (меньше)
+                new Vector(0, 0, 0, targetY),
+                new Vector(0, 0, lightningCanvas.width, targetY),
+
+                // Молнии с углов (только основные)
+                new Vector(0, 0, 0, 0),
+                new Vector(0, 0, lightningCanvas.width, lightningCanvas.height)
+            ];
+        } else {
+            // Для десктопа оставляем базовые точки
+            customLightningPoints = lightningPoints;
+        }
 
         function animate() {
             ctx.clearRect(0, 0, lightningCanvas.width, lightningCanvas.height);
-            ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Увеличиваем непрозрачность фона
+
+            // Менее интенсивное затемнение фона
+            ctx.fillStyle = isMobile ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.3)';
             ctx.fillRect(0, 0, lightningCanvas.width, lightningCanvas.height);
 
-            // Чистим и рисуем молнии
-            lightningPoints.forEach(point => {
-                lightning.Cast(ctx, point, target);
+            // Уменьшаем количество одновременных молний
+            const numPoints = isMobile ? 3 + Math.floor(Math.random() * 2) : 2;
+            const shuffledPoints = [...customLightningPoints].sort(() => 0.5 - Math.random());
+            const selectedPoints = shuffledPoints.slice(0, numPoints);
+
+            // Рисуем выбранные молнии с меньшим смещением
+            selectedPoints.forEach(point => {
+                // Меньшее случайное смещение
+                const jitterX = (Math.random() - 0.5) * 25;
+                const jitterY = (Math.random() - 0.5) * 25;
+                const jitteredTarget = new Vector(0, 0, targetX + jitterX, targetY + jitterY);
+
+                lightning.Cast(ctx, point, jitteredTarget);
             });
 
             frames++;
@@ -241,10 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Добавляем класс к элементу сразу
         element.classList.add('incorrect');
 
-        // Вибрация для мобильных устройств
-        if (navigator.vibrate) {
-            navigator.vibrate([100, 50, 100]);
-        }
+        // Попытки активировать вибрацию разными способами
+        tryVibrateMultipleMethods();
     };
 
     // Функция показа эффекта конфетти (правильный ответ)
@@ -310,14 +351,109 @@ document.addEventListener('DOMContentLoaded', function() {
             answerOptions.forEach(option => {
                 // Удаляем предыдущие обработчики если они были
                 option.removeEventListener('click', handleAnswerSelection);
-                option.removeEventListener('touchend', handleAnswerSelection);
+                option.removeEventListener('touchend', handleTouchEnd);
+                option.removeEventListener('touchstart', handleTouchStart);
+                option.removeEventListener('touchmove', handleTouchMove);
 
                 // Добавляем новые обработчики
                 option.addEventListener('click', handleAnswerSelection);
-                option.addEventListener('touchend', handleAnswerSelection);
+                option.addEventListener('touchstart', handleTouchStart);
+                option.addEventListener('touchmove', handleTouchMove);
+                option.addEventListener('touchend', handleTouchEnd);
             });
         } else {
             console.log('No answer options found');
+        }
+    }
+
+    // Функции для обработки касаний
+    let touchStartTime = 0;
+    let touchStartY = 0;
+    let isTouchMoved = false;
+    let touchThreshold = 10; // пикселей для определения скролла
+    let touchDelay = 120; // миллисекунд задержки для различения клика и скролла
+
+    function handleTouchStart(event) {
+        touchStartTime = Date.now();
+        touchStartY = event.touches[0].clientY;
+        isTouchMoved = false;
+    }
+
+    function handleTouchMove(event) {
+        if (Math.abs(event.touches[0].clientY - touchStartY) > touchThreshold) {
+            isTouchMoved = true;
+        }
+    }
+
+    function handleTouchEnd(event) {
+        const touchDuration = Date.now() - touchStartTime;
+
+        // Если движение было минимальным и длительность меньше порога
+        if (!isTouchMoved && touchDuration < touchDelay) {
+            event.preventDefault();
+            // Задержка перед выполнением действия, чтобы убедиться что это не скролл
+            setTimeout(() => {
+                if (!isTouchMoved) {
+                    handleAnswerSelection.call(this, event);
+                }
+            }, 50);
+        }
+    }
+
+    // Новая функция с несколькими методами вибрации
+    function tryVibrateMultipleMethods() {
+        console.log("Trying multiple vibration methods");
+
+        // Метод 1: Стандартный API вибрации
+        if ('vibrate' in navigator) {
+            try {
+                // Интенсивный паттерн вибрации
+                navigator.vibrate([100, 30, 200, 30, 300]);
+                console.log('Standard vibration activated');
+
+                // Повторная вибрация через таймаут
+                setTimeout(() => {
+                    navigator.vibrate(200);
+                }, 700);
+            } catch (e) {
+                console.error('Error with standard vibration:', e);
+            }
+        }
+
+        // Метод 2: Альтернативный вызов через setTimeout
+        setTimeout(() => {
+            try {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(300);
+                    console.log('Delayed vibration activated');
+                }
+            } catch (e) {
+                console.error('Error with delayed vibration:', e);
+            }
+        }, 100);
+
+        // Метод 3: Использование window.navigator
+        try {
+            if (window.navigator && window.navigator.vibrate) {
+                window.navigator.vibrate([150, 50, 150]);
+                console.log('Window navigator vibration activated');
+            }
+        } catch (e) {
+            console.error('Error with window.navigator vibration:', e);
+        }
+
+        // Метод 4: Для устройств с устаревшими префиксами
+        try {
+            const navAny = navigator;
+            if (navAny.mozVibrate) {
+                navAny.mozVibrate([100, 50, 200]);
+                console.log('Mozilla vibration activated');
+            } else if (navAny.webkitVibrate) {
+                navAny.webkitVibrate([100, 50, 200]);
+                console.log('Webkit vibration activated');
+            }
+        } catch (e) {
+            console.error('Error with prefixed vibration:', e);
         }
     }
 
@@ -355,4 +491,118 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Также привязываем к событию загрузки страницы через AJAX, если оно используется
     document.addEventListener('turbolinks:load', setupAnswerHandlers);
+
+});
+
+
+// Добавьте эту функцию в общую область видимости вашего основного JavaScript файла
+
+// Функция для инициализации обработчиков событий для вибрации
+function initializeVibrationHandlers() {
+    console.log("Initializing vibration handlers");
+
+    // Добавляем глобальную функцию для тестирования вибрации
+    window.forceVibrate = function(duration) {
+        if (!duration) duration = 300;
+
+        console.log("Force vibrate called with duration:", duration);
+        let success = false;
+
+        // Метод 1: Стандартный
+        try {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(duration);
+                console.log('Standard vibration called');
+                success = true;
+            }
+        } catch (e) {
+            console.error('Standard vibration failed:', e);
+        }
+
+        // Метод 2: Через window.navigator
+        if (!success) {
+            try {
+                if (window.navigator && window.navigator.vibrate) {
+                    window.navigator.vibrate(duration);
+                    console.log('Window navigator vibration called');
+                    success = true;
+                }
+            } catch (e) {
+                console.error('Window navigator vibration failed:', e);
+            }
+        }
+
+        // Отчет о поддержке
+        console.log("Vibration support result:", success);
+        return success;
+    };
+
+    // Добавляем глобальную функцию для принудительной активации вибрации при клике
+    window.setupVibrationClick = function() {
+        console.log("Setting up vibration click handler");
+
+        // Добавляем невидимый элемент для отладки вибрации
+        const debugButton = document.createElement('button');
+        debugButton.textContent = "Test Vibration";
+        debugButton.style.position = 'fixed';
+        debugButton.style.bottom = '10px';
+        debugButton.style.right = '10px';
+        debugButton.style.zIndex = '10000';
+        debugButton.style.padding = '10px';
+        debugButton.style.background = '#f44336';
+        debugButton.style.color = 'white';
+        debugButton.style.border = 'none';
+        debugButton.style.borderRadius = '5px';
+
+        // Добавляем обработчик для тестирования вибрации
+        debugButton.addEventListener('click', function() {
+            console.log("Debug button clicked, testing vibration");
+
+            // Попытка вибрации с интенсивным паттерном
+            window.forceVibrate(500);
+
+            // Показываем статус
+            const result = navigator.vibrate ? "Available" : "Not Available";
+            alert("Vibration API: " + result);
+        });
+
+        document.body.appendChild(debugButton);
+
+        // Также добавляем обработчик для всей страницы
+        document.addEventListener('click', function() {
+            // Пытаемся запустить вибрацию при любом клике на странице
+            window.forceVibrate(100);
+        });
+    };
+
+    // Функция проверки поддержки вибрации с выводом подробной информации
+    window.checkVibrationSupport = function() {
+        console.log("Checking vibration support");
+
+        const support = {
+            navigatorExists: typeof navigator !== 'undefined',
+            vibrateExists: typeof navigator !== 'undefined' && 'vibrate' in navigator,
+            mozVibrateExists: typeof navigator !== 'undefined' && 'mozVibrate' in navigator,
+            webkitVibrateExists: typeof navigator !== 'undefined' && 'webkitVibrate' in navigator,
+            userAgent: navigator.userAgent
+        };
+
+        console.table(support);
+
+        // Возвращаем информацию о поддержке
+        return support;
+    };
+
+    // Запускаем проверку поддержки
+    window.checkVibrationSupport();
+
+    // Добавляем кнопку отладки через 2 секунды после загрузки
+    setTimeout(function() {
+        window.setupVibrationClick();
+    }, 2000);
+}
+
+// Добавляем функцию для автоматического вызова при загрузке документа
+document.addEventListener('DOMContentLoaded', function() {
+    initializeVibrationHandlers();
 });

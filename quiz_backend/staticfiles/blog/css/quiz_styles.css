@@ -222,14 +222,52 @@ pre.code-block {
 }
 
 
+
+/* Обновленные, менее интенсивные эффекты для мобильных устройств */
 @media (max-width: 768px) {
+    /* Более умеренные эффекты для правильных ответов */
+    .answer-option.correct,
+    .answer-option[data-correct="true"].active {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        box-shadow: 0 0 12px #4CAF50 !important; /* Уменьшенное свечение */
+        font-weight: bold !important;
+        transform: scale(1.02) !important; /* Меньше увеличение */
+        transition: all 0.3s ease !important;
+    }
+
+    /* Более умеренные эффекты для неправильных ответов */
+    .answer-option.incorrect,
+    .answer-option[data-correct="false"].active {
+        background-color: #f44336 !important;
+        color: white !important;
+        box-shadow: 0 0 12px #f44336 !important; /* Уменьшенное свечение */
+        font-weight: bold !important;
+        animation: shake-mobile-light 0.5s ease !important; /* Более легкая тряска */
+    }
+
+    /* Более мягкая анимация тряски */
+    @keyframes shake-mobile-light {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-6px); }
+        40% { transform: translateX(6px); }
+        60% { transform: translateX(-4px); }
+        80% { transform: translateX(4px); }
+    }
+
+    /* Настройки для канваса */
+    #lightning-canvas {
+        opacity: 0.9 !important; /* Немного уменьшаем непрозрачность */
+        z-index: 9998 !important; /* Высокий z-index, но не максимальный */
+    }
+
     .task-detail {
         padding: 10px;
         margin: 10px;
     }
 
     .tasks {
-        gap: 15px;
+        gap: 10px; /* Уменьшаем отступ между задачами */
     }
 
     .task-image {
@@ -237,21 +275,17 @@ pre.code-block {
         margin-bottom: 10px;
     }
 
-    .task-image img {
-        border-radius: 8px;
-    }
-
     .answers {
-        padding: 12px;
-        margin: 15px 0;
+        padding: 10px; /* Уменьшаем отступы */
+        margin: 12px 0;
     }
 
     .answer-option,
     .quiz-option {
-        font-size: 18px; /* Увеличим шрифт */
-        padding: 15px;
-        margin: 10px 0;
-        min-height: 30px; /* Минимальная высота для стабильности */
+        font-size: 16px; /* Уменьшаем размер шрифта */
+        padding: 10px 12px; /* Уменьшаем внутренние отступы */
+        margin: 8px 0; /* Уменьшаем вертикальные отступы */
+        min-height: 25px; /* Уменьшаем минимальную высоту */
     }
 
     .pagination {
@@ -259,30 +293,52 @@ pre.code-block {
     }
 
     .pagination a.btn {
-        padding: 12px 18px;
-        font-size: 16px;
+        padding: 10px 15px; /* Чуть меньше отступы у кнопок пагинации */
+        font-size: 15px;
         margin: 0 5px;
     }
+}
 
-    /* Усиление эффектов для мобильной версии */
-    .answer-option.correct,
-    .answer-option[data-correct="true"].active {
-        background-color: #4CAF50 !important;
-        color: white !important;
-        box-shadow: 0 0 15px #4CAF50 !important;
-        font-weight: bold !important;
-    }
+/* Добавляем класс для диагностики вибрации */
+.vibration-debug-button {
+    position: fixed !important;
+    bottom: 15px !important;
+    right: 15px !important;
+    z-index: 99999 !important;
+    padding: 10px 15px !important;
+    background-color: rgba(244, 67, 54, 0.8) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 5px !important;
+    font-weight: bold !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+}
 
-    .answer-option.incorrect,
-    .answer-option[data-correct="false"].active {
-        background-color: #f44336 !important;
-        color: white !important;
-        box-shadow: 0 0 15px #f44336 !important;
-        font-weight: bold !important;
-    }
+/* Стили для диалога отладки вибрации */
+.vibration-debug-dialog {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    background: white !important;
+    padding: 20px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5) !important;
+    z-index: 99999 !important;
+    max-width: 80% !important;
+}
 
-    /* Улучшаем видимость canvas на мобильных */
-    #lightning-canvas {
-        opacity: 1 !important;
-    }
+
+
+
+
+/* Добавляем новые стили для предотвращения случайных нажатий */
+.touch-started {
+    pointer-events: none; /* Временно блокируем события при начале касания */
+}
+
+/* Добавляем стиль для мобильных устройств с активным эффектом */
+.mobile-effect-active #lightning-canvas {
+    display: block !important;
+    opacity: 1 !important;
 }

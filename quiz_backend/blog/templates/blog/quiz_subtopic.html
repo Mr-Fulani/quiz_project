@@ -58,6 +58,8 @@
 </article>
 {% endblock %}
 
+
+
 {% block scripts %}
     <!-- Загружаем только один JS файл -->
     <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
@@ -71,7 +73,7 @@
             document.documentElement.classList.add('mobile-device');
 
             // Предзагрузка звуков для iOS
-            document.addEventListener('touchstart', function initAudio() {
+            function initAudio() {
                 const sounds = [
                     new Audio('/static/blog/sounds/thunder.mp3'),
                     new Audio('/static/blog/sounds/success.mp3')
@@ -82,9 +84,96 @@
                     sound.play().catch(e => console.log('Sound preload error:', e));
                     setTimeout(() => { sound.pause(); sound.volume = 0.3; }, 10);
                 });
+            }
 
-                document.removeEventListener('touchstart', initAudio);
+            // Запрос разрешений для iOS и предзагрузка звуков
+            document.addEventListener('touchstart', function permissionHandler() {
+                // Инициализация аудио
+                initAudio();
+
+                // Проверка и запрос разрешения на вибрацию для iOS
+                if (typeof DeviceMotionEvent !== 'undefined' &&
+                    typeof DeviceMotionEvent.requestPermission === 'function') {
+                    DeviceMotionEvent.requestPermission()
+                        .then(response => {
+                            if (response === 'granted') {
+                                console.log('Motion permission granted');
+                                // Тестовая вибрация
+                                if ('vibrate' in navigator) {
+                                    navigator.vibrate(50);
+                                }
+                            }
+                        })
+                        .catch(e => console.log('Motion permission error:', e));
+                } else {
+                    // Для Android и других платформ
+                    if ('vibrate' in navigator) {
+                        try {
+                            // Проверяем вибрацию сразу
+                            navigator.vibrate(50);
+                            console.log('Vibration test successful');
+                        } catch(e) {
+                            console.error('Vibration test failed:', e);
+                        }
+                    }
+                }
+
+                document.removeEventListener('touchstart', permissionHandler);
             }, { once: true });
+
+            // Альтернативный метод вибрации - добавьте эту функцию в глобальную область видимости
+            window.doVibrate = function(pattern) {
+                if (!pattern) pattern = [100, 30, 200, 30, 100];
+
+                try {
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(pattern);
+                        console.log('Vibration activated with pattern:', pattern);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Vibration error:', e);
+                }
+                return false;
+            };
+
+            // Переопределяем метод выбора ответа для проверки вибрации
+            const originalHandleAnswerSelection = window.handleAnswerSelection;
+            window.handleAnswerSelection = function(event) {
+                // Вызываем оригинальный обработчик
+                if (originalHandleAnswerSelection) {
+                    originalHandleAnswerSelection.call(this, event);
+                }
+
+                // Проверяем корректность ответа
+                const option = this;
+                const isCorrect = option.dataset.correct === 'true';
+
+                // Если ответ неверный - вибрируем отдельно от основного эффекта
+                if (!isCorrect) {
+                    setTimeout(() => {
+                        window.doVibrate([100, 30, 200, 30, 300]);
+                    }, 100);
+                }
+            };
         }
+
+        // Функция для активации вибрации по требованию - может быть вызвана из консоли
+        window.testVibration = function() {
+            console.log("Testing vibration...");
+            try {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([100, 50, 100, 50, 100]);
+                    console.log("Vibration command sent!");
+                    return true;
+                } else {
+                    console.log("Vibration API not supported on this device");
+                    return false;
+                }
+            } catch (e) {
+                console.error("Vibration error:", e);
+                return false;
+            }
+        };
     </script>
 {% endblock %}
