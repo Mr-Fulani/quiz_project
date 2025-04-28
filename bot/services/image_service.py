@@ -268,23 +268,8 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     code_y = console_y0 + padding_top
     image.paste(code_img, (code_x, code_y), code_img)
 
-    # Приводим итоговое изображение к 16:9, масштабируя, центрируя контент
-    target_ratio = 16 / 9
-    final_width = max(width, 1920)
-    final_height = int(final_width / target_ratio)
 
-    if final_height < height:
-        final_height = max(height, 1080)
-        final_width = int(final_height * target_ratio)
-
-    final_image = Image.new("RGB", (final_width, final_height), background_color)
-
-    paste_x = (final_width - width) // 2
-    paste_y = (final_height - height) // 2
-
-    final_image.paste(image, (paste_x, paste_y))
-
-    return final_image
+    return image
 
 
 def save_and_show_image(image: Image.Image, filename: str = "console_image.png"):

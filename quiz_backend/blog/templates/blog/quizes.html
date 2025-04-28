@@ -21,7 +21,6 @@
             <a href="{% url 'blog:quiz_detail' quiz_type=topic.name|lower %}" class="service-link">
               <div class="service-icon-box">
                 <img src="{{ topic.icon }}" alt="{{ topic.name }} иконка" width="40">
-                <!-- Отладка: Иконка {{ topic.icon }} для темы {{ topic.name }} -->
               </div>
               <div class="service-content-box">
                 <h4 class="h4 service-item-title">{{ topic.name }}</h4>

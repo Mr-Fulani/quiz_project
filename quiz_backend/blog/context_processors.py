@@ -1,20 +1,17 @@
 import logging
-
 from django.db.models import Count, Avg, Sum, Q, Case, When, FloatField, IntegerField, F, Value
 from tasks.models import TaskStatistics
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
 from django.contrib import messages
-
-
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-
-
 def personal_info(request):
-    # Получаем топ пользователей (оставляем как есть — 5 карточек по total_score)
+    """
+    Контекстный процессор для предоставления данных личного кабинета и топа пользователей.
+    """
+    # Получаем топ пользователей (3 карточки по total_score)
     top_users = User.objects.annotate(
         tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
         total_score=Sum(
@@ -32,7 +29,6 @@ def personal_info(request):
         )
     ).order_by('-total_score')[:3]
 
-
     # Формируем данные
     top_users_data = []
     for i, user in enumerate(top_users, 1):
@@ -42,8 +38,8 @@ def personal_info(request):
                 successful=True
             ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
 
-            # Исправляем аватарку: загруженная или default_avatar.png
-            avatar_url = user.profile.avatar.url if hasattr(user, 'profile') and user.profile and user.profile.avatar else '/static/blog/images/avatar/default_avatar.png'
+            # Используем get_avatar_url из CustomUser
+            avatar_url = user.get_avatar_url
 
             user_data = {
                 'rank': i,
@@ -56,9 +52,8 @@ def personal_info(request):
             }
             top_users_data.append(user_data)
         except Exception as e:
+            logger.error(f"Error processing user {user.username}: {e}")
             continue
-
-
 
     return {
         'personal_info': {
@@ -123,10 +118,10 @@ def personal_info(request):
         }
     }
 
-
-
-
 def unread_messages(request):
+    """
+    Контекстный процессор для количества непрочитанных сообщений пользователя.
+    """
     if request.user.is_authenticated:
         return {
             'unread_messages_count': request.user.get_unread_messages_count()
@@ -134,6 +129,9 @@ def unread_messages(request):
     return {'unread_messages_count': 0}
 
 def unread_messages_count(request):
+    """
+    Контекстный процессор для количества непрочитанных сообщений из Django messages framework.
+    """
     if request.user.is_authenticated:
         count = messages.get_messages(request)._loaded_messages
         return {'unread_messages_count': len(list(count))}

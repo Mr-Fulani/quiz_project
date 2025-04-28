@@ -25,8 +25,8 @@
             <div class="dialog-item" data-username="{{ dialog.user.username }}"
                  onclick="loadConversation('{{ dialog.user.username }}')">
                 <div class="dialog-avatar">
-                    {% if dialog.user.profile.avatar %}
-                    <img src="{{ dialog.user.profile.get_avatar_url }}"
+                    {% if dialog.user.avatar %}
+                    <img src="{{ dialog.user.get_avatar_url }}"
                          alt="{{ dialog.user.username }}">
                     {% else %}
                     <img src="{% static 'blog/images/avatar/default_avatar.png' %}"

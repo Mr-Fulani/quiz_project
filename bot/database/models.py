@@ -188,6 +188,7 @@ class Topic(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)  # Название темы (Python, Golang и т.д.)
+    icon = Column(String, nullable=True, default='/static/blog/images/icons/default-icon.png')  # Путь к иконке темы
     description = Column(String, nullable=True)  # Описание темы
 
     # Связь с задачами
