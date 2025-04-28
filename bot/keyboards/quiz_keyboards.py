@@ -26,7 +26,7 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="Удалить по ID", callback_data="delete_task")
     )
     builder.row(
-        InlineKeyboardButton(text="Опубликовать одну задачу с переводами", callback_data="publish_task_with_translations")
+        InlineKeyboardButton(text="Опубликовать по одной задаче с переводами", callback_data="publish_task_with_translations")
     )
     builder.row(
         InlineKeyboardButton(text="Топики без задач", callback_data="zero_task_topics_report"),

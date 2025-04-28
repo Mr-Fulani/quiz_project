@@ -52,7 +52,7 @@
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-avatar">
-                        <img src="{{ profile_user.profile.get_avatar_url }}" alt="{{ profile_user.username }}">
+                        <img src="{{ user.get_avatar_url }}" alt="{{ user.username }}">
                         <form id="avatar-form" method="post" enctype="multipart/form-data" action="{% url 'accounts:update_personal_info' %}">
                             {% csrf_token %}
                             <label for="id_avatar" class="avatar-overlay">

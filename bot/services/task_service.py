@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 import json
 import logging
@@ -556,7 +557,8 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     published=False,
                     group_id=group.id,
                     translation_group_id=translation_group_id,
-                    external_link=None  # Устанавливаем external_link в None
+                    external_link=None,  # Устанавливаем external_link в None
+                    create_date=datetime.utcnow(),
                 )
                 db_session.add(new_task)
                 try:

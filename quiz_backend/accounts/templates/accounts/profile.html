@@ -53,60 +53,60 @@
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-avatar">
-                        <img src="{{ profile_user.profile.get_avatar_url }}" alt="{{ profile_user.username }}">
+                        <img src="{{ profile_user.get_avatar_url }}" alt="{{ profile_user.username }}">
                     </div>
 
                     <div class="profile-info readonly">
                         <div class="info-section">
                             <h3>About</h3>
-                            <p>{{ profile_user.profile.bio|default:"No bio available" }}</p>
+                            <p>{{ profile_user.bio|default:"No bio available" }}</p>
                         </div>
 
                         <div class="info-section">
                             <h3>Location</h3>
-                            <p>{{ profile_user.profile.location|default:"Not specified" }}</p>
+                            <p>{{ profile_user.location|default:"Not specified" }}</p>
                         </div>
 
-                        {% if profile_user.profile.is_public %}
+                        {% if profile_user.is_public %}
                         <div class="social-links">
-                            {% if profile_user.profile.github %}
-                            <a href="{{ profile_user.profile.github }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.github %}
+                            <a href="{{ profile_user.github }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="logo-github"></ion-icon>
                             </a>
                             {% endif %}
 
-                            {% if profile_user.profile.telegram %}
-                            <a href="{{ profile_user.profile.telegram }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.telegram %}
+                            <a href="{{ profile_user.telegram }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="paper-plane"></ion-icon>
                             </a>
                             {% endif %}
 
-                            {% if profile_user.profile.linkedin %}
-                            <a href="{{ profile_user.profile.linkedin }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.linkedin %}
+                            <a href="{{ profile_user.linkedin }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="logo-linkedin"></ion-icon>
                             </a>
                             {% endif %}
 
-                            {% if profile_user.profile.instagram %}
-                            <a href="{{ profile_user.profile.instagram }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.instagram %}
+                            <a href="{{ profile_user.instagram }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="logo-instagram"></ion-icon>
                             </a>
                             {% endif %}
 
-                            {% if profile_user.profile.facebook %}
-                            <a href="{{ profile_user.profile.facebook }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.facebook %}
+                            <a href="{{ profile_user.facebook }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="logo-facebook"></ion-icon>
                             </a>
                             {% endif %}
 
-                            {% if profile_user.profile.youtube %}
-                            <a href="{{ profile_user.profile.youtube }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.youtube %}
+                            <a href="{{ profile_user.youtube }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="logo-youtube"></ion-icon>
                             </a>
                             {% endif %}
 
-                            {% if profile_user.profile.website %}
-                            <a href="{{ profile_user.profile.website }}" target="_blank" rel="noopener noreferrer">
+                            {% if profile_user.website %}
+                            <a href="{{ profile_user.website }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="globe-outline"></ion-icon>
                             </a>
                             {% endif %}
@@ -155,7 +155,7 @@
                     </div>
                 </div>
 
-                {% if profile_user.profile.is_public or is_owner %}
+                {% if profile_user.is_public or is_owner %}
                 <!-- Charts Grid -->
                 <div class="charts-grid">
                     <!-- Activity Chart -->
@@ -238,7 +238,7 @@
 </article>
 
 <!-- JavaScript -->
-{% if profile_user.profile.is_public or is_owner %}
+{% if profile_user.is_public or is_owner %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {

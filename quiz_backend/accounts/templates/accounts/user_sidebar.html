@@ -16,8 +16,8 @@
     <div class="sidebar-info">
       <figure class="avatar-box">
         <a href="{% url 'accounts:profile' %}">
-          {% if user.profile.avatar %}
-            <img src="{{ user.profile.get_avatar_url }}" alt="User Avatar" width="80">
+          {% if user.avatar %}
+            <img src="{{ user.get_avatar_url }}" alt="User Avatar" width="80">
           {% else %}
             <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" width="80">
           {% endif %}
@@ -26,7 +26,7 @@
 
       <div class="info-content">
         <h1 class="name">{{ user.username }}</h1>
-        <p class="title">{{ user.profile.bio|truncatechars:30 }}</p>
+        <p class="title">{{ user.bio|truncatechars:30 }}</p>
       </div>
 
       <button class="info-more-btn" data-sidebar-btn>
@@ -120,6 +120,13 @@
         <li class="social-item">
           <a href="{{ user_profile.youtube }}" class="social-link" target="_blank" rel="noopener noreferrer">
             <ion-icon name="logo-youtube"></ion-icon>
+          </a>
+        </li>
+        {% endif %}
+        {% if user_profile.website %}
+        <li class="social-item">
+          <a href="{{ user_profile.website }}" class="social-link" target="_blank" rel="noopener noreferrer">
+            <ion-icon name="globe-outline"></ion-icon>
           </a>
         </li>
         {% endif %}

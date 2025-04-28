@@ -15,16 +15,16 @@
     <section class="profile-info">
         <div class="profile-card">
             <figure class="profile-avatar-box">
-                {% if profile_user.profile.avatar %}
-                    <img src="{{ profile_user.profile.get_avatar_url }}" alt="{{ profile_user.username }}" class="profile-avatar">
+                {% if profile_user.avatar %}
+                    <img src="{{ profile_user.get_avatar_url }}" alt="{{ profile_user.username }}" class="profile-avatar">
                 {% else %}
                     <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ profile_user.username }}" class="profile-avatar">
                 {% endif %}
 
-                {% if profile_user.profile.is_online %}
+                {% if profile_user.is_online %}
                     <span class="online-status online" title="Online"></span>
                 {% else %}
-                    <span class="online-status offline" title="Last seen {{ profile_user.profile.last_seen|naturaltime }}"></span>
+                    <span class="online-status offline" title="Last seen {{ profile_user.last_seen|naturaltime }}"></span>
                 {% endif %}
             </figure>
 
@@ -34,25 +34,25 @@
                     <span class="member-since">Member since {{ profile_user.date_joined|date:"F Y" }}</span>
                 </div>
 
-                {% if profile_user.profile.location %}
+                {% if profile_user.location %}
                 <p class="profile-location">
                     <ion-icon name="location-outline"></ion-icon>
-                    <span>{{ profile_user.profile.location }}</span>
+                    <span>{{ profile_user.location }}</span>
                 </p>
                 {% endif %}
 
-                {% if profile_user.profile.bio %}
-                <p class="profile-bio">{{ profile_user.profile.bio }}</p>
+                {% if profile_user.bio %}
+                <p class="profile-bio">{{ profile_user.bio }}</p>
                 {% endif %}
 
                 <div class="profile-stats">
                     <div class="stat">
                         <ion-icon name="trophy-outline"></ion-icon>
-                        <span>Points: {{ profile_user.profile.total_points|default:"0" }}</span>
+                        <span>Points: {{ profile_user.total_points|default:"0" }}</span>
                     </div>
                     <div class="stat">
                         <ion-icon name="checkbox-outline"></ion-icon>
-                        <span>Quizzes: {{ profile_user.profile.quizzes_completed|default:"0" }}</span>
+                        <span>Quizzes: {{ profile_user.quizzes_completed|default:"0" }}</span>
                     </div>
                 </div>
 

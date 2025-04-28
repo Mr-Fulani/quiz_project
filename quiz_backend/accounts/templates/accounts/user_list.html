@@ -11,8 +11,8 @@
         {% for user in users %}
         <div class="client-card">
             <figure class="client-avatar-box">
-                {% if user.profile.avatar %}
-                    <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}" class="client-avatar">
+                {% if user.avatar %}
+                    <img src="{{ user.get_avatar_url }}" alt="{{ user.username }}" class="client-avatar">
                 {% else %}
                     <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" class="client-avatar">
                 {% endif %}
@@ -23,25 +23,25 @@
                     <a href="{% url 'accounts:user_profile' username=user.username %}">{{ user.username }}</a>
                 </h3>
 
-                {% if user.profile.location %}
+                {% if user.location %}
                 <p class="client-location">
                     <ion-icon name="location-outline"></ion-icon>
-                    <span>{{ user.profile.location }}</span>
+                    <span>{{ user.location }}</span>
                 </p>
                 {% endif %}
 
-                {% if user.profile.bio %}
-                <p class="client-bio">{{ user.profile.bio|truncatewords:20 }}</p>
+                {% if user.bio %}
+                <p class="client-bio">{{ user.bio|truncatewords:20 }}</p>
                 {% endif %}
 
                 <div class="client-stats">
                     <div class="stat">
                         <ion-icon name="trophy-outline"></ion-icon>
-                        <span>Points: {{ user.profile.total_points }}</span>
+                        <span>Points: {{ user.total_points }}</span>
                     </div>
                     <div class="stat">
                         <ion-icon name="checkbox-outline"></ion-icon>
-                        <span>Quizzes: {{ user.profile.quizzes_completed }}</span>
+                        <span>Quizzes: {{ user.quizzes_completed }}</span>
                     </div>
                 </div>
             </div>

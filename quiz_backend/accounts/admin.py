@@ -1,21 +1,26 @@
+# accounts/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, Profile, UserChannelSubscription, TelegramUser
+from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, UserChannelSubscription, TelegramUser
 from .utils.telegram_notifications import notify_admin
 
 
-
-# Регистрируем Profile как Inline для CustomUser
-class ProfileInline(admin.StackedInline):
-    model = Profile
-    can_delete = False
-    verbose_name_plural = 'Profile'
-    fk_name = 'user'
-    max_num = 1
-    min_num = 0
+@admin.register(CustomUser)
+class CustomUserAdmin(UserAdmin):
+    """
+    Админ-панель для CustomUser с объединёнными полями из Profile.
+    """
+    list_display = ('username', 'subscription_status', 'language', 'created_at', 'deactivated_at')
+    list_filter = ('subscription_status', 'language', 'is_public', 'theme_preference')
+    search_fields = ('username', 'email', 'bio', 'location')
+    ordering = ('-created_at',)
     fieldsets = (
-        ('Basic Info', {
-            'fields': ('avatar', 'bio', 'location', 'birth_date', 'website')
+        (None, {'fields': ('username', 'password', 'email')}),
+        ('Personal Info', {
+            'fields': (
+                'first_name', 'last_name', 'language', 'subscription_status', 'deactivated_at',
+                'avatar', 'bio', 'location', 'birth_date', 'website'
+            )
         }),
         ('Social Networks', {
             'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')
@@ -26,20 +31,8 @@ class ProfileInline(admin.StackedInline):
         ('Statistics', {
             'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')
         }),
-    )
-
-@admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
-    inlines = (ProfileInline,)
-    list_display = ('username', 'subscription_status', 'language', 'created_at', 'deactivated_at')
-    list_filter = ('subscription_status', 'language')
-    search_fields = ('username', 'email')
-    ordering = ('-created_at',)
-    fieldsets = (
-        (None, {'fields': ('username', 'password', 'email')}),
-        ('Personal Info', {'fields': ('first_name', 'last_name', 'language', 'subscription_status', 'deactivated_at')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined', 'last_seen')}),
     )
     add_fieldsets = (
         (None, {
@@ -48,31 +41,6 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        # Создаем профиль только если его нет
-        Profile.objects.get_or_create(user=obj)
-
-# Отдельная админка для Profile (если нужно)
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'location', 'birth_date', 'telegram', 'github')
-    search_fields = ('user__username', 'location')
-    list_filter = ('is_public',)
-    fieldsets = (
-        ('Basic Info', {
-            'fields': ('user', 'avatar', 'bio', 'location', 'birth_date', 'website')
-        }),
-        ('Social Networks', {
-            'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')
-        }),
-        ('Settings', {
-            'fields': ('is_public', 'email_notifications', 'theme_preference')
-        }),
-        ('Statistics', {
-            'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')
-        }),
-    )
 
 class BaseAdminAdmin(UserAdmin):
     """
@@ -86,11 +54,11 @@ class BaseAdminAdmin(UserAdmin):
 @admin.register(TelegramAdmin)
 class TelegramAdminAdmin(BaseAdminAdmin):
     """
-    Админка для Telegram администраторов.
+    Админка для Telegram-администраторов.
     """
-    list_display = ('username', 'telegram_id', 'email', 'is_active', 'phone_number', 'language')  # Telegram ID добавлен
+    list_display = ('username', 'telegram_id', 'email', 'is_active', 'phone_number', 'language')
     search_fields = ('username', 'telegram_id', 'email', 'phone_number')
-    filter_horizontal = ('groups',)  # Удобный интерфейс для выбора групп
+    filter_horizontal = ('groups',)
     fieldsets = (
         (None, {'fields': ('username', 'password', 'email', 'telegram_id')}),
         ('Personal Info', {'fields': ('phone_number', 'language', 'photo')}),
@@ -98,15 +66,10 @@ class TelegramAdminAdmin(BaseAdminAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        """
-        Переопределяет сохранение объекта в админке.
-        """
+        """Сохранение объекта с уведомлением."""
         super().save_model(request, obj, form, change)
-        # Получаем список групп, к которым привязан администратор
         groups = obj.groups.all()
         notify_admin('added' if not change else 'updated', obj, groups)
-
-
 
     add_fieldsets = (
         (None, {
@@ -115,16 +78,11 @@ class TelegramAdminAdmin(BaseAdminAdmin):
         }),
     )
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        print("Queryset for TelegramAdmin:", qs)
-        return qs
-
 
 @admin.register(DjangoAdmin)
 class DjangoAdminAdmin(BaseAdminAdmin):
     """
-    Админка для Django администраторов
+    Админка для Django-администраторов.
     """
     def get_queryset(self, request):
         return super().get_queryset(request).filter(is_django_admin=True)
@@ -133,26 +91,26 @@ class DjangoAdminAdmin(BaseAdminAdmin):
 @admin.register(SuperAdmin)
 class SuperAdminAdmin(BaseAdminAdmin):
     """
-    Админка для супер администраторов
+    Админка для супер-администраторов.
     """
     def get_queryset(self, request):
         return super().get_queryset(request).filter(is_super_admin=True)
 
 
-
-
 @admin.register(UserChannelSubscription)
 class UserChannelSubscriptionAdmin(admin.ModelAdmin):
+    """
+    Админка для подписок на каналы.
+    """
     list_display = ["id", "user", "channel", "subscription_status", "subscribed_at", "unsubscribed_at"]
     list_filter = ["subscription_status", "channel"]
     search_fields = ["user__username", "channel__group_name"]
 
 
-
-
-
-
 @admin.register(TelegramUser)
 class TelegramUserAdmin(admin.ModelAdmin):
+    """
+    Админка для Telegram-пользователей.
+    """
     list_display = ('telegram_id', 'username', 'first_name', 'last_name', 'linked_user')
     search_fields = ('telegram_id', 'username', 'first_name', 'last_name')
