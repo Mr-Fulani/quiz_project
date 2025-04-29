@@ -441,3 +441,4 @@ class Testimonial(models.Model):
 
     def __str__(self):
         return f'Отзыв от {self.user.username}'
+    

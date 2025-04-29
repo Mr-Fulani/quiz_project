@@ -15,7 +15,10 @@
 
     <section class="tasks">
         {% for task in page_obj %}
-            <div class="task-item" data-task-id="{{ task.id }}">
+            <div class="task-item"
+                 data-task-id="{{ task.id }}"
+                 data-explanation="{{ task.translation.explanation|escape }}"
+                 data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify task_id=task.id %}">
                 {% if task.image_url %}
                     <div class="task-image">
                         <img src="{{ task.image_url|safe_url }}" alt="Task {{ task.id }} question">
@@ -27,7 +30,8 @@
                 {% if task.translation %}
                     <div class="answers" data-correct="{{ task.correct_answer }}">
                         {% for answer in task.answers %}
-                            <span class="answer-option quiz-option"
+                            <span class="answer-option quiz-option
+                                {% if answer == 'Я не знаю, но хочу узнать' %}dont-know-option{% endif %}"
                                   data-answer="{{ answer }}"
                                   data-correct="{% if answer == task.correct_answer %}true{% else %}false{% endif %}">
                                 {{ answer }}
@@ -58,21 +62,23 @@
 </article>
 {% endblock %}
 
-
-
 {% block scripts %}
-    <!-- Загружаем только один JS файл -->
     <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
-    <!-- Инициализируем дополнительную обработку событий для мобильных устройств -->
     <script>
-        // Проверка на мобильное устройство
+        /**
+         * Проверяет, является ли устройство мобильным на основе userAgent.
+         * Добавляет класс 'mobile-device' для мобильных стилей.
+         */
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         if (isMobile) {
             console.log("Mobile device detected, enabling touch optimizations");
             document.documentElement.classList.add('mobile-device');
 
-            // Предзагрузка звуков для iOS
+            /**
+             * Инициализирует аудио для эффектов (гром, успех).
+             * Предварительно загружает звуки с нулевой громкостью.
+             */
             function initAudio() {
                 const sounds = [
                     new Audio('/static/blog/sounds/thunder.mp3'),
@@ -86,19 +92,19 @@
                 });
             }
 
-            // Запрос разрешений для iOS и предзагрузка звуков
+            /**
+             * Запрашивает разрешение на доступ к сенсорам движения и запускает вибрацию.
+             * Выполняется один раз при первом касании.
+             */
             document.addEventListener('touchstart', function permissionHandler() {
-                // Инициализация аудио
                 initAudio();
 
-                // Проверка и запрос разрешения на вибрацию для iOS
                 if (typeof DeviceMotionEvent !== 'undefined' &&
                     typeof DeviceMotionEvent.requestPermission === 'function') {
                     DeviceMotionEvent.requestPermission()
                         .then(response => {
                             if (response === 'granted') {
                                 console.log('Motion permission granted');
-                                // Тестовая вибрация
                                 if ('vibrate' in navigator) {
                                     navigator.vibrate(50);
                                 }
@@ -106,10 +112,8 @@
                         })
                         .catch(e => console.log('Motion permission error:', e));
                 } else {
-                    // Для Android и других платформ
                     if ('vibrate' in navigator) {
                         try {
-                            // Проверяем вибрацию сразу
                             navigator.vibrate(50);
                             console.log('Vibration test successful');
                         } catch(e) {
@@ -121,7 +125,11 @@
                 document.removeEventListener('touchstart', permissionHandler);
             }, { once: true });
 
-            // Альтернативный метод вибрации - добавьте эту функцию в глобальную область видимости
+            /**
+             * Выполняет вибрацию с заданным шаблоном.
+             * @param {Array<number>} pattern - Шаблон вибрации (массив длительностей в миллисекундах).
+             * @returns {boolean} - Успешно ли выполнена вибрация.
+             */
             window.doVibrate = function(pattern) {
                 if (!pattern) pattern = [100, 30, 200, 30, 100];
 
@@ -137,20 +145,20 @@
                 return false;
             };
 
-            // Переопределяем метод выбора ответа для проверки вибрации
+            /**
+             * Переопределяет обработчик выбора ответа для добавления вибрации при неправильном ответе.
+             * @param {Event} event - Событие клика или касания.
+             */
             const originalHandleAnswerSelection = window.handleAnswerSelection;
             window.handleAnswerSelection = function(event) {
-                // Вызываем оригинальный обработчик
                 if (originalHandleAnswerSelection) {
                     originalHandleAnswerSelection.call(this, event);
                 }
 
-                // Проверяем корректность ответа
                 const option = this;
                 const isCorrect = option.dataset.correct === 'true';
 
-                // Если ответ неверный - вибрируем отдельно от основного эффекта
-                if (!isCorrect) {
+                if (!isCorrect && !option.classList.contains('dont-know-option')) {
                     setTimeout(() => {
                         window.doVibrate([100, 30, 200, 30, 300]);
                     }, 100);
@@ -158,7 +166,10 @@
             };
         }
 
-        // Функция для активации вибрации по требованию - может быть вызвана из консоли
+        /**
+         * Тестирует поддержку вибрации на устройстве.
+         * @returns {boolean} - Успешно ли выполнена тестовая вибрация.
+         */
         window.testVibration = function() {
             console.log("Testing vibration...");
             try {

@@ -639,102 +639,102 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
 
 
 
-class UniqueQuizTaskView(DetailView):
-    model = Task
-    template_name = 'blog/quiz_task_detail.html'
-    context_object_name = 'task'
-
-    def get_object(self):
-        task_id = self.kwargs.get('task_id')
-        logger.info(f"Getting task with ID: {task_id}")
-        return Task.objects.get(id=task_id)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        task = self.get_object()
-        quiz_type = self.kwargs.get('quiz_type')
-        subtopic = self.kwargs.get('subtopic')
-
-        logger.info("=== UniqueQuizTaskView Debug Info ===")
-        logger.info(f"Topic: {quiz_type}")
-        logger.info(f"Subtopic: {subtopic}")
-        logger.info(f"Task ID: {task.id}")
-        logger.info(f"Task object: {task}")
-
-        # Очистка subtopic
-        cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
-        topic = get_object_or_404(Topic, name__iexact=quiz_type)
-        subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
-
-        logger.info(f"Topic: {quiz_type}, Subtopic: {subtopic}, Task ID: {task.id}")
-
-        # Получаем перевод
-        translation = TaskTranslation.objects.filter(task=task, language="en").first()
-        logger.info(f"Translation object: {translation}")
-
-        context['translation'] = translation
-        if translation:
-            logger.info(f"Translation answers type: {type(translation.answers)}")
-            logger.info(f"Raw answers: {translation.answers}")
-
-            if isinstance(translation.answers, str):
-                try:
-                    context['answers'] = json.loads(translation.answers)
-                    logger.info(f"Parsed answers: {context['answers']}")
-                except json.JSONDecodeError as e:
-                    logger.error(f"Error parsing answers JSON: {e}")
-                    context['answers'] = []
-            else:
-                context['answers'] = translation.answers
-
-        # Добавляем информацию о теме и подтеме
-        context['topic'] = {'name': quiz_type.capitalize()}
-        context['subtopic'] = {'name': subtopic_obj.name}
-        context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
-            'quiz_type': quiz_type,
-            'subtopic': subtopic_obj.name.lower().replace(' ', '-'),
-            'task_id': task.id
-        })
-
-        # Формируем URL для отправки ответа
-        context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
-            'quiz_type': quiz_type,
-            'subtopic': subtopic,
-            'task_id': task.id
-        })
-        logger.info(f"Submit URL: {context['submit_url']}")
-
-        # Обрабатываем параметры результата
-        is_correct_param = self.request.GET.get('is_correct')
-        context['is_correct'] = True if is_correct_param == 'True' else False if is_correct_param == 'False' else None
-        context['selected_answer'] = self.request.GET.get('selected')
-        context['error'] = self.request.GET.get('error')
-
-        logger.info("=== Context Debug Info ===")
-        logger.info(f"is_correct: {context['is_correct']}")
-        logger.info(f"selected_answer: {context['selected_answer']}")
-        logger.info(f"error: {context['error']}")
-
-        # Проверяем наличие всех необходимых скриптов в контексте
-        logger.info("=== Static Files Check ===")
-        from django.templatetags.static import static
-        script_files = [
-            'blog/js/vector.js',
-            'blog/js/lightning.js',
-            'blog/js/quiz_lightning.js'
-        ]
-        for script in script_files:
-            static_url = static(script)
-            logger.info(f"Static URL for {script}: {static_url}")
-
-        return context
-
-    def render_to_response(self, context, **response_kwargs):
-        response = super().render_to_response(context, **response_kwargs)
-        logger.info("=== Template Rendering ===")
-        logger.info(f"Template name: {self.template_name}")
-        logger.info(f"Response status code: {response.status_code}")
-        return response
+# class UniqueQuizTaskView(DetailView):
+#     model = Task
+#     template_name = 'blog/quiz_task_detail.html'
+#     context_object_name = 'task'
+#
+#     def get_object(self):
+#         task_id = self.kwargs.get('task_id')
+#         logger.info(f"Getting task with ID: {task_id}")
+#         return Task.objects.get(id=task_id)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         task = self.get_object()
+#         quiz_type = self.kwargs.get('quiz_type')
+#         subtopic = self.kwargs.get('subtopic')
+#
+#         logger.info("=== UniqueQuizTaskView Debug Info ===")
+#         logger.info(f"Topic: {quiz_type}")
+#         logger.info(f"Subtopic: {subtopic}")
+#         logger.info(f"Task ID: {task.id}")
+#         logger.info(f"Task object: {task}")
+#
+#         # Очистка subtopic
+#         cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
+#         topic = get_object_or_404(Topic, name__iexact=quiz_type)
+#         subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
+#
+#         logger.info(f"Topic: {quiz_type}, Subtopic: {subtopic}, Task ID: {task.id}")
+#
+#         # Получаем перевод
+#         translation = TaskTranslation.objects.filter(task=task, language="en").first()
+#         logger.info(f"Translation object: {translation}")
+#
+#         context['translation'] = translation
+#         if translation:
+#             logger.info(f"Translation answers type: {type(translation.answers)}")
+#             logger.info(f"Raw answers: {translation.answers}")
+#
+#             if isinstance(translation.answers, str):
+#                 try:
+#                     context['answers'] = json.loads(translation.answers)
+#                     logger.info(f"Parsed answers: {context['answers']}")
+#                 except json.JSONDecodeError as e:
+#                     logger.error(f"Error parsing answers JSON: {e}")
+#                     context['answers'] = []
+#             else:
+#                 context['answers'] = translation.answers
+#
+#         # Добавляем информацию о теме и подтеме
+#         context['topic'] = {'name': quiz_type.capitalize()}
+#         context['subtopic'] = {'name': subtopic_obj.name}
+#         context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
+#             'quiz_type': quiz_type,
+#             'subtopic': subtopic_obj.name.lower().replace(' ', '-'),
+#             'task_id': task.id
+#         })
+#
+#         # Формируем URL для отправки ответа
+#         context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
+#             'quiz_type': quiz_type,
+#             'subtopic': subtopic,
+#             'task_id': task.id
+#         })
+#         logger.info(f"Submit URL: {context['submit_url']}")
+#
+#         # Обрабатываем параметры результата
+#         is_correct_param = self.request.GET.get('is_correct')
+#         context['is_correct'] = True if is_correct_param == 'True' else False if is_correct_param == 'False' else None
+#         context['selected_answer'] = self.request.GET.get('selected')
+#         context['error'] = self.request.GET.get('error')
+#
+#         logger.info("=== Context Debug Info ===")
+#         logger.info(f"is_correct: {context['is_correct']}")
+#         logger.info(f"selected_answer: {context['selected_answer']}")
+#         logger.info(f"error: {context['error']}")
+#
+#         # Проверяем наличие всех необходимых скриптов в контексте
+#         logger.info("=== Static Files Check ===")
+#         from django.templatetags.static import static
+#         script_files = [
+#             'blog/js/vector.js',
+#             'blog/js/lightning.js',
+#             'blog/js/quiz_lightning.js'
+#         ]
+#         for script in script_files:
+#             static_url = static(script)
+#             logger.info(f"Static URL for {script}: {static_url}")
+#
+#         return context
+#
+#     def render_to_response(self, context, **response_kwargs):
+#         response = super().render_to_response(context, **response_kwargs)
+#         logger.info("=== Template Rendering ===")
+#         logger.info(f"Template name: {self.template_name}")
+#         logger.info(f"Response status code: {response.status_code}")
+#         return response
 
 
 
@@ -742,64 +742,69 @@ class UniqueQuizTaskView(DetailView):
 
 
 @login_required
-@csrf_exempt
 def submit_task_answer(request, quiz_type, subtopic, task_id):
-    if request.method == 'POST':
-        topic = get_object_or_404(Topic, name__iexact=quiz_type)
-        cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
-        subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
-        task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
+    """
+    Обрабатывает отправку ответа на задачу через AJAX.
+    Возвращает JSON с результатом.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-        translation = TaskTranslation.objects.filter(task=task, language="en").first()
-        if not translation:
-            return JsonResponse({'error': 'Translation not found'}, status=400)
+    topic = get_object_or_404(Topic, name__iexact=quiz_type)
+    cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
+    subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
+    task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
 
-        selected_answer = request.POST.get('answer')
-        if not selected_answer:
-            # Редирект с параметром ошибки
-            return HttpResponseRedirect(
-                reverse('blog:quiz_task_detail',
-                        kwargs={'quiz_type': quiz_type, 'subtopic': subtopic, 'task_id': task_id}) +
-                '?error=no_answer'
-            )
+    translation = TaskTranslation.objects.filter(task=task, language="en").first()
+    if not translation:
+        return JsonResponse({'error': 'Translation not found'}, status=400)
 
-        if isinstance(translation.answers, str):
+    selected_answer = request.POST.get('answer')
+    if not selected_answer:
+        return JsonResponse({'error': 'No answer provided'}, status=400)
+
+    if isinstance(translation.answers, str):
+        try:
             answers = json.loads(translation.answers)
-        else:
-            answers = translation.answers
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing answers JSON: {e}")
+            return JsonResponse({'error': 'Invalid answer format'}, status=400)
+    else:
+        answers = translation.answers
 
-        is_correct = selected_answer == translation.correct_answer
-        total_votes = task.statistics.count() + 1
+    is_correct = selected_answer == translation.correct_answer
+    total_votes = task.statistics.count() + 1
 
-        results = []
-        for answer in answers:
-            votes = task.statistics.filter(successful=(answer == translation.correct_answer)).count()
-            if answer == selected_answer and not is_correct:
-                votes += 1
-            percentage = (votes / total_votes * 100) if total_votes > 0 else 0
-            results.append({
-                'text': answer,
-                'votes': votes,
-                'is_correct': answer == translation.correct_answer,
-                'percentage': percentage
-            })
+    results = []
+    for answer in answers:
+        votes = task.statistics.filter(successful=(answer == translation.correct_answer)).count()
+        if answer == selected_answer and not is_correct:
+            votes += 1
+        percentage = (votes / total_votes * 100) if total_votes > 0 else 0
+        results.append({
+            'text': answer,
+            'votes': votes,
+            'is_correct': answer == translation.correct_answer,
+            'percentage': percentage
+        })
 
-        stats, created = TaskStatistics.objects.get_or_create(
-            user=request.user,
-            task=task,
-            defaults={'attempts': 1, 'successful': is_correct}
-        )
-        if not created:
-            stats.attempts = F('attempts') + 1
-            stats.successful = is_correct
-            stats.save(update_fields=['attempts', 'successful'])
+    stats, created = TaskStatistics.objects.get_or_create(
+        user=request.user,
+        task=task,
+        defaults={'attempts': 1, 'successful': is_correct}
+    )
+    if not created:
+        stats.attempts = F('attempts') + 1
+        stats.successful = is_correct
+        stats.save(update_fields=['attempts', 'successful'])
 
-        return HttpResponseRedirect(
-            reverse('blog:quiz_task_detail',
-                    kwargs={'quiz_type': quiz_type, 'subtopic': subtopic, 'task_id': task_id}) +
-            f'?is_correct={is_correct}&selected={selected_answer}'
-        )
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    return JsonResponse({
+        'status': 'success',
+        'is_correct': is_correct,
+        'selected_answer': selected_answer,
+        'results': results,
+        'explanation': translation.explanation if translation else 'No explanation available.'
+    })
 
 
 
@@ -1257,5 +1262,6 @@ class AllTestimonialsView(ListView):
                 )
                 return JsonResponse({'success': True})
         return JsonResponse({'success': False})
+
 
 

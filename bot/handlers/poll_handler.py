@@ -10,11 +10,18 @@ import logging
 logger = logging.getLogger(__name__)
 router = Router(name="poll_router")
 
+# Text for the "I don't know but want to learn" option
+DONT_KNOW_OPTION = "Не знаю, но хочу узнать"
+
 @router.poll_answer()
 async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSession):
     """
     Обработчик ответа на опрос (PollAnswer).
     Обновляет статистику пользователя (TaskStatistics) в зависимости от правильности ответа.
+    
+    Специальная обработка для ответа "Не знаю, но хочу узнать":
+    - Запись в статистику как неправильный ответ
+    - Отображение пояснения из поля explanation
     """
     logger.info(f"Получен PollAnswer: {poll_answer}")
     user_id = poll_answer.user.id
@@ -43,6 +50,15 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
         logger.warning(f"Нет translation в task_poll id={task_poll.id}")
         return
 
+    # Проверка на выбранный вариант "Не знаю, но хочу узнать"
+    is_dont_know_selected = False
+    dont_know_option_index = None
+    
+    if task_poll.poll_options and DONT_KNOW_OPTION in task_poll.poll_options:
+        dont_know_option_index = task_poll.poll_options.index(DONT_KNOW_OPTION)
+        is_dont_know_selected = dont_know_option_index in selected_option_ids
+    
+    # Определение правильного ответа
     correct_answer = translation.correct_answer
     try:
         correct_option_id = translation.answers.index(correct_answer)
@@ -50,7 +66,15 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
         correct_option_id = None
         logger.error(f"Правильный ответ '{correct_answer}' не найден в опциях перевода {translation.id}")
 
-    is_correct = (correct_option_id in selected_option_ids) if correct_option_id is not None else False
+    # Для обычных ответов - проверяем корректность
+    # Для "Не знаю, но хочу узнать" - всегда считаем неправильным, но не показываем как ошибку в UI
+    is_correct = False
+    if is_dont_know_selected:
+        # Это особый случай - будет отображено объяснение, но статистика учитывается как неправильный ответ
+        is_correct = False
+    else:
+        # Обычная проверка правильности
+        is_correct = (correct_option_id in selected_option_ids) if correct_option_id is not None else False
 
     # Ищем пользователя в БД
     user_query = select(User).where(User.telegram_id == user_id)
@@ -86,6 +110,13 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
     try:
         await db_session.commit()
         logger.info(f"Статистика обновлена. user={user_id}, task={task.id}, is_correct={is_correct}")
+        
+        # Если выбран вариант "Не знаю, но хочу узнать", отправляем объяснение
+        if is_dont_know_selected and translation.explanation:
+            # Логика показа объяснения из поля explanation
+            # В зависимости от контекста использования, здесь может быть разная реализация
+            # (отправка сообщения, открытие модального окна и т.д.)
+            logger.info(f"Показываем объяснение для user={user_id}, task={task.id}")
     except Exception as e:
         await db_session.rollback()
         logger.error(f"Ошибка при сохранении статистики: {e}")

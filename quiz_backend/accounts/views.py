@@ -561,7 +561,7 @@ def profile_view(request, username, is_dashboard=False):
     attempts = TaskStatistics.objects.filter(user=profile_user).values('attempts').annotate(count=Count('id'))
     attempts_distribution = [0] * 5
     for attempt in attempts:
-        attempts_value = int(attack['attempts']) if attempt['attempts'] is not None else 0
+        attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
         if attempts_value > 0:
             bin_index = min((attempts_value - 1) // 5, 4)
             attempts_distribution[bin_index] += attempt['count']
