@@ -1,7 +1,19 @@
+/**
+ * Главный скрипт для квиза, объединяющий эффекты молнии, конфетти и обработку ответов.
+ * Включает модальное окно для варианта "Я не знаю, но хочу узнать" и AJAX для статистики.
+ */
 console.log('Quiz Combined JS Loading...');
 
-// Класс Vector
+/**
+ * Класс для работы с векторами.
+ */
 class Vector {
+    /**
+     * @param {number} x - Начальная координата X.
+     * @param {number} y - Начальная координата Y.
+     * @param {number} x1 - Конечная координата X.
+     * @param {number} y1 - Конечная координата Y.
+     */
     constructor(x, y, x1, y1) {
         this.X = x;
         this.Y = y;
@@ -9,51 +21,71 @@ class Vector {
         this.Y1 = y1;
     }
 
+    /** @returns {number} Разница по X. */
     dX() { return this.X1 - this.X; }
+
+    /** @returns {number} Разница по Y. */
     dY() { return this.Y1 - this.Y; }
 
+    /** @returns {number} Длина вектора. */
     Length() {
         return Math.sqrt(Math.pow(this.dX(), 2) + Math.pow(this.dY(), 2));
     }
 
+    /**
+     * Умножает вектор на коэффициент.
+     * @param {number} n - Коэффициент умножения.
+     * @returns {Vector} Новый вектор.
+     */
     Multiply(n) {
         return new Vector(this.X, this.Y, this.X + this.dX() * n, this.Y + this.dY() * n);
     }
 }
 
-// Класс Lightning
+/**
+ * Класс для создания эффекта молнии.
+ */
 class Lightning {
+    /**
+     * @param {Object} c - Конфигурация молнии.
+     */
     constructor(c) {
         this.config = c;
     }
 
+    /**
+     * Отрисовывает молнию.
+     * @param {CanvasRenderingContext2D} context - Контекст canvas.
+     * @param {Vector} from - Начальная точка.
+     * @param {Vector} to - Конечная точка.
+     */
     Cast(context, from, to) {
         context.save();
         if (!from || !to) { return; }
 
-        var v = new Vector(from.X1, from.Y1, to.X1, to.Y1);
+        const v = new Vector(from.X1, from.Y1, to.X1, to.Y1);
         if (this.config.Threshold && v.Length() > context.canvas.width * this.config.Threshold) {
             return;
         }
 
-        var vLen = v.Length();
-        var refv = from;
-        var lR = (vLen / context.canvas.width);
-        var segments = Math.floor(this.config.Segments * lR);
-        var l = vLen / segments;
+        const vLen = v.Length();
+        let refv = from;
+        const lR = (vLen / context.canvas.width);
+        const segments = Math.floor(this.config.Segments * lR);
+        const l = vLen / segments;
 
         for (let i = 1; i <= segments; i++) {
-            var dv = v.Multiply((1 / segments) * i);
+            let dv = v.Multiply((1 / segments) * i);
             if (i != segments) {
                 dv.Y1 += l * Math.random();
                 dv.X1 += l * Math.random();
             }
 
-            var r = new Vector(refv.X1, refv.Y1, dv.X1, dv.Y1);
+            const r = new Vector(refv.X1, refv.Y1, dv.X1, dv.Y1);
 
             this.Line(context, r, {
                 Color: this.config.GlowColor,
-                Width: this.config.GlowWidth * lR * 1.5, // Увеличиваем ширину для мобильных
+                Width: this.config.GlowWidth * lR * 1.5,
                 Blur: this.config.GlowBlur * lR,
                 BlurColor: this.config.GlowColor,
                 Alpha: this.Random(this.config.GlowAlpha, this.config.GlowAlpha * 2) / 100
@@ -61,7 +93,7 @@ class Lightning {
 
             this.Line(context, r, {
                 Color: this.config.Color,
-                Width: this.config.Width * 1.5, // Увеличиваем ширину для мобильных
+                Width: this.config.Width * 1.5,
                 Blur: this.config.Blur,
                 BlurColor: this.config.BlurColor,
                 Alpha: this.config.Alpha
@@ -76,15 +108,27 @@ class Lightning {
         context.restore();
     }
 
+    /**
+     * Рисует круг в точке.
+     * @param {CanvasRenderingContext2D} context - Контекст canvas.
+     * @param {Vector} p - Точка.
+     * @param {number} lR - Коэффициент масштаба.
+     */
     Circle(context, p, lR) {
         context.beginPath();
-        context.arc(p.X1 + Math.random() * 10 * lR, p.Y1 + Math.random() * 10 * lR, 8, 0, 2 * Math.PI, false); // Увеличиваем радиус
+        context.arc(p.X1 + Math.random() * 10 * lR, p.Y1 + Math.random() * 10 * lR, 8, 0, 2 * Math.PI, false);
         context.fillStyle = 'white';
         context.shadowBlur = 100;
         context.shadowColor = "#2319FF";
         context.fill();
     }
 
+    /**
+     * Рисует линию.
+     * @param {CanvasRenderingContext2D} context - Контекст canvas.
+     * @param {Vector} v - Вектор.
+     * @param {Object} c - Конфигурация линии.
+     */
     Line(context, v, c) {
         context.beginPath();
         context.strokeStyle = c.Color;
@@ -97,33 +141,42 @@ class Lightning {
         context.stroke();
     }
 
+    /**
+     * Генерирует случайное число.
+     * @param {number} min - Минимум.
+     * @param {number} max - Максимум.
+     * @returns {number} Случайное число.
+     */
     Random(min, max) {
         return Math.floor(Math.random() * (max - min)) + min;
     }
 }
 
-// Инициализация анимации и звука
+/**
+ * Инициализация анимации, звука и модального окна.
+ */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing lightning effect');
 
-    // Проверяем, существует ли уже canvas
+    // Проверяем и создаем canvas
     let lightningCanvas = document.getElementById('lightning-canvas');
     if (!lightningCanvas) {
-        // Создаём глобальный canvas для молний и конфетти
         lightningCanvas = document.createElement('canvas');
         lightningCanvas.id = 'lightning-canvas';
         lightningCanvas.style.position = 'fixed';
         lightningCanvas.style.top = '0';
         lightningCanvas.style.left = '0';
-        lightningCanvas.style.width = '100vw'; // Используем vw вместо %
-        lightningCanvas.style.height = '100vh'; // Используем vh вместо %
+        lightningCanvas.style.width = '100vw';
+        lightningCanvas.style.height = '100vh';
         lightningCanvas.style.pointerEvents = 'none';
-        lightningCanvas.style.zIndex = '9999'; // Увеличиваем z-index
+        lightningCanvas.style.zIndex = '9999';
         lightningCanvas.style.display = 'none';
         document.body.appendChild(lightningCanvas);
     }
 
-    // Устанавливаем размеры canvas в пикселях
+    /**
+     * Обновляет размеры canvas.
+     */
     function updateCanvasSize() {
         lightningCanvas.width = window.innerWidth;
         lightningCanvas.height = window.innerHeight;
@@ -133,26 +186,29 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCanvasSize();
     const ctx = lightningCanvas.getContext('2d');
 
-    // Конфигурация молнии - усилили яркость и ширину для мобильных
+    // Конфигурация молнии
     const lightningConfig = {
-        Segments: 35, // Немного уменьшили
-        Threshold: 0.8, // Немного уменьшили
-        Width: 2.5, // Сбалансировали
+        Segments: 35,
+        Threshold: 0.8,
+        Width: 2.5,
         Color: "white",
-        Blur: 15, // Уменьшили свечение
+        Blur: 15,
         BlurColor: "white",
-        Alpha: 0.9, // Немного уменьшили
-        GlowColor: "#2266FF", // Менее яркий синий
-        GlowWidth: 45, // Уменьшили
-        GlowBlur: 100, // Уменьшили
-        GlowAlpha: 40 // Уменьшили для меньшей интенсивности
+        Alpha: 0.9,
+        GlowColor: "#2266FF",
+        GlowWidth: 45,
+        GlowBlur: 100,
+        GlowAlpha: 40
     };
 
     const lightning = new Lightning(lightningConfig);
 
-    // Точки начала молний - будут обновляться при изменении размеров
+    // Точки начала молний
     let lightningPoints = [];
 
+    /**
+     * Обновляет точки начала молний.
+     */
     function updateLightningPoints() {
         lightningPoints = [
             new Vector(0, 0, 0, 0),
@@ -168,30 +224,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateLightningPoints();
 
-    // Обновление размеров canvas
     window.addEventListener('resize', function() {
         updateCanvasSize();
         updateLightningPoints();
     });
 
-    // Создаём объекты Audio с фоллбэком
+    // Аудио
     const thunderSound = new Audio('/static/blog/sounds/thunder.mp3');
     thunderSound.preload = 'auto';
-    thunderSound.volume = 0.3; // Увеличиваем громкость
+    thunderSound.volume = 0.3;
 
     const successSound = new Audio('/static/blog/sounds/success.mp3');
     successSound.preload = 'auto';
-    successSound.volume = 0.3; // Увеличиваем громкость
+    successSound.volume = 0.3;
 
-    // Функция проигрывания звука с обработкой ошибок
+    /**
+     * Проигрывает звук.
+     * @param {HTMLAudioElement} sound - Аудио элемент.
+     */
     function playSound(sound) {
-        // Перезагружаем звук если он уже играл
         sound.currentTime = 0;
-
-        // Пытаемся проиграть звук
         sound.play().catch(error => {
             console.error('Error playing sound:', error);
-            // Для iOS и некоторых мобильных браузеров требуется взаимодействие с пользователем
             document.body.addEventListener('touchstart', function soundTrigger() {
                 sound.play().catch(e => console.error('Still cannot play sound:', e));
                 document.body.removeEventListener('touchstart', soundTrigger);
@@ -199,7 +253,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Функция показа эффекта молнии со звуком (неправильный ответ)
+    /**
+     * Показывает эффект молнии для неправильного ответа.
+     * @param {HTMLElement} element - Элемент ответа.
+     */
     window.showLightningEffect = function(element) {
         console.log('Showing balanced lightning effect for mobile');
 
@@ -208,62 +265,47 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetY = rect.top + rect.height / 2;
         const target = new Vector(0, 0, targetX, targetY);
 
-        // Активируем canvas
         lightningCanvas.style.display = 'block';
         lightningCanvas.style.opacity = '1';
 
-        // Проигрываем звук грома
         playSound(thunderSound);
 
-        // Проверяем, мобильное ли устройство
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isSmallScreen = window.innerWidth < 768;
 
         let frames = 0;
-        const maxFrames = isMobile ? 45 : 40; // Немного уменьшили
+        const maxFrames = isMobile ? 45 : 40;
 
-        // Создаем точки начала молний
         let customLightningPoints = [];
 
         if (isMobile || isSmallScreen) {
-            // Меньше точек для сбалансированного эффекта
             customLightningPoints = [
-                // Молнии сверху и снизу (самые важные для видимости)
                 new Vector(0, 0, targetX - 50, 0),
                 new Vector(0, 0, targetX + 50, 0),
                 new Vector(0, 0, targetX, 0),
                 new Vector(0, 0, targetX - 50, lightningCanvas.height),
                 new Vector(0, 0, targetX + 50, lightningCanvas.height),
                 new Vector(0, 0, targetX, lightningCanvas.height),
-
-                // Молнии с боков (меньше)
                 new Vector(0, 0, 0, targetY),
                 new Vector(0, 0, lightningCanvas.width, targetY),
-
-                // Молнии с углов (только основные)
                 new Vector(0, 0, 0, 0),
                 new Vector(0, 0, lightningCanvas.width, lightningCanvas.height)
             ];
         } else {
-            // Для десктопа оставляем базовые точки
             customLightningPoints = lightningPoints;
         }
 
         function animate() {
             ctx.clearRect(0, 0, lightningCanvas.width, lightningCanvas.height);
 
-            // Менее интенсивное затемнение фона
             ctx.fillStyle = isMobile ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.3)';
             ctx.fillRect(0, 0, lightningCanvas.width, lightningCanvas.height);
 
-            // Уменьшаем количество одновременных молний
             const numPoints = isMobile ? 3 + Math.floor(Math.random() * 2) : 2;
             const shuffledPoints = [...customLightningPoints].sort(() => 0.5 - Math.random());
             const selectedPoints = shuffledPoints.slice(0, numPoints);
 
-            // Рисуем выбранные молнии с меньшим смещением
             selectedPoints.forEach(point => {
-                // Меньшее случайное смещение
                 const jitterX = (Math.random() - 0.5) * 25;
                 const jitterY = (Math.random() - 0.5) * 25;
                 const jitteredTarget = new Vector(0, 0, targetX + jitterX, targetY + jitterY);
@@ -280,15 +322,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         animate();
-
-        // Добавляем класс к элементу сразу
         element.classList.add('incorrect');
-
-        // Попытки активировать вибрацию разными способами
         tryVibrateMultipleMethods();
     };
 
-    // Функция показа эффекта конфетти (правильный ответ)
+    /**
+     * Показывает эффект конфетти для правильного ответа.
+     * @param {HTMLElement} element - Элемент ответа.
+     */
     window.showConfetti = function(element) {
         console.log('Showing confetti effect for', element);
 
@@ -297,31 +338,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const ctx = canvas.getContext('2d');
         const particles = [];
 
-        // Начальная позиция — центр элемента
         const startX = rect.left + rect.width / 2;
         const startY = rect.top + rect.height / 2;
 
-        // Создаём больше частиц для мобильных
         for (let i = 0; i < 150; i++) {
             particles.push({
                 x: startX,
                 y: startY,
-                speed: Math.random() * 6 + 3, // Быстрее
-                angle: Math.random() * 2 * Math.PI, // Во все стороны
-                size: Math.random() * 6 + 3, // Крупнее
+                speed: Math.random() * 6 + 3,
+                angle: Math.random() * 2 * Math.PI,
+                size: Math.random() * 6 + 3,
                 color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-                life: 80 // Дольше живут
+                life: 80
             });
         }
 
-        // Проигрываем звук успеха
         playSound(successSound);
 
         function animateConfetti() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles.forEach((p, i) => {
                 p.x += Math.cos(p.angle) * p.speed;
-                p.y += Math.sin(p.angle) * p.speed + 0.1; // Гравитация
+                p.y += Math.sin(p.angle) * p.speed + 0.1;
                 p.life--;
 
                 ctx.fillStyle = p.color;
@@ -337,81 +375,68 @@ document.addEventListener('DOMContentLoaded', function() {
         canvas.style.display = 'block';
         canvas.style.opacity = '1';
         animateConfetti();
-
-        // Добавляем класс к элементу сразу
         element.classList.add('correct');
     };
 
-    // Универсальный обработчик событий для ответов (работает для клика и касания)
-    function setupAnswerHandlers() {
-        const answerOptions = document.querySelectorAll('.answer-option');
-        if (answerOptions.length > 0) {
-            console.log('Answer options found:', answerOptions.length);
-
-            answerOptions.forEach(option => {
-                // Удаляем предыдущие обработчики если они были
-                option.removeEventListener('click', handleAnswerSelection);
-                option.removeEventListener('touchend', handleTouchEnd);
-                option.removeEventListener('touchstart', handleTouchStart);
-                option.removeEventListener('touchmove', handleTouchMove);
-
-                // Добавляем новые обработчики
-                option.addEventListener('click', handleAnswerSelection);
-                option.addEventListener('touchstart', handleTouchStart);
-                option.addEventListener('touchmove', handleTouchMove);
-                option.addEventListener('touchend', handleTouchEnd);
-            });
-        } else {
-            console.log('No answer options found');
+    /**
+     * Показывает модальное окно с объяснением и предотвращает прокрутку страницы.
+     * @param {string} explanation - Текст объяснения.
+     */
+    function showModal(explanation) {
+        let modal = document.querySelector('.modal');
+        if (modal) {
+            modal.remove();
         }
-    }
 
-    // Функции для обработки касаний
-    let touchStartTime = 0;
-    let touchStartY = 0;
-    let isTouchMoved = false;
-    let touchThreshold = 10; // пикселей для определения скролла
-    let touchDelay = 120; // миллисекунд задержки для различения клика и скролла
+        modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <p>${explanation}</p>
+            </div>
+        `;
+        document.body.appendChild(modal);
 
-    function handleTouchStart(event) {
-        touchStartTime = Date.now();
-        touchStartY = event.touches[0].clientY;
-        isTouchMoved = false;
-    }
+        const modalContent = modal.querySelector('.modal-content');
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    function handleTouchMove(event) {
-        if (Math.abs(event.touches[0].clientY - touchStartY) > touchThreshold) {
-            isTouchMoved = true;
+        // Предотвращаем прокрутку страницы при открытом модальном окне
+        const scrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+
+        // Обработчик для закрытия модального окна при клике/касании вне области
+        const closeModalHandler = (e) => {
+            if (e.target === modal || e.target === closeButton) {
+                modal.remove();
+                // Восстанавливаем прокрутку страницы
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                window.scrollTo(0, scrollY);
+            }
+        };
+
+        // Добавляем обработчики для всех устройств
+        modal.addEventListener('click', closeModalHandler);
+        if (isMobile) {
+            modal.addEventListener('touchstart', closeModalHandler);
         }
+
+        modal.style.display = 'flex';
     }
 
-    function handleTouchEnd(event) {
-        const touchDuration = Date.now() - touchStartTime;
-
-        // Если движение было минимальным и длительность меньше порога
-        if (!isTouchMoved && touchDuration < touchDelay) {
-            event.preventDefault();
-            // Задержка перед выполнением действия, чтобы убедиться что это не скролл
-            setTimeout(() => {
-                if (!isTouchMoved) {
-                    handleAnswerSelection.call(this, event);
-                }
-            }, 50);
-        }
-    }
-
-    // Новая функция с несколькими методами вибрации
+    /**
+     * Пытается активировать вибрацию разными методами.
+     */
     function tryVibrateMultipleMethods() {
         console.log("Trying multiple vibration methods");
 
-        // Метод 1: Стандартный API вибрации
         if ('vibrate' in navigator) {
             try {
-                // Интенсивный паттерн вибрации
                 navigator.vibrate([100, 30, 200, 30, 300]);
                 console.log('Standard vibration activated');
-
-                // Повторная вибрация через таймаут
                 setTimeout(() => {
                     navigator.vibrate(200);
                 }, 700);
@@ -420,7 +445,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Метод 2: Альтернативный вызов через setTimeout
         setTimeout(() => {
             try {
                 if ('vibrate' in navigator) {
@@ -432,7 +456,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
 
-        // Метод 3: Использование window.navigator
         try {
             if (window.navigator && window.navigator.vibrate) {
                 window.navigator.vibrate([150, 50, 150]);
@@ -442,7 +465,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error with window.navigator vibration:', e);
         }
 
-        // Метод 4: Для устройств с устаревшими префиксами
         try {
             const navAny = navigator;
             if (navAny.mozVibrate) {
@@ -457,41 +479,208 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Функция обработки выбора ответа
-    function handleAnswerSelection(event) {
-        event.preventDefault(); // Предотвращаем дефолтное поведение для touchend
+    /**
+     * Отправляет ответ через AJAX.
+     * @param {string} submitUrl - URL для отправки ответа.
+     * @param {string} answer - Выбранный ответ.
+     * @returns {Promise<Object>} Ответ сервера.
+     */
+    async function submitAnswer(submitUrl, answer) {
+        try {
+            const response = await fetch(submitUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `answer=${encodeURIComponent(answer)}`
+            });
+            const data = await response.json();
+            console.log('Answer submitted:', data);
+            return data;
+        } catch (error) {
+            console.error('Error submitting answer:', error);
+            return { error: 'Failed to submit answer' };
+        }
+    }
+
+    /**
+     * Получает значение cookie.
+     * @param {string} name - Имя cookie.
+     * @returns {string|null} Значение cookie или null.
+     */
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Список вариантов "Я не знаю, но хочу узнать" на всех языках
+    const dontKnowOptions = [
+        "Я не знаю, но хочу узнать",
+        "I don't know, but I want to learn",
+        "No lo sé, pero quiero aprender",
+        "Bilmiyorum, ama öğrenmek istiyorum",
+        "لا أعرف، ولكن أريد أن أتعلم",
+        "Je ne sais pas, mais je veux apprendre",
+        "Ich weiß es nicht, aber ich möchte lernen",
+        "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
+        "نمی‌دانم، اما می‌خواهم یاد بگیرم",
+        "Ман намедонам, аммо мехоҳам омӯзам",
+        "Bilmayman, lekin o‘rganmoqchiman",
+        "Білмеймін, бірақ үйренгім келеді"
+    ];
+
+    /**
+     * Устанавливает обработчики событий для вариантов ответа и добавляет класс dont-know-option.
+     */
+    function setupAnswerHandlers() {
+        const answerOptions = document.querySelectorAll('.answer-option');
+        if (answerOptions.length > 0) {
+            console.log('Answer options found:', answerOptions.length);
+
+            answerOptions.forEach(option => {
+                // Удаляем существующие обработчики
+                option.removeEventListener('click', handleAnswerSelection);
+                option.removeEventListener('touchend', handleTouchEnd);
+                option.removeEventListener('touchstart', handleTouchStart);
+                option.removeEventListener('touchmove', handleTouchMove);
+
+                // Добавляем класс dont-know-option, если ответ в списке
+                if (dontKnowOptions.includes(option.dataset.answer)) {
+                    option.classList.add('dont-know-option');
+                }
+
+                // Добавляем новые обработчики
+                option.addEventListener('click', handleAnswerSelection);
+                option.addEventListener('touchstart', handleTouchStart);
+                option.addEventListener('touchmove', handleTouchMove);
+                option.addEventListener('touchend', handleTouchEnd);
+            });
+        } else {
+            console.log('No answer options found');
+        }
+    }
+
+    // Обработка касаний
+    let touchStartTime = 0;
+    let touchStartY = 0;
+    let isTouchMoved = false;
+    const touchThreshold = 10;
+    const touchDelay = 120;
+
+    /**
+     * Обрабатывает начало касания.
+     * @param {TouchEvent} event - Событие касания.
+     */
+    function handleTouchStart(event) {
+        touchStartTime = Date.now();
+        touchStartY = event.touches[0].clientY;
+        isTouchMoved = false;
+    }
+
+    /**
+     * Обрабатывает движение касания.
+     * @param {TouchEvent} event - Событие касания.
+     */
+    function handleTouchMove(event) {
+        if (Math.abs(event.touches[0].clientY - touchStartY) > touchThreshold) {
+            isTouchMoved = true;
+        }
+    }
+
+    /**
+     * Обрабатывает окончание касания.
+     * @param {TouchEvent} event - Событие касания.
+     */
+    function handleTouchEnd(event) {
+        const touchDuration = Date.now() - touchStartTime;
+
+        if (!isTouchMoved && touchDuration < touchDelay) {
+            event.preventDefault();
+            setTimeout(() => {
+                if (!isTouchMoved) {
+                    handleAnswerSelection.call(this, event);
+                }
+            }, 50);
+        }
+    }
+
+    /**
+     * Обрабатывает выбор ответа.
+     * @param {Event} event - Событие клика или касания.
+     */
+    async function handleAnswerSelection(event) {
+        event.preventDefault();
 
         const option = this;
         console.log('Option selected:', option.dataset.answer, 'Correct:', option.dataset.correct);
         const isCorrect = option.dataset.correct === 'true';
+        const isDontKnow = option.classList.contains('dont-know-option') || dontKnowOptions.includes(option.dataset.answer);
 
-        // Отключаем все варианты ответов в этой группе
         const parent = option.parentElement;
         parent.querySelectorAll('.answer-option').forEach(opt => {
             opt.style.pointerEvents = 'none';
-            opt.classList.remove('active'); // Убираем активный класс со всех
+            opt.classList.remove('active');
         });
 
-        // Добавляем активный класс к выбранному
         option.classList.add('active');
 
-        if (!isCorrect) {
+        // Отправляем ответ через AJAX
+        const taskItem = option.closest('.task-item');
+        const submitUrl = taskItem.dataset.submitUrl;
+        let explanation = taskItem.dataset.explanation || 'No explanation available.';
+
+        if (submitUrl) {
+            const result = await submitAnswer(submitUrl, option.dataset.answer);
+            if (result.error) {
+                console.error('Failed to submit answer:', result.error);
+                // Показываем уведомление об ошибке, если нужно
+            } else {
+                // Обновляем данные из ответа сервера
+                explanation = result.explanation || explanation;
+                const serverIsCorrect = result.is_correct !== undefined ? result.is_correct : isCorrect;
+                if (result.results) {
+                    console.log('Answer statistics:', result.results);
+                    // Можно отобразить статистику, если нужно
+                }
+
+                if (isDontKnow) {
+                    showModal(explanation);
+                    option.classList.add('incorrect');
+                } else if (!serverIsCorrect) {
+                    showLightningEffect(option);
+                } else {
+                    showConfetti(option);
+                }
+                return; // Завершаем обработку
+            }
+        } else {
+            console.error('Submit URL not found');
+        }
+
+        // Запасной вариант, если AJAX не сработал
+        if (isDontKnow) {
+            showModal(explanation);
+            option.classList.add('incorrect');
+        } else if (!isCorrect) {
             showLightningEffect(option);
         } else {
             showConfetti(option);
         }
     }
 
-    // Инициализируем обработчики сразу
     setupAnswerHandlers();
-
-    // Перепривязываем обработчики при динамической загрузке контента (например, при пагинации)
     document.addEventListener('DOMContentLoaded', setupAnswerHandlers);
     document.addEventListener('page:loaded', setupAnswerHandlers);
-
-    // Также привязываем к событию загрузки страницы через AJAX, если оно используется
     document.addEventListener('turbolinks:load', setupAnswerHandlers);
-
 });
-
-

@@ -138,6 +138,7 @@ class TaskTranslation(models.Model):
         return f"Перевод задачи {self.task_id} ({self.language})"
 
 
+
 class TaskStatistics(models.Model):
     class Meta:
         db_table = 'task_statistics'
