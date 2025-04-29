@@ -125,8 +125,8 @@
             <li class="testimonials-item">
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
-                        {% if testimonial.user.profile.avatar %}
-                            <img src="{{ testimonial.user.profile.avatar.url }}" alt="avatar" data-testimonials-avatar width="60">
+                        {% if testimonial.user.avatar %}
+                            <img src="{{ testimonial.user.avatar.url }}" alt="avatar" data-testimonials-avatar width="60">
                         {% else %}
                             <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-testimonials-avatar width="60">
                         {% endif %}
