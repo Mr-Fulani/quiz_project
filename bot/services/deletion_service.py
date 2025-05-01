@@ -1,5 +1,3 @@
-# bot/handlers/delete_task.py
-
 import logging
 from typing import Optional, Dict, Any
 
@@ -9,27 +7,28 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import S3_BUCKET_NAME, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-from bot.database.models import Task, Topic, TaskTranslation, TaskPoll, Group
+from bot.database.models import Task, Topic, TaskTranslation, TaskPoll, TelegramGroup
 from bot.services.s3_services import extract_s3_key_from_url
+
 
 # Настройка логгера
 logger = logging.getLogger(__name__)
+
 
 # Создание роутера
 router = Router()
 
 
 
-
 async def delete_from_s3(image_url: str) -> bool:
     """
-    Удаляет изображение из S3 хранилища.
+    Удаляет изображение из S3 хранилища по указанному URL.
 
     Args:
-        image_url (str): URL изображения в S3
+        image_url (str): URL изображения в S3.
 
     Returns:
-        bool: True если удаление успешно, False в случае ошибки
+        bool: True, если удаление успешно, иначе False.
     """
     try:
         if not image_url:
@@ -59,18 +58,25 @@ async def delete_from_s3(image_url: str) -> bool:
         return False
 
 
+
 async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[Dict[str, Any]]:
     """
-    Удаляет задачу и все связанные с ней данные, включая изображения из S3.
+    Удаляет задачу, её переводы, опросы и изображения из S3.
 
     Args:
-        task_id (int): ID задачи для удаления
-        db_session (AsyncSession): Сессия базы данных
+        task_id (int): ID задачи для удаления.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+
+    Returns:
+        Optional[Dict[str, Any]]: Информация об удалённых данных или None, если задача не найдена.
+
+    Raises:
+        Exception: Если произошла ошибка при удалении.
     """
     try:
         # Начинаем транзакцию
         async with db_session.begin():
-            # Получаем информацию о задаче перед удалением
+            # Получаем информацию о задаче
             task_query = select(Task.id, Task.topic_id, Task.translation_group_id, Task.image_url).where(
                 Task.id == task_id)
             task_result = await db_session.execute(task_query)
@@ -84,7 +90,7 @@ async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[
             logger.debug(
                 f"ID группы переводов: {translation_group_id}, ID топика: {topic_id}, URL изображения: {image_url}")
 
-            # Получаем все задачи с тем же translation_group_id
+            # Получаем связанные задачи
             related_tasks_query = select(Task.id, Task.group_id, Task.image_url).where(
                 Task.translation_group_id == translation_group_id
             )
@@ -92,7 +98,7 @@ async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[
             related_tasks = related_tasks_result.fetchall()
             deleted_task_ids = [task.id for task in related_tasks]
 
-            # Собираем все URL изображений для удаления
+            # Собираем URL изображений
             image_urls = [task.image_url for task in related_tasks if task.image_url]
             logger.debug(f"Найдены URL изображений для удаления: {image_urls}")
 
@@ -101,7 +107,7 @@ async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[
             topic_result = await db_session.execute(topic_query)
             topic_name = topic_result.scalar()
 
-            # Получаем информацию о переводах
+            # Получаем переводы
             translations_query = select(TaskTranslation.id, TaskTranslation.language).where(
                 TaskTranslation.task_id.in_(deleted_task_ids)
             )
@@ -112,11 +118,11 @@ async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[
 
             # Получаем названия групп
             group_ids = [task.group_id for task in related_tasks]
-            groups_query = select(Group.group_name).where(Group.id.in_(group_ids))
+            groups_query = select(TelegramGroup.group_name).where(TelegramGroup.id.in_(group_ids))
             groups_result = await db_session.execute(groups_query)
             group_names = [group[0] for group in groups_result.fetchall()]
 
-            # Получаем и удаляем связанные опросы
+            # Удаляем опросы
             polls_query = select(TaskPoll.id).where(TaskPoll.translation_id.in_(deleted_translation_ids))
             polls_result = await db_session.execute(polls_query)
             poll_ids = [poll.id for poll in polls_result.fetchall()]
@@ -139,7 +145,7 @@ async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[
             )
             logger.info(f"✅ Задачи с ID {deleted_task_ids} успешно удалены.")
 
-            # После успешного удаления из базы данных, удаляем все изображения из S3
+            # Удаляем изображения из S3
             deleted_images = []
             for img_url in image_urls:
                 if await delete_from_s3(img_url):
@@ -165,5 +171,4 @@ async def delete_task_by_id(task_id: int, db_session: AsyncSession) -> Optional[
     except Exception as e:
         logger.error(f"❌ Ошибка при удалении задачи: {e}")
         raise
-
 

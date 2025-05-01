@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import datetime
 from sqlalchemy import select
 
-from bot.database.models import UserChannelSubscription, TelegramUser, Group
+from bot.database.models import UserChannelSubscription, TelegramUser, TelegramGroup
 
 logger = logging.getLogger(__name__)
 router = Router(name="user_router")
@@ -130,7 +130,7 @@ async def get_or_create_user(db_session: AsyncSession, from_user: types.User) ->
     return user_obj
 
 
-async def get_group(db_session: AsyncSession, chat: types.Chat) -> Group | None:
+async def get_group(db_session: AsyncSession, chat: types.Chat) -> TelegramGroup | None:
     """
     Получает группу (канал) из таблицы groups по Telegram ID.
     Если группа не найдена, возвращает None, не создавая новую запись.
@@ -144,7 +144,7 @@ async def get_group(db_session: AsyncSession, chat: types.Chat) -> Group | None:
     """
     # Ищем группу по Telegram ID чата
     result = await db_session.execute(
-        select(Group).where(Group.group_id == chat.id)
+        select(TelegramGroup).where(TelegramGroup.group_id == chat.id)
     )
     group_obj = result.scalar_one_or_none()
 

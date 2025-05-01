@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Dict, Tuple
 
-from bot.database.models import Group
+from bot.database.models import TelegramGroup
 from bot.handlers.webhook_handler import get_incorrect_answers
+
 
 async def create_webhook_data(
     task_id: int,
@@ -11,11 +12,29 @@ async def create_webhook_data(
     image_url: str,  # финальная ссылка на картинку
     poll_message: Dict,
     translation,
-    group: Group,
+    group: TelegramGroup,
     image_message,   # dict или объект
     dont_know_option: str,
     external_link: str
 ) -> Tuple[Dict, str]:
+    """
+    Создаёт данные для вебхука на основе информации о задаче и опросе.
+
+    Args:
+        task_id (int): ID задачи.
+        channel_username (str): Имя пользователя канала (например, '@ChannelName').
+        poll_msg: Сообщение с опросом (dict или объект Aiogram).
+        image_url (str): URL изображения задачи.
+        poll_message (Dict): Данные сообщения с опросом.
+        translation: Объект перевода задачи (содержит вопрос, ответы, язык).
+        group (TelegramGroup): Объект группы/канала Telegram.
+        image_message: Сообщение с изображением (dict или объект Aiogram).
+        dont_know_option (str): Текст варианта "Не знаю".
+        external_link (str): Внешняя ссылка для варианта "Не знаю".
+
+    Returns:
+        Tuple[Dict, str]: Словарь с данными для вебхука и ссылка на опрос.
+    """
     message_id = None
     if isinstance(poll_msg, dict):
         message_id = poll_msg.get("message_id")

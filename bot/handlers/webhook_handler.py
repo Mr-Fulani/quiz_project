@@ -1,5 +1,3 @@
-# handlers/webhook_handler.py
-
 import logging
 from aiogram import Router, F, Bot
 from aiogram.types import Message
@@ -9,7 +7,7 @@ import re
 from typing import Optional, List, Union
 
 from bot.utils.db_utils import fetch_one
-from bot.database.models import TaskTranslation, Group, Task
+from bot.database.models import TaskTranslation, TelegramGroup, Task
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,13 +16,33 @@ router = Router()
 
 
 async def get_task_translations(task_id: int, session: AsyncSession) -> list:
+    """
+    Получает все переводы для указанной задачи по её ID.
+
+    Args:
+        task_id (int): ID задачи.
+        session (AsyncSession): Асинхронная сессия SQLAlchemy.
+
+    Returns:
+        list: Список объектов TaskTranslation, связанных с задачей.
+    """
     query = select(TaskTranslation).where(TaskTranslation.task_id == task_id)
     translations = (await session.execute(query)).scalars().all()
     return translations
 
 
 async def get_channel_info(chat_id: int, session: AsyncSession) -> Optional[dict]:
-    query = select(Group).where(Group.group_id == chat_id)
+    """
+    Получает информацию о канале или группе по их Telegram ID.
+
+    Args:
+        chat_id (int): Telegram ID канала или группы.
+        session (AsyncSession): Асинхронная сессия SQLAlchemy.
+
+    Returns:
+        Optional[dict]: Словарь с данными о канале/группе (id, name) или None, если не найдено.
+    """
+    query = select(TelegramGroup).where(TelegramGroup.group_id == chat_id)
     group = await fetch_one(session, query)
     if group:
         return {
@@ -34,19 +52,22 @@ async def get_channel_info(chat_id: int, session: AsyncSession) -> Optional[dict
     return None
 
 
-# Предполагаемая реализация get_incorrect_answers
 async def get_incorrect_answers(answers: Union[str, list], correct_answer: str) -> List[str]:
     """
-    Если answers -- уже список, возвращаем фильтр.
-    Если answers -- строка (JSON), сначала loads(), потом фильтруем.
+    Извлекает неверные ответы из списка или JSON-строки, исключая правильный ответ.
+
+    Args:
+        answers (Union[str, list]): Список ответов или строка в формате JSON.
+        correct_answer (str): Правильный ответ для фильтрации.
+
+    Returns:
+        List[str]: Список неверных ответов.
     """
     if isinstance(answers, str):
         try:
             answers = json.loads(answers)
         except json.JSONDecodeError:
-            # На всякий случай обработка ошибки
             return []
-    # дальше answers точно список
     return [a for a in answers if a != correct_answer]
 
 
@@ -134,6 +155,3 @@ async def handle_photo_with_caption(message: Message, bot: Bot, db_session: Asyn
 
         # Логирование информации об ошибке
         logger.error(f"❌ Ошибка при обработке сообщения:\n{json.dumps(error_data, ensure_ascii=False, indent=2)}")
-
-
-

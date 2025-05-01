@@ -50,14 +50,16 @@ class Task(Base):
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)
     message_id = Column(Integer, unique=False, nullable=True)
-    group_id = Column(BigInteger, ForeignKey('groups.id'), nullable=True)
+    group_id = Column(BigInteger, ForeignKey('telegram_groups.id'), nullable=True)
 
     translations = relationship('TaskTranslation', back_populates='task', cascade="all, delete-orphan")
     statistics = relationship('TaskStatistics', back_populates='task', cascade="all, delete-orphan")
-    group = relationship('Group', back_populates='tasks')
+    group = relationship('TelegramGroup', back_populates='tasks')
     polls = relationship('TaskPoll', back_populates='task', cascade="all, delete-orphan")
     topic = relationship('Topic', back_populates='tasks')
     subtopic = relationship('Subtopic', back_populates='tasks')
+
+
 
 class TaskTranslation(Base):
     __tablename__ = 'task_translations'
@@ -123,23 +125,65 @@ class TaskStatistics(Base):
 
 
 
-class Group(Base):
-    __tablename__ = 'groups'
+# class Group(Base):
+#     __tablename__ = 'groups'
+#
+#     id = Column(Integer, primary_key=True)
+#     group_name = Column(String, nullable=False)
+#     group_id = Column(BigInteger, unique=True, nullable=False)
+#     topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
+#     language = Column(String, nullable=False)
+#     location_type = Column(String, nullable=False, default="group")
+#     username = Column(String, nullable=True)
+#
+#     user_subscriptions = relationship(
+#         "UserChannelSubscription",
+#         back_populates="channel",
+#         cascade="all, delete-orphan"
+#     )
+#     tasks = relationship('Task', back_populates='group')
+
+
+
+class TelegramGroup(Base):
+    """
+    Модель для хранения информации о Telegram-группах или каналах.
+
+    Attributes:
+        id (int): Уникальный идентификатор группы/канала.
+        group_name (str): Название группы/канала.
+        group_id (int): Telegram ID группы/канала (уникальный).
+        topic_id (int): ID связанной темы (ForeignKey к таблице topics).
+        language (str): Язык группы/канала.
+        location_type (str): Тип (группа, канал или веб-сайт).
+        username (str, optional): Username группы/канала (например, '@ChannelName').
+        user_subscriptions: Связь с подписками пользователей.
+        tasks: Связь с задачами, связанными с группой/каналом.
+    """
+    __tablename__ = 'telegram_groups'
 
     id = Column(Integer, primary_key=True)
     group_name = Column(String, nullable=False)
     group_id = Column(BigInteger, unique=True, nullable=False)
-    topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
+    topic_id_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
     language = Column(String, nullable=False)
     location_type = Column(String, nullable=False, default="group")
     username = Column(String, nullable=True)
-
     user_subscriptions = relationship(
         "UserChannelSubscription",
         back_populates="channel",
         cascade="all, delete-orphan"
     )
     tasks = relationship('Task', back_populates='group')
+
+    def __str__(self):
+        """
+        Строковое представление объекта TelegramGroup.
+
+        Returns:
+            str: Название группы/канала.
+        """
+        return self.group_name
 
 
 
@@ -210,13 +254,13 @@ class UserChannelSubscription(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('telegram_users.id'), nullable=False)
-    channel_id = Column(BigInteger, ForeignKey('groups.group_id'), nullable=False)
+    channel_id = Column(BigInteger, ForeignKey('telegram_groups.id'), nullable=False)
     subscription_status = Column(String, default='inactive', nullable=False)
     subscribed_at = Column(DateTime, nullable=True)
     unsubscribed_at = Column(DateTime, nullable=True)
 
     user = relationship('TelegramUser', back_populates='channel_subscriptions')
-    channel = relationship('Group', back_populates='user_subscriptions')
+    channel = relationship('TelegramGroup', back_populates='user_subscriptions')
 
     def __repr__(self):
         return f"<UserChannelSubscription(user_id={self.user_id}, channel_id={self.channel_id}, status={self.subscription_status})>"

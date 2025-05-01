@@ -16,7 +16,7 @@ from bot.keyboards.quiz_keyboards import get_admin_channels_keyboard
 from bot.services.admin_service import is_admin
 from bot.states.admin_states import UserStatsState
 from bot.utils.markdownV2 import escape_markdown
-from bot.database.models import TelegramUser, TaskStatistics, UserChannelSubscription, Group
+from bot.database.models import TelegramUser, TaskStatistics, UserChannelSubscription, TelegramGroup
 
 logger = logging.getLogger(__name__)
 router = Router(name="statistics_router")
@@ -275,12 +275,11 @@ def escape_markdown_v2(text: str) -> str:
 @router.message(Command(commands=["allstats"]))
 async def all_statistics(message: types.Message, db_session: AsyncSession):
     """
-    Обрабатывает команду /allstats для администраторов.
-    Выводит общую статистику пользователей и активности в каналах за месяц, неделю и квартал.
+    Показывает админам статистику пользователей и активности в каналах за месяц, неделю, квартал.
 
     Args:
-        message (types.Message): Сообщение от администратора с командой.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
+        message (types.Message): Сообщение с командой /allstats.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     admin_id = message.from_user.id
     logger.info(f"[all_statistics] Админ {admin_id} запросил общую статистику с детализацией по периодам.")
@@ -326,12 +325,12 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
         )).scalar() or 0
 
         channel_activity_query_month = select(
-            Group.group_name,
-            Group.username,
+            TelegramGroup.group_name,
+            TelegramGroup.username,
             func.count(case((UserChannelSubscription.subscription_status == 'active', 1))).label('gained'),
             func.count(case((UserChannelSubscription.subscription_status == 'inactive', 1))).label('lost')
         ).join(
-            UserChannelSubscription, UserChannelSubscription.channel_id == Group.group_id
+            UserChannelSubscription, UserChannelSubscription.channel_id == TelegramGroup.group_id
         ).where(
             or_(
                 and_(
@@ -343,7 +342,7 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                     UserChannelSubscription.unsubscribed_at.between(start_month, end_month)
                 )
             )
-        ).group_by(Group.group_name, Group.username)
+        ).group_by(TelegramGroup.group_name, TelegramGroup.username)
         channel_activity_month = (await db_session.execute(channel_activity_query_month)).all()
         total_gained_month = sum(g for _, _, g, _ in channel_activity_month)
         total_lost_month = sum(l for _, _, _, l in channel_activity_month)
@@ -370,12 +369,12 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
         )).scalar() or 0
 
         channel_activity_query_week = select(
-            Group.group_name,
-            Group.username,
+            TelegramGroup.group_name,
+            TelegramGroup.username,
             func.count(case((UserChannelSubscription.subscription_status == 'active', 1))).label('gained'),
             func.count(case((UserChannelSubscription.subscription_status == 'inactive', 1))).label('lost')
         ).join(
-            UserChannelSubscription, UserChannelSubscription.channel_id == Group.group_id
+            UserChannelSubscription, UserChannelSubscription.channel_id == TelegramGroup.group_id
         ).where(
             or_(
                 and_(
@@ -387,7 +386,7 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                     UserChannelSubscription.unsubscribed_at.between(start_week, end_week)
                 )
             )
-        ).group_by(Group.group_name, Group.username)
+        ).group_by(TelegramGroup.group_name, TelegramGroup.username)
         channel_activity_week = (await db_session.execute(channel_activity_query_week)).all()
         total_gained_week = sum(g for _, _, g, _ in channel_activity_week)
         total_lost_week = sum(l for _, _, _, l in channel_activity_week)
@@ -414,12 +413,12 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
         )).scalar() or 0
 
         channel_activity_query_quarter = select(
-            Group.group_name,
-            Group.username,
+            TelegramGroup.group_name,
+            TelegramGroup.username,
             func.count(case((UserChannelSubscription.subscription_status == 'active', 1))).label('gained'),
             func.count(case((UserChannelSubscription.subscription_status == 'inactive', 1))).label('lost')
         ).join(
-            UserChannelSubscription, UserChannelSubscription.channel_id == Group.group_id
+            UserChannelSubscription, UserChannelSubscription.channel_id == TelegramGroup.group_id
         ).where(
             or_(
                 and_(
@@ -431,7 +430,7 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                     UserChannelSubscription.unsubscribed_at.between(start_quarter, end_quarter)
                 )
             )
-        ).group_by(Group.group_name, Group.username)
+        ).group_by(TelegramGroup.group_name, TelegramGroup.username)
         channel_activity_quarter = (await db_session.execute(channel_activity_query_quarter)).all()
         total_gained_quarter = sum(g for _, _, g, _ in channel_activity_quarter)
         total_lost_quarter = sum(l for _, _, _, l in channel_activity_quarter)
@@ -496,12 +495,11 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
 @router.callback_query(F.data == "allstats")
 async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает callback-кнопку 'allstats' для администраторов.
-    Выводит общую статистику пользователей и активности в каналах за месяц, неделю и квартал.
+    Показывает админам статистику пользователей и каналов по нажатию кнопки 'allstats'.
 
     Args:
         call (types.CallbackQuery): Callback-запрос от кнопки.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     admin_id = call.from_user.id
     logger.info(f"Пользователь {admin_id} запросил общую статистику с детализацией.")
@@ -512,7 +510,6 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
         return
 
     try:
-        # Вызываем ту же логику, что и в all_statistics
         await update_all_users_subscription_statuses(db_session)
         start_month, end_month = get_current_month_boundaries()
         start_week, end_week = get_current_week_boundaries()
@@ -536,18 +533,18 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
             )
         )).scalar() or 0
         channel_activity_query_month = select(
-            Group.group_name,
-            Group.username,
+            TelegramGroup.group_name,
+            TelegramGroup.username,
             func.count(case((UserChannelSubscription.subscription_status == 'active', 1))).label('gained'),
             func.count(case((UserChannelSubscription.subscription_status == 'inactive', 1))).label('lost')
         ).join(
-            UserChannelSubscription, UserChannelSubscription.channel_id == Group.group_id
+            UserChannelSubscription, UserChannelSubscription.channel_id == TelegramGroup.group_id
         ).where(
             or_(
                 and_(UserChannelSubscription.subscription_status == 'active', UserChannelSubscription.subscribed_at.between(start_month, end_month)),
                 and_(UserChannelSubscription.subscription_status == 'inactive', UserChannelSubscription.unsubscribed_at.between(start_month, end_month))
             )
-        ).group_by(Group.group_name, Group.username)
+        ).group_by(TelegramGroup.group_name, TelegramGroup.username)
         channel_activity_month = (await db_session.execute(channel_activity_query_month)).all()
         total_gained_month = sum(g for _, _, g, _ in channel_activity_month)
         total_lost_month = sum(l for _, _, _, l in channel_activity_month)
@@ -568,18 +565,18 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
             )
         )).scalar() or 0
         channel_activity_query_week = select(
-            Group.group_name,
-            Group.username,
+            TelegramGroup.group_name,
+            TelegramGroup.username,
             func.count(case((UserChannelSubscription.subscription_status == 'active', 1))).label('gained'),
             func.count(case((UserChannelSubscription.subscription_status == 'inactive', 1))).label('lost')
         ).join(
-            UserChannelSubscription, UserChannelSubscription.channel_id == Group.group_id
+            UserChannelSubscription, UserChannelSubscription.channel_id == TelegramGroup.group_id
         ).where(
             or_(
                 and_(UserChannelSubscription.subscription_status == 'active', UserChannelSubscription.subscribed_at.between(start_week, end_week)),
                 and_(UserChannelSubscription.subscription_status == 'inactive', UserChannelSubscription.unsubscribed_at.between(start_week, end_week))
             )
-        ).group_by(Group.group_name, Group.username)
+        ).group_by(TelegramGroup.group_name, TelegramGroup.username)
         channel_activity_week = (await db_session.execute(channel_activity_query_week)).all()
         total_gained_week = sum(g for _, _, g, _ in channel_activity_week)
         total_lost_week = sum(l for _, _, _, l in channel_activity_week)
@@ -598,18 +595,18 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
             )
         )).scalar() or 0
         channel_activity_query_quarter = select(
-            Group.group_name,
-            Group.username,
+            TelegramGroup.group_name,
+            TelegramGroup.username,
             func.count(case((UserChannelSubscription.subscription_status == 'active', 1))).label('gained'),
             func.count(case((UserChannelSubscription.subscription_status == 'inactive', 1))).label('lost')
         ).join(
-            UserChannelSubscription, UserChannelSubscription.channel_id == Group.group_id
+            UserChannelSubscription, UserChannelSubscription.channel_id == TelegramGroup.group_id
         ).where(
             or_(
                 and_(UserChannelSubscription.subscription_status == 'active', UserChannelSubscription.subscribed_at.between(start_quarter, end_quarter)),
                 and_(UserChannelSubscription.subscription_status == 'inactive', UserChannelSubscription.unsubscribed_at.between(start_quarter, end_quarter))
             )
-        ).group_by(Group.group_name, Group.username)
+        ).group_by(TelegramGroup.group_name, TelegramGroup.username)
         channel_activity_quarter = (await db_session.execute(channel_activity_query_quarter)).all()
         total_gained_quarter = sum(g for _, _, g, _ in channel_activity_quarter)
         total_lost_quarter = sum(l for _, _, _, l in channel_activity_quarter)
@@ -620,7 +617,6 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
         detailed_activity = "\n\n*Детальная активность по каналам и группам:*\n"
         for group_name, username, gained, lost in channel_activity_month:
             if username:
-                # Экранируем все специальные символы в названии группы и username
                 safe_group_name = escape_markdown_v2(group_name)
                 safe_username = escape_markdown_v2(username)
                 channel_link = f"[{safe_group_name}](https://t\\.me/{safe_username})"
@@ -669,6 +665,8 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
         await call.message.reply("❌ Ошибка при получении общей статистики.")
     finally:
         await call.answer()
+
+
 
 
 @router.callback_query(F.data == "userstats")
@@ -820,12 +818,11 @@ async def generate_and_send_csv_aggregated(
 @router.callback_query(F.data == "list_subscribers_all_csv")
 async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает callback-кнопку 'list_subscribers_all_csv' для администраторов.
-    Генерирует агрегированный CSV-файл со списком всех активных подписчиков по всем каналам.
+    Генерирует CSV-файл со списком всех активных подписчиков по всем каналам.
 
     Args:
         call (types.CallbackQuery): Callback-запрос от кнопки.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -842,7 +839,7 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
                 TelegramUser.username,
                 TelegramUser.created_at,
                 TelegramUser.language,
-                func.string_agg(Group.group_name, ', ').label("channel_names"),
+                func.string_agg(TelegramGroup.group_name, ', ').label("channel_names"),
                 func.string_agg(
                     func.to_char(
                         UserChannelSubscription.subscribed_at,
@@ -852,7 +849,7 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
                 ).label("subscribed_ats")
             )
             .join(UserChannelSubscription, TelegramUser.id == UserChannelSubscription.user_id)
-            .join(Group, Group.group_id == UserChannelSubscription.channel_id)
+            .join(TelegramGroup, TelegramGroup.group_id == UserChannelSubscription.channel_id)
             .where(UserChannelSubscription.subscription_status == 'active')
             .group_by(TelegramUser.telegram_id, TelegramUser.username, TelegramUser.created_at, TelegramUser.language)
             .order_by(TelegramUser.username)
@@ -876,12 +873,11 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
 @router.callback_query(F.data == "list_channels_groups_subscriptions")
 async def callback_list_channels(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает callback-кнопку 'list_channels_groups_subscriptions' для администраторов.
-    Показывает инлайн-клавиатуру со списком каналов для выбора и получения списка подписчиков.
+    Показывает клавиатуру со списком каналов для выбора подписчиков.
 
     Args:
         call (types.CallbackQuery): Callback-запрос от кнопки.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -889,7 +885,7 @@ async def callback_list_channels(call: types.CallbackQuery, db_session: AsyncSes
         await call.answer()
         return
 
-    channels = (await db_session.execute(select(Group))).scalars().all()
+    channels = (await db_session.execute(select(TelegramGroup))).scalars().all()
     if not channels:
         await call.message.reply("Каналов/групп нет в БД.")
         await call.answer()
@@ -903,12 +899,11 @@ async def callback_list_channels(call: types.CallbackQuery, db_session: AsyncSes
 @router.callback_query(F.data.startswith("list_subscribers_csv:"))
 async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает callback-кнопку 'list_subscribers_csv:{channel_id}' для администраторов.
-    Генерирует CSV-файл со списком активных подписчиков конкретного канала.
+    Генерирует CSV-файл с активными подписчиками конкретного канала.
 
     Args:
-        call (types.CallbackQuery): Callback-запрос от кнопки с ID канала.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
+        call (types.CallbackQuery): Callback-запрос с ID канала.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -924,7 +919,7 @@ async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session
         await call.answer()
         return
 
-    result = await db_session.execute(select(Group).where(Group.group_id == channel_id))
+    result = await db_session.execute(select(TelegramGroup).where(TelegramGroup.group_id == channel_id))
     group_obj = result.scalar_one_or_none()
     if not group_obj:
         await call.message.reply(f"❌ Канал (ID={channel_id}) не найден.")
@@ -932,9 +927,9 @@ async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session
         return
 
     result2 = await db_session.execute(
-        select(UserChannelSubscription, TelegramUser, Group)
+        select(UserChannelSubscription, TelegramUser, TelegramGroup)
         .join(TelegramUser, TelegramUser.id == UserChannelSubscription.user_id)
-        .join(Group, Group.group_id == UserChannelSubscription.channel_id)
+        .join(TelegramGroup, TelegramGroup.group_id == UserChannelSubscription.channel_id)
         .where(UserChannelSubscription.channel_id == channel_id)
         .where(UserChannelSubscription.subscription_status == 'active')
     )
@@ -951,19 +946,18 @@ async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session
 
 async def generate_and_send_csv(
     chat_id: int,
-    subscriptions: list[tuple[UserChannelSubscription, TelegramUser, Group]],
+    subscriptions: list[tuple[UserChannelSubscription, TelegramUser, TelegramGroup]],
     msg_or_call: types.Message | types.CallbackQuery,
     filename: str,
     caption: str
 ):
     """
     Генерирует и отправляет CSV-файл с данными подписчиков канала.
-    Поля: telegram_id, username, created_at, language, channel_id, channel_name, subscribed_at.
 
     Args:
-        chat_id (int): ID чата для отправки файла.
-        subscriptions (list[tuple]): Список подписок с объектами UserChannelSubscription, TelegramUser и Group.
-        msg_or_call (types.Message | types.CallbackQuery): Объект сообщения или callback для отправки ответа.
+        chat_id (int): ID чата для отправки.
+        subscriptions (list[tuple]): Список подписок с объектами.
+        msg_or_call (types.Message | types.CallbackQuery): Сообщение или callback.
         filename (str): Имя CSV-файла.
         caption (str): Подпись к файлу.
     """
@@ -1003,3 +997,5 @@ async def generate_and_send_csv(
             document=types.BufferedInputFile(file=csv_bytes, filename=filename),
             caption=caption
         )
+
+

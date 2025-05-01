@@ -32,19 +32,11 @@ from bot.utils.languages_utils import LANGUAGE_MESSAGES
 from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
-from bot.database.models import Admin, Task, Group, Topic
-
-
+from bot.database.models import Admin, Task, TelegramGroup, Topic
 
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin_menu_router")
-
-
-
-
-
-
 
 
 @router.callback_query(F.data == "add_admin_button")
@@ -53,6 +45,11 @@ async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session:
     Обрабатывает нажатие кнопки "Добавить администратора".
 
     Если вызывающий пользователь является администратором, запрашивается секретный пароль.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     try:
         user_id = call.from_user.id
@@ -75,6 +72,7 @@ async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session:
         await call.message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
         await state.clear()
 
+
 @router.message(AddAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
 async def process_add_admin_password(message: Message, state: FSMContext, db_session: "AsyncSession"):
     """
@@ -84,6 +82,11 @@ async def process_add_admin_password(message: Message, state: FSMContext, db_ses
       telegram_id, username, first_name, last_name, password
 
     Пример: 975113235, myusername, Ivan, Ivanov, mypassword
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     try:
         if message.text.strip() != os.getenv("ADMIN_SECRET_PASSWORD"):
@@ -102,6 +105,7 @@ async def process_add_admin_password(message: Message, state: FSMContext, db_ses
         await message.reply("❌ Произошла ошибка. Попробуйте ещё раз.")
         await state.clear()
 
+
 @router.message(AddAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
 async def process_add_admin_user_id(message: Message, state: FSMContext, db_session: "AsyncSession"):
     """
@@ -112,6 +116,11 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
 
     Если данные корректны и пользователь с данным telegram_id ещё не является администратором,
     создаётся новый объект модели Admin.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     try:
         parts = [p.strip() for p in message.text.split(',')]
@@ -160,9 +169,19 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
         await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
 
 
-
-# Если требуется отдельная утилита, функция add_admin остаётся без изменений:
 async def add_admin(user_id: int, username: str, db_session: "AsyncSession"):
+    """
+    Добавляет нового администратора в базу данных.
+
+    Args:
+        user_id (int): Telegram ID пользователя.
+        username (str): Username пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+
+    Raises:
+        IntegrityError: Если пользователь уже существует.
+        Exception: При других ошибках базы данных.
+    """
     try:
         admin = Admin(telegram_id=user_id, username=username)
         db_session.add(admin)
@@ -176,12 +195,18 @@ async def add_admin(user_id: int, username: str, db_session: "AsyncSession"):
         raise
 
 
-
-
-
-# Обработчик кнопки "Удалить администратора"
 @router.callback_query(F.data == "remove_admin_button")
 async def callback_remove_admin(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает нажатие кнопки "Удалить администратора".
+
+    Запрашивает секретный пароль для удаления администратора, если пользователь имеет права.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
         await call.message.answer("⛔ У вас нет прав для выполнения этой команды.")
@@ -199,10 +224,18 @@ async def callback_remove_admin(call: CallbackQuery, state: FSMContext, db_sessi
     await call.answer()
 
 
-
-# Обработчик пароля для удаления администратора
 @router.message(RemoveAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
 async def process_remove_admin_password(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод пароля для удаления администратора.
+
+    Если пароль верный, запрашивает Telegram ID администратора для удаления.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     if message.text != os.getenv("ADMIN_REMOVE_SECRET_PASSWORD"):
         await message.reply("❌ Неверный пароль. Доступ запрещён.")
         logger.warning(f"Неверный пароль от пользователя {message.from_user.username} ({message.from_user.id}).")
@@ -212,29 +245,34 @@ async def process_remove_admin_password(message: Message, state: FSMContext, db_
     await state.set_state(RemoveAdminStates.waiting_for_user_id)
 
 
-
-# Обработчик Telegram ID для удаления администратора
 @router.message(RemoveAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
 async def process_remove_admin_user_id(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод Telegram ID для удаления администратора.
+
+    Если пользователь является администратором, удаляет его из базы данных.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     try:
         admin_id = int(message.text)
     except ValueError:
         await message.reply("❌ Пожалуйста, введите корректный числовой Telegram ID.")
         return
 
-    # Проверка, является ли пользователь администратором
     if not await is_admin(admin_id, db_session):
         await message.reply("ℹ️ Этот пользователь не является администратором.")
         logger.info(f"Пользователь с ID {admin_id} не является администратором.")
         await state.clear()
         return
 
-    # Удаление администратора
     try:
         await remove_admin(admin_id, db_session)
         await message.reply(f"🗑️ Пользователь с Telegram ID {admin_id} успешно удалён из списка администраторов.")
         logger.info(f"Пользователь с Telegram ID {admin_id} удалён из списка администраторов.")
-        # Возврат в главное меню
         await message.answer(
             "🔄 Возвращаюсь в главное меню.",
             reply_markup=get_start_reply_keyboard()
@@ -245,18 +283,20 @@ async def process_remove_admin_user_id(message: Message, state: FSMContext, db_s
     await state.clear()
 
 
-
-
 @router.callback_query(lambda c: c.data == "list_admins_button")
 async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Список администраторов". Отправляет список администраторов.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     logger.info(
-        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Список администраторов'")
+        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Список администраторов'"
+    )
 
     try:
-        # Получаем всех администраторов из базы данных
         query = select(Admin)
         result = await db_session.execute(query)
         admins = result.scalars().all()
@@ -267,18 +307,14 @@ async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSessi
             admin_list = ""
             for admin in admins:
                 if admin.username:
-                    # Формируем кликабельный username
                     username_link = f"[{admin.username}](https://t.me/{admin.username})"
                 else:
                     username_link = "Нет username"
-
-                # Формируем строку
                 line = f"• {username_link} (ID: {admin.telegram_id})"
                 admin_list += f"{line}\n"
 
-        # Отправляем сообщение
         await call.message.answer(f"👥 **Список администраторов:**\n{admin_list}", parse_mode='Markdown')
-        await call.answer()  # Отвечаем на callback_query
+        await call.answer()
         logger.debug("Список администраторов отправлен")
     except Exception as e:
         logger.exception(f"Ошибка в обработчике callback_list_admins: {e}")
@@ -286,39 +322,69 @@ async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSessi
         await call.answer()
 
 
-
-# Обработчик кнопки "Загрузить JSON"
 @router.callback_query(F.data == "upload_json")
 async def upload_json_handler(call: CallbackQuery, db_session: AsyncSession):
+    """
+    Обрабатывает нажатие кнопки "Загрузить JSON".
+
+    Запрашивает JSON-файл с задачами.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Загрузить JSON'")
     await call.message.answer("Загрузите JSON файл с задачами.")
     await call.answer()
 
 
-
-# Обработчик кнопки "Опубликовать по ID"
 @router.callback_query(F.data == "publish_by_id")
 async def publish_by_id_handler(call: CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает нажатие кнопки "Опубликовать по ID".
+
+    Запрашивает ID задачи для публикации.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+    """
     logger.info(f"📢 Запрошена публикация задачи пользователем {call.from_user.id}")
     await state.set_state(TaskActions.awaiting_publish_id)
     await call.message.answer("📝 Пожалуйста, введите ID задачи для публикации:")
     await call.answer()
 
 
-
-# Обработчик кнопки "Удалить задачу по ID"
 @router.callback_query(F.data == "delete_task")
 async def delete_task_handler(call: CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает нажатие кнопки "Удалить задачу по ID".
+
+    Запрашивает ID задачи для удаления.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+    """
     logger.info(f"🗑️ Запрошено удаление задачи пользователем {call.from_user.id}")
     await state.set_state(TaskActions.awaiting_delete_id)
     await call.message.answer("📝 Введите ID задачи для удаления:")
     await call.answer()
 
 
-
-# Обработчик состояния публикации задачи
 @router.message(StateFilter(TaskActions.awaiting_publish_id), F.content_type == ContentType.TEXT)
 async def handle_publish_id(message: Message, state: FSMContext, db_session: AsyncSession, bot: Bot):
+    """
+    Обрабатывает ввод ID задачи для публикации.
+
+    Публикует задачу по указанному ID.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        bot (Bot): Объект бота Aiogram.
+    """
     current_state = await state.get_state()
     logger.debug(f"Текущее состояние (публикация): {current_state}")
 
@@ -329,7 +395,7 @@ async def handle_publish_id(message: Message, state: FSMContext, db_session: Asy
     task_id = int(message.text)
     logger.info(f"📢 Публикация задачи с ID: {task_id}")
 
-    user_chat_id = message.chat.id  # Получаем user_chat_id из объекта message
+    user_chat_id = message.chat.id
 
     try:
         success = await publish_task_by_id(task_id, message, db_session, bot, user_chat_id)
@@ -344,16 +410,15 @@ async def handle_publish_id(message: Message, state: FSMContext, db_session: Asy
     await state.clear()
 
 
-
 @router.message(StateFilter(TaskActions.awaiting_delete_id), F.content_type == ContentType.TEXT)
 async def handle_delete_id(message: Message, state: FSMContext, db_session: AsyncSession):
     """
     Обработчик для удаления задачи по ID.
 
     Args:
-        message (Message): Сообщение от пользователя
-        state (FSMContext): Контекст состояния FSM
-        db_session (AsyncSession): Сессия базы данных
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     current_state = await state.get_state()
     logger.debug(f"Текущее состояние (удаление): {current_state}")
@@ -369,7 +434,6 @@ async def handle_delete_id(message: Message, state: FSMContext, db_session: Asyn
     try:
         deletion_info = await delete_task_by_id(task_id, db_session)
         if deletion_info:
-            # Формирование подробного сообщения
             task_info = f"✅ Задачи с ID {', '.join(map(str, deletion_info['deleted_task_ids']))} успешно удалены!"
             topic_info = f"🏷️ Топик задач: {deletion_info['topic_name']}"
             translations_info = (
@@ -378,7 +442,6 @@ async def handle_delete_id(message: Message, state: FSMContext, db_session: Asyn
                 f"🏷️ Каналы: {', '.join(deletion_info['group_names'])}"
             )
 
-            # Отправляем информацию о том, что было удалено
             deleted_info = f"{task_info}\n{topic_info}\n{translations_info}"
             logger.debug(f"Информация об удалении:\n{deleted_info}")
             await message.answer(deleted_info)
@@ -391,53 +454,54 @@ async def handle_delete_id(message: Message, state: FSMContext, db_session: Asyn
     await state.clear()
 
 
-
-
-
-# Обработчик кнопки "Создать опрос"
 @router.callback_query(F.data == "create_quiz")
 async def create_quiz_handler(call: CallbackQuery, db_session: AsyncSession):
+    """
+    Обрабатывает нажатие кнопки "Создать опрос".
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал на 'Создать опрос'")
     await call.message.answer("Функция создания опроса в разработке.")
     await call.answer()
 
 
-
-
-# Обработчик кнопки "Состояние базы"
 @router.callback_query(F.data == "database_status")
 async def handle_database_status(callback: CallbackQuery, db_session: AsyncSession):
-    try:
-        # Получение статуса задач
-        unpublished_tasks, published_tasks, old_published_tasks, total_tasks, topics = await get_task_status(db_session)
+    """
+    Обрабатывает нажатие кнопки "Состояние базы".
 
-        # Генерация CSV-файла
+    Генерирует и отправляет CSV-отчёт о состоянии задач.
+
+    Args:
+        callback (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
+    try:
+        unpublished_tasks, published_tasks, old_published_tasks, total_tasks, topics = await get_task_status(db_session)
         csv_path = await generate_detailed_task_status_csv(
             unpublished_tasks,
             published_tasks,
             old_published_tasks,
             total_tasks,
             topics,
-            db_session  # Передача db_session для получения поля 'error'
+            db_session
         )
 
         if csv_path is None:
-            # Уведомляем администратора, который инициировал отправку отчета
             await callback.bot.send_message(
                 chat_id=callback.from_user.id,
                 text="📝 В базе данных нет задач для отображения или произошла ошибка при генерации отчета."
             )
             await callback.answer("Отчет не был сгенерирован.", show_alert=True)
-            return  # Завершаем выполнение функции
+            return
 
-        # Отправка CSV-файла
         csv_file = FSInputFile(csv_path)
         await callback.message.answer_document(document=csv_file, caption="📄 Отчет о состоянии базы данных")
-
-        # Удаление временного файла после отправки
         os.remove(csv_path)
         logger.info(f"CSV отчет отправлен и удален: {csv_path}")
-
         await callback.answer("Отчет о состоянии базы данных отправлен.", show_alert=True)
 
     except Exception as e:
@@ -446,14 +510,21 @@ async def handle_database_status(callback: CallbackQuery, db_session: AsyncSessi
         await callback.answer("Ошибка при генерации отчета.", show_alert=True)
 
 
-
-
 @router.callback_query(F.data == "publish_task_with_translations")
 async def publish_task_with_translations_handler(call: CallbackQuery, db_session: AsyncSession, bot: Bot):
+    """
+    Обрабатывает нажатие кнопки "Опубликовать задачу с переводами".
+
+    Публикует самую старую неопубликованную задачу или задачу, опубликованную более месяца назад.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        bot (Bot): Объект бота Aiogram.
+    """
     logger.info(f"🟢 Пользователь {call.from_user.username} (ID: {call.from_user.id}) начал процесс публикации задачи с переводами.")
     await call.message.answer(f"🟢 Процесс публикации задачи с переводами запущен для пользователя {call.from_user.username}.")
 
-    # Шаг 1: Поиск самой старой неопубликованной задачи
     logger.info("🔍 Поиск самой старой неопубликованной задачи...")
     await call.message.answer("🔍 Поиск самой старой неопубликованной задачи...")
 
@@ -466,7 +537,6 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
         )
         translation_group_id = result.scalar_one_or_none()
 
-        # Шаг 2: Если неопубликованные задачи не найдены, ищем опубликованные более месяца назад
         if not translation_group_id:
             logger.info("🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
             await call.message.answer("🔍 Не найдены неопубликованные задачи. Поиск задач, опубликованных более месяца назад...")
@@ -481,33 +551,25 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
             )
             translation_group_id = result.scalar_one_or_none()
 
-        # Шаг 3: Если задача найдена, публикуем
         if translation_group_id:
             logger.info(f"🟡 Найдена задача с группой переводов {translation_group_id}. Начинаем публикацию.")
-
-            # Получение user_chat_id
             user_chat_id = call.from_user.id
-
-            # Выполнение публикации
             success, published_count, failed_count, total_count = await publish_task_by_translation_group(
                 translation_group_id, call.message, db_session, bot, user_chat_id
             )
 
-            # Логируем результат публикации
             if success:
                 logger.info(f"✅ Задача с группой переводов {translation_group_id} успешно опубликована.")
                 logger.info(
                     f"📊 Результаты публикации: всего переводов — {total_count}, "
                     f"успешно опубликовано — {published_count}, с ошибками — {failed_count}."
                 )
-                # Сообщение об успехе отправляется из функции publish_task_by_translation_group
             else:
-                # Сообщение об ошибке уже отправлено из функции publish_task_by_translation_group
                 logger.error(f"❌ Произошла ошибка при публикации задачи с группой переводов {translation_group_id}.")
         else:
-            # Если нет неопубликованных и старых задач
             logger.info(
-                "⚠️ Не найдены задачи для публикации: все задачи уже опубликованы или не требуют повторной публикации.")
+                "⚠️ Не найдены задачи для публикации: все задачи уже опубликованы или не требуют повторной публикации."
+            )
             await call.message.answer("⚠️ Все задачи уже опубликованы или не требуют повторной публикации.")
 
         logger.info(f"🔚 Завершение публикации для пользователя {call.from_user.username} (ID: {call.from_user.id}).")
@@ -517,17 +579,15 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
         await call.message.answer("❌ Произошла ошибка при процессе публикации задачи с переводами.")
 
 
-
-
-
-
-
-
-
 @router.callback_query(lambda c: c.data == "add_channel_group_button")
 async def callback_add_channel_group(call: types.CallbackQuery, db_session: AsyncSession, state: FSMContext):
     """
-    Обработчик нажатия кнопки "Добавить канал/группу". Начинает процесс добавления.
+    Обрабатывает нажатие кнопки "Добавить канал/группу". Начинает процесс добавления.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -548,7 +608,12 @@ async def callback_add_channel_group(call: types.CallbackQuery, db_session: Asyn
 @router.message(ChannelStates.waiting_for_group_name)
 async def process_group_name(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    1) Сохраняем название (имя) канала/группы.
+    Сохраняет название (имя) канала/группы.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     group_name = message.text.strip()
     if not group_name:
@@ -567,7 +632,12 @@ async def process_group_name(message: types.Message, db_session: AsyncSession, s
 @router.message(ChannelStates.waiting_for_group_id)
 async def process_group_id(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    2) Сохраняем Telegram ID локации (канал/группа).
+    Сохраняет Telegram ID канала/группы.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     group_id_text = message.text.strip()
     if not re.match(r'^-100\d+$', group_id_text):
@@ -587,19 +657,22 @@ async def process_group_id(message: types.Message, db_session: AsyncSession, sta
 @router.message(ChannelStates.waiting_for_topic)
 async def process_topic_name(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    3) Сохраняем тему. Если нет — предложим создать.
+    Сохраняет тему канала/группы. Если тема не существует, предлагает создать новую.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     topic_name = message.text.strip()
     if not topic_name:
         await message.reply("❌ Тема не может быть пустой. Повторите ввод:")
         return
 
-    # Ищем тему
     result = await db_session.execute(select(Topic).where(Topic.name.ilike(topic_name)))
     topic = result.scalar_one_or_none()
 
     if not topic:
-        # Тема не найдена — спрашиваем, создать ли новую
         await state.update_data(topic_name=topic_name)
         keyboard = types.ReplyKeyboardMarkup(
             keyboard=[
@@ -615,7 +688,6 @@ async def process_topic_name(message: types.Message, db_session: AsyncSession, s
         )
         await state.set_state(ChannelStates.waiting_for_topic_creation)
     else:
-        # Тема есть
         await state.update_data(topic_id=topic.id)
         logger.info(f"[AddChannelGroup] Тема '{topic_name}' найдена, ID={topic.id}")
 
@@ -629,7 +701,12 @@ async def process_topic_name(message: types.Message, db_session: AsyncSession, s
 @router.message(ChannelStates.waiting_for_topic_creation)
 async def process_topic_creation(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    Создаём новую тему, если админ выбрал "да, создать тему".
+    Создаёт новую тему, если администратор выбрал "Да, создать тему".
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     decision = message.text.strip().lower()
     if decision == "да, создать тему":
@@ -640,7 +717,6 @@ async def process_topic_creation(message: types.Message, db_session: AsyncSessio
         db_session.add(new_topic)
         try:
             await db_session.commit()
-            # Получим ID, чтоб сохранить дальше
             res = await db_session.execute(select(Topic).where(Topic.name.ilike(new_topic_name)))
             created_topic = res.scalar_one()
             await state.update_data(topic_id=created_topic.id)
@@ -671,7 +747,12 @@ async def process_topic_creation(message: types.Message, db_session: AsyncSessio
 @router.message(ChannelStates.waiting_for_language)
 async def process_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    4) Сохраняем язык (ru, en, tr, etc.)
+    Сохраняет язык канала/группы (например, 'ru', 'en', 'tr').
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     language = message.text.strip().lower()
     if not re.match(r'^[a-z]{2,3}$', language):
@@ -681,10 +762,9 @@ async def process_language(message: types.Message, db_session: AsyncSession, sta
     await state.update_data(language=language)
     logger.info(f"[AddChannelGroup] Шаг4: язык={language}")
 
-    # Переходим к выбору типа локации (channel / group)
     await message.answer(
         "5️⃣ Выберите тип локации:",
-        reply_markup=get_location_type_keyboard()  # ваша клавиатура с кнопками ["channel","group"]
+        reply_markup=get_location_type_keyboard()
     )
     await state.set_state(ChannelStates.waiting_for_location_type)
 
@@ -692,8 +772,12 @@ async def process_language(message: types.Message, db_session: AsyncSession, sta
 @router.message(ChannelStates.waiting_for_location_type)
 async def process_location_type(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    5) Сохраняем тип локации (channel / group).
-    Всегда переходим к вводу username, так как supergroup может иметь username.
+    Сохраняет тип локации (channel или group).
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     loc_type = message.text.strip().lower()
     if loc_type not in ["channel", "group"]:
@@ -703,7 +787,6 @@ async def process_location_type(message: types.Message, db_session: AsyncSession
     await state.update_data(location_type=loc_type)
     logger.info(f"[AddChannelGroup] Шаг5: location_type={loc_type}")
 
-    # Переходим к вводу username
     await message.answer(
         "6️⃣ Введите username канала/группы (без @).\n"
         "Если у локации нет username, введите '-' или оставьте поле пустым."
@@ -714,7 +797,12 @@ async def process_location_type(message: types.Message, db_session: AsyncSession
 @router.message(ChannelStates.waiting_for_channel_username)
 async def process_channel_username(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
-    6) Сохраняем username. Если "-", значит нет.
+    Сохраняет username канала/группы. Если введено "-", сохраняется как None.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     uname_input = message.text.strip()
     if uname_input in ["-", ""]:
@@ -722,7 +810,6 @@ async def process_channel_username(message: types.Message, db_session: AsyncSess
     elif uname_input.startswith("@"):
         uname_input = uname_input[1:].strip()
 
-    # Дополнительная валидация username (опционально)
     if uname_input and not re.match(r'^[A-Za-z0-9_]{5,32}$', uname_input):
         await message.reply("❌ Некорректный формат username. Username должен содержать 5-32 символа, включая буквы, цифры и нижнее подчеркивание. Повторите ввод:")
         return
@@ -730,7 +817,6 @@ async def process_channel_username(message: types.Message, db_session: AsyncSess
     await state.update_data(username=uname_input)
     logger.info(f"[AddChannelGroup] Шаг6: username={uname_input or '—'}")
 
-    # Переходим к созданию записи в базе данных
     data = await state.get_data()
     await create_group_or_channel_record(message, db_session, state, data)
 
@@ -742,16 +828,21 @@ async def create_group_or_channel_record(
     data: dict
 ):
     """
-    Завершающая функция — создаёт запись в таблице Group.
+    Создаёт запись в таблице TelegramGroup для нового канала или группы.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
+        data (dict): Данные, собранные в процессе добавления (group_name, group_id, topic_id, language, location_type, username).
     """
     group_name = data.get("group_name")
     group_id = data.get("group_id")
     topic_id = data.get("topic_id")
     language = data.get("language")
-    location_type = data.get("location_type")  # "channel" / "group"
+    location_type = data.get("location_type")
     username = data.get("username")
 
-    # Проверим тему
     res = await db_session.execute(select(Topic).where(Topic.id == topic_id))
     topic = res.scalar_one_or_none()
     if not topic:
@@ -759,22 +850,20 @@ async def create_group_or_channel_record(
         await state.clear()
         return
 
-    # Проверим, нет ли уже записи с таким group_id
-    res = await db_session.execute(select(Group).where(Group.group_id == group_id))
+    res = await db_session.execute(select(TelegramGroup).where(TelegramGroup.group_id == group_id))
     existing_group = res.scalar_one_or_none()
     if existing_group:
         await message.reply(f"❌ Локация с ID {group_id} уже существует!")
         await state.clear()
         return
 
-    # Создаём
-    new_group = Group(
+    new_group = TelegramGroup(
         group_name=group_name,
         group_id=group_id,
         topic_id=topic.id,
         language=language,
         location_type=location_type,
-        username=username  # <-- Сохраняем username
+        username=username
     )
     db_session.add(new_group)
 
@@ -797,36 +886,35 @@ async def create_group_or_channel_record(
     await state.clear()
 
 
-
-
-
-
-
-
-
-
-
 @router.callback_query(lambda c: c.data == "remove_channel_button")
 async def callback_remove_channel(call: types.CallbackQuery, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает нажатие кнопки "Удалить канал". Начинает процесс удаления канала.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     logger.info(
-        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Удалить канал'")
+        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Удалить канал'"
+    )
 
     await call.message.answer(
         "🔽 Начнём удаление канала.\nВведите Telegram ID канала, который хотите удалить (начинается с -100):")
     await state.set_state(ChannelStates.waiting_for_remove_group_id)
-    await call.answer()  # Отвечаем на callback_query
-
-
-
+    await call.answer()
 
 
 @router.message(ChannelStates.waiting_for_remove_group_id)
 async def process_remove_group_id(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает ввод Telegram ID канала для удаления.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     group_id_text = message.text.strip()
     if not re.match(r'^-100\d+$', group_id_text):
@@ -838,8 +926,7 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
     await state.update_data(group_id=group_id)
     logger.info(f"Введён Telegram ID канала для удаления: {group_id}")
 
-    # Проверяем существование канала
-    result = await db_session.execute(select(Group).where(Group.group_id == group_id))
+    result = await db_session.execute(select(TelegramGroup).where(TelegramGroup.group_id == group_id))
     group = result.scalar_one_or_none()
 
     if not group:
@@ -847,7 +934,6 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
         await state.clear()
         return
 
-    # Удаляем канал из базы данных
     try:
         await db_session.delete(group)
         await db_session.commit()
@@ -861,17 +947,15 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
     await state.clear()
 
 
-
-
-
-
-
-
 @router.callback_query(lambda c: c.data == "list_channels_groups_button")
 async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Список каналов и групп".
     Отправляет отсортированный по названиям список каналов и групп.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     logger.info(
         f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) "
@@ -879,8 +963,7 @@ async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSe
     )
 
     try:
-        # Получаем все записи из таблицы Group
-        query = select(Group)
+        query = select(TelegramGroup)
         result = await db_session.execute(query)
         groups = result.scalars().all()
 
@@ -890,13 +973,11 @@ async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSe
                 "📭 Нет добавленных каналов или групп."
             )
         else:
-            # Функция сортировки для группировки похожих названий
             def sort_key(x):
                 name = x.group_name.lower()
                 main_word = name.split()[0]
                 return (main_word, name)
 
-            # Разделяем на каналы и группы и сортируем
             channels = sorted(
                 [g for g in groups if g.location_type.lower() == "channel"],
                 key=sort_key
@@ -909,42 +990,32 @@ async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSe
             channels_list = ""
             groups_list = ""
 
-            # Формируем список каналов
             if channels:
                 channels_list += "📢 <b>Каналы:</b>\n"
                 for channel in channels:
                     channel_name_html = html.escape(channel.group_name or "Без имени")
                     channel_id = channel.group_id
                     channel_language = html.escape(channel.language) if channel.language else "Не указан"
-
-                    # Создаем кликабельную ссылку для каналов с username
                     if channel.username:
                         username_escaped = html.escape(channel.username)
                         link = f'<a href="https://t.me/{username_escaped}">{channel_name_html}</a>'
                     else:
                         link = channel_name_html
-
                     channels_list += f"• {link} (ID: {channel_id}) - Язык: {channel_language}\n"
-
                 channels_list += "\n"
 
-            # Формируем список групп
             if groups_only:
                 groups_list += "👥 <b>Группы:</b>\n"
                 for group in groups_only:
                     group_name_html = html.escape(group.group_name or "Без имени")
                     group_id = group.group_id
                     group_language = html.escape(group.language) if group.language else "Не указан"
-
-                    # Создаем кликабельную ссылку для групп с username
                     if group.username:
                         username_escaped = html.escape(group.username)
                         link = f'<a href="https://t.me/{username_escaped}">{group_name_html}</a>'
                     else:
                         link = group_name_html
-
                     groups_list += f"• {link} (ID: {group_id}) - Язык: {group_language}\n"
-
                 groups_list += "\n"
 
             channels_groups_list = (
@@ -953,8 +1024,6 @@ async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSe
             )
 
         logger.debug(f"Сформированный список каналов и групп:\n{channels_groups_list}")
-
-        # Отправляем сообщение с HTML-форматированием для поддержки ссылок
         await call.message.answer(channels_groups_list, parse_mode='HTML')
         await call.answer()
         logger.debug("Отсортированный список каналов и групп отправлен пользователю.")
@@ -968,22 +1037,15 @@ async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSe
         await call.answer()
 
 
-
-
-
-
-
-
-
-
-
-
-
 @router.callback_query(lambda c: c.data == "zero_task_topics_report")
 async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db_session: AsyncSession):
     """
     Обработчик для кнопки "Отчет топиков без задач".
     Генерирует текстовый отчет и отправляет его администратору.
+
+    Args:
+        callback_query (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     user_id = callback_query.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1000,17 +1062,14 @@ async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db
         report_path = await generate_zero_task_topics_text(zero_task_topics)
 
         if report_path:
-            # Получаем абсолютный путь к файлу
             absolute_path = os.path.abspath(report_path)
             logger.debug(f"Абсолютный путь к отчету: {absolute_path}")
 
-            # Проверяем, существует ли файл
             if not os.path.isfile(absolute_path):
                 logger.error(f"Файл отчета не найден по пути: {absolute_path}")
                 await callback_query.message.answer("❌ Не удалось найти сгенерированный отчет.")
                 return
 
-            # Используем FSInputFile для отправки документа
             report_file = FSInputFile(absolute_path)
             await callback_query.message.answer_document(
                 document=report_file,
@@ -1019,7 +1078,6 @@ async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db
             )
             logger.info(f"Отчет топиков без задач отправлен пользователю {callback_query.from_user.username}.")
 
-            # Удаление файла после отправки
             try:
                 os.remove(absolute_path)
                 logger.debug(f"Файл отчета удален: {absolute_path}")
@@ -1035,14 +1093,15 @@ async def handle_zero_task_topics_report(callback_query: types.CallbackQuery, db
         await callback_query.message.answer("❌ Произошла ошибка при генерации или отправке отчета.")
 
 
-
-
-
-
 @router.callback_query(lambda c: c.data == "add_topic")
 async def handle_add_topic(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
     Обработчик для кнопки "Добавить топик".
+
+    Args:
+        callback_query (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     user_id = callback_query.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1051,14 +1110,21 @@ async def handle_add_topic(callback_query: types.CallbackQuery, state: FSMContex
         return
 
     await callback_query.message.answer("Пожалуйста, введите название топика для добавления:")
-    await state.set_state(AdminStates.waiting_for_topic_name)  # Исправлено
+    await state.set_state(AdminStates.waiting_for_topic_name)
     await callback_query.answer()
     logger.info(f"Пользователь {callback_query.from_user.username} инициировал добавление топика.")
 
 
-
 @router.message(AdminStates.waiting_for_topic_name)
 async def process_add_topic(message: types.Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод названия топика для добавления.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     topic_name = message.text.strip()
     if not topic_name:
         await message.answer("Название топика не может быть пустым. Пожалуйста, введите корректное название:")
@@ -1082,14 +1148,15 @@ async def process_add_topic(message: types.Message, state: FSMContext, db_sessio
     await state.clear()
 
 
-
-
-
-
 @router.callback_query(lambda c: c.data == "delete_topic")
 async def handle_delete_topic(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
     Обработчик для кнопки "Удалить топик".
+
+    Args:
+        callback_query (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     user_id = callback_query.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1098,15 +1165,21 @@ async def handle_delete_topic(callback_query: types.CallbackQuery, state: FSMCon
         return
 
     await callback_query.message.answer("Пожалуйста, введите ID топика для удаления:")
-    await state.set_state(AdminStates.waiting_for_topic_id)  # Исправлено
+    await state.set_state(AdminStates.waiting_for_topic_id)
     await callback_query.answer()
     logger.info(f"Пользователь {callback_query.from_user.username} инициировал удаление топика.")
 
 
-
-
 @router.message(AdminStates.waiting_for_topic_id)
 async def process_delete_topic(message: types.Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод ID топика для удаления.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     topic_id_str = message.text.strip()
     if not topic_id_str.isdigit():
         await message.answer("ID топика должен быть числом. Пожалуйста, введите корректный ID:")
@@ -1136,24 +1209,34 @@ async def process_delete_topic(message: types.Message, state: FSMContext, db_ses
     await state.clear()
 
 
-
-
-
-
-
-# Обработчик кнопки "Добавить ссылку"
 @router.callback_query(F.data == "add_default_link")
 async def callback_add_default_link(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает нажатие кнопки "Добавить ссылку".
+
+    Запрашивает язык для новой ссылки.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал кнопку 'Добавить ссылку'")
     await call.message.answer("Начинаем добавление ссылки. 📌 Введите язык для ссылки (например, 'en', 'ru', 'tr'):")
     await state.set_state(DefaultLinkStates.waiting_for_language)
     await call.answer()
 
 
-
-# Ввод языка для добавления ссылки
 @router.message(DefaultLinkStates.waiting_for_language, F.content_type == ContentType.TEXT)
 async def process_default_link_language(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод языка для добавления ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     language = message.text.strip().lower()
     if not re.match(r'^[a-z]{2,3}$', language):
         await message.reply("❌ Некорректный формат языка. Попробуйте ещё раз.")
@@ -1163,9 +1246,17 @@ async def process_default_link_language(message: Message, state: FSMContext, db_
     await message.reply("📌 Введите тему для ссылки:")
     await state.set_state(DefaultLinkStates.waiting_for_topic)
 
-# Ввод темы для добавления ссылки
+
 @router.message(DefaultLinkStates.waiting_for_topic, F.content_type == ContentType.TEXT)
 async def process_default_link_topic(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод темы для добавления ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     topic = message.text.strip()
     if not topic:
         await message.reply("❌ Тема не может быть пустой. Попробуйте ещё раз.")
@@ -1176,9 +1267,16 @@ async def process_default_link_topic(message: Message, state: FSMContext, db_ses
     await state.set_state(DefaultLinkStates.waiting_for_link)
 
 
-# Ввод ссылки
 @router.message(DefaultLinkStates.waiting_for_link, F.content_type == ContentType.TEXT)
 async def process_default_link_link(message: types.Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод ссылки для добавления.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     link = message.text.strip()
     if not is_valid_url(link):
         await message.reply("❌ Некорректный URL. Попробуйте ещё раз.")
@@ -1190,19 +1288,15 @@ async def process_default_link_link(message: types.Message, state: FSMContext, d
     try:
         default_link_service = DefaultLinkService(db_session)
         await default_link_service.add_default_link(language, topic, link)
-
-        # Экранирование всех частей сообщения
         escaped_language = escape_markdown(language)
         escaped_topic = escape_markdown(topic)
         escaped_link = escape_markdown(link)
-
         reply_text = (
             f"✅ Ссылка успешно добавлена:\n"
             f"Язык: `{escaped_language}`\n"
             f"Тема: `{escaped_topic}`\n"
             f"Ссылка: {escaped_link}"
         )
-
         await message.reply(reply_text, parse_mode="MarkdownV2")
         logger.info(f"Успешно добавлена ссылка: Язык={language}, Тема={topic}, Ссылка={link}")
     except Exception as e:
@@ -1211,18 +1305,34 @@ async def process_default_link_link(message: types.Message, state: FSMContext, d
     await state.clear()
 
 
-
-# Обработчик кнопки "Удалить ссылку"
 @router.callback_query(F.data == "remove_default_link")
 async def callback_remove_default_link(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает нажатие кнопки "Удалить ссылку".
+
+    Запрашивает язык для удаления ссылки.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) нажал кнопку 'Удалить ссылку'")
     await call.message.answer("Начинаем удаление ссылки. 📌 Введите язык для удаления ссылки (например, 'en', 'ru', 'tr'):")
     await state.set_state(DefaultLinkStates.waiting_for_remove_language)
     await call.answer()
 
-# Ввод языка для удаления ссылки
+
 @router.message(DefaultLinkStates.waiting_for_remove_language, F.content_type == ContentType.TEXT)
 async def process_remove_default_link_language(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод языка для удаления ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     language = message.text.strip().lower()
     if not re.match(r'^[a-z]{2,3}$', language):
         await message.reply("❌ Некорректный формат языка. Попробуйте ещё раз.")
@@ -1233,10 +1343,16 @@ async def process_remove_default_link_language(message: Message, state: FSMConte
     await state.set_state(DefaultLinkStates.waiting_for_remove_topic)
 
 
-
-# Ввод темы для удаления ссылки
 @router.message(DefaultLinkStates.waiting_for_remove_topic, F.content_type == ContentType.TEXT)
 async def process_remove_default_link_topic(message: Message, state: FSMContext, db_session: AsyncSession):
+    """
+    Обрабатывает ввод темы для удаления ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     topic = message.text.strip()
     if not topic:
         await message.reply("❌ Тема не может быть пустой. Попробуйте ещё раз.")
@@ -1259,10 +1375,17 @@ async def process_remove_default_link_topic(message: Message, state: FSMContext,
     await state.clear()
 
 
-
-# Обработчик кнопки "Список ссылок"
 @router.callback_query(F.data == "list_default_links")
 async def callback_list_default_links(call: CallbackQuery, db_session: AsyncSession):
+    """
+    Обрабатывает нажатие кнопки "Список ссылок".
+
+    Отправляет список всех ссылок по умолчанию.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
     logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) запросил список ссылок")
     try:
         default_link_service = DefaultLinkService(db_session)
@@ -1285,15 +1408,17 @@ async def callback_list_default_links(call: CallbackQuery, db_session: AsyncSess
     await call.answer()
 
 
-
-
-
-
-
-
-
-
 async def validate_chat(bot, username):
+    """
+    Проверяет доступность чата по username.
+
+    Args:
+        bot: Объект бота Aiogram.
+        username (str): Username чата (без @).
+
+    Returns:
+        bool: True, если чат доступен, иначе False.
+    """
     try:
         await bot.get_chat(f"@{username}")
         return True
@@ -1302,48 +1427,43 @@ async def validate_chat(bot, username):
         return False
 
 
-
-
-
-
 @router.callback_query(F.data == "post_subscription_buttons")
 async def post_subscription_buttons(call: types.CallbackQuery, db_session, bot):
     """
     Обработчик для публикации и закрепления кнопок с подписками на всех каналах/группах.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session: Асинхронная сессия SQLAlchemy.
+        bot: Объект бота Aiogram.
     """
     admin_id = call.from_user.id
 
-    # Проверяем, что пользователь - администратор
     if not await is_admin(admin_id, db_session):
         await call.message.reply("❌ У вас нет прав для выполнения этого действия.")
         await call.answer()
         return
 
-    # Мгновенный ответ на callback, чтобы избежать timeout
     await call.answer("Начинаю отправку сообщений...")
 
-    # Получаем данные из базы: каналы и группы с username
     result = await db_session.execute(
-        select(Group.group_name, Group.username, Group.group_id, Group.location_type, Group.language)
-        .where(Group.username.isnot(None))  # Только те, у которых есть username
+        select(TelegramGroup.group_name, TelegramGroup.username, TelegramGroup.group_id, TelegramGroup.location_type, TelegramGroup.language)
+        .where(TelegramGroup.username.isnot(None))
     )
-    destinations = result.all()  # [(group_name, username, group_id, location_type, language), ...]
+    destinations = result.all()
 
     if not destinations:
         await call.message.reply("Нет данных о каналах или группах в базе.")
         return
 
-    # Отправляем сообщения с интервалом
     for group_name, username, group_id, location_type, language in destinations:
         if not await validate_chat(bot, username):
             logger.warning(f"Пропускаем недоступный чат: @{username}")
             continue
 
-        # Получаем переводы для языка канала
         messages = LANGUAGE_MESSAGES.get(language, LANGUAGE_MESSAGES["en"])
         message_text = messages["message_text"]
 
-        # Создаем клавиатуру с кнопками для подписки
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -1363,38 +1483,25 @@ async def post_subscription_buttons(call: types.CallbackQuery, db_session, bot):
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-
-            # # Закрепляем сообщение, если это группа или канал
-            # await bot.pin_chat_message(
-            #     chat_id=group_id,
-            #     message_id=sent_message.message_id,
-            #     disable_notification=True
-            # )
-
-            # Логируем успешную отправку
             logger.info(f"Сообщение отправлено в {location_type} '{group_name}' ({group_id}).")
         except Exception as e:
             logger.error(f"Не удалось отправить сообщение в {location_type} '{group_name}' ({group_id}): {e}")
 
-        # Ждем заданный интервал перед отправкой в следующий канал/группу
-        await asyncio.sleep(3)  # Интервал в секундах
+        await asyncio.sleep(3)
 
     await call.message.reply("✅ Сообщения успешно отправлены.")
 
 
-
-
-
-
-
-
-
-# Обработчик кнопки "Установить главную ссылку"
 @router.callback_query(lambda c: c.data == "set_main_fallback_link")
 async def callback_set_main_fallback_link(call: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Установить главную ссылку".
     Запрашивает у администратора выбор языка для установки ссылки.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1408,12 +1515,15 @@ async def callback_set_main_fallback_link(call: types.CallbackQuery, state: FSMC
     logger.info(f"Пользователь {call.from_user.username} инициировал установку главной статической ссылки.")
 
 
-
-# Обработчик ввода языка для установки главной статической ссылки
 @router.message(AdminStates.waiting_for_set_fallback_language)
 async def process_set_fallback_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает ввод языка для установки главной статической ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     user_id = message.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1423,7 +1533,6 @@ async def process_set_fallback_language(message: types.Message, db_session: Asyn
         return
 
     language = message.text.strip().lower()
-    # Здесь можно добавить проверку допустимых языков
     if not language.isalpha():
         await message.answer("Пожалуйста, введите корректный язык (только буквы, например, 'en', 'ru').")
         return
@@ -1434,12 +1543,15 @@ async def process_set_fallback_language(message: types.Message, db_session: Asyn
     logger.info(f"Пользователь {message.from_user.username} выбрал язык '{language}' для установки главной статической ссылки.")
 
 
-
-# Обработчик ввода новой главной статической ссылки
 @router.message(AdminStates.waiting_for_set_fallback_link)
 async def process_set_main_fallback_link(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает ввод новой главной статической ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     user_id = message.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1449,12 +1561,10 @@ async def process_set_main_fallback_link(message: types.Message, db_session: Asy
         return
 
     new_link = message.text.strip()
-    # Валидация URL
     if not (new_link.startswith("http://") or new_link.startswith("https://")):
         await message.answer("Пожалуйста, введите корректный URL (начинающийся с http:// или https://).")
         return
 
-    # Дополнительная валидация с помощью validators
     if not is_valid_url(new_link):
         await message.answer("Пожалуйста, введите корректный URL.")
         return
@@ -1474,12 +1584,16 @@ async def process_set_main_fallback_link(message: types.Message, db_session: Asy
     await state.clear()
 
 
-# Обработчик кнопки "Удалить главную ссылку"
 @router.callback_query(lambda c: c.data == "remove_main_fallback_link")
 async def callback_remove_main_fallback_link(call: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
     Обрабатывает нажатие кнопки "Удалить главную ссылку".
     Запрашивает у администратора выбор языка для удаления ссылки.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        state (FSMContext): Контекст состояния FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
     """
     user_id = call.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1494,11 +1608,18 @@ async def callback_remove_main_fallback_link(call: types.CallbackQuery, state: F
 
 
 
-# Обработчик ввода языка для удаления главной статической ссылки
+
+
+
 @router.message(AdminStates.waiting_for_remove_fallback_language)
 async def process_remove_fallback_language(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает ввод языка для удаления главной статической ссылки.
+
+    Args:
+        message (Message): Сообщение от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        state (FSMContext): Контекст состояния FSM.
     """
     user_id = message.from_user.id
     if not await is_admin(user_id, db_session):
@@ -1508,59 +1629,59 @@ async def process_remove_fallback_language(message: types.Message, db_session: A
         return
 
     language = message.text.strip().lower()
-    # Здесь можно добавить проверку допустимых языков
     if not language.isalpha():
         await message.answer("Пожалуйста, введите корректный язык (только буквы, например, 'en', 'ru').")
         return
 
     default_link_service = DefaultLinkService(db_session)
     success = await default_link_service.remove_main_fallback_link(language)
-
     if success:
-        await message.answer(f"✅ Главная статическая ссылка для языка '{language}' успешно удалена.")
+        await message.answer(
+            f"✅ Главная статическая ссылка для языка '{language}' успешно удалена.",
+            reply_markup=get_admin_menu_keyboard()
+        )
         logger.info(f"Пользователь {message.from_user.username} удалил главную статическую ссылку для языка '{language}'.")
     else:
-        await message.answer(f"⚠️ Главная статическая ссылка для языка '{language}' не найдена.")
-        logger.warning(f"Пользователь {message.from_user.username} попытался удалить несуществующую главную статическую ссылку для языка '{language}'.")
+        await message.answer(
+            f"❌ Главная статическая ссылка для языка '{language}' не найдена.",
+            reply_markup=get_admin_menu_keyboard()
+        )
+        logger.warning(f"Главная статическая ссылка для языка '{language}' не найдена пользователем {message.from_user.username}.")
 
     await state.clear()
 
 
-
-# Обработчик кнопки "Получить главную ссылку"
-@router.callback_query(lambda c: c.data == "get_main_fallback_link")
-async def callback_get_main_fallback_link(call: types.CallbackQuery, db_session: AsyncSession):
+@router.callback_query(lambda c: c.data == "list_main_fallback_links")
+async def callback_list_main_fallback_links(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает нажатие кнопки "Получить главную ссылку".
-    Выводит списком все главные статические ссылки с указанием языка.
-    """
-    user_id = call.from_user.id
-    if not await is_admin(user_id, db_session):
-        await call.answer("У вас нет доступа к этой команде.", show_alert=True)
-        logger.warning(f"Пользователь с ID {user_id} попытался получить главную ссылку без прав.")
-        return
+    Обрабатывает нажатие кнопки "Список главных ссылок".
 
-    default_link_service = DefaultLinkService(db_session)
+    Отправляет список всех главных статических ссылок.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса от Aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    """
+    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) запросил список главных ссылок")
     try:
-        # Получаем все главные статические ссылки
-        main_links = await default_link_service.get_all_main_fallback_links()
-        if main_links:
-            message_text = "📌 **Главные статические ссылки по языкам:**\n\n"
-            for link in main_links:
-                # Используем emoji флагов для наглядности (опционально)
-                flag_emoji = get_flag_emoji(link.language)
-                message_text += f"{flag_emoji} *{link.language}*: [Ссылка]({link.link})\n"
-            await call.message.answer(message_text, parse_mode='Markdown', disable_web_page_preview=False)
-            logger.info(f"Пользователь {call.from_user.username} запросил все главные статические ссылки.")
+        default_link_service = DefaultLinkService(db_session)
+        fallback_links = await default_link_service.list_main_fallback_links()
+        if not fallback_links:
+            await call.message.answer("📭 Главные статические ссылки не найдены.")
+            logger.info("Список главных ссылок пуст.")
         else:
-            # Если нет установленных главных ссылок, показать стандартную ссылку
-            await call.message.answer("⚠️ Главные статические ссылки не установлены. Используется стандартная ссылка:\nhttps://t.me/proger_dude")
-            logger.info(f"Пользователь запросил все главные статические ссылки, но они не установлены.")
+            message = "📋 **Список главных статических ссылок:**\n\n"
+            for link in fallback_links:
+                escaped_language = escape_markdown(link.language)
+                escaped_link = escape_markdown(link.link)
+                message += f"• Язык: `{escaped_language}`, Ссылка: {escaped_link}\n"
+            await call.message.answer(message, parse_mode="MarkdownV2")
+            logger.info("Список главных ссылок успешно отправлен.")
     except Exception as e:
-        await call.message.answer("❌ Произошла ошибка при получении главных статических ссылок.")
-        logger.error(f"Ошибка при получении главных статических ссылок: {e}")
-
+        await call.message.answer("❌ Произошла ошибка при получении списка главных ссылок.")
+        logger.error(f"Ошибка при получении списка главных ссылок: {e}")
     await call.answer()
+
 
 
 

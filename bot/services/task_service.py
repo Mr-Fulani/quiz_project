@@ -21,7 +21,7 @@ from bot.services.deletion_service import delete_from_s3
 from bot.services.image_service import generate_image_if_needed
 from bot.services.s3_services import save_image_to_storage
 from bot.config import S3_BUCKET_NAME, S3_REGION
-from bot.database.models import Task, TaskTranslation, Topic, Subtopic, Group
+from bot.database.models import Task, TaskTranslation, Topic, Subtopic, TelegramGroup
 from bot.utils.markdownV2 import escape_markdown
 
 
@@ -535,9 +535,9 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                 logger.info(f"🔍 Индекс правильного ответа: {correct_option_id} (Правильный ответ: {correct_answer})")
 
                 result = await db_session.execute(
-                    select(Group).where(
-                        Group.topic_id == topic_id,
-                        Group.language == language
+                    select(TelegramGroup).where(
+                        TelegramGroup.topic_id == topic_id,
+                        TelegramGroup.language == language
                     )
                 )
                 group = result.scalar_one_or_none()
