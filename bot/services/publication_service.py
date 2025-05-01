@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from bot.database.models import Task, Group, TaskTranslation, TaskPoll, Topic
+from bot.database.models import Task, TelegramGroup, TaskTranslation, TaskPoll, Topic
 from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_from_s3
 from bot.services.image_service import generate_image_if_needed
@@ -442,9 +442,9 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
 
         # Поиск группы для публикации
         result = await db_session.execute(
-            select(Group)
-            .where(Group.topic_id == translation.task.topic_id)
-            .where(Group.language == translation.language)
+            select(TelegramGroup)
+            .where(TelegramGroup.topic_id == translation.task.topic_id)
+            .where(TelegramGroup.language == translation.language)
         )
         group = result.scalar_one_or_none()
 
