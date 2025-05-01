@@ -32,6 +32,11 @@ class Topic(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        queryset |= self.__class__.objects.filter(name__icontains=search_term)
+        return queryset, use_distinct
     
 
 
