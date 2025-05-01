@@ -5,7 +5,7 @@ import calendar
 from datetime import datetime, timedelta
 from operator import or_
 
-from aiogram import F  # для F.data == ...
+from aiogram import F
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -16,7 +16,7 @@ from bot.keyboards.quiz_keyboards import get_admin_channels_keyboard
 from bot.services.admin_service import is_admin
 from bot.states.admin_states import UserStatsState
 from bot.utils.markdownV2 import escape_markdown
-from bot.database.models import User, TaskStatistics, UserChannelSubscription, Group
+from bot.database.models import TelegramUser, TaskStatistics, UserChannelSubscription, Group
 
 logger = logging.getLogger(__name__)
 router = Router(name="statistics_router")
@@ -26,10 +26,14 @@ router = Router(name="statistics_router")
 # Функции обновления статуса подписки
 # ------------------------------------------------------------------------------
 
-async def update_single_user_subscription_status(user: User, db_session: AsyncSession):
+async def update_single_user_subscription_status(user: TelegramUser, db_session: AsyncSession):
     """
-    Проверяет наличие активных подписок для пользователя.
-    Если активных подписок нет, обновляет статус на 'inactive'.
+    Проверяет наличие активных подписок для одного пользователя.
+    Если активных подписок нет, обновляет subscription_status на 'inactive' в таблице telegram_users.
+
+    Args:
+        user (TelegramUser): Объект пользователя Telegram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     active_subs_query = select(func.count()).select_from(UserChannelSubscription).where(
         UserChannelSubscription.user_id == user.id,
@@ -44,14 +48,19 @@ async def update_single_user_subscription_status(user: User, db_session: AsyncSe
 
 async def update_all_users_subscription_statuses(db_session: AsyncSession):
     """
-    Обновляет статус всех пользователей, у которых нет активных подписок.
+    Обновляет статус подписки для всех пользователей в таблице telegram_users.
+    Устанавливает subscription_status='inactive' для пользователей, у которых нет активных подписок
+    в таблице user_channel_subscriptions.
+
+    Args:
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     subquery = select(UserChannelSubscription.user_id).where(
         UserChannelSubscription.subscription_status == 'active'
     ).distinct()
-    stmt = update(User).where(
-        User.id.not_in(subquery),
-        User.subscription_status != 'inactive'
+    stmt = update(TelegramUser).where(
+        TelegramUser.id.not_in(subquery),
+        TelegramUser.subscription_status != 'inactive'
     ).values(subscription_status='inactive')
     await db_session.execute(stmt)
     await db_session.commit()
@@ -62,7 +71,12 @@ async def update_all_users_subscription_statuses(db_session: AsyncSession):
 # ------------------------------------------------------------------------------
 
 def get_current_month_boundaries() -> tuple[datetime, datetime]:
-    """Возвращает начало и конец текущего месяца (UTC)."""
+    """
+    Возвращает начало и конец текущего месяца в UTC.
+
+    Returns:
+        tuple[datetime, datetime]: Начало и конец текущего месяца.
+    """
     now = datetime.utcnow()
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     last_day = calendar.monthrange(now.year, now.month)[1]
@@ -71,7 +85,12 @@ def get_current_month_boundaries() -> tuple[datetime, datetime]:
 
 
 def get_current_week_boundaries() -> tuple[datetime, datetime]:
-    """Возвращает начало (понедельник) и конец (воскресенье) текущей недели (UTC)."""
+    """
+    Возвращает начало (понедельник) и конец (воскресенье) текущей недели в UTC.
+
+    Returns:
+        tuple[datetime, datetime]: Начало и конец текущей недели.
+    """
     now = datetime.utcnow()
     start_of_week = now - timedelta(days=now.weekday())
     start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -80,7 +99,12 @@ def get_current_week_boundaries() -> tuple[datetime, datetime]:
 
 
 def get_current_quarter_boundaries() -> tuple[datetime, datetime]:
-    """Возвращает начало и конец текущего квартала (UTC)."""
+    """
+    Возвращает начало и конец текущего квартала в UTC.
+
+    Returns:
+        tuple[datetime, datetime]: Начало и конец текущего квартала.
+    """
     now = datetime.utcnow()
     current_month = now.month
     quarter = (current_month - 1) // 3 + 1
@@ -99,12 +123,17 @@ def get_current_quarter_boundaries() -> tuple[datetime, datetime]:
 @router.message(Command(commands=["mystatistics"]))
 async def my_statistics(message: types.Message, db_session: AsyncSession):
     """
-    Команда /mystatistics — выводит статистику текущего пользователя.
+    Обрабатывает команду /mystatistics для отображения статистики текущего пользователя.
+    Показывает количество попыток, успешных ответов и процент успеха по задачам.
+
+    Args:
+        message (types.Message): Сообщение от пользователя с командой.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     telegram_id = message.from_user.id
     logger.info(f"[my_statistics] Запрос статистики от пользователя {telegram_id}")
 
-    query = select(User).where(User.telegram_id == telegram_id)
+    query = select(TelegramUser).where(TelegramUser.telegram_id == telegram_id)
     result = await db_session.execute(query)
     user = result.scalar_one_or_none()
 
@@ -158,18 +187,21 @@ async def my_statistics(message: types.Message, db_session: AsyncSession):
     logger.info(f"[my_statistics] Статистика для пользователя {telegram_id} отправлена.")
 
 
-
 @router.callback_query(F.data == "mystatistics")
 async def callback_mystatistics(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Callback для кнопки "моя статистика".
+    Обрабатывает callback-кнопку 'mystatistics' для отображения статистики пользователя.
     Вызывает ту же логику, что и команда /mystatistics.
+
+    Args:
+        call (types.CallbackQuery): Callback-запрос от кнопки.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     telegram_id = call.from_user.id
     logger.info(f"[callback_mystatistics] Нажата кнопка 'моя статистика' пользователем {telegram_id}")
 
     # Ищем пользователя
-    query = select(User).where(User.telegram_id == telegram_id)
+    query = select(TelegramUser).where(TelegramUser.telegram_id == telegram_id)
     result = await db_session.execute(query)
     user = result.scalar_one_or_none()
     if not user:
@@ -222,13 +254,15 @@ async def callback_mystatistics(call: types.CallbackQuery, db_session: AsyncSess
     await call.answer()
 
 
-
-
-
-
 def escape_markdown_v2(text: str) -> str:
     """
-    Экранирует специальные символы для Telegram MarkdownV2.
+    Экранирует специальные символы для формата MarkdownV2 в Telegram.
+
+    Args:
+        text (str): Входная строка для экранирования.
+
+    Returns:
+        str: Экранированная строка, безопасная для MarkdownV2.
     """
     special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
     for char in special_chars:
@@ -236,10 +270,17 @@ def escape_markdown_v2(text: str) -> str:
     return text
 
 
+
+
 @router.message(Command(commands=["allstats"]))
 async def all_statistics(message: types.Message, db_session: AsyncSession):
     """
-    Команда /allstats — выводит общую статистику с разбивкой по периодам: месяц, неделя и квартал (для админа).
+    Обрабатывает команду /allstats для администраторов.
+    Выводит общую статистику пользователей и активности в каналах за месяц, неделю и квартал.
+
+    Args:
+        message (types.Message): Сообщение от администратора с командой.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     admin_id = message.from_user.id
     logger.info(f"[all_statistics] Админ {admin_id} запросил общую статистику с детализацией по периодам.")
@@ -257,29 +298,29 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
         start_quarter, end_quarter = get_current_quarter_boundaries()
 
         # Общие показатели
-        total_users = (await db_session.execute(select(func.count(User.id)))).scalar() or 0
+        total_users = (await db_session.execute(select(func.count(TelegramUser.id)))).scalar() or 0
         active_users = (await db_session.execute(
-            select(func.count(User.id)).where(User.subscription_status == 'active'))).scalar() or 0
+            select(func.count(TelegramUser.id)).where(TelegramUser.subscription_status == 'active'))).scalar() or 0
         inactive_users = (await db_session.execute(
-            select(func.count(User.id)).where(User.subscription_status == 'inactive'))).scalar() or 0
+            select(func.count(TelegramUser.id)).where(TelegramUser.subscription_status == 'inactive'))).scalar() or 0
         active_in_bot = (await db_session.execute(
             select(func.count(func.distinct(TaskStatistics.user_id))))).scalar() or 0
         bot_activity_pct = (active_in_bot / total_users * 100) if total_users > 0 else 0.0
 
         # Статистика за текущий месяц
         subscribed_month = (await db_session.execute(
-            select(func.count(User.id)).where(
+            select(func.count(TelegramUser.id)).where(
                 and_(
-                    User.subscription_status == 'active',
-                    User.created_at.between(start_month, end_month)
+                    TelegramUser.subscription_status == 'active',
+                    TelegramUser.created_at.between(start_month, end_month)
                 )
             )
         )).scalar() or 0
         unsubscribed_month = (await db_session.execute(
-            select(func.count(User.id)).where(
+            select(func.count(TelegramUser.id)).where(
                 and_(
-                    User.subscription_status == 'inactive',
-                    User.deactivated_at.between(start_month, end_month)
+                    TelegramUser.subscription_status == 'inactive',
+                    TelegramUser.deactivated_at.between(start_month, end_month)
                 )
             )
         )).scalar() or 0
@@ -312,18 +353,18 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
 
         # Статистика за текущую неделю
         subscribed_week = (await db_session.execute(
-            select(func.count(User.id)).where(
+            select(func.count(TelegramUser.id)).where(
                 and_(
-                    User.subscription_status == 'active',
-                    User.created_at.between(start_week, end_week)
+                    TelegramUser.subscription_status == 'active',
+                    TelegramUser.created_at.between(start_week, end_week)
                 )
             )
         )).scalar() or 0
         unsubscribed_week = (await db_session.execute(
-            select(func.count(User.id)).where(
+            select(func.count(TelegramUser.id)).where(
                 and_(
-                    User.subscription_status == 'inactive',
-                    User.deactivated_at.between(start_week, end_week)
+                    TelegramUser.subscription_status == 'inactive',
+                    TelegramUser.deactivated_at.between(start_week, end_week)
                 )
             )
         )).scalar() or 0
@@ -356,18 +397,18 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
 
         # Статистика за текущий квартал
         subscribed_quarter = (await db_session.execute(
-            select(func.count(User.id)).where(
+            select(func.count(TelegramUser.id)).where(
                 and_(
-                    User.subscription_status == 'active',
-                    User.created_at.between(start_quarter, end_quarter)
+                    TelegramUser.subscription_status == 'active',
+                    TelegramUser.created_at.between(start_quarter, end_quarter)
                 )
             )
         )).scalar() or 0
         unsubscribed_quarter = (await db_session.execute(
-            select(func.count(User.id)).where(
+            select(func.count(TelegramUser.id)).where(
                 and_(
-                    User.subscription_status == 'inactive',
-                    User.deactivated_at.between(start_quarter, end_quarter)
+                    TelegramUser.subscription_status == 'inactive',
+                    TelegramUser.deactivated_at.between(start_quarter, end_quarter)
                 )
             )
         )).scalar() or 0
@@ -452,13 +493,15 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
 
 
 
-
-
-
 @router.callback_query(F.data == "allstats")
 async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Callback "allstats" — выводит общую статистику с детализацией по месяц, неделя и квартал.
+    Обрабатывает callback-кнопку 'allstats' для администраторов.
+    Выводит общую статистику пользователей и активности в каналах за месяц, неделю и квартал.
+
+    Args:
+        call (types.CallbackQuery): Callback-запрос от кнопки.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     admin_id = call.from_user.id
     logger.info(f"Пользователь {admin_id} запросил общую статистику с детализацией.")
@@ -475,21 +518,21 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
         start_week, end_week = get_current_week_boundaries()
         start_quarter, end_quarter = get_current_quarter_boundaries()
 
-        total_users = (await db_session.execute(select(func.count(User.id)))).scalar() or 0
-        active_users = (await db_session.execute(select(func.count(User.id)).where(User.subscription_status == 'active'))).scalar() or 0
-        inactive_users = (await db_session.execute(select(func.count(User.id)).where(User.subscription_status == 'inactive'))).scalar() or 0
+        total_users = (await db_session.execute(select(func.count(TelegramUser.id)))).scalar() or 0
+        active_users = (await db_session.execute(select(func.count(TelegramUser.id)).where(TelegramUser.subscription_status == 'active'))).scalar() or 0
+        inactive_users = (await db_session.execute(select(func.count(TelegramUser.id)).where(TelegramUser.subscription_status == 'inactive'))).scalar() or 0
         active_in_bot = (await db_session.execute(select(func.count(func.distinct(TaskStatistics.user_id))))).scalar() or 0
         bot_activity_pct = (active_in_bot / total_users * 100) if total_users > 0 else 0.0
 
         # Статистика за месяц
         subscribed_month = (await db_session.execute(
-            select(func.count(User.id)).where(
-                and_(User.subscription_status == 'active', User.created_at.between(start_month, end_month))
+            select(func.count(TelegramUser.id)).where(
+                and_(TelegramUser.subscription_status == 'active', TelegramUser.created_at.between(start_month, end_month))
             )
         )).scalar() or 0
         unsubscribed_month = (await db_session.execute(
-            select(func.count(User.id)).where(
-                and_(User.subscription_status == 'inactive', User.deactivated_at.between(start_month, end_month))
+            select(func.count(TelegramUser.id)).where(
+                and_(TelegramUser.subscription_status == 'inactive', TelegramUser.deactivated_at.between(start_month, end_month))
             )
         )).scalar() or 0
         channel_activity_query_month = select(
@@ -515,13 +558,13 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
 
         # Статистика за неделю
         subscribed_week = (await db_session.execute(
-            select(func.count(User.id)).where(
-                and_(User.subscription_status == 'active', User.created_at.between(start_week, end_week))
+            select(func.count(TelegramUser.id)).where(
+                and_(TelegramUser.subscription_status == 'active', TelegramUser.created_at.between(start_week, end_week))
             )
         )).scalar() or 0
         unsubscribed_week = (await db_session.execute(
-            select(func.count(User.id)).where(
-                and_(User.subscription_status == 'inactive', User.deactivated_at.between(start_week, end_week))
+            select(func.count(TelegramUser.id)).where(
+                and_(TelegramUser.subscription_status == 'inactive', TelegramUser.deactivated_at.between(start_week, end_week))
             )
         )).scalar() or 0
         channel_activity_query_week = select(
@@ -545,13 +588,13 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
 
         # Статистика за квартал
         subscribed_quarter = (await db_session.execute(
-            select(func.count(User.id)).where(
-                and_(User.subscription_status == 'active', User.created_at.between(start_quarter, end_quarter))
+            select(func.count(TelegramUser.id)).where(
+                and_(TelegramUser.subscription_status == 'active', TelegramUser.created_at.between(start_quarter, end_quarter))
             )
         )).scalar() or 0
         unsubscribed_quarter = (await db_session.execute(
-            select(func.count(User.id)).where(
-                and_(User.subscription_status == 'inactive', User.deactivated_at.between(start_quarter, end_quarter))
+            select(func.count(TelegramUser.id)).where(
+                and_(TelegramUser.subscription_status == 'inactive', TelegramUser.deactivated_at.between(start_quarter, end_quarter))
             )
         )).scalar() or 0
         channel_activity_query_quarter = select(
@@ -628,17 +671,16 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
         await call.answer()
 
 
-
-
-
-
-
-
-
 @router.callback_query(F.data == "userstats")
 async def start_userstats_callback(call: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     """
-    Начало процесса ввода Telegram ID для просмотра статистики пользователя.
+    Начинает процесс ввода Telegram ID для просмотра статистики конкретного пользователя.
+    Устанавливает состояние ожидания ввода ID.
+
+    Args:
+        call (types.CallbackQuery): Callback-запрос от кнопки.
+        state (FSMContext): Контекст состояний для управления FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -654,7 +696,13 @@ async def start_userstats_callback(call: types.CallbackQuery, state: FSMContext,
 @router.message(UserStatsState.waiting_for_telegram_id)
 async def process_user_id_input(message: types.Message, state: FSMContext, db_session: AsyncSession):
     """
-    Обработка введенного Telegram ID и вывод статистики пользователя.
+    Обрабатывает введённый Telegram ID и выводит статистику пользователя.
+    Показывает количество попыток, успешных ответов и процент успеха по задачам.
+
+    Args:
+        message (types.Message): Сообщение с введённым Telegram ID.
+        state (FSMContext): Контекст состояний для управления FSM.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     try:
         telegram_id = int(message.text.strip())
@@ -662,7 +710,7 @@ async def process_user_id_input(message: types.Message, state: FSMContext, db_se
         await message.reply("❌ Telegram ID должен быть числом. Попробуйте снова.")
         return
 
-    query = select(User).where(User.telegram_id == telegram_id)
+    query = select(TelegramUser).where(TelegramUser.telegram_id == telegram_id)
     user = (await db_session.execute(query)).scalar_one_or_none()
 
     if not user:
@@ -706,7 +754,7 @@ async def process_user_id_input(message: types.Message, state: FSMContext, db_se
 
 
 # ------------------------------------------------------------------------------
-# CSV-обработчики (названия сохранены оригинальными)
+# CSV-обработчики
 # ------------------------------------------------------------------------------
 
 async def generate_and_send_csv_aggregated(
@@ -717,12 +765,15 @@ async def generate_and_send_csv_aggregated(
     caption: str
 ):
     """
-    Генерация и отправка АГРЕГИРОВАННОГО CSV с полями:
-      telegram_id, username, created_at, language, channel_names, subscribed_ats
-    rows = [
-      (telegram_id, username, created_at, language, channel_names, subscribed_ats)
-    ]
-    где channel_names и subscribed_ats - это string_agg(...)
+    Генерирует и отправляет агрегированный CSV-файл с данными подписчиков.
+    Поля: telegram_id, username, created_at, language, channel_names, subscribed_ats.
+
+    Args:
+        chat_id (int): ID чата для отправки файла.
+        rows (list[tuple]): Список строк с данными (telegram_id, username, created_at, language, channel_names, subscribed_ats).
+        msg_or_call (types.Message | types.CallbackQuery): Объект сообщения или callback для отправки ответа.
+        filename (str): Имя CSV-файла.
+        caption (str): Подпись к файлу.
     """
     if not rows:
         await msg_or_call.answer("Нет активных подписчиков.")
@@ -769,7 +820,12 @@ async def generate_and_send_csv_aggregated(
 @router.callback_query(F.data == "list_subscribers_all_csv")
 async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Кнопка «Список ВСЕХ подписчиков (CSV)» (агрегированный).
+    Обрабатывает callback-кнопку 'list_subscribers_all_csv' для администраторов.
+    Генерирует агрегированный CSV-файл со списком всех активных подписчиков по всем каналам.
+
+    Args:
+        call (types.CallbackQuery): Callback-запрос от кнопки.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -782,10 +838,10 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
 
         result = await db_session.execute(
             select(
-                User.telegram_id,
-                User.username,
-                User.created_at,
-                User.language,
+                TelegramUser.telegram_id,
+                TelegramUser.username,
+                TelegramUser.created_at,
+                TelegramUser.language,
                 func.string_agg(Group.group_name, ', ').label("channel_names"),
                 func.string_agg(
                     func.to_char(
@@ -795,11 +851,11 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
                     ', '
                 ).label("subscribed_ats")
             )
-            .join(UserChannelSubscription, User.id == UserChannelSubscription.user_id)
+            .join(UserChannelSubscription, TelegramUser.id == UserChannelSubscription.user_id)
             .join(Group, Group.group_id == UserChannelSubscription.channel_id)
             .where(UserChannelSubscription.subscription_status == 'active')
-            .group_by(User.telegram_id, User.username, User.created_at, User.language)
-            .order_by(User.username)
+            .group_by(TelegramUser.telegram_id, TelegramUser.username, TelegramUser.created_at, TelegramUser.language)
+            .order_by(TelegramUser.username)
         )
 
         rows = result.all()
@@ -820,8 +876,12 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
 @router.callback_query(F.data == "list_channels_groups_subscriptions")
 async def callback_list_channels(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Показываем инлайн-клавиатуру с каждым каналом, чтобы потом можно было нажать
-    и получить детальный список подписчиков канала (CSV).
+    Обрабатывает callback-кнопку 'list_channels_groups_subscriptions' для администраторов.
+    Показывает инлайн-клавиатуру со списком каналов для выбора и получения списка подписчиков.
+
+    Args:
+        call (types.CallbackQuery): Callback-запрос от кнопки.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -843,8 +903,12 @@ async def callback_list_channels(call: types.CallbackQuery, db_session: AsyncSes
 @router.callback_query(F.data.startswith("list_subscribers_csv:"))
 async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Кнопка «Список подписчиков канала {channel_name}»
-    callback_data="list_subscribers_csv:{channel_id}"
+    Обрабатывает callback-кнопку 'list_subscribers_csv:{channel_id}' для администраторов.
+    Генерирует CSV-файл со списком активных подписчиков конкретного канала.
+
+    Args:
+        call (types.CallbackQuery): Callback-запрос от кнопки с ID канала.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     admin_id = call.from_user.id
     if not await is_admin(admin_id, db_session):
@@ -868,8 +932,8 @@ async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session
         return
 
     result2 = await db_session.execute(
-        select(UserChannelSubscription, User, Group)
-        .join(User, User.id == UserChannelSubscription.user_id)
+        select(UserChannelSubscription, TelegramUser, Group)
+        .join(TelegramUser, TelegramUser.id == UserChannelSubscription.user_id)
         .join(Group, Group.group_id == UserChannelSubscription.channel_id)
         .where(UserChannelSubscription.channel_id == channel_id)
         .where(UserChannelSubscription.subscription_status == 'active')
@@ -887,14 +951,21 @@ async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session
 
 async def generate_and_send_csv(
     chat_id: int,
-    subscriptions: list[tuple[UserChannelSubscription, User, Group]],
+    subscriptions: list[tuple[UserChannelSubscription, TelegramUser, Group]],
     msg_or_call: types.Message | types.CallbackQuery,
     filename: str,
     caption: str
 ):
     """
-    Генерация и отправка CSV с полями:
-    telegram_id,username,created_at,language,channel_id,channel_name,subscribed_at
+    Генерирует и отправляет CSV-файл с данными подписчиков канала.
+    Поля: telegram_id, username, created_at, language, channel_id, channel_name, subscribed_at.
+
+    Args:
+        chat_id (int): ID чата для отправки файла.
+        subscriptions (list[tuple]): Список подписок с объектами UserChannelSubscription, TelegramUser и Group.
+        msg_or_call (types.Message | types.CallbackQuery): Объект сообщения или callback для отправки ответа.
+        filename (str): Имя CSV-файла.
+        caption (str): Подпись к файлу.
     """
     if not subscriptions:
         if isinstance(msg_or_call, types.Message):

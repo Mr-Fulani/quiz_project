@@ -1,5 +1,5 @@
 from django_filters import rest_framework as filters
-from .models import TelegramChannel
+from .models import TelegramGroup
 
 class TelegramChannelFilter(filters.FilterSet):
     """
@@ -15,7 +15,7 @@ class TelegramChannelFilter(filters.FilterSet):
     created_before = filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
 
     class Meta:
-        model = TelegramChannel
+        model = TelegramGroup
         fields = {
             'language': ['exact'],
             'location_type': ['exact'],

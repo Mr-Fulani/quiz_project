@@ -8,7 +8,7 @@ from accounts.serializers import (
     AdminSerializer
 )
 from accounts.models import CustomUser, TelegramAdmin, UserChannelSubscription
-from platforms.models import TelegramChannel
+from platforms.models import Group
 
 @pytest.mark.django_db
 class TestUserSerializer:
@@ -97,7 +97,7 @@ class TestProfileSerializer:
 @pytest.mark.django_db
 class TestSubscriptionSerializer:
     def test_subscription_serialization(self, test_user):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Test Channel',
             group_id=123456789,
             topic_id=1,

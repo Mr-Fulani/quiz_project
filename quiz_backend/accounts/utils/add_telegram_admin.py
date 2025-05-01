@@ -4,7 +4,7 @@ import requests
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
-from quiz_backend.accounts.models import TelegramAdmin, TelegramChannel
+from quiz_backend.accounts.models import TelegramAdmin, Group
 from quiz_backend.accounts.utils.telegram_notifications import notify_admin
 
 
@@ -74,13 +74,13 @@ def manage_admin_in_telegram(sender, instance, action, pk_set, **kwargs):
     Автоматическое добавление/удаление администратора в Telegram-группы.
     """
     if action == 'post_add':  # Администратора добавили в группу
-        groups = TelegramChannel.objects.filter(id__in=pk_set)
+        groups = Group.objects.filter(id__in=pk_set)
         for group in groups:
             if add_admin_to_group(instance, group):
                 notify_admin('added', instance, [group])
 
     elif action == 'post_remove':  # Администратора удалили из группы
-        groups = TelegramChannel.objects.filter(id__in=pk_set)
+        groups = Group.objects.filter(id__in=pk_set)
         for group in groups:
             if remove_admin_from_group(instance, group):
                 notify_admin('removed', instance, [group])

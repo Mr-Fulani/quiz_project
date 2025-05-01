@@ -1,9 +1,7 @@
-# bot/handlers/poll_handler.py
-
 from aiogram import Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from bot.database.models import User, TaskPoll, TaskStatistics
+from bot.database.models import TelegramUser, TaskPoll, TaskStatistics
 from datetime import datetime, timezone
 import logging
 
@@ -13,15 +11,17 @@ router = Router(name="poll_router")
 # Text for the "I don't know but want to learn" option
 DONT_KNOW_OPTION = "Не знаю, но хочу узнать"
 
+
 @router.poll_answer()
 async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSession):
     """
-    Обработчик ответа на опрос (PollAnswer).
-    Обновляет статистику пользователя (TaskStatistics) в зависимости от правильности ответа.
-    
-    Специальная обработка для ответа "Не знаю, но хочу узнать":
-    - Запись в статистику как неправильный ответ
-    - Отображение пояснения из поля explanation
+    Обрабатывает ответ пользователя на опрос (PollAnswer) и обновляет статистику в таблице task_statistics.
+    Проверяет правильность ответа, обновляет или создаёт запись в TaskStatistics.
+    Специально обрабатывает вариант "Не знаю, но хочу узнать" как неправильный ответ с показом объяснения.
+
+    Args:
+        poll_answer (types.PollAnswer): Объект ответа на опрос от пользователя.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     logger.info(f"Получен PollAnswer: {poll_answer}")
     user_id = poll_answer.user.id
@@ -53,11 +53,11 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
     # Проверка на выбранный вариант "Не знаю, но хочу узнать"
     is_dont_know_selected = False
     dont_know_option_index = None
-    
+
     if task_poll.poll_options and DONT_KNOW_OPTION in task_poll.poll_options:
         dont_know_option_index = task_poll.poll_options.index(DONT_KNOW_OPTION)
         is_dont_know_selected = dont_know_option_index in selected_option_ids
-    
+
     # Определение правильного ответа
     correct_answer = translation.correct_answer
     try:
@@ -77,7 +77,7 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
         is_correct = (correct_option_id in selected_option_ids) if correct_option_id is not None else False
 
     # Ищем пользователя в БД
-    user_query = select(User).where(User.telegram_id == user_id)
+    user_query = select(TelegramUser).where(TelegramUser.telegram_id == user_id)
     user_result = await db_session.execute(user_query)
     user = user_result.scalar_one_or_none()
     if not user:
@@ -110,7 +110,7 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
     try:
         await db_session.commit()
         logger.info(f"Статистика обновлена. user={user_id}, task={task.id}, is_correct={is_correct}")
-        
+
         # Если выбран вариант "Не знаю, но хочу узнать", отправляем объяснение
         if is_dont_know_selected and translation.explanation:
             # Логика показа объяснения из поля explanation

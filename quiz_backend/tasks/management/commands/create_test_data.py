@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from tasks.models import Task, TaskStatistics
 from topics.models import Topic, Subtopic
 import random
-from platforms.models import TelegramChannel
+from platforms.models import Group
 
 User = get_user_model()
 
@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # В начале функции handle получаем веб-платформу
-        web_platform = TelegramChannel.objects.get(location_type='web')
+        web_platform = Group.objects.get(location_type='web')
 
         # Создаем тестовых пользователей
         users = []
@@ -74,7 +74,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Successfully created test data'))
 
         # Получаем или создаем веб-платформу
-        web_platform, created = TelegramChannel.objects.get_or_create(
+        web_platform, created = Group.objects.get_or_create(
             group_name='Website Platform',
             group_id=0,  # используем 0 как специальный ID для веб-платформы
             topic_id=0,  # или другое подходящее значение

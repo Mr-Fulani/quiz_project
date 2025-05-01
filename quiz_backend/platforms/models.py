@@ -1,54 +1,58 @@
+# platforms/models.py
+
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 
 
-
-class TelegramChannel(models.Model):
+class TelegramGroup(models.Model):
     """
-    Модель для Telegram каналов и групп.
+    Модель для Telegram групп и каналов, аналогичная SQLAlchemy Group.
     """
     class Meta:
-        db_table = 'groups'
-        verbose_name = 'Telegram канал'
-        verbose_name_plural = 'Telegram каналы'
+        db_table = 'telegram_groups'
+        verbose_name = _('Telegram группа/канал')
+        verbose_name_plural = _('Telegram группы/каналы')
 
     id = models.AutoField(primary_key=True)
     group_name = models.CharField(
         max_length=255,
         null=False,
-        help_text='Имя группы/канала'
+        help_text=_('Имя группы или канала')
     )
     group_id = models.BigIntegerField(
         unique=True,
         null=False,
         db_index=True,
-        help_text='Telegram ID группы/канала'
+        help_text=_('Telegram ID группы или канала')
     )
-    topic_id = models.IntegerField(
+    topic_id = models.ForeignKey(
+        'topics.Topic',
+        on_delete=models.CASCADE,
         null=False,
-        help_text='ID связанной темы'
+        help_text='Связанная тема'
     )
     language = models.CharField(
         max_length=50,
         null=False,
-        help_text='Язык группы/канала'
+        help_text=_('Язык группы или канала')
     )
     location_type = models.CharField(
         max_length=50,
         choices=[
-            ('group', 'Group'), 
+            ('group', 'Group'),
             ('channel', 'Channel'),
             ('web', 'Website')
         ],
         default='group',
-        help_text='Тип: группа, канал или веб-сайт'
+        help_text=_('Тип: группа, канал или веб-сайт')
     )
     username = models.CharField(
         max_length=255,
         null=True,
         blank=True,
-        help_text='Username группы/канала'
+        help_text=_('Username группы или канала')
     )
 
     def __str__(self):
