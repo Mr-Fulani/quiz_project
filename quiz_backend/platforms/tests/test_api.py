@@ -1,6 +1,6 @@
 import pytest
 from django.urls import reverse
-from platforms.models import TelegramChannel
+from platforms.models import Group
 from topics.models import Topic
 
 @pytest.mark.django_db
@@ -14,14 +14,14 @@ class TestTelegramChannelEndpoints:
 
     def test_channel_list(self, api_client, test_admin, test_topic):
         api_client.force_authenticate(user=test_admin)
-        channel1 = TelegramChannel.objects.create(
+        channel1 = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
             language='ru',
             location_type='group'
         )
-        channel2 = TelegramChannel.objects.create(
+        channel2 = Group.objects.create(
             group_name='JavaScript Channel',
             group_id=987654321,
             topic_id=test_topic.id,
@@ -39,7 +39,7 @@ class TestTelegramChannelEndpoints:
 
     def test_channel_detail(self, api_client, test_admin, test_topic):
         api_client.force_authenticate(user=test_admin)
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -68,14 +68,14 @@ class TestTelegramChannelEndpoints:
         response = api_client.post(url, data)
 
         assert response.status_code == 201
-        assert TelegramChannel.objects.count() == 1
-        channel = TelegramChannel.objects.first()
+        assert Group.objects.count() == 1
+        channel = Group.objects.first()
         assert channel.group_name == 'New Channel'
         assert channel.group_id == 123456789
 
     def test_channel_update(self, api_client, test_admin, test_topic):
         api_client.force_authenticate(user=test_admin)
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -97,7 +97,7 @@ class TestTelegramChannelEndpoints:
 
     def test_channel_delete(self, api_client, test_admin, test_topic):
         api_client.force_authenticate(user=test_admin)
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -109,7 +109,7 @@ class TestTelegramChannelEndpoints:
         response = api_client.delete(url)
 
         assert response.status_code == 204
-        assert not TelegramChannel.objects.exists()
+        assert not Group.objects.exists()
 
     def test_unauthorized_access(self, api_client):
         url = reverse('platforms:telegram-channel-list')

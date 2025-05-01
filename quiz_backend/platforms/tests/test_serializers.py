@@ -1,5 +1,5 @@
 import pytest
-from platforms.models import TelegramChannel
+from platforms.models import Group
 from platforms.serializers import TelegramChannelSerializer
 from topics.models import Topic
 
@@ -13,7 +13,7 @@ class TestTelegramChannelSerializer:
         )
 
     def test_serialization(self, test_topic):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -64,7 +64,7 @@ class TestTelegramChannelSerializer:
         }  # location_type не обязательное поле
 
     def test_partial_update(self, test_topic):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,

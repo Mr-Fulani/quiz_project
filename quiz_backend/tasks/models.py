@@ -37,6 +37,15 @@ class Task(models.Model):
         related_name='tasks',
         help_text='Подтема задачи'
     )
+    group = models.ForeignKey(
+        'platforms.TelegramGroup',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tasks',
+        db_column='group_id',
+        help_text='Связанная группа/канал'
+    )
     difficulty = models.CharField(
         max_length=50,
         choices=DIFFICULTY_CHOICES,
@@ -76,13 +85,7 @@ class Task(models.Model):
         null=True,
         help_text='ID связанного сообщения'
     )
-    group = models.ForeignKey(
-        'platforms.TelegramChannel',
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='tasks',
-        help_text='Связанная группа'
-    )
+
 
     def clean(self):
         if self.publish_date and self.publish_date < self.create_date:
@@ -157,7 +160,7 @@ class TaskStatistics(models.Model):
         help_text='Пользователь'
     )
     task = models.ForeignKey(
-        Task,
+        'tasks.Task',
         on_delete=models.CASCADE,
         related_name='statistics',
         help_text='Задача'

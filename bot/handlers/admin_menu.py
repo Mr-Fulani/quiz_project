@@ -32,7 +32,7 @@ from bot.utils.languages_utils import LANGUAGE_MESSAGES
 from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
-from bot.database.models import Admin, Task, Group, Topic, User
+from bot.database.models import Admin, Task, Group, Topic
 
 
 

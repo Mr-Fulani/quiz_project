@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django import forms
-from .models import TelegramChannel
+from .models import TelegramGroup
 from topics.models import Topic
 
 
@@ -17,7 +17,7 @@ class TelegramChannelAdminForm(forms.ModelForm):
     )
 
     class Meta:
-        model = TelegramChannel
+        model = TelegramGroup
         fields = ['group_name', 'group_id', 'language', 'location_type', 'username', 'topic_name']
 
     def clean_group_id(self):
@@ -27,7 +27,7 @@ class TelegramChannelAdminForm(forms.ModelForm):
         return group_id
 
 
-@admin.register(TelegramChannel)
+@admin.register(TelegramGroup)
 class TelegramChannelAdmin(admin.ModelAdmin):
     """
     Админка для модели TelegramChannel.

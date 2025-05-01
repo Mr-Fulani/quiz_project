@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, permissions
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
-from .models import TelegramChannel
+from .models import TelegramGroup
 from .serializers import TelegramChannelSerializer
 from .filters import TelegramChannelFilter
 
@@ -40,7 +40,7 @@ class TelegramChannelListView(generics.ListCreateAPIView):
     - Просмотр: Авторизованные пользователи
     - Создание: Только админы
     """
-    queryset = TelegramChannel.objects.all()
+    queryset = TelegramGroup.objects.all()
     serializer_class = TelegramChannelSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -57,7 +57,7 @@ class TelegramChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
     - Просмотр: Авторизованные пользователи
     - Обновление/Удаление: Только админы
     """
-    queryset = TelegramChannel.objects.all()
+    queryset = TelegramGroup.objects.all()
     serializer_class = TelegramChannelSerializer
     permission_classes = [IsAdminOrReadOnly]
 
@@ -69,15 +69,15 @@ class ChannelStatsView(APIView):
 
     def get(self, request):
         # Базовая статистика
-        total_channels = TelegramChannel.objects.count()
-        active_channels = TelegramChannel.objects.filter(is_active=True).count()
+        total_channels = TelegramGroup.objects.count()
+        active_channels = TelegramGroup.objects.filter(is_active=True).count()
         
         # Статистика по языкам
-        language_stats = TelegramChannel.objects.values('language')\
+        language_stats = TelegramGroup.objects.values('language')\
             .annotate(count=Count('id'))
         
         # Статистика по типам
-        type_stats = TelegramChannel.objects.values('location_type')\
+        type_stats = TelegramGroup.objects.values('location_type')\
             .annotate(count=Count('id'))
         
         # Статистика по подписчикам
@@ -104,7 +104,7 @@ class ChannelHealthCheckView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        channels = TelegramChannel.objects.all()
+        channels = TelegramGroup.objects.all()
         health_status = []
 
         for channel in channels:

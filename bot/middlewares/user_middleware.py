@@ -1,23 +1,21 @@
-"""
-Middleware, автоматически регистрирующий пользователя в базе
-(если это Message/CallbackQuery/PollAnswer и не бот).
-"""
-
 import logging
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery, PollAnswer
 from typing import Any, Dict, Awaitable, Callable
 
-from django.contrib.auth.hashers import make_password
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from bot.database.models import User
+from bot.database.models import TelegramUser
 from bot.utils.time import get_current_time
 
 logger = logging.getLogger(__name__)
 
 class UserMiddleware(BaseMiddleware):
-    """Добавляет пользователя в БД, если его там нет, пропускает, если бот или нет from_user."""
+    """
+    Middleware для автоматической регистрации пользователей в таблице telegram_users.
+    Проверяет наличие пользователя по telegram_id и создаёт новую запись, если его нет.
+    Обрабатывает события Message, CallbackQuery и PollAnswer, пропуская ботов и события без from_user.
+    """
 
     async def __call__(
         self,
@@ -25,6 +23,17 @@ class UserMiddleware(BaseMiddleware):
         event: Any,
         data: Dict[str, Any]
     ) -> Any:
+        """
+        Обрабатывает входящее событие, проверяет или создаёт пользователя в базе и передаёт управление дальше.
+
+        Args:
+            handler (Callable): Следующий обработчик в цепочке middleware.
+            event (Any): Входящее событие (Message, CallbackQuery, PollAnswer и др.).
+            data (Dict[str, Any]): Данные, переданные в middleware, включая db_session.
+
+        Returns:
+            Any: Результат выполнения следующего обработчика.
+        """
         logger.warning("=== UserMiddleware TRIGGERED! ===")
         db_session: AsyncSession = data.get("db_session")
 
@@ -57,22 +66,20 @@ class UserMiddleware(BaseMiddleware):
 
         # Проверяем наличие в БД
         result = await db_session.execute(
-            select(User).where(User.telegram_id == telegram_id)
+            select(TelegramUser).where(TelegramUser.telegram_id == telegram_id)
         )
         user_obj = result.scalar_one_or_none()
 
         if not user_obj:
             # Создаём новую запись
-            new_user = User(
+            new_user = TelegramUser(
                 telegram_id=telegram_id,
                 username=username,
+                first_name=from_user.first_name or None,
+                last_name=from_user.last_name or None,
                 subscription_status="active",
                 created_at=get_current_time().replace(tzinfo=None),
-                language=language,
-                password=make_password("passforuser"),  # или другой подходящий пароль
-                is_superuser=False,
-                is_staff=False,
-                is_active=True
+                language=language
             )
             db_session.add(new_user)
             try:

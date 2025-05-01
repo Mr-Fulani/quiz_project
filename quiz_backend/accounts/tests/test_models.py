@@ -1,7 +1,7 @@
 import pytest
-from django.core.exceptions import ValidationError
 from accounts.models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription
-from platforms.models import TelegramChannel
+from platforms.models import Group
+
 
 @pytest.mark.django_db
 class TestCustomUserModel:
@@ -83,7 +83,7 @@ class TestDjangoAdminModel:
 @pytest.mark.django_db
 class TestUserChannelSubscriptionModel:
     def test_create_subscription(self, test_user):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Test Channel',
             group_id=123456789,
             topic_id=1,
@@ -100,7 +100,7 @@ class TestUserChannelSubscriptionModel:
         assert subscription.subscription_status == 'inactive'
 
     def test_subscription_str(self, test_user):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Test Channel',
             group_id=123456789,
             topic_id=1,

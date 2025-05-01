@@ -1,6 +1,6 @@
 import requests
 from django.conf import settings
-from platforms.models import TelegramChannel
+from platforms.models import TelegramGroup
 from accounts.models import CustomUser
 
 class TelegramWebhookHandler:

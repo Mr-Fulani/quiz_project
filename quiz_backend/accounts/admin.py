@@ -102,15 +102,44 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     """
     Админка для подписок на каналы.
     """
-    list_display = ["id", "user", "channel", "subscription_status", "subscribed_at", "unsubscribed_at"]
-    list_filter = ["subscription_status", "channel"]
+    list_display = ["id", "user", "get_channel_name", "subscription_status", "subscribed_at", "unsubscribed_at"]
+    list_filter = ["subscription_status", "channel__group_name"]
     search_fields = ["user__username", "channel__group_name"]
+
+    def get_channel_name(self, obj):
+        """Возвращает имя канала."""
+        return obj.channel.group_name if obj.channel else '-'
+    get_channel_name.short_description = "Channel"
+
+
 
 
 @admin.register(TelegramUser)
 class TelegramUserAdmin(admin.ModelAdmin):
     """
-    Админка для Telegram-пользователей.
+    Админ-панель для Telegram-пользователей.
+    Отображает данные о пользователях Telegram, включая статус подписки и связанные каналы.
     """
-    list_display = ('telegram_id', 'username', 'first_name', 'last_name', 'linked_user')
+    list_display = (
+        'telegram_id',
+        'username',
+        'first_name',
+        'last_name',
+        'subscription_status',  # Добавлено: отображение статуса подписки
+        'linked_user',
+        'get_channel_subscriptions'  # Добавлено: отображение связанных каналов
+    )
     search_fields = ('telegram_id', 'username', 'first_name', 'last_name')
+    list_filter = (
+        'subscription_status',  # Добавлено: фильтр по статусу подписки
+        'language',  # Добавлено: фильтр по языку
+    )
+
+    def get_channel_subscriptions(self, obj):
+        """
+        Отображает список каналов, на которые подписан пользователь.
+        """
+        subscriptions = obj.channel_subscriptions.filter(subscription_status='active')
+        return ", ".join([str(sub.channel) for sub in subscriptions]) or "Нет активных подписок"
+
+    get_channel_subscriptions.short_description = "Активные подписки"

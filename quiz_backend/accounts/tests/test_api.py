@@ -2,7 +2,8 @@ import pytest
 from rest_framework.test import APIClient
 from django.urls import reverse
 from accounts.models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription
-from platforms.models import TelegramChannel
+from platforms.models import Group
+
 
 @pytest.fixture
 def api_client():
@@ -36,7 +37,7 @@ def test_telegram_admin():
 
 @pytest.fixture
 def test_channel():
-    return TelegramChannel.objects.create(
+    return Group.objects.create(
         group_name='Test Channel',
         group_id=987654321,
         topic_id=1,
@@ -106,7 +107,7 @@ class TestProfileEndpoints:
 class TestSubscriptionEndpoints:
     @pytest.fixture
     def test_channel(self, db):
-        return TelegramChannel.objects.create(
+        return Group.objects.create(
             group_name='Test Channel',
             group_id=123456789,
             topic_id=1,

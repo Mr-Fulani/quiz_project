@@ -1,7 +1,7 @@
 import pytest
 from django.db import IntegrityError
 from django.utils import timezone
-from platforms.models import TelegramChannel
+from platforms.models import Group
 from topics.models import Topic
 from tasks.models import Task, TaskStatistics
 from accounts.models import CustomUser
@@ -16,7 +16,7 @@ class TestTelegramChannelModel:
         )
 
     def test_create_channel(self, test_topic):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -30,7 +30,7 @@ class TestTelegramChannelModel:
         assert channel.location_type == 'group'
 
     def test_channel_str(self, test_topic):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -40,7 +40,7 @@ class TestTelegramChannelModel:
         assert str(channel) == 'Python Channel (123456789)'
 
     def test_channel_topic_relationship(self, test_topic):
-        channel = TelegramChannel.objects.create(
+        channel = Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -48,10 +48,10 @@ class TestTelegramChannelModel:
             location_type='group'
         )
         assert channel.topic_id == test_topic.id
-        assert TelegramChannel.objects.filter(topic_id=test_topic.id).exists()
+        assert Group.objects.filter(topic_id=test_topic.id).exists()
 
     def test_unique_group_id(self, test_topic):
-        TelegramChannel.objects.create(
+        Group.objects.create(
             group_name='Python Channel',
             group_id=123456789,
             topic_id=test_topic.id,
@@ -59,7 +59,7 @@ class TestTelegramChannelModel:
             location_type='group'
         )
         with pytest.raises(IntegrityError):
-            TelegramChannel.objects.create(
+            Group.objects.create(
                 group_name='Another Channel',
                 group_id=123456789,  # тот же group_id
                 topic_id=test_topic.id,

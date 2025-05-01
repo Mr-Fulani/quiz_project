@@ -1,13 +1,12 @@
 # accounts/views.py
 import json
 import os
-import re
+
 from blog.models import Message
 from django import forms
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView
 from django.core.paginator import Paginator
@@ -15,12 +14,10 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic import DetailView, ListView, UpdateView, TemplateView
+from django.views.generic import DetailView, ListView, TemplateView
 from rest_framework import generics, status, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -28,8 +25,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from tasks.models import TaskStatistics
+
 from .forms import PersonalInfoForm
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription  # Изменено для объединения Profile и CustomUser: удалён импорт Profile
+from .models import CustomUser, TelegramAdmin, DjangoAdmin, \
+    UserChannelSubscription  # Изменено для объединения Profile и CustomUser: удалён импорт Profile
 from .serializers import (
     UserSerializer,  # Изменено для объединения Profile и CustomUser: заменён ProfileSerializer на UserSerializer
     LoginSerializer,

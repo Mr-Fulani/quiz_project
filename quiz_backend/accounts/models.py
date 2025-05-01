@@ -2,7 +2,6 @@
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission
-from django.core.cache import cache
 from django.db import models
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -48,6 +47,7 @@ class CustomUser(AbstractUser):
     groups = models.ManyToManyField(
         Group,
         related_name='customuser_set',
+        related_query_name="user",
         blank=True,
         help_text="Группы, к которым принадлежит пользователь.",
         verbose_name="Группы"
@@ -55,6 +55,7 @@ class CustomUser(AbstractUser):
     user_permissions = models.ManyToManyField(
         Permission,
         related_name='customuser_permissions',
+        related_query_name="user",
         blank=True,
         help_text="Индивидуальные разрешения пользователя.",
         verbose_name="Разрешения"
@@ -132,15 +133,40 @@ class CustomUser(AbstractUser):
                    .order_by('-count')[:3]
 
 
+
+
 class TelegramUser(models.Model):
     """
-    Модель для пользователей Telegram-бота.
+    Модель пользователя Telegram-бота.
+    Хранит данные о пользователях Telegram, включая подписчиков, и их связь с CustomUser.
     """
+    STATUS_CHOICES = [
+        ('active', 'Активна'),
+        ('inactive', 'Неактивна'),
+    ]
+
     telegram_id = models.BigIntegerField(unique=True, verbose_name="Telegram ID")
-    username = models.CharField(max_length=255, blank=True, null=True, verbose_name="Имя пользователя")
+    username = models.CharField(max_length=255, blank=True, null=True, verbose_name="@username")
     first_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Имя")
     last_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Фамилия")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    subscription_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='inactive',
+        verbose_name="Статус подписки"
+    )  # Добавлено: синхронизация с SQLAlchemy
+    language = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="Язык"
+    )  # Добавлено: синхронизация с SQLAlchemy
+    deactivated_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Дата деактивации"
+    )  # Добавлено: синхронизация с SQLAlchemy
     linked_user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -150,9 +176,19 @@ class TelegramUser(models.Model):
         verbose_name="Связанный пользователь"
     )
 
+    class Meta:
+        db_table = 'telegram_users'  # Добавлено: явное указание имени таблицы
+        verbose_name = 'Telegram Пользователь'
+        verbose_name_plural = 'Telegram Пользователи'
+
     def __str__(self):
-        """Строковое представление Telegram-пользователя."""
+        """
+        Строковое представление объекта TelegramUser.
+        """
         return self.username or f"TelegramUser {self.telegram_id}"
+
+
+
 
 
 class BaseAdmin(AbstractUser):
@@ -168,6 +204,21 @@ class BaseAdmin(AbstractUser):
     class Meta:
         abstract = True
 
+    groups = models.ManyToManyField(
+        Group,
+        verbose_name='groups',
+        blank=True,
+        related_name="%(app_label)s_%(class)s_set",
+        related_query_name="%(app_label)s_%(class)s",
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        verbose_name='user permissions',
+        blank=True,
+        related_name="%(app_label)s_%(class)s_permissions",
+        related_query_name="%(app_label)s_%(class)s",
+    )
+
 
 class TelegramAdmin(BaseAdmin):
     """
@@ -175,12 +226,11 @@ class TelegramAdmin(BaseAdmin):
     """
     telegram_id = models.BigIntegerField(unique=True, null=False, db_index=True, verbose_name="Telegram ID")
     photo = models.CharField(max_length=500, null=True, blank=True, verbose_name="Фото")
-
     groups = models.ManyToManyField(
-        'platforms.TelegramChannel',
-        related_name='admins',
+        'platforms.TelegramGroup',
+        related_name='telegram_admins',
         blank=True,
-        verbose_name='Группы Telegram'
+        verbose_name='Telegram Группа/Канал',
     )
     user_permissions = models.ManyToManyField(
         Permission,
@@ -201,6 +251,8 @@ class TelegramAdmin(BaseAdmin):
     def photo_url(self):
         """Возвращает URL фото или дефолтное изображение."""
         return self.photo or "/static/images/default_avatar.png"
+
+
 
 
 class DjangoAdmin(BaseAdmin):
@@ -257,15 +309,23 @@ class UserChannelSubscription(models.Model):
         'accounts.CustomUser',
         on_delete=models.CASCADE,
         related_name='channel_subscriptions',
-        verbose_name="Пользователь"
+        verbose_name="Пользователь сайта"
+    )
+    telegram_user = models.ForeignKey(
+        'accounts.TelegramUser',
+        on_delete=models.CASCADE,
+        related_name='channel_subscriptions',
+        verbose_name="Telegram пользователь",
+        null=True,
+        blank=True,
     )
     channel = models.ForeignKey(
-        'platforms.TelegramChannel',
+        'platforms.TelegramGroup',
         to_field='group_id',
         db_column='channel_id',
         on_delete=models.CASCADE,
-        related_name='user_subscriptions',
-        verbose_name="Канал"
+        related_name='channel_subscriptions',
+        verbose_name="Группа/Канал"
     )
     subscription_status = models.CharField(
         max_length=20,
@@ -286,7 +346,9 @@ class UserChannelSubscription(models.Model):
         db_table = 'user_channel_subscriptions'
         verbose_name = 'Подписка на канал'
         verbose_name_plural = 'Подписки на каналы'
-        unique_together = ['user', 'channel']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'channel'], name='unique_user_channel')
+        ]
         indexes = [
             models.Index(fields=['subscription_status']),
             models.Index(fields=['subscribed_at']),

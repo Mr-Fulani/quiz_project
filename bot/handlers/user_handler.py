@@ -1,13 +1,10 @@
-# bot/handlers/user_handler.py
-
 import logging
 from aiogram import Router, types
-from django.contrib.auth.hashers import make_password
 from sqlalchemy.ext.asyncio import AsyncSession
 import datetime
 from sqlalchemy import select
 
-from bot.database.models import UserChannelSubscription, User, Group
+from bot.database.models import UserChannelSubscription, TelegramUser, Group
 
 logger = logging.getLogger(__name__)
 router = Router(name="user_router")
@@ -17,12 +14,11 @@ router = Router(name="user_router")
 async def handle_member_update(event: types.ChatMemberUpdated, db_session: AsyncSession):
     """
     Обрабатывает изменения статуса пользователя в канале или группе.
+    Обновляет записи в таблице user_channel_subscriptions, фиксируя статус подписки пользователя.
 
-    Функция вызывается при каждом изменении статуса участника (например, присоединение или выход).
-    Она обновляет базу данных, фиксируя текущий статус подписки пользователя на канал/группу.
-
-    :param event: Объект события ChatMemberUpdated от aiogram.
-    :param db_session: Асинхронная сессия SQLAlchemy для взаимодействия с базой данных.
+    Args:
+        event (types.ChatMemberUpdated): Событие изменения статуса участника от aiogram.
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для взаимодействия с базой данных.
     """
     # Извлекаем новый и старый статус пользователя
     new_status = event.new_chat_member.status
@@ -94,27 +90,32 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
         logger.error(f"Ошибка при сохранении изменений в подписках: {e}")
 
 
-async def get_or_create_user(db_session: AsyncSession, from_user: types.User) -> User:
+async def get_or_create_user(db_session: AsyncSession, from_user: types.User) -> TelegramUser:
     """
-    Получает пользователя из базы данных по Telegram ID или создает нового, если его нет.
+    Получает пользователя из таблицы telegram_users по Telegram ID или создаёт нового, если его нет.
+
+    Args:
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для взаимодействия с базой данных.
+        from_user (types.User): Объект пользователя Telegram из aiogram.
+
+    Returns:
+        TelegramUser: Объект пользователя из базы данных.
     """
     result = await db_session.execute(
-        select(User).where(User.telegram_id == from_user.id)
+        select(TelegramUser).where(TelegramUser.telegram_id == from_user.id)
     )
     user_obj = result.scalar_one_or_none()
 
     if not user_obj:
-        # Если пользователя нет, создаем нового, передавая все обязательные поля
-        user_obj = User(
+        # Если пользователя нет, создаём нового с необходимыми полями
+        user_obj = TelegramUser(
             telegram_id=from_user.id,
             username=from_user.username or None,
+            first_name=from_user.first_name or None,
+            last_name=from_user.last_name or None,
             subscription_status="active",
             created_at=datetime.datetime.utcnow(),
-            language=from_user.language_code or "unknown",
-            password=make_password("passforuser"),
-            is_superuser=False,        # обязательно, чтобы не было NULL
-            is_staff=False,
-            is_active=True
+            language=from_user.language_code or "unknown"
         )
         db_session.add(user_obj)
         try:
@@ -129,17 +130,17 @@ async def get_or_create_user(db_session: AsyncSession, from_user: types.User) ->
     return user_obj
 
 
-
 async def get_group(db_session: AsyncSession, chat: types.Chat) -> Group | None:
     """
-    Получает группу (канал) из базы данных по Telegram ID.
+    Получает группу (канал) из таблицы groups по Telegram ID.
+    Если группа не найдена, возвращает None, не создавая новую запись.
 
-    В отличие от `get_or_create_group`, эта функция **только** пытается найти существующую группу.
-    Если группа не найдена, **не создает новую** и возвращает `None`.
+    Args:
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для взаимодействия с базой данных.
+        chat (types.Chat): Объект чата из Telegram.
 
-    :param db_session: Асинхронная сессия SQLAlchemy.
-    :param chat: Объект чата из Telegram.
-    :return: Объект Group из базы данных или `None`, если группа не найдена.
+    Returns:
+        Group | None: Объект группы из базы данных или None, если группа не найдена.
     """
     # Ищем группу по Telegram ID чата
     result = await db_session.execute(
