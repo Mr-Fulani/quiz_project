@@ -5,6 +5,7 @@ from django.core.validators import URLValidator
 
 
 
+
 class Webhook(models.Model):
     class Meta:
         db_table = 'webhooks'
@@ -24,7 +25,6 @@ class Webhook(models.Model):
     url = models.CharField(
         max_length=255,
         unique=True,
-        validators=[URLValidator()],
         help_text='URL вебхука'
     )
     service_name = models.CharField(
@@ -45,8 +45,17 @@ class Webhook(models.Model):
         help_text='Дата последнего обновления'
     )
 
+    def clean(self):
+        """Резервная проверка: добавляет https://, если протокол отсутствует."""
+        if self.url and not self.url.startswith(('http://', 'https://')):
+            self.url = f"https://{self.url}"
+
     def __str__(self):
         return f"{self.service_name or 'Неизвестный сервис'}: {self.url}"
+
+    def __str__(self):
+        return f"{self.service_name or 'Неизвестный сервис'}: {self.url}"
+
 
 class DefaultLink(models.Model):
     class Meta:
@@ -75,6 +84,7 @@ class DefaultLink(models.Model):
 
     def __str__(self):
         return f"{self.language} - {self.topic}: {self.link}"
+
 
 class MainFallbackLink(models.Model):
     class Meta:
