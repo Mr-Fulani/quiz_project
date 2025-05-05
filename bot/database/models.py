@@ -238,7 +238,7 @@ class UserChannelSubscription(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('telegram_users.id'), nullable=False)
-    channel_id = Column(BigInteger, ForeignKey('telegram_groups.id'), nullable=False)
+    channel_id = Column(BigInteger, ForeignKey('telegram_groups.group_id'), nullable=False)
     subscription_status = Column(String, default='inactive', nullable=False)
     subscribed_at = Column(DateTime, nullable=True)
     unsubscribed_at = Column(DateTime, nullable=True)
