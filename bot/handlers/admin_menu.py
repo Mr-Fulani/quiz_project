@@ -14,6 +14,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile, InlineKeyboardMarkup, \
     InlineKeyboardButton
 from django.contrib.auth.hashers import make_password
+from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -32,8 +33,7 @@ from bot.utils.languages_utils import LANGUAGE_MESSAGES
 from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
 from bot.utils.url_validator import is_valid_url
-from bot.database.models import Admin, Task, TelegramGroup, Topic
-
+from bot.database.models import Admin, Task, TelegramGroup, Topic, UserChannelSubscription
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin_menu_router")
@@ -579,6 +579,10 @@ async def publish_task_with_translations_handler(call: CallbackQuery, db_session
         await call.message.answer("❌ Произошла ошибка при процессе публикации задачи с переводами.")
 
 
+
+
+
+
 @router.callback_query(lambda c: c.data == "add_channel_group_button")
 async def callback_add_channel_group(call: types.CallbackQuery, db_session: AsyncSession, state: FSMContext):
     """
@@ -932,11 +936,6 @@ async def callback_remove_channel(call: types.CallbackQuery, db_session: AsyncSe
 async def process_remove_group_id(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
     Обрабатывает ввод Telegram ID канала для удаления.
-
-    Args:
-        message (Message): Сообщение от пользователя.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-        state (FSMContext): Контекст состояния FSM.
     """
     group_id_text = message.text.strip()
     if not re.match(r'^-100\d+$', group_id_text):
@@ -957,7 +956,18 @@ async def process_remove_group_id(message: types.Message, db_session: AsyncSessi
         return
 
     try:
-        await db_session.delete(group)
+        # Удаляем связанные подписки
+        await db_session.execute(
+            delete(UserChannelSubscription).where(UserChannelSubscription.channel_id == group.group_id)
+        )
+        # Удаляем связанные задачи
+        await db_session.execute(
+            delete(Task).where(Task.group_id == group.id)
+        )
+        # Удаляем канал
+        await db_session.execute(
+            delete(TelegramGroup).where(TelegramGroup.group_id == group.group_id)
+        )
         await db_session.commit()
         logger.info(f"Канал '{group.group_name}' (ID: {group_id}) успешно удалён.")
         await message.answer(f"✅ Канал '{group.group_name}' (ID: {group_id}) успешно удалён из базы данных.")
@@ -1057,6 +1067,9 @@ async def callback_list_channels_groups(call: CallbackQuery, db_session: AsyncSe
         logger.exception(f"Неизвестная ошибка в callback_list_channels_groups: {e}")
         await call.message.answer("❌ Произошла непредвиденная ошибка.")
         await call.answer()
+
+
+
 
 
 @router.callback_query(lambda c: c.data == "zero_task_topics_report")
