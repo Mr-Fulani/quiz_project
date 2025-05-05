@@ -125,23 +125,7 @@ class TaskStatistics(Base):
 
 
 
-# class Group(Base):
-#     __tablename__ = 'groups'
-#
-#     id = Column(Integer, primary_key=True)
-#     group_name = Column(String, nullable=False)
-#     group_id = Column(BigInteger, unique=True, nullable=False)
-#     topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
-#     language = Column(String, nullable=False)
-#     location_type = Column(String, nullable=False, default="group")
-#     username = Column(String, nullable=True)
-#
-#     user_subscriptions = relationship(
-#         "UserChannelSubscription",
-#         back_populates="channel",
-#         cascade="all, delete-orphan"
-#     )
-#     tasks = relationship('Task', back_populates='group')
+
 
 
 
@@ -165,7 +149,7 @@ class TelegramGroup(Base):
     id = Column(Integer, primary_key=True)
     group_name = Column(String, nullable=False)
     group_id = Column(BigInteger, unique=True, nullable=False)
-    topic_id_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
+    topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
     language = Column(String, nullable=False)
     location_type = Column(String, nullable=False, default="group")
     username = Column(String, nullable=True)

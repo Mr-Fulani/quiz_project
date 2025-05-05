@@ -31,6 +31,7 @@ class TelegramGroup(models.Model):
         'topics.Topic',
         on_delete=models.CASCADE,
         null=False,
+        db_column='topic_id',  # Явно указываем имя столбца в базе
         help_text='Связанная тема'
     )
     language = models.CharField(
@@ -57,3 +58,13 @@ class TelegramGroup(models.Model):
 
     def __str__(self):
         return f"{self.group_name} ({self.group_id})"
+
+
+    def check_column_name(self):
+        """
+        Возвращает имя столбца для поля topic_id.
+
+        Returns:
+            str: Имя столбца в базе данных.
+        """
+        return self._meta.get_field('topic_id').column

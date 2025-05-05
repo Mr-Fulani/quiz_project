@@ -62,3 +62,4 @@ coreapi>=2.3.3
 coreschema>=0.0.4
 PyYAML>=6.0.1
 uritemplate>=4.1.1
+validators==0.35.0

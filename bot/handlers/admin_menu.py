@@ -798,27 +798,49 @@ async def process_location_type(message: types.Message, db_session: AsyncSession
 async def process_channel_username(message: types.Message, db_session: AsyncSession, state: FSMContext):
     """
     Сохраняет username канала/группы. Если введено "-", сохраняется как None.
+    Проверяет корректность формата username и предупреждает о допустимых символах.
+    В случае ошибки или отката удаляет текущие кнопки и возвращает кнопки главного меню.
 
     Args:
         message (Message): Сообщение от пользователя.
         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
         state (FSMContext): Контекст состояния FSM.
     """
-    uname_input = message.text.strip()
-    if uname_input in ["-", ""]:
-        uname_input = None
-    elif uname_input.startswith("@"):
-        uname_input = uname_input[1:].strip()
+    try:
+        uname_input = message.text.strip()
+        if uname_input in ["-", ""]:
+            uname_input = None
+        elif uname_input.startswith("@"):
+            uname_input = uname_input[1:].strip()
 
-    if uname_input and not re.match(r'^[A-Za-z0-9_]{5,32}$', uname_input):
-        await message.reply("❌ Некорректный формат username. Username должен содержать 5-32 символа, включая буквы, цифры и нижнее подчеркивание. Повторите ввод:")
-        return
+        if uname_input and not re.match(r'^[A-Za-z0-9_]{5,32}$', uname_input):
+            instructions = (
+                "❌ Некорректный формат username.\n\n"
+                "Требования к username:\n"
+                "- Длина: от 5 до 32 символов\n"
+                "- Допустимые символы: латинские буквы (A-Z, a-z), цифры (0-9) и нижнее подчеркивание (_)\n"
+                "- Специальные символы (!@#$ и т.д.) не допускаются\n\n"
+                "Пожалуйста, повторите ввод:"
+            )
+            await message.reply(instructions)
+            return
 
-    await state.update_data(username=uname_input)
-    logger.info(f"[AddChannelGroup] Шаг6: username={uname_input or '—'}")
+        await state.update_data(username=uname_input)
+        logger.info(f"[AddChannelGroup] Шаг6: username={uname_input or '—'}")
 
-    data = await state.get_data()
-    await create_group_or_channel_record(message, db_session, state, data)
+        data = await state.get_data()
+        await create_group_or_channel_record(message, db_session, state, data)
+
+    except Exception as e:
+        logger.error(f"[AddChannelGroup] Ошибка при обработке username: {e}")
+        # Удаляем текущие кнопки и возвращаем главное меню
+        markup = await get_start_reply_keyboard(message.from_user.id, db_session)
+        await message.reply(
+            "❌ Произошла ошибка при обработке данных. Возврат в главное меню.",
+            reply_markup=markup
+        )
+        # Сбрасываем состояние FSM
+        await state.clear()
 
 
 async def create_group_or_channel_record(
@@ -1651,36 +1673,64 @@ async def process_remove_fallback_language(message: types.Message, db_session: A
     await state.clear()
 
 
-@router.callback_query(lambda c: c.data == "list_main_fallback_links")
-async def callback_list_main_fallback_links(call: types.CallbackQuery, db_session: AsyncSession):
+# Обработчик кнопки "Получить главную ссылку"
+@router.callback_query(lambda c: c.data == "get_main_fallback_link")
+async def callback_get_main_fallback_link(call: types.CallbackQuery, db_session: AsyncSession):
     """
-    Обрабатывает нажатие кнопки "Список главных ссылок".
-
-    Отправляет список всех главных статических ссылок.
-
-    Args:
-        call (CallbackQuery): Объект callback-запроса от Aiogram.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+    Обрабатывает нажатие кнопки "Получить главную ссылку".
+    Выводит списком все главные статические ссылки с указанием языка.
     """
-    logger.info(f"Пользователь {call.from_user.username} ({call.from_user.id}) запросил список главных ссылок")
+    # Первый ответ на callback, чтобы уведомить телеграм что кнопка обрабатывается
+    # и предупредить индикатор загрузки
+    await call.answer("Получаем главные ссылки...")
+
+    user_id = call.from_user.id
+    logger.info(f"Запрос на получение главных ссылок от пользователя {user_id}")
+
+    if not await is_admin(user_id, db_session):
+        await call.answer("У вас нет доступа к этой команде.", show_alert=True)
+        logger.warning(f"Пользователь с ID {user_id} попытался получить главную ссылку без прав.")
+        return
+
+    logger.debug(f"Пользователь {user_id} прошел проверку прав доступа, продолжаем...")
+    default_link_service = DefaultLinkService(db_session)
+
     try:
-        default_link_service = DefaultLinkService(db_session)
-        fallback_links = await default_link_service.list_main_fallback_links()
-        if not fallback_links:
-            await call.message.answer("📭 Главные статические ссылки не найдены.")
-            logger.info("Список главных ссылок пуст.")
+        # Добавляем логирования для отладки
+        logger.debug("Начинаем запрос all_main_fallback_links...")
+
+        # Получаем все главные статические ссылки
+        main_links = await default_link_service.get_all_main_fallback_links()
+        logger.debug(f"Получены ссылки: {main_links}")
+
+        if main_links:
+            message_text = "📌 **Главные статические ссылки по языкам:**\n\n"
+            for link in main_links:
+                # Используем emoji флагов для наглядности (опционально)
+                flag_emoji = get_flag_emoji(link.language)
+                message_text += f"{flag_emoji} *{link.language}*: [Ссылка]({link.link})\n"
+
+            logger.debug(f"Подготовлен текст сообщения: {message_text}")
+
+            # Отправляем сообщение с ответом
+            sent_message = await call.message.answer(
+                message_text,
+                parse_mode='Markdown',
+                disable_web_page_preview=False
+            )
+            logger.info(
+                f"Пользователю {call.from_user.username} отправлен список главных ссылок, message_id: {sent_message.message_id}")
         else:
-            message = "📋 **Список главных статических ссылок:**\n\n"
-            for link in fallback_links:
-                escaped_language = escape_markdown(link.language)
-                escaped_link = escape_markdown(link.link)
-                message += f"• Язык: `{escaped_language}`, Ссылка: {escaped_link}\n"
-            await call.message.answer(message, parse_mode="MarkdownV2")
-            logger.info("Список главных ссылок успешно отправлен.")
+            # Если нет установленных главных ссылок, показать стандартную ссылку
+            sent_message = await call.message.answer(
+                "⚠️ Главные статические ссылки не установлены. Используется стандартная ссылка:\nhttps://t.me/proger_dude"
+            )
+            logger.info(
+                f"Пользователь {user_id} запросил главные ссылки, но они не установлены. message_id: {sent_message.message_id}")
     except Exception as e:
-        await call.message.answer("❌ Произошла ошибка при получении списка главных ссылок.")
-        logger.error(f"Ошибка при получении списка главных ссылок: {e}")
-    await call.answer()
+        # Более подробное логирование ошибки
+        logger.error(f"Ошибка при получении главных ссылок: {e}", exc_info=True)
+        await call.message.answer(f"❌ Произошла ошибка при получении главных статических ссылок: {str(e)}")
 
 
 
