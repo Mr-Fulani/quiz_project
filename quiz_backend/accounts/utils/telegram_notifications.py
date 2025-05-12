@@ -1,21 +1,19 @@
+import aiohttp
+import logging
 import os
 
-import requests
+logger = logging.getLogger(__name__)
 
-
-
-
-
-def notify_admin(action, admin, groups):
+async def notify_admin(action: str, admin, groups):
     """
-    Уведомляет администратора об изменениях.
+    Отправляет уведомление в Telegram-бот о действиях с администратором через HTTP API.
     :param action: 'added', 'updated', или 'removed'.
-    :param admin: Объект администратора (TelegramAdmin).
+    :param admin: Объект TelegramAdmin.
     :param groups: Список групп/каналов (QuerySet).
     """
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     if not bot_token:
-        print("Ошибка: TELEGRAM_BOT_TOKEN не найден в переменных окружения")
+        logger.error("TELEGRAM_BOT_TOKEN не найден")
         return
 
     group_links = [
@@ -24,37 +22,20 @@ def notify_admin(action, admin, groups):
     ]
 
     if action == 'added':
-        message = (
-            f"Здравствуйте, {admin.username}!\n"
-            f"Вы были добавлены в качестве администратора в следующие группы/каналы:\n"
-            f"{', '.join(group_links)}"
-        )
+        message = f"Здравствуйте, {admin.username}!\nВы были добавлены как администратор:\n{', '.join(group_links)}"
     elif action == 'updated':
-        message = (
-            f"Здравствуйте, {admin.username}!\n"
-            f"Ваши права администратора были обновлены для следующих групп/каналов:\n"
-            f"{', '.join(group_links)}"
-        )
+        message = f"Здравствуйте, {admin.username}!\nВаши права обновлены:\n{', '.join(group_links)}"
     elif action == 'removed':
-        message = (
-            f"Здравствуйте, {admin.username}!\n"
-            f"Вы больше не являетесь администратором следующих групп/каналов:\n"
-            f"{', '.join(group_links)}"
-        )
+        message = f"Здравствуйте, {admin.username}!\nВы удалены из администраторов:\n{', '.join(group_links)}"
     else:
-        return  # Некорректное действие
+        logger.error(f"Некорректное действие: {action}")
+        return
 
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    data = {
-        'chat_id': admin.telegram_id,
-        'text': message,
-        'parse_mode': 'Markdown',
-    }
-    response = requests.post(url, data=data)
-    if response.status_code == 200 and response.json().get('ok'):
-        print(f"Уведомление успешно отправлено админу {admin.username}")
-    else:
-        print(f"Ошибка при отправке уведомления: {response.content}")
-
-
-
+    try:
+        async with aiohttp.ClientSession() as session:
+            payload = {'chat_id': admin.telegram_id, 'text': message, 'parse_mode': 'Markdown'}
+            async with session.post(f"http://bot:8000/api/send-message/", json=payload) as response:
+                if response.status != 200:
+                    logger.error(f"Ошибка отправки уведомления: {response.status}")
+    except Exception as e:
+        logger.error(f"Ошибка при отправке уведомления: {e}")

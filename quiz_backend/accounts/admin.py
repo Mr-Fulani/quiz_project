@@ -1,145 +1,165 @@
-# accounts/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, SuperAdmin, UserChannelSubscription, TelegramUser
-from .utils.telegram_notifications import notify_admin
+from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription
 
 
-@admin.register(CustomUser)
+class TelegramAdminGroupInline(admin.TabularInline):
+    """
+    Inline-форма для связи TelegramAdmin с группами/каналами.
+    """
+    model = TelegramAdminGroup
+    extra = 1
+    verbose_name = "Группа/Канал"
+    verbose_name_plural = "Группы/Каналы"
+    fields = ['telegram_group']
+    raw_id_fields = ['telegram_group']
+
+
+class TelegramAdminAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для TelegramAdmin.
+    """
+    list_display = ['telegram_id', 'username', 'language', 'is_active', 'photo', 'group_count']
+    search_fields = ['telegram_id', 'username']
+    list_filter = ['is_active', 'language']
+    inlines = [TelegramAdminGroupInline]
+    actions = ['make_active', 'make_inactive']
+
+    def group_count(self, obj):
+        """
+        Подсчёт групп/каналов админа.
+        """
+        return obj.groups.count()
+    group_count.short_description = 'Группы'
+
+    def make_active(self, request, queryset):
+        """
+        Активировать админов.
+        """
+        queryset.update(is_active=True)
+    make_active.short_description = "Активировать админов"
+
+    def make_inactive(self, request, queryset):
+        """
+        Деактивировать админов.
+        """
+        queryset.update(is_active=False)
+    make_inactive.short_description = "Деактивировать админов"
+
+
+class DjangoAdminAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для DjangoAdmin.
+    """
+    list_display = ['username', 'email', 'is_django_admin', 'is_staff', 'is_active', 'last_login']
+    search_fields = ['username', 'email', 'phone_number']
+    list_filter = ['is_django_admin', 'is_staff', 'is_active']
+    actions = ['make_staff', 'remove_staff']
+
+    def make_staff(self, request, queryset):
+        """
+        Дать права персонала.
+        """
+        queryset.update(is_staff=True)
+    make_staff.short_description = "Сделать персоналом"
+
+    def remove_staff(self, request, queryset):
+        """
+        Убрать права персонала.
+        """
+        queryset.update(is_staff=False)
+    remove_staff.short_description = "Убрать права персонала"
+
+
 class CustomUserAdmin(UserAdmin):
     """
-    Админ-панель для CustomUser с объединёнными полями из Profile.
+    Админ-панель для CustomUser с действием для создания DjangoAdmin.
     """
-    list_display = ('username', 'subscription_status', 'language', 'created_at', 'deactivated_at')
-    list_filter = ('subscription_status', 'language', 'is_public', 'theme_preference')
-    search_fields = ('username', 'email', 'bio', 'location')
-    ordering = ('-created_at',)
+    model = CustomUser
+    list_display = ['username', 'email', 'is_active', 'is_staff', 'telegram_id', 'subscription_status', 'created_at']
+    search_fields = ['username', 'email', 'telegram_id']
+    list_filter = ['is_active', 'is_staff', 'subscription_status', 'language']
     fieldsets = (
-        (None, {'fields': ('username', 'password', 'email')}),
-        ('Personal Info', {
-            'fields': (
-                'first_name', 'last_name', 'language', 'subscription_status', 'deactivated_at',
-                'avatar', 'bio', 'location', 'birth_date', 'website'
-            )
-        }),
-        ('Social Networks', {
-            'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')
-        }),
-        ('Settings', {
-            'fields': ('is_public', 'email_notifications', 'theme_preference')
-        }),
-        ('Statistics', {
-            'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')
-        }),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('last_login', 'date_joined', 'last_seen')}),
+        (None, {'fields': ('username', 'password')}),
+        ('Персональная информация', {'fields': ('email', 'telegram_id', 'avatar', 'bio', 'location', 'birth_date', 'website')}),
+        ('Социальные сети', {'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')}),
+        ('Статистика', {'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')}),
+        ('Настройки', {'fields': ('language', 'is_telegram_user', 'email_notifications', 'is_public', 'theme_preference')}),
+        ('Разрешения', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Даты', {'fields': ('last_login', 'date_joined', 'deactivated_at', 'last_seen')}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'email', 'is_active'),
+            'fields': ('username', 'email', 'telegram_id', 'password1', 'password2', 'is_active', 'is_staff'),
         }),
     )
+    actions = ['make_django_admin']
+
+    def make_django_admin(self, request, queryset):
+        """
+        Создаёт DjangoAdmin из выбранных CustomUser.
+        """
+        for user in queryset:
+            if not DjangoAdmin.objects.filter(username=user.username).exists():
+                DjangoAdmin.objects.create(
+                    username=user.username,
+                    email=user.email,
+                    password=user.password,
+                    is_django_admin=True,
+                    is_staff=True,
+                    language=user.language or 'ru',
+                    phone_number=None
+                )
+        self.message_user(request, f"Выбранные пользователи добавлены как DjangoAdmin.")
+    make_django_admin.short_description = "Сделать Django-админом"
 
 
-class BaseAdminAdmin(UserAdmin):
-    """
-    Базовая админка для всех типов администраторов.
-    """
-    list_display = ('username', 'email', 'is_active', 'is_superuser', 'phone_number', 'language')
-    search_fields = ('username', 'email', 'phone_number')
-    list_filter = ('is_active', 'is_superuser', 'is_telegram_admin', 'is_django_admin', 'is_super_admin')
-
-
-@admin.register(TelegramAdmin)
-class TelegramAdminAdmin(BaseAdminAdmin):
-    """
-    Админка для Telegram-администраторов.
-    """
-    list_display = ('username', 'telegram_id', 'email', 'is_active', 'phone_number', 'language')
-    search_fields = ('username', 'telegram_id', 'email', 'phone_number')
-    filter_horizontal = ('groups',)
-    fieldsets = (
-        (None, {'fields': ('username', 'password', 'email', 'telegram_id')}),
-        ('Personal Info', {'fields': ('phone_number', 'language', 'photo')}),
-        ('Permissions', {'fields': ('is_active', 'is_telegram_admin', 'groups', 'user_permissions')}),
-    )
-
-    def save_model(self, request, obj, form, change):
-        """Сохранение объекта с уведомлением."""
-        super().save_model(request, obj, form, change)
-        groups = obj.groups.all()
-        notify_admin('added' if not change else 'updated', obj, groups)
-
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'telegram_id', 'password1', 'password2', 'email', 'is_active', 'is_telegram_admin'),
-        }),
-    )
-
-
-@admin.register(DjangoAdmin)
-class DjangoAdminAdmin(BaseAdminAdmin):
-    """
-    Админка для Django-администраторов.
-    """
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(is_django_admin=True)
-
-
-@admin.register(SuperAdmin)
-class SuperAdminAdmin(BaseAdminAdmin):
-    """
-    Админка для супер-администраторов.
-    """
-    def get_queryset(self, request):
-        return super().get_queryset(request).filter(is_super_admin=True)
-
-
-@admin.register(UserChannelSubscription)
-class UserChannelSubscriptionAdmin(admin.ModelAdmin):
-    """
-    Админка для подписок на каналы.
-    """
-    list_display = ["id", "user", "get_channel_name", "subscription_status", "subscribed_at", "unsubscribed_at"]
-    list_filter = ["subscription_status", "channel__group_name"]
-    search_fields = ["user__username", "channel__group_name"]
-
-    def get_channel_name(self, obj):
-        """Возвращает имя канала."""
-        return obj.channel.group_name if obj.channel else '-'
-    get_channel_name.short_description = "Channel"
-
-
-
-
-@admin.register(TelegramUser)
 class TelegramUserAdmin(admin.ModelAdmin):
     """
-    Админ-панель для Telegram-пользователей.
-    Отображает данные о пользователях Telegram, включая статус подписки и связанные каналы.
+    Админ-панель для TelegramUser.
     """
-    list_display = (
-        'telegram_id',
-        'username',
-        'first_name',
-        'last_name',
-        'subscription_status',  # Добавлено: отображение статуса подписки
-        'linked_user',
-        'get_channel_subscriptions'  # Добавлено: отображение связанных каналов
-    )
-    search_fields = ('telegram_id', 'username', 'first_name', 'last_name')
-    list_filter = (
-        'subscription_status',  # Добавлено: фильтр по статусу подписки
-        'language',  # Добавлено: фильтр по языку
-    )
+    list_display = ['telegram_id', 'username', 'first_name', 'last_name', 'subscription_status', 'language', 'is_premium', 'created_at']
+    search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
+    list_filter = ['subscription_status', 'language', 'is_premium', 'created_at']
+    actions = ['make_premium', 'remove_premium']
 
-    def get_channel_subscriptions(self, obj):
+    def make_premium(self, request, queryset):
         """
-        Отображает список каналов, на которые подписан пользователь.
+        Дать премиум-статус.
         """
-        subscriptions = obj.channel_subscriptions.filter(subscription_status='active')
-        return ", ".join([str(sub.channel) for sub in subscriptions]) or "Нет активных подписок"
+        queryset.update(is_premium=True)
+    make_premium.short_description = "Дать премиум-статус"
 
-    get_channel_subscriptions.short_description = "Активные подписки"
+    def remove_premium(self, request, queryset):
+        """
+        Убрать премиум-статус.
+        """
+        queryset.update(is_premium=False)
+    remove_premium.short_description = "Убрать премиум-статус"
+
+
+class UserChannelSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ['telegram_user', 'channel', 'subscription_status', 'subscribed_at']
+    search_fields = ['telegram_user__username', 'channel__group_name', 'channel__group_id']
+    list_filter = ['subscription_status', 'subscribed_at']
+    raw_id_fields = ['telegram_user', 'channel']
+    actions = ['subscribe', 'unsubscribe']
+
+    def subscribe(self, request, queryset):
+        for subscription in queryset:
+            subscription.subscribe()
+    subscribe.short_description = "Активировать подписку"
+
+    def unsubscribe(self, request, queryset):
+        for subscription in queryset:
+            subscription.unsubscribe()
+    unsubscribe.short_description = "Деактивировать подписку"
+
+
+# Регистрация моделей
+admin.site.register(CustomUser, CustomUserAdmin)
+admin.site.register(TelegramUser, TelegramUserAdmin)
+admin.site.register(TelegramAdmin, TelegramAdminAdmin)
+admin.site.register(DjangoAdmin, DjangoAdminAdmin)
+admin.site.register(UserChannelSubscription, UserChannelSubscriptionAdmin)

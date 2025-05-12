@@ -1,325 +1,300 @@
 # bot/handlers/admin_menu.py
 import asyncio
 import datetime
-from datetime import datetime, timedelta
 import html
 import logging
 import os
 import re
+from datetime import datetime, timedelta
 
 from aiogram import Router, F, Bot, types
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import StateFilter, Command
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, ForceReply, ContentType, FSInputFile, InlineKeyboardMarkup, \
+from aiogram.types import CallbackQuery, Message, ContentType, FSInputFile, InlineKeyboardMarkup, \
     InlineKeyboardButton
-from django.contrib.auth.hashers import make_password
 from sqlalchemy import delete
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from bot.database.models import Task, TelegramGroup, Topic, UserChannelSubscription
 from bot.keyboards.quiz_keyboards import get_admin_menu_keyboard
 from bot.keyboards.reply_keyboards import get_location_type_keyboard, get_start_reply_keyboard
-from bot.services.admin_service import is_admin, add_admin, remove_admin
+from bot.services.admin_service import is_admin
 from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_task_by_id
 from bot.services.publication_service import publish_task_by_id, publish_task_by_translation_group
 from bot.services.task_bd_status_service import get_task_status, get_zero_task_topics
 from bot.services.topic_services import delete_topic_from_db, add_topic_to_db
-from bot.states.admin_states import AddAdminStates, RemoveAdminStates, TaskActions, ChannelStates, AdminStates, \
+from bot.states.admin_states import TaskActions, ChannelStates, AdminStates, \
     DefaultLinkStates
 from bot.utils.languages_utils import LANGUAGE_MESSAGES
-from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.markdownV2 import escape_markdown
+from bot.utils.report_csv_generator import generate_zero_task_topics_text, generate_detailed_task_status_csv
 from bot.utils.url_validator import is_valid_url
-from bot.database.models import Admin, Task, TelegramGroup, Topic, UserChannelSubscription
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin_menu_router")
 
 
-@router.callback_query(F.data == "add_admin_button")
-async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session: "AsyncSession"):
-    """
-    Обрабатывает нажатие кнопки "Добавить администратора".
-
-    Если вызывающий пользователь является администратором, запрашивается секретный пароль.
-
-    Args:
-        call (CallbackQuery): Объект callback-запроса от Aiogram.
-        state (FSMContext): Контекст состояния FSM.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    try:
-        user_id = call.from_user.id
-        if not await is_admin(user_id, db_session):
-            await call.message.answer(
-                "⛔ У вас нет прав для выполнения этой команды.",
-                reply_markup=get_start_reply_keyboard()
-            )
-            await call.answer()
-            return
-        await call.message.answer(
-            "🔒 Введите секретный пароль для добавления нового администратора:\n\n"
-            "_Обратите внимание: вводимые символы будут видны только вам._",
-            parse_mode='Markdown'
-        )
-        await state.set_state(AddAdminStates.waiting_for_password)
-        await call.answer()
-    except Exception as e:
-        logger.exception("Ошибка в callback_add_admin: %s", e)
-        await call.message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
-        await state.clear()
 
 
-@router.message(AddAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
-async def process_add_admin_password(message: Message, state: FSMContext, db_session: "AsyncSession"):
-    """
-    Обрабатывает ввод секретного пароля для добавления нового администратора.
 
-    Если пароль верный, бот просит ввести данные нового администратора в формате:
-      telegram_id, username, first_name, last_name, password
+# @router.callback_query(F.data == "add_admin_button")
+# async def callback_add_admin(call: CallbackQuery, state: FSMContext, db_session: "AsyncSession"):
+#     """
+#     Обрабатывает нажатие кнопки "Добавить администратора".
+#
+#     Если вызывающий пользователь является администратором, запрашивается секретный пароль.
+#
+#     Args:
+#         call (CallbackQuery): Объект callback-запроса от Aiogram.
+#         state (FSMContext): Контекст состояния FSM.
+#         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+#     """
+#     try:
+#         user_id = call.from_user.id
+#         if not await is_admin(user_id, db_session):
+#             await call.message.answer(
+#                 "⛔ У вас нет прав для выполнения этой команды.",
+#                 reply_markup=get_start_reply_keyboard()
+#             )
+#             await call.answer()
+#             return
+#         await call.message.answer(
+#             "🔒 Введите секретный пароль для добавления нового администратора:\n\n"
+#             "_Обратите внимание: вводимые символы будут видны только вам._",
+#             parse_mode='Markdown'
+#         )
+#         await state.set_state(AddAdminStates.waiting_for_password)
+#         await call.answer()
+#     except Exception as e:
+#         logger.exception("Ошибка в callback_add_admin: %s", e)
+#         await call.message.answer("❌ Произошла ошибка. Попробуйте ещё раз.")
+#         await state.clear()
+#
+#
+# @router.message(AddAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
+# async def process_add_admin_password(message: Message, state: FSMContext, db_session: "AsyncSession"):
+#     """
+#     Обрабатывает ввод секретного пароля для добавления нового администратора.
+#
+#     Если пароль верный, бот просит ввести данные нового администратора в формате:
+#       telegram_id, username, first_name, last_name, password
+#
+#     Пример: 975113235, myusername, Ivan, Ivanov, mypassword
+#
+#     Args:
+#         message (Message): Сообщение от пользователя.
+#         state (FSMContext): Контекст состояния FSM.
+#         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+#     """
+#     try:
+#         if message.text.strip() != os.getenv("ADMIN_SECRET_PASSWORD"):
+#             await message.reply("❌ Неверный пароль. Доступ запрещён.")
+#             await state.clear()
+#             return
+#         await message.reply(
+#             "✅ Пароль верный. Пожалуйста, введите данные нового администратора в следующем формате:\n"
+#             "`telegram_id, username, first_name, last_name, password`\n\n"
+#             "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`",
+#             parse_mode='Markdown'
+#         )
+#         await state.set_state(AddAdminStates.waiting_for_user_id)
+#     except Exception as e:
+#         logger.exception("Ошибка в process_add_admin_password: %s", e)
+#         await message.reply("❌ Произошла ошибка. Попробуйте ещё раз.")
+#         await state.clear()
+#
+#
+# @router.message(AddAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
+# async def process_add_admin_user_id(message: types.Message, state: FSMContext, db_session: AsyncSession):
+#     """
+#     Обрабатывает ввод Telegram ID для добавления администратора.
+#     Добавляет нового администратора в базу.
+#     """
+#     try:
+#         telegram_id = int(message.text.strip())
+#         user = await message.bot.get_chat(telegram_id)
+#         username = user.username.lstrip('@') if user.username else None
+#     except ValueError:
+#         await message.reply("❌ Введите корректный Telegram ID (число).")
+#         return
+#     except Exception as e:
+#         await message.reply(f"❌ Ошибка: Пользователь не найден ({e}).")
+#         return
+#
+#     try:
+#         async with db_session.begin():
+#             if await is_admin(telegram_id, db_session):
+#                 await message.reply("ℹ️ Этот пользователь уже администратор.")
+#                 return
+#             new_admin = TelegramAdmin(
+#                 telegram_id=telegram_id,
+#                 username=username,
+#                 language='ru',
+#                 is_active=True
+#             )
+#             db_session.add(new_admin)
+#         await message.reply(f"🎉 Администратор @{username or telegram_id} добавлен.")
+#     except IntegrityError:
+#         await message.reply("❌ Пользователь с таким Telegram ID уже существует.")
+#     except Exception as e:
+#         await message.reply(f"❌ Ошибка: {e}")
+#     finally:
+#         await state.clear()
+#         await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
+#
+#
+# async def add_admin(user_id: int, username: str, db_session: "AsyncSession"):
+#     """
+#     Добавляет нового администратора в базу данных.
+#
+#     Args:
+#         user_id (int): Telegram ID пользователя.
+#         username (str): Username пользователя.
+#         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+#
+#     Raises:
+#         IntegrityError: Если пользователь уже существует.
+#         Exception: При других ошибках базы данных.
+#     """
+#     try:
+#         admin = TelegramAdmin(telegram_id=user_id, username=username)
+#         db_session.add(admin)
+#         await db_session.commit()
+#         logger.info(f"Администратор с ID {user_id} и username @{username} добавлен.")
+#     except IntegrityError as ie:
+#         logger.error(f"IntegrityError при добавлении администратора с ID {user_id}: {ie}")
+#         raise
+#     except Exception as e:
+#         logger.exception(f"Ошибка при добавлении администратора с ID {user_id}: {e}")
+#         raise
+#
+#
+# @router.callback_query(F.data == "remove_admin_button")
+# async def callback_remove_admin(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+#     """
+#     Обрабатывает нажатие кнопки "Удалить администратора".
+#
+#     Запрашивает секретный пароль для удаления администратора, если пользователь имеет права.
+#
+#     Args:
+#         call (CallbackQuery): Объект callback-запроса от Aiogram.
+#         state (FSMContext): Контекст состояния FSM.
+#         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+#     """
+#     user_id = call.from_user.id
+#     if not await is_admin(user_id, db_session):
+#         await call.message.answer("⛔ У вас нет прав для выполнения этой команды.")
+#         logger.warning(f"Пользователь {call.from_user.username} ({user_id}) попытался удалить администратора без прав")
+#         await call.answer()
+#         return
+#     await call.message.answer(
+#         "🔒 Введите секретный пароль для удаления администратора:\n\n"
+#         "_Обратите внимание: вводимые символы будут видны только вам._",
+#         parse_mode='Markdown',
+#         reply_markup=ForceReply(selective=True)
+#     )
+#     logger.debug("Просьба ввести пароль для удаления администратора")
+#     await state.set_state(RemoveAdminStates.waiting_for_password)
+#     await call.answer()
+#
+#
+# @router.message(RemoveAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
+# async def process_remove_admin_password(message: Message, state: FSMContext, db_session: AsyncSession):
+#     """
+#     Обрабатывает ввод пароля для удаления администратора.
+#
+#     Если пароль верный, запрашивает Telegram ID администратора для удаления.
+#
+#     Args:
+#         message (Message): Сообщение от пользователя.
+#         state (FSMContext): Контекст состояния FSM.
+#         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+#     """
+#     if message.text != os.getenv("ADMIN_REMOVE_SECRET_PASSWORD"):
+#         await message.reply("❌ Неверный пароль. Доступ запрещён.")
+#         logger.warning(f"Неверный пароль от пользователя {message.from_user.username} ({message.from_user.id}).")
+#         await state.clear()
+#         return
+#     await message.reply("✅ Пароль верный. Пожалуйста, введите Telegram ID администратора, которого хотите удалить:")
+#     await state.set_state(RemoveAdminStates.waiting_for_user_id)
+#
+#
+# @router.message(RemoveAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
+# async def process_remove_admin_user_id(message: types.Message, state: FSMContext, db_session: AsyncSession):
+#     """
+#     Обрабатывает ввод Telegram ID для удаления администратора.
+#     Удаляет администратора из базы.
+#     """
+#     try:
+#         telegram_id = int(message.text.strip())
+#     except ValueError:
+#         await message.reply("❌ Введите корректный Telegram ID (число).")
+#         return
+#
+#     try:
+#         async with db_session.begin():
+#             result = await db_session.execute(
+#                 select(TelegramAdmin).where(TelegramAdmin.telegram_id == telegram_id)
+#             )
+#             admin = result.scalar_one_or_none()
+#             if not admin:
+#                 await message.reply("ℹ️ Пользователь не является администратором.")
+#                 return
+#             await db_session.delete(admin)
+#         await message.reply(f"🗑️ Администратор с ID {telegram_id} удалён.")
+#     except Exception as e:
+#         await message.reply(f"❌ Ошибка: {e}")
+#     finally:
+#         await state.clear()
+#         await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
+#
+#
+# @router.callback_query(lambda c: c.data == "list_admins_button")
+# async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSession):
+#     """
+#     Обрабатывает нажатие кнопки "Список администраторов". Отправляет список администраторов.
+#
+#     Args:
+#         call (CallbackQuery): Объект callback-запроса от Aiogram.
+#         db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+#     """
+#     logger.info(
+#         f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Список администраторов'"
+#     )
+#
+#     try:
+#         query = select(TelegramAdmin)
+#         result = await db_session.execute(query)
+#         admins = result.scalars().all()
+#
+#         if not admins:
+#             admin_list = "👥 Нет зарегистрированных администраторов."
+#         else:
+#             admin_list = ""
+#             for admin in admins:
+#                 if admin.username:
+#                     username_link = f"[{admin.username}](https://t.me/{admin.username})"
+#                 else:
+#                     username_link = "Нет username"
+#                 line = f"• {username_link} (ID: {admin.telegram_id})"
+#                 admin_list += f"{line}\n"
+#
+#         await call.message.answer(f"👥 **Список администраторов:**\n{admin_list}", parse_mode='Markdown')
+#         await call.answer()
+#         logger.debug("Список администраторов отправлен")
+#     except Exception as e:
+#         logger.exception(f"Ошибка в обработчике callback_list_admins: {e}")
+#         await call.message.answer("❌ Произошла ошибка при отправке списка администраторов.")
+#         await call.answer()
 
-    Пример: 975113235, myusername, Ivan, Ivanov, mypassword
-
-    Args:
-        message (Message): Сообщение от пользователя.
-        state (FSMContext): Контекст состояния FSM.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    try:
-        if message.text.strip() != os.getenv("ADMIN_SECRET_PASSWORD"):
-            await message.reply("❌ Неверный пароль. Доступ запрещён.")
-            await state.clear()
-            return
-        await message.reply(
-            "✅ Пароль верный. Пожалуйста, введите данные нового администратора в следующем формате:\n"
-            "`telegram_id, username, first_name, last_name, password`\n\n"
-            "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`",
-            parse_mode='Markdown'
-        )
-        await state.set_state(AddAdminStates.waiting_for_user_id)
-    except Exception as e:
-        logger.exception("Ошибка в process_add_admin_password: %s", e)
-        await message.reply("❌ Произошла ошибка. Попробуйте ещё раз.")
-        await state.clear()
 
 
-@router.message(AddAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
-async def process_add_admin_user_id(message: Message, state: FSMContext, db_session: "AsyncSession"):
-    """
-    Обрабатывает ввод данных нового администратора, добавляемого через панель.
-
-    Ожидаемый формат:
-      telegram_id, username, first_name, last_name, password
-
-    Если данные корректны и пользователь с данным telegram_id ещё не является администратором,
-    создаётся новый объект модели Admin.
-
-    Args:
-        message (Message): Сообщение от пользователя.
-        state (FSMContext): Контекст состояния FSM.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    try:
-        parts = [p.strip() for p in message.text.split(',')]
-        if len(parts) != 5:
-            raise ValueError("Неверное количество полей")
-        telegram_id_str, username, first_name, last_name, raw_password = parts
-        telegram_id = int(telegram_id_str)
-    except Exception as e:
-        logger.error("Ошибка разбора данных для нового администратора: %s", e)
-        await message.reply(
-            "❌ Неверный формат данных. Пожалуйста, введите данные в формате:\n"
-            "`telegram_id, username, first_name, last_name, password`\n\n"
-            "Пример: `975113235, myusername, Ivan, Ivanov, mypassword`"
-        )
-        return
-
-    try:
-        if await is_admin(telegram_id, db_session):
-            await message.reply("ℹ️ Этот пользователь уже является администратором.")
-            await state.clear()
-            await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
-            return
-
-        new_admin = Admin(
-            telegram_id=telegram_id,
-            username=username,
-            first_name=first_name,
-            last_name=last_name,
-            password=make_password(raw_password),
-            language="ru",
-            is_active=True
-        )
-        db_session.add(new_admin)
-        await db_session.commit()
-        await message.reply(f"🎉 Пользователь @{username} (ID: {telegram_id}) успешно добавлен как администратор!")
-    except IntegrityError as ie:
-        await db_session.rollback()
-        logger.error("IntegrityError при добавлении администратора: %s", ie)
-        await message.reply("❌ Не удалось добавить администратора. Возможно, такой пользователь уже существует.")
-    except Exception as e:
-        await db_session.rollback()
-        logger.exception("Ошибка при добавлении администратора: %s", e)
-        await message.reply(f"❌ Произошла ошибка: {e}")
-    finally:
-        await state.clear()
-        await message.answer("🔄 Возвращаюсь в главное меню.", reply_markup=get_start_reply_keyboard())
 
 
-async def add_admin(user_id: int, username: str, db_session: "AsyncSession"):
-    """
-    Добавляет нового администратора в базу данных.
 
-    Args:
-        user_id (int): Telegram ID пользователя.
-        username (str): Username пользователя.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-
-    Raises:
-        IntegrityError: Если пользователь уже существует.
-        Exception: При других ошибках базы данных.
-    """
-    try:
-        admin = Admin(telegram_id=user_id, username=username)
-        db_session.add(admin)
-        await db_session.commit()
-        logger.info(f"Администратор с ID {user_id} и username @{username} добавлен.")
-    except IntegrityError as ie:
-        logger.error(f"IntegrityError при добавлении администратора с ID {user_id}: {ie}")
-        raise
-    except Exception as e:
-        logger.exception(f"Ошибка при добавлении администратора с ID {user_id}: {e}")
-        raise
-
-
-@router.callback_query(F.data == "remove_admin_button")
-async def callback_remove_admin(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
-    """
-    Обрабатывает нажатие кнопки "Удалить администратора".
-
-    Запрашивает секретный пароль для удаления администратора, если пользователь имеет права.
-
-    Args:
-        call (CallbackQuery): Объект callback-запроса от Aiogram.
-        state (FSMContext): Контекст состояния FSM.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    user_id = call.from_user.id
-    if not await is_admin(user_id, db_session):
-        await call.message.answer("⛔ У вас нет прав для выполнения этой команды.")
-        logger.warning(f"Пользователь {call.from_user.username} ({user_id}) попытался удалить администратора без прав")
-        await call.answer()
-        return
-    await call.message.answer(
-        "🔒 Введите секретный пароль для удаления администратора:\n\n"
-        "_Обратите внимание: вводимые символы будут видны только вам._",
-        parse_mode='Markdown',
-        reply_markup=ForceReply(selective=True)
-    )
-    logger.debug("Просьба ввести пароль для удаления администратора")
-    await state.set_state(RemoveAdminStates.waiting_for_password)
-    await call.answer()
-
-
-@router.message(RemoveAdminStates.waiting_for_password, F.content_type == ContentType.TEXT)
-async def process_remove_admin_password(message: Message, state: FSMContext, db_session: AsyncSession):
-    """
-    Обрабатывает ввод пароля для удаления администратора.
-
-    Если пароль верный, запрашивает Telegram ID администратора для удаления.
-
-    Args:
-        message (Message): Сообщение от пользователя.
-        state (FSMContext): Контекст состояния FSM.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    if message.text != os.getenv("ADMIN_REMOVE_SECRET_PASSWORD"):
-        await message.reply("❌ Неверный пароль. Доступ запрещён.")
-        logger.warning(f"Неверный пароль от пользователя {message.from_user.username} ({message.from_user.id}).")
-        await state.clear()
-        return
-    await message.reply("✅ Пароль верный. Пожалуйста, введите Telegram ID администратора, которого хотите удалить:")
-    await state.set_state(RemoveAdminStates.waiting_for_user_id)
-
-
-@router.message(RemoveAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
-async def process_remove_admin_user_id(message: Message, state: FSMContext, db_session: AsyncSession):
-    """
-    Обрабатывает ввод Telegram ID для удаления администратора.
-
-    Если пользователь является администратором, удаляет его из базы данных.
-
-    Args:
-        message (Message): Сообщение от пользователя.
-        state (FSMContext): Контекст состояния FSM.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    try:
-        admin_id = int(message.text)
-    except ValueError:
-        await message.reply("❌ Пожалуйста, введите корректный числовой Telegram ID.")
-        return
-
-    if not await is_admin(admin_id, db_session):
-        await message.reply("ℹ️ Этот пользователь не является администратором.")
-        logger.info(f"Пользователь с ID {admin_id} не является администратором.")
-        await state.clear()
-        return
-
-    try:
-        await remove_admin(admin_id, db_session)
-        await message.reply(f"🗑️ Пользователь с Telegram ID {admin_id} успешно удалён из списка администраторов.")
-        logger.info(f"Пользователь с Telegram ID {admin_id} удалён из списка администраторов.")
-        await message.answer(
-            "🔄 Возвращаюсь в главное меню.",
-            reply_markup=get_start_reply_keyboard()
-        )
-    except Exception as e:
-        await message.reply(f"❌ Произошла ошибка: {e}")
-        logger.error(f"Ошибка при удалении администратора: {e}")
-    await state.clear()
-
-
-@router.callback_query(lambda c: c.data == "list_admins_button")
-async def callback_list_admins(call: types.CallbackQuery, db_session: AsyncSession):
-    """
-    Обрабатывает нажатие кнопки "Список администраторов". Отправляет список администраторов.
-
-    Args:
-        call (CallbackQuery): Объект callback-запроса от Aiogram.
-        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
-    """
-    logger.info(
-        f"Пользователь {call.from_user.username or 'None'} (ID: {call.from_user.id}) нажал кнопку 'Список администраторов'"
-    )
-
-    try:
-        query = select(Admin)
-        result = await db_session.execute(query)
-        admins = result.scalars().all()
-
-        if not admins:
-            admin_list = "👥 Нет зарегистрированных администраторов."
-        else:
-            admin_list = ""
-            for admin in admins:
-                if admin.username:
-                    username_link = f"[{admin.username}](https://t.me/{admin.username})"
-                else:
-                    username_link = "Нет username"
-                line = f"• {username_link} (ID: {admin.telegram_id})"
-                admin_list += f"{line}\n"
-
-        await call.message.answer(f"👥 **Список администраторов:**\n{admin_list}", parse_mode='Markdown')
-        await call.answer()
-        logger.debug("Список администраторов отправлен")
-    except Exception as e:
-        logger.exception(f"Ошибка в обработчике callback_list_admins: {e}")
-        await call.message.answer("❌ Произошла ошибка при отправке списка администраторов.")
-        await call.answer()
 
 
 @router.callback_query(F.data == "upload_json")

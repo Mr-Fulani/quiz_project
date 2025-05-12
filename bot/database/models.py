@@ -1,39 +1,96 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger, UniqueConstraint, func
+from sqlalchemy import Column, Integer, String, JSON, ForeignKey, Boolean, DateTime, BigInteger, UniqueConstraint, func, \
+    Table, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from bot.database.database import Base
+import logging
 
 
 
-class Admin(Base):
-    __tablename__ = 'admins'
+logger = logging.getLogger(__name__)
+
+
+
+
+# Промежуточная таблица для связи TelegramAdmin и TelegramGroup
+telegramadmin_groups = Table(
+    'telegramadmin_groups',
+    Base.metadata,
+    Column('telegram_admin_id', Integer, ForeignKey('telegram_admins.id'), primary_key=True),
+    Column('telegram_group_id', BigInteger, ForeignKey('telegram_groups.group_id'), primary_key=True)
+)
+
+
+
+class TelegramAdmin(Base):
+    """
+    Модель администратора Telegram-бота, синхронизированная с Django таблицей admins.
+    """
+    __tablename__ = 'telegram_admins'
 
     id = Column(Integer, primary_key=True)
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
-    photo = Column(String, nullable=True)
-    language = Column(String(10), default='ru', nullable=False)
-    phone_number = Column(String(15), nullable=True)
+    photo = Column(String(500), nullable=True)
+    language = Column(String(10), default='ru', nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    first_name = Column(String(255), nullable=True)
-    last_name = Column(String(255), nullable=True)
-    password = Column(String(128), nullable=False)
-    email = Column(String(255), default='', nullable=False)
-    is_django_admin = Column(Boolean, default=False, nullable=False)
-    is_superuser = Column(Boolean, default=False, nullable=False)
-    is_staff = Column(Boolean, default=False, nullable=False)
-    is_super_admin = Column(Boolean, default=False, nullable=False)
-    date_joined = Column(DateTime, server_default=func.now(), nullable=False)
 
-    def __repr__(self):
-        return f"<Admin(username={self.username}, telegram_id={self.telegram_id}, language={self.language})>"
+    # ManyToMany с TelegramGroup через промежуточную таблицу
+    groups = relationship(
+        "TelegramGroup",
+        secondary=telegramadmin_groups,
+        back_populates="admins"
+    )
 
-    @property
-    def photo_url(self):
-        return self.photo or "/static/images/default_avatar.png"
+
+
+
+
+class TelegramGroup(Base):
+    """
+    Модель для хранения информации о Telegram-группах или каналах.
+
+    Attributes:
+        id (int): Уникальный идентификатор группы/канала.
+        group_name (str): Название группы/канала.
+        group_id (int): Telegram ID группы/канала (уникальный).
+        topic_id (int): ID связанной темы (ForeignKey к таблице topics).
+        language (str): Язык группы/канала.
+        location_type (str): Тип (группа, канал или веб-сайт).
+        username (str, optional): Username группы/канала (например, '@ChannelName').
+        user_subscriptions: Связь с подписками пользователей.
+        tasks: Связь с задачами, связанными с группой/каналом.
+    """
+    __tablename__ = 'telegram_groups'
+
+    id = Column(Integer, primary_key=True)
+    group_name = Column(String, nullable=False)
+    group_id = Column(BigInteger, unique=True, nullable=False)
+    topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
+    language = Column(String, nullable=False)
+    location_type = Column(String, nullable=False, default="group")
+    username = Column(String, nullable=True)
+
+    user_subscriptions = relationship(
+        "UserChannelSubscription",
+        back_populates="channel",
+        cascade="all, delete-orphan"
+    )
+    tasks = relationship('Task', back_populates='group')
+    admins = relationship(
+        "TelegramAdmin",
+        secondary=telegramadmin_groups,
+        back_populates="groups"
+    )
+
+    def __str__(self):
+        return self.group_name
+
+
+
 
 class Task(Base):
     __tablename__ = 'tasks'
@@ -90,9 +147,15 @@ class TelegramUser(Base):
     first_name = Column(String(255), nullable=True)
     last_name = Column(String(255), nullable=True)
     subscription_status = Column(String(20), default='inactive', nullable=False)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False)
     language = Column(String(10), nullable=True)
     deactivated_at = Column(DateTime, nullable=True)
+    is_premium = Column(Boolean, default=False, nullable=False)
+    linked_user_id = Column(BigInteger, nullable=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        logger.debug(f"Создаём TelegramUser с created_at={self.created_at}")  # ДОБАВИТЬ: Отладка
 
     channel_subscriptions = relationship(
         "UserChannelSubscription",
@@ -124,50 +187,6 @@ class TaskStatistics(Base):
     task = relationship('Task', back_populates='statistics')
 
 
-
-
-
-
-
-class TelegramGroup(Base):
-    """
-    Модель для хранения информации о Telegram-группах или каналах.
-
-    Attributes:
-        id (int): Уникальный идентификатор группы/канала.
-        group_name (str): Название группы/канала.
-        group_id (int): Telegram ID группы/канала (уникальный).
-        topic_id (int): ID связанной темы (ForeignKey к таблице topics).
-        language (str): Язык группы/канала.
-        location_type (str): Тип (группа, канал или веб-сайт).
-        username (str, optional): Username группы/канала (например, '@ChannelName').
-        user_subscriptions: Связь с подписками пользователей.
-        tasks: Связь с задачами, связанными с группой/каналом.
-    """
-    __tablename__ = 'telegram_groups'
-
-    id = Column(Integer, primary_key=True)
-    group_name = Column(String, nullable=False)
-    group_id = Column(BigInteger, unique=True, nullable=False)
-    topic_id = Column(Integer, ForeignKey('topics.id'), nullable=False)
-    language = Column(String, nullable=False)
-    location_type = Column(String, nullable=False, default="group")
-    username = Column(String, nullable=True)
-    user_subscriptions = relationship(
-        "UserChannelSubscription",
-        back_populates="channel",
-        cascade="all, delete-orphan"
-    )
-    tasks = relationship('Task', back_populates='group')
-
-    def __str__(self):
-        """
-        Строковое представление объекта TelegramGroup.
-
-        Returns:
-            str: Название группы/канала.
-        """
-        return self.group_name
 
 
 
@@ -230,24 +249,36 @@ class DefaultLink(Base):
         UniqueConstraint('language', 'topic', name='uix_language_topic'),
     )
 
+
+
+
+
 class UserChannelSubscription(Base):
     """
-    Промежуточная таблица для связи пользователей и каналов/групп.
+    Модель подписки пользователя на Telegram-канал или группу.
+    Хранит связь между TelegramUser и каналом.
+    Синхронизирована с Django-моделью UserChannelSubscription.
     """
     __tablename__ = 'user_channel_subscriptions'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('telegram_users.id'), nullable=False)
+    telegram_user_id = Column(Integer, ForeignKey('telegram_users.id'), nullable=False)
     channel_id = Column(BigInteger, ForeignKey('telegram_groups.group_id'), nullable=False)
-    subscription_status = Column(String, default='inactive', nullable=False)
-    subscribed_at = Column(DateTime, nullable=True)
-    unsubscribed_at = Column(DateTime, nullable=True)
+    subscription_status = Column(String(20), default='inactive', nullable=False)
+    subscribed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    unsubscribed_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     user = relationship('TelegramUser', back_populates='channel_subscriptions')
     channel = relationship('TelegramGroup', back_populates='user_subscriptions')
 
     def __repr__(self):
-        return f"<UserChannelSubscription(user_id={self.user_id}, channel_id={self.channel_id}, status={self.subscription_status})>"
+        return f"<UserChannelSubscription(telegram_user_id={self.telegram_user_id}, channel_id={self.channel_id}, status={self.subscription_status})>"
+
+
+
+
+
+
 
 class MainFallbackLink(Base):
     __tablename__ = 'main_fallback_links'

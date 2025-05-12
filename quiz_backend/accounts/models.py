@@ -167,6 +167,7 @@ class TelegramUser(models.Model):
         null=True,
         verbose_name="Дата деактивации"
     )  # Добавлено: синхронизация с SQLAlchemy
+    is_premium = models.BooleanField(default=False, verbose_name="Премиум аккаунт")
     linked_user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -191,60 +192,45 @@ class TelegramUser(models.Model):
 
 
 
-class BaseAdmin(AbstractUser):
-    """
-    Базовая модель администратора.
-    """
-    phone_number = models.CharField(max_length=15, null=True, blank=True, verbose_name="Номер телефона")
-    language = models.CharField(max_length=10, default='ru', verbose_name="Язык")
-    is_telegram_admin = models.BooleanField(default=False, verbose_name="Telegram Admin")
-    is_django_admin = models.BooleanField(default=False, verbose_name="Django Admin")
-    is_super_admin = models.BooleanField(default=False, verbose_name="Super Admin")
 
-    class Meta:
-        abstract = True
 
-    groups = models.ManyToManyField(
-        Group,
-        verbose_name='groups',
-        blank=True,
-        related_name="%(app_label)s_%(class)s_set",
-        related_query_name="%(app_label)s_%(class)s",
+
+
+class TelegramAdmin(models.Model):
+    """
+    Модель администратора Telegram-бота и Mini App.
+    Хранит данные для управления Telegram-группами.
+    """
+    telegram_id = models.BigIntegerField(
+        unique=True, null=False, db_index=True, verbose_name="Telegram ID"
     )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        verbose_name='user permissions',
-        blank=True,
-        related_name="%(app_label)s_%(class)s_permissions",
-        related_query_name="%(app_label)s_%(class)s",
+    username = models.CharField(
+        max_length=255, null=True, blank=True, verbose_name="Username"
     )
-
-
-class TelegramAdmin(BaseAdmin):
-    """
-    Модель Telegram-администратора.
-    """
-    telegram_id = models.BigIntegerField(unique=True, null=False, db_index=True, verbose_name="Telegram ID")
-    photo = models.CharField(max_length=500, null=True, blank=True, verbose_name="Фото")
+    language = models.CharField(
+        max_length=10, default='ru', null=True, verbose_name="Язык"
+    )
+    is_active = models.BooleanField(
+        default=True, verbose_name="Активен"
+    )
+    photo = models.CharField(
+        max_length=500, null=True, blank=True, verbose_name="Фото"
+    )
     groups = models.ManyToManyField(
         'platforms.TelegramGroup',
         related_name='telegram_admins',
         blank=True,
         verbose_name='Telegram Группа/Канал',
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        related_name='telegram_admin_permissions',
-        blank=True
+        through='TelegramAdminGroup',
     )
 
     class Meta:
-        db_table = 'admins'
+        db_table = 'telegram_admins'
         verbose_name = 'Telegram Администратор'
         verbose_name_plural = 'Telegram Администраторы'
 
     def __str__(self):
-        """Строковое представление Telegram-администратора."""
+        """Строковое представление."""
         return f"{self.username or 'Admin'} (Telegram ID: {self.telegram_id})"
 
     @property
@@ -254,21 +240,38 @@ class TelegramAdmin(BaseAdmin):
 
 
 
+class TelegramAdminGroup(models.Model):
+    """
+    Промежуточная модель для связи TelegramAdmin и TelegramGroup.
+    """
+    telegram_admin = models.ForeignKey(
+        'TelegramAdmin',
+        on_delete=models.CASCADE,
+        related_name='admin_groups'
+    )
+    telegram_group = models.ForeignKey(
+        'platforms.TelegramGroup',
+        to_field='group_id',
+        on_delete=models.CASCADE,
+        related_name='group_admins'
+    )
 
-class DjangoAdmin(BaseAdmin):
+    class Meta:
+        db_table = 'telegramadmin_groups'
+        unique_together = ('telegram_admin', 'telegram_group')
+        verbose_name = 'Связь Telegram Администратора и Группы'
+        verbose_name_plural = 'Связи Telegram Администраторов и Групп'
+
+
+
+class DjangoAdmin(AbstractUser):
     """
-    Модель Django-администратора.
+    Модель администратора Django-админки.
+    Хранит данные для управления сайтом через админ-панель.
     """
-    groups = models.ManyToManyField(
-        Group,
-        related_name='django_admin_set',
-        blank=True
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        related_name='django_admin_permissions',
-        blank=True
-    )
+    phone_number = models.CharField(max_length=15, null=True, blank=True, verbose_name="Номер телефона")
+    language = models.CharField(max_length=10, default='ru', verbose_name="Язык")
+    is_django_admin = models.BooleanField(default=True, verbose_name="Django Admin")
 
     class Meta:
         db_table = 'django_admins'
@@ -276,28 +279,16 @@ class DjangoAdmin(BaseAdmin):
         verbose_name_plural = 'Django Администраторы'
 
     def __str__(self):
-        """Строковое представление Django-администратора."""
+        """Строковое представление."""
         return f"{self.username or 'DjangoAdmin'}"
 
 
-class SuperAdmin(BaseAdmin):
-    """
-    Модель супер-администратора.
-    """
-
-    class Meta:
-        db_table = 'super_admins'
-        verbose_name = 'Супер Администратор'
-        verbose_name_plural = 'Супер Администраторы'
-
-    def __str__(self):
-        """Строковое представление супер-администратора."""
-        return f"{self.username or 'SuperAdmin'}"
 
 
 class UserChannelSubscription(models.Model):
     """
     Модель подписки пользователя на Telegram-канал.
+    Хранит данные о подписках Telegram-пользователей на каналы/группы.
     """
     STATUS_CHOICES = [
         ('active', 'Активна'),
@@ -305,19 +296,12 @@ class UserChannelSubscription(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(
-        'accounts.CustomUser',
-        on_delete=models.CASCADE,
-        related_name='channel_subscriptions',
-        verbose_name="Пользователь сайта"
-    )
     telegram_user = models.ForeignKey(
         'accounts.TelegramUser',
         on_delete=models.CASCADE,
         related_name='channel_subscriptions',
         verbose_name="Telegram пользователь",
-        null=True,
-        blank=True,
+        null=False,  # Делаем обязательным, так как это основа
     )
     channel = models.ForeignKey(
         'platforms.TelegramGroup',
@@ -347,7 +331,7 @@ class UserChannelSubscription(models.Model):
         verbose_name = 'Подписка на канал'
         verbose_name_plural = 'Подписки на каналы'
         constraints = [
-            models.UniqueConstraint(fields=['user', 'channel'], name='unique_user_channel')
+            models.UniqueConstraint(fields=['telegram_user', 'channel'], name='unique_telegram_user_channel')
         ]
         indexes = [
             models.Index(fields=['subscription_status']),
@@ -356,7 +340,7 @@ class UserChannelSubscription(models.Model):
 
     def __str__(self):
         """Строковое представление подписки."""
-        return f"Подписка {self.user} на {self.channel} ({self.subscription_status})"
+        return f"Подписка {self.telegram_user} на {self.channel} ({self.subscription_status})"
 
     def subscribe(self):
         """Активировать подписку."""
