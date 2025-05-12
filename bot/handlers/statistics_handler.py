@@ -36,7 +36,7 @@ async def update_single_user_subscription_status(user: TelegramUser, db_session:
         db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
     active_subs_query = select(func.count()).select_from(UserChannelSubscription).where(
-        UserChannelSubscription.user_id == user.id,
+        UserChannelSubscription.telegram_user_id == user.id,
         UserChannelSubscription.subscription_status == 'active'
     )
     active_subs = (await db_session.execute(active_subs_query)).scalar() or 0
@@ -55,7 +55,7 @@ async def update_all_users_subscription_statuses(db_session: AsyncSession):
     Args:
         db_session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с базой данных.
     """
-    subquery = select(UserChannelSubscription.user_id).where(
+    subquery = select(UserChannelSubscription.telegram_user_id).where(
         UserChannelSubscription.subscription_status == 'active'
     ).distinct()
     stmt = update(TelegramUser).where(
@@ -848,7 +848,7 @@ async def list_subscribers_all_csv_callback(call: types.CallbackQuery, db_sessio
                     ', '
                 ).label("subscribed_ats")
             )
-            .join(UserChannelSubscription, TelegramUser.id == UserChannelSubscription.user_id)
+            .join(UserChannelSubscription, TelegramUser.id == UserChannelSubscription.telegram_user_id)
             .join(TelegramGroup, TelegramGroup.group_id == UserChannelSubscription.channel_id)
             .where(UserChannelSubscription.subscription_status == 'active')
             .group_by(TelegramUser.telegram_id, TelegramUser.username, TelegramUser.created_at, TelegramUser.language)
@@ -928,7 +928,7 @@ async def list_subscribers_csv_for_channel(call: types.CallbackQuery, db_session
 
     result2 = await db_session.execute(
         select(UserChannelSubscription, TelegramUser, TelegramGroup)
-        .join(TelegramUser, TelegramUser.id == UserChannelSubscription.user_id)
+        .join(TelegramUser, TelegramUser.id == UserChannelSubscription.telegram_user_id)
         .join(TelegramGroup, TelegramGroup.group_id == UserChannelSubscription.channel_id)
         .where(UserChannelSubscription.channel_id == channel_id)
         .where(UserChannelSubscription.subscription_status == 'active')

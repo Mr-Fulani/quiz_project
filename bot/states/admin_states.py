@@ -12,6 +12,8 @@ class RegistrationStates(StatesGroup):
 
 
 class AddAdminStates(StatesGroup):
+    waiting_for_confirmation = State()
+    waiting_for_groups = State()
     waiting_for_admin_data = State
     waiting_for_password = State()
     waiting_for_user_id = State()

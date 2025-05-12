@@ -10,7 +10,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.database.models import Webhook, Admin
+from bot.database.models import Webhook, TelegramAdmin
 from bot.services.webhook_sender import (
     notify_admin,
     send_quiz_published_webhook
@@ -259,6 +259,6 @@ class WebhookService:
         Returns:
             List[int]: Список ID администраторов.
         """
-        query = select(Admin.id)
+        query = select(TelegramAdmin.id)
         result = await self.db_session.execute(query)
         return [row[0] for row in result.fetchall()]
