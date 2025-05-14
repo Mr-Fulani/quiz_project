@@ -24,8 +24,10 @@ from bot.handlers.test import router as test_router
 from bot.handlers.upload_json import router as upload_json_router
 from bot.handlers.user_handler import router as user_router
 from bot.handlers.webhook_handler import router as webhook_router
+from bot.handlers.webhook import router as webhook_handler_router
 from bot.middlewares.db_session import DbSessionMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
+from bot.handlers.feedback import router as feedback_router
 from mini_app.app_handlers.handlers import router as mini_app_router
 from bot.config import (
     TELEGRAM_BOT_TOKEN,
@@ -71,19 +73,31 @@ publication_dp.include_router(admin_menu_router)
 publication_dp.include_router(delete_task_router)
 publication_dp.include_router(upload_json_router)
 publication_dp.include_router(webhook_router)
+publication_dp.include_router(webhook_handler_router)
 publication_dp.include_router(test_router)
 publication_dp.include_router(admin_router)
 publication_dp.include_router(user_router)
 publication_dp.include_router(statistics_router)
 publication_dp.include_router(poll_router)
+publication_dp.include_router(feedback_router)
 publication_dp.include_router(mini_app_router)
 
-logger.info("📌 Все роутеры подключены к диспетчеру публикационного бота")
 
-# Логирование зарегистрированных роутеров
+
+# Логирование зарегистрированных роутеров и их обработчиков
+logger.info("📌 Все роутеры подключены к диспетчеру публикационного бота")
 logger.debug("Зарегистрированные роутеры:")
 for router in publication_dp.sub_routers:
     logger.debug(f"- {router.name}")
+    # Логируем зарегистрированные callback-обработчики для каждого роутера
+    callback_handlers = [
+        h for h in router.callback_query.handlers
+        if h.callback.__name__ not in ["__call__"]  # Исключаем middleware
+    ]
+    for handler in callback_handlers:
+        logger.debug(f"  Callback handler: {handler.callback.__name__}, filters: {handler.filters}")
+
+
 
 async def init_db():
     """

@@ -19,7 +19,8 @@ from bot.services.admin_service import is_admin, add_admin
 from bot.states.admin_states import AddAdminStates, RemoveAdminStates, ManageAdminGroupsStates
 from bot.utils.markdownV2 import escape_markdown, format_group_link
 from bot.utils.notifications import notify_admin
-from bot.utils.utils import create_groups_keyboard, promote_admin_in_group, get_available_groups, demote_admin_in_group
+from bot.utils.utils import create_groups_keyboard, promote_admin_in_group, get_available_groups, demote_admin_in_group, \
+    remove_admin_rights
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -838,10 +839,20 @@ async def process_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
 
 
 
+
 @router.callback_query(RemoveAdminStates.waiting_for_confirmation,
                        F.data.in_(["confirm_remove_admin_groups", "cancel"]))
 async def confirm_remove_admin_groups(call: CallbackQuery, state: FSMContext, db_session: AsyncSession, bot: Bot):
-    logger.info(f"Callback обработан: callback_data={call.data}, state={await state.get_state()}, chat_id={call.message.chat.id}")
+    """
+    Подтверждает или отменяет удаление админа и снятие его прав в группах.
+
+    Args:
+        call: Callback-запрос от кнопки.
+        state: Контекст FSM.
+        db_session: Асинхронная сессия SQLAlchemy.
+        bot: Экземпляр Aiogram Bot.
+    """
+    logger.info(f"Обработка callback: callback_data={call.data}, state={await state.get_state()}, chat_id={call.message.chat.id}")
 
     data = await state.get_data()
     admin_id = data.get("admin_id")
@@ -868,10 +879,7 @@ async def confirm_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
         logger.info(f"Операция отменена для админа {admin_id}")
         return
 
-    successful_groups = []
-
     try:
-        # Получаем админа
         query = select(TelegramAdmin).where(TelegramAdmin.telegram_id == admin_id).options(selectinload(TelegramAdmin.groups))
         result = await db_session.execute(query)
         admin = result.scalar_one_or_none()
@@ -889,108 +897,17 @@ async def confirm_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
             logger.info(f"Админ {admin_id} не найден")
             return
 
-        logger.debug(f"Admin groups for {admin_id}: {[group.group_id for group in admin.groups]}")
+        successful_groups = await remove_admin_rights(bot, db_session, admin, selected_groups)
 
-        # Снимаем права в выбранных группах
-        for group in selected_groups:
-            try:
-                # Проверяем статус пользователя
-                member = await bot.get_chat_member(chat_id=group.group_id, user_id=admin_id)
-                if member.status in ["left", "kicked"]:
-                    message_text = (
-                        f"{escape_markdown('ℹ️ Пользователь')} @"
-                        f"{escape_markdown(admin_username or str(admin_id))} "
-                        f"{escape_markdown('не состоит в группе')} {format_group_link(group)}."
-                    )
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    logger.info(f"Пользователь {admin_id} не в группе {group.group_id}, права не снимаются")
-                    continue
-
-                # Проверяем, является ли пользователь админом
-                admins = await bot.get_chat_administrators(chat_id=group.group_id)
-                is_admin_in_group = any(admin.user.id == admin_id for admin in admins)
-                if not is_admin_in_group:
-                    message_text = (
-                        f"{escape_markdown('ℹ️ Пользователь')} @"
-                        f"{escape_markdown(admin_username or str(admin_id))} "
-                        f"{escape_markdown('не является админом в группе')} {format_group_link(group)}."
-                    )
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    logger.info(f"Пользователь {admin_id} не админ в группе {group.group_id}, права не снимаются")
-                    continue
-
-                # Проверяем права бота
-                bot_id = (await bot.get_me()).id
-                bot_is_admin = any(admin.user.id == bot_id and admin.can_promote_members for admin in admins)
-                if not bot_is_admin:
-                    message_text = (
-                        f"{escape_markdown('⚠️ Бот не имеет прав снимать админов в группе')} "
-                        f"{format_group_link(group)}. {escape_markdown('Дайте боту права.')}"
-                    )
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    logger.warning(f"Бот не имеет прав в группе {group.group_id}")
-                    continue
-
-                # Снимаем права
-                if await demote_admin_in_group(bot, group.group_id, admin_id):
-                    successful_groups.append(group)
-                    message_text = (
-                        f"{escape_markdown('✅ Права админа сняты для')} @"
-                        f"{escape_markdown(admin_username or str(admin_id))} "
-                        f"{escape_markdown('в группе')} {format_group_link(group)}."
-                    )
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    logger.info(f"Права админа {admin_id} сняты в группе {group.group_id}")
-                else:
-                    message_text = (
-                        f"{escape_markdown('⚠️ Не удалось снять права в группе')} "
-                        f"{format_group_link(group)}. {escape_markdown('Операция не выполнена.')}"
-                    )
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    logger.warning(f"Не удалось снять права админа {admin_id} в группе {group.group_id}")
-            except Exception as e:
-                logger.error(f"Ошибка снятия прав админа {admin_id} в группе {group.group_id}: {e}")
-                message_text = (
-                    f"{escape_markdown('⚠️ Не удалось снять права в группе')} "
-                    f"{format_group_link(group)}. {escape_markdown(str(e))}"
-                )
-                await call.message.answer(
-                    message_text,
-                    parse_mode="MarkdownV2",
-                    reply_markup=get_start_reply_keyboard()
-                )
-
-        # Удаляем админа из таблицы TelegramAdmin
         await db_session.delete(admin)
         await db_session.commit()
-        logger.info(f"Админ {admin_id} удалён из таблицы TelegramAdmin")
+        logger.info(f"Админ {admin_id} удалён из TelegramAdmin")
 
-        # Формируем итоговое сообщение
-        group_names = ", ".join([format_group_link(group) for group in successful_groups]) if successful_groups else escape_markdown("ни в одной группе")
+        group_names = ", ".join([format_group_link(group) for group in successful_groups]) if successful_groups else escape_markdown("без групп")
+        escaped_username = escape_markdown(admin_username or str(admin_id))
+        username_link = f"[{escaped_username}](https://t.me/{admin_username if admin_username else admin_id})"
         message_text = (
-            f"{escape_markdown('✅ Админ')} @"
-            f"{escape_markdown(admin_username or str(admin_id))} "
-            f"{escape_markdown('удалён. Права сняты в группах:')} {group_names}"
+            escape_markdown(f"✅ Админ {username_link} удалён. Права сняты в группах: ") + group_names
         )
         try:
             await call.message.answer(
@@ -1008,10 +925,9 @@ async def confirm_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
                 reply_markup=get_start_reply_keyboard()
             )
 
-        # Уведомляем админа
         try:
             message_text = (
-                f"{escape_markdown('ℹ️ Вы больше не админ. Права сняты в группах:')} {group_names}"
+                escape_markdown(f"ℹ️ Вы больше не админ. Права сняты в группах: ") + group_names
             )
             await bot.send_message(
                 chat_id=admin_id,
@@ -1022,7 +938,6 @@ async def confirm_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
         except Exception as e:
             logger.error(f"Ошибка уведомления админа {admin_id}: {e}")
 
-        # Удаляем сообщение с подтверждением
         if confirmation_message_id:
             try:
                 await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
@@ -1043,6 +958,7 @@ async def confirm_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
             except TelegramBadRequest as e:
                 logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
         await state.clear()
+
 
 
 
@@ -1699,223 +1615,223 @@ async def process_add_groups(call: CallbackQuery, state: FSMContext, db_session:
 
 
 
-@router.callback_query(ManageAdminGroupsStates.waiting_for_groups_to_remove,
-                       F.data.in_(["confirm_remove_groups", "cancel"]))
-async def confirm_remove_groups(call: CallbackQuery, state: FSMContext, db_session: AsyncSession, bot: Bot):
-    """
-    Подтверждает или отменяет снятие прав админа в выбранных группах.
-
-    Args:
-        call: CallbackQuery от inline-кнопки.
-        state: Контекст FSM.
-        db_session: Асинхронная сессия SQLAlchemy.
-        bot: Экземпляр Aiogram Bot.
-    """
-    data = await state.get_data()
-    admin_id = data.get("admin_id")
-    admin_username = data.get("admin_username")
-    selected_groups = data.get("selected_groups", [])
-    confirmation_message_id = data.get("confirmation_message_id")
-
-    # Логируем входные данные для отладки
-    logger.debug(f"confirm_remove_groups: admin_id={admin_id}, admin_username={admin_username}, "
-                 f"selected_groups={[group.group_id for group in selected_groups]}, "
-                 f"confirmation_message_id={confirmation_message_id}")
-
-    await call.answer()
-
-    if call.data == "cancel":
-        if confirmation_message_id:
-            try:
-                await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
-                logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (отмена)")
-            except Exception as e:
-                logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
-        message_text = escape_markdown("❌ Операция отменена.")
-        logger.debug(f"Отправка сообщения об отмене: {message_text}")
-        await call.message.answer(
-            message_text,
-            parse_mode="MarkdownV2",
-            reply_markup=get_start_reply_keyboard()
-        )
-        await state.clear()
-        return
-
-    successful_groups = []
-
-    try:
-        # Получаем админа
-        query = select(TelegramAdmin).where(TelegramAdmin.telegram_id == admin_id).options(selectinload(TelegramAdmin.groups))
-        result = await db_session.execute(query)
-        admin = result.scalar_one_or_none()
-
-        if not admin:
-            if confirmation_message_id:
-                try:
-                    await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
-                    logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (админ не найден)")
-                except Exception as e:
-                    logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
-            message_text = escape_markdown("❌ Админ не найден.")
-            logger.debug(f"Отправка сообщения об отсутствии админа: {message_text}")
-            await call.message.answer(
-                message_text,
-                parse_mode="MarkdownV2",
-                reply_markup=get_start_reply_keyboard()
-            )
-            await state.clear()
-            return
-
-        # Логируем группы админа
-        logger.debug(f"Admin groups for {admin_id}: {[group.group_id for group in admin.groups]}")
-
-        # Снимаем права в выбранных группах
-        for group in selected_groups:
-            try:
-                # Проверяем права бота
-                admins = await bot.get_chat_administrators(chat_id=group.group_id)
-                bot_id = (await bot.get_me()).id
-                bot_is_admin = any(admin.user.id == bot_id and admin.can_promote_members for admin in admins)
-                if not bot_is_admin:
-                    message_text = f"⚠️ Бот не имеет прав снимать админов в группе {escape_markdown(group.username or str(group.group_id))}. Дайте боту права."
-                    logger.debug(f"Отправка сообщения о правах бота: {message_text}")
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    logger.warning(f"Бот не имеет прав в группе {group.group_id}")
-                    continue
-
-                # Снимаем права
-                await bot.promote_chat_member(
-                    chat_id=group.group_id,
-                    user_id=admin_id,
-                    can_manage_chat=False,
-                    can_delete_messages=False,
-                    can_manage_video_chats=False,
-                    can_restrict_members=False,
-                    can_promote_members=False,
-                    can_change_info=False,
-                    can_invite_users=False,
-                    can_pin_messages=False,
-                    can_manage_topics=False
-                )
-                logger.info(f"Права админа {admin_id} сняты в группе {group.group_id}")
-
-                # Удаляем группу из списка админа, если она там есть
-                if group in admin.groups:
-                    admin.groups.remove(group)
-                    await db_session.commit()
-                    successful_groups.append(group)
-                    message_text = f"✅ Пользователь @{escape_markdown(admin_username or str(admin_id))} больше не админ в группе {escape_markdown(group.username or str(group.group_id))}."
-                    logger.debug(f"Отправка сообщения об успехе: {message_text}")
-                    await call.message.answer(
-                        message_text,
-                        parse_mode="MarkdownV2",
-                        reply_markup=get_start_reply_keyboard()
-                    )
-                    message_text = f"ℹ️ Вы больше не админ в группе {escape_markdown(group.username or str(group.group_id))}."
-                    logger.debug(f"Отправка уведомления админу {admin_id}: {message_text}")
-                    await bot.send_message(
-                        chat_id=admin_id,
-                        text=message_text,
-                        parse_mode="MarkdownV2"
-                    )
-                else:
-                    logger.warning(f"Группа {group.group_id} не найдена в списке групп админа {admin_id}")
-
-            except Exception as e:
-                logger.error(f"Ошибка снятия прав админа {admin_id} в группе {group.group_id}: {e}")
-                message_text = f"⚠️ Не удалось снять права админа в группе {escape_markdown(group.username or str(group.group_id))}: {escape_markdown(str(e))}."
-                logger.debug(f"Отправка сообщения об ошибке: {message_text}")
-                await call.message.answer(
-                    message_text,
-                    parse_mode="MarkdownV2",
-                    reply_markup=get_start_reply_keyboard()
-                )
-
-        # Формируем итоговое сообщение
-        group_names = ", ".join(
-            [escape_markdown(group.username or str(group.group_id)) for group in successful_groups]
-        ) if successful_groups else escape_markdown("ни в одной группе")
-        message_text = f"✅ Права админа @{escape_markdown(admin_username or str(admin_id))} сняты в группах: {group_names}."
-        logger.debug(f"Отправка итогового сообщения: {message_text}")
-        await call.message.answer(
-            message_text,
-            parse_mode="MarkdownV2",
-            reply_markup=get_start_reply_keyboard()
-        )
-
-        # Уведомляем админа
-        try:
-            await notify_admin(bot=bot, action="updated", admin=admin)
-            logger.debug(f"Уведомление отправлено админу {admin_id}")
-        except Exception as e:
-            logger.error(f"Ошибка уведомления админа {admin_id}: {e}")
-
-        # Удаляем сообщение с подтверждением
-        if confirmation_message_id:
-            try:
-                await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
-                logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (конец обработки)")
-            except Exception as e:
-                logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
-
-        # Возвращаемся к списку групп
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
-        admin_groups = admin.groups
-        if not admin_groups:
-            message_text = f"ℹ️ У админа @{escape_markdown(admin_username or str(admin_id))} нет групп."
-            logger.debug(f"Отправка сообщения о пустых группах: {message_text}")
-            await call.message.answer(
-                message_text,
-                parse_mode="MarkdownV2",
-                reply_markup=get_start_reply_keyboard()
-            )
-            keyboard.inline_keyboard.append([InlineKeyboardButton(text="Добавить группы ➕", callback_data="add_groups")])
-        else:
-            for group in admin_groups:
-                keyboard.inline_keyboard.append(
-                    [InlineKeyboardButton(
-                        text=f"@{escape_markdown(group.username or str(group.group_id))}",
-                        callback_data=f"view_group:{group.group_id}"
-                    ),
-                    InlineKeyboardButton(
-                        text="Снять права 🗑️",
-                        callback_data=f"remove_group:{group.group_id}"
-                    )]
-                )
-            keyboard.inline_keyboard.append([InlineKeyboardButton(text="Снять все права 🗑️", callback_data="remove_all_groups")])
-            keyboard.inline_keyboard.append([InlineKeyboardButton(text="Добавить группы ➕", callback_data="add_groups")])
-        keyboard.inline_keyboard.append([InlineKeyboardButton(text="Готово ✅", callback_data="finish")])
-
-        message_text = f"📋 Группы админа @{escape_markdown(admin_username or str(admin_id))}:"
-        logger.debug(f"Отправка сообщения о группах админа: {message_text}")
-        groups_message = await call.message.answer(
-            message_text,
-            parse_mode="MarkdownV2",
-            reply_markup=keyboard
-        )
-        await state.update_data(groups_message_id=groups_message.message_id, selected_groups=[])
-        await state.set_state(ManageAdminGroupsStates.waiting_for_group_action)
-
-    except Exception as e:
-        logger.error(f"Ошибка обработки снятия прав админа {admin_id}: {e}")
-        message_text = f"❌ Ошибка: {escape_markdown(str(e))}."
-        logger.debug(f"Отправка сообщения об общей ошибке: {message_text}")
-        await call.message.answer(
-            message_text,
-            parse_mode="MarkdownV2",
-            reply_markup=get_start_reply_keyboard()
-        )
-        if confirmation_message_id:
-            try:
-                await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
-                logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (ошибка)")
-            except Exception as e:
-                logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
-        await state.clear()
+# @router.callback_query(ManageAdminGroupsStates.waiting_for_groups_to_remove,
+#                        F.data.in_(["confirm_remove_groups", "cancel"]))
+# async def confirm_remove_groups(call: CallbackQuery, state: FSMContext, db_session: AsyncSession, bot: Bot):
+#     """
+#     Подтверждает или отменяет снятие прав админа в выбранных группах.
+#
+#     Args:
+#         call: CallbackQuery от inline-кнопки.
+#         state: Контекст FSM.
+#         db_session: Асинхронная сессия SQLAlchemy.
+#         bot: Экземпляр Aiogram Bot.
+#     """
+#     data = await state.get_data()
+#     admin_id = data.get("admin_id")
+#     admin_username = data.get("admin_username")
+#     selected_groups = data.get("selected_groups", [])
+#     confirmation_message_id = data.get("confirmation_message_id")
+#
+#     # Логируем входные данные для отладки
+#     logger.debug(f"confirm_remove_groups: admin_id={admin_id}, admin_username={admin_username}, "
+#                  f"selected_groups={[group.group_id for group in selected_groups]}, "
+#                  f"confirmation_message_id={confirmation_message_id}")
+#
+#     await call.answer()
+#
+#     if call.data == "cancel":
+#         if confirmation_message_id:
+#             try:
+#                 await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
+#                 logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (отмена)")
+#             except Exception as e:
+#                 logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
+#         message_text = escape_markdown("❌ Операция отменена.")
+#         logger.debug(f"Отправка сообщения об отмене: {message_text}")
+#         await call.message.answer(
+#             message_text,
+#             parse_mode="MarkdownV2",
+#             reply_markup=get_start_reply_keyboard()
+#         )
+#         await state.clear()
+#         return
+#
+#     successful_groups = []
+#
+#     try:
+#         # Получаем админа
+#         query = select(TelegramAdmin).where(TelegramAdmin.telegram_id == admin_id).options(selectinload(TelegramAdmin.groups))
+#         result = await db_session.execute(query)
+#         admin = result.scalar_one_or_none()
+#
+#         if not admin:
+#             if confirmation_message_id:
+#                 try:
+#                     await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
+#                     logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (админ не найден)")
+#                 except Exception as e:
+#                     logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
+#             message_text = escape_markdown("❌ Админ не найден.")
+#             logger.debug(f"Отправка сообщения об отсутствии админа: {message_text}")
+#             await call.message.answer(
+#                 message_text,
+#                 parse_mode="MarkdownV2",
+#                 reply_markup=get_start_reply_keyboard()
+#             )
+#             await state.clear()
+#             return
+#
+#         # Логируем группы админа
+#         logger.debug(f"Admin groups for {admin_id}: {[group.group_id for group in admin.groups]}")
+#
+#         # Снимаем права в выбранных группах
+#         for group in selected_groups:
+#             try:
+#                 # Проверяем права бота
+#                 admins = await bot.get_chat_administrators(chat_id=group.group_id)
+#                 bot_id = (await bot.get_me()).id
+#                 bot_is_admin = any(admin.user.id == bot_id and admin.can_promote_members for admin in admins)
+#                 if not bot_is_admin:
+#                     message_text = f"⚠️ Бот не имеет прав снимать админов в группе {escape_markdown(group.username or str(group.group_id))}. Дайте боту права."
+#                     logger.debug(f"Отправка сообщения о правах бота: {message_text}")
+#                     await call.message.answer(
+#                         message_text,
+#                         parse_mode="MarkdownV2",
+#                         reply_markup=get_start_reply_keyboard()
+#                     )
+#                     logger.warning(f"Бот не имеет прав в группе {group.group_id}")
+#                     continue
+#
+#                 # Снимаем права
+#                 await bot.promote_chat_member(
+#                     chat_id=group.group_id,
+#                     user_id=admin_id,
+#                     can_manage_chat=False,
+#                     can_delete_messages=False,
+#                     can_manage_video_chats=False,
+#                     can_restrict_members=False,
+#                     can_promote_members=False,
+#                     can_change_info=False,
+#                     can_invite_users=False,
+#                     can_pin_messages=False,
+#                     can_manage_topics=False
+#                 )
+#                 logger.info(f"Права админа {admin_id} сняты в группе {group.group_id}")
+#
+#                 # Удаляем группу из списка админа, если она там есть
+#                 if group in admin.groups:
+#                     admin.groups.remove(group)
+#                     await db_session.commit()
+#                     successful_groups.append(group)
+#                     message_text = f"✅ Пользователь @{escape_markdown(admin_username or str(admin_id))} больше не админ в группе {escape_markdown(group.username or str(group.group_id))}."
+#                     logger.debug(f"Отправка сообщения об успехе: {message_text}")
+#                     await call.message.answer(
+#                         message_text,
+#                         parse_mode="MarkdownV2",
+#                         reply_markup=get_start_reply_keyboard()
+#                     )
+#                     message_text = f"ℹ️ Вы больше не админ в группе {escape_markdown(group.username or str(group.group_id))}."
+#                     logger.debug(f"Отправка уведомления админу {admin_id}: {message_text}")
+#                     await bot.send_message(
+#                         chat_id=admin_id,
+#                         text=message_text,
+#                         parse_mode="MarkdownV2"
+#                     )
+#                 else:
+#                     logger.warning(f"Группа {group.group_id} не найдена в списке групп админа {admin_id}")
+#
+#             except Exception as e:
+#                 logger.error(f"Ошибка снятия прав админа {admin_id} в группе {group.group_id}: {e}")
+#                 message_text = f"⚠️ Не удалось снять права админа в группе {escape_markdown(group.username or str(group.group_id))}: {escape_markdown(str(e))}."
+#                 logger.debug(f"Отправка сообщения об ошибке: {message_text}")
+#                 await call.message.answer(
+#                     message_text,
+#                     parse_mode="MarkdownV2",
+#                     reply_markup=get_start_reply_keyboard()
+#                 )
+#
+#         # Формируем итоговое сообщение
+#         group_names = ", ".join(
+#             [escape_markdown(group.username or str(group.group_id)) for group in successful_groups]
+#         ) if successful_groups else escape_markdown("ни в одной группе")
+#         message_text = f"✅ Права админа @{escape_markdown(admin_username or str(admin_id))} сняты в группах: {group_names}."
+#         logger.debug(f"Отправка итогового сообщения: {message_text}")
+#         await call.message.answer(
+#             message_text,
+#             parse_mode="MarkdownV2",
+#             reply_markup=get_start_reply_keyboard()
+#         )
+#
+#         # Уведомляем админа
+#         try:
+#             await notify_admin(bot=bot, action="updated", admin=admin)
+#             logger.debug(f"Уведомление отправлено админу {admin_id}")
+#         except Exception as e:
+#             logger.error(f"Ошибка уведомления админа {admin_id}: {e}")
+#
+#         # Удаляем сообщение с подтверждением
+#         if confirmation_message_id:
+#             try:
+#                 await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
+#                 logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (конец обработки)")
+#             except Exception as e:
+#                 logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
+#
+#         # Возвращаемся к списку групп
+#         keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+#         admin_groups = admin.groups
+#         if not admin_groups:
+#             message_text = f"ℹ️ У админа @{escape_markdown(admin_username or str(admin_id))} нет групп."
+#             logger.debug(f"Отправка сообщения о пустых группах: {message_text}")
+#             await call.message.answer(
+#                 message_text,
+#                 parse_mode="MarkdownV2",
+#                 reply_markup=get_start_reply_keyboard()
+#             )
+#             keyboard.inline_keyboard.append([InlineKeyboardButton(text="Добавить группы ➕", callback_data="add_groups")])
+#         else:
+#             for group in admin_groups:
+#                 keyboard.inline_keyboard.append(
+#                     [InlineKeyboardButton(
+#                         text=f"@{escape_markdown(group.username or str(group.group_id))}",
+#                         callback_data=f"view_group:{group.group_id}"
+#                     ),
+#                     InlineKeyboardButton(
+#                         text="Снять права 🗑️",
+#                         callback_data=f"remove_group:{group.group_id}"
+#                     )]
+#                 )
+#             keyboard.inline_keyboard.append([InlineKeyboardButton(text="Снять все права 🗑️", callback_data="remove_all_groups")])
+#             keyboard.inline_keyboard.append([InlineKeyboardButton(text="Добавить группы ➕", callback_data="add_groups")])
+#         keyboard.inline_keyboard.append([InlineKeyboardButton(text="Готово ✅", callback_data="finish")])
+#
+#         message_text = f"📋 Группы админа @{escape_markdown(admin_username or str(admin_id))}:"
+#         logger.debug(f"Отправка сообщения о группах админа: {message_text}")
+#         groups_message = await call.message.answer(
+#             message_text,
+#             parse_mode="MarkdownV2",
+#             reply_markup=keyboard
+#         )
+#         await state.update_data(groups_message_id=groups_message.message_id, selected_groups=[])
+#         await state.set_state(ManageAdminGroupsStates.waiting_for_group_action)
+#
+#     except Exception as e:
+#         logger.error(f"Ошибка обработки снятия прав админа {admin_id}: {e}")
+#         message_text = f"❌ Ошибка: {escape_markdown(str(e))}."
+#         logger.debug(f"Отправка сообщения об общей ошибке: {message_text}")
+#         await call.message.answer(
+#             message_text,
+#             parse_mode="MarkdownV2",
+#             reply_markup=get_start_reply_keyboard()
+#         )
+#         if confirmation_message_id:
+#             try:
+#                 await bot.delete_message(chat_id=call.message.chat.id, message_id=confirmation_message_id)
+#                 logger.debug(f"Сообщение {confirmation_message_id} успешно удалено (ошибка)")
+#             except Exception as e:
+#                 logger.warning(f"Не удалось удалить сообщение {confirmation_message_id}: {e}")
+#         await state.clear()
 
 
 
