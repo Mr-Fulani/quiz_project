@@ -5,9 +5,8 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from bot.database.models import TelegramGroup
-
-
+from bot.database.models import TelegramGroup, TelegramAdmin
+from bot.utils.markdownV2 import escape_markdown, format_group_link
 
 logger = logging.getLogger(__name__)
 
@@ -136,3 +135,90 @@ async def get_available_groups(db_session: AsyncSession, admin_id: int) -> list:
     return result.scalars().all()
 
 
+
+
+
+
+async def remove_admin_rights(
+    bot: Bot,
+    db_session: AsyncSession,
+    admin: TelegramAdmin,
+    groups: list[TelegramGroup],
+    notify_user: bool = True
+) -> list[TelegramGroup]:
+    """
+    Снимает права админа в указанных группах и обновляет базу данных.
+
+    Args:
+        bot: Экземпляр Aiogram Bot.
+        db_session: Асинхронная сессия SQLAlchemy.
+        admin: Объект TelegramAdmin, представляющий админа.
+        groups: Список объектов TelegramGroup для снятия прав.
+        notify_user: Флаг, указывающий, нужно ли уведомлять админа.
+
+    Returns:
+        Список объектов TelegramGroup, где права были успешно сняты.
+    """
+    successful_groups = []
+    admin_id = admin.telegram_id
+    admin_username = admin.username
+
+    for group in groups:
+        try:
+            # Проверка статуса пользователя
+            member = await bot.get_chat_member(chat_id=group.group_id, user_id=admin_id)
+            if member.status in ["left", "kicked"]:
+                logger.info(f"Пользователь {admin_id} не в группе {group.group_id}, синхронизация базы")
+                if any(g.group_id == group.group_id for g in admin.groups):
+                    admin.groups = [g for g in admin.groups if g.group_id != group.group_id]
+                    await db_session.commit()
+                    logger.info(f"Группа {group.group_id} удалена из admin.groups для {admin_id}")
+                continue
+
+            # Проверка, является ли пользователь админом
+            admins = await bot.get_chat_administrators(chat_id=group.group_id)
+            is_admin_in_group = any(admin.user.id == admin_id for admin in admins)
+            if not is_admin_in_group:
+                logger.info(f"Пользователь {admin_id} не админ в группе {group.group_id}, синхронизация базы")
+                if any(g.group_id == group.group_id for g in admin.groups):
+                    admin.groups = [g for g in admin.groups if g.group_id != group.group_id]
+                    await db_session.commit()
+                    logger.info(f"Группа {group.group_id} удалена из admin.groups для {admin_id}")
+                continue
+
+            # Проверка прав бота
+            bot_id = (await bot.get_me()).id
+            bot_is_admin = any(admin.user.id == bot_id and admin.can_promote_members for admin in admins)
+            if not bot_is_admin:
+                logger.warning(f"Бот не имеет прав для снятия админов в группе {group.group_id}")
+                continue
+
+            # Снятие прав админа
+            if await demote_admin_in_group(bot, group.group_id, admin_id):
+                if any(g.group_id == group.group_id for g in admin.groups):
+                    admin.groups = [g for g in admin.groups if g.group_id != group.group_id]
+                    await db_session.commit()
+                    logger.info(f"Группа {group.group_id} удалена из admin.groups для {admin_id}")
+                successful_groups.append(group)
+                logger.info(f"Права админа для {admin_id} сняты в группе {group.group_id}")
+
+                if notify_user:
+                    message_text = (
+                        escape_markdown(f"ℹ️ Вы больше не админ в группе ") +
+                        format_group_link(group) + escape_markdown(".")
+                    )
+                    try:
+                        await bot.send_message(
+                            chat_id=admin_id,
+                            text=message_text,
+                            parse_mode="MarkdownV2"
+                        )
+                        logger.debug(f"Уведомление отправлено админу {admin_id} для группы {group.group_id}")
+                    except Exception as e:
+                        logger.error(f"Ошибка уведомления админа {admin_id} для группы {group.group_id}: {e}")
+
+        except Exception as e:
+            logger.error(f"Ошибка снятия прав админа для {admin_id} в группе {group.group_id}: {e}")
+            continue
+
+    return successful_groups

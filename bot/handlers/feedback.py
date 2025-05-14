@@ -1,3 +1,5 @@
+# bot/handlers/feedback.py
+
 import datetime
 import logging
 from datetime import datetime
@@ -7,29 +9,23 @@ from aiogram.filters import StateFilter, BaseFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy import select
-
 from bot.database.models import FeedbackMessage
+from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
 from bot.keyboards.quiz_keyboards import get_feedback_keyboard
-from bot.main import async_session_maker
 from bot.states.admin_states import FeedbackStates
 
-
-
 # Инициализация маршрутизатора
-router = Router(name="admin_router")
+router = Router(name="feedback_router")
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-
-
-# Обработчик кнопки "Написать Администратору" - БЕЗ ИЗМЕНЕНИЙ
+# Обработчик кнопки "Написать Администратору"
 @router.message(lambda message: message.text and message.text.lower() == "написать администратору")
 async def handle_write_to_admin(message: types.Message):
     await message.answer("Ваше сообщение для администратора. Напишите текст, и он будет передан.")
 
-
-# ИСПРАВЛЕННЫЙ обработчик для сохранения сообщения пользователя
+# Фильтр для сообщений пользователей
 class UserMessageFilter(BaseFilter):
     async def __call__(self, message: Message, state: FSMContext) -> bool:
         current_state = await state.get_state()
@@ -39,10 +35,10 @@ class UserMessageFilter(BaseFilter):
             and current_state != FeedbackStates.awaiting_reply
         )
 
-# Используем фильтр в обработчике
+# Обработчик для сохранения сообщения пользователя
 @router.message(UserMessageFilter())
 async def save_feedback_message(message: types.Message):
-    async with async_session_maker() as session:
+    async with get_session() as session:
         feedback = FeedbackMessage(
             user_id=message.from_user.id,
             username=message.from_user.username,
@@ -54,12 +50,11 @@ async def save_feedback_message(message: types.Message):
         await session.commit()
     await message.answer("Ваше сообщение сохранено, Мы ответим Вам в ближайшее время. Спасибо!")
 
-
-# Обработчик для просмотра необработанных сообщений - БЕЗ ИЗМЕНЕНИЙ
+# Обработчик для просмотра необработанных сообщений
 @router.callback_query(lambda c: c.data == "view_feedback")
 async def show_unprocessed_feedback(callback_query: types.CallbackQuery):
-    logging.info("Обработчик 'Просмотреть сообщения' вызван.")
-    async with async_session_maker() as session:
+    logger.info("Обработчик 'Просмотреть сообщения' вызван.")
+    async with get_session() as session:
         result = await session.execute(
             select(FeedbackMessage).where(FeedbackMessage.is_processed == False)
         )
@@ -80,13 +75,13 @@ async def show_unprocessed_feedback(callback_query: types.CallbackQuery):
 
     await callback_query.answer()
 
-
-# Обработчик для пометки сообщения как обработанного - БЕЗ ИЗМЕНЕНИЙ
+# Обработчик для пометки сообщения как обработанного
 @router.callback_query(lambda c: c.data.startswith("mark_processed:"))
 async def mark_feedback_processed(callback_query: types.CallbackQuery):
+    logger.info(f"Callback 'mark_processed' вызван, user_id={callback_query.from_user.id}, data={callback_query.data}")
     feedback_id = int(callback_query.data.split(":")[1])
 
-    async with async_session_maker() as session:
+    async with get_session() as session:
         feedback = await session.get(FeedbackMessage, feedback_id)
         if not feedback:
             await callback_query.answer("Сообщение не найдено или уже обработано.", show_alert=True)
@@ -98,8 +93,7 @@ async def mark_feedback_processed(callback_query: types.CallbackQuery):
     await callback_query.answer("Сообщение помечено как обработанное.", show_alert=True)
     await callback_query.message.delete()
 
-
-# ИСПРАВЛЕННЫЙ обработчик для ответа на feedback
+# Обработчик для ответа на feedback
 @router.message(StateFilter(FeedbackStates.awaiting_reply))
 async def handle_feedback_reply(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -111,7 +105,7 @@ async def handle_feedback_reply(message: types.Message, state: FSMContext):
         await state.clear()
         return
 
-    async with async_session_maker() as session:
+    async with get_session() as session:
         feedback = await session.get(FeedbackMessage, feedback_id)
         if not feedback:
             await message.answer("Сообщение пользователя не найдено.")
@@ -137,20 +131,21 @@ async def handle_feedback_reply(message: types.Message, state: FSMContext):
                     message_id=message.message_id - 1
                 )
             except Exception as e:
-                logging.warning(f"Не удалось удалить сообщение с кнопками: {e}")
+                logger.warning(f"Не удалось удалить сообщение с кнопками: {e}")
 
         except Exception as e:
             await message.answer(f"❌ Ошибка при отправке ответа: {str(e)}")
-            logging.error(f"Ошибка отправки ответа: {e}")
+            logger.error(f"Ошибка отправки ответа: {e}")
         finally:
             await state.clear()
 
-# Обработчик для начала ответа на сообщение - БЕЗ ИЗМЕНЕНИЙ
+# Обработчик для начала ответа на сообщение
 @router.callback_query(lambda c: c.data.startswith("reply_to_feedback:"))
 async def start_feedback_reply(callback_query: types.CallbackQuery, state: FSMContext):
+    logger.info(f"Callback 'reply_to_feedback' вызван, user_id={callback_query.from_user.id}, data={callback_query.data}")
     feedback_id = int(callback_query.data.split(":")[1])
 
-    async with async_session_maker() as session:
+    async with get_session() as session:
         feedback = await session.get(FeedbackMessage, feedback_id)
         if not feedback:
             await callback_query.answer("Сообщение не найдено.", show_alert=True)
@@ -167,12 +162,13 @@ async def start_feedback_reply(callback_query: types.CallbackQuery, state: FSMCo
     )
     await callback_query.answer()
 
-# Обработчик для удаления сообщения - БЕЗ ИЗМЕНЕНИЙ
+# Обработчик для удаления сообщения
 @router.callback_query(lambda c: c.data.startswith("delete_feedback:"))
 async def delete_feedback(callback_query: types.CallbackQuery):
+    logger.info(f"Callback 'delete_feedback' вызван, user_id={callback_query.from_user.id}, data={callback_query.data}")
     feedback_id = int(callback_query.data.split(":")[1])
 
-    async with async_session_maker() as session:
+    async with get_session() as session:
         feedback = await session.get(FeedbackMessage, feedback_id)
         if not feedback:
             await callback_query.answer("Сообщение не найдено или уже удалено.", show_alert=True)
@@ -183,4 +179,3 @@ async def delete_feedback(callback_query: types.CallbackQuery):
 
     await callback_query.answer("Сообщение удалено.", show_alert=True)
     await callback_query.message.delete()
-

@@ -16,7 +16,7 @@ from bot.utils.markdownV2 import escape_markdown
 
 
 # Инициализация маршрутизатора
-router = Router(name="admin_router")
+router = Router(name="webhook_handler_router")
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Обработчик кнопки "Добавить вебхук"
 @router.callback_query(F.data == "add_webhook")
 async def callback_add_webhook(call: CallbackQuery, state: FSMContext, db_session: AsyncSession):
+    logger.info(f"Callback 'add_webhook' вызван, user_id={call.from_user.id}, data={call.data}")
     """Обрабатывает нажатие кнопки 'Добавить вебхук' и запрашивает URL.
 
     Args:
@@ -224,6 +225,7 @@ async def cmd_list_webhooks(message: Message, db_session: AsyncSession, bot: Bot
 # Обработчик удаления вебхука
 @router.callback_query(F.data.startswith("delete_webhook:"))
 async def callback_delete_webhook(call: CallbackQuery, db_session: AsyncSession, bot: Bot, state: FSMContext):
+    logger.info(f"Callback 'delete_webhook' вызван, user_id={call.from_user.id}, data={call.data}")
     """Обрабатывает нажатие кнопки удаления вебхука с временным уведомлением.
 
     Args:
@@ -289,6 +291,7 @@ async def callback_delete_webhook(call: CallbackQuery, db_session: AsyncSession,
 # Обработчик кнопки "Список вебхуков"
 @router.callback_query(F.data == "list_webhooks")
 async def callback_list_webhooks(call: CallbackQuery, db_session: AsyncSession, bot: Bot, state: FSMContext):
+    logger.info(f"Callback 'list_webhooks' вызван, user_id={call.from_user.id}, data={call.data}")
     """Обрабатывает нажатие кнопки 'Список вебхуков'.
 
     Args:
@@ -358,6 +361,7 @@ async def callback_list_webhooks(call: CallbackQuery, db_session: AsyncSession, 
 # Обработчик кнопки удаления вебхука
 @router.callback_query(F.data == "delete_webhook_menu")
 async def callback_delete_webhook_menu(call: CallbackQuery, state: FSMContext, db_session: AsyncSession, bot: Bot):
+    logger.info(f"Callback 'delete_webhook_menu' вызван, user_id={call.from_user.id}, data={call.data}")
     """Обрабатывает нажатие кнопки меню удаления вебхука и запрашивает ID.
 
     Args:
@@ -582,6 +586,7 @@ async def cmd_deactivate_webhook(message: Message, command: Command, db_session:
 # Обработчик переключения статуса вебхука
 @router.callback_query(F.data.startswith("toggle_webhook:"))
 async def callback_toggle_webhook(call: CallbackQuery, db_session: AsyncSession, bot: Bot, state: FSMContext):
+    logger.info(f"Callback 'toggle_webhook' вызван, user_id={call.from_user.id}, data={call.data}")
     """Обрабатывает нажатие кнопки переключения статуса вебхука с временным уведомлением.
 
     Args:
