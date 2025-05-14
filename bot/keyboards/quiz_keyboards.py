@@ -39,6 +39,9 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="Список админов", callback_data="list_admins_button")
     )
     builder.row(
+        InlineKeyboardButton(text="Управление группами админа", callback_data="manage_admin_groups")
+    )
+    builder.row(
         InlineKeyboardButton(text="Добавить канал", callback_data="add_channel_group_button"),
         InlineKeyboardButton(text="Удалить канал", callback_data="remove_channel_button")
     )
