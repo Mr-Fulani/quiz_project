@@ -19,7 +19,7 @@ from bot.services.admin_service import is_admin, add_admin
 from bot.states.admin_states import AddAdminStates, RemoveAdminStates, ManageAdminGroupsStates
 from bot.utils.markdownV2 import escape_markdown, format_group_link
 from bot.utils.notifications import notify_admin
-from bot.utils.utils import create_groups_keyboard, promote_admin_in_group, get_available_groups, demote_admin_in_group, \
+from bot.utils.admin_utils import create_groups_keyboard, promote_admin_in_group, get_available_groups, demote_admin_in_group, \
     remove_admin_rights
 
 # Загрузка переменных окружения
@@ -39,10 +39,7 @@ ADMIN_REMOVE_SECRET_PASSWORD = os.getenv("ADMIN_REMOVE_SECRET_PASSWORD")
 
 
 
-# @router.callback_query()
-# async def debug_callback(call: CallbackQuery, state: FSMContext):
-#     logger.info(f"Необработанный callback: callback_data={call.data}, state={await state.get_state()}, chat_id={call.message.chat.id}")
-#     await call.answer("Callback не обработан, проверьте логи.")
+
 
 
 
