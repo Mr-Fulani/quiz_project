@@ -1,0 +1,92 @@
+/* static/admin/css/custom_admin.css */
+.inline-related img {
+    width: 100px !important;
+    height: 100px !important;
+    object-fit: cover;
+    border-radius: 5px;
+    margin: 5px;
+}
+
+.inline-related .field-photo img,
+.inline-related .field-gif img {
+    max-width: 100px;
+    max-height: 100px;
+}
+
+
+/* Базовые стили для изображений в админке */
+.inline-related img {
+    width: 100px !important;
+    height: 100px !important;
+    object-fit: cover;
+    border-radius: 5px;
+    margin: 5px;
+}
+
+.inline-related .field-photo img,
+.inline-related .field-gif img {
+    max-width: 100px;
+    max-height: 100px;
+}
+
+/* Стили для блока с фото и текстом/GIF */
+.inline-related .field-photo_preview div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+    .inline-related img {
+        width: 80px !important;
+        height: 80px !important;
+        margin: 3px;
+    }
+
+    .inline-related .field-photo img,
+    .inline-related .field-gif img {
+        max-width: 80px;
+        max-height: 80px;
+    }
+
+    .inline-related td, .inline-related th {
+        padding: 5px !important;
+    }
+
+    .inline-related .field-box {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    /* На планшетах текст/GIF переносится под фото */
+    .inline-related .field-photo_preview div {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .inline-related img {
+        width: 60px !important;
+        height: 60px !important;
+        margin: 2px;
+    }
+
+    .inline-related .field-photo img,
+    .inline-related .field-gif img {
+        max-width: 60px;
+        max-height: 60px;
+    }
+
+    .inline-related td, .inline-related th {
+        padding: 3px !important;
+    }
+
+    /* На телефонах текст/GIF под фото */
+    .inline-related .field-photo_preview div {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

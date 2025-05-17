@@ -3,6 +3,12 @@
 {% load youtube_tags %}
 {% load blog_tags %}
 
+{% block extra_head %}
+<meta name="description" content="{{ project.meta_description }}">
+<meta name="keywords" content="{{ project.meta_keywords }}">
+{% endblock %}
+
+
 {% block content %}
 <article class="detail-page active" data-page="project-detail">
     <header>
@@ -18,7 +24,7 @@
                     <div class="swiper-slide">
                         <figure class="detail-media-box">
                             <div class="media-wrapper">
-                                <img src="{{ media.photo.url }}" alt="{{ project.title }}" loading="lazy">
+                                <img src="{% if media.photo_thumbnail.url %}{{ media.photo_thumbnail.url }}{% else %}{{ media.photo.url }}{% endif %}" alt="{{ project.title }}" loading="lazy">
                             </div>
                         </figure>
                     </div>

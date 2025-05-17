@@ -1,8 +1,13 @@
+# blog/views.py
+import io
 import json
 import logging
+import os
 import random
+import uuid
 from datetime import datetime, timedelta
 
+from PIL import Image
 from accounts.models import CustomUser
 from accounts.models import DjangoAdmin
 from django.conf import settings
@@ -1264,4 +1269,39 @@ class AllTestimonialsView(ListView):
         return JsonResponse({'success': False})
 
 
+@csrf_exempt
+def tinymce_image_upload(request):
+    """Обработчик загрузки изображений для TinyMCE с сжатием."""
+    if request.method == 'POST' and request.FILES.get('file'):
+        image = request.FILES['file']
+        max_size = 5 * 1024 * 1024  # 5 MB
+        if image.size > max_size:
+            return JsonResponse({'error': 'Файл слишком большой (максимум 5 МБ)'}, status=400)
 
+        # Генерируем уникальное имя файла
+        ext = image.name.split('.')[-1].lower()
+        if ext not in ['jpg', 'jpeg', 'png']:
+            return JsonResponse({'error': 'Недопустимый формат изображения'}, status=400)
+        filename = f"{uuid.uuid4()}.jpg"  # Сохраняем как JPEG
+        upload_path = os.path.join('tinymce_uploads', filename)
+        full_path = os.path.join(settings.MEDIA_ROOT, upload_path)
+
+        # Сжимаем изображение
+        img = Image.open(image)
+        img = img.convert('RGB')  # Конвертируем в RGB для JPEG
+        if img.width > 800 or img.height > 800:
+            img.thumbnail((800, 800), Image.LANCZOS)  # Изменяем размер
+        output = io.BytesIO()
+        img.save(output, format='JPEG', quality=85, optimize=True)
+        output.seek(0)
+
+        # Сохраняем файл
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, 'wb+') as destination:
+            destination.write(output.read())
+
+        # Возвращаем URL изображения
+        image_url = f"{settings.MEDIA_URL}{upload_path}"
+        return JsonResponse({'location': image_url})
+
+    return JsonResponse({'error': 'Неверный запрос'}, status=400)

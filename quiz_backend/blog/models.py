@@ -1,8 +1,12 @@
 # blog/models.py
+from PIL import Image, ImageOps
 from django.db import models
 from django.utils.text import slugify
 from accounts.models import CustomUser
 from django.contrib.auth import get_user_model
+from tinymce.models import HTMLField
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFit
 
 User = get_user_model()
 
@@ -34,8 +38,8 @@ class Post(models.Model):
     """Модель поста блога."""
     title = models.CharField(max_length=200, verbose_name="Заголовок поста")
     slug = models.SlugField(unique=True, verbose_name="Слаг поста")
-    content = models.TextField(verbose_name="Содержимое поста")
-    excerpt = models.TextField(blank=True, verbose_name="Краткое описание")
+    content = HTMLField(verbose_name="Содержимое поста")  # Заменяем TextField на HTMLField
+    excerpt = HTMLField(blank=True, verbose_name="Краткое описание")
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,
@@ -60,6 +64,8 @@ class Post(models.Model):
         default=0,
         verbose_name="Количество просмотров"
     )
+    meta_description = models.CharField(max_length=160, blank=True, verbose_name="Мета-описание")
+    meta_keywords = models.CharField(max_length=255, blank=True, verbose_name="Мета-ключевые слова")
 
     class Meta:
         verbose_name = "Пост"
@@ -67,17 +73,14 @@ class Post(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        """Возвращает строковое представление поста."""
         return self.title
 
     def save(self, *args, **kwargs):
-        """Сохраняет пост, автоматически генерируя слаг, если он не указан."""
         if not self.slug:
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
     def get_main_image(self):
-        """Возвращает главное изображение поста или первое доступное."""
         main_image = self.images.filter(is_main=True).first()
         if not main_image:
             main_image = self.images.first()
@@ -98,6 +101,12 @@ class PostImage(models.Model):
         null=True,
         verbose_name="Фото (JPG/PNG)",
         help_text="Загрузите статичное изображение (JPG или PNG) для поста."
+    )
+    photo_thumbnail = ImageSpecField(
+        source='photo',
+        processors=[ResizeToFit(800, 800)],
+        format='JPEG',
+        options={'quality': 85}
     )
     gif = models.FileField(
         upload_to="blog/posts/gifs/",
@@ -134,22 +143,27 @@ class PostImage(models.Model):
         return f"Media for {self.post.title}"
 
     def save(self, *args, **kwargs):
-        """Сохраняет медиафайл, обеспечивая уникальность главной миниатюры."""
-        if self.is_main:
-            # Сбрасываем is_main для всех остальных медиа этого поста
-            PostImage.objects.filter(post=self.post).exclude(id=self.id).update(is_main=False)
-        else:
-            # Если главный не выбран, делаем текущий главным, если других нет
-            if not PostImage.objects.filter(post=self.post, is_main=True).exists():
-                self.is_main = True
         super().save(*args, **kwargs)
+
+        # Обработка photo
+        if self.photo:
+            img = Image.open(self.photo.path)
+            img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
+            img.save(self.photo.path, quality=85, optimize=True)
+
+        # Обработка gif (если это не анимированный GIF)
+        if self.gif:
+            img = Image.open(self.gif.path)
+            if not getattr(img, "is_animated", False):  # Проверяем, не анимированный ли GIF
+                img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
+                img.save(self.gif.path, quality=85, optimize=True)
 
 
 class Project(models.Model):
     """Модель проекта портфолио."""
     title = models.CharField(max_length=200, verbose_name="Название проекта")
     slug = models.SlugField(unique=True, verbose_name="Слаг проекта")
-    description = models.TextField(verbose_name="Описание проекта")
+    description = HTMLField(verbose_name="Описание проекта")  # Заменяем TextField на HTMLField
     technologies = models.CharField(
         max_length=200,
         verbose_name="Технологии",
@@ -181,6 +195,8 @@ class Project(models.Model):
     featured = models.BooleanField(default=False, verbose_name="Избранное")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    meta_description = models.CharField(max_length=160, blank=True, verbose_name="Мета-описание")
+    meta_keywords = models.CharField(max_length=255, blank=True, verbose_name="Мета-ключевые слова")
 
     class Meta:
         verbose_name = "Проект"
@@ -188,17 +204,14 @@ class Project(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        """Возвращает строковое представление проекта."""
         return self.title
 
     def save(self, *args, **kwargs):
-        """Сохраняет проект, автоматически генерируя слаг, если он не указан."""
         if not self.slug:
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
     def get_main_image(self):
-        """Возвращает главное изображение проекта или первое доступное."""
         main_image = self.images.filter(is_main=True).first()
         if not main_image:
             main_image = self.images.first()
@@ -219,6 +232,12 @@ class ProjectImage(models.Model):
         null=True,
         verbose_name="Фото (JPG/PNG)",
         help_text="Загрузите статичное изображение (JPG или PNG) для проекта."
+    )
+    photo_thumbnail = ImageSpecField(
+        source='photo',
+        processors=[ResizeToFit(800, 800)],
+        format='JPEG',
+        options={'quality': 85}
     )
     gif = models.FileField(
         upload_to="blog/projects/gifs/",
@@ -255,15 +274,20 @@ class ProjectImage(models.Model):
         return f"Media for {self.project.title}"
 
     def save(self, *args, **kwargs):
-        """Сохраняет медиафайл, обеспечивая уникальность главной миниатюры."""
-        if self.is_main:
-            # Сбрасываем is_main для всех остальных медиа этого проекта
-            ProjectImage.objects.filter(project=self.project).exclude(id=self.id).update(is_main=False)
-        else:
-            # Если главный не выбран, делаем текущий главным, если других нет
-            if not ProjectImage.objects.filter(project=self.project, is_main=True).exists():
-                self.is_main = True
         super().save(*args, **kwargs)
+
+        # Обработка photo
+        if self.photo:
+            img = Image.open(self.photo.path)
+            img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
+            img.save(self.photo.path, quality=85, optimize=True)
+
+        # Обработка gif
+        if self.gif:
+            img = Image.open(self.gif.path)
+            if not getattr(img, "is_animated", False):
+                img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
+                img.save(self.gif.path, quality=85, optimize=True)
 
 
 class MessageAttachment(models.Model):

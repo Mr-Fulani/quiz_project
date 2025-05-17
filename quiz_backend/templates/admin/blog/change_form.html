@@ -1,0 +1,121 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Стили для модального окна предпросмотра */
+    .preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .preview-content {
+        background: white;
+        padding: 20px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        border-radius: 5px;
+        position: relative;
+    }
+    .preview-content h3 {
+        margin-top: 0;
+    }
+    .close-preview {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    /* Стили для контента предпросмотра (аналогично фронтенду) */
+    .preview-content .blog-text {
+        max-width: 100%;
+        overflow: hidden;
+        word-wrap: break-word;
+        line-height: 1.5;
+        font-size: 16px;
+        color: #333;
+    }
+    .preview-content .blog-text p, .preview-content .blog-text ul, .preview-content .blog-text ol {
+        margin: 0 0 10px 0;
+        padding: 0;
+    }
+    .preview-content .blog-text a {
+        color: #007bff;
+        text-decoration: underline;
+    }
+    .preview-content .blog-text a:hover {
+        text-decoration: none;
+    }
+    .preview-content .blog-text img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 10px 0;
+    }
+</style>
+<script>
+    // JavaScript для открытия/закрытия модального окна
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewBtn = document.querySelector('#preview-btn');
+        const previewModal = document.querySelector('#preview-modal');
+        const closePreview = document.querySelector('#close-preview');
+
+        if (previewBtn && previewModal && closePreview) {
+            previewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                previewModal.style.display = 'flex';
+            });
+            closePreview.addEventListener('click', function() {
+                previewModal.style.display = 'none';
+            });
+            // Закрытие при клике вне контента
+            previewModal.addEventListener('click', function(e) {
+                if (e.target === previewModal) {
+                    previewModal.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+{% block object-tools-items %}
+{{ block.super }}
+<li>
+    <a href="#" id="preview-btn" class="viewsitelink">{% trans "Preview" %}</a>
+</li>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div id="preview-modal" class="preview-modal">
+    <div class="preview-content">
+        <span id="close-preview" class="close-preview">&times;</span>
+        {% if original %}
+        <h3>{{ original.title }}</h3>
+        {% if original.excerpt %}
+        <h4>{% trans "Excerpt" %}</h4>
+        <div class="blog-text">{{ original.excerpt|safe }}</div>
+        {% endif %}
+        {% if original.content %}
+        <h4>{% trans "Content" %}</h4>
+        <div class="blog-text">{{ original.content|safe }}</div>
+        {% elif original.description %}
+        <h4>{% trans "Description" %}</h4>
+        <div class="blog-text">{{ original.description|safe }}</div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

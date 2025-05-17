@@ -2783,3 +2783,69 @@ article .video .video-content {
 }
 
 
+
+
+
+
+
+/* Подгонка загружаемых картинок под ширину контейнера, как в модальном окне */
+.project-img img,
+.blog-banner-box img,
+.post-banner img,
+.project-banner img {
+    max-width: 100%; /* Ограничивает ширину контейнером */
+    height: auto; /* Сохраняет пропорции */
+    display: block; /* Убирает лишние отступы */
+    margin: 0 auto; /* Центрирует изображение */
+    border-radius: 16px; /* Синхронизация с контейнером */
+}
+
+/* Убеждаемся, что контейнеры не меняются */
+.project-img,
+.blog-banner-box,
+.post-banner,
+.project-banner {
+    position: relative;
+    overflow: hidden; /* Обрезает избыток, если изображение больше */
+}
+
+/* Ограничим ширину контейнера .detail-text-box */
+.detail-text-box {
+    max-width: 800px; /* Синхронизация с модальным окном */
+    width: 90%; /* Адаптивность */
+    margin: 0 auto; /* Центрирование */
+    overflow: hidden; /* Обрезает избыток */
+}
+
+/* Стили для изображений в контенте */
+.article-text img {
+    max-width: 100%; /* Ограничивает ширину контейнером */
+    height: auto; /* Сохраняет пропорции */
+    display: block;
+    margin: 10px 0;
+    border-radius: 8px;
+}
+
+/* Для планшетов (до 768px) */
+@media (max-width: 768px) {
+    .article-text img {
+        max-width: 90%; /* Уменьшаем ширину для лучшего отображения */
+        margin: 8px auto; /* Центрируем с меньшими отступами */
+    }
+    .detail-text-box {
+        width: 95%; /* Увеличиваем ширину контейнера для планшетов */
+    }
+}
+
+/* Для мобильных (до 580px) */
+@media (max-width: 580px) {
+    .article-text img {
+        max-width: 85%; /* Еще чуть меньше для маленьких экранов */
+        margin: 5px auto; /* Минимизируем отступы */
+    }
+    .detail-text-box {
+        width: 100%; /* Полная ширина для мобильных */
+    }
+}
+
+
