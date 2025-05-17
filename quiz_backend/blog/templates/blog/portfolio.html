@@ -31,7 +31,7 @@
                     {% if main_media %}
                         {% if main_media.photo %}
                             <figure class="blog-banner-box">
-                                <img src="{{ main_media.photo.url }}" alt="{{ project.title }}" loading="lazy">
+                                <img src="{{ main_media.photo_thumbnail.url }}" alt="{{ project.title }}" loading="lazy">
                             </figure>
                         {% elif main_media.gif %}
                             <figure class="blog-banner-box">
@@ -61,7 +61,7 @@
                         <h3 class="h3 blog-item-title">{{ project.title }}</h3>
                         {% if project.description %}
                         <p class="blog-text">
-                            {{ project.description|truncatewords:30 }}
+                            {{ project.description|truncatewords_html:30|safe }}
                         </p>
                         {% endif %}
                     </div>
@@ -71,8 +71,6 @@
             <div class="no-content-message">
                 <h3>Пока здесь пусто, но мы активно работаем!</h3>
                 <p>Новые проекты скоро появятся, следите за обновлениями!</p>
-                <!-- Опционально: картинка -->
-                <!-- <img src="{% static 'blog/images/no-content-placeholder.png' %}" alt="No content"> -->
             </div>
         </ul>
     </section>

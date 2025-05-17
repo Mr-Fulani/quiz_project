@@ -64,3 +64,5 @@ PyYAML>=6.0.1
 uritemplate>=4.1.1
 validators==0.35.0
 fastapi
+django-tinymce==4.1.0
+django-imagekit==5.0.0

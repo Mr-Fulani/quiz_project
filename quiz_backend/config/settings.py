@@ -67,8 +67,37 @@ INSTALLED_APPS = [
     'corsheaders',
     'blog.apps.BlogConfig',
     'django.contrib.humanize',
+    'tinymce',
+    'imagekit',
 ]
 
+TINYMCE_DEFAULT_CONFIG = {
+    'height': 400,
+    'width': '100%',
+    'plugins': 'advlist autolink lists link image charmap print preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount',
+    'toolbar': 'undo redo | formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | code | help',
+    'menubar': 'file edit view insert format tools table help',
+    'content_style': 'body { font-family: Arial, sans-serif; font-size: 16px; }',
+    'image_advtab': True,
+    'file_picker_types': 'file image media',
+    'automatic_uploads': True,
+    'images_upload_url': '/tinymce/upload/',
+    'relative_urls': False,
+    'remove_script_host': False,
+    'convert_urls': True,
+    'image_dimensions': False,  # Отключаем фиксированные размеры
+    # Настройки для вставки
+    'paste_retain_style_properties': 'color font-size font-weight text-decoration',
+    'paste_data_images': True,
+    'paste_preprocess': """function (pl, o) {
+        // Очистка нежелательных тегов, стилей и размеров
+        o.content = o.content.replace(/style="[^"]*"/g, '');
+        o.content = o.content.replace(/width="[^"]*"/g, '');
+        o.content = o.content.replace(/height="[^"]*"/g, '');
+        // Сохранение ссылок и эмодзи
+        o.content = o.content.replace(/<a /g, '<a target="_blank" ');
+    }""",
+}
 
 LOGGING = {
     'version': 1,

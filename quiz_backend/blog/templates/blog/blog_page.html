@@ -35,7 +35,7 @@
                     {% if main_media %}
                         {% if main_media.photo %}
                             <figure class="blog-banner-box">
-                                <img src="{{ main_media.photo.url }}" alt="{{ post.title }}" loading="lazy">
+                                <img src="{{ main_media.photo_thumbnail.url }}" alt="{{ post.title }}" loading="lazy">
                             </figure>
                         {% elif main_media.gif %}
                             <figure class="blog-banner-box">
@@ -62,7 +62,7 @@
                         </div>
                         <h3 class="h3 blog-item-title">{{ post.title }}</h3>
                         <p class="blog-text">
-                            {{ post.excerpt|default:post.content|truncatewords:30 }}
+                            {{ post.excerpt|default:post.content|truncatewords_html:30|safe }}
                         </p>
                     </div>
                 </a>
@@ -71,8 +71,6 @@
             <div class="no-content-message">
                 <h3>Пока здесь пусто, но мы активно работаем!</h3>
                 <p>Новые посты скоро появятся, следите за обновлениями!</p>
-                <!-- Опционально: картинка -->
-                <!-- <img src="{% static 'blog/images/no-content-placeholder.png' %}" alt="No content"> -->
             </div>
         </ul>
 
@@ -95,7 +93,6 @@
         {% endif %}
     </section>
 
-    <!-- Пчела -->
     <div id="bee-container"></div>
 </article>
 {% endblock %}

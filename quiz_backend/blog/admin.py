@@ -1,7 +1,5 @@
-# blog/admin.py
 from django.contrib import admin
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial
-
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -12,7 +10,6 @@ class CategoryAdmin(admin.ModelAdmin):
     list_editable = ('is_portfolio',)
     ordering = ('is_portfolio', 'name')
 
-
 class PostImageInline(admin.TabularInline):
     model = PostImage
     extra = 1
@@ -20,14 +17,12 @@ class PostImageInline(admin.TabularInline):
     verbose_name = "Медиа для поста"
     verbose_name_plural = "Медиа для поста"
 
-
 class ProjectImageInline(admin.TabularInline):
     model = ProjectImage
     extra = 1
     fields = ('photo', 'gif', 'video', 'is_main')
     verbose_name = "Медиа для проекта"
     verbose_name_plural = "Медиа для проекта"
-
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
@@ -38,8 +33,18 @@ class PostAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
-    fields = ('title', 'slug', 'content', 'excerpt', 'category', 'video_url', 'published', 'featured', 'published_at')
-
+    fieldsets = (
+        (None, {
+            'fields': ('title', 'slug', 'content', 'excerpt', 'category', 'video_url', 'published', 'featured', 'published_at')
+        }),
+        ('SEO', {
+            'fields': ('meta_description', 'meta_keywords'),
+            'classes': ('collapse',)
+        }),
+    )
+    change_form_template = 'admin/blog/change_form.html'
+    class Media:
+        js = ('blog/js/admin_meta_validation.js',)
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
@@ -50,12 +55,18 @@ class ProjectAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
-    fields = ('title', 'slug', 'description', 'technologies', 'category', 'video_url', 'github_link', 'demo_link', 'featured')
-
-
-
-
-
+    fieldsets = (
+        (None, {
+            'fields': ('title', 'slug', 'description', 'technologies', 'category', 'video_url', 'github_link', 'demo_link', 'featured')
+        }),
+        ('SEO', {
+            'fields': ('meta_description', 'meta_keywords'),
+            'classes': ('collapse',)
+        }),
+    )
+    change_form_template = 'admin/blog/change_form.html'
+    class Media:
+        js = ('blog/js/admin_meta_validation.js',)
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
@@ -92,22 +103,13 @@ class MessageAdmin(admin.ModelAdmin):
         self.message_user(request, "Сообщения помечены как удалённые получателем")
     soft_delete_for_recipient.short_description = "Мягкое удаление для получателя"
 
-
-
-
 @admin.register(PageVideo)
 class PageVideoAdmin(admin.ModelAdmin):
-    """
-    Админ-панель для управления видео на страницах 'index' и 'about'.
-
-    Отображает список видео с фильтрацией по странице и возможностью сортировки.
-    """
-    list_display = ('title', 'page', 'video_url', 'video_file', 'gif', 'order')  # Добавили 'gif'
+    list_display = ('title', 'page', 'video_url', 'video_file', 'gif', 'order')
     list_filter = ('page',)
     search_fields = ('title',)
     ordering = ('order', 'title')
-    fields = ('page', 'title', 'video_url', 'video_file', 'gif', 'order')  # Добавили 'gif'
-
+    fields = ('page', 'title', 'video_url', 'video_file', 'gif', 'order')
 
 @admin.register(Testimonial)
 class TestimonialAdmin(admin.ModelAdmin):
