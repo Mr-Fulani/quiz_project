@@ -2,7 +2,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
 
-/* Ограничим переопределение переменных только для резюме */
+/*
+ * Основной контейнер резюме
+ * Ограничиваем переопределение переменных только для резюме
+ * Устанавливаем светлый цвет текста по умолчанию
+ */
 .resume {
     --gold-hover: hsl(45, 100%, 75%);
     max-width: 900px;
@@ -11,34 +15,46 @@
     font-family: 'Times New Roman', serif;
     position: relative;
     overflow: hidden;
-    color: var(--white2); /* Устанавливаем светлый цвет текста по умолчанию для всего резюме */
+    color: var(--white2); /* Светлый цвет текста для всего резюме */
 }
 
-/* Контент резюме */
+/* Контент резюме - отступ сверху */
 .resume-content {
     margin-top: 50px;
 }
 
-/* Контактная информация в резюме */
+/* Блок контактной информации в резюме */
 .resume .contact-info {
     text-align: left;
     margin-bottom: 20px;
 }
 
+/*
+ * Обертка для местоположения и телефона
+ * Позиционирование относительно заголовка
+ */
 .resume .contact-info .location-phone-wrapper {
     position: relative;
 }
 
+/*
+ * Стили для строки адреса и телефона
+ * ИСПРАВЛЕНИЕ: Увеличен отступ сверху для предотвращения наложения на полосу
+ */
 .resume .contact-info .location-phone {
     position: relative;
-    top: -120px;
+    top: -115px; /* Уменьшено с -120px до -115px для отступа от полосы */
     text-align: center;
     white-space: nowrap;
     color: var(--white2);
     font-size: var(--fs6);
+    margin-bottom: 8px; /* Добавлен нижний отступ */
 }
 
-/* Переключатель языков */
+/*
+ * Переключатель языков
+ * Располагается в правом верхнем углу
+ */
 .language-switcher {
     display: flex;
     gap: 8px;
@@ -46,7 +62,10 @@
     margin: 15px 0 0;
 }
 
-/* Имя в заголовке */
+/*
+ * Стили для имени в заголовке
+ * Центрирование и золотая полоса снизу
+ */
 h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     text-align: center;
     margin: 0 auto 5px;
@@ -55,27 +74,31 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     color: var(--orange-yellow-crayola);
 }
 
-/* Контактная информация */
+/* Общие стили контактной информации */
 .contact-info {
     text-align: left;
     margin-bottom: 20px;
 }
 
+/* Отступы для заголовка контактов */
 .contact-info .contact-timeline .title-wrapper {
     margin-bottom: 25px;
 }
 
+/* Центрирование и перенос строк для адреса/телефона */
 .contact-info .location-phone {
     text-align: center;
     white-space: nowrap;
 }
 
+/* Отступы для email и ссылок */
 .contact-info .email,
 .contact-info p:nth-child(4),
 .contact-info p:nth-child(5) {
     margin-top: 10px;
 }
 
+/* Стили ссылок в контактах */
 .contact-info a {
     color: var(--orange-yellow-crayola);
 }
@@ -85,20 +108,27 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     color: var(--light-gray70);
 }
 
-/* Списки обязанностей и навыков */
+/*
+ * Списки обязанностей и навыков
+ * Маркированные списки со светлым текстом
+ */
 .responsibilities,
 .skills-list {
     list-style-type: disc;
     margin-left: 20px;
-    color: var(--white2); /* Светлый цвет для текста списков */
+    color: var(--white2);
 }
 
+/* Двухколоночный макет для списка навыков */
 .skills-list {
     column-count: 2;
     column-gap: 40px;
 }
 
-/* Языки */
+/*
+ * Контейнер для языковых навыков
+ * Flexbox с переносом строк
+ */
 .languages-container {
     display: flex;
     flex-wrap: wrap;
@@ -106,19 +136,20 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     margin-top: 10px;
 }
 
+/* Отдельный элемент языка */
 .language-item {
     flex: 1 1 45%;
     font-size: var(--fs6);
-    color: var(--white2); /* Явно задаем светлый цвет текста */
+    color: var(--white2);
 }
 
 .language-item span {
     display: block;
     margin-bottom: 5px;
-    color: var(--white2); /* Убеждаемся, что текст светлый */
+    color: var(--white2);
 }
 
-/* Прогресс-бары для языков */
+/* Прогресс-бары для уровня владения языками */
 .language-item .skills-progress-bg {
     background: var(--jet);
     height: 8px;
@@ -133,7 +164,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     transition: width 0.3s ease;
 }
 
-/* Переключатель языков */
+/* Кнопки переключения языков */
 .language-switcher .lang-btn {
     padding: 5px 10px;
     border: 1px solid var(--jet);
@@ -150,7 +181,10 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     color: var(--smoky-black);
 }
 
-/* Кнопки действий */
+/*
+ * Панель действий с кнопками
+ * Flexbox с центрированием
+ */
 .resume-actions {
     display: flex;
     flex-wrap: wrap;
@@ -162,6 +196,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     justify-content: center;
 }
 
+/* Стили кнопок действий */
 .action-btn {
     display: flex;
     align-items: center;
@@ -177,7 +212,10 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     background: var(--bg-gradient-yellow1);
 }
 
-/* Модальное окно */
+/*
+ * Модальное окно для редактирования
+ * Полноэкранное overlay с центрированием
+ */
 .resume-modal {
     display: none;
     position: fixed;
@@ -196,6 +234,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     display: flex;
 }
 
+/* Контент модального окна */
 .resume-modal-content {
     padding: 30px;
     max-width: 800px;
@@ -206,6 +245,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     border-radius: 10px;
 }
 
+/* Кнопка закрытия модального окна */
 .close-btn {
     position: absolute;
     top: 15px;
@@ -228,21 +268,25 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     color: var(--light-gray70);
 }
 
+/* Заголовки в модальном окне */
 .resume-modal h2 {
     color: var(--orange-yellow-crayola);
     margin-bottom: 20px;
 }
 
+/* Группы полей формы */
 .form-group {
     margin-bottom: 20px;
 }
 
+/* Лейблы форм */
 .form-group label {
     color: var(--orange-yellow-crayola);
     display: block;
     margin-bottom: 5px;
 }
 
+/* Поля ввода и текстовые области */
 .form-group input,
 .form-group textarea {
     padding: 13px 20px;
@@ -253,6 +297,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     font-family: 'Times New Roman', serif;
 }
 
+/* Специальные стили для textarea */
 .form-group textarea {
     min-height: 100px;
     height: 120px;
@@ -260,6 +305,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     resize: vertical;
 }
 
+/* Панель действий в форме */
 .form-actions {
     display: flex;
     gap: 10px;
@@ -267,6 +313,7 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     margin-top: 20px;
 }
 
+/* Кнопки сохранения и отмены */
 .save-btn,
 .cancel-btn {
     padding: 13px 20px;
@@ -295,7 +342,10 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     color: var(--gold-hover);
 }
 
-/* Печать */
+/*
+ * Стили для печати
+ * Скрываем интерактивные элементы и адаптируем под печать
+ */
 @media print {
     .resume-actions,
     .language-switcher {
@@ -318,13 +368,76 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     }
 }
 
-/* Адаптивность */
+
+/*
+ * Адаптивные стили для мобильных устройств
+ * ИСПРАВЛЕНИЯ для улучшения отображения на мобильных
+ */
 @media (max-width: 768px) {
+    /* Существующие стили оставляем как есть */
     .resume-actions {
         flex-direction: column;
     }
+
     .resume-modal-content {
         padding: 20px;
         max-width: 90%;
+    }
+    /* Поднимаем переключатель языков выше */
+    .language-switcher {
+        position: relative;
+        top: -130px;
+        z-index: 2;
+    }
+
+    /* --- НАЧАЛО ИЗМЕНЕНИЙ ДЛЯ УМЕНЬШЕНИЯ ПРОСТРАНСТВА И КОРРЕКЦИИ НАЕЗДА --- */
+
+    /* 1. Отступы для блока с заголовком "Contact Information" */
+    article.resume > header > .contact-info > .timeline.contact-timeline {
+        margin-bottom: 0px !important;
+    }
+    article.resume > header > .contact-info > .timeline.contact-timeline > .title-wrapper {
+        margin-bottom: 5px !important;
+    }
+
+    /* 2. Отступы для обертки адреса/телефона (.location-phone-wrapper) */
+    article.resume > header > .contact-info > .location-phone-wrapper {
+        margin-top: 0px !important;
+        margin-bottom: 5px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        line-height: 1;
+    }
+
+    /* 3. Стили для самого текста адреса/телефона (.location-phone) */
+    /* КОРРЕКЦИЯ ЗДЕСЬ: изменено значение top */
+    article.resume > header > .contact-info > .location-phone-wrapper > .location-phone {
+        position: relative; /* Убедимся, что позиционирование задано */
+        top: -80px !important;   /* ИЗМЕНЕНО. Попробуйте это значение. Если все еще наезжает, сделайте его менее отрицательным (напр., -85px, -80px). Если слишком низко, сделайте более отрицательным (напр., -95px). Исходно было -110px. */
+        text-align: center !important;
+        white-space: nowrap !important;
+        color: var(--white2) !important;
+        font-size: var(--fs6) !important;
+        margin-bottom: 0px !important;
+        padding-top: 5px !important; /* Этот padding был в ваших оригинальных мобильных стилях для .location-phone */
+    }
+
+    /* 4. Отступы для email и ссылок на соцсети */
+    article.resume > header > .contact-info > .email,
+    article.resume > header > .contact-info > p:nth-child(4),
+    article.resume > header > .contact-info > p:nth-child(5)
+    {
+        margin-top: 5px !important;
+    }
+
+    /* --- КОНЕЦ ИЗМЕНЕНИЙ --- */
+
+    /* Остальные существующие мобильные стили */
+    .skills-list {
+        column-count: 1;
+    }
+
+    .language-item {
+        flex: 1 1 100%;
     }
 }
