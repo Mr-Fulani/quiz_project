@@ -51,47 +51,55 @@
 
         <ul class="service-list">
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="icon" width="40">
-                </div>
+                <a href="{% url 'blog:portfolio' %}?category=web" title="Разработка веб-сайтов и веб-приложений">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="Иконка веб-разработки" width="40" height="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Веб-разработка</h4>
-                    <p class="service-item-text">Высококачественная разработка сайтов на профессиональном уровне.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Веб-разработка</h4>
+                        <p class="service-item-text">Высококачественная разработка сайтов на профессиональном уровне.</p>
+                    </div>
+                </a>
             </li>
 
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="Telegram icon" width="40">
-                </div>
+                <a href="{% url 'blog:portfolio' %}?category=telegram-apps" title="Разработка мини-приложений для Telegram">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="Иконка Telegram Mini Apps" width="40" height="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Telegram Mini-App</h4>
-                    <p class="service-item-text">Разработка интерактивных мини-приложений для Telegram с интеграцией в экосистему мессенджера.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Telegram Mini-App</h4>
+                        <p class="service-item-text">Разработка интерактивных мини-приложений для Telegram с интеграцией в экосистему мессенджера.</p>
+                    </div>
+                </a>
             </li>
 
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3480/3480317.png" alt="icon" width="40">
-                </div>
+                <a href="{% url 'blog:portfolio' %}?category=bots" title="Создание ботов для Telegram">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3480/3480317.png" alt="Иконка Telegram ботов" width="40" height="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Телеграм боты</h4>
-                    <p class="service-item-text">Разработка телеграм ботов любой сложности с интеграцией в различные API.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Телеграм боты</h4>
+                        <p class="service-item-text">Разработка телеграм ботов любой сложности с интеграцией в различные API.</p>
+                    </div>
+                </a>
             </li>
 
             <li class="service-item">
-                <div class="service-icon-box">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" alt="icon" width="40">
-                </div>
+                <a href="{% url 'blog:portfolio' %}?category=automation" title="Автоматизация бизнес-процессов">
+                    <div class="service-icon-box">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" alt="Иконка автоматизации" width="40" height="40">
+                    </div>
 
-                <div class="service-content-box">
-                    <h4 class="h4 service-item-title">Автоматизация</h4>
-                    <p class="service-item-text">Создание скриптов и программ для автоматизации рутинных задач и бизнес-процессов.</p>
-                </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">Автоматизация</h4>
+                        <p class="service-item-text">Создание скриптов и программ для автоматизации рутинных задач и бизнес-процессов.</p>
+                    </div>
+                </a>
             </li>
         </ul>
     </section>
@@ -261,3 +269,6 @@
 </script>
 <script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}
+
+
+
