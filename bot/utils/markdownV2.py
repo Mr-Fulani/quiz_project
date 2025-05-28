@@ -2,9 +2,6 @@ import re
 
 
 
-
-
-
 def escape_markdown(text: str) -> str:
     """
     Экранирование специальных символов для MarkdownV2
@@ -26,6 +23,7 @@ def escape_markdown(text: str) -> str:
             result += char
 
     return result
+
 
 
 def escape_markdown_except_urls(text: str) -> str:
@@ -76,6 +74,7 @@ def format_group_link(group):
         display_name = escape_markdown(str(group.group_id))
         url = f"https://t.me/{group.group_id}"
     else:
+        # Экранируем username, включая точки
         display_name = escape_markdown(group.username)
         url = f"https://t.me/{group.username.lstrip('@')}"
     return f"[{display_name}]({url})"

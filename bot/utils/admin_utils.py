@@ -69,7 +69,24 @@ async def promote_admin_in_group(bot: Bot, group_id: int, user_id: int) -> bool:
     Returns:
         bool: True, если назначение успешно, False в случае ошибки.
     """
+    from aiogram.exceptions import TelegramBadRequest
+
     try:
+        # Проверка, является ли пользователь участником группы
+        member = await bot.get_chat_member(chat_id=group_id, user_id=user_id)
+        if member.status not in ["member", "administrator", "creator"]:
+            logger.warning(f"Пользователь {user_id} не подписан на группу {group_id}, статус: {member.status}")
+            return False
+
+        # Проверка прав бота
+        bot_id = (await bot.get_me()).id
+        admins = await bot.get_chat_administrators(chat_id=group_id)
+        bot_is_admin = any(admin.user.id == bot_id and admin.can_promote_members for admin in admins)
+        if not bot_is_admin:
+            logger.warning(f"Бот не имеет прав назначать админов в группе {group_id}")
+            return False
+
+        # Назначение администратора
         await bot.promote_chat_member(
             chat_id=group_id,
             user_id=user_id,
@@ -82,11 +99,26 @@ async def promote_admin_in_group(bot: Bot, group_id: int, user_id: int) -> bool:
             can_pin_messages=True,
             can_promote_members=False
         )
-        logger.info(f"Пользователь {user_id} назначен админом в группе {group_id}")
-        return True
-    except Exception as e:
+
+        # Проверка, стал ли пользователь админом
+        member_after = await bot.get_chat_member(chat_id=group_id, user_id=user_id)
+        if member_after.status in ["administrator", "creator"]:
+            logger.info(f"Пользователь {user_id} успешно назначен админом в группе {group_id}")
+            return True
+        else:
+            logger.warning(f"Пользователь {user_id} не стал админом в группе {group_id}, статус: {member_after.status}")
+            return False
+
+    except TelegramBadRequest as e:
         logger.error(f"Ошибка назначения админа {user_id} в группе {group_id}: {e}")
+        if "USER_NOT_MUTUAL_CONTACT" in str(e):
+            logger.warning(f"Пользователь {user_id} не подписан на группу {group_id}")
         return False
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка при назначении админа {user_id} в группе {group_id}: {e}")
+        return False
+
+
 
 async def demote_admin_in_group(bot: Bot, group_id: int, user_id: int) -> bool:
     """

@@ -156,6 +156,7 @@ async def start_publication_bot():
     except Exception as e:
         logger.exception(f"❌ Ошибка при запуске публикационного бота: {e}")
     finally:
+        await asyncio.sleep(2)
         await publication_bot.close()
         logger.info("🛑 Публикационный бот остановлен")
 
