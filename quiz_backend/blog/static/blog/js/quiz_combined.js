@@ -615,20 +615,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    /**
-     * Обрабатывает выбор ответа.
-     * @param {Event} event - Событие клика или касания.
-     */
+    // Проверяем, запущено ли приложение в Telegram Web App
+    const isTelegramWebApp = window.Telegram && window.Telegram.WebApp;
+    if (isTelegramWebApp) {
+        console.log('Running in Telegram Web App');
+        window.Telegram.WebApp.ready();
+    }
+    
+
     async function handleAnswerSelection(event) {
+        /**
+         * Обрабатывает выбор ответа пользователем, применяет стили и отправляет ответ на сервер.
+         *
+         * @param {Event} event - Событие клика по варианту ответа.
+         */
         event.preventDefault();
         event.stopPropagation();
         const option = this;
         const taskItem = option.closest('.task-item');
 
-        // Логирование для диагностики
         console.log('Task ID:', taskItem.dataset.taskId, 'Answer:', option.dataset.answer);
 
-        // Проверяем, решена ли задача
         if (taskItem.dataset.solved === 'true') {
             console.log('Answer selection blocked: task already solved');
             return;
@@ -669,11 +676,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     explanation = result.explanation || explanation;
                     if (isCorrect) {
                         showConfetti(option);
-                    } else {
+                    } else if (!isDontKnow) {
                         showLightningEffect(option);
-                        if (isDontKnow) {
-                            showModal(explanation);
-                        }
+                    }
+                    if (isDontKnow) {
+                        showModal(explanation);
                     }
                 }
             } catch (error) {

@@ -525,10 +525,18 @@ def quiz_difficulty(request, quiz_type, subtopic):
     })
 
 
-
 def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
-    Отображает задачи для подтемы и уровня сложности.
+    Отображает задачи для подтемы и уровня сложности с пагинацией.
+
+    Args:
+        request: HTTP-запрос.
+        quiz_type: Название темы (например, 'python').
+        subtopic: Подтема (например, 'api-requests-with-json').
+        difficulty: Уровень сложности (easy, medium, hard).
+
+    Returns:
+        Rendered template с задачами, пагинацией и контекстом.
     """
     logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
@@ -540,12 +548,14 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     except Subtopic.DoesNotExist:
         logger.error(f"Subtopic not found for query: {subtopic_query}")
         raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
+
     tasks = Task.objects.filter(
         topic=topic,
         subtopic=subtopic_obj,
         published=True,
         difficulty=difficulty.lower()
     ).select_related('subtopic', 'topic').prefetch_related('translations')
+
     if not tasks.exists():
         tasks = Task.objects.filter(
             topic=topic,
@@ -555,8 +565,10 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         )
         if tasks.exists():
             logger.warning(f"Found {tasks.count()} tasks with null subtopic")
+
     logger.info(f"Found {tasks.count()} tasks")
-    # Добавляем статус is_solved и selected_answer для каждой задачи
+
+    # Добавляем статус is_solved и selected_answer
     if request.user.is_authenticated:
         task_stats = TaskStatistics.objects.filter(
             user=request.user,
@@ -564,11 +576,21 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         ).values('task_id', 'selected_answer')
         task_stats_dict = {stat['task_id']: stat['selected_answer'] for stat in task_stats}
         for task in tasks:
-            task.is_solved = task.id in task_stats_dict  # Решена, если есть запись
-            task.selected_answer = task_stats_dict.get(task.id)  # Выбранный ответ
+            task.is_solved = task.id in task_stats_dict
+            task.selected_answer = task_stats_dict.get(task.id)
+
+    # Сохраняем/восстанавливаем страницу пагинации для авторизованных пользователей
+    session_key = f"quiz_page_{quiz_type}_{subtopic}_{difficulty}"
+    if request.user.is_authenticated:
+        if 'page' in request.GET:
+            request.session[session_key] = request.GET.get('page')
+        page_number = request.session.get(session_key, request.GET.get('page', 1))
+    else:
+        page_number = request.GET.get('page', 1)
+
     paginator = Paginator(tasks, 3)
-    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
     context = {
         'topic': topic,
         'subtopic': subtopic_obj,
@@ -576,46 +598,53 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         'paginator': paginator,
         'difficulty': difficulty,
     }
+
     if not tasks.exists():
         difficulty_names = {'easy': 'Легкий', 'medium': 'Средний', 'hard': 'Сложный'}
         context['no_tasks_message'] = (
             f'Нет задач для уровня сложности "{difficulty_names.get(difficulty.lower(), difficulty)}" '
             f'в подтеме "{subtopic_obj.name}".'
         )
+
     preferred_language = request.user.language if request.user.is_authenticated else 'ru'
     dont_know_option_dict = {
         'ru': "Я не знаю, но хочу узнать",
         'en': "I don't know, but I want to learn",
-        'es': "No lo sé, pero quiero aprender",
         'tr': "Bilmiyorum, ama öğrenmek istiyorum",
         'ar': "لا أعرف، ولكن أريد أن أتعلم",
+        'de': "Ich weiß nicht, aber ich möchte lernen",
+        'es': "No lo sé, pero quiero aprender",
         'fr': "Je ne sais pas, mais je veux apprendre",
-        'de': "Ich weiß es nicht, aber ich möchte lernen",
-        'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
-        'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
-        'tj': "Ман намедонам, аммо мехоҳам омӯзам",
-        'uz': "Bilmayman, lekin o‘rganmoqchiman",
-        'kz': "Білмеймін, бірақ үйренгім келеді"
+        'it': "Non lo so, ma voglio imparare",
+        'pt': "Não sei, mas quero aprender",
+        'zh': "我不知道，但我想学",
+        'ja': "知らないけど学びたい",
+        'ko': "모르겠지만 배우고 싶어요",
     }
+
     for task in page_obj:
         translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first() or \
                       TaskTranslation.objects.filter(task=task).first()
         task.translation = translation
         if translation:
             try:
-                answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
+                answers = translation.answers if isinstance(translation.answers, list) else json.loads(
+                    translation.answers)
             except json.JSONDecodeError as e:
                 logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
                 answers = []
             options = answers[:]
             random.shuffle(options)
-            dont_know_option = dont_know_option_dict.get(translation.language, "Я не знаю, но хочу узнать")
+            # Используем язык перевода или ru как резервный
+            dont_know_option = dont_know_option_dict.get(translation.language, dont_know_option_dict['ru'])
             options.append(dont_know_option)
             task.answers = options
             task.correct_answer = translation.correct_answer
         else:
             task.answers = []
             task.correct_answer = None
+
+    context['dont_know_option_dict'] = dont_know_option_dict
     return render(request, 'blog/quiz_subtopic.html', context)
 
 
@@ -642,14 +671,12 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
     subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
     task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
 
-    # Пробуем получить перевод на языке пользователя или любой доступный
     preferred_language = request.user.language if request.user.is_authenticated else 'ru'
     translation = (TaskTranslation.objects.filter(task=task, language=preferred_language).first() or
                    TaskTranslation.objects.filter(task=task).first())
 
     if not translation:
         logger.error(f"No translation found for task_id={task_id}, topic={quiz_type}, subtopic={subtopic}")
-        # Создаем статистику даже при отсутствии перевода
         stats, created = TaskStatistics.objects.get_or_create(
             user=request.user,
             task=task,
@@ -669,7 +696,6 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         logger.error(f"No answer provided for task_id={task_id}")
         return JsonResponse({'error': 'No answer provided'}, status=400)
 
-    # Парсим ответы
     if isinstance(translation.answers, str):
         try:
             answers = json.loads(translation.answers)
@@ -679,10 +705,19 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
     else:
         answers = translation.answers
 
-    # Проверяем валидность ответа
     dont_know_options = [
         "Я не знаю, но хочу узнать",
-        "I don't know, but I want to learn"
+        "I don't know, but I want to learn",
+        "Bilmiyorum, ama öğrenmek istiyorum",
+        "لا أعرف، ولكن أريد أن أتعلم",
+        "Ich weiß nicht, aber ich möchte lernen",
+        "No lo sé, pero quiero aprender",
+        "Je ne sais pas, mais je veux apprendre",
+        "Non lo so, ma voglio imparare",
+        "Não sei, mas quero aprender",
+        "我不知道，但我想学",
+        "知らないけど学びたい",
+        "모르겠지만 배우고 싶어요"
     ]
     if selected_answer not in answers and selected_answer not in dont_know_options:
         logger.error(f"Invalid answer selected for task_id={task_id}: {selected_answer}")
@@ -702,7 +737,6 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
             'percentage': percentage
         })
 
-    # Сохраняем статистику
     stats, created = TaskStatistics.objects.get_or_create(
         user=request.user,
         task=task,
@@ -728,19 +762,41 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
     })
 
 
-
 @login_required
-@require_POST
 def reset_subtopic_stats(request, subtopic_id):
     """
-    Сбрасывает статистику пользователя по конкретной подтеме.
+    Сбрасывает статистику пользователя для всех задач в подтеме.
+
+    Args:
+        request: HTTP-запрос.
+        subtopic_id: ID подтемы.
+
+    Returns:
+        JsonResponse: Статус операции.
     """
+    if request.method != 'POST':
+        logger.error(
+            f"Invalid request method for reset_subtopic_stats, subtopic_id={subtopic_id}, method={request.method}")
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
     subtopic = get_object_or_404(Subtopic, id=subtopic_id)
-    TaskStatistics.objects.filter(
-        user=request.user,
-        task__subtopic=subtopic
-    ).delete()
-    return JsonResponse({'status': 'success', 'message': f'Статистика для подтемы "{subtopic.name}" сброшена'})
+    logger.info(f"Resetting stats for user={request.user}, subtopic={subtopic.name} (id={subtopic_id})")
+
+    try:
+        deleted_count = TaskStatistics.objects.filter(
+            user=request.user,
+            task__subtopic=subtopic
+        ).delete()[0]
+        logger.info(f"Deleted {deleted_count} stats records for user={request.user}, subtopic={subtopic.name}")
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Статистика для подтемы "{subtopic.name}" сброшена.',
+            'deleted_count': deleted_count
+        })
+    except Exception as e:
+        logger.error(f"Error resetting stats for subtopic_id={subtopic_id}, user={request.user}: {str(e)}")
+        return JsonResponse({'error': 'Failed to reset statistics'}, status=500)
 
 
 
