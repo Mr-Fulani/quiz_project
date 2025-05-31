@@ -11,6 +11,7 @@
 <article class="quiz-subtopic active" data-page="quiz-subtopic">
     <header>
         <h2 class="h2 article-title">{{ topic.name }}</h2>
+        <h3 class="h3">{{ subtopic.name }} - {{ difficulty|title }}</h3>
     </header>
 
     <section class="tasks">
@@ -18,7 +19,8 @@
             <div class="task-item"
                  data-task-id="{{ task.id }}"
                  data-explanation="{{ task.translation.explanation|escape }}"
-                 data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify task_id=task.id %}">
+                 data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify task_id=task.id %}"
+                 {% if task.is_solved %}data-solved="true"{% endif %}>
                 {% if task.image_url %}
                     <div class="task-image">
                         <img src="{{ task.image_url|safe_url }}" alt="Task {{ task.id }} question">
@@ -28,25 +30,40 @@
                 {% endif %}
 
                 {% if task.translation %}
-                    <div class="answers" data-correct="{{ task.correct_answer }}">
+                    <div class="answers" data-correct="{{ task.translation.correct_answer|escape }}">
                         {% for answer in task.answers %}
                             <span class="answer-option quiz-option
-                                {% if answer == 'Я не знаю, но хочу узнать' %}dont-know-option{% endif %}"
-                                  data-answer="{{ answer }}"
-                                  data-correct="{% if answer == task.correct_answer %}true{% else %}false{% endif %}">
-                                {{ answer }}
+                                {% if answer in dont_know_option_dict.values %}dont-know-option{% endif %}
+                                {% if task.is_solved %}disabled{% endif %}
+                                {% if task.is_solved and task.selected_answer == answer %}
+                                    {% if answer == task.translation.correct_answer %}correct{% else %}incorrect{% endif %}
+                                {% endif %}"
+                                  data-answer="{{ answer|escape }}"
+                                  data-correct="{% if answer == task.translation.correct_answer %}true{% else %}false{% endif %}">
+                                {{ answer|safe }}
                             </span>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p>Перевод отсутствует.</p>
+                    <p>Перевод отсутствует. Пожалуйста, свяжитесь с администратором.</p>
                 {% endif %}
             </div>
         {% empty %}
-            <p>Задачи отсутствуют.</p>
+            <p>{{ no_tasks_message|default:"Задачи отсутствуют." }}</p>
         {% endfor %}
 
-        <!-- Пагинация -->
+        {% if user.is_authenticated %}
+            <div class="reset-buttons">
+                <form method="post" action="{% url 'blog:reset_subtopic_stats' subtopic.id %}" class="reset-form">
+                    {% csrf_token %}
+                    <button type="submit" class="reset-button"
+                            onclick="return confirm('Вы уверены, что хотите пройти тест заново? Статистика для подтемы \"{{ subtopic.name }}\" будет сброшена.')">
+                        Пройти тест заново
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+
         {% if paginator.num_pages > 1 %}
             <div class="pagination">
                 {% if page_obj.has_previous %}
@@ -66,25 +83,21 @@
     <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
     <script>
         /**
-         * Проверяет, является ли устройство мобильным на основе userAgent.
-         * Добавляет класс 'mobile-device' для мобильных стилей.
+         * Проверяет, является ли устройство мобильным.
          */
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
         if (isMobile) {
             console.log("Mobile device detected, enabling touch optimizations");
             document.documentElement.classList.add('mobile-device');
 
             /**
-             * Инициализирует аудио для эффектов (гром, успех).
-             * Предварительно загружает звуки с нулевой громкостью.
+             * Инициализирует аудио для эффектов.
              */
             function initAudio() {
                 const sounds = [
                     new Audio('/static/blog/sounds/thunder.mp3'),
                     new Audio('/static/blog/sounds/success.mp3')
                 ];
-
                 sounds.forEach(sound => {
                     sound.volume = 0;
                     sound.play().catch(e => console.log('Sound preload error:', e));
@@ -93,12 +106,10 @@
             }
 
             /**
-             * Запрашивает разрешение на доступ к сенсорам движения и запускает вибрацию.
-             * Выполняется один раз при первом касании.
+             * Запрашивает разрешение на сенсоры движения и вибрацию.
              */
             document.addEventListener('touchstart', function permissionHandler() {
                 initAudio();
-
                 if (typeof DeviceMotionEvent !== 'undefined' &&
                     typeof DeviceMotionEvent.requestPermission === 'function') {
                     DeviceMotionEvent.requestPermission()
@@ -121,54 +132,12 @@
                         }
                     }
                 }
-
                 document.removeEventListener('touchstart', permissionHandler);
             }, { once: true });
-
-            /**
-             * Выполняет вибрацию с заданным шаблоном.
-             * @param {Array<number>} pattern - Шаблон вибрации (массив длительностей в миллисекундах).
-             * @returns {boolean} - Успешно ли выполнена вибрация.
-             */
-            window.doVibrate = function(pattern) {
-                if (!pattern) pattern = [100, 30, 200, 30, 100];
-
-                try {
-                    if ('vibrate' in navigator) {
-                        navigator.vibrate(pattern);
-                        console.log('Vibration activated with pattern:', pattern);
-                        return true;
-                    }
-                } catch (e) {
-                    console.error('Vibration error:', e);
-                }
-                return false;
-            };
-
-            /**
-             * Переопределяет обработчик выбора ответа для добавления вибрации при неправильном ответе.
-             * @param {Event} event - Событие клика или касания.
-             */
-            const originalHandleAnswerSelection = window.handleAnswerSelection;
-            window.handleAnswerSelection = function(event) {
-                if (originalHandleAnswerSelection) {
-                    originalHandleAnswerSelection.call(this, event);
-                }
-
-                const option = this;
-                const isCorrect = option.dataset.correct === 'true';
-
-                if (!isCorrect && !option.classList.contains('dont-know-option')) {
-                    setTimeout(() => {
-                        window.doVibrate([100, 30, 200, 30, 300]);
-                    }, 100);
-                }
-            };
         }
 
         /**
-         * Тестирует поддержку вибрации на устройстве.
-         * @returns {boolean} - Успешно ли выполнена тестовая вибрация.
+         * Тестирует вибрацию.
          */
         window.testVibration = function() {
             console.log("Testing vibration...");
@@ -186,5 +155,33 @@
                 return false;
             }
         };
+
+        /**
+         * Обновляет обработчик формы сброса статистики.
+         */
+        document.querySelectorAll('.reset-form').forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const url = this.action;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('Ошибка при сбросе статистики.');
+                    }
+                } catch (error) {
+                    console.error('Error resetting stats:', error);
+                    alert('Произошла ошибка при сбросе статистики.');
+                }
+            });
+        });
     </script>
 {% endblock %}

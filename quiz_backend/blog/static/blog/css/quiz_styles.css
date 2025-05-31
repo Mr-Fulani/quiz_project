@@ -35,7 +35,6 @@
     border-radius: 10px; /* ✅ оставляем лёгкое скругление */
 }
 
-
 /**
  * Изображение или код внутри контейнера
  */
@@ -77,6 +76,38 @@
     position: relative; /* Для позиционирования эффектов */
 }
 
+
+
+/**
+ * Контейнер для кнопок сброса
+ */
+.reset-buttons {
+    margin: 16px 0;
+    display: flex;
+    justify-content: center; /* Центрируем кнопку */
+}
+
+/**
+ * Стили для кнопки сброса
+ */
+.reset-button {
+    padding: 8px 16px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/**
+ * Эффект наведения для кнопки сброса
+ */
+.reset-button:hover {
+    background-color: #c82333;
+}
+
+
 /**
  * Стиль для варианта "Я не знаю, но хочу узнать"
  */
@@ -116,6 +147,15 @@
     background-color: #f44336 !important;
     color: white !important;
     box-shadow: 0 0 10px #f44336 !important;
+}
+
+/**
+ * Стиль для отключенных вариантов ответа
+ */
+.answer-option.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /**
@@ -186,24 +226,6 @@
 .quiz-option {
     /* Дополнительные стили уже в .answer-option */
     transition: all 0.3s ease;
-}
-
-/**
- * Анимация для эффекта тряски
- */
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-}
-
-/**
- * Анимация для эффекта свечения
- */
-@keyframes glow {
-    0%   { box-shadow: 0 0 5px #00ff00; }
-    50%  { box-shadow: 0 0 20px #00ff00; }
-    100% { box-shadow: 0 0 5px #00ff00; }
 }
 
 /**
@@ -299,25 +321,30 @@ pre.code-block {
     color: var(--orange-yellow-crayola); /* Акцентный цвет для заголовков */
 }
 
-
-
-
 /**
  * Медиа-запрос для мобильных устройств (ширина до 768px).
  * Уменьшает отступы и размеры для лучшей адаптивности.
  */
 @media (max-width: 768px) {
     .modal-content {
-        max-width: 90%; /* Увеличиваем ширину на мобильных */
-        padding: 15px; /* Уменьшаем отступы */
-        border-radius: 12px; /* Чуть меньше скругление */
+        max-width: 90%;
+        padding: 15px;
+        border-radius: 12px;
     }
 
     .modal-content p,
     .modal-content h3 {
-        font-size: var(--fs7); /* Меньший размер шрифта */
+        font-size: var(--fs7);
     }
 
+    .reset-button {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    .reset-buttons {
+        margin: 12px 0;
+    }
 }
 
 /**
@@ -335,13 +362,12 @@ pre.code-block {
     .modal-content h3 {
         font-size: var(--fs6); /* Стандартный размер шрифта */
     }
-
 }
 
-
-/* Обновленные, менее интенсивные эффекты для мобильных устройств */
+/**
+ * Обновленные, менее интенсивные эффекты для мобильных устройств
+ */
 @media (max-width: 768px) {
-    /* Более умеренные эффекты для правильных ответов */
     .answer-option.correct,
     .answer-option[data-correct="true"].active {
         background-color: #4CAF50 !important;
@@ -352,7 +378,6 @@ pre.code-block {
         transition: all 0.3s ease !important;
     }
 
-    /* Более умеренные эффекты для неправильных ответов */
     .answer-option.incorrect,
     .answer-option[data-correct="false"].active {
         background-color: #f44336 !important;
@@ -362,7 +387,6 @@ pre.code-block {
         animation: shake-mobile-light 0.5s ease !important; /* Более легкая тряска */
     }
 
-    /* Более мягкая анимация тряски */
     @keyframes shake-mobile-light {
         0%, 100% { transform: translateX(0); }
         20% { transform: translateX(-6px); }
@@ -371,7 +395,6 @@ pre.code-block {
         80% { transform: translateX(4px); }
     }
 
-    /* Настройки для канваса */
     #lightning-canvas {
         opacity: 0.9 !important; /* Немного уменьшаем непрозрачность */
         z-index: 9998 !important; /* Высокий z-index, но не максимальный */
@@ -415,7 +438,9 @@ pre.code-block {
     }
 }
 
-/* Добавляем класс для диагностики вибрации */
+/**
+ * Добавляем класс для диагностики вибрации
+ */
 .vibration-debug-button {
     position: fixed !important;
     bottom: 15px !important;
@@ -430,7 +455,9 @@ pre.code-block {
     box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
 }
 
-/* Стили для диалога отладки вибрации */
+/**
+ * Стили для диалога отладки вибрации
+ */
 .vibration-debug-dialog {
     position: fixed !important;
     top: 50% !important;
@@ -444,25 +471,16 @@ pre.code-block {
     max-width: 80% !important;
 }
 
-@media (max-width: 768px) {
-    .answer-option,
-    .quiz-option {
-        font-size: 16px;
-        padding: 10px 12px;
-        margin: 8px 0;
-        min-height: 25px;
-    }
-}
-
-
-
-
-/* Добавляем новые стили для предотвращения случайных нажатий */
+/**
+ * Добавляем стиль для предотвращения случайных нажатий
+ */
 .touch-started {
     pointer-events: none; /* Временно блокируем события при начале касания */
 }
 
-/* Добавляем стиль для мобильных устройств с активным эффектом */
+/**
+ * Добавляем стиль для мобильных устройств с активным эффектом
+ */
 .mobile-effect-active #lightning-canvas {
     display: block !important;
     opacity: 1 !important;

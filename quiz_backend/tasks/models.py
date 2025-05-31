@@ -177,6 +177,7 @@ class TaskStatistics(models.Model):
         auto_now=True,
         help_text='Дата последней попытки'
     )
+    selected_answer = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"Статистика: Задача {self.task_id}, Пользователь {self.user_id}"

@@ -3,6 +3,7 @@ from .models import Task, TaskStatistics, TaskTranslation
 from topics.serializers import TopicSerializer, SubtopicSerializer
 
 class TaskTranslationSerializer(serializers.ModelSerializer):
+    """Сериализатор для переводов задач."""
     class Meta:
         model = TaskTranslation
         fields = ['language', 'question', 'answers', 'correct_answer', 'explanation']
@@ -17,6 +18,7 @@ class TaskSerializer(serializers.ModelSerializer):
     subtopic_id = serializers.IntegerField(write_only=True)
     success_rate = serializers.FloatField(read_only=True)
     translations = TaskTranslationSerializer(many=True)
+    is_solved = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -36,13 +38,25 @@ class TaskSerializer(serializers.ModelSerializer):
             'group',
             'topic_id',
             'subtopic_id',
-            'success_rate'
+            'success_rate',
+            'is_solved'
         ]
         read_only_fields = ['id', 'topic', 'subtopic', 'create_date', 'publish_date', 'success_rate']
 
+    def get_is_solved(self, obj):
+        """Проверяет, решена ли задача текущим пользователем."""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return TaskStatistics.objects.filter(
+                user=request.user,
+                task=obj,
+                successful=True
+            ).exists()
+        return False
+
     def to_representation(self, instance):
         """
-        Преобразование объекта в словарь для ответа API
+        Преобразование объекта в словарь для ответа API.
         """
         data = super().to_representation(instance)
         stats = TaskStatistics.objects.filter(task=instance)
@@ -99,4 +113,4 @@ class TaskStatsResponseSerializer(serializers.Serializer):
     completed_tasks = serializers.IntegerField()
     success_rate = serializers.FloatField()
     average_time = serializers.FloatField()
-    total_points = serializers.IntegerField() 
+    total_points = serializers.IntegerField()

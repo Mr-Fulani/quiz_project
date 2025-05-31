@@ -9,7 +9,7 @@ from .views import (
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, submit_task_answer,
     MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
-    quiz_difficulty
+    quiz_difficulty, reset_subtopic_stats
 )
 from django.shortcuts import redirect
 
@@ -56,6 +56,7 @@ urlpatterns = [
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),
+    path('stats/reset/subtopic/<int:subtopic_id>/', reset_subtopic_stats, name='reset_subtopic_stats'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/', quiz_difficulty, name='quiz_difficulty'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/<str:difficulty>/', quiz_subtopic, name='quiz_subtopic'),
 
