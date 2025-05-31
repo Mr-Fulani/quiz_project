@@ -621,11 +621,31 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Running in Telegram Web App');
         window.Telegram.WebApp.ready();
     }
-    
+
+    /**
+     * Проверяет авторизацию пользователя через AJAX-запрос.
+     * @returns {Promise<boolean>} Возвращает true, если пользователь авторизован, иначе false.
+     */
+    async function checkUserAuth() {
+        try {
+            const response = await fetch('/api/check-auth/', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            const data = await response.json();
+            return data.is_authenticated;
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+            return false;
+        }
+    }
 
     async function handleAnswerSelection(event) {
         /**
          * Обрабатывает выбор ответа пользователем, применяет стили и отправляет ответ на сервер.
+         * Если пользователь не авторизован, открывает модальное окно входа.
          *
          * @param {Event} event - Событие клика по варианту ответа.
          */
@@ -635,6 +655,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const taskItem = option.closest('.task-item');
 
         console.log('Task ID:', taskItem.dataset.taskId, 'Answer:', option.dataset.answer);
+
+        // Проверка авторизации
+        const isAuthenticated = await checkUserAuth();
+        if (!isAuthenticated) {
+            console.log('User is not authenticated, opening login modal');
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                // Получаем текущий URL с параметром страницы
+                const currentUrl = window.location.href;
+                const loginForm = loginModal.querySelector('form');
+                if (loginForm) {
+                    // Удаляем существующее поле next, если есть
+                    const existingNext = loginForm.querySelector('input[name="next"]');
+                    if (existingNext) existingNext.remove();
+                    // Добавляем поле next с текущим URL
+                    const nextInput = document.createElement('input');
+                    nextInput.type = 'hidden';
+                    nextInput.name = 'next';
+                    nextInput.value = currentUrl;
+                    loginForm.appendChild(nextInput);
+                }
+                loginModal.style.display = 'flex';
+            } else {
+                console.error('Login modal not found');
+            }
+            return;
+        }
 
         if (taskItem.dataset.solved === 'true') {
             console.log('Answer selection blocked: task already solved');

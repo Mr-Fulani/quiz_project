@@ -52,6 +52,7 @@
             <p>{{ no_tasks_message|default:"Задачи отсутствуют." }}</p>
         {% endfor %}
 
+        {% comment %} Блок кнопки сброса отображается только для аутентифицированных пользователей {% endcomment %}
         {% if user.is_authenticated %}
             <div class="reset-buttons">
                 <form method="post" action="{% url 'blog:reset_subtopic_stats' subtopic.id %}" class="reset-form">
@@ -61,13 +62,18 @@
                         Пройти тест заново
                     </button>
                 </form>
-                {% if not request.user.is_authenticated %}
-                    <p>DEBUG: Кнопка видна, но пользователь не авторизован.</p>
-                {% endif %}
             </div>
-        {% else %}
-            <p class="auth-required">Авторизуйтесь, чтобы сбросить статистику.</p>
         {% endif %}
+
+        {% comment %} Блок прогресса пользователя отображается всегда,
+            но его содержимое зависит от статуса аутентификации {% endcomment %}
+        <div class="user-progress">
+            {% if user.is_authenticated %}
+                <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">Посмотреть мой прогресс</a>
+            {% else %}
+                <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
+            {% endif %}
+        </div>
 
         {% if paginator.num_pages > 1 %}
             <div class="pagination">
