@@ -40,6 +40,17 @@ logger = logging.getLogger(__name__)
 
 
 
+def check_auth(request):
+    """
+    Проверяет, авторизован ли пользователь.
+
+    Returns:
+        JsonResponse: JSON с полем is_authenticated (true/false).
+    """
+    return JsonResponse({'is_authenticated': request.user.is_authenticated})
+
+
+
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     ViewSet для модели Category.

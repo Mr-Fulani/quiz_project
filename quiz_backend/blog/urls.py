@@ -9,7 +9,7 @@ from .views import (
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, submit_task_answer,
     MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
-    quiz_difficulty, reset_subtopic_stats
+    quiz_difficulty, reset_subtopic_stats, check_auth
 )
 from django.shortcuts import redirect
 
@@ -100,5 +100,6 @@ urlpatterns = [
 
 
     path('contact/submit/', contact_form_submit, name='contact_form_submit'),
+    path('api/check-auth/', check_auth, name='check_auth'),
 
 ]
