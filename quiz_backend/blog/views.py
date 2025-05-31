@@ -360,6 +360,11 @@ class ContactView(TemplateView):
 
 @require_POST
 def contact_form_submit(request):
+    """
+    Обрабатывает отправку формы обратной связи.
+
+    Создаёт сообщение от системного пользователя 'Anonymous' вместо sender=None.
+    """
     logger.info("Получен POST-запрос на /contact/submit/")
     fullname = request.POST.get('fullname')
     email = request.POST.get('email')
@@ -372,12 +377,21 @@ def contact_form_submit(request):
     try:
         # Находим администратора
         admin_email = settings.EMAIL_ADMIN[0] if settings.EMAIL_ADMIN else None
-        logger.info(f"settings.EMAIL_ADMIN: {settings.EMAIL_ADMIN}")
         admin_user = None
         if admin_email:
             admin_user = CustomUser.objects.filter(email=admin_email).first()
             if not admin_user:
                 logger.warning(f"Администратор с email {admin_email} не найден")
+
+        # Находим или создаём системного пользователя для анонимных сообщений
+        anonymous_user, _ = CustomUser.objects.get_or_create(
+            username='Anonymous',
+            defaults={
+                'email': 'anonymous@quizproject.com',
+                'is_active': True,
+                'is_staff': False
+            }
+        )
 
         # Отправляем письмо
         subject = f'Новое сообщение от {fullname} ({email})'
@@ -396,8 +410,8 @@ def contact_form_submit(request):
 
         # Сохраняем сообщение в базе
         message_obj = Message.objects.create(
-            sender=None,  # Для неавторизованных пользователей
-            recipient=admin_user,  # Привязываем администратора
+            sender=anonymous_user,  # Используем системного пользователя
+            recipient=admin_user,
             content=message_text,
             fullname=fullname,
             email=email,
@@ -1006,12 +1020,24 @@ def download_attachment(request, attachment_id):
 def inbox(request):
     """
     Отображает страницу чата с диалогами.
+
+    Показывает список диалогов текущего пользователя, исключая сообщения от анонимных отправителей
+    и диалоги с удалёнными или деактивированными пользователями. Подсчитывает только непрочитанные
+    сообщения от активных пользователей, исключая удалённые сообщения.
+
+    Args:
+        request: HTTP-запрос.
+
+    Returns:
+        HttpResponse: Рендеринг шаблона accounts/inbox.html с контекстом диалогов.
     """
     user = request.user
+    logger.info(f"Fetching inbox for user: {user.username}")
 
-    # Получаем уникальных собеседников
+    # Получаем уникальных собеседников, исключая сообщения с sender=None и удалённые сообщения
     dialogs = Message.objects.filter(
-        Q(sender=user, is_deleted_by_sender=False) | Q(recipient=user, is_deleted_by_recipient=False)
+        (Q(sender=user, is_deleted_by_sender=False) | Q(recipient=user, is_deleted_by_recipient=False)) &
+        Q(sender__isnull=False)  # Исключаем анонимные сообщения
     ).values('sender', 'recipient').annotate(
         last_message_id=Max('id')
     ).distinct().order_by('-last_message_id')
@@ -1023,23 +1049,41 @@ def inbox(request):
         if other_user_id in seen_users:
             continue
         seen_users.add(other_user_id)
-        other_user = CustomUser.objects.get(id=other_user_id)
-        last_message = Message.objects.get(id=dialog['last_message_id'])
-        unread_count = Message.objects.filter(
-            recipient=user,
-            sender=other_user,
-            is_read=False,
-            is_deleted_by_recipient=False
-        ).count()
-        dialog_list.append({
-            'user': other_user,
-            'last_message': last_message,
-            'unread_count': unread_count
-        })
 
+        try:
+            # Проверяем, существует ли пользователь и активен ли он
+            other_user = CustomUser.objects.get(id=other_user_id, is_active=True)
+        except CustomUser.DoesNotExist:
+            logger.warning(f"User with id={other_user_id} does not exist or is inactive, skipping dialog")
+            continue
+
+        try:
+            last_message = Message.objects.get(id=dialog['last_message_id'])
+            # Подсчет непрочитанных сообщений с учетом всех условий
+            unread_count = Message.objects.filter(
+                recipient=user,
+                sender=other_user,
+                is_read=False,
+                is_deleted_by_recipient=False,
+                sender__is_active=True,  # Учитываем только активных отправителей
+                sender__isnull=False  # Исключаем анонимные сообщения
+            ).count()
+            if unread_count > 0:
+                logger.debug(f"Found {unread_count} unread messages for dialog with user {other_user.username}")
+            dialog_list.append({
+                'user': other_user,
+                'last_message': last_message,
+                'unread_count': unread_count
+            })
+        except Message.DoesNotExist:
+            logger.warning(f"Last message with id={dialog['last_message_id']} not found, skipping dialog")
+            continue
+
+    logger.info(f"Found {len(dialog_list)} valid dialogs for user: {user.username}")
     return render(request, 'accounts/inbox.html', {
         'dialogs': dialog_list
     })
+
 
 
 @login_required
