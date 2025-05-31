@@ -529,41 +529,23 @@ def quiz_difficulty(request, quiz_type, subtopic):
 def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
     Отображает задачи для подтемы и уровня сложности.
-
-    Фильтрует задачи по теме, подтеме, сложности и published=True. Обрабатывает
-    пробелы, дефисы и слэши в имени подтемы. Если задач нет, показывает сообщение.
-
-    Args:
-        request: HTTP-запрос.
-        quiz_type (str): Название темы (в нижнем регистре).
-        subtopic (str): Название подтемы (в нижнем регистре, с дефисами или слэшами).
-        difficulty (str): Уровень сложности (в нижнем регистре).
-
-    Returns:
-        HttpResponse: Рендеринг шаблона blog/quiz_subtopic.html.
     """
     logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
-
     normalized_subtopic = subtopic.replace('-', '[ -/]')
     subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
-
     logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
     try:
         subtopic_obj = Subtopic.objects.get(subtopic_query)
     except Subtopic.DoesNotExist:
         logger.error(f"Subtopic not found for query: {subtopic_query}")
         raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
-
-    # Фильтр задач
     tasks = Task.objects.filter(
         topic=topic,
         subtopic=subtopic_obj,
         published=True,
         difficulty=difficulty.lower()
     ).select_related('subtopic', 'topic').prefetch_related('translations')
-
-    # Проверка subtopic=None
     if not tasks.exists():
         tasks = Task.objects.filter(
             topic=topic,
@@ -573,31 +555,33 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         )
         if tasks.exists():
             logger.warning(f"Found {tasks.count()} tasks with null subtopic")
-
     logger.info(f"Found {tasks.count()} tasks")
-
-    # Пагинация
+    # Добавляем статус is_solved и selected_answer для каждой задачи
+    if request.user.is_authenticated:
+        task_stats = TaskStatistics.objects.filter(
+            user=request.user,
+            task__in=tasks
+        ).values('task_id', 'selected_answer')
+        task_stats_dict = {stat['task_id']: stat['selected_answer'] for stat in task_stats}
+        for task in tasks:
+            task.is_solved = task.id in task_stats_dict  # Решена, если есть запись
+            task.selected_answer = task_stats_dict.get(task.id)  # Выбранный ответ
     paginator = Paginator(tasks, 3)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
-    # Контекст
     context = {
         'topic': topic,
         'subtopic': subtopic_obj,
         'page_obj': page_obj,
         'paginator': paginator,
+        'difficulty': difficulty,
     }
-
-    # Сообщение об отсутствии задач
     if not tasks.exists():
         difficulty_names = {'easy': 'Легкий', 'medium': 'Средний', 'hard': 'Сложный'}
         context['no_tasks_message'] = (
             f'Нет задач для уровня сложности "{difficulty_names.get(difficulty.lower(), difficulty)}" '
             f'в подтеме "{subtopic_obj.name}".'
         )
-
-    # Обработка переводов
     preferred_language = request.user.language if request.user.is_authenticated else 'ru'
     dont_know_option_dict = {
         'ru': "Я не знаю, но хочу узнать",
@@ -608,12 +592,11 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         'fr': "Je ne sais pas, mais je veux apprendre",
         'de': "Ich weiß es nicht, aber ich möchte lernen",
         'hi': "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
-        'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرм",
+        'fa': "نمی‌دانم، اما می‌خواهم یاد بگیرم",
         'tj': "Ман намедонам, аммо мехоҳам омӯзам",
         'uz': "Bilmayman, lekin o‘rganmoqchiman",
         'kz': "Білмеймін, бірақ үйренгім келеді"
     }
-
     for task in page_obj:
         translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first() or \
                       TaskTranslation.objects.filter(task=task).first()
@@ -633,176 +616,109 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         else:
             task.answers = []
             task.correct_answer = None
-
     return render(request, 'blog/quiz_subtopic.html', context)
-
-
-
-
-
-
-
-
-
-# class UniqueQuizTaskView(DetailView):
-#     model = Task
-#     template_name = 'blog/quiz_task_detail.html'
-#     context_object_name = 'task'
-#
-#     def get_object(self):
-#         task_id = self.kwargs.get('task_id')
-#         logger.info(f"Getting task with ID: {task_id}")
-#         return Task.objects.get(id=task_id)
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         task = self.get_object()
-#         quiz_type = self.kwargs.get('quiz_type')
-#         subtopic = self.kwargs.get('subtopic')
-#
-#         logger.info("=== UniqueQuizTaskView Debug Info ===")
-#         logger.info(f"Topic: {quiz_type}")
-#         logger.info(f"Subtopic: {subtopic}")
-#         logger.info(f"Task ID: {task.id}")
-#         logger.info(f"Task object: {task}")
-#
-#         # Очистка subtopic
-#         cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
-#         topic = get_object_or_404(Topic, name__iexact=quiz_type)
-#         subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
-#
-#         logger.info(f"Topic: {quiz_type}, Subtopic: {subtopic}, Task ID: {task.id}")
-#
-#         # Получаем перевод
-#         translation = TaskTranslation.objects.filter(task=task, language="en").first()
-#         logger.info(f"Translation object: {translation}")
-#
-#         context['translation'] = translation
-#         if translation:
-#             logger.info(f"Translation answers type: {type(translation.answers)}")
-#             logger.info(f"Raw answers: {translation.answers}")
-#
-#             if isinstance(translation.answers, str):
-#                 try:
-#                     context['answers'] = json.loads(translation.answers)
-#                     logger.info(f"Parsed answers: {context['answers']}")
-#                 except json.JSONDecodeError as e:
-#                     logger.error(f"Error parsing answers JSON: {e}")
-#                     context['answers'] = []
-#             else:
-#                 context['answers'] = translation.answers
-#
-#         # Добавляем информацию о теме и подтеме
-#         context['topic'] = {'name': quiz_type.capitalize()}
-#         context['subtopic'] = {'name': subtopic_obj.name}
-#         context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
-#             'quiz_type': quiz_type,
-#             'subtopic': subtopic_obj.name.lower().replace(' ', '-'),
-#             'task_id': task.id
-#         })
-#
-#         # Формируем URL для отправки ответа
-#         context['submit_url'] = reverse('blog:submit_task_answer', kwargs={
-#             'quiz_type': quiz_type,
-#             'subtopic': subtopic,
-#             'task_id': task.id
-#         })
-#         logger.info(f"Submit URL: {context['submit_url']}")
-#
-#         # Обрабатываем параметры результата
-#         is_correct_param = self.request.GET.get('is_correct')
-#         context['is_correct'] = True if is_correct_param == 'True' else False if is_correct_param == 'False' else None
-#         context['selected_answer'] = self.request.GET.get('selected')
-#         context['error'] = self.request.GET.get('error')
-#
-#         logger.info("=== Context Debug Info ===")
-#         logger.info(f"is_correct: {context['is_correct']}")
-#         logger.info(f"selected_answer: {context['selected_answer']}")
-#         logger.info(f"error: {context['error']}")
-#
-#         # Проверяем наличие всех необходимых скриптов в контексте
-#         logger.info("=== Static Files Check ===")
-#         from django.templatetags.static import static
-#         script_files = [
-#             'blog/js/vector.js',
-#             'blog/js/lightning.js',
-#             'blog/js/quiz_lightning.js'
-#         ]
-#         for script in script_files:
-#             static_url = static(script)
-#             logger.info(f"Static URL for {script}: {static_url}")
-#
-#         return context
-#
-#     def render_to_response(self, context, **response_kwargs):
-#         response = super().render_to_response(context, **response_kwargs)
-#         logger.info("=== Template Rendering ===")
-#         logger.info(f"Template name: {self.template_name}")
-#         logger.info(f"Response status code: {response.status_code}")
-#         return response
-
-
-
-
 
 
 @login_required
 def submit_task_answer(request, quiz_type, subtopic, task_id):
     """
-    Обрабатывает отправку ответа на задачу через AJAX.
-    Возвращает JSON с результатом.
+    Обрабатывает ответ на задачу через AJAX.
+
+    Args:
+        request: HTTP-запрос.
+        quiz_type: Название темы (например, 'python').
+        subtopic: Подтема (например, 'api-requests-with-json').
+        task_id: ID задачи.
+
+    Returns:
+        JsonResponse: Результат обработки ответа.
     """
     if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method'}, status=405)
+        logger.error(f"Invalid request method for task_id={task_id}, method={request.method}")
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
     cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
     subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
     task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
 
-    translation = TaskTranslation.objects.filter(task=task, language="en").first()
+    # Пробуем получить перевод на языке пользователя или любой доступный
+    preferred_language = request.user.language if request.user.is_authenticated else 'ru'
+    translation = (TaskTranslation.objects.filter(task=task, language=preferred_language).first() or
+                   TaskTranslation.objects.filter(task=task).first())
+
     if not translation:
-        return JsonResponse({'error': 'Translation not found'}, status=400)
+        logger.error(f"No translation found for task_id={task_id}, topic={quiz_type}, subtopic={subtopic}")
+        # Создаем статистику даже при отсутствии перевода
+        stats, created = TaskStatistics.objects.get_or_create(
+            user=request.user,
+            task=task,
+            defaults={
+                'attempts': 1,
+                'successful': False,
+                'selected_answer': request.POST.get('answer', 'No translation')
+            }
+        )
+        if not created:
+            stats.attempts = F('attempts') + 1
+            stats.save(update_fields=['attempts'])
+        return JsonResponse({'error': 'No translation available'}, status=400)
 
     selected_answer = request.POST.get('answer')
     if not selected_answer:
+        logger.error(f"No answer provided for task_id={task_id}")
         return JsonResponse({'error': 'No answer provided'}, status=400)
 
+    # Парсим ответы
     if isinstance(translation.answers, str):
         try:
             answers = json.loads(translation.answers)
         except json.JSONDecodeError as e:
-            logger.error(f"Error parsing answers JSON: {e}")
+            logger.error(f"Error parsing answers JSON for task_id={task_id}: {e}")
             return JsonResponse({'error': 'Invalid answer format'}, status=400)
     else:
         answers = translation.answers
 
+    # Проверяем валидность ответа
+    dont_know_options = [
+        "Я не знаю, но хочу узнать",
+        "I don't know, but I want to learn"
+    ]
+    if selected_answer not in answers and selected_answer not in dont_know_options:
+        logger.error(f"Invalid answer selected for task_id={task_id}: {selected_answer}")
+        return JsonResponse({'error': 'Invalid answer selected'}, status=400)
+
     is_correct = selected_answer == translation.correct_answer
     total_votes = task.statistics.count() + 1
-
     results = []
     for answer in answers:
-        votes = task.statistics.filter(successful=(answer == translation.correct_answer)).count()
-        if answer == selected_answer and not is_correct:
+        votes = task.statistics.filter(selected_answer=answer).count()
+        if answer == selected_answer:
             votes += 1
         percentage = (votes / total_votes * 100) if total_votes > 0 else 0
         results.append({
             'text': answer,
-            'votes': votes,
             'is_correct': answer == translation.correct_answer,
             'percentage': percentage
         })
 
+    # Сохраняем статистику
     stats, created = TaskStatistics.objects.get_or_create(
         user=request.user,
         task=task,
-        defaults={'attempts': 1, 'successful': is_correct}
+        defaults={
+            'attempts': 1,
+            'successful': is_correct,
+            'selected_answer': selected_answer
+        }
     )
     if not created:
         stats.attempts = F('attempts') + 1
         stats.successful = is_correct
-        stats.save(update_fields=['attempts', 'successful'])
+        stats.selected_answer = selected_answer
+        stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
 
+    logger.info(f"Answer submitted for task_id={task_id}, user={request.user}, is_correct={is_correct}")
     return JsonResponse({
         'status': 'success',
         'is_correct': is_correct,
@@ -810,6 +726,21 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         'results': results,
         'explanation': translation.explanation if translation else 'No explanation available.'
     })
+
+
+
+@login_required
+@require_POST
+def reset_subtopic_stats(request, subtopic_id):
+    """
+    Сбрасывает статистику пользователя по конкретной подтеме.
+    """
+    subtopic = get_object_or_404(Subtopic, id=subtopic_id)
+    TaskStatistics.objects.filter(
+        user=request.user,
+        task__subtopic=subtopic
+    ).delete()
+    return JsonResponse({'status': 'success', 'message': f'Статистика для подтемы "{subtopic.name}" сброшена'})
 
 
 

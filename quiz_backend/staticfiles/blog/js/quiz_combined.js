@@ -621,61 +621,71 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     async function handleAnswerSelection(event) {
         event.preventDefault();
-
+        event.stopPropagation();
         const option = this;
-        console.log('Option selected:', option.dataset.answer, 'Correct:', option.dataset.correct);
+        const taskItem = option.closest('.task-item');
+
+        // Логирование для диагностики
+        console.log('Task ID:', taskItem.dataset.taskId, 'Answer:', option.dataset.answer);
+
+        // Проверяем, решена ли задача
+        if (taskItem.dataset.solved === 'true') {
+            console.log('Answer selection blocked: task already solved');
+            return;
+        }
+
         const isCorrect = option.dataset.correct === 'true';
         const isDontKnow = option.classList.contains('dont-know-option') || dontKnowOptions.includes(option.dataset.answer);
-
         const parent = option.parentElement;
+
+        // Фиксируем задачу
         parent.querySelectorAll('.answer-option').forEach(opt => {
             opt.style.pointerEvents = 'none';
             opt.classList.remove('active');
+            opt.classList.add('disabled');
+            if (opt === option) {
+                opt.classList.add(isCorrect ? 'correct' : 'incorrect');
+            }
         });
-
         option.classList.add('active');
+        taskItem.dataset.solved = 'true';
 
-        // Отправляем ответ через AJAX
-        const taskItem = option.closest('.task-item');
         const submitUrl = taskItem.dataset.submitUrl;
         let explanation = taskItem.dataset.explanation || 'No explanation available.';
 
         if (submitUrl) {
-            const result = await submitAnswer(submitUrl, option.dataset.answer);
-            if (result.error) {
-                console.error('Failed to submit answer:', result.error);
-                // Показываем уведомление об ошибке, если нужно
-            } else {
-                // Обновляем данные из ответа сервера
-                explanation = result.explanation || explanation;
-                const serverIsCorrect = result.is_correct !== undefined ? result.is_correct : isCorrect;
-                if (result.results) {
-                    console.log('Answer statistics:', result.results);
-                    // Можно отобразить статистику, если нужно
-                }
-
-                if (isDontKnow) {
-                    showModal(explanation);
-                    option.classList.add('incorrect');
-                } else if (!serverIsCorrect) {
-                    showLightningEffect(option);
+            try {
+                const result = await submitAnswer(submitUrl, option.dataset.answer);
+                if (result.error) {
+                    console.error('Failed to submit answer:', result.error);
+                    alert(`Ошибка: ${result.error}`);
+                    // Откатываем фиксацию
+                    parent.querySelectorAll('.answer-option').forEach(opt => {
+                        opt.style.pointerEvents = 'auto';
+                        opt.classList.remove('disabled', 'correct', 'incorrect', 'active');
+                    });
+                    taskItem.dataset.solved = 'false';
                 } else {
-                    showConfetti(option);
+                    explanation = result.explanation || explanation;
+                    if (isCorrect) {
+                        showConfetti(option);
+                    } else {
+                        showLightningEffect(option);
+                        if (isDontKnow) {
+                            showModal(explanation);
+                        }
+                    }
                 }
-                return; // Завершаем обработку
+            } catch (error) {
+                console.error('Submit error:', error);
+                alert('Произошла ошибка при отправке ответа.');
+                // Откатываем фиксацию
+                parent.querySelectorAll('.answer-option').forEach(opt => {
+                    opt.style.pointerEvents = 'auto';
+                    opt.classList.remove('disabled', 'correct', 'incorrect', 'active');
+                });
+                taskItem.dataset.solved = 'false';
             }
-        } else {
-            console.error('Submit URL not found');
-        }
-
-        // Запасной вариант, если AJAX не сработал
-        if (isDontKnow) {
-            showModal(explanation);
-            option.classList.add('incorrect');
-        } else if (!isCorrect) {
-            showLightningEffect(option);
-        } else {
-            showConfetti(option);
         }
     }
 
