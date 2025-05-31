@@ -57,11 +57,16 @@
                 <form method="post" action="{% url 'blog:reset_subtopic_stats' subtopic.id %}" class="reset-form">
                     {% csrf_token %}
                     <button type="submit" class="reset-button"
-                            onclick="return confirm('Вы уверены, что хотите пройти тест заново? Статистика для подтемы \"{{ subtopic.name }}\" будет сброшена.')">
+                            onclick="return confirm('Вы уверены, что хотите пройти тест заново? Статистика для подтемы &quot;{{ subtopic.name|escapejs }}&quot; будет сброшена.')">
                         Пройти тест заново
                     </button>
                 </form>
+                {% if not request.user.is_authenticated %}
+                    <p>DEBUG: Кнопка видна, но пользователь не авторизован.</p>
+                {% endif %}
             </div>
+        {% else %}
+            <p class="auth-required">Авторизуйтесь, чтобы сбросить статистику.</p>
         {% endif %}
 
         {% if paginator.num_pages > 1 %}
