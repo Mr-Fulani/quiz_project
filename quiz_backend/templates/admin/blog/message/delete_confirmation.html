@@ -1,0 +1,18 @@
+{% extends "admin/delete_selected_confirmation.html" %}
+{% load i18n %}
+
+{% block content %}
+<div>
+    <p>Вы уверены, что хотите удалить выбранные сообщения? Все вложения также будут удалены.</p>
+    <form method="post">{% csrf_token %}
+        <div>
+            {% for item in queryset %}
+                <input type="hidden" name="_selected_action" value="{{ item.pk }}" />
+            {% endfor %}
+            <input type="hidden" name="action" value="delete_selected_messages" />
+            <input type="submit" value="Да, я уверен" />
+            <a href="#" onclick="window.history.back(); return false;" class="button cancel-link">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

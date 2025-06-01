@@ -1,3 +1,4 @@
+import os
 import traceback
 
 from django.contrib import admin
@@ -5,6 +6,7 @@ from django.db.models import Q, Max, Count
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, MessageAttachment
 import logging
@@ -82,96 +84,318 @@ class ProjectAdmin(admin.ModelAdmin):
     class Media:
         js = ('blog/js/admin_meta_validation.js',)
 
+
 class MessageAttachmentInline(admin.TabularInline):
     """
-    Inline-форма для отображения вложений сообщений в админ-панели.
+    Inline-форма для управления вложениями сообщений в админ-панели.
+    Позволяет просматривать и удалять вложения через чекбоксы.
     """
     model = MessageAttachment
     fields = ('file', 'filename', 'uploaded_at', 'file_preview')
     readonly_fields = ('uploaded_at', 'file_preview')
     extra = 0
-    can_delete = False
-    verbose_name = "Вложение сообщения"
-    verbose_name_plural = "Вложения сообщения"
+    can_delete = True  # Разрешаем удаление вложений # Изменено
+    verbose_name = _("Вложение сообщения")
+    verbose_name_plural = _("Вложения сообщения")
 
     def file_preview(self, obj):
         """
-        Превью файла: изображение для фото/GIF, ссылка для других файлов.
+        Отображает превью для вложений: изображение для фото/GIF, ссылка для других файлов.
+
+        Args:
+            obj: Экземпляр MessageAttachment.
+
+        Returns:
+            str: HTML-код для превью или дефис, если файл отсутствует.
         """
         if not obj or not obj.file:
             logger.info(f"No file for attachment ID {obj.id}")
             return '-'
         try:
             file_ext = (obj.filename.lower().split('.')[-1] if obj.filename else '').strip()
-            logger.info(
-                f"Rendering preview for attachment ID {obj.id}, filename={obj.filename}, ext={file_ext}, url={obj.file.url}")
+            logger.info(f"Rendering preview for attachment ID {obj.id}, filename={obj.filename}, ext={file_ext}, url={obj.file.url}")
             if file_ext in ['jpg', 'jpeg', 'png', 'gif']:
                 return format_html(
                     '<a href="{url}" target="_blank"><img src="{url}" class="attachment-preview" alt="{name}"/></a>',
                     url=obj.file.url, name=obj.filename or 'Image'
                 )
-            return format_html('<a href="{url}" target="_blank">{name}</a>', url=obj.file.url,
-                               name=obj.filename or 'File')
+            return format_html('<a href="{url}" target="_blank">{name}</a>', url=obj.file.url, name=obj.filename or 'File')
         except Exception as e:
             logger.error(f"Error rendering file preview for attachment {obj.id}: {str(e)}")
             return '-'
 
     def get_queryset(self, request):
         """
-        Логирование количества вложений для сообщения.
+        Возвращает queryset вложений с логированием для отладки.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            QuerySet: Список вложений.
         """
         qs = super().get_queryset(request)
         logger.info(f"Fetching attachments for message, count: {qs.count()}")
         for obj in qs:
-            logger.info(
-                f"Attachment for message {obj.message_id}: ID={obj.id}, filename={obj.filename}, URL={obj.file.url}")
+            logger.info(f"Attachment for message {obj.message_id}: ID={obj.id}, filename={obj.filename}, URL={obj.file.url}")
         return qs
-
-
-
-
-
 
 
 
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    """
-    Админ-панель для модели Message с отображением диалогов.
-    """
     change_list_template = 'admin/blog/message/change_list.html'
     change_form_template = 'admin/blog/message/change_form.html'
     list_display = ('dialog_link', 'last_message', 'message_count', 'last_message_date')
     list_filter = ('is_read', 'created_at', 'sender', 'recipient')
-    search_fields = ('sender__username', 'recipient__username')
+    search_fields = ('sender__username', 'recipient__username', 'content', 'fullname', 'email')
     date_hierarchy = 'created_at'
     readonly_fields = ('id', 'created_at', 'dialog_link')
-    actions = ['mark_as_read', 'mark_as_unread', 'soft_delete_for_sender', 'soft_delete_for_recipient']
+    fields = (
+        'sender', 'recipient', 'content', 'fullname', 'email',
+        'is_read', 'is_deleted_by_sender', 'is_deleted_by_recipient'
+    )
+    actions = ['mark_as_read', 'mark_as_unread', 'soft_delete_for_sender', 'soft_delete_for_recipient',
+               'delete_selected_messages']
     inlines = [MessageAttachmentInline]
     list_per_page = 25
+    list_select_related = True
+    actions_on_top = True
+    actions_on_bottom = False
+    actions_selection_counter = True
+    preserve_filters = True
+    delete_confirmation_template = 'admin/blog/message/delete_confirmation.html'
+
+    def delete_selected_messages(self, request, queryset):
+        """
+        Удаляет выбранные сообщения и их вложения.
+
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet выбранных сообщений.
+
+        Returns:
+            None: Сообщает пользователю об успешном удалении через message_user.
+        """
+        selected = request.POST.getlist('_selected_action')
+        deleted_count = 0
+        for message_ids in selected:
+            try:
+                message_ids_list = [int(mid) for mid in message_ids.split(',') if mid]
+                messages = Message.objects.filter(id__in=message_ids_list)
+                for message in messages:
+                    for attachment in message.attachments.all():
+                        if attachment.file and os.path.exists(attachment.file.path):
+                            os.remove(attachment.file.path)
+                            logger.info(f"Deleted file: {attachment.file.path}")
+                        attachment.delete()
+                    message.delete()
+                    deleted_count += 1
+            except Exception as e:
+                logger.error(f"Error deleting messages with IDs {message_ids}: {str(e)}")
+        self.message_user(request, _(f"Успешно удалено {deleted_count} сообщений и их вложений."))
+
+    delete_selected_messages.short_description = _("Удалить выбранные сообщения")
+
+    def mark_as_read(self, request, queryset):
+        """
+        Отмечает выбранные сообщения как прочитанные.
+
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet выбранных сообщений.
+
+        Returns:
+            None: Сообщает пользователю об успешном обновлении через message_user.
+        """
+        selected = request.POST.getlist('_selected_action')
+        updated_count = 0
+        for message_ids in selected:
+            try:
+                message_ids_list = [int(mid) for mid in message_ids.split(',') if mid]
+                updated_count += Message.objects.filter(id__in=message_ids_list).update(is_read=True)
+            except Exception as e:
+                logger.error(f"Error marking messages as read with IDs {message_ids}: {str(e)}")
+        self.message_user(request, _(f"Отмечено как прочитанные {updated_count} сообщений."))
+
+    mark_as_read.short_description = _("Отметить как прочитанные")
+
+    def mark_as_unread(self, request, queryset):
+        """
+        Отмечает выбранные сообщения как непрочитанные.
+
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet выбранных сообщений.
+
+        Returns:
+            None: Сообщает пользователю об успешном обновлении через message_user.
+        """
+        selected = request.POST.getlist('_selected_action')
+        updated_count = 0
+        for message_ids in selected:
+            try:
+                message_ids_list = [int(mid) for mid in message_ids.split(',') if mid]
+                updated_count += Message.objects.filter(id__in=message_ids_list).update(is_read=False)
+            except Exception as e:
+                logger.error(f"Error marking messages as unread with IDs {message_ids}: {str(e)}")
+        self.message_user(request, _(f"Отмечено как непрочитанные {updated_count} сообщений."))
+
+    mark_as_unread.short_description = _("Отметить как непрочитанные")
+
+    def soft_delete_for_sender(self, request, queryset):
+        """
+        Помечает сообщения как удалённые для отправителя.
+
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet выбранных сообщений.
+
+        Returns:
+            None: Сообщает пользователю об успешном обновлении через message_user.
+        """
+        selected = request.POST.getlist('_selected_action')
+        updated_count = 0
+        for message_ids in selected:
+            try:
+                message_ids_list = [int(mid) for mid in message_ids.split(',') if mid]
+                updated_count += Message.objects.filter(id__in=message_ids_list).update(is_deleted_by_sender=True)
+            except Exception as e:
+                logger.error(f"Error soft deleting for sender with IDs {message_ids}: {str(e)}")
+        self.message_user(request, _(f"Помечено как удалённое отправителем для {updated_count} сообщений."))
+
+    soft_delete_for_sender.short_description = _("Поместить в корзину для отправителя")
+
+    def soft_delete_for_recipient(self, request, queryset):
+        """
+        Помечает сообщения как удалённые для получателя.
+
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet выбранных сообщений.
+
+        Returns:
+            None: Сообщает пользователю об успешном обновлении через message_user.
+        """
+        selected = request.POST.getlist('_selected_action')
+        updated_count = 0
+        for message_ids in selected:
+            try:
+                message_ids_list = [int(mid) for mid in message_ids.split(',') if mid]
+                updated_count += Message.objects.filter(id__in=message_ids_list).update(is_deleted_by_recipient=True)
+            except Exception as e:
+                logger.error(f"Error soft deleting for recipient with IDs {message_ids}: {str(e)}")
+        self.message_user(request, _(f"Помечено как удалённое получателем для {updated_count} сообщений."))
+
+    soft_delete_for_recipient.short_description = _("Поместить в корзину для получателя")
 
     def get_list_display(self, request):
-        if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
-            return ['content', 'created_at', 'is_read']
-        return super().get_list_display(request)
+        """
+        Определяет поля для отображения в списке.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            list: Список полей для отображения.
+        """
+        if self._is_dialog_view(request):
+            return ['content', 'sender', 'created_at', 'is_read']
+        return ['dialog_link', 'last_message', 'message_count', 'last_message_date']
 
     def get_list_filter(self, request):
-        if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
+        """
+        Определяет фильтры для списка.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            list: Список фильтров.
+        """
+        if self._is_dialog_view(request):
             return []
-        return super().get_list_filter(request)
+        return ['is_read', 'created_at', 'sender', 'recipient']
 
     def get_search_fields(self, request):
-        if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
+        """
+        Определяет поля для поиска.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            list: Список полей для поиска.
+        """
+        if self._is_dialog_view(request):
             return []
-        return super().get_search_fields(request)
+        return ['sender__username', 'recipient__username', 'content', 'fullname', 'email']
 
     def get_date_hierarchy(self, request):
-        if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
+        """
+        Определяет поле для иерархии дат.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            str or None: Поле для иерархии дат или None.
+        """
+        if self._is_dialog_view(request):
             return None
-        return super().get_date_hierarchy(request)
+        return 'created_at'
+
+    def get_actions(self, request):
+        """
+        Определяет доступные действия в зависимости от представления.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            dict: Словарь доступных действий.
+        """
+        actions = super().get_actions(request)
+        if self._is_dialog_view(request):
+            dialog_actions = {}
+            if 'mark_as_read' in actions:
+                dialog_actions['mark_as_read'] = actions['mark_as_read']
+            if 'mark_as_unread' in actions:
+                dialog_actions['mark_as_unread'] = actions['mark_as_unread']
+            if 'delete_selected_messages' in actions:
+                dialog_actions['delete_selected_messages'] = actions['delete_selected_messages']
+            if 'soft_delete_for_sender' in actions:
+                dialog_actions['soft_delete_for_sender'] = actions['soft_delete_for_sender']
+            if 'soft_delete_for_recipient' in actions:
+                dialog_actions['soft_delete_for_recipient'] = actions['soft_delete_for_recipient']
+            return dialog_actions
+        return actions
+
+    def _is_dialog_view(self, request):
+        """
+        Проверяет, является ли текущее представление видом диалога.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            bool: True, если это вид диалога, иначе False.
+        """
+        dialog_param = request.GET.get('dialog', '').strip()
+        return bool(dialog_param and '-' in dialog_param)
 
     def get_changelist(self, request, **kwargs):
+        """
+        Возвращает кастомный класс ChangeList для обработки списка.
+
+        Args:
+            request: HTTP-запрос.
+            **kwargs: Дополнительные аргументы.
+
+        Returns:
+            CustomChangeList: Кастомный класс списка.
+        """
         from django.contrib.admin.views.main import ChangeList
 
         class CustomChangeList(ChangeList):
@@ -179,6 +403,7 @@ class MessageAdmin(admin.ModelAdmin):
                 if params is None:
                     params = self.params.copy()
                 params.pop('dialog', None)
+                params.pop('read_filter', None)
                 return params
 
             def get_filters(self, request):
@@ -192,9 +417,10 @@ class MessageAdmin(admin.ModelAdmin):
                 return super().get_ordering(request, queryset)
 
             def get_queryset(self, request):
-                # В диалоговом режиме игнорируем стандартную фильтрацию
                 if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
                     dialog_param = request.GET.get('dialog', '').strip()
+                    read_filter = request.GET.get('read_filter', '').strip()
+
                     try:
                         sender_id, recipient_id = map(int, dialog_param.split('-'))
                         if sender_id <= 0 or recipient_id <= 0:
@@ -207,7 +433,16 @@ class MessageAdmin(admin.ModelAdmin):
                             Q(is_deleted_by_sender=False, is_deleted_by_recipient=False)
                         ).select_related('sender', 'recipient').order_by('created_at')
 
-                        logger.info(f"CustomChangeList: Filtered dialog: sender_id={sender_id}, recipient_id={recipient_id}, messages={qs.count()}")
+                        if not qs.filter(is_read=False).exists() and 'read_filter' not in request.GET:
+                            qs.filter(is_read=False).update(is_read=True)
+
+                        if read_filter == 'read':
+                            qs = qs.filter(is_read=True)
+                        elif read_filter == 'unread':
+                            qs = qs.filter(is_read=False)
+
+                        logger.info(
+                            f"CustomChangeList: Filtered dialog: sender_id={sender_id}, recipient_id={recipient_id}, read_filter={read_filter}, messages={qs.count()}")
                         return qs
                     except (ValueError, TypeError) as e:
                         logger.error(f"Invalid dialog parameter: '{dialog_param}', error: {str(e)}")
@@ -219,105 +454,42 @@ class MessageAdmin(admin.ModelAdmin):
                     remove = []
                 elif isinstance(remove, dict):
                     remove = list(remove.keys())
-                if 'dialog' not in remove:
-                    remove = remove + ['dialog']
+                preserved_params = ['dialog', 'read_filter']
+                remove = [param for param in remove if param not in preserved_params]
                 return super().get_query_string(new_params, remove)
 
         return CustomChangeList
 
-    def changelist_view(self, request, extra_context=None):
-        logger.info(f"changelist_view called with URL: {request.get_full_path()}")
-        logger.info(f"GET parameters: {dict(request.GET)}")
-        logger.info(f"User: {request.user}, Is authenticated: {request.user.is_authenticated}, Is superuser: {request.user.is_superuser}")
+    def get_dialogs(self, request, queryset):
+        """
+        Формирует список диалогов для отображения в админке.
 
-        extra_context = extra_context or {}
-        dialog_param = request.GET.get('dialog', '').strip()
-        is_dialog_view = bool(dialog_param and '-' in dialog_param)
-        extra_context['is_dialog_view'] = is_dialog_view
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet сообщений.
 
-        logger.info(f"is_dialog_view: {is_dialog_view}")
-
-        if not is_dialog_view:
-            qs = self.get_queryset(request)
-            extra_context['dialogs'] = self.get_dialogs(request, qs)
-            logger.info(f"Dialogs count: {len(extra_context['dialogs']) if extra_context['dialogs'] else 0}")
-        else:
-            qs = self.get_queryset(request)
-            logger.info(f"Dialog view queryset count: {qs.count()}")
-            if not qs.exists():
-                logger.warning("No messages found for dialog, redirecting to list view")
-                self.message_user(request, "Сообщений для этого диалога не найдено.", level='warning')
-                return HttpResponseRedirect(reverse('admin:blog_message_changelist'))
-
-        response = super().changelist_view(request, extra_context=extra_context)
-        logger.info(f"changelist_view response status: {getattr(response, 'status_code', 'Unknown')}")
-        return response
-
-    def get_paginator(self, request, queryset, per_page, orphans=0, allow_empty_first_page=True):
-        if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
-            logger.info("Dialog view detected - adjusting pagination")
-            per_page = 100
-        return super().get_paginator(request, queryset, per_page, orphans, allow_empty_first_page)
-
-    def get_queryset(self, request):
-        stack = traceback.extract_stack()
-        caller_info = f"{stack[-2].filename}:{stack[-2].lineno} in {stack[-2].name}"
-        logger.info(f"get_queryset called from: {caller_info}")
-        logger.info(f"Request URL: {request.get_full_path()}")
-
-        qs = super().get_queryset(request).select_related('sender', 'recipient')
-
-        if 'dialog' in request.GET:
-            dialog_param = request.GET.get('dialog', '').strip()
-            logger.info(f"Raw dialog parameter: '{dialog_param}'")
-
-            if not dialog_param or '-' not in dialog_param:
-                logger.info("Invalid or empty dialog parameter, returning base queryset")
-                return qs.filter(is_deleted_by_sender=False, is_deleted_by_recipient=False)
-
-            try:
-                sender_id, recipient_id = map(int, dialog_param.split('-'))
-                if sender_id <= 0 or recipient_id <= 0:
-                    logger.error(f"Invalid dialog parameter: '{dialog_param}' - IDs must be positive")
-                    return qs.none()
-
-                qs = qs.filter(
-                    (Q(sender_id=sender_id, recipient_id=recipient_id) |
-                     Q(sender_id=recipient_id, recipient_id=sender_id)) &
-                    Q(is_deleted_by_sender=False, is_deleted_by_recipient=False)
-                ).order_by('created_at')
-
-                logger.info(f"Filtered dialog: sender_id={sender_id}, recipient_id={recipient_id}, messages={qs.count()}")
-                for msg in qs:
-                    logger.info(f"Message ID={msg.id}, sender={msg.sender_id or 'None'}, recipient={msg.recipient_id or 'None'}, content={msg.content[:50]}")
-                return qs
-
-            except (ValueError, TypeError) as e:
-                logger.error(f"Invalid dialog parameter: '{dialog_param}', error: {str(e)}")
-                return qs.none()
-
-        logger.info("No dialog parameter, returning all messages")
-        return qs.filter(is_deleted_by_sender=False, is_deleted_by_recipient=False)
-
-    def get_dialogs(self, request, qs):
-        messages = qs.order_by('-created_at')
-        dialogs = []
+        Returns:
+            list: Список диалогов с метаданными, включая message_ids.
+        """
         seen_pairs = set()
-
-        for message in messages:
+        dialogs = []
+        for message in queryset.order_by('-created_at'):
             if not message.sender_id or not message.recipient_id:
                 continue
-
             pair = tuple(sorted([message.sender_id, message.recipient_id]))
             if pair in seen_pairs:
                 continue
             seen_pairs.add(pair)
 
-            dialog_messages = qs.filter(
+            dialog_messages = queryset.filter(
                 Q(sender_id=message.sender_id, recipient_id=message.recipient_id) |
                 Q(sender_id=message.recipient_id, recipient_id=message.sender_id)
             )
             last_message = dialog_messages.order_by('-created_at').first()
+            is_read = not dialog_messages.filter(is_read=False).exists()  # Диалог считается прочитанным, если нет непрочитанных сообщений
+
+            # Собираем ID всех сообщений в диалоге
+            message_ids = list(dialog_messages.values_list('id', flat=True))
 
             dialog = {
                 'sender_id': message.sender_id,
@@ -327,63 +499,187 @@ class MessageAdmin(admin.ModelAdmin):
                 'last_message': last_message.content[:50] + '...' if last_message and len(last_message.content) > 50 else last_message.content if last_message else '-',
                 'message_count': dialog_messages.count(),
                 'last_message_date': last_message.created_at if last_message else None,
+                'is_read': is_read,
+                'message_ids': message_ids  # Добавляем список ID сообщений
             }
             dialogs.append(dialog)
+            logger.info(f"Dialog added: {dialog['sender_username']} ↔ {dialog['recipient_username']}, Messages: {dialog['message_count']}, Last message: {dialog['last_message']}, Message IDs: {dialog['message_ids']}")
+        sorted_dialogs = sorted(dialogs, key=lambda x: x['last_message_date'] or '', reverse=True)
+        logger.info(f"Total dialogs after sorting: {len(sorted_dialogs)}")
+        return sorted_dialogs
 
-        return sorted(dialogs, key=lambda x: x['last_message_date'] or '', reverse=True)
+    def changelist_view(self, request, extra_context=None):
+        """
+        Обрабатывает отображение списка сообщений или диалогов.
+
+        Args:
+            request: HTTP-запрос.
+            extra_context: Дополнительный контекст для шаблона.
+
+        Returns:
+            HttpResponse: Ответ с отрендеренным списком.
+        """
+        logger.info(f"changelist_view called with URL: {request.get_full_path()}")
+        logger.info(f"GET parameters: {dict(request.GET)}")
+        logger.info(f"User: {request.user}, Is authenticated: True, Is superuser: {request.user.is_superuser}")
+
+        extra_context = extra_context or {}
+        is_dialog_view = self._is_dialog_view(request)
+        extra_context['is_dialog_view'] = is_dialog_view
+
+        logger.info(f"is_dialog_view: {is_dialog_view}")
+
+        if not is_dialog_view:
+            qs = self.get_queryset(request)
+            extra_context['dialogs'] = self.get_dialogs(request, qs)
+            logger.info(f"Dialogs count: {len(extra_context['dialogs']) if extra_context['dialogs'] else 0}")
+            if extra_context['dialogs']:
+                for dialog in extra_context['dialogs']:
+                    logger.info(f"Passing dialog to template: {dialog['sender_username']} ↔ {dialog['recipient_username']}, Message IDs: {dialog['message_ids']}")
+            else:
+                logger.warning("No dialogs to pass to template")
+        else:
+            qs = self.get_queryset(request)
+            logger.info(f"Dialog view queryset count: {qs.count()}")
+            if not qs.exists():
+                logger.warning("No messages found for dialog, redirecting to dialog list")
+                self.message_user(request, "Сообщений для этого диалога не найдено.", level='warning')
+                return HttpResponseRedirect(reverse('admin:blog_message_changelist'))
+
+        response = super().changelist_view(request, extra_context=extra_context)
+        logger.info(f"changelist_view response status: {getattr(response, 'status_code', 'Unknown')}")
+        return response
+
+    def get_paginator(self, request, queryset, per_page, orphans=0, allow_empty_first_page=True):
+        """
+        Настраивает пагинацию для списка сообщений.
+
+        Args:
+            request: HTTP-запрос.
+            queryset: QuerySet сообщений.
+            per_page: Количество элементов на странице.
+            orphans: Минимальное количество элементов на последней странице.
+            allow_empty_first_page: Разрешить пустую первую страницу.
+
+        Returns:
+            Paginator: Объект пагинации.
+        """
+        if 'dialog' in request.GET and '-' in request.GET.get('dialog', ''):
+            logger.info("Dialog view detected - adjusting pagination")
+            per_page = 100
+        return super().get_paginator(request, queryset, per_page, orphans, allow_empty_first_page)
+
+    def get_queryset(self, request):
+        """
+        Возвращает queryset сообщений с фильтрацией по диалогам.
+
+        Args:
+            request: HTTP-запрос.
+
+        Returns:
+            QuerySet: Список сообщений.
+        """
+        stack = traceback.extract_stack()
+        caller_info = f"{stack[-2].filename}:{stack[-2].lineno} in {stack[-2].name}"
+        logger.info(f"get_queryset called from: {caller_info}")
+        logger.info(f"Request URL: {request.get_full_path()}")
+        qs = super().get_queryset(request).select_related('sender', 'recipient')
+        if 'dialog' in request.GET:
+            dialog_param = request.GET.get('dialog', '').strip()
+            logger.info(f"Raw dialog parameter: '{dialog_param}'")
+            if not dialog_param or '-' not in dialog_param:
+                logger.info("Invalid or empty dialog parameter, returning base queryset")
+                return qs.filter(is_deleted_by_sender=False, is_deleted_by_recipient=False)
+            try:
+                sender_id, recipient_id = map(int, dialog_param.split('-'))
+                if sender_id <= 0 or recipient_id <= 0:
+                    logger.error(f"Invalid dialog parameter: '{dialog_param}' - IDs must be positive")
+                    return qs.none()
+                qs = qs.filter(
+                    (Q(sender_id=sender_id, recipient_id=recipient_id) |
+                     Q(sender_id=recipient_id, recipient_id=sender_id)) &
+                    Q(is_deleted_by_sender=False, is_deleted_by_recipient=False)
+                ).order_by('created_at')
+                logger.info(f"Filtered dialog: sender_id={sender_id}, recipient_id={recipient_id}, messages={qs.count()}")
+                for msg in qs:
+                    logger.info(f"Message ID={msg.id}, sender={msg.sender_id or 'None'}, recipient={msg.recipient_id or 'None'}, content={msg.content[:50]}")
+                return qs
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid dialog parameter: '{dialog_param}', error: {str(e)}")
+                return qs.none()
+        logger.info("No dialog parameter, returning all messages")
+        return qs.filter(is_deleted_by_sender=False, is_deleted_by_recipient=False)
 
     def dialog_link(self, obj):
+        """
+        Формирует ссылку на диалог между отправителем и получателем.
+
+        Args:
+            obj: Экземпляр Message.
+
+        Returns:
+            str: HTML-ссылка на диалог.
+        """
         if hasattr(obj, 'sender') and obj.sender and obj.recipient:
             dialog_url = reverse('admin:blog_message_changelist') + f'?dialog={obj.sender.id}-{obj.recipient.id}'
             return format_html('<a href="{}">{}</a>', dialog_url, f"{obj.sender.username} ↔ {obj.recipient.username}")
         return '-'
-
     dialog_link.short_description = 'Диалог'
 
     def last_message(self, obj):
+        """
+        Возвращает сокращённый текст последнего сообщения.
+
+        Args:
+            obj: Экземпляр Message.
+
+        Returns:
+            str: Текст сообщения или дефис.
+        """
         if hasattr(obj, 'content') and obj.content:
             return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
         return '-'
-
     last_message.short_description = 'Последнее сообщение'
 
     def message_count(self, obj):
-        return '-'
+        """
+        Возвращает количество сообщений в диалоге (заглушка).
 
+        Args:
+            obj: Экземпляр Message.
+
+        Returns:
+            str: Дефис.
+        """
+        return '-'
     message_count.short_description = 'Сообщений'
 
     def last_message_date(self, obj):
-        return obj.created_at if hasattr(obj, 'created_at') else '-'
+        """
+        Возвращает дату последнего сообщения.
 
+        Args:
+            obj: Экземпляр Message.
+
+        Returns:
+            datetime or str: Дата создания или дефис.
+        """
+        return obj.created_at if hasattr(obj, 'created_at') else '-'
     last_message_date.short_description = 'Дата'
 
-    def mark_as_read(self, request, queryset):
-        Message.objects.filter(id__in=[obj.id for obj in queryset]).update(is_read=True)
-        self.message_user(request, "Сообщения отмечены как прочитанные")
-
-    mark_as_read.short_description = "Отметить как прочитанные"
-
-    def mark_as_unread(self, request, queryset):
-        Message.objects.filter(id__in=[obj.id for obj in queryset]).update(is_read=False)
-        self.message_user(request, "Сообщения отмечены как непрочитанные")
-
-    mark_as_unread.short_description = "Отметить как непрочитанные"
-
-    def soft_delete_for_sender(self, request, queryset):
-        for message in queryset:
-            message.soft_delete(message.sender)
-        self.message_user(request, "Сообщения помечены как удалённые отправителем")
-
-    soft_delete_for_sender.short_description = "Мягкое удаление для отправителя"
-
-    def soft_delete_for_recipient(self, request, queryset):
-        for message in queryset:
-            message.soft_delete(message.recipient)
-        self.message_user(request, "Сообщения помечены как удалённые получателем")
-
-    soft_delete_for_recipient.short_description = "Мягкое удаление для получателя"
-
     def change_view(self, request, object_id, form_url='', extra_context=None):
+        """
+        Обрабатывает отображение формы редактирования сообщения.
+
+        Args:
+            request: HTTP-запрос.
+            object_id: ID сообщения.
+            form_url: URL формы.
+            extra_context: Дополнительный контекст.
+
+        Returns:
+            HttpResponse: Ответ с отрендеренной формой.
+        """
         logger.info(f"Rendering change view for message ID {object_id}")
         return super().change_view(request, object_id, form_url, extra_context)
 
@@ -398,6 +694,8 @@ class PageVideoAdmin(admin.ModelAdmin):
     search_fields = ('title',)
     ordering = ('order', 'title')
     fields = ('page', 'title', 'video_url', 'video_file', 'gif', 'order')
+
+
 
 @admin.register(Testimonial)
 class TestimonialAdmin(admin.ModelAdmin):

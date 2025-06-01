@@ -30,7 +30,14 @@
 {% endblock %}
 
 {% block content %}
+{{ block.super }}  {# Изменено: включаем стандартный контент формы #}
+{% endblock %}
+
+{% block inline_field_sets %}  {# Добавлено: включаем inline-формы #}
 {{ block.super }}
+{% endblock %}
+
+{% block after_field_sets %}  {# Добавлено: кастомное отображение деталей #}
 <div class="message-details">
     <h3>{% trans "Message Details" %}</h3>
     {% if original %}
