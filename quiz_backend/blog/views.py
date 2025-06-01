@@ -865,7 +865,11 @@ def send_message(request):
     Принимает содержимое из POST['content'], вложения из request.FILES['attachments'],
     и recipient_username из POST['recipient_username']. Ограничивает размер вложений до 20 МБ.
     Разрешает отправку с пустым текстом, если есть вложения.
+    Проверяет типы файлов (jpg, jpeg, png, gif, pdf, mp4) и ограничивает количество вложений до 5.
     Требует авторизации.
+
+    Returns:
+        JsonResponse: Статус отправки сообщения и детали (message_id, created_at) или ошибка.
     """
     logger.info(f"send_message: Запрос от {request.user.username}")
     recipient_username = request.POST.get('recipient_username')
@@ -882,14 +886,33 @@ def send_message(request):
         logger.error("send_message: Требуется текст или вложения")
         return JsonResponse({'status': 'error', 'message': 'Требуется текст или вложения'}, status=400)
 
-    # Проверка размера вложений (20 МБ = 20,971,520 байт)
+    # Ограничение на количество вложений (максимум 5)
+    max_attachments = 5
+    if len(files) > max_attachments:
+        logger.error(f"send_message: Превышено максимальное количество вложений ({len(files)} > {max_attachments})")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Максимальное количество вложений: {max_attachments}'
+        }, status=400)
+
+    # Проверка размера и типа вложений
     max_file_size = 20 * 1024 * 1024  # 20 MB
+    allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.mp4']
     for file in files:
+        # Проверка размера
         if file.size > max_file_size:
             logger.error(f"send_message: Файл '{file.name}' превышает лимит в 20 МБ")
             return JsonResponse({
                 'status': 'error',
                 'message': f'Файл "{file.name}" превышает лимит в 20 МБ'
+            }, status=400)
+        # Проверка расширения
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext not in allowed_extensions:
+            logger.error(f"send_message: Недопустимый тип файла '{file.name}' (разрешены: {', '.join(allowed_extensions)})")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Недопустимый тип файла "{file.name}". Разрешены: {", ".join(allowed_extensions)}'
             }, status=400)
 
     try:

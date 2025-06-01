@@ -1,4 +1,6 @@
 # blog/models.py
+import os
+
 from PIL import Image, ImageOps
 from django.db import models
 from django.utils.text import slugify
@@ -308,9 +310,57 @@ class MessageAttachment(models.Model):
         verbose_name="Дата загрузки"
     )
 
+    class Meta:
+        verbose_name = "Вложение сообщения"
+        verbose_name_plural = "Вложения сообщений"
+
     def __str__(self):
         """Возвращает строковое представление вложения."""
         return f"Attachment {self.filename} for message {self.message.id}"
+
+    def save(self, *args, **kwargs):
+        """
+        Сохраняет вложение, сжимая изображения (JPG, JPEG, PNG, неанимированный GIF).
+
+        Сжимает изображения до размера 800x800 пикселей в формате JPEG с качеством 85.
+        Анимированные GIF и другие файлы (PDF, MP4) сохраняются без изменений.
+        """
+        if self.file and self.filename:
+            # Проверяем, является ли файл изображением
+            ext = os.path.splitext(self.filename)[1].lower()
+            if ext in ['.jpg', '.jpeg', '.png', '.gif']:
+                try:
+                    # Открываем изображение
+                    img = Image.open(self.file)
+                    # Проверяем, анимированный ли GIF
+                    is_animated = ext == '.gif' and getattr(img, "is_animated", False)
+                    if not is_animated:
+                        # Конвертируем в RGB (для JPEG)
+                        if img.mode != 'RGB':
+                            img = img.convert('RGB')
+                        # Сжимаем до 800x800
+                        img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
+                        # Сохраняем сжатое изображение
+                        output_path = self.file.path
+                        img.save(output_path, format='JPEG', quality=85, optimize=True)
+                        # Обновляем filename, если расширение изменилось
+                        if ext != '.jpg':
+                            new_filename = os.path.splitext(self.filename)[0] + '.jpg'
+                            self.filename = new_filename
+                            # Переименовываем файл на диске
+                            new_path = os.path.splitext(output_path)[0] + '.jpg'
+                            os.rename(output_path, new_path)
+                            self.file.name = os.path.join(
+                                os.path.dirname(self.file.name), os.path.basename(new_path)
+                            )
+                except Exception as e:
+                    # Логируем ошибку, но не прерываем сохранение
+                    from django.utils import timezone
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Ошибка сжатия изображения {self.filename}: {str(e)}")
+        super().save(*args, **kwargs)
+
 
 
 
