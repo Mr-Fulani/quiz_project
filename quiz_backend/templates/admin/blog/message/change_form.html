@@ -1,0 +1,77 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Стили для inline-вложений */
+    .attachment-preview img {
+        max-width: 100px;
+        max-height: 100px;
+        margin: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .message-details {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    .message-details p {
+        margin: 5px 0;
+    }
+    .attachments-list {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #ddd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div class="message-details">
+    <h3>{% trans "Message Details" %}</h3>
+    {% if original %}
+        <p><strong>{% trans "Sender" %}:</strong> {{ original.sender.username|default:"No sender" }}</p>
+        <p><strong>{% trans "Recipient" %}:</strong> {{ original.recipient.username|default:"No recipient" }}</p>
+        <p><strong>{% trans "Fullname" %}:</strong> {{ original.fullname|default:"-" }}</p>
+        <p><strong>{% trans "Email" %}:</strong> {{ original.email|default:"-" }}</p>
+        <p><strong>{% trans "Content" %}:</strong> {{ original.content|linebreaksbr|default:"-" }}</p>
+        <p><strong>{% trans "Created At" %}:</strong> {{ original.created_at|date:"d M Y, H:i"|default:"-" }}</p>
+        <p><strong>{% trans "Is Read" %}:</strong> {{ original.is_read|yesno:"Yes,No,-" }}</p>
+        <p><strong>{% trans "Deleted by Sender" %}:</strong> {{ original.is_deleted_by_sender|yesno:"Yes,No,-" }}</p>
+        <p><strong>{% trans "Deleted by Recipient" %}:</strong> {{ original.is_deleted_by_recipient|yesno:"Yes,No,-" }}</p>
+        <div class="attachments-list">
+            <h4>{% trans "Attachments" %}</h4>
+            {% if original.attachments.exists %}
+                {% for attachment in original.attachments.all %}
+                    <div class="attachment-item">
+                        {% if attachment.file %}
+                            {% with attachment.filename|lower as lower_filename %}
+                                {% if lower_filename|slice:"-4:" == ".jpg" or lower_filename|slice:"-5:" == ".jpeg" or lower_filename|slice:"-4:" == ".png" or lower_filename|slice:"-4:" == ".gif" or lower_filename|slice:"-5:" == ".webp" %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" title="{{ attachment.filename }}">
+                                        <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="attachment-preview">
+                                    </a>
+                                {% else %}
+                                    <a href="{{ attachment.file.url }}" target="_blank" style="text-decoration: none; color: #007bff;">
+                                        <img src="{% static 'admin/img/icon-unknown.svg' %}" alt="file" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+                                        {{ attachment.filename }}
+                                    </a>
+                                {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            <span style="color: #999;">{% trans "No file" %}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <span style="color: #999;">{% trans "No attachments" %}</span>
+            {% endif %}
+        </div>
+    {% else %}
+        <p><strong>{% trans "Error" %}:</strong> {% trans "No message object found in context." %}</p>
+    {% endif %}
+</div>
+{% endblock %}
