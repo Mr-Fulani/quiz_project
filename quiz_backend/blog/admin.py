@@ -2,6 +2,7 @@ import os
 import traceback
 
 from django.contrib import admin
+from django.db import transaction
 from django.db.models import Q, Max, Count
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -170,33 +171,113 @@ class MessageAdmin(admin.ModelAdmin):
     def delete_selected_messages(self, request, queryset):
         """
         Удаляет выбранные сообщения и их вложения.
-
-        Args:
-            request: HTTP-запрос.
-            queryset: QuerySet выбранных сообщений.
-
-        Returns:
-            None: Сообщает пользователю об успешном удалении через message_user.
+        Улучшена обработка ошибок и логирование.
         """
-        selected = request.POST.getlist('_selected_action')
-        deleted_count = 0
-        for message_ids in selected:
+        selected_items = request.POST.getlist('_selected_action')
+        logger.info(f"Получены элементы для удаления: {selected_items}")
+        if not selected_items:
+            self.message_user(request, _("Не выбрано ни одного элемента для удаления."), level='warning')
+            return
+
+        actual_deleted_messages_count = 0
+        successfully_deleted_message_pks = []
+
+        for item_ids_str in selected_items:
             try:
-                message_ids_list = [int(mid) for mid in message_ids.split(',') if mid]
-                messages = Message.objects.filter(id__in=message_ids_list)
-                for message in messages:
-                    for attachment in message.attachments.all():
-                        if attachment.file and os.path.exists(attachment.file.path):
-                            os.remove(attachment.file.path)
-                            logger.info(f"Deleted file: {attachment.file.path}")
-                        attachment.delete()
-                    message.delete()
-                    deleted_count += 1
-            except Exception as e:
-                logger.error(f"Error deleting messages with IDs {message_ids}: {str(e)}")
-        self.message_user(request, _(f"Успешно удалено {deleted_count} сообщений и их вложений."))
+                message_ids_list = [int(mid) for mid in item_ids_str.split(',') if mid]
+                logger.info(f"Обработка ID сообщений для удаления: {message_ids_list}")
+
+                messages_to_delete = Message.objects.filter(id__in=message_ids_list)
+
+                if not messages_to_delete.exists():
+                    logger.warning(f"Сообщения с ID: {message_ids_list} не найдены, пропуск.")
+                    continue
+
+                for message in messages_to_delete:
+                    message_pk_for_log = message.pk  # Сохраняем PK для логирования
+                    logger.info(f"Попытка удаления сообщения PK: {message_pk_for_log}")
+
+                    try:
+                        with transaction.atomic():  # Оборачиваем удаление сообщения и его вложений в транзакцию
+                            # Сначала удаляем вложения
+                            if hasattr(message, 'attachments'):
+                                try:
+                                    attachments = message.attachments.all()
+                                    logger.info(
+                                        f"Найдено {attachments.count()} вложений для сообщения PK {message_pk_for_log}")
+                                    for attachment in attachments:
+                                        attachment_pk_for_log_inner = attachment.pk  # Сохраняем PK вложения
+                                        try:
+                                            # Проверяем наличие файла и пути перед удалением
+                                            if attachment.file and hasattr(attachment.file,
+                                                                           'path') and attachment.file.path and os.path.exists(
+                                                    attachment.file.path):
+                                                logger.info(
+                                                    f"Удаление файла: {attachment.file.path} для вложения PK {attachment_pk_for_log_inner}")
+                                                os.remove(attachment.file.path)
+                                            elif attachment.file:  # Если файл есть, но путь некорректен или файла нет
+                                                logger.warning(
+                                                    f"Физический файл для вложения PK {attachment_pk_for_log_inner} не найден или путь некорректен. URL файла: {getattr(attachment.file, 'url', 'N/A')}")
+                                            else:  # Если у вложения вообще нет файла
+                                                logger.warning(
+                                                    f"С вложением PK {attachment_pk_for_log_inner} не связан файл.")
+                                        except Exception as e:
+                                            logger.error(
+                                                f"Ошибка при удалении физического файла для вложения PK {attachment_pk_for_log_inner}: {str(e)}")
+                                            # Можно решить, прерывать ли операцию. Пока логируем и продолжаем удалять запись из БД.
+
+                                        # Удаляем запись вложения из БД
+                                        try:
+                                            attachment.delete()
+                                            logger.info(
+                                                f"Удалена запись вложения из БД PK {attachment_pk_for_log_inner}")
+                                        except Exception as e:
+                                            logger.error(
+                                                f"Ошибка при удалении записи вложения из БД PK {attachment_pk_for_log_inner}: {str(e)}")
+                                            raise  # Перебрасываем исключение, чтобы откатить транзакцию для этого сообщения
+                                except Exception as e:
+                                    logger.error(
+                                        f"Ошибка при обработке вложений для сообщения PK {message_pk_for_log}: {str(e)}")
+                                    raise  # Перебрасываем исключение, чтобы откатить транзакцию
+                            else:
+                                logger.info(f"Для сообщения PK {message_pk_for_log} нет связи 'attachments'.")
+
+                            # Затем удаляем само сообщение
+                            message.delete()
+                            logger.info(f"Удалено сообщение PK {message_pk_for_log}")
+                            actual_deleted_messages_count += 1
+                            if message_pk_for_log not in successfully_deleted_message_pks:
+                                successfully_deleted_message_pks.append(message_pk_for_log)
+
+                    except Exception as e:  # Перехватываем ошибки из блока транзакции
+                        logger.error(
+                            f"Не удалось удалить сообщение PK {message_pk_for_log} и его вложения из-за ошибки: {str(e)}")
+                        self.message_user(request,
+                                          _(f"Ошибка при удалении сообщения PK {message_pk_for_log}: {str(e)}"),
+                                          level='error')
+
+            except ValueError:  # Ошибка преобразования ID сообщения в int
+                logger.error(f"Обнаружен неверный формат ID в элементе: '{item_ids_str}'")
+                self.message_user(request, _(f"Обнаружен неверный формат ID сообщения: '{item_ids_str}'."),
+                                  level='error')
+            except Exception as e:  # Другие общие ошибки при обработке item_ids_str
+                logger.error(f"Общая ошибка при обработке элемента '{item_ids_str}' для удаления: {str(e)}")
+                self.message_user(request, _(f"Ошибка при обработке элемента для удаления: {str(e)}"), level='error')
+
+        if actual_deleted_messages_count > 0:
+            deleted_pks_str = ', '.join(map(str, successfully_deleted_message_pks))
+            self.message_user(request,
+                              _(f"Успешно удалено {actual_deleted_messages_count} сообщений (ID: {deleted_pks_str}) и их вложений."))
+        else:
+            # Проверяем, были ли уже добавлены сообщения об ошибках
+            # _loaded_messages может быть не доступен напрямую или быть внутренним API, используем messages.get_messages
+            has_error_messages = any(msg.level == logging.ERROR for msg in admin.messages.get_messages(request))
+            if not has_error_messages:  # Показываем это сообщение, только если не было специфических ошибок
+                self.message_user(request, _("Сообщения для удаления не найдены или уже были удалены."),
+                                  level='warning')
 
     delete_selected_messages.short_description = _("Удалить выбранные сообщения")
+
 
     def mark_as_read(self, request, queryset):
         """
