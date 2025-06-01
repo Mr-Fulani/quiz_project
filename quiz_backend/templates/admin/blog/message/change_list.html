@@ -1,113 +1,361 @@
 {% extends "admin/change_list.html" %}
-{% load static i18n %}
+{% load static i18n admin_list %}
 
 {% block extrastyle %}
+  {{ block.super }}
   <link rel="stylesheet" href="{% static 'admin/css/message_styles.css' %}">
+  <style>
+    /* Горизонтальные фильтры для страницы диалогов */
+    .dialog-filters {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 15px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 20px;
+      width: 100%;
+      border-radius: 4px;
+    }
+    .dialog-filters h3 {
+      width: 100%;
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .dialog-filters ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .dialog-filters li {
+      margin: 0;
+      padding: 0;
+    }
+    .dialog-filters li a {
+      display: inline-block;
+      padding: 5px 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      text-decoration: none;
+      color: #333;
+      font-size: 12px;
+    }
+    .dialog-filters li.selected a {
+      font-weight: bold;
+      color: #fff;
+      background: #007bff;
+      border-color: #007bff;
+    }
+    .dialog-filters li a:hover {
+      background: #f0f0f0;
+    }
+    .dialog-filters li.selected a:hover {
+      background: #0056b3;
+    }
+
+    /* Вертикальные фильтры для диалогового режима (скрываем их) */
+    .dialog-view #changelist-filter {
+      display: none;
+    }
+
+    /* Стили для сообщений */
+    .message-item {
+      margin: 10px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .message-item.sender {
+      background: #e6f3ff;
+      border-left: 4px solid #007bff;
+    }
+    .message-item.recipient {
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+    }
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    .message-content {
+      margin: 10px 0;
+      line-height: 1.4;
+      color: #333; /* Улучшенная читаемость */
+    }
+    .message-attachments {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+    .attachment-item {
+      display: inline-block;
+      margin: 5px 10px 5px 0;
+    }
+    .attachment-item img {
+      max-width: 100px;
+      max-height: 100px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .attachment-item .icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+
+    /* Стили для таблицы диалогов */
+    .dialogs-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .dialogs-table th,
+    .dialogs-table td {
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .dialogs-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+    }
+    .dialogs-table tr:hover {
+      background: #f8f9fa;
+    }
+    .dialogs-table a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    .dialogs-table a:hover {
+      text-decoration: underline;
+    }
+
+    /* Чекбоксы для действий */
+    .dialogs-table .action-checkbox {
+      margin: 0;
+      vertical-align: middle;
+    }
+
+    /* Кнопка назад */
+    .back-button {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #007bff;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+    .back-button:hover {
+      background: #0056b3;
+      color: #fff;
+    }
+  </style>
+{% endblock %}
+
+{% block filters %}
+  {% if not is_dialog_view and cl.filters %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block search %}
+  {% if not is_dialog_view %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block date_hierarchy %}
+  {% if not is_dialog_view %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block object-tools %}
+  {% if not is_dialog_view and has_add_permission %}
+    {{ block.super }}
+  {% endif %}
 {% endblock %}
 
 {% block content %}
-  {% if is_dialog_view %}
-    <div class="conversation-container">
-      <h2 style="text-align: center; margin: 20px 0;">
-        {% trans "Переписка между" %}
-        {% if cl.result_list|length > 0 %}
-          {% with first_message=cl.result_list|first %}
-            {{ first_message.sender.username|default:"Аноним" }} ↔ {{ first_message.recipient.username|default:"Аноним" }}
-          {% endwith %}
-        {% else %}
-          {% trans "Неизвестно" %}
-        {% endif %}
-      </h2>
-      {% if cl.result_list %}
-        {% with first_message=cl.result_list|first %}
-          {% for result in cl.result_list %}
-            <div class="message-item {% if result.sender_id == first_message.sender_id %}sender{% else %}recipient{% endif %}">
-              <div class="message-header">
-                <strong>
-                  {% if result.sender %}
-                    {{ result.sender.username }}
-                  {% elif result.fullname %}
-                    {{ result.fullname }} {% if result.email %}({{ result.email }}){% endif %}
-                  {% else %}
-                    {% trans "Аноним" %}
-                  {% endif %}
-                </strong>
-                <small>{{ result.created_at|date:"d M Y, H:i" }}</small>
-              </div>
-              <div class="message-content">
-                {{ result.content|default:"Нет текста"|linebreaksbr }}
-              </div>
-              <div class="message-attachments">
-                <strong style="font-size: 0.9em; color: #555;">{% trans "Вложения" %}:</strong><br>
-                {% if result.attachments.exists %}
-                  {% for attachment in result.attachments.all %}
-                    <div class="attachment-item">
-                      {% if attachment.file %}
-                        <a href="{{ attachment.file.url }}" target="_blank" title="{{ attachment.filename }}">
-                          {% with attachment.filename|lower as lower_filename %}
-                            {% if lower_filename|slice:"-4:" in ".jpg,.png,.gif" or lower_filename|slice:"-5:" in ".jpeg,.webp" %}
-                              <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}">
-                            {% else %}
-                              <img src="{% static 'admin/img/icon-unknown.svg' %}" alt="file" class="icon">
-                              {{ attachment.filename }}
-                            {% endif %}
-                          {% endwith %}
-                        </a>
-                      {% else %}
-                        <span style="color: #999;">{% trans "Нет файла" %}</span>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                {% else %}
-                  <span style="color: #999;">{% trans "Нет вложений" %}</span>
-                {% endif %}
-              </div>
+  <div id="content-main" {% if is_dialog_view %}class="dialog-view"{% endif %}>
+    {% if is_dialog_view %}
+      <div class="conversation-container">
+        <h2 style="text-align: center; margin: 20px 0; color: #333;">
+          {% trans "Переписка между" %}
+          {% if cl.result_list|length > 0 %}
+            {% with first_message=cl.result_list|first %}
+              {{ first_message.sender.username|default:"Аноним" }} ↔ {{ first_message.recipient.username|default:"Аноним" }}
+            {% endwith %}
+          {% else %}
+            {% trans "Неизвестно" %}
+          {% endif %}
+        </h2>
+
+        <div class="dialog-filters">
+          <h3 style="color: #333;">{% trans "Фильтры" %}</h3>
+          <ul>
+            <li {% if not request.GET.read_filter %}class="selected"{% endif %}>
+              <a href="?dialog={{ request.GET.dialog }}" style="color: #333;">{% trans "Все" %}</a>
+            </li>
+            <li {% if request.GET.read_filter == 'read' %}class="selected"{% endif %}>
+              <a href="?dialog={{ request.GET.dialog }}&read_filter=read" style="color: #333;">{% trans "Прочитанные" %}</a>
+            </li>
+            <li {% if request.GET.read_filter == 'unread' %}class="selected"{% endif %}>
+              <a href="?dialog={{ request.GET.dialog }}&read_filter=unread" style="color: #333;">{% trans "Непрочитанные" %}</a>
+            </li>
+          </ul>
+        </div>
+
+        {% if cl.result_list %}
+          <form method="post" class="dialog-actions">
+            {% csrf_token %}
+            <div class="actions">
+              <label style="color: #333;">{% trans "Действие:" %}
+                <select name="action" required style="color: #333; background: #fff;">
+                  <option value="">---------</option>
+                  <option value="mark_as_read">{% trans "Отметить как прочитанные" %}</option>
+                  <option value="mark_as_unread">{% trans "Отметить как непрочитанные" %}</option>
+                  <option value="delete_selected_messages">{% trans "Удалить выбранные сообщения" %}</option>
+                </select>
+              </label>
+              <button type="submit" class="button" name="index" value="{{ cl.result_count }}" style="color: #fff; background: #007bff;">{% trans "Выполнить" %}</button>
             </div>
-          {% endfor %}
-        {% endwith %}
-      {% else %}
-        <p style="text-align: center; color: #777;">{% trans "Сообщений не найдено." %}</p>
-      {% endif %}
-      <p style="text-align: center;">
-        <a href="{% url 'admin:blog_message_changelist' %}" class="button" style="text-decoration: none; padding: 8px 16px; background: #007bff; color: #fff; border-radius: 4px;">{% trans "Назад к диалогам" %}</a>
-      </p>
-    </div>
-  {% else %}
-    <div class="results">
-      <h2>{% trans "Диалоги" %}</h2>
-      {% if dialogs %}
-        <table class="dialogs-table">
-          <thead>
-            <tr>
-              <th>{% trans "Диалог" %}</th>
-              <th>{% trans "Последнее сообщение" %}</th>
-              <th>{% trans "Сообщений" %}</th>
-              <th>{% trans "Дата" %}</th>
-              <th>{% trans "Статус" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dialog in dialogs %}
-              <tr>
-                <td>
-                  <a href="{% url 'admin:blog_message_changelist' %}?dialog={{ dialog.sender_id }}-{{ dialog.recipient_id }}">
-                    {{ dialog.sender_username|default:"Аноним" }} ↔ {{ dialog.recipient_username|default:"Аноним" }}
-                  </a>
-                </td>
-                <td>{{ dialog.last_message|default:"-"|truncatechars:50 }}</td>
-                <td>{{ dialog.message_count }}</td>
-                <td>{{ dialog.last_message_date|date:"d M Y, H:i"|default:"-" }}</td>
-                <td>
-                  <span class="read-status {% if dialog.is_read %}read{% endif %}"></span>
-                  {% if dialog.is_read %}{% trans "Прочитано" %}{% else %}{% trans "Не прочитано" %}{% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <p>{% trans "Диалогов не найдено." %}</p>
-      {% endif %}
-    </div>
-  {% endif %}
+
+            {% with first_message=cl.result_list|first %}
+              {% for result in cl.result_list %}
+                <div class="message-item {% if result.sender_id == first_message.sender_id %}sender{% else %}recipient{% endif %}">
+                  <div style="float: right;">
+                    <input type="checkbox" name="_selected_action" value="{{ result.pk }}" class="action-select">
+                  </div>
+                  <div class="message-header">
+                    <strong style="color: #337ab7;">
+                      {% if result.sender %}
+                        {{ result.sender.username }}
+                      {% elif result.fullname %}
+                        {{ result.fullname }} {% if result.email %}({{ result.email }}){% endif %}
+                      {% else %}
+                        {% trans "Аноним" %}
+                      {% endif %}
+                    </strong>
+                    <small style="color: #777;">{{ result.created_at|date:"d M Y, H:i" }}</small>
+                  </div>
+                  <div class="message-content" style="color: #222;">
+                    {{ result.content|default:"Нет текста"|linebreaksbr }}
+                  </div>
+                  {% if result.attachments.exists %}
+                    <div class="message-attachments">
+                      <strong style="font-size: 0.9em; color: #555;">{% trans "Вложения" %}:</strong><br>
+                      {% for attachment in result.attachments.all %}
+                        <div class="attachment-item">
+                          {% if attachment.file %}
+                            <a href="{{ attachment.file.url }}" target="_blank" title="{{ attachment.filename }}" style="color: #007bff;">
+                              {% with attachment.filename|lower as lower_filename %}
+                                {% if lower_filename|slice:"-4:" in ".jpg,.png,.gif" or lower_filename|slice:"-5:" in ".jpeg,.webp" %}
+                                  <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}">
+                                {% else %}
+                                  <img src="{% static 'admin/img/icon-unknown.svg' %}" alt="file" class="icon">
+                                  {{ attachment.filename }}
+                                {% endif %}
+                              {% endwith %}
+                            </a>
+                          {% else %}
+                            <span style="color: #999;">{% trans "Нет файла" %}</span>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            {% endwith %}
+          </form>
+        {% else %}
+          <p style="text-align: center; color: #777;">{% trans "Сообщений не найдено." %}</p>
+        {% endif %}
+
+        <p style="text-align: center;">
+          <a href="{% url 'admin:blog_message_changelist' %}" class="back-button">{% trans "Назад к диалогам" %}</a>
+        </p>
+      </div>
+    {% else %}
+      <div class="results">
+        <h2 style="color: #333;">{% trans "Диалоги" %}</h2>
+
+        <!-- Отладочная информация -->
+        <p>Dialogs available: {{ dialogs|length }} dialogs</p>
+        {% if not dialogs %}
+          <p style="color: #777;">{% trans "Диалогов не найдено." %}</p>
+        {% endif %}
+
+        {% if dialogs %}
+          <form method="post" class="dialog-actions">
+            {% csrf_token %}
+            <div class="actions">
+              <label style="color: #333;">{% trans "Действие:" %}
+                <select name="action" required style="color: #333; background: #fff;">
+                  <option value="">---------</option>
+                  <option value="mark_as_read">{% trans "Отметить как прочитанные" %}</option>
+                  <option value="mark_as_unread">{% trans "Отметить как непрочитанные" %}</option>
+                  <option value="delete_selected_dialogs">{% trans "Удалить выбранные диалоги" %}</option>
+                </select>
+              </label>
+              <button type="submit" class="button" name="index" value="{{ dialogs|length }}" style="color: #fff; background: #007bff;">{% trans "Выполнить" %}</button>
+            </div>
+
+            <table class="dialogs-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="action-toggle"></th>
+                  <th>{% trans "Диалог" %}</th>
+                  <th>{% trans "Последнее сообщение" %}</th>
+                  <th>{% trans "Сообщений" %}</th>
+                  <th>{% trans "Дата" %}</th>
+                  <th>{% trans "Статус" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for dialog in dialogs %}
+                  <tr>
+                    <td>
+                      <input type="checkbox" name="_selected_action" value="{{ dialog.message_ids|join:',' }}" class="action-checkbox">
+                    </td>
+                    <td>
+                      <a href="{% url 'admin:blog_message_changelist' %}?dialog={{ dialog.sender_id }}-{{ dialog.recipient_id }}" style="color: #007bff;">
+                        {{ dialog.sender_username|default:"Аноним" }} ↔ {{ dialog.recipient_username|default:"Аноним" }}
+                      </a>
+                    </td>
+                    <td>{{ dialog.last_message|default:"-"|truncatechars:50 }}</td>
+                    <td>{{ dialog.message_count }}</td>
+                    <td>{{ dialog.last_message_date|date:"d M Y, H:i"|default:"-" }}</td>
+                    <td>
+                      {% if dialog.is_read %}
+                        <span style="color: #28a745;">{% trans "Прочитано" %}</span>
+                      {% else %}
+                        <span style="color: #dc3545;">{% trans "Не прочитано" %}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
 {% endblock %}

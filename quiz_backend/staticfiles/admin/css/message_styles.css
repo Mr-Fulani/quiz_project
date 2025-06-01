@@ -7,6 +7,7 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  color: #333; /* Основной цвет текста */
 }
 
 /* Стили для сообщений */
@@ -19,6 +20,7 @@
   max-width: 75%;
   position: relative;
   transition: transform 0.2s ease;
+  color: #222; /* Улучшенная читаемость */
 }
 
 .message-item.sender {
@@ -39,6 +41,7 @@
   align-items: center;
   margin-bottom: 6px;
   flex-wrap: wrap;
+  color: #337ab7; /* Цвет заголовков */
 }
 
 .message-header strong {
@@ -53,7 +56,7 @@
 
 .message-content {
   line-height: 1.5;
-  color: #222; /* Тёмный цвет для читаемости на светлом фоне */
+  color: #222; /* Тёмный цвет для читаемости */
   white-space: pre-wrap;
   font-size: 0.95em;
   word-break: break-word;
@@ -69,6 +72,7 @@
   display: inline-block;
   margin: 5px 8px 5px 0;
   vertical-align: top;
+  color: #007bff; /* Цвет ссылок */
 }
 
 .attachment-item img {
@@ -101,6 +105,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #333; /* Основной цвет текста */
 }
 
 .dialogs-table th, .dialogs-table td {
@@ -210,21 +215,23 @@
 @media (prefers-color-scheme: dark) {
   .conversation-container {
     background: #2c2c2c;
-    color: #ddd;
+    color: #e0e0e0; /* Светлый текст для тёмной темы */
   }
 
   .message-item.sender {
     background: #1e3a5f;
     border-color: #4a90e2;
+    color: #e0e0e0; /* Светлый текст */
   }
 
   .message-item.recipient {
     background: #3c3c3c;
     border-color: #555;
+    color: #e0e0e0; /* Светлый текст */
   }
 
   .message-content {
-    color: #ddd; /* Светлый текст для тёмной темы */
+    color: #e0e0e0; /* Светлый текст */
   }
 
   .message-header strong {
@@ -237,11 +244,12 @@
 
   .dialogs-table {
     background: #333;
+    color: #e0e0e0; /* Светлый текст */
   }
 
   .dialogs-table th {
     background: #444;
-    color: #ddd;
+    color: #e0e0e0; /* Светлый текст */
   }
 
   .dialogs-table tr:hover {
@@ -249,10 +257,14 @@
   }
 
   .dialogs-table td {
-    color: #ddd;
+    color: #e0e0e0; /* Светлый текст */
   }
 
   .message-attachments {
     border-top-color: #555;
+  }
+
+  .dialogs-table a {
+    color: #4a90e2;
   }
 }
