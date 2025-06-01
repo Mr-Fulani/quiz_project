@@ -43,7 +43,9 @@ def personal_info(request):
 
             user_data = {
                 'rank': i,
-                'name': f"{user.first_name} {user.last_name}".strip() if user.first_name else user.username,
+                'username': user.username,
+                'name': f"{user.first_name} {user.last_name}".strip() or user.username,  # Всегда показываем красивое имя
+                'display_name': f"{user.first_name} {user.last_name}".strip() or user.username,
                 'avatar': avatar_url,
                 'quizzes_count': user.tasks_completed,
                 'avg_score': 0,
