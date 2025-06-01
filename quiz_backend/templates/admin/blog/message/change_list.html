@@ -311,7 +311,7 @@
                   <option value="">---------</option>
                   <option value="mark_as_read">{% trans "Отметить как прочитанные" %}</option>
                   <option value="mark_as_unread">{% trans "Отметить как непрочитанные" %}</option>
-                  <option value="delete_selected_dialogs">{% trans "Удалить выбранные диалоги" %}</option>
+                  <option value="delete_selected_messages">{% trans "Удалить выбранные диалоги" %}</option>
                 </select>
               </label>
               <button type="submit" class="button" name="index" value="{{ dialogs|length }}" style="color: #fff; background: #007bff;">{% trans "Выполнить" %}</button>
@@ -332,7 +332,12 @@
                 {% for dialog in dialogs %}
                   <tr>
                     <td>
-                      <input type="checkbox" name="_selected_action" value="{{ dialog.message_ids|join:',' }}" class="action-checkbox">
+                      <!-- Исправление: Создаем отдельные скрытые чекбоксы для каждого ID сообщения -->
+                      {% for message_id in dialog.message_ids %}
+                        <input type="checkbox" name="_selected_action" value="{{ message_id }}" class="action-checkbox dialog-message-checkbox" style="display: none;">
+                      {% endfor %}
+                      <!-- Основной видимый чекбокс, который управляет всеми скрытыми -->
+                      <input type="checkbox" class="action-checkbox dialog-main-checkbox">
                     </td>
                     <td>
                       <a href="{% url 'admin:blog_message_changelist' %}?dialog={{ dialog.sender_id }}-{{ dialog.recipient_id }}" style="color: #007bff;">
@@ -358,4 +363,41 @@
       </div>
     {% endif %}
   </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Обработка основных чекбоксов диалогов
+      const mainCheckboxes = document.querySelectorAll('.dialog-main-checkbox');
+
+      mainCheckboxes.forEach(function(mainCheckbox) {
+        mainCheckbox.addEventListener('change', function() {
+          // Находим все скрытые чекбоксы в этой же строке
+          const row = this.closest('tr');
+          const hiddenCheckboxes = row.querySelectorAll('.dialog-message-checkbox');
+
+          // Устанавливаем состояние всех скрытых чекбоксов
+          hiddenCheckboxes.forEach(function(hiddenCheckbox) {
+            hiddenCheckbox.checked = mainCheckbox.checked;
+          });
+        });
+      });
+
+      // Обработка главного чекбокса "выбрать все"
+      const actionToggle = document.getElementById('action-toggle');
+      if (actionToggle) {
+        actionToggle.addEventListener('change', function() {
+          const allMainCheckboxes = document.querySelectorAll('.dialog-main-checkbox');
+          const allHiddenCheckboxes = document.querySelectorAll('.dialog-message-checkbox');
+
+          allMainCheckboxes.forEach(function(checkbox) {
+            checkbox.checked = actionToggle.checked;
+          });
+
+          allHiddenCheckboxes.forEach(function(checkbox) {
+            checkbox.checked = actionToggle.checked;
+          });
+        });
+      }
+    });
+  </script>
 {% endblock %}
