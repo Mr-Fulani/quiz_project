@@ -39,26 +39,41 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Обработчики для просмотра отзывов
+    // В функции обработки клика на отзыв (testimonials.js)
     testimonialsItem.forEach(item => {
         item.addEventListener('click', function () {
-            console.log("Testimonial clicked");
+            console.log("=== TESTIMONIAL CLICKED ===");
+            console.log("Clicked item:", this);
+
             const avatarImg = this.querySelector('[data-testimonials-avatar]');
-            const defaultAvatarUrl = '/static/images/default_avatar.png'; // URL дефолтной аватарки
+            const defaultAvatarUrl = '/static/images/default_avatar.png';
 
-            // Если у изображения нет src или оно не загрузилось, используем дефолтную
             const avatar = avatarImg && avatarImg.src ? avatarImg.src : defaultAvatarUrl;
-
             const title = this.querySelector('[data-testimonials-title]').textContent;
             const text = this.querySelector('[data-testimonials-text]').innerHTML;
             const date = this.querySelector('[data-date-joined]')?.textContent;
-            const username = this.closest('.testimonials-item').dataset.username;
 
+            // Расширенная отладка для username
+            const testimonialsItemElement = this.closest('.testimonials-item');
+            console.log("Testimonials item element:", testimonialsItemElement);
+            console.log("All datasets on testimonials item:", testimonialsItemElement?.dataset);
+            const username = testimonialsItemElement?.dataset.username;
+
+            console.log("=== EXTRACTED DATA ===");
             console.log("Avatar:", avatar);
             console.log("Title:", title);
             console.log("Text:", text);
             console.log("Date:", date);
             console.log("Username:", username);
+            console.log("Is authenticated:", isAuthenticated);
+
+            // Проверяем наличие элементов модального окна
+            console.log("=== MODAL ELEMENTS ===");
+            console.log("modalImg:", modalImg);
+            console.log("modalTitle:", modalTitle);
+            console.log("modalText:", modalText);
+            console.log("modalDate:", modalDate);
+            console.log("modalProfileLink:", modalProfileLink);
 
             if (modalImg) modalImg.src = avatar;
             modalImg.onerror = function() {
@@ -68,19 +83,32 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalText) modalText.innerHTML = text;
             if (modalDate && date) modalDate.textContent = date;
 
-            if (modalProfileLink && username) {
-                if (isAuthenticated) {
-                    modalProfileLink.href = `/users/user/${encodeURIComponent(username)}/`;
-                    modalProfileLink.className = 'modal-profile-btn';
-                    modalProfileLink.textContent = 'Перейти в профиль';
-                    modalProfileLink.dataset.username = username;
+            if (modalProfileLink) {
+                console.log("=== SETTING PROFILE LINK ===");
+                if (username) {
+                    if (isAuthenticated) {
+                        const profileUrl = `/users/user/${encodeURIComponent(username)}/`;
+                        modalProfileLink.href = profileUrl;
+                        modalProfileLink.className = 'modal-profile-btn';
+                        modalProfileLink.textContent = 'Перейти в профиль';
+                        modalProfileLink.dataset.username = username;
+                        console.log("✓ Profile URL set to:", profileUrl);
+                        console.log("✓ Link href after setting:", modalProfileLink.href);
+                    } else {
+                        modalProfileLink.href = '#';
+                        modalProfileLink.className = 'open-login-modal';
+                        modalProfileLink.textContent = 'Войдите, чтобы перейти в профиль';
+                        modalProfileLink.dataset.returnUrl = `/users/user/${encodeURIComponent(username)}/`;
+                        delete modalProfileLink.dataset.username;
+                        console.log("✓ User not authenticated, login modal required");
+                    }
                 } else {
+                    console.error("✗ Username is empty or undefined");
                     modalProfileLink.href = '#';
-                    modalProfileLink.className = 'open-login-modal';
-                    modalProfileLink.textContent = 'Войдите, чтобы перейти в профиль';
-                    modalProfileLink.dataset.returnUrl = `/users/user/${encodeURIComponent(username)}/`;
-                    delete modalProfileLink.dataset.username;
+                    modalProfileLink.textContent = 'Профиль недоступен';
                 }
+            } else {
+                console.error("✗ Modal profile link element not found");
             }
 
             testimonialsModalFunc();

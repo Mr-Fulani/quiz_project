@@ -110,7 +110,7 @@
         <h3 class="h3 testimonials-title">Топ пользователей</h3>
         <ul class="testimonials-list has-scrollbar">
             {% for user in personal_info.top_users|slice:"3" %}
-                <li class="testimonials-item" data-username="{{ user.name }}">
+                <li class="testimonials-item" data-username="{{ user.username|default:user.name }}">
                     <div class="content-card" data-testimonials-item>
                         <figure class="testimonials-avatar-box">
                             <img src="{{ user.avatar }}" alt="{{ user.name }}" data-testimonials-avatar width="60">

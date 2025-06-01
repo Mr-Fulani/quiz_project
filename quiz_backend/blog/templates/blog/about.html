@@ -130,7 +130,7 @@
         </div>
         <ul class="testimonials-list has-scrollbar">
             {% for testimonial in testimonials|slice:"3" %}
-            <li class="testimonials-item">
+            <li class="testimonials-item" data-username="{{ testimonial.user.username }}">
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
                         {% if testimonial.user.avatar %}
