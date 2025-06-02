@@ -819,3 +819,59 @@ section.testimonials-modal .modal-profile-btn:focus { /* Стиль кнопки
         text-align: center; /* Центрирует текст */
     }
 }
+
+
+@media (min-width: 769px) {
+    /* Центрирование контента в модальном окне отзывов */
+    section.testimonials-modal .modal-content {
+        text-align: center;
+        align-items: center;
+    }
+
+    /* Центрирование аватара в модальном окне */
+    section.testimonials-modal .modal-img-wrapper {
+        justify-content: center;
+    }
+
+    /* Центрирование кнопки "Перейти в профиль" */
+    section.testimonials-modal .modal-profile-btn {
+        align-self: center !important;
+    }
+
+    /* Центрирование даты */
+    section.testimonials-modal time[data-modal-date] {
+        text-align: center;
+        display: block;
+    }
+}
+
+
+/* Скрытие кнопки закрытия на десктопе и увеличение области текста */
+@media (min-width: 769px) {
+    /* Скрываем кнопку закрытия для всех модальных окон */
+    section.testimonials-modal .modal-close-btn {
+        display: none !important;
+    }
+
+    /* Увеличиваем ширину текстового поля ввода */
+    section.testimonials-modal textarea {
+        min-width: 500px;
+        max-width: 600px;
+        min-height: 250px;
+        font-size: 16px;
+        padding: 15px;
+    }
+
+    /* Увеличиваем область текста в карточке отзыва */
+    .testimonials-item .testimonials-text {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+
+    /* Увеличиваем отступы в модальном окне */
+    section.testimonials-modal .modal-content {
+        padding: 20px 40px;
+    }
+}
+
+

@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("Clicked item:", this);
 
             const avatarImg = this.querySelector('[data-testimonials-avatar]');
-            const defaultAvatarUrl = '/static/images/default_avatar.png';
+            const defaultAvatarUrl = window.defaultAvatarUrl || '/static/images/default_avatar.png';
 
             const avatar = avatarImg && avatarImg.src ? avatarImg.src : defaultAvatarUrl;
             const title = this.querySelector('[data-testimonials-title]').textContent;
@@ -115,12 +115,32 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    if (modalCloseBtn) {
-        modalCloseBtn.addEventListener('click', testimonialsModalFunc);
-    }
-    if (overlay) {
-        overlay.addEventListener('click', testimonialsModalFunc);
-    }
+    // Обработчики закрытия модальных окон
+    const setupModalCloseHandlers = function() {
+        // Для всех модальных окон
+        document.querySelectorAll('.modal-container').forEach(modal => {
+            const overlay = modal.querySelector('.overlay');
+            const closeBtn = modal.querySelector('.modal-close-btn');
+
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    modal.classList.remove('active');
+                    this.classList.remove('active');
+                    console.log("Modal closed by overlay click");
+                });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    modal.classList.remove('active');
+                    if (overlay) overlay.classList.remove('active');
+                    console.log("Modal closed by button click");
+                });
+            }
+        });
+    };
+
+    setupModalCloseHandlers();
 
     // Обработчики для модального окна добавления отзыва
     const addTestimonialModal = document.getElementById('add-testimonial-modal');
@@ -137,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalOverlay) {
                 modalOverlay.classList.remove('active');
             }
-            console.log('Modal closed:', modal.id);
+            console.log('Modal closed:', modal.id || 'unknown');
         } else {
             console.error('Modal not found for closing');
         }
@@ -174,24 +194,6 @@ document.addEventListener('DOMContentLoaded', function () {
         addButton.addEventListener('click', openAddTestimonialModal);
     } else {
         console.error('Add testimonial button not found');
-    }
-
-    if (addTestimonialModal) {
-        const closeBtn = addTestimonialModal.querySelector('.modal-close-btn');
-        const modalOverlay = addTestimonialModal.querySelector('.overlay');
-
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => closeModal(addTestimonialModal));
-        } else {
-            console.error('Close button for add testimonial modal not found');
-        }
-        if (modalOverlay) {
-            modalOverlay.addEventListener('click', () => closeModal(addTestimonialModal));
-        } else {
-            console.error('Overlay for add testimonial modal not found');
-        }
-    } else {
-        console.error('Add testimonial modal not found');
     }
 
     if (testimonialForm) {
