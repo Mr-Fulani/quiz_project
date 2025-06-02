@@ -144,14 +144,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Исправленная функция обработки формы смены пароля (строки ~140-200)
     if (securityForm) {
         securityForm.addEventListener('submit', async function (e) {
             e.preventDefault();
             console.log('Submitting security-form');
             const formData = new FormData(this);
-            console.log('Sending security form data:', Object.fromEntries(formData));
-            // Очищаем предыдущие ошибки
+
+            // Очищаем предыдущие ошибки и сообщения об успехе
             document.querySelectorAll('.security-form .error').forEach(el => el.remove());
+            const existingSuccess = document.querySelector('.security-form .success');
+            if (existingSuccess) {
+                existingSuccess.remove();
+            }
+
             try {
                 const response = await fetch(this.action, {
                     method: 'POST',
@@ -161,14 +167,39 @@ document.addEventListener('DOMContentLoaded', function () {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
-                console.log('Security form response status:', response.status);
+
                 const data = await response.json();
-                console.log('Security form response data:', data);
+
                 if (response.ok && data.status === 'success') {
+                    // Успешная смена пароля
                     showNotification('Пароль успешно изменён!', 'success');
-                    window.location.reload(); // Обновляем страницу
+
+                    // Создаем элемент для успешного сообщения
+                    const successElement = document.createElement('div');
+                    successElement.className = 'success';
+                    successElement.textContent = 'Пароль успешно изменён!';
+                    successElement.style.display = 'block';
+
+                    // Вставляем сообщение в начало формы
+                    this.insertBefore(successElement, this.firstChild);
+
+                    // Очищаем поля формы
+                    this.reset();
+
+                    // Скрываем сообщение через 5 секунд
+                    setTimeout(() => {
+                        if (successElement && successElement.parentNode) {
+                            successElement.remove();
+                        }
+                    }, 5000);
+
+                    // УБИРАЕМ автоматическую перезагрузку страницы
+                    // setTimeout(() => {
+                    //     window.location.reload();
+                    // }, 2000);
+
                 } else {
-                    // Отображаем ошибки в форме
+                    // Обработка ошибок
                     if (data.errors) {
                         const errors = JSON.parse(data.errors);
                         for (const [field, errorList] of Object.entries(errors)) {
@@ -189,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
 
 
     // ================================
@@ -222,6 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ================================
     // 5. Обработка параметра URL "tab" для переключения вкладок
     // ================================
+    // Исправленная обработка параметра URL "tab" (строки ~290-310)
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab');
     if (activeTab) {
@@ -230,10 +263,14 @@ document.addEventListener('DOMContentLoaded', function () {
             switchTab(tabButton);
         }
     } else {
-        // Если параметр tab не задан, по умолчанию активируем вкладку "Personal Info"
-        const defaultTabButton = document.querySelector('.profile-tabs .tab-btn[data-tab="personal"]');
-        if (defaultTabButton) {
-            switchTab(defaultTabButton);
+        // Проверяем, есть ли уже активная вкладка в HTML
+        const alreadyActiveTab = document.querySelector('.tab-btn.active');
+        if (!alreadyActiveTab) {
+            // Только если нет активной вкладки, активируем Personal Info по умолчанию
+            const defaultTabButton = document.querySelector('.profile-tabs .tab-btn[data-tab="personal"]');
+            if (defaultTabButton) {
+                switchTab(defaultTabButton);
+            }
         }
     }
 
@@ -261,9 +298,39 @@ document.addEventListener('DOMContentLoaded', function () {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.padding = '15px 25px';
+        notification.style.borderRadius = '8px';
+        notification.style.color = 'white';
+        notification.style.fontSize = '14px';
+        notification.style.zIndex = '1000';
+        notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+        notification.style.transform = 'translateX(120%)';
+        notification.style.transition = 'transform 0.3s ease';
+
+        if (type === 'success') {
+            notification.style.backgroundColor = '#4CAF50';
+        } else if (type === 'error') {
+            notification.style.backgroundColor = '#f44336';
+        }
+
         document.body.appendChild(notification);
+
+        // Показываем уведомление
         setTimeout(() => {
-            notification.remove();
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+
+        // Удаляем уведомление через 3 секунды
+        setTimeout(() => {
+            notification.style.transform = 'translateX(120%)';
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
         }, 3000);
     }
 
