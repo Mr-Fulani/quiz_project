@@ -2,14 +2,18 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
+from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.views import serve
 from django.shortcuts import render
 from django.urls import path, include
+from django.views.static import serve as static_serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from blog.views import tinymce_image_upload
+
+from blog.sitemaps import ProjectSitemap, PostSitemap, StaticSitemap
 
 # Настройки Swagger
 schema_view = get_schema_view(
@@ -24,6 +28,17 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
+
+
+# Карта сайта
+sitemaps = {
+    'posts': PostSitemap,
+    'projects': ProjectSitemap,
+    'static': StaticSitemap,
+}
+
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -57,6 +72,9 @@ urlpatterns = [
 
     path('tinymce/', include('tinymce.urls')),  # Добавляем маршруты TinyMCE
     path('tinymce/upload/', tinymce_image_upload, name='tinymce_image_upload'),
+
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('robots.txt', static_serve, {'document_root': settings.STATIC_ROOT, 'path': 'robots.txt'}),
 ]
 
 # Подключение статических файлов, если DEBUG=True

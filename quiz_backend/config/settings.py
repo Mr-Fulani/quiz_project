@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
     'tasks',
     'topics',
     'feedback',
@@ -142,6 +143,7 @@ TEMPLATES = [
                 'blog.context_processors.personal_info',
                 'accounts.context_processors.user_profile',
                 'blog.context_processors.unread_messages_count',
+                'blog.context_processors.seo_context',
             ],
             'loaders': [
                 'django.template.loaders.filesystem.Loader',
@@ -320,6 +322,7 @@ SERVER_EMAIL = os.getenv('SERVER_EMAIL')
 EMAIL_ADMIN = ['fulani.dev@gmail.com']
 # EMAIL_ADMIN = [os.getenv('SERVER_EMAIL')]
 
-logger.info(f"EMAIL_HOST_USER: {EMAIL_HOST_USER}")
-logger.info(f"EMAIL_HOST_PASSWORD: {EMAIL_HOST_PASSWORD}")
-logger.info(f"EMAIL_ADMIN: {EMAIL_ADMIN}")
+
+
+
+GOOGLE_ANALYTICS_ID = 'YOUR_GA_ID'

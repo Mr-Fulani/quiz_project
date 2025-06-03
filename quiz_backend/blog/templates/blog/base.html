@@ -4,14 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ personal_info.name }} - Portfolio{% endblock %}</title>
+    <title>{% block title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{% if meta_description %}{{ meta_description|truncatechars:160 }}{% else %}Добро пожаловать на мой сайт — блог, проекты и квизы.{% endif %}{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}{% if meta_keywords %}{{ meta_keywords }}{% else %}блог, проекты, квизы, технологии{% endif %}{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
+
+    <meta property="og:title" content="{% block og_title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{% if meta_description %}{{ meta_description|truncatechars:200 }}{% else %}Исследуйте посты, проекты и квизы на моем сайте.{% endif %}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% if og_image_url %}{{ og_image_url }}{% else %}{% static 'blog/favicon/favicon.png' %}{% endif %}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta property="og:type" content="website">
+
+    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+
+    <link rel="shortcut icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/x-icon">
 
     <link rel="stylesheet" href="{% static 'css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/breadcrumbs.css' %}">
     <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
-    <link rel="shortcut icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/x-icon">
     {% block extra_css %}{% endblock %}
 
-    <!-- Внешние библиотеки -->
     <script type="module" src="{% static 'js/ionicons/ionicons.esm.js' %}"></script>
     <script nomodule src="{% static 'js/ionicons/ionicons.js' %}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
@@ -24,6 +36,30 @@
     {% block extra_head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% endblock %}
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "{{ personal_info.name }} - Portfolio",
+        "url": "{{ request.scheme }}://{{ request.get_host }}",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "{{ request.scheme }}://{{ request.get_host }}/blog/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+
+    {% if GOOGLE_ANALYTICS_ID %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_ID }}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ GOOGLE_ANALYTICS_ID }}');
+    </script>
+    {% endif %}
 </head>
 <body data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
 <main>
@@ -64,13 +100,15 @@
             </ul>
         </nav>
 
+        {% block breadcrumbs %}
+            {% include "blog/includes/_breadcrumbs.html" %}
+        {% endblock %}
+
         {% block content %}{% endblock %}
     </div>
 </main>
 
-<!-- Модальные окна для аутентификации -->
 {% if not user.is_authenticated %}
-<!-- Модальное окно для входа -->
 <div id="login-modal" class="auth-modal">
     <div class="square">
         <i style="--clr:#00ff0a;"></i>
@@ -120,14 +158,13 @@
         </div>
     </div>
 </div>
-<!-- Модальное окно для регистрации -->
 <div id="register-modal" class="auth-modal">
     <div class="square">
         <i style="--clr:#00ff0a;"></i>
         <i style="--clr:#ff0057;"></i>
         <i style="--clr:#fffd44;"></i>
         <div class="login register">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn">×</span>
             <h2>Register</h2>
             <form method="post" action="{% url 'accounts:register' %}">
                 {% csrf_token %}
@@ -154,14 +191,13 @@
     </div>
 </div>
 
-<!-- Модальное окно для восстановления пароля -->
 <div id="forgot-modal" class="auth-modal">
     <div class="square">
         <i style="--clr:#00ff0a;"></i>
         <i style="--clr:#ff0057;"></i>
         <i style="--clr:#fffd44;"></i>
         <div class="login forgot">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn">×</span>
             <h2>Reset Password</h2>
             <form method="post" action="{% url 'password_reset' %}">
                 {% csrf_token %}
@@ -180,13 +216,12 @@
 </div>
 {% endif %}
 
-<!-- Базовые скрипты -->
-<script src="{% static 'js/main.js' %}"></script>
+<script defer src="{% static 'js/main.js' %}"></script>
 <script>
-    window.loginUrl = "{% url 'login' %}"; // Добавлено: будет "/?open_login=true"
+    window.loginUrl = "{% url 'accounts:login' %}";
 </script>
-<script src="{% static 'blog/js/auth_modal.js' %}"></script>
-<script src="{% static 'blog/js/password-animation.js' %}"></script>
+<script defer src="{% static 'blog/js/auth_modal.js' %}"></script>
+<script defer src="{% static 'blog/js/password-animation.js' %}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -216,9 +251,8 @@ document.addEventListener('DOMContentLoaded', function() {
     color: #2ecc71;
     border: 1px solid #2ecc71;
 }
-</style>
 
-<!-- Блок для дополнительных скриптов дочерних шаблонов -->
+</style>
 {% block scripts %}{% endblock %}
 
 </body>

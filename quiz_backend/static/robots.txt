@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /swagger/
+Disallow: /redoc/
+Disallow: /messages/
+Disallow: /inbox/
+Allow: /
+
+
+Sitemap: http://localhost:8001/sitemap.xml
