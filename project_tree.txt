@@ -1,0 +1,335 @@
+.
+├── bot
+│   ├── api
+│   │   └── notify.py
+│   ├── assets
+│   │   ├── logo.png
+│   │   └── logo.svg
+│   ├── database
+│   │   ├── __init__.py
+│   │   ├── add_topics.py
+│   │   ├── database.py
+│   │   └── models.py
+│   ├── fonts
+│   │   └── Arial Unicode.ttf
+│   ├── handlers
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── admin_menu.py
+│   │   ├── delete_task.py
+│   │   ├── feedback.py
+│   │   ├── poll_handler.py
+│   │   ├── start.py
+│   │   ├── statistics_handler.py
+│   │   ├── test.py
+│   │   ├── upload_json.py
+│   │   ├── user_handler.py
+│   │   ├── webhook.py
+│   │   └── webhook_handler.py
+│   ├── keyboards
+│   │   ├── __init__.py
+│   │   ├── quiz_keyboards.py
+│   │   └── reply_keyboards.py
+│   ├── middlewares
+│   │   ├── __init__.py
+│   │   ├── db_session.py
+│   │   └── user_middleware.py
+│   ├── services
+│   │   ├── __init__.py
+│   │   ├── admin_service.py
+│   │   ├── console_image.png
+│   │   ├── default_link_service.py
+│   │   ├── deletion_service.py
+│   │   ├── image_service.py
+│   │   ├── publication_service.py
+│   │   ├── s3_services.py
+│   │   ├── task_bd_status_service.py
+│   │   ├── task_service.py
+│   │   ├── test_output.png
+│   │   ├── topic_services.py
+│   │   ├── webhook_sender.py
+│   │   └── webhook_service.py
+│   ├── states
+│   │   └── admin_states.py
+│   ├── tamplates
+│   │   └── index.html
+│   ├── uploads
+│   │   ├── Sahih_Imama_Muslima.json
+│   │   ├── django.json
+│   │   ├── golang.json
+│   │   ├── java.json
+│   │   ├── khadis.json
+│   │   └── python.json
+│   ├── utils
+│   │   ├── __init__.py
+│   │   ├── admin_utils.py
+│   │   ├── db_utils.py
+│   │   ├── languages_utils.py
+│   │   ├── logging_utils.py
+│   │   ├── markdownV2.py
+│   │   ├── notifications.py
+│   │   ├── report_csv_generator.py
+│   │   ├── time.py
+│   │   ├── url_validator.py
+│   │   └── webhook_utils.py
+│   ├── AWS_quiz_tester:
+│   ├── Dockerfile
+│   ├── __init__.py
+│   ├── config.py
+│   ├── entrypoint.sh
+│   ├── main.py
+│   └── requirements.txt
+├── migrations
+│   ├── versions
+│   ├── README
+│   ├── __init__.py
+│   └── script.py.mako
+├── mini_app
+│   ├── app_handlers
+│   │   ├── __init__.py
+│   │   └── handlers.py
+│   ├── app_keyboards
+│   │   ├── __init__.py
+│   │   └── buttons.py
+│   ├── templates
+│   │   ├── achievements.html
+│   │   ├── base.html
+│   │   ├── home.html
+│   │   ├── index.html
+│   │   ├── profile.html
+│   │   ├── settings.html
+│   │   └── statistics.html
+│   ├── uploads
+│   │   └── user_123456789_face.png
+│   ├── Dockerfile
+│   ├── app.py
+│   ├── config.py
+│   └── requirements.txt
+├── postgres_data
+│   ├── base
+│   │   ├── 1
+│   │   ├── 4
+│   │   ├── 5
+│   │   └── 80218
+│   ├── global
+│   │   ├── 1213
+│   │   ├── 1213_fsm
+│   │   ├── 1213_vm
+│   │   ├── 1214
+│   │   ├── 1232
+│   │   ├── 1233
+│   │   ├── 1260
+│   │   ├── 1260_fsm
+│   │   ├── 1260_vm
+│   │   ├── 1261
+│   │   ├── 1261_fsm
+│   │   ├── 1261_vm
+│   │   ├── 1262
+│   │   ├── 1262_fsm
+│   │   ├── 1262_vm
+│   │   ├── 2396
+│   │   ├── 2396_fsm
+│   │   ├── 2396_vm
+│   │   ├── 2397
+│   │   ├── 2671
+│   │   ├── 2672
+│   │   ├── 2676
+│   │   ├── 2677
+│   │   ├── 2694
+│   │   ├── 2695
+│   │   ├── 2697
+│   │   ├── 2698
+│   │   ├── 2846
+│   │   ├── 2847
+│   │   ├── 2964
+│   │   ├── 2965
+│   │   ├── 2966
+│   │   ├── 2967
+│   │   ├── 3592
+│   │   ├── 3593
+│   │   ├── 4060
+│   │   ├── 4061
+│   │   ├── 4175
+│   │   ├── 4176
+│   │   ├── 4177
+│   │   ├── 4178
+│   │   ├── 4181
+│   │   ├── 4182
+│   │   ├── 4183
+│   │   ├── 4184
+│   │   ├── 4185
+│   │   ├── 4186
+│   │   ├── 6000
+│   │   ├── 6001
+│   │   ├── 6002
+│   │   ├── 6100
+│   │   ├── 6114
+│   │   ├── 6115
+│   │   ├── 6243
+│   │   ├── 6244
+│   │   ├── 6245
+│   │   ├── 6246
+│   │   ├── 6247
+│   │   ├── pg_control
+│   │   ├── pg_filenode.map
+│   │   └── pg_internal.init
+│   ├── pg_commit_ts
+│   ├── pg_dynshmem
+│   ├── pg_logical
+│   │   ├── mappings
+│   │   ├── snapshots
+│   │   └── replorigin_checkpoint
+│   ├── pg_multixact
+│   │   ├── members
+│   │   └── offsets
+│   ├── pg_notify
+│   ├── pg_replslot
+│   ├── pg_serial
+│   ├── pg_snapshots
+│   ├── pg_stat
+│   ├── pg_stat_tmp
+│   ├── pg_subtrans
+│   │   └── 0000
+│   ├── pg_tblspc
+│   ├── pg_twophase
+│   ├── pg_wal
+│   │   ├── archive_status
+│   │   ├── 000000010000000000000021
+│   │   └── 000000010000000000000022
+│   ├── pg_xact
+│   │   └── 0000
+│   ├── PG_VERSION
+│   ├── pg_hba.conf
+│   ├── pg_ident.conf
+│   ├── postgresql.auto.conf
+│   ├── postgresql.conf
+│   ├── postmaster.opts
+│   └── postmaster.pid
+├── quiz_backend
+│   ├── accounts
+│   │   ├── api
+│   │   ├── management
+│   │   ├── migrations
+│   │   ├── templates
+│   │   ├── utils
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── context_processors.py
+│   │   ├── forms.py
+│   │   ├── middleware.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── signals.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── blog
+│   │   ├── migrations
+│   │   ├── templates
+│   │   ├── templatetags
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── context_processors.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── sitemaps.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── config
+│   │   ├── __init__.py
+│   │   ├── asgi.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── docs
+│   │   └── api.yaml
+│   ├── feedback
+│   │   ├── migrations
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── filters.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── platforms
+│   │   ├── migrations
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── filters.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── tasks
+│   │   ├── management
+│   │   ├── migrations
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── filters.py
+│   │   ├── models.py
+│   │   ├── pagination.py
+│   │   ├── serializers.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── templates
+│   │   ├── admin
+│   │   └── 404.html
+│   ├── topics
+│   │   ├── migrations
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── webhooks
+│   │   ├── migrations
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── services.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── Dockerfile
+│   ├── conftest.py
+│   ├── create_test_data.py
+│   ├── db.sqlite3
+│   ├── manage.py
+│   ├── project_tree.txt
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   ├── robots.txt
+│   ├── setup.cfg
+│   └── setup.py
+├── uploads
+│   ├── all_topics.json
+│   ├── django.json
+│   ├── golang.json
+│   ├── java.json
+│   ├── javascript.json
+│   ├── khadis.json
+│   ├── python.json
+│   └── sql.json
+├── README.md
+├── __init__.py
+├── alembic.ini
+├── backup.sql
+├── docker-compose.yml
+├── package-lock.json
+├── package.json
+├── project_tree.txt
+├── pytest.ini
+├── python-icon.png
+├── requirements.txt
+└── trening.py
+
+75 directories, 258 files

@@ -3,6 +3,7 @@ import os
 
 from PIL import Image, ImageOps
 from django.db import models
+from django.urls import reverse
 from django.utils.text import slugify
 from accounts.models import CustomUser
 from django.contrib.auth import get_user_model
@@ -40,7 +41,7 @@ class Post(models.Model):
     """Модель поста блога."""
     title = models.CharField(max_length=200, verbose_name="Заголовок поста")
     slug = models.SlugField(unique=True, verbose_name="Слаг поста")
-    content = HTMLField(verbose_name="Содержимое поста")  # Заменяем TextField на HTMLField
+    content = HTMLField(verbose_name="Содержимое поста")
     excerpt = HTMLField(blank=True, verbose_name="Краткое описание")
     category = models.ForeignKey(
         Category,
@@ -87,6 +88,10 @@ class Post(models.Model):
         if not main_image:
             main_image = self.images.first()
         return main_image
+
+    def get_absolute_url(self):
+        """Возвращает абсолютный URL поста."""
+        return reverse('blog:post_detail', kwargs={'slug': self.slug})
 
 
 class PostImage(models.Model):
@@ -218,6 +223,10 @@ class Project(models.Model):
         if not main_image:
             main_image = self.images.first()
         return main_image
+
+    def get_absolute_url(self):
+        """Возвращает абсолютный URL проекта."""
+        return reverse('blog:project_detail', kwargs={'slug': self.slug})
 
 
 class ProjectImage(models.Model):

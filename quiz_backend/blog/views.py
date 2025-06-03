@@ -145,15 +145,22 @@ class HomePageView(TemplateView):
     Отображает главную страницу сайта.
 
     Использует шаблон blog/index.html, предоставляет пагинированный список постов,
-    категории, проекты и данные из personal_info.
+    категории, проекты, видео и хлебные крошки.
     """
     template_name = 'blog/index.html'
 
     def get_context_data(self, **kwargs):
         """
-        Добавляет данные в контекст шаблона, не трогая personal_info из процессора.
+        Добавляет данные в контекст шаблона.
+
+        Включает посты, категории, проекты, видео, хлебные крошки и отладочную информацию.
+        Проверяет наличие данных от контекстных процессоров.
         """
         context = super().get_context_data(**kwargs)
+
+        # Отладка: логируем начальный контекст
+        logger.info("=== DEBUG: Initial context keys: %s", list(context.keys()))
+        logger.info("=== DEBUG: Initial personal_info: %s", context.get('personal_info', 'Not set'))
 
         posts_list = Post.objects.filter(published=True)
         paginator = Paginator(posts_list, 5)
@@ -166,10 +173,13 @@ class HomePageView(TemplateView):
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='index')
+        context['breadcrumbs'] = [
+            {'name': 'Главная', 'url': reverse('blog:home')},
+        ]
 
-        # Отладка: проверяем наличие personal_info и его содержимое
-        logger.info("=== DEBUG: Context keys: %s", list(context.keys()))
-        logger.info("=== DEBUG: personal_info: %s", context.get('personal_info', 'Not set'))
+        # Отладка: логируем финальный контекст
+        logger.info("=== DEBUG: Final context keys: %s", list(context.keys()))
+        logger.info("=== DEBUG: Final personal_info: %s", context.get('personal_info', 'Not set'))
         if 'personal_info' in context:
             logger.info("=== DEBUG: personal_info.resources: %s", context['personal_info'].get('resources', 'Not set'))
             logger.info("=== DEBUG: personal_info.top_users: %s", context['personal_info'].get('top_users', 'Not set'))
@@ -181,26 +191,38 @@ class AboutView(TemplateView):
     """
     Отображает страницу "Обо мне".
 
-    Использует шаблон blog/about.html.
+    Использует шаблон blog/about.html, предоставляет видео, отзывы и хлебные крошки.
+    Поддерживает AJAX-запросы для добавления отзывов.
     """
     template_name = 'blog/about.html'
 
     def get_context_data(self, **kwargs):
         """
         Добавляет данные в контекст шаблона.
+
+        Включает посты с видео, отзывы, видео для страницы и хлебные крошки.
         """
         context = super().get_context_data(**kwargs)
-        # Добавляем посты с видео
         context['posts_with_video'] = Post.objects.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='about')
         context['testimonials'] = Testimonial.objects.filter(is_approved=True)
+        context['breadcrumbs'] = [
+            {'name': 'Главная', 'url': reverse('blog:home')},
+            {'name': 'Обо мне', 'url': reverse('blog:about')},
+        ]
         return context
 
     @method_decorator(login_required)
     @method_decorator(require_http_methods(["POST"]))
     def post(self, request, *args, **kwargs):
+        """
+        Обрабатывает AJAX-запрос для добавления отзыва.
+
+        Создает новый отзыв от текущего пользователя, если передан текст.
+        Возвращает JSON с результатом операции.
+        """
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             text = request.POST.get('text')
             if text:
@@ -212,11 +234,13 @@ class AboutView(TemplateView):
         return JsonResponse({'success': False})
 
 
+
 class PostDetailView(DetailView):
     """
-    Отображает страницу отдельного поста.
+    Обработчик отображения страницы отдельного поста.
 
-    Использует модель Post и шаблон blog/post_detail.html.
+    Использует шаблон blog/post_detail.html, предоставляет данные поста,
+    связанные посты, видео и SEO-данные.
     """
     model = Post
     template_name = 'blog/post_detail.html'
@@ -226,20 +250,58 @@ class PostDetailView(DetailView):
         """
         Добавляет данные в контекст шаблона.
 
-        Включает текущего пользователя, все категории и последние 5 постов.
+        Включает пост, связанные посты, видео, SEO-данные и хлебные крошки.
+        Использует поля модели Post для формирования SEO.
         """
         context = super().get_context_data(**kwargs)
-        context['user'] = self.request.user
-        context['categories'] = Category.objects.all()
-        context['posts'] = Post.objects.all()[:5]
+        post = self.object
+
+        # Получаем связанные посты
+        related_posts = Post.objects.filter(
+            published=True,
+            category=post.category
+        ).exclude(id=post.id)[:3]
+
+        # Формируем SEO-данные
+        context['meta_title'] = post.title
+        context['meta_description'] = post.meta_description or post.excerpt[:160] or post.content[:160]
+        context['meta_keywords'] = post.meta_keywords or (post.category.name if post.category else post.title)
+        context['og_title'] = post.title
+        context['og_description'] = context['meta_description']
+        # Проверяем наличие изображения в PostImage
+        first_image = post.images.first()
+        context['og_image'] = (
+            first_image.photo.url
+            if first_image and first_image.photo
+            else '/static/blog/images/default-og-image.jpg'
+        )
+        context['og_url'] = self.request.build_absolute_uri()
+        context['canonical_url'] = context['og_url']
+        context['hreflang_url'] = context['og_url']
+
+        # Добавляем контент
+        context['related_posts'] = related_posts
+        context['page_videos'] = PageVideo.objects.filter(page='post_detail')
+        context['breadcrumbs'] = [
+            {'name': 'Home', 'url': reverse('blog:home')},
+            {'name': 'Blog', 'url': reverse('blog:blog')},
+            {'name': post.title, 'url': reverse('blog:post_detail', kwargs={'slug': post.slug})},
+        ]
+
         return context
+
+
+
+
+
 
 
 class ProjectDetailView(DetailView):
     """
-    Отображает страницу отдельного проекта.
+    Handles the display of a single project page.
 
-    Использует модель Project и шаблон blog/project_detail.html.
+    Renders the blog/project_detail.html template, providing project details,
+    related projects, videos, and SEO metadata.
     """
     model = Project
     template_name = 'blog/project_detail.html'
@@ -247,51 +309,72 @@ class ProjectDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         """
-        Добавляет данные в контекст шаблона.
+        Adds data to the template context.
 
-        Включает текущего пользователя, все категории и последние 5 проектов.
+        Includes the project, related projects, videos, SEO metadata, and breadcrumbs.
+        Uses Project model fields for SEO and filters related projects by category and featured status.
         """
         context = super().get_context_data(**kwargs)
-        context['user'] = self.request.user
-        context['categories'] = Category.objects.all()
-        context['projects'] = Project.objects.all()[:5]
+        project = self.object
+
+        # Fetch related projects
+        related_projects = Project.objects.filter(
+            featured=True,  # Changed from published=True
+            category=project.category
+        ).exclude(id=project.id)[:3]
+
+        # Set SEO metadata
+        context['meta_title'] = project.title
+        context['meta_description'] = project.description[:160] if project.description else project.title[:160]
+        context['meta_keywords'] = project.meta_keywords if project.meta_keywords else project.title
+        context['og_title'] = project.title
+        context['og_description'] = context['meta_description']
+        context['og_image'] = (
+            project.images.first().photo.url
+            if project.images.exists() and project.images.first().photo
+            else '/static/blog/images/default-og-image.jpg'
+        )
+        context['og_url'] = self.request.build_absolute_uri()
+        context['canonical_url'] = context['og_url']
+        context['hreflang_url'] = context['og_url']
+
+        # Add additional context
+        context['related_projects'] = related_projects
+        context['page_videos'] = PageVideo.objects.filter(page='project_detail')
+        context['breadcrumbs'] = [
+            {'name': 'Home', 'url': reverse('blog:home')},
+            {'name': 'Portfolio', 'url': reverse('blog:portfolio')},
+            {'name': project.title, 'url': reverse('blog:project_detail', kwargs={'slug': project.slug})},
+        ]
+
         return context
 
 
-def blog_view(request):
-    """
-    Отображает страницу блога с фильтрацией по категории.
-
-    Использует шаблон blog/blog.html, предоставляет пагинированный список постов (5 на страницу)
-    и категории (не портфолио).
-    """
-    category_slug = request.GET.get('category')
-    posts_list = Post.objects.all()
-
-    if category_slug:
-        posts_list = posts_list.filter(category__slug=category_slug)
-
-    paginator = Paginator(posts_list, 5)
-    page = request.GET.get('page')
-    posts = paginator.get_page(page)
-
-    categories = Category.objects.filter(is_portfolio=False)
-
-    context = {
-        'posts': posts,
-        'categories': categories,
-    }
-    return render(request, 'blog/blog.html', context)
 
 
 
 
 class ResumeView(TemplateView):
+    """
+    Отображает страницу "Резюме".
+
+    Использует шаблон blog/resume.html, предоставляет информацию об админских правах
+    и хлебные крошки.
+    """
     template_name = 'blog/resume.html'
 
     def get_context_data(self, **kwargs):
+        """
+        Добавляет данные в контекст шаблона.
+
+        Включает флаг is_admin и хлебные крошки.
+        """
         context = super().get_context_data(**kwargs)
         context['is_admin'] = self.request.user.is_staff if self.request.user.is_authenticated else False
+        context['breadcrumbs'] = [
+            {'name': 'Главная', 'url': reverse('blog:home')},
+            {'name': 'Резюме', 'url': reverse('blog:resume')},
+        ]
         return context
 
 
@@ -321,7 +404,7 @@ class BlogView(TemplateView):
     Отображает страницу блога через TemplateView.
 
     Использует шаблон blog/blog_page.html, предоставляет пагинированный список постов
-    и категории (не портфолио).
+    и категории.
     """
     template_name = 'blog/blog_page.html'
 
@@ -329,16 +412,20 @@ class BlogView(TemplateView):
         """
         Добавляет данные в контекст шаблона.
 
-        Включает пагинированный список постов (5 на страницу) и категории с is_portfolio=False.
+        Включает пагинированный список всех постов (5 на страницу), категории
+        и хлебные крошки.
         """
         context = super().get_context_data(**kwargs)
         posts_list = Post.objects.all()
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
-        context['categories'] = Category.objects.filter(is_portfolio=False)
+        context['categories'] = Category.objects.all()
+        context['breadcrumbs'] = [
+            {'name': 'Home', 'url': reverse('blog:home')},
+            {'name': 'Blog', 'url': reverse('blog:blog')},
+        ]
         return context
-
 
 
 
@@ -346,10 +433,23 @@ class ContactView(TemplateView):
     """
     Отображает страницу "Контакты".
 
-    Использует шаблон blog/contact.html.
+    Использует шаблон blog/contact.html, предоставляет форму обратной связи
+    и хлебные крошки.
     """
     template_name = 'blog/contact.html'
 
+    def get_context_data(self, **kwargs):
+        """
+        Добавляет данные в контекст шаблона.
+
+        Включает хлебные крошки для страницы контактов.
+        """
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'name': 'Главная', 'url': reverse('blog:home')},
+            {'name': 'Контакты', 'url': reverse('blog:contact')},
+        ]
+        return context
 
 
 
