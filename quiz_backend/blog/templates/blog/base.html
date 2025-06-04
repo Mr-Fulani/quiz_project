@@ -1,23 +1,30 @@
 <!DOCTYPE html>
-{% load static %}
-<html lang="en">
+{% load static i18n %}
+{% get_current_language as language %}
+<html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}{% if meta_description %}{{ meta_description|truncatechars:160 }}{% else %}Добро пожаловать на мой сайт — блог, проекты и квизы.{% endif %}{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}{% if meta_keywords %}{{ meta_keywords }}{% else %}блог, проекты, квизы, технологии{% endif %}{% endblock %}">
+    <meta name="description"
+          content="{% block meta_description %}{% if meta_description %}{{ meta_description|truncatechars:160 }}{% else %}Добро пожаловать на мой сайт — блог, проекты и квизы.{% endif %}{% endblock %}">
+    <meta name="keywords"
+          content="{% block meta_keywords %}{% if meta_keywords %}{{ meta_keywords }}{% else %}блог, проекты, квизы, технологии{% endif %}{% endblock %}">
     <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
 
-    <meta property="og:title" content="{% block og_title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}{% if meta_description %}{{ meta_description|truncatechars:200 }}{% else %}Исследуйте посты, проекты и квизы на моем сайте.{% endif %}{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{% if og_image_url %}{{ og_image_url }}{% else %}{% static 'blog/favicon/favicon.png' %}{% endif %}{% endblock %}">
+    <meta property="og:title"
+          content="{% block og_title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}">
+    <meta property="og:description"
+          content="{% block og_description %}{% if meta_description %}{{ meta_description|truncatechars:200 }}{% else %}Исследуйте посты, проекты и квизы на моем сайте.{% endif %}{% endblock %}">
+    <meta property="og:image"
+          content="{% block og_image %}{% if og_image_url %}{{ og_image_url }}{% else %}{% static 'blog/favicon/favicon.png' %}{% endif %}{% endblock %}">
     <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
     <meta property="og:type" content="website">
 
     <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
 
     <link rel="shortcut icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/x-icon">
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
 
     <link rel="stylesheet" href="{% static 'css/global.css' %}">
     <link rel="stylesheet" href="{% static 'blog/css/breadcrumbs.css' %}">
@@ -37,25 +44,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% endblock %}
 
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "{{ personal_info.name }} - Portfolio",
-        "url": "{{ request.scheme }}://{{ request.get_host }}",
-        "potentialAction": {
-            "@type": "SearchAction",
-            "target": "{{ request.scheme }}://{{ request.get_host }}/blog/?q={search_term_string}",
-            "query-input": "required name=search_term_string"
-        }
-    }
-    </script>
+    <!-- Структурированные данные для хлебных крошек (BreadcrumbList) -->
+    {% if breadcrumbs_json_ld %}
+        <script type="application/ld+json">
+            {{ breadcrumbs_json_ld | safe }}
+        </script>
+    {% endif %}
 
     {% if GOOGLE_ANALYTICS_ID %}
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_ID }}"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+
         gtag('js', new Date());
         gtag('config', '{{ GOOGLE_ANALYTICS_ID }}');
     </script>
@@ -70,38 +74,27 @@
     <div class="main-content">
         <nav class="navbar">
             <ul class="navbar-list">
-                <li class="navbar-item">
-                    <a href="{% url 'blog:home' %}" class="navbar-link" data-nav-link>Home</a>
+                <li class="navbar-item"><a href="{% url 'blog:home' %}" class="navbar-link">{% trans "Главная" %}</a>
                 </li>
-                <li class="navbar-item">
-                    <a href="{% url 'blog:blog' %}" class="navbar-link" data-nav-link>Posts</a>
-                </li>
-                <li class="navbar-item">
-                    <a href="{% url 'blog:quizes' %}" class="navbar-link" data-nav-link>Quizes</a>
+                <li class="navbar-item"><a href="{% url 'blog:blog' %}" class="navbar-link">{% trans "Посты" %}</a></li>
+                <li class="navbar-item"><a href="{% url 'blog:quizes' %}" class="navbar-link">{% trans "Квизы" %}</a>
                 </li>
                 {% if user.is_authenticated %}
-                <li class="navbar-item">
-                    <a href="{% url 'accounts:user-list' %}" class="navbar-link" data-nav-link>Users</a>
-                </li>
-                <li class="navbar-item">
-                    <a href="{% url 'accounts:profile' %}" class="navbar-link">Profile</a>
-                </li>
+                <li class="navbar-item"><a href="{% url 'accounts:user-list' %}" class="navbar-link">{% trans "Пользователи" %}</a></li>
+                <li class="navbar-item"><a href="{% url 'accounts:profile' %}" class="navbar-link">{% trans "Профиль" %}</a></li>
                 <li class="navbar-item">
                     <form method="post" action="{% url 'accounts:logout' %}">
                         {% csrf_token %}
-                        <button type="submit" class="navbar-link" style="background: none; border: none;">Logout</button>
+                        <button type="submit" class="navbar-link">{% trans "Выйти" %}</button>
                     </form>
                 </li>
                 {% else %}
-                <li class="navbar-item">
-                    <a href="#" id="login-link" class="navbar-link">Login</a>
-                </li>
+                <li class="navbar-item"><a href="#" id="login-link" class="navbar-link">{% trans "Войти" %}</a></li>
                 {% endif %}
             </ul>
         </nav>
 
         {% block breadcrumbs %}
-            {% include "blog/includes/_breadcrumbs.html" %}
         {% endblock %}
 
         {% block content %}{% endblock %}
@@ -128,14 +121,18 @@
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <mask id="eye-open">
-                                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12V20H12H1V12Z" fill="#D9D9D9" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+                                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12V20H12H1V12Z" fill="#D9D9D9"
+                                          stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
                                 </mask>
                                 <mask id="eye-closed">
                                     <path d="M1 12C1 12 5 20 12 20C19 20 23 12 23 12V20H12H1V12Z" fill="#D9D9D9"/>
                                 </mask>
                             </defs>
-                            <path class="lid lid--upper" d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path class="lid lid--lower" d="M1 12C1 12 5 20 12 20C19 20 23 12 23 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path class="lid lid--upper" d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12" stroke="currentColor"
+                                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path class="lid lid--lower" d="M1 12C1 12 5 20 12 20C19 20 23 12 23 12"
+                                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                  stroke-linejoin="round"/>
                             <g mask="url(#eye-open)">
                                 <g class="eye">
                                     <circle cy="12" cx="12" r="4" fill="currentColor"/>
@@ -224,33 +221,34 @@
 <script defer src="{% static 'blog/js/password-animation.js' %}"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('registration_success')) {
-        const notification = document.createElement('div');
-        notification.className = 'message-notification success';
-        notification.textContent = 'Registration successful! Welcome!';
-        document.body.appendChild(notification);
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('registration_success')) {
+            const notification = document.createElement('div');
+            notification.className = 'message-notification success';
+            notification.textContent = 'Registration successful! Welcome!';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    });
 </script>
 <style>
-.message-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 1000;
-}
-.message-notification.success {
-    background-color: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-}
+    .message-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 1000;
+    }
+
+    .message-notification.success {
+        background-color: rgba(46, 204, 113, 0.2);
+        color: #2ecc71;
+        border: 1px solid #2ecc71;
+    }
 
 </style>
 {% block scripts %}{% endblock %}

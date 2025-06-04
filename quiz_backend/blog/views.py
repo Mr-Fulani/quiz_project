@@ -18,11 +18,12 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, F, Q, Max
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse, FileResponse, HttpResponseRedirect, Http404
+from django.http import JsonResponse, FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import TemplateView, DetailView, ListView
@@ -32,6 +33,7 @@ from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
 
+from .mixins import BreadcrumbsMixin
 from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
@@ -140,28 +142,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class HomePageView(TemplateView):
+class HomePageView(BreadcrumbsMixin, TemplateView):
     """
     Отображает главную страницу сайта.
-
     Использует шаблон blog/index.html, предоставляет пагинированный список постов,
-    категории, проекты, видео и хлебные крошки.
+    категории, проекты, видео.
     """
     template_name = 'blog/index.html'
+    breadcrumbs = [{'name': _('Главная'), 'url': reverse_lazy('blog:home')}]
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Включает посты, категории, проекты, видео, хлебные крошки и отладочную информацию.
-        Проверяет наличие данных от контекстных процессоров.
-        """
         context = super().get_context_data(**kwargs)
-
-        # Отладка: логируем начальный контекст
-        logger.info("=== DEBUG: Initial context keys: %s", list(context.keys()))
-        logger.info("=== DEBUG: Initial personal_info: %s", context.get('personal_info', 'Not set'))
-
         posts_list = Post.objects.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
@@ -173,56 +164,32 @@ class HomePageView(TemplateView):
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='index')
-        context['breadcrumbs'] = [
-            {'name': 'Главная', 'url': reverse('blog:home')},
-        ]
-
-        # Отладка: логируем финальный контекст
-        logger.info("=== DEBUG: Final context keys: %s", list(context.keys()))
-        logger.info("=== DEBUG: Final personal_info: %s", context.get('personal_info', 'Not set'))
-        if 'personal_info' in context:
-            logger.info("=== DEBUG: personal_info.resources: %s", context['personal_info'].get('resources', 'Not set'))
-            logger.info("=== DEBUG: personal_info.top_users: %s", context['personal_info'].get('top_users', 'Not set'))
-
         return context
 
 
-class AboutView(TemplateView):
+class AboutView(BreadcrumbsMixin, TemplateView):
     """
     Отображает страницу "Обо мне".
-
-    Использует шаблон blog/about.html, предоставляет видео, отзывы и хлебные крошки.
-    Поддерживает AJAX-запросы для добавления отзывов.
+    Использует шаблон blog/about.html, предоставляет видео, отзывы.
     """
     template_name = 'blog/about.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Обо мне'), 'url': reverse_lazy('blog:about')},
+    ]
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Включает посты с видео, отзывы, видео для страницы и хлебные крошки.
-        """
         context = super().get_context_data(**kwargs)
         context['posts_with_video'] = Post.objects.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='about')
         context['testimonials'] = Testimonial.objects.filter(is_approved=True)
-        context['breadcrumbs'] = [
-            {'name': 'Главная', 'url': reverse('blog:home')},
-            {'name': 'Обо мне', 'url': reverse('blog:about')},
-        ]
         return context
 
     @method_decorator(login_required)
     @method_decorator(require_http_methods(["POST"]))
     def post(self, request, *args, **kwargs):
-        """
-        Обрабатывает AJAX-запрос для добавления отзыва.
-
-        Создает новый отзыв от текущего пользователя, если передан текст.
-        Возвращает JSON с результатом операции.
-        """
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             text = request.POST.get('text')
             if text:
@@ -235,10 +202,9 @@ class AboutView(TemplateView):
 
 
 
-class PostDetailView(DetailView):
+class PostDetailView(BreadcrumbsMixin, DetailView):
     """
     Обработчик отображения страницы отдельного поста.
-
     Использует шаблон blog/post_detail.html, предоставляет данные поста,
     связанные посты, видео и SEO-данные.
     """
@@ -246,29 +212,29 @@ class PostDetailView(DetailView):
     template_name = 'blog/post_detail.html'
     context_object_name = 'post'
 
-    def get_context_data(self, **kwargs):
+    def get_breadcrumbs(self):
         """
-        Добавляет данные в контекст шаблона.
+        Возвращает динамические крошки для поста.
+        """
+        post = self.object
+        return [
+            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+            {'name': _('Блог'), 'url': reverse_lazy('blog:blog')},
+            {'name': post.title, 'url': reverse_lazy('blog:post_detail', kwargs={'slug': post.slug})},
+        ]
 
-        Включает пост, связанные посты, видео, SEO-данные и хлебные крошки.
-        Использует поля модели Post для формирования SEO.
-        """
+    def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         post = self.object
-
-        # Получаем связанные посты
         related_posts = Post.objects.filter(
             published=True,
             category=post.category
         ).exclude(id=post.id)[:3]
-
-        # Формируем SEO-данные
         context['meta_title'] = post.title
         context['meta_description'] = post.meta_description or post.excerpt[:160] or post.content[:160]
         context['meta_keywords'] = post.meta_keywords or (post.category.name if post.category else post.title)
         context['og_title'] = post.title
         context['og_description'] = context['meta_description']
-        # Проверяем наличие изображения в PostImage
         first_image = post.images.first()
         context['og_image'] = (
             first_image.photo.url
@@ -278,16 +244,8 @@ class PostDetailView(DetailView):
         context['og_url'] = self.request.build_absolute_uri()
         context['canonical_url'] = context['og_url']
         context['hreflang_url'] = context['og_url']
-
-        # Добавляем контент
         context['related_posts'] = related_posts
         context['page_videos'] = PageVideo.objects.filter(page='post_detail')
-        context['breadcrumbs'] = [
-            {'name': 'Home', 'url': reverse('blog:home')},
-            {'name': 'Blog', 'url': reverse('blog:blog')},
-            {'name': post.title, 'url': reverse('blog:post_detail', kwargs={'slug': post.slug})},
-        ]
-
         return context
 
 
@@ -296,34 +254,34 @@ class PostDetailView(DetailView):
 
 
 
-class ProjectDetailView(DetailView):
+class ProjectDetailView(BreadcrumbsMixin, DetailView):
     """
-    Handles the display of a single project page.
-
-    Renders the blog/project_detail.html template, providing project details,
-    related projects, videos, and SEO metadata.
+    Обработчик отображения страницы отдельного проекта.
+    Использует шаблон blog/project_detail.html, предоставляет данные проекта,
+    связанные проекты, видео и SEO-данные.
     """
     model = Project
     template_name = 'blog/project_detail.html'
     context_object_name = 'project'
 
-    def get_context_data(self, **kwargs):
+    def get_breadcrumbs(self):
         """
-        Adds data to the template context.
+        Возвращает динамические крошки для проекта.
+        """
+        project = self.object
+        return [
+            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+            {'name': _('Портфолио'), 'url': reverse_lazy('blog:portfolio')},
+            {'name': project.title, 'url': reverse_lazy('blog:project_detail', kwargs={'slug': project.slug})},
+        ]
 
-        Includes the project, related projects, videos, SEO metadata, and breadcrumbs.
-        Uses Project model fields for SEO and filters related projects by category and featured status.
-        """
+    def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.object
-
-        # Fetch related projects
         related_projects = Project.objects.filter(
-            featured=True,  # Changed from published=True
+            featured=True,
             category=project.category
         ).exclude(id=project.id)[:3]
-
-        # Set SEO metadata
         context['meta_title'] = project.title
         context['meta_description'] = project.description[:160] if project.description else project.title[:160]
         context['meta_keywords'] = project.meta_keywords if project.meta_keywords else project.title
@@ -337,16 +295,8 @@ class ProjectDetailView(DetailView):
         context['og_url'] = self.request.build_absolute_uri()
         context['canonical_url'] = context['og_url']
         context['hreflang_url'] = context['og_url']
-
-        # Add additional context
         context['related_projects'] = related_projects
         context['page_videos'] = PageVideo.objects.filter(page='project_detail')
-        context['breadcrumbs'] = [
-            {'name': 'Home', 'url': reverse('blog:home')},
-            {'name': 'Portfolio', 'url': reverse('blog:portfolio')},
-            {'name': project.title, 'url': reverse('blog:project_detail', kwargs={'slug': project.slug})},
-        ]
-
         return context
 
 
@@ -354,103 +304,79 @@ class ProjectDetailView(DetailView):
 
 
 
-class ResumeView(TemplateView):
+class ResumeView(BreadcrumbsMixin, TemplateView):
     """
     Отображает страницу "Резюме".
-
-    Использует шаблон blog/resume.html, предоставляет информацию об админских правах
-    и хлебные крошки.
+    Использует шаблон blog/resume.html, предоставляет информацию об админских правах.
     """
     template_name = 'blog/resume.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Резюме'), 'url': reverse_lazy('blog:resume')},
+    ]
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Включает флаг is_admin и хлебные крошки.
-        """
         context = super().get_context_data(**kwargs)
         context['is_admin'] = self.request.user.is_staff if self.request.user.is_authenticated else False
-        context['breadcrumbs'] = [
-            {'name': 'Главная', 'url': reverse('blog:home')},
-            {'name': 'Резюме', 'url': reverse('blog:resume')},
-        ]
         return context
 
 
 
-class PortfolioView(TemplateView):
+class PortfolioView(BreadcrumbsMixin, TemplateView):
     """
     Отображает страницу портфолио.
-
     Использует шаблон blog/portfolio.html, показывает проекты и категории портфолио.
     """
     template_name = 'blog/portfolio.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Портфолио'), 'url': reverse_lazy('blog:portfolio')},
+    ]
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Включает все проекты и категории с is_portfolio=True.
-        """
         context = super().get_context_data(**kwargs)
         context['projects'] = Project.objects.all()
         context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
         return context
 
 
-class BlogView(TemplateView):
-    """
-    Отображает страницу блога через TemplateView.
 
-    Использует шаблон blog/blog_page.html, предоставляет пагинированный список постов
-    и категории.
+
+class BlogView(BreadcrumbsMixin, TemplateView):
+    """
+    Отображает страницу блога.
+    Использует шаблон blog/blog_page.html, предоставляет пагинированный список постов и категории.
     """
     template_name = 'blog/blog_page.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Блог'), 'url': reverse_lazy('blog:blog')},
+    ]
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Включает пагинированный список всех постов (5 на страницу), категории
-        и хлебные крошки.
-        """
         context = super().get_context_data(**kwargs)
         posts_list = Post.objects.all()
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
         context['categories'] = Category.objects.all()
-        context['breadcrumbs'] = [
-            {'name': 'Home', 'url': reverse('blog:home')},
-            {'name': 'Blog', 'url': reverse('blog:blog')},
-        ]
         return context
 
 
-
-class ContactView(TemplateView):
+class ContactView(BreadcrumbsMixin, TemplateView):
     """
     Отображает страницу "Контакты".
-
-    Использует шаблон blog/contact.html, предоставляет форму обратной связи
-    и хлебные крошки.
+    Использует шаблон blog/contact.html, предоставляет форму обратной связи.
     """
     template_name = 'blog/contact.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Контакты'), 'url': reverse_lazy('blog:contact')},
+    ]
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Включает хлебные крошки для страницы контактов.
-        """
         context = super().get_context_data(**kwargs)
-        context['breadcrumbs'] = [
-            {'name': 'Главная', 'url': reverse('blog:home')},
-            {'name': 'Контакты', 'url': reverse('blog:contact')},
-        ]
         return context
-
 
 
 
@@ -528,50 +454,34 @@ def contact_form_submit(request):
 
 
 
-class QuizesView(ListView):
+class QuizesView(BreadcrumbsMixin, ListView):
     """
     Отображает страницу списка тем для опросов.
-
-    Использует шаблон blog/quizes.html, показывает только темы, у которых есть опубликованные
-    задачи в таблице tasks.
+    Использует шаблон blog/quizes.html, показывает только темы с опубликованными задачами.
     """
     template_name = 'blog/quizes.html'
     context_object_name = 'topics'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+    ]
 
     def get_queryset(self):
-        """
-        Возвращает список тем с задачами.
-
-        Фильтрует таблицу topics, оставляя только те темы, для которых есть хотя бы одна
-        опубликованная задача в tasks.
-        """
         return Topic.objects.filter(tasks__published=True).distinct()
 
 
 
 
 
-class QuizDetailView(ListView):
+class QuizDetailView(BreadcrumbsMixin, ListView):
     """
     Отображает страницу подтем для выбранной темы.
-
-    Использует шаблон blog/quiz_detail.html, показывает подтемы, у которых есть
-    опубликованные задачи.
-
-    Attributes:
-        template_name (str): Путь к шаблону.
-        context_object_name (str): Имя переменной контекста для подтем.
+    Использует шаблон blog/quiz_detail.html, показывает подтемы с опубликованными задачами.
     """
     template_name = 'blog/quiz_detail.html'
     context_object_name = 'subtopics'
 
     def get_queryset(self):
-        """
-        Возвращает список подтем для темы с опубликованными задачами.
-
-        Returns:
-            QuerySet: Подтемы с published=True задачами.
-        """
         logger.info("QuizDetailView is running!")
         topic_name = self.kwargs['quiz_type'].lower()
         logger.info(f"Processing topic: {topic_name}")
@@ -580,16 +490,15 @@ class QuizDetailView(ListView):
         logger.info(f"QuizDetailView - Topic: {topic_name}, Subtopics: {list(subtopics)}")
         return subtopics
 
+    def get_breadcrumbs(self):
+        topic = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
+        return [
+            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+            {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+            {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+        ]
+
     def get_context_data(self, **kwargs):
-        """
-        Добавляет данные в контекст шаблона.
-
-        Args:
-            **kwargs: Дополнительные аргументы.
-
-        Returns:
-            dict: Контекст с темой и подтемами.
-        """
         context = super().get_context_data(**kwargs)
         context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
         logger.info(f"Context topic: {context['topic']}")
@@ -597,29 +506,15 @@ class QuizDetailView(ListView):
 
 
 
-
 def quiz_difficulty(request, quiz_type, subtopic):
     """
     Отображает подтемы и уровни сложности для темы, только если есть задачи.
-
-    Фильтрует подтемы и сложности по наличию опубликованных задач. Обрабатывает
-    пробелы, дефисы и слэши в имени подтемы.
-
-    Args:
-        request: HTTP-запрос.
-        quiz_type (str): Название темы (в нижнем регистре).
-        subtopic (str): Название подтемы (в нижнем регистре, с дефисами или слэшами).
-
-    Returns:
-        HttpResponse: Рендеринг шаблона blog/quiz_difficulty.html.
+    Использует шаблон blog/quiz_difficulty.html.
     """
     logger.info(f"Rendering quiz_difficulty: {quiz_type}/{subtopic}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
-
-    # Нормализуем subtopic из URL
-    normalized_subtopic = subtopic.replace('-', '[ -/]')  # Регулярное выражение: дефис → пробел или слэш
+    normalized_subtopic = subtopic.replace('-', '[ -/]')
     subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
-
     logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
     try:
         subtopic_obj = Subtopic.objects.get(subtopic_query)
@@ -627,7 +522,6 @@ def quiz_difficulty(request, quiz_type, subtopic):
         logger.error(f"Subtopic not found for query: {subtopic_query}")
         raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
 
-    # Фильтр доступных сложностей
     difficulties = []
     for diff in ['easy', 'medium', 'hard']:
         if Task.objects.filter(
@@ -643,25 +537,42 @@ def quiz_difficulty(request, quiz_type, subtopic):
         ).exists():
             difficulties.append({'value': diff, 'name': diff.title()})
 
-    return render(request, 'blog/quiz_difficulty.html', {
+    context = {
         'topic': topic,
         'subtopic': subtopic_obj,
         'difficulties': difficulties,
-    })
+        'breadcrumbs': [
+            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+            {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+            {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+        ],
+        'breadcrumbs_json_ld': {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": index + 1,
+                    "name": crumb['name'],
+                    "item": request.build_absolute_uri(crumb['url'])
+                }
+                for index, crumb in enumerate([
+                    {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+                    {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+                    {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+                ])
+            ]
+        },
+    }
+    return render(request, 'blog/quiz_difficulty.html', context)
 
 
 def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
     Отображает задачи для подтемы и уровня сложности с пагинацией.
-
-    Args:
-        request: HTTP-запрос.
-        quiz_type: Название темы (например, 'python').
-        subtopic: Подтема (например, 'api-requests-with-json').
-        difficulty: Уровень сложности (easy, medium, hard).
-
-    Returns:
-        Rendered template с задачами, пагинацией и контекстом.
+    Использует шаблон blog/quiz_subtopic.html.
     """
     logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
@@ -693,7 +604,6 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
 
     logger.info(f"Found {tasks.count()} tasks")
 
-    # Добавляем статус is_solved и selected_answer
     if request.user.is_authenticated:
         task_stats = TaskStatistics.objects.filter(
             user=request.user,
@@ -704,7 +614,6 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
             task.is_solved = task.id in task_stats_dict
             task.selected_answer = task_stats_dict.get(task.id)
 
-    # Сохраняем/восстанавливаем страницу пагинации для авторизованных пользователей
     session_key = f"quiz_page_{quiz_type}_{subtopic}_{difficulty}"
     if request.user.is_authenticated:
         if 'page' in request.GET:
@@ -716,16 +625,46 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     paginator = Paginator(tasks, 3)
     page_obj = paginator.get_page(page_number)
 
+    difficulty_names = {
+        'easy': _('Легкий'),
+        'medium': _('Средний'),
+        'hard': _('Сложный'),
+    }
     context = {
         'topic': topic,
         'subtopic': subtopic_obj,
         'page_obj': page_obj,
         'paginator': paginator,
         'difficulty': difficulty,
+        'breadcrumbs': [
+            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+            {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+            {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+            {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
+        ],
+        'breadcrumbs_json_ld': {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": index + 1,
+                    "name": crumb['name'],
+                    "item": request.build_absolute_uri(crumb['url'])
+                }
+                for index, crumb in enumerate([
+                    {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+                    {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+                    {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+                    {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
+                ])
+            ]
+        },
     }
 
     if not tasks.exists():
-        difficulty_names = {'easy': 'Легкий', 'medium': 'Средний', 'hard': 'Сложный'}
         context['no_tasks_message'] = (
             f'Нет задач для уровня сложности "{difficulty_names.get(difficulty.lower(), difficulty)}" '
             f'в подтеме "{subtopic_obj.name}".'
@@ -733,18 +672,18 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
 
     preferred_language = request.user.language if request.user.is_authenticated else 'ru'
     dont_know_option_dict = {
-        'ru': "Я не знаю, но хочу узнать",
-        'en': "I don't know, but I want to learn",
-        'tr': "Bilmiyorum, ama öğrenmek istiyorum",
-        'ar': "لا أعرف، ولكن أريد أن أتعلم",
-        'de': "Ich weiß nicht, aber ich möchte lernen",
-        'es': "No lo sé, pero quiero aprender",
-        'fr': "Je ne sais pas, mais je veux apprendre",
-        'it': "Non lo so, ma voglio imparare",
-        'pt': "Não sei, mas quero aprender",
-        'zh': "我不知道，但我想学",
-        'ja': "知らないけど学びたい",
-        'ko': "모르겠지만 배우고 싶어요",
+        'ru': _("Я не знаю, но хочу узнать"),
+        'en': _("I don't know, but I want to learn"),
+        'tr': _("Bilmiyorum, ama öğrenmek istiyorum"),
+        'ar': _("لا أعرف، ولكن أريد أن أتعلم"),
+        'de': _("Ich weiß nicht, aber ich möchte lernen"),
+        'es': _("No lo sé, pero quiero aprender"),
+        'fr': _("Je ne sais pas, mais je veux apprendre"),
+        'it': _("Non lo so, ma voglio imparare"),
+        'pt': _("Não sei, mas quero aprender"),
+        'zh': _("我不知道，但我想学"),
+        'ja': _("知らないけど学びたい"),
+        'ko': _("모르겠지만 배우고 싶어요"),
     }
 
     for task in page_obj:
@@ -753,14 +692,12 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         task.translation = translation
         if translation:
             try:
-                answers = translation.answers if isinstance(translation.answers, list) else json.loads(
-                    translation.answers)
+                answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
             except json.JSONDecodeError as e:
                 logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
                 answers = []
             options = answers[:]
             random.shuffle(options)
-            # Используем язык перевода или ru как резервный
             dont_know_option = dont_know_option_dict.get(translation.language, dont_know_option_dict['ru'])
             options.append(dont_know_option)
             task.answers = options
@@ -771,6 +708,7 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
 
     context['dont_know_option_dict'] = dont_know_option_dict
     return render(request, 'blog/quiz_subtopic.html', context)
+
 
 
 @login_required
@@ -1352,8 +1290,16 @@ def statistics_view(request):
 
 
 
-class MaintenanceView(TemplateView):
+class MaintenanceView(BreadcrumbsMixin, TemplateView):
+    """
+    Отображает страницу технического обслуживания.
+    Использует шаблон blog/maintenance.html.
+    """
     template_name = 'blog/maintenance.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Техническое обслуживание'), 'url': reverse_lazy('blog:maintenance')},
+    ]
 
 
 
@@ -1371,58 +1317,32 @@ def add_testimonial(request):
     return JsonResponse({'success': False})
 
 
-class AllTestimonialsView(ListView):
+
+
+class AllTestimonialsView(BreadcrumbsMixin, ListView):
     """
     Отображает страницу со всеми одобренными отзывами.
-
-    Attributes:
-        template_name (str): Путь к шаблону
-        model (Model): Модель для получения данных
-        context_object_name (str): Имя переменной контекста для списка отзывов
-        paginate_by (int): Количество отзывов на странице (4 отзыва - по 2 в ряд)
+    Использует шаблон blog/all_testimonials.html, показывает 4 отзыва на страницу.
     """
     template_name = 'blog/all_testimonials.html'
     model = Testimonial
     context_object_name = 'testimonials'
-    paginate_by = 4  # Изменили с 10 на 4
+    paginate_by = 4
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Отзывы'), 'url': reverse_lazy('blog:all_testimonials')},
+    ]
 
     def get_queryset(self):
-        """
-        Возвращает QuerySet с одобренными отзывами.
-
-        Returns:
-            QuerySet: Отфильтрованный QuerySet с одобренными отзывами,
-                     отсортированными по дате создания (сначала новые)
-        """
         return Testimonial.objects.filter(is_approved=True).order_by('-created_at')
 
     def get_context_data(self, **kwargs):
-        """
-        Добавляет дополнительные данные в контекст шаблона.
-
-        Args:
-            **kwargs: Дополнительные именованные аргументы
-
-        Returns:
-            dict: Обновленный контекст шаблона
-        """
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Все отзывы'
+        context['title'] = _('Все отзывы')
         return context
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        """
-        Обрабатывает POST-запрос для добавления нового отзыва.
-
-        Args:
-            request: HTTP-запрос
-            *args: Позиционные аргументы
-            **kwargs: Именованные аргументы
-
-        Returns:
-            JsonResponse: JSON-ответ с результатом операции
-        """
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             text = request.POST.get('text')
             if text:
@@ -1432,6 +1352,8 @@ class AllTestimonialsView(ListView):
                 )
                 return JsonResponse({'success': True})
         return JsonResponse({'success': False})
+
+
 
 
 @csrf_exempt
