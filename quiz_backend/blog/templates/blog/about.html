@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static youtube_tags %}
+{% load static youtube_tags i18n %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'blog/css/card_animations.css' %}">
@@ -8,7 +8,7 @@
 {% block content %}
 <article class="about active" data-page="about">
     <header>
-        <h2 class="h2 article-title">About me</h2>
+        <h2 class="h2 article-title">{% trans "About me" %}</h2>
     </header>
 
     <section class="video section-gap">
@@ -47,57 +47,57 @@
     {% endif %}
 
     <section class="service">
-        <h3 class="h3 service-title">Чем я занимаюсь</h3>
+        <h3 class="h3 service-title">{% trans "What I do" %}</h3>
 
         <ul class="service-list">
             <li class="service-item">
-                <a href="{% url 'blog:portfolio' %}?category=web" title="Разработка веб-сайтов и веб-приложений">
+                <a href="{% url 'blog:portfolio' %}?category=web" title="{% trans 'Development of websites and web applications' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="Иконка веб-разработки" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="{% trans 'Web development icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">Веб-разработка</h4>
-                        <p class="service-item-text">Высококачественная разработка сайтов на профессиональном уровне.</p>
+                        <h4 class="h4 service-item-title">{% trans "Web Development" %}</h4>
+                        <p class="service-item-text">{% trans "High-quality website development at a professional level." %}</p>
                     </div>
                 </a>
             </li>
 
             <li class="service-item">
-                <a href="{% url 'blog:portfolio' %}?category=telegram-apps" title="Разработка мини-приложений для Telegram">
+                <a href="{% url 'blog:portfolio' %}?category=telegram-apps" title="{% trans 'Development of Telegram mini-apps' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="Иконка Telegram Mini Apps" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="{% trans 'Telegram Mini Apps icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">Telegram Mini-App</h4>
-                        <p class="service-item-text">Разработка интерактивных мини-приложений для Telegram с интеграцией в экосистему мессенджера.</p>
+                        <h4 class="h4 service-item-title">{% trans "Telegram Mini-App" %}</h4>
+                        <p class="service-item-text">{% trans "Development of interactive mini-applications for Telegram with integration into the messenger ecosystem." %}</p>
                     </div>
                 </a>
             </li>
 
             <li class="service-item">
-                <a href="{% url 'blog:portfolio' %}?category=bots" title="Создание ботов для Telegram">
+                <a href="{% url 'blog:portfolio' %}?category=bots" title="{% trans 'Creation of Telegram bots' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3480/3480317.png" alt="Иконка Telegram ботов" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3480/3480317.png" alt="{% trans 'Telegram bots icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">Телеграм боты</h4>
-                        <p class="service-item-text">Разработка телеграм ботов любой сложности с интеграцией в различные API.</p>
+                        <h4 class="h4 service-item-title">{% trans "Telegram Bots" %}</h4>
+                        <p class="service-item-text">{% trans "Development of Telegram bots of any complexity with integration into various APIs." %}</p>
                     </div>
                 </a>
             </li>
 
             <li class="service-item">
-                <a href="{% url 'blog:portfolio' %}?category=automation" title="Автоматизация бизнес-процессов">
+                <a href="{% url 'blog:portfolio' %}?category=automation" title="{% trans 'Business process automation' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" alt="Иконка автоматизации" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" alt="{% trans 'Automation icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">Автоматизация</h4>
-                        <p class="service-item-text">Создание скриптов и программ для автоматизации рутинных задач и бизнес-процессов.</p>
+                        <h4 class="h4 service-item-title">{% trans "Automation" %}</h4>
+                        <p class="service-item-text">{% trans "Creating scripts and programs to automate routine tasks and business processes." %}</p>
                     </div>
                 </a>
             </li>
@@ -110,19 +110,19 @@
                 <div class="view-all-testimonials">
                     <a href="{% url 'blog:all_testimonials' %}" class="btn">
                         <ion-icon name="list-outline"></ion-icon>
-                        Все отзывы
+                        {% trans "All Feedback" %}
                     </a>
                 </div>
                 <div class="add-testimonial-button">
                     {% if user.is_authenticated %}
                         <button class="btn" type="button">
                             <ion-icon name="add-outline"></ion-icon>
-                            Оставить отзыв
+                            {% trans "Leave Feedback" %}
                         </button>
                     {% else %}
                         <a href="#" class="btn open-login-modal" data-return-url="{{ request.path }}">
                             <ion-icon name="add-outline"></ion-icon>
-                            Оставить отзыв
+                            {% trans "Leave Feedback" %}
                         </a>
                     {% endif %}
                 </div>
@@ -160,12 +160,12 @@
     {% include "blog/includes/testimonial_modals.html" %}
 
     <section class="skill">
-        <h3 class="h3 skills-title">My Skills</h3>
+        <h3 class="h3 skills-title">{% trans "My Skills" %}</h3>
 
         <ul class="skills-list content-card">
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">Python</h5>
+                    <h5 class="h5">{% trans "Python" %}</h5>
                     <data value="80">80%</data>
                 </div>
 
@@ -176,7 +176,7 @@
 
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">Django</h5>
+                    <h5 class="h5">{% trans "Django" %}</h5>
                     <data value="70">70%</data>
                 </div>
 
@@ -187,7 +187,7 @@
 
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">FastAPI</h5>
+                    <h5 class="h5">{% trans "FastAPI" %}</h5>
                     <data value="90">90%</data>
                 </div>
 
@@ -198,7 +198,7 @@
 
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">Flask</h5>
+                    <h5 class="h5">{% trans "Flask" %}</h5>
                     <data value="50">50%</data>
                 </div>
 
@@ -208,7 +208,7 @@
             </li>
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">SQL</h5>
+                    <h5 class="h5">{% trans "SQL" %}</h5>
                     <data value="50">50%</data>
                 </div>
 
@@ -218,7 +218,7 @@
             </li>
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">PostgreSQL</h5>
+                    <h5 class="h5">{% trans "PostgreSQL" %}</h5>
                     <data value="50">50%</data>
                 </div>
 
@@ -228,7 +228,7 @@
             </li>
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">Docker</h5>
+                    <h5 class="h5">{% trans "Docker" %}</h5>
                     <data value="50">50%</data>
                 </div>
 
@@ -238,7 +238,7 @@
             </li>
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">Git</h5>
+                    <h5 class="h5">{% trans "Git" %}</h5>
                     <data value="50">50%</data>
                 </div>
 
@@ -248,7 +248,7 @@
             </li>
             <li class="skills-item">
                 <div class="title-wrapper">
-                    <h5 class="h5">Linux</h5>
+                    <h5 class="h5">{% trans "Linux" %}</h5>
                     <data value="50">50%</data>
                 </div>
 
@@ -269,6 +269,3 @@
 </script>
 <script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}
-
-
-

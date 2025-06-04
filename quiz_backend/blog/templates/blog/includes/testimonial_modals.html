@@ -4,7 +4,7 @@
 2. Модальное окно для добавления нового отзыва
 {% endcomment %}
 
-{% load static %}
+{% load static i18n %}
 
 <!-- Модальное окно для просмотра отзыва -->
 <div class="modal-container" data-modal-container>
@@ -26,7 +26,7 @@
             <h4 class="h3 modal-title" data-modal-title></h4>
             <time class="modal-date" data-modal-date></time>
             <div class="modal-text" data-modal-text></div>
-            <a href="#" class="modal-profile-btn" data-profile-link>Перейти в профиль</a>
+            <a href="#" class="modal-profile-btn" data-profile-link>{% trans "View Profile" %}</a>
         </div>
     </section>
 </div>
@@ -39,19 +39,19 @@
             <ion-icon name="close-outline"></ion-icon>
         </button>
         <div class="modal-content">
-            <h4 class="h3 modal-title">Оставить отзыв</h4>
+            <h4 class="h3 modal-title">{% trans "Leave Feedback" %}</h4>
             <form id="testimonial-form" method="POST">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="testimonial-text">Ваш отзыв:</label>
+                    <label for="testimonial-text">{% trans "Your Feedback:" %}</label>
                     <textarea id="testimonial-text"
                               name="text"
                               rows="5"
                               required
                               class="form-control"
-                              placeholder="Поделитесь вашим опытом..."></textarea>
+                              placeholder="{% trans 'Share your experience...' %}"></textarea>
                 </div>
-                <button type="submit" class="btn">Отправить отзыв</button>
+                <button type="submit" class="btn">{% trans "Submit Feedback" %}</button>
             </form>
         </div>
     </section>
