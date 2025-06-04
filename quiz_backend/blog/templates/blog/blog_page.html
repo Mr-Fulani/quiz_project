@@ -1,6 +1,7 @@
 {% extends "blog/base.html" %}
 {% load static %}
 {% load blog_tags %}
+{% load i18n %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'blog/css/resources.css' %}">
@@ -9,14 +10,14 @@
 {% block content %}
 <article class="blog active" data-page="blog">
     <header class="filter-header">
-        <h2 class="h2 article-title">Posts</h2>
+        <h2 class="h2 article-title">{% trans "Posts" %}</h2>
         <button class="filter-toggle-btn" data-filter-toggle>
-            <span>Filter</span>
+            <span>{% trans "Filter" %}</span>
             <ion-icon name="chevron-down-outline"></ion-icon>
         </button>
         <ul class="filter-dropdown" data-filter-dropdown>
             <li class="filter-item">
-                <button class="active" data-filter-btn>All</button>
+                <button class="active" data-filter-btn>{% trans "All" %}</button>
             </li>
             {% for category in categories %}
             <li class="filter-item">
@@ -50,7 +51,7 @@
                         {% endif %}
                     {% else %}
                         <figure class="blog-banner-box no-image">
-                            <span>No Image</span>
+                            <span>{% trans "No Image" %}</span>
                         </figure>
                     {% endif %}
                     {% endwith %}
@@ -69,8 +70,8 @@
             </li>
             {% endfor %}
             <div class="no-content-message">
-                <h3>Пока здесь пусто, но мы активно работаем!</h3>
-                <p>Новые посты скоро появятся, следите за обновлениями!</p>
+                <h3>{% trans "No posts yet, but we're working on it!" %}</h3>
+                <p>{% trans "New posts will appear soon, stay tuned!" %}</p>
             </div>
         </ul>
 
