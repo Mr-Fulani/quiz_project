@@ -1539,3 +1539,8 @@ msgstr "Content"
 #: templates/admin/blog/post_project_change_form.html:110
 msgid "Description"
 msgstr "Description"
+
+
+# locale/en/LC_MESSAGES/django.po
+msgid "Found a bug? Write to us in social networks!"
+msgstr "Found a bug? Write to us in social networks!"
