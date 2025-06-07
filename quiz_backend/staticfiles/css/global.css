@@ -1313,23 +1313,6 @@ article.active {
         display: none;
     }
 
-    /* Усиление отображения золотой полосы скроллбара на мобильных */
-    .testimonials-list::-webkit-scrollbar {
-        height: 8px !important; /* Увеличиваем высоту для видимости */
-        -webkit-appearance: none; /* Сбрасываем нативный стиль */
-    }
-
-    .testimonials-list::-webkit-scrollbar-track {
-        background: var(--onyx) !important; /* Темный фон трека */
-        border-radius: 5px !important;
-    }
-
-    .testimonials-list::-webkit-scrollbar-thumb {
-        background: var(--orange-yellow-crayola) !important; /* Золотая полоса */
-        border-radius: 5px !important;
-        border: 1px solid var(--onyx) !important; /* Обводка для контраста */
-        opacity: 1 !important; /* Убираем прозрачность */
-    }
 
 }
 

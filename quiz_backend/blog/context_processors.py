@@ -161,12 +161,12 @@ def seo_context(request):
     Поддерживает многоязычность через request.LANGUAGE_CODE.
     """
     logger.info("=== DEBUG: seo_context processor called for request: %s", request.path)
-    language = get_language() or 'ru'
+    language = get_language() or 'en'
     path = request.path
     base_url = f"http://{request.get_host()}"
 
     seo_data = {
-        'meta_title': _('Quiz Project'),
+        'meta_title': _('Quiz Python, Go, JavaScript, Java, C#'),
         'meta_description': _('Welcome to Quiz Project — blog and portfolio with quizzes and projects.'),
         'meta_keywords': _('quiz, blog, portfolio, projects, programming'),
         'canonical_url': base_url + reverse('blog:home'),
@@ -179,7 +179,7 @@ def seo_context(request):
 
     if path == reverse('blog:resume'):
         seo_data.update({
-            'meta_title': _('Resume — Quiz Project'),
+            'meta_title': _('Resume — web developer'),
             'meta_description': _('My professional resume with experience and skills.'),
             'meta_keywords': _('resume, programmer, portfolio'),
             'canonical_url': base_url + reverse('blog:resume'),
@@ -190,7 +190,7 @@ def seo_context(request):
         })
     elif path == reverse('blog:about'):
         seo_data.update({
-            'meta_title': _('About Me — Quiz Project'),
+            'meta_title': _('About Me — web developer'),
             'meta_description': _('Learn more about me and my projects.'),
             'meta_keywords': _('about me, developer, programming'),
             'canonical_url': base_url + reverse('blog:about'),
@@ -201,7 +201,7 @@ def seo_context(request):
         })
     elif path == reverse('blog:contact'):
         seo_data.update({
-            'meta_title': _('Contact — Quiz Project'),
+            'meta_title': _('Contact — web developer'),
             'meta_description': _('Contact me for collaboration or questions.'),
             'meta_keywords': _('contact, programmer, collaboration'),
             'canonical_url': base_url + reverse('blog:contact'),

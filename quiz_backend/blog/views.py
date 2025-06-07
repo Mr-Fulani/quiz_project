@@ -164,6 +164,7 @@ class HomePageView(BreadcrumbsMixin, TemplateView):
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='index')
+        context['meta_title'] = _('Quiz Python, Go, JavaScript, Java, C#')
         return context
 
 
@@ -318,6 +319,8 @@ class ResumeView(BreadcrumbsMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['is_admin'] = self.request.user.is_staff if self.request.user.is_authenticated else False
+        context['meta_description'] = _('My professional resume with experience and skills.')
+        context['meta_keywords'] = _('resume, programmer, portfolio')
         return context
 
 
@@ -337,6 +340,8 @@ class PortfolioView(BreadcrumbsMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['projects'] = Project.objects.all()
         context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
+        context['meta_description'] = _('Explore my portfolio of projects.')  # Добавлено
+        context['meta_keywords'] = _('portfolio, projects, programming')
         return context
 
 
@@ -360,6 +365,8 @@ class BlogView(BreadcrumbsMixin, TemplateView):
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
         context['categories'] = Category.objects.all()
+        context['meta_description'] = _('Explore articles and posts on programming and quizzes.')
+        context['meta_keywords'] = _('blog, programming, quizzes')
         return context
 
 
@@ -376,6 +383,8 @@ class ContactView(BreadcrumbsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['meta_description'] = _('Get in touch with us.')  # Добавлено
+        context['meta_keywords'] = _('contact, feedback, quiz project')
         return context
 
 
@@ -469,6 +478,12 @@ class QuizesView(BreadcrumbsMixin, ListView):
     def get_queryset(self):
         return Topic.objects.filter(tasks__published=True).distinct()
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['meta_description'] = _('Test your knowledge with our interactive quizzes.')  # Добавлено
+        context['meta_keywords'] = _('quizzes, tests, programming')  # Добавлено
+        return context
+
 
 
 
@@ -501,6 +516,9 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
+        context['meta_title'] = _('%(topic_name)s Quizzes — Programming Languages') % {'topic_name': context['topic'].name}  # Добавлено
+        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': context['topic'].name}  # Добавлено
+        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': context['topic'].name}  # Добавлено
         logger.info(f"Context topic: {context['topic']}")
         return context
 
@@ -545,7 +563,9 @@ def quiz_difficulty(request, quiz_type, subtopic):
             {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
             {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
             {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty',
+                                                            kwargs={'quiz_type': topic.name.lower(),
+                                                                    'subtopic': subtopic})},
         ],
         'breadcrumbs_json_ld': {
             "@context": "https://schema.org",
@@ -560,19 +580,38 @@ def quiz_difficulty(request, quiz_type, subtopic):
                 for index, crumb in enumerate([
                     {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
                     {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
-                    {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+                    {'name': topic.name,
+                     'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty',
+                                                                    kwargs={'quiz_type': topic.name.lower(),
+                                                                            'subtopic': subtopic})},
                 ])
             ]
         },
+        'meta_title': _('%(subtopic_name)s Quizzes — Programming Languages') % {'subtopic_name': subtopic_obj.name},  # Добавлено
+        'meta_description': _('Test your skills with %(subtopic_name)s quizzes.') % {
+            'subtopic_name': subtopic_obj.name},  # Добавлено
+        'meta_keywords': _('%(subtopic_name)s, quizzes, programming') % {'subtopic_name': subtopic_obj.name},
+        # Добавлено
     }
     return render(request, 'blog/quiz_difficulty.html', context)
+
+
 
 
 def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
     Отображает задачи для подтемы и уровня сложности с пагинацией.
     Использует шаблон blog/quiz_subtopic.html.
+
+    Args:
+        request: HTTP-запрос.
+        quiz_type: Название темы (например, 'python').
+        subtopic: Подтема (например, 'api-requests').
+        difficulty: Уровень сложности (например, 'hard').
+
+    Returns:
+        HttpResponse: Рендеринг шаблона с контекстом.
     """
     logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
@@ -626,9 +665,9 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     page_obj = paginator.get_page(page_number)
 
     difficulty_names = {
-        'easy': _('Легкий'),
-        'medium': _('Средний'),
-        'hard': _('Сложный'),
+        'easy': str(_('Easy')),
+        'medium': str(_('Medium')),
+        'hard': str(_('Hard')),
     }
     context = {
         'topic': topic,
@@ -637,8 +676,8 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         'paginator': paginator,
         'difficulty': difficulty,
         'breadcrumbs': [
-            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
-            {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+            {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
+            {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
             {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
             {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
             {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
@@ -654,26 +693,38 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
                     "item": request.build_absolute_uri(crumb['url'])
                 }
                 for index, crumb in enumerate([
-                    {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
-                    {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+                    {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
+                    {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
                     {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
                     {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
                     {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
                 ])
             ]
         },
+        'meta_title': _('%(subtopic_name)s %(difficulty)s Quizzes — Quiz Project') % {
+            'subtopic_name': subtopic_obj.name,
+            'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title())
+        },
+        'meta_description': _('Try %(subtopic_name)s %(difficulty)s quizzes to test your skills.') % {
+            'subtopic_name': subtopic_obj.name,
+            'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title())
+        },
+        'meta_keywords': _('%(subtopic_name)s, %(difficulty)s, quizzes, programming') % {
+            'subtopic_name': subtopic_obj.name,
+            'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title())
+        },
     }
 
     if not tasks.exists():
         context['no_tasks_message'] = (
-            f'Нет задач для уровня сложности "{difficulty_names.get(difficulty.lower(), difficulty)}" '
-            f'в подтеме "{subtopic_obj.name}".'
+            f'No tasks for difficulty level "{difficulty_names.get(difficulty.lower(), difficulty)}" '
+            f'in subtopic "{subtopic_obj.name}".'
         )
 
     preferred_language = request.user.language if request.user.is_authenticated else 'ru'
     dont_know_option_dict = {
-        'ru': _("Я не знаю, но хочу узнать"),
-        'en': _("I don't know, but I want to learn"),
+        'ru': str(_('I don\'t know, but I want to learn')),
+        'en': str(_('I don\'t know, but I want to learn')),
     }
 
     for task in page_obj:
@@ -684,7 +735,7 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
             try:
                 answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
             except json.JSONDecodeError as e:
-                logger.error(f"Ошибка парсинга answers для задачи {task.id}: {e}")
+                logger.error(f"Error parsing answers for task {task.id}: {e}")
                 answers = []
             options = answers[:]
             random.shuffle(options)
