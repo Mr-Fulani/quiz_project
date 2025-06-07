@@ -1,6 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static i18n humanize %}
 
 {% block sidebar %}
     {% include 'accounts/user_sidebar.html' %}
@@ -22,16 +21,16 @@
                 {% endif %}
 
                 {% if profile_user.is_online %}
-                    <span class="online-status online" title="Online"></span>
+                    <span class="online-status online" title="{% trans 'Online' %}"></span>
                 {% else %}
-                    <span class="online-status offline" title="Last seen {{ profile_user.last_seen|naturaltime }}"></span>
+                    <span class="online-status offline" title="{% trans 'Last seen' %} {{ profile_user.last_seen|naturaltime }}"></span>
                 {% endif %}
             </figure>
 
             <div class="profile-details">
                 <div class="profile-header">
                     <h3 class="profile-name">{{ profile_user.username }}</h3>
-                    <span class="member-since">Member since {{ profile_user.date_joined|date:"F Y" }}</span>
+                    <span class="member-since">{% trans "Member since" %} {{ profile_user.date_joined|date:"F Y" }}</span>
                 </div>
 
                 {% if profile_user.location %}
@@ -48,18 +47,18 @@
                 <div class="profile-stats">
                     <div class="stat">
                         <ion-icon name="trophy-outline"></ion-icon>
-                        <span>Points: {{ profile_user.total_points|default:"0" }}</span>
+                        <span>{% trans "Points" %}: {{ profile_user.total_points|default:"0" }}</span>
                     </div>
                     <div class="stat">
                         <ion-icon name="checkbox-outline"></ion-icon>
-                        <span>Quizzes: {{ profile_user.quizzes_completed|default:"0" }}</span>
+                        <span>{% trans "Quizzes" %}: {{ profile_user.quizzes_completed|default:"0" }}</span>
                     </div>
                 </div>
 
                 {% if user.is_authenticated and user != profile_user %}
                 <a href="{% url 'accounts:full_profile' profile_user.username %}" class="view-profile-btn">
                     <ion-icon name="person-outline"></ion-icon>
-                    View Full Profile
+                    {% trans "View Full Profile" %}
                 </a>
                 {% endif %}
             </div>

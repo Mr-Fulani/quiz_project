@@ -210,12 +210,13 @@ USE_TZ = True
 
 
 # LANGUAGE_CODE = 'ru-RU'
-LANGUAGE_CODE = 'en-En'
+LANGUAGE_CODE = 'en-us'
+
+LOCALE_MIDDLEWARE_IGNORE_ACCEPT_LANGUAGE = True
 
 
 LOCALE_PATHS = [
-    BASE_DIR / 'blog' / 'locale',
-    BASE_DIR / 'accounts' / 'locale',  # Добавлен путь для accounts
+    os.path.join(BASE_DIR, 'locale'),
 ]
 
 

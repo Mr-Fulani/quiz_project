@@ -1,10 +1,10 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block content %}
 <article class="clients active" data-page="clients">
     <header>
-        <h2 class="h2 article-title">Users</h2>
+        <h2 class="h2 article-title">{% trans "Users" %}</h2>
     </header>
 
     <section class="clients-list">
@@ -37,32 +37,32 @@
                 <div class="client-stats">
                     <div class="stat">
                         <ion-icon name="trophy-outline"></ion-icon>
-                        <span>Points: {{ user.total_points }}</span>
+                        <span>{% trans "Points" %}: {{ user.total_points }}</span>
                     </div>
                     <div class="stat">
                         <ion-icon name="checkbox-outline"></ion-icon>
-                        <span>Quizzes: {{ user.quizzes_completed }}</span>
+                        <span>{% trans "Quizzes" %}: {{ user.quizzes_completed }}</span>
                     </div>
                 </div>
             </div>
         </div>
         {% empty %}
-        <p class="no-clients">No users found.</p>
+        <p class="no-clients">{% trans "No users found." %}</p>
         {% endfor %}
     </section>
 
     {% if is_paginated %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">{% trans "Previous" %}</a>
         {% endif %}
 
         <span class="current-page">
-            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
         </span>
 
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">{% trans "Next" %}</a>
         {% endif %}
     </div>
     {% endif %}

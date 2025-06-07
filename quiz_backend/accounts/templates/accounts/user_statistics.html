@@ -1,4 +1,4 @@
-
+{% load i18n %}
 
 <section class="user-statistics">
     <div class="stats-cards">
@@ -8,7 +8,7 @@
             </div>
             <div class="stat-details">
                 <h3>{{ user_stats.successful_attempts }}</h3>
-                <p>Решено задач</p>
+                <p>{% trans "Solved Tasks" %}</p>
             </div>
         </div>
         <div class="stat-card">
@@ -17,7 +17,7 @@
             </div>
             <div class="stat-details">
                 <h3>{{ user_stats.total_attempts }}</h3>
-                <p>Попыток</p>
+                <p>{% trans "Attempts" %}</p>
             </div>
         </div>
         <div class="stat-card">
@@ -26,7 +26,7 @@
             </div>
             <div class="stat-details">
                 <h3>{{ user_stats.success_rate|floatformat:1 }}%</h3>
-                <p>Успешность</p>
+                <p>{% trans "Success Rate" %}</p>
             </div>
         </div>
     </div>
