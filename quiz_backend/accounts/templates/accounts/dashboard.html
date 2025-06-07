@@ -13,7 +13,7 @@
 {% if user.is_authenticated %}
 <article class="profile active" data-page="profile" data-dashboard-url="{% url 'accounts:dashboard' %}">
     <header>
-        <h2 class="h2 article-title">{% trans "Dashboard" %}</h2>
+        <h1 class="h2 article-title">{% trans "Dashboard" %}</h1>
     </header>
 
     {% if messages %}
@@ -239,7 +239,7 @@
 {% else %}
 <article class="profile active" data-page="profile">
     <header>
-        <h2 class="h2 article-title">{% trans "Profile" %}</h2>
+        <h1 class="h2 article-title">{% trans "Profile" %}</h1>
     </header>
     <section class="alert">
         <p>{% trans "You must" %} <a href="#" class="open-login-btn" data-login-url="{% url 'login' %}">{% trans "Log in" %}</a> {% trans "view your profile information." %}</p>

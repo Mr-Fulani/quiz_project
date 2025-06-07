@@ -25,7 +25,7 @@
       </figure>
 
       <div class="info-content">
-        <h1 class="name">{{ user.username }}</h1>
+        <h2 class="name">{{ user.username }}</h2>
         <p class="title">{{ user.bio|truncatechars:30 }}</p>
       </div>
 
@@ -179,7 +179,7 @@
         <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{% trans 'Default avatar' %}" width="80">
       </figure>
       <div class="info-content">
-        <h1 class="name">{% trans "Guest" %}</h1>
+        <h2 class="name">{% trans "Guest" %}</h2>
         <p class="title">{% trans "Visitor" %}</p>
       </div>
     </div>

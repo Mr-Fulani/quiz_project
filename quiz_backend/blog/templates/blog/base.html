@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}</title>
+    <title>{% block title %}{{ meta_title }}{% endblock %}</title>
     <meta name="description"
           content="{% block meta_description %}{% if meta_description %}{{ meta_description|truncatechars:160 }}{% else %}Welcome to my website — blog, projects and quizzes.{% endif %}{% endblock %}">
     <meta name="keywords"
