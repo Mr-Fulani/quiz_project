@@ -201,18 +201,23 @@ LANGUAGES = (
     ('en', 'English'),
 )
 
-# LANGUAGE_CODE = 'ru-RU'
-LANGUAGE_CODE = 'en-En'
-
-LOCALE_PATHS = [
-    BASE_DIR / 'blog' / 'locale',
-]
 
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
 USE_TZ = True
+
+
+# LANGUAGE_CODE = 'ru-RU'
+LANGUAGE_CODE = 'en-En'
+
+
+LOCALE_PATHS = [
+    BASE_DIR / 'blog' / 'locale',
+    BASE_DIR / 'accounts' / 'locale',  # Добавлен путь для accounts
+]
+
 
 
 # Static files (CSS, JavaScript, Images)

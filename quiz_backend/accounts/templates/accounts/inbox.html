@@ -1,6 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static i18n humanize %}
 
 {% block sidebar %}
 {% include "accounts/user_sidebar.html" %}
@@ -15,7 +14,7 @@
 
 <article class="inbox active" data-page="inbox">
     <header>
-        <h2 class="h2 article-title">Messages</h2>
+        <h2 class="h2 article-title">{% trans "Messages" %}</h2>
     </header>
 
     <div class="chat-container">
@@ -46,7 +45,7 @@
             {% empty %}
             <div class="no-dialogs">
                 <ion-icon name="chatbubbles-outline"></ion-icon>
-                <p>No conversations yet</p>
+                <p>{% trans "No conversations yet" %}</p>
             </div>
             {% endfor %}
         </div>
@@ -66,8 +65,7 @@
                   enctype="multipart/form-data">
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
                 <input type="hidden" name="recipient_username" id="recipient-username">
-                <textarea name="content" placeholder="Type a message..." required></textarea>
-                <!-- В inbox.html, внутри .chat-form-actions -->
+                <textarea name="content" placeholder="{% trans 'Type a message...' %}" required></textarea>
                 <div class="chat-form-actions">
                     <label for="chat-attachments" class="attachment-label">
                         <ion-icon name="attach-outline"></ion-icon>
@@ -84,9 +82,14 @@
     </div>
 </article>
 
-
-
 {% block scripts %}
+<script>
+    var messages = {
+        error_loading_conversation: "{% trans 'Error loading conversation.' %}",
+        error_sending_message: "{% trans 'Error sending message.' %}",
+        message_sent: "{% trans 'Message sent successfully!' %}"
+    };
+</script>
 <script src="{% static 'accounts/js/inbox.js' %}"></script>
 {% endblock %}
 {% endblock %}

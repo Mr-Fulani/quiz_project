@@ -1,4 +1,4 @@
-{% load static %}
+{% load static i18n %}
 {% if debug %}
 <div style="display:none">
     User: {{ user }}
@@ -17,7 +17,7 @@
       <figure class="avatar-box">
         <a href="{% url 'accounts:profile' %}">
           {% if user.avatar %}
-            <img src="{{ user.get_avatar_url }}" alt="User Avatar" width="80">
+            <img src="{{ user.get_avatar_url }}" alt="{% trans 'User Avatar' %}" width="80">
           {% else %}
             <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{{ user.username }}" width="80">
           {% endif %}
@@ -30,7 +30,7 @@
       </div>
 
       <button class="info-more-btn" data-sidebar-btn>
-        <span>Show Contacts</span>
+        <span>{% trans "Show Contacts" %}</span>
         <ion-icon name="chevron-down"></ion-icon>
       </button>
     </div>
@@ -44,7 +44,7 @@
             <ion-icon name="trophy-outline"></ion-icon>
           </div>
           <div class="contact-info">
-            <p class="contact-title">Solved Tasks</p>
+            <p class="contact-title">{% trans "Solved Tasks" %}</p>
             <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">
               {{ user.get_statistics.solved_tasks|default:"0" }}
             </a>
@@ -56,7 +56,7 @@
             <ion-icon name="star-outline"></ion-icon>
           </div>
           <div class="contact-info">
-            <p class="contact-title">Rating</p>
+            <p class="contact-title">{% trans "Rating" %}</p>
             <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">
               {{ user.statistics.rating|default:"0" }}
             </a>
@@ -69,7 +69,7 @@
               <ion-icon name="mail-outline"></ion-icon>
             </div>
             <div class="contact-info">
-              <p class="contact-title">Messages</p>
+              <p class="contact-title">{% trans "Messages" %}</p>
               <a href="{% url 'blog:inbox' %}" class="contact-link">
                 {{ unread_count|default:"0" }}
               </a>
@@ -176,15 +176,15 @@
   {% else %}
     <div class="sidebar-info">
       <figure class="avatar-box">
-        <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="Default avatar" width="80">
+        <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="{% trans 'Default avatar' %}" width="80">
       </figure>
       <div class="info-content">
-        <h1 class="name">Guest</h1>
-        <p class="title">Visitor</p>
+        <h1 class="name">{% trans "Guest" %}</h1>
+        <p class="title">{% trans "Visitor" %}</p>
       </div>
     </div>
     <div class="sidebar-login-prompt">
-      <p>Please <a href="#" id="sidebar-login-link">log in</a> to view your profile information.</p>
+      <p>{% trans "Please" %} <a href="#" id="sidebar-login-link">{% trans "log in" %}</a> {% trans "to view your profile information." %}</p>
     </div>
 
     <style>
