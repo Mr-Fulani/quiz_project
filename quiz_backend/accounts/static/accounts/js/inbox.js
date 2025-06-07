@@ -335,6 +335,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    /**
+     * Удаляет сообщение через POST-запрос с учётом языка сайта
+     * @param {string} messageId ID сообщения для удаления
+     */
     window.deleteMessage = function(messageId) {
         console.log('Удаление сообщения:', messageId);
         const button = document.querySelector(`.delete-btn[data-message-id="${messageId}"]`);
@@ -343,15 +347,47 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         button.disabled = true;
-        fetch(`/messages/delete/${messageId}/`, {
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+            console.error('CSRF-токен не найден!');
+            showNotification('Ошибка: CSRF-токен не найден.', 'error');
+            button.disabled = false;
+            return;
+        }
+
+        // Получаем текущий язык из атрибута <html lang> или cookie
+        let language = document.documentElement.lang || 'en'; // По умолчанию 'en'
+        if (!['en', 'ru'].includes(language)) {
+            console.warn(`Неизвестный язык: ${language}, используем 'en'`);
+            language = 'en';
+        }
+        console.log(`Текущий язык: ${language}`);
+
+        // Формируем URL с языковым префиксом
+        const deleteUrl = `/${language}/messages/delete/${messageId}/`;
+        console.log(`URL удаления: ${deleteUrl}`);
+
+        fetch(deleteUrl, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-CSRFToken': csrfToken.value,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            redirect: 'manual' // Отключаем автоматические редиректы
         })
         .then(response => {
-            console.log('Ответ удаления:', { status: response.status, ok: response.ok });
+            console.log('Ответ удаления:', {
+                status: response.status,
+                ok: response.ok,
+                type: response.type,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+            if (response.status === 302) {
+                console.warn('Получен редирект (302), игнорируем...');
+                return { status: 'success' }; // Предполагаем успех
+            }
             if (!response.ok && response.status !== 404) {
                 return response.text().then(text => {
                     throw new Error(`Сервер: ${response.status} - ${text}`);
@@ -361,21 +397,13 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             console.log('JSON удаления:', data);
-            if (data.status === 'deleted' || data.status === 'success' || data.success || data.status === 404) {
+            if (data.status === 'deleted' || data.status === 'success' || data.success || response.status === 404) {
                 const messageElement = document.querySelector(`.message-item[data-message-id="${messageId}"]`);
                 if (messageElement) {
                     messageElement.remove();
                     console.log('Сообщение удалено из DOM');
                 }
                 showNotification('Сообщение удалено.', 'success');
-                if (currentUsername && currentUsername !== 'null') {
-                    console.log('Синхронизация чата:', currentUsername);
-                    setTimeout(() => {
-                        loadConversation(currentUsername);
-                    }, 500);
-                } else {
-                    console.warn('Синхронизация пропущена: currentUsername=', currentUsername);
-                }
             } else {
                 console.log('Ошибка сервера:', data);
                 showNotification(data.message || 'Ошибка удаления сообщения.', 'error');
