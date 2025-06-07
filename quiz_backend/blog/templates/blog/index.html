@@ -64,7 +64,7 @@
                 </a>
             </li>
             <li class="service-item">
-                <a href="{% url 'blog:statistics' %}" class="service-link">
+                <a href="/statistics/" class="service-link">
                     <div class="service-icon-box">
                         <img src="https://cdn-icons-png.flaticon.com/512/1584/1584892.png" alt="{% trans 'Statistics Icon' %}" width="40">
                     </div>
@@ -225,10 +225,30 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Set up localization strings for testimonials.js -->
+<script>
+window.testimonialsTranslations = {
+    'viewProfile': '{% trans "View Profile" %}',
+    'loginToViewProfile': '{% trans "Login to view profile" %}',
+    'profileUnavailable': '{% trans "Profile unavailable" %}',
+    'modalClosed': '{% trans "Modal closed" %}',
+    'modalOpened': '{% trans "Modal opened" %}',
+    'userNotAuthenticated': '{% trans "User not authenticated, preventing modal open" %}',
+    'addTestimonialModalOpened': '{% trans "Add testimonial modal opened" %}',
+    'addTestimonialButtonNotFound': '{% trans "Add testimonial button not found" %}',
+    'addTestimonialModalNotFound': '{% trans "Add testimonial modal not found" %}',
+    'modalNotFoundForClosing': '{% trans "Modal not found for closing" %}',
+    'thankYouTestimonialAdded': '{% trans "Thank you! Your testimonial has been successfully added." %}',
+    'errorSubmittingTestimonial': '{% trans "An error occurred while submitting the testimonial. Please try again." %}',
+    'addTestimonialButtonClicked': '{% trans "Add testimonial button clicked, isAuthenticated:" %}'
+};
+</script>
+
 <script src="{% static 'js/testimonials.js' %}"></script>
 <script src="{% static 'blog/js/video_control.js' %}"></script>
 <script>
-// Закрываем модальные окна при загрузке страницы
+// Close modal windows on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Index.html DOMContentLoaded fired");
     const modalContainer = document.querySelector('[data-modal-container]');
@@ -243,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Закрываем модальное окно перед переходом на страницу профиля
+// Close modal before navigating to profile page
 document.querySelectorAll('[data-profile-link]').forEach(button => {
     button.addEventListener('click', function(e) {
         e.preventDefault();
@@ -259,7 +279,7 @@ document.querySelectorAll('[data-profile-link]').forEach(button => {
     });
 });
 
-// Закрываем модальное окно карточки по клику на оверлей
+// Close testimonials modal by clicking on overlay
 document.querySelector('[data-modal-container]')?.addEventListener('click', function(e) {
     const overlay = document.querySelector('[data-overlay]');
     if (e.target === overlay) {
@@ -268,7 +288,7 @@ document.querySelector('[data-modal-container]')?.addEventListener('click', func
     }
 });
 
-// Закрываем модальное окно графиков по клику вне окна
+// Close quiz stats modal by clicking outside
 document.getElementById('quizStatsModal')?.addEventListener('click', function(e) {
     if (e.target === this) {
         this.style.display = 'none';
@@ -276,7 +296,7 @@ document.getElementById('quizStatsModal')?.addEventListener('click', function(e)
     }
 });
 
-// Открываем модальное окно графиков
+// Open quiz stats modal
 function showQuizStats(quizId) {
     console.log("Showing quiz stats for ID:", quizId);
     const modal = document.getElementById('quizStatsModal');
@@ -286,7 +306,7 @@ function showQuizStats(quizId) {
     modal.style.display = "block";
     console.log("Quiz modal opened:", modal.style.display);
 
-    // Создаём градиент для баров
+    // Create gradient for bars
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, 'hsl(45, 100%, 72%)'); // --orange-yellow-crayola
     gradient.addColorStop(1, 'hsl(45, 100%, 50%)');
@@ -363,7 +383,7 @@ function showQuizStats(quizId) {
     });
 }
 
-// Закрываем модальное окно графиков по кнопке
+// Close quiz stats modal by button
 document.querySelector('.close-stats-modal')?.addEventListener('click', function() {
     const modal = document.getElementById('quizStatsModal');
     if (modal) {
