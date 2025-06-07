@@ -73,11 +73,14 @@
     <div class="main-content">
         <nav class="navbar">
             <ul class="navbar-list">
-                <li class="navbar-item"><a href="{% url 'blog:home' %}" class="navbar-link">{% trans "Home" %}</a>
+                <li class="navbar-item">
+                    <a href="{% url 'blog:home' %}" class="navbar-link home-link" title="{% trans 'Home' %}">
+                        <i class="fas fa-home"></i>
+                        <span class="nav-text">{% trans "Home" %}</span>
+                    </a>
                 </li>
                 <li class="navbar-item"><a href="{% url 'blog:blog' %}" class="navbar-link">{% trans "Posts" %}</a></li>
-                <li class="navbar-item"><a href="{% url 'blog:quizes' %}" class="navbar-link">{% trans "Quizzes" %}</a>
-                </li>
+                <li class="navbar-item"><a href="{% url 'blog:quizes' %}" class="navbar-link">{% trans "Quizzes" %}</a></li>
                 {% if user.is_authenticated %}
                 <li class="navbar-item"><a href="{% url 'accounts:user-list' %}" class="navbar-link">{% trans "Users" %}</a></li>
                 <li class="navbar-item"><a href="{% url 'accounts:profile' %}" class="navbar-link">{% trans "Profile" %}</a></li>
@@ -92,13 +95,23 @@
                 {% endif %}
                 <!-- Добавляем кнопки переключения языка -->
                 <li class="nav-item">
-                    <form id="language-switcher" action="{% url 'set_language' %}" method="post">
-                        {% csrf_token %}
-                        <select name="language" onchange="this.form.submit()" class="language-switcher">
-                            <option value="en" {% if language == 'en' %}selected{% endif %}>{% trans "English" %}</option>
-                            <option value="ru" {% if language == 'ru' %}selected{% endif %}>{% trans "Русский" %}</option>
-                        </select>
-                    </form>
+                    <div class="language-switcher-globe">
+                        <div class="globe-icon" id="globe-toggle">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="language-dropdown" id="language-dropdown">
+                            <button type="button" class="language-option {% if language == 'en' %}active{% endif %}"
+                                    onclick="switchLanguage('en')">EN</button>
+                            <button type="button" class="language-option {% if language == 'ru' %}active{% endif %}"
+                                    onclick="switchLanguage('ru')">RU</button>
+                        </div>
+
+                        <!-- Скрытая форма для отправки -->
+                        <form id="hidden-language-form" action="{% url 'set_language' %}" method="post" style="display: none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="language" id="selected-language">
+                        </form>
+                    </div>
                 </li>
             </ul>
         </nav>
@@ -243,6 +256,85 @@
         }
     });
 </script>
+<script>
+    // Globe Language Switcher JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+        const globeToggle = document.getElementById('globe-toggle');
+        const languageDropdown = document.getElementById('language-dropdown');
+        const languageSwitcherGlobe = document.querySelector('.language-switcher-globe');
+
+        if (globeToggle && languageDropdown) {
+            // Переключение dropdown при клике на глобус
+            globeToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+
+                // Проверяем позицию и доступное место
+                adjustDropdownPosition();
+
+                languageDropdown.classList.toggle('active');
+            });
+
+            // Закрытие dropdown при клике вне области
+            document.addEventListener('click', function(e) {
+                if (!languageSwitcherGlobe.contains(e.target)) {
+                    languageDropdown.classList.remove('active');
+                }
+            });
+
+            // Закрытие dropdown при нажатии Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && languageDropdown.classList.contains('active')) {
+                    languageDropdown.classList.remove('active');
+                }
+            });
+
+            // Переопределение позиции при изменении размера окна
+            window.addEventListener('resize', function() {
+                if (languageDropdown.classList.contains('active')) {
+                    adjustDropdownPosition();
+                }
+            });
+        }
+
+        // Функция для корректировки позиции dropdown
+        function adjustDropdownPosition() {
+            if (!globeToggle || !languageDropdown) return;
+
+            const rect = globeToggle.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = 80; // Примерная высота dropdown
+            const spaceBelow = viewportHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            // Сбрасываем предыдущие классы
+            languageDropdown.classList.remove('show-above', 'show-below');
+
+            // Если места снизу недостаточно, но сверху есть место
+            if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+                languageDropdown.classList.add('show-above');
+            } else {
+                languageDropdown.classList.add('show-below');
+            }
+        }
+    });
+
+    // Функция переключения языка
+    function switchLanguage(lang) {
+        const selectedLanguageInput = document.getElementById('selected-language');
+        const hiddenForm = document.getElementById('hidden-language-form');
+        const languageDropdown = document.getElementById('language-dropdown');
+
+        if (selectedLanguageInput && hiddenForm) {
+            selectedLanguageInput.value = lang;
+            languageDropdown.classList.remove('active');
+
+            // Добавляем небольшую задержку для плавности анимации
+            setTimeout(() => {
+                hiddenForm.submit();
+            }, 150);
+        }
+    }
+</script>
 <style>
     .message-notification {
         position: fixed;
@@ -257,6 +349,29 @@
         background-color: rgba(46, 204, 113, 0.2);
         color: #2ecc71;
         border: 1px solid #2ecc71;
+    }
+    .home-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .home-link i {
+        font-size: 1.1em;
+        transition: transform 0.2s ease;
+    }
+
+    .home-link:hover i {
+        transform: scale(1.1);
+    }
+
+    /* Показывать только иконку на всех экранах */
+    .nav-text {
+        display: none;
+    }
+
+    .home-link {
+        justify-content: center;
     }
 
 </style>

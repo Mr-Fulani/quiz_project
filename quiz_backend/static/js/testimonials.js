@@ -1,22 +1,39 @@
 /**
  * testimonials.js
- * Скрипт управления отзывами на странице
- * 
- * Функционал:
- * - Открытие/закрытие модальных окон
- * - Отправка новых отзывов
- * - Просмотр существующих отзывов
- * - Обработка аватарок пользователей
+ * Script for managing testimonials on the page
+ *
+ * Functionality:
+ * - Opening/closing modal windows
+ * - Submitting new testimonials
+ * - Viewing existing testimonials
+ * - Handling user avatars
  */
 
 'use strict';
 
 console.log("testimonials.js loaded");
 
+// Localization strings - these will be set from Django template
+window.testimonialsTranslations = window.testimonialsTranslations || {
+    'viewProfile': 'View Profile',
+    'loginToViewProfile': 'Login to view profile',
+    'profileUnavailable': 'Profile unavailable',
+    'modalClosed': 'Modal closed',
+    'modalOpened': 'Modal opened',
+    'userNotAuthenticated': 'User not authenticated, preventing modal open',
+    'addTestimonialModalOpened': 'Add testimonial modal opened',
+    'addTestimonialButtonNotFound': 'Add testimonial button not found',
+    'addTestimonialModalNotFound': 'Add testimonial modal not found',
+    'modalNotFoundForClosing': 'Modal not found for closing',
+    'thankYouTestimonialAdded': 'Thank you! Your testimonial has been successfully added.',
+    'errorSubmittingTestimonial': 'An error occurred while submitting the testimonial. Please try again.',
+    'addTestimonialButtonClicked': 'Add testimonial button clicked, isAuthenticated:'
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log("testimonials.js DOMContentLoaded fired");
 
-    // Обработчики для модального окна просмотра отзывов
+    // Handlers for testimonial viewing modal
     const testimonialsItem = document.querySelectorAll('[data-testimonials-item]');
     const modalContainer = document.querySelector('[data-modal-container]');
     const modalCloseBtn = document.querySelector('[data-modal-close-btn]');
@@ -30,16 +47,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log("Found testimonials items:", testimonialsItem.length);
 
-    // Функция для модального окна просмотра отзывов
+    // Function for testimonial viewing modal
     const testimonialsModalFunc = function () {
         if (modalContainer && overlay) {
             modalContainer.classList.toggle('active');
             overlay.classList.toggle('active');
-            console.log("Modal toggled, active:", modalContainer.classList.contains('active'));
+            console.log(window.testimonialsTranslations.modalClosed + ", active:", modalContainer.classList.contains('active'));
         }
     }
 
-    // В функции обработки клика на отзыв (testimonials.js)
+    // Click handler for testimonials
     testimonialsItem.forEach(item => {
         item.addEventListener('click', function () {
             console.log("=== TESTIMONIAL CLICKED ===");
@@ -53,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const text = this.querySelector('[data-testimonials-text]').innerHTML;
             const date = this.querySelector('[data-date-joined]')?.textContent;
 
-            // Расширенная отладка для username
+            // Extended debugging for username
             const testimonialsItemElement = this.closest('.testimonials-item');
             console.log("Testimonials item element:", testimonialsItemElement);
             console.log("All datasets on testimonials item:", testimonialsItemElement?.dataset);
@@ -67,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("Username:", username);
             console.log("Is authenticated:", isAuthenticated);
 
-            // Проверяем наличие элементов модального окна
+            // Check for modal elements
             console.log("=== MODAL ELEMENTS ===");
             console.log("modalImg:", modalImg);
             console.log("modalTitle:", modalTitle);
@@ -90,14 +107,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         const profileUrl = `/users/user/${encodeURIComponent(username)}/`;
                         modalProfileLink.href = profileUrl;
                         modalProfileLink.className = 'modal-profile-btn';
-                        modalProfileLink.textContent = 'Перейти в профиль';
+                        modalProfileLink.textContent = window.testimonialsTranslations.viewProfile;
                         modalProfileLink.dataset.username = username;
                         console.log("✓ Profile URL set to:", profileUrl);
                         console.log("✓ Link href after setting:", modalProfileLink.href);
                     } else {
                         modalProfileLink.href = '#';
                         modalProfileLink.className = 'open-login-modal';
-                        modalProfileLink.textContent = 'Войдите, чтобы перейти в профиль';
+                        modalProfileLink.textContent = window.testimonialsTranslations.loginToViewProfile;
                         modalProfileLink.dataset.returnUrl = `/users/user/${encodeURIComponent(username)}/`;
                         delete modalProfileLink.dataset.username;
                         console.log("✓ User not authenticated, login modal required");
@@ -105,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     console.error("✗ Username is empty or undefined");
                     modalProfileLink.href = '#';
-                    modalProfileLink.textContent = 'Профиль недоступен';
+                    modalProfileLink.textContent = window.testimonialsTranslations.profileUnavailable;
                 }
             } else {
                 console.error("✗ Modal profile link element not found");
@@ -115,9 +132,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Обработчики закрытия модальных окон
+    // Modal close handlers setup
     const setupModalCloseHandlers = function() {
-        // Для всех модальных окон
+        // For all modal windows
         document.querySelectorAll('.modal-container').forEach(modal => {
             const overlay = modal.querySelector('.overlay');
             const closeBtn = modal.querySelector('.modal-close-btn');
@@ -126,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 overlay.addEventListener('click', function() {
                     modal.classList.remove('active');
                     this.classList.remove('active');
-                    console.log("Modal closed by overlay click");
+                    console.log(window.testimonialsTranslations.modalClosed + " by overlay click");
                 });
             }
 
@@ -134,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 closeBtn.addEventListener('click', function() {
                     modal.classList.remove('active');
                     if (overlay) overlay.classList.remove('active');
-                    console.log("Modal closed by button click");
+                    console.log(window.testimonialsTranslations.modalClosed + " by button click");
                 });
             }
         });
@@ -142,13 +159,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setupModalCloseHandlers();
 
-    // Обработчики для модального окна добавления отзыва
+    // Handlers for add testimonial modal
     const addTestimonialModal = document.getElementById('add-testimonial-modal');
     const testimonialForm = document.getElementById('testimonial-form');
 
     /**
-     * Закрывает указанное модальное окно, убирая класс active
-     * @param {HTMLElement} modal - Модальное окно для закрытия
+     * Closes the specified modal by removing the active class
+     * @param {HTMLElement} modal - Modal window to close
      */
     const closeModal = function(modal) {
         if (modal) {
@@ -157,22 +174,22 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalOverlay) {
                 modalOverlay.classList.remove('active');
             }
-            console.log('Modal closed:', modal.id || 'unknown');
+            console.log(window.testimonialsTranslations.modalClosed + ':', modal.id || 'unknown');
         } else {
-            console.error('Modal not found for closing');
+            console.error(window.testimonialsTranslations.modalNotFoundForClosing);
         }
     };
 
     /**
-     * Открывает модальное окно для добавления отзыва, добавляя класс active
-     * Проверяет авторизацию пользователя и открывает модальное окно только для авторизованных
-     * @param {Event} e - Событие клика
+     * Opens the add testimonial modal by adding the active class
+     * Checks user authentication and opens modal only for authenticated users
+     * @param {Event} e - Click event
      */
     const openAddTestimonialModal = function(e) {
-        console.log('Add testimonial button clicked, isAuthenticated:', isAuthenticated);
+        console.log(window.testimonialsTranslations.addTestimonialButtonClicked, isAuthenticated);
         if (!isAuthenticated) {
             e.preventDefault();
-            console.log('User not authenticated, preventing modal open');
+            console.log(window.testimonialsTranslations.userNotAuthenticated);
             return;
         }
 
@@ -182,18 +199,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if (addTestimonialOverlay) {
                 addTestimonialOverlay.classList.add('active');
             }
-            console.log('Add testimonial modal opened');
+            console.log(window.testimonialsTranslations.addTestimonialModalOpened);
         } else {
-            console.error('Add testimonial modal not found');
+            console.error(window.testimonialsTranslations.addTestimonialModalNotFound);
         }
     };
 
-    // Привязываем обработчик к кнопке добавления отзыва
+    // Bind handler to add testimonial button
     const addButton = document.querySelector('.add-testimonial-button .btn');
     if (addButton) {
         addButton.addEventListener('click', openAddTestimonialModal);
     } else {
-        console.error('Add testimonial button not found');
+        console.error(window.testimonialsTranslations.addTestimonialButtonNotFound);
     }
 
     if (testimonialForm) {
@@ -212,27 +229,27 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Создаем и показываем уведомление
+                    // Create and show notification
                     const notification = document.createElement('div');
                     notification.className = 'message-notification success';
-                    notification.textContent = 'Спасибо! Ваш отзыв успешно добавлен.';
+                    notification.textContent = window.testimonialsTranslations.thankYouTestimonialAdded;
                     document.body.appendChild(notification);
 
-                    // Закрываем модальное окно
+                    // Close modal
                     closeModal(addTestimonialModal);
 
-                    // Удаляем уведомление через 3 секунды
+                    // Remove notification after 3 seconds
                     setTimeout(() => {
                         notification.remove();
-                        location.reload(); // Перезагружаем страницу для отображения нового отзыва
+                        location.reload(); // Reload page to display new testimonial
                     }, 3000);
                 } else {
-                    alert('Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте снова.');
+                    alert(window.testimonialsTranslations.errorSubmittingTestimonial);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте снова.');
+                alert(window.testimonialsTranslations.errorSubmittingTestimonial);
             });
         });
     }
