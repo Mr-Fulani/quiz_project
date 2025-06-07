@@ -1,6 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static %}
-{% load form_tags %}
+{% load static i18n form_tags %}
 
 {% block sidebar %}
 {% include 'accounts/user_sidebar.html' %}
@@ -14,7 +13,7 @@
 {% if user.is_authenticated %}
 <article class="profile active" data-page="profile" data-dashboard-url="{% url 'accounts:dashboard' %}">
     <header>
-        <h2 class="h2 article-title">Dashboard</h2>
+        <h2 class="h2 article-title">{% trans "Dashboard" %}</h2>
     </header>
 
     {% if messages %}
@@ -34,17 +33,17 @@
                 <ion-icon name="menu-outline"></ion-icon>
             </button>
             <div class="mobile-menu-content">
-                <button class="mobile-tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">Personal Info</button>
-                <button class="mobile-tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">Settings</button>
-                <button class="mobile-tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">Security</button>
+                <button class="mobile-tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">{% trans "Personal Info" %}</button>
+                <button class="mobile-tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">{% trans "Settings" %}</button>
+                <button class="mobile-tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">{% trans "Security" %}</button>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="profile-tabs">
-            <button class="tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">Personal Info</button>
-            <button class="tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">Settings</button>
-            <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">Security</button>
+            <button class="tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">{% trans "Personal Info" %}</button>
+            <button class="tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">{% trans "Settings" %}</button>
+            <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">{% trans "Security" %}</button>
         </div>
 
         <!-- Personal Info Tab -->
@@ -68,25 +67,25 @@
                             <input type="hidden" name="personal_info" value="true">
 
                             <div class="input-wrapper">
-                                <label>Username</label>
+                                <label>{% trans "Username" %}</label>
                                 {{ personal_info_form.username|add_class:"form-input" }}
 
-                                <label>Email</label>
+                                <label>{% trans "Email" %}</label>
                                 {{ personal_info_form.email|add_class:"form-input" }}
 
-                                <label>First Name</label>
+                                <label>{% trans "First Name" %}</label>
                                 {{ personal_info_form.first_name|add_class:"form-input" }}
 
-                                <label>Last Name</label>
+                                <label>{% trans "Last Name" %}</label>
                                 {{ personal_info_form.last_name|add_class:"form-input" }}
 
-                                <label>Bio</label>
+                                <label>{% trans "Bio" %}</label>
                                 {{ personal_info_form.bio|add_class:"form-input" }}
 
-                                <label>Location</label>
+                                <label>{% trans "Location" %}</label>
                                 {{ personal_info_form.location|add_class:"form-input" }}
 
-                                <label>Birth Date</label>
+                                <label>{% trans "Birth Date" %}</label>
                                 <input type="date" name="birth_date" class="form-input" value="{{ personal_info_form.birth_date.value|date:'Y-m-d' }}" id="{{ personal_info_form.birth_date.id_for_label }}">
 
                             </div>
@@ -124,7 +123,7 @@
 
                             <div class="form-submit-wrapper">
                                 <button class="form-btn" type="submit">
-                                    <span>Save Changes</span>
+                                    <span>{% trans "Save Changes" %}</span>
                                 </button>
                             </div>
                         </form>
@@ -134,15 +133,15 @@
         </div>
 
         <!-- Settings Tab -->
-        <div class="tab-content" data-tab-content="settings">
+        <div class="tab-content {% if active_tab == 'settings' %}active{% endif %}" data-tab-content="settings">
             <div class="profile-card">
-                <h3 class="card-title">Settings</h3>
+                <h3 class="card-title">{% trans "Settings" %}</h3>
                 {% csrf_token %}
                 <div class="settings-list">
                     <div class="setting-item">
                         <div class="setting-info">
-                            <h4>Public Profile</h4>
-                            <p>Allow others to view your profile</p>
+                            <h4>{% trans "Public Profile" %}</h4>
+                            <p>{% trans "Allow others to view your profile" %}</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="is_public"
@@ -153,8 +152,8 @@
 
                     <div class="setting-item">
                         <div class="setting-info">
-                            <h4>Email Notifications</h4>
-                            <p>Receive email notifications</p>
+                            <h4>{% trans "Email Notifications" %}</h4>
+                            <p>{% trans "Receive email notifications" %}</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="email_notifications"
@@ -164,12 +163,12 @@
                     </div>
                     <div class="setting-item">
                         <div class="setting-info">
-                            <h4>Dark Mode</h4>
-                            <p>Enable dark mode for the dashboard</p>
+                            <h4>{% trans "Dark Mode" %}</h4>
+                            <p>{% trans "Enable dark mode for the dashboard" %}</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" name="dark_mode"
-                                   {% if user_settings.dark_mode %}checked{% endif %}>
+                                   {% if user_settings.theme_preference == 'dark' %}checked{% endif %}>
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -177,14 +176,14 @@
             </div>
         </div>
 
-        <!-- Settings Tab -->
+        <!-- Security Tab -->
         <div class="tab-content {% if active_tab == 'security' %}active{% endif %}" data-tab-content="security">
             <div class="profile-card">
-                <h3 class="h3">Настройки безопасности</h3>
+                <h3 class="h3">{% trans "Security Settings" %}</h3>
                 <form class="form security-form" method="post" action="{% url 'accounts:change_password' %}">
                     {% csrf_token %}
                     {% if password_change_success %}
-                    <div class="success">Пароль успешно изменён!</div>
+                    <div class="success">{% trans "Password changed successfully!" %}</div>
                     {% endif %}
                     {% if password_form.non_field_errors %}
                     <div class="error">
@@ -194,27 +193,27 @@
                     </div>
                     {% endif %}
                     <div class="input-wrapper">
-                        <label for="id_old_password">Текущий пароль</label>
+                        <label for="id_old_password">{% trans "Current Password" %}</label>
                         <input type="password" id="id_old_password" name="old_password" class="form-input" required>
                         {% if password_form.old_password.errors %}
                             <div class="error">{{ password_form.old_password.errors }}</div>
                         {% endif %}
 
-                        <label for="id_new_password1">Новый пароль</label>
-                        <input type="password" id="id_new_password1" name="new_password1" class="form-input" required minlength="8" placeholder="Минимум 8 символов, буквы, цифры, символы">
+                        <label for="id_new_password1">{% trans "New Password" %}</label>
+                        <input type="password" id="id_new_password1" name="new_password1" class="form-input" required minlength="8" placeholder="{% trans 'Minimum 8 characters, letters, numbers, symbols' %}">
                         {% if password_form.new_password1.errors %}
                             <div class="error">{{ password_form.new_password1.errors }}</div>
                         {% endif %}
 
-                        <label for="id_new_password2">Подтверждение пароля</label>
-                        <input type="password" id="id_new_password2" name="new_password2" class="form-input" required minlength="8" placeholder="Повторите новый пароль">
+                        <label for="id_new_password2">{% trans "Confirm Password" %}</label>
+                        <input type="password" id="id_new_password2" name="new_password2" class="form-input" required minlength="8" placeholder="{% trans 'Repeat new password' %}">
                         {% if password_form.new_password2.errors %}
                             <div class="error">{{ password_form.new_password2.errors }}</div>
                         {% endif %}
                     </div>
 
                     <button class="form-btn" type="submit">
-                        <span>Сменить пароль</span>
+                        <span>{% trans "Change Password" %}</span>
                     </button>
                 </form>
             </div>
@@ -222,14 +221,25 @@
     </section>
 </article>
 
+<script>
+    var messages = {
+        avatar_updated: "{% trans 'Avatar updated successfully!' %}",
+        avatar_error: "{% trans 'Error updating avatar.' %}",
+        profile_updated: "{% trans 'Profile updated successfully!' %}",
+        profile_error: "{% trans 'Error updating profile.' %}",
+        settings_updated: "{% trans 'Settings updated successfully!' %}",
+        settings_error: "{% trans 'Error updating settings.' %}",
+        password_error: "{% trans 'Error changing password.' %}"
+    };
+</script>
 <script src="{% static 'accounts/js/dashboard.js' %}"></script>
 {% else %}
 <article class="profile active" data-page="profile">
     <header>
-        <h2 class="h2 article-title">Profile</h2>
+        <h2 class="h2 article-title">{% trans "Profile" %}</h2>
     </header>
     <section class="login-prompt">
-        <p>You must <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">log in</a> to view your profile information.</p>
+        <p>{% trans "You must" %} <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">{% trans "log in" %}</a> {% trans "to view your profile information." %}</p>
     </section>
 </article>
 {% endif %}

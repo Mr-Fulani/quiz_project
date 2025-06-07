@@ -1,4 +1,4 @@
-{% load static %}
+{% load static i18n %}
 <aside class="sidebar" data-sidebar>
     <div class="sidebar-info">
         <figure class="avatar-box">
@@ -11,7 +11,7 @@
         </div>
 
         <button class="info-more-btn" data-sidebar-btn>
-            <span>Show Contacts</span>
+            <span>{% trans "Show Contacts" %}</span>
             <ion-icon name="chevron-down"></ion-icon>
         </button>
     </div>
@@ -24,8 +24,8 @@
                     <ion-icon name="person-outline"></ion-icon>
                 </div>
                 <div class="contact-info">
-                    <p class="contact-title">About Me</p>
-                    <a href="{% url 'blog:about' %}" class="contact-link">View Profile</a>
+                    <p class="contact-title">{% trans "About Me" %}</p>
+                    <a href="{% url 'blog:about' %}" class="contact-link">{% trans "View Profile" %}</a>
                 </div>
             </li>
 
@@ -34,8 +34,8 @@
                     <ion-icon name="school-outline"></ion-icon>
                 </div>
                 <div class="contact-info">
-                    <p class="contact-title">Resume</p>
-                    <a href="{% url 'blog:resume' %}" class="contact-link">View Resume</a>
+                    <p class="contact-title">{% trans "Resume" %}</p>
+                    <a href="{% url 'blog:resume' %}" class="contact-link">{% trans "View Resume" %}</a>
                 </div>
             </li>
 
@@ -44,8 +44,8 @@
                     <ion-icon name="briefcase-outline"></ion-icon>
                 </div>
                 <div class="contact-info">
-                    <p class="contact-title">Portfolio</p>
-                    <a href="{% url 'blog:portfolio' %}" class="contact-link">View Projects</a>
+                    <p class="contact-title">{% trans "Portfolio" %}</p>
+                    <a href="{% url 'blog:portfolio' %}" class="contact-link">{% trans "View Projects" %}</a>
                 </div>
             </li>
 
@@ -54,8 +54,8 @@
                     <ion-icon name="call-outline"></ion-icon>
                 </div>
                 <div class="contact-info">
-                    <p class="contact-title">Contact</p>
-                    <a href="{% url 'blog:contact' %}" class="contact-link">Contact Me</a>
+                    <p class="contact-title">{% trans "Contact" %}</p>
+                    <a href="{% url 'blog:contact' %}" class="contact-link">{% trans "Contact Me" %}</a>
                 </div>
             </li>
         </ul>
