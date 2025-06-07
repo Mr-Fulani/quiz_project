@@ -528,16 +528,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const dontKnowOptions = [
         "Я не знаю, но хочу узнать",
         "I don't know, but I want to learn",
-        "No lo sé, pero quiero aprender",
-        "Bilmiyorum, ama öğrenmek istiyorum",
-        "لا أعرف، ولكن أريد أن أتعلم",
-        "Je ne sais pas, mais je veux apprendre",
-        "Ich weiß es nicht, aber ich möchte lernen",
-        "मुझे नहीं पता, लेकिन मैं सीखना चाहता हूँ",
-        "نمی‌دانم، اما می‌خواهم یاد بگیرم",
-        "Ман намедонам, аммо мехоҳам омӯзам",
-        "Bilmayman, lekin o‘rganmoqchiman",
-        "Білмеймін, бірақ үйренгім келеді"
     ];
 
     /**

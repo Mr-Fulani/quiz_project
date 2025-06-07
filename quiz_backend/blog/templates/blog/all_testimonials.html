@@ -8,7 +8,7 @@
 {% block content %}
 <article class="testimonials-page active">
     <header>
-        <h2 class="h2 article-title">{% trans "Все отзывы" %}</h2>
+        <h2 class="h2 article-title">{% trans "All Reviews" %}</h2>
     </header>
 
     <section class="testimonials">
@@ -20,12 +20,12 @@
                     <figure class="testimonials-avatar-box">
                         {% if testimonial.user.avatar %}
                             <img src="{{ testimonial.user.avatar.url }}"
-                                 alt="avatar"
+                                 alt="{% trans 'avatar' %}"
                                  data-testimonials-avatar
                                  width="60">
                         {% else %}
                             <img src="{% static 'blog/images/avatar/default_avatar.png' %}"
-                                 alt="avatar"
+                                 alt="{% trans 'avatar' %}"
                                  data-testimonials-avatar
                                  width="60">
                         {% endif %}
@@ -54,7 +54,7 @@
                 {% if page_obj.has_previous %}
                     <a href="?page={{ page_obj.previous_page_number }}" class="btn">
                         <ion-icon name="arrow-back-outline"></ion-icon>
-                        {% trans "Предыдущая" %}
+                        {% trans "Previous" %}
                     </a>
                 {% endif %}
 
@@ -64,7 +64,7 @@
 
                 {% if page_obj.has_next %}
                     <a href="?page={{ page_obj.next_page_number }}" class="btn">
-                        {% trans "Следующая" %}
+                        {% trans "Next" %}
                         <ion-icon name="arrow-forward-outline"></ion-icon>
                     </a>
                 {% endif %}
@@ -72,11 +72,11 @@
         </div>
         {% endif %}
         {% else %}
-        <p class="no-testimonials">{% trans "Пока нет отзывов" %}</p>
+        <p class="no-testimonials">{% trans "No reviews yet" %}</p>
         {% endif %}
     </section>
 
-    <!-- Модальные окна -->
+    <!-- {% trans "Modal windows" %} -->
     {% include "blog/includes/testimonial_modals.html" %}
 </article>
 {% endblock %}

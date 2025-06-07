@@ -1,46 +1,53 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block sidebar %}
-    {% include 'accounts/user_sidebar.html' %}
+{% comment %}
+Includes the user sidebar for authenticated users.
+{% endcomment %}
+{% include 'accounts/user_sidebar.html' %}
 {% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
+<link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
 {% endblock %}
 
 {% block content %}
+{% comment %}
+This template displays available difficulty levels for a quiz subtopic.
+All static text is localized using {% trans %} for English msgid and translations.
+{% endcomment %}
 <article class="quiz-difficulty active" data-page="quiz-difficulty">
     <header>
-        <h2 class="h2 article-title">Difficulty</h2>
+        <h2 class="h2 article-title">{% trans "Difficulty" %}</h2>
     </header>
     <section class="service">
-        <h3 class="h3 service-title">Доступные уровни сложности</h3>
+        <h3 class="h3 service-title">{% trans "Available Difficulty Levels" %}</h3>
         {% if difficulties %}
             <ul class="service-list">
                 {% for difficulty in difficulties %}
                     <li class="service-item">
                         <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|slugify difficulty=difficulty.value|lower %}" class="service-link">
                             <div class="service-icon-box">
-                                <img src="{{ topic.icon }}" alt="{{ difficulty.name }} иконка" width="40">
+                                <img src="{{ topic.icon }}" alt="{% blocktrans with difficulty_name=difficulty.name %}{{ difficulty_name }} icon{% endblocktrans %}" width="40">
                             </div>
                             <div class="service-content-box">
                                 <h4 class="h4 service-item-title">{{ difficulty.name }}</h4>
-                                <p class="service-item-text">Задачи уровня {{ difficulty.name }}.</p>
+                                <p class="service-item-text">{% trans "Tasks of level" %} {{ difficulty.name }}.</p>
                             </div>
                         </a>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p>Нет доступных уровней сложности.</p>
+            <p>{% trans "No difficulty levels available" %}</p>
         {% endif %}
     </section>
     <div class="user-score">
         {% if user.is_authenticated %}
-            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">Посмотреть мой прогресс</a>
+            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">{% trans "View my progress" %}</a>
         {% else %}
-            <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
+            <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">{% trans "Log in to track progress" %}</a>
         {% endif %}
     </div>
 </article>

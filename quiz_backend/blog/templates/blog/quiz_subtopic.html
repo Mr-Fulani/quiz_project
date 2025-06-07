@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static i18n %}
 {% load blog_tags %}
 
 {% block extra_css %}
@@ -26,7 +26,7 @@
                         <img src="{{ task.image_url|safe_url }}" alt="Task {{ task.id }} question">
                     </div>
                 {% else %}
-                    <p>Изображение отсутствует.</p>
+                    <p>{% trans "Image is missing." %}</p>
                 {% endif %}
 
                 {% if task.translation %}
@@ -45,44 +45,44 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p>Перевод отсутствует. Пожалуйста, свяжитесь с администратором.</p>
+                    <p>{% trans "Translation is missing. Please contact the administrator." %}</p>
                 {% endif %}
             </div>
         {% empty %}
-            <p>{{ no_tasks_message|default:"Задачи отсутствуют." }}</p>
+            <p>{{ no_tasks_message|default:"No tasks available." }}</p>
         {% endfor %}
 
-        {% comment %} Блок кнопки сброса отображается только для аутентифицированных пользователей {% endcomment %}
+        {% comment %} Reset button block is displayed only for authenticated users {% endcomment %}
         {% if user.is_authenticated %}
             <div class="reset-buttons">
                 <form method="post" action="{% url 'blog:reset_subtopic_stats' subtopic.id %}" class="reset-form">
                     {% csrf_token %}
                     <button type="submit" class="reset-button"
-                            onclick="return confirm('Вы уверены, что хотите пройти тест заново? Статистика для подтемы &quot;{{ subtopic.name|escapejs }}&quot; будет сброшена.')">
-                        Пройти тест заново
+                            onclick='return confirm("{% trans 'Are you sure you want to retake the test? Statistics for the subtopic' %} &quot;{{ subtopic.name|escapejs }}&quot; {% trans 'will be reset.' %}")'>
+                        {% trans "Retake Test" %}
                     </button>
                 </form>
             </div>
         {% endif %}
 
-        {% comment %} Блок прогресса пользователя отображается всегда,
-            но его содержимое зависит от статуса аутентификации {% endcomment %}
+        {% comment %} User progress block is always displayed,
+            but its content depends on authentication status {% endcomment %}
         <div class="user-progress">
             {% if user.is_authenticated %}
-                <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">Посмотреть мой прогресс</a>
+                <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">{% trans "View My Progress" %}</a>
             {% else %}
-                <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
+                <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">{% trans "Login to track progress" %}</a>
             {% endif %}
         </div>
 
         {% if paginator.num_pages > 1 %}
             <div class="pagination">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}" class="btn">Назад</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="btn">{% trans "Previous" %}</a>
                 {% endif %}
-                <span>Страница {{ page_obj.number }} из {{ paginator.num_pages }}</span>
+                <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ paginator.num_pages }}</span>
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="btn">Далее</a>
+                    <a href="?page={{ page_obj.next_page_number }}" class="btn">{% trans "Next" %}</a>
                 {% endif %}
             </div>
         {% endif %}
@@ -94,7 +94,7 @@
     <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
     <script>
         /**
-         * Проверяет, является ли устройство мобильным.
+         * Checks if the device is mobile.
          */
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobile) {
@@ -102,7 +102,7 @@
             document.documentElement.classList.add('mobile-device');
 
             /**
-             * Инициализирует аудио для эффектов.
+             * Initializes audio for effects.
              */
             function initAudio() {
                 const sounds = [
@@ -117,7 +117,7 @@
             }
 
             /**
-             * Запрашивает разрешение на сенсоры движения и вибрацию.
+             * Requests permission for motion sensors and vibration.
              */
             document.addEventListener('touchstart', function permissionHandler() {
                 initAudio();
@@ -148,7 +148,7 @@
         }
 
         /**
-         * Тестирует вибрацию.
+         * Tests vibration functionality.
          */
         window.testVibration = function() {
             console.log("Testing vibration...");
@@ -168,7 +168,7 @@
         };
 
         /**
-         * Обновляет обработчик формы сброса статистики.
+         * Updates the statistics reset form handler.
          */
         document.querySelectorAll('.reset-form').forEach(form => {
             form.addEventListener('submit', async function(e) {
@@ -186,11 +186,11 @@
                         alert(data.message);
                         window.location.reload();
                     } else {
-                        alert('Ошибка при сбросе статистики.');
+                        alert('{% trans "Error resetting statistics." %}');
                     }
                 } catch (error) {
                     console.error('Error resetting stats:', error);
-                    alert('Произошла ошибка при сбросе статистики.');
+                    alert('{% trans "An error occurred while resetting statistics." %}');
                 }
             });
         });

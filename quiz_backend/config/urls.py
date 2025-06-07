@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
@@ -41,6 +42,8 @@ sitemaps = {
 
 
 urlpatterns = [
+    path('i18n/', include('django.conf.urls.i18n')),  # URL для обработки переключения языка
+] + i18n_patterns(
     path('admin/', admin.site.urls),
     #   -> Админ-панель Django
 
@@ -75,7 +78,7 @@ urlpatterns = [
 
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', static_serve, {'document_root': settings.STATIC_ROOT, 'path': 'robots.txt'}),
-]
+)
 
 # Подключение статических файлов, если DEBUG=True
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) \

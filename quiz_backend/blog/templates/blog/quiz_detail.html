@@ -1,18 +1,25 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block sidebar %}
-  {% include 'accounts/user_sidebar.html' %}
+{% comment %}
+Includes the user sidebar for authenticated users.
+{% endcomment %}
+{% include 'accounts/user_sidebar.html' %}
 {% endblock %}
 
 {% block content %}
+{% comment %}
+This template displays a quiz detail page with available subtopics for a given topic.
+All static text is localized using {% trans %} for English msgid and translations.
+{% endcomment %}
 <article class="quiz-detail active" data-page="quiz-detail">
     <header>
         <h2 class="h2 article-title">{{ topic.name }}</h2>
     </header>
 
     <section class="service">
-        <h3 class="h3 service-title">Доступные подтемы</h3>
+        <h3 class="h3 service-title">{% trans "Available Subtopics" %}</h3>
 
         {% if subtopics %}
           <ul class="service-list">
@@ -20,26 +27,26 @@
               <li class="service-item">
                 <a href="{% url 'blog:quiz_difficulty' quiz_type=topic.name|lower subtopic=subtopic.name|slugify %}">
                   <div class="service-icon-box">
-                    <img src="{{ topic.icon }}" alt="{{ subtopic.name }} иконка" width="40">
+                    <img src="{{ topic.icon }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
                   </div>
                   <div class="service-content-box">
                     <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>
-                    <p class="service-item-text">Тест по подтеме {{ subtopic.name }}.</p>
+                    <p class="service-item-text">{% trans "Test on subtopic" %} {{ subtopic.name }}.</p>
                   </div>
                 </a>
               </li>
             {% endfor %}
           </ul>
         {% else %}
-          <p>Нет доступных подтем для {{ topic.name }}.</p>
+          <p>{% trans "No subtopics available for" %} {{ topic.name }}.</p>
         {% endif %}
     </section>
 
     <div class="user-progress">
         {% if user.is_authenticated %}
-            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">Посмотреть мой прогресс</a>
+            <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">{% trans "View my progress" %}</a>
         {% else %}
-            <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">Войдите, чтобы отслеживать прогресс</a>
+            <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">{% trans "Log in to track progress" %}</a>
         {% endif %}
     </div>
 </article>

@@ -224,6 +224,7 @@
 │   │   ├── urls.py
 │   │   └── views.py
 │   ├── blog
+│   │   ├── locale
 │   │   ├── migrations
 │   │   ├── templates
 │   │   ├── templatetags
@@ -231,6 +232,7 @@
 │   │   ├── admin.py
 │   │   ├── apps.py
 │   │   ├── context_processors.py
+│   │   ├── mixins.py
 │   │   ├── models.py
 │   │   ├── serializers.py
 │   │   ├── sitemaps.py
@@ -307,7 +309,6 @@
 │   ├── project_tree.txt
 │   ├── pytest.ini
 │   ├── requirements.txt
-│   ├── robots.txt
 │   ├── setup.cfg
 │   └── setup.py
 ├── uploads
@@ -332,4 +333,4 @@
 ├── requirements.txt
 └── trening.py
 
-75 directories, 258 files
+76 directories, 258 files
