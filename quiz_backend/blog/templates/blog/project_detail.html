@@ -1,15 +1,19 @@
 {% extends "blog/base.html" %}
-{% load static %}
-{% load youtube_tags %}
-{% load blog_tags %}
+{% load static youtube_tags blog_tags i18n %}
 
 {% block extra_head %}
+{% comment %}
+Meta tags for SEO, using project's meta description and keywords.
+{% endcomment %}
 <meta name="description" content="{{ project.meta_description }}">
 <meta name="keywords" content="{{ project.meta_keywords }}">
 {% endblock %}
 
-
 {% block content %}
+{% comment %}
+This template displays a detailed view of a portfolio project with a media slider and description.
+All static text is localized using {% trans %} for English msgid and translations.
+{% endcomment %}
 <article class="detail-page active" data-page="project-detail">
     <header>
         <h2 class="h2 article-title">{{ project.title }}</h2>
@@ -44,7 +48,7 @@
                             <div class="media-wrapper">
                                 <video controls>
                                     <source src="{{ media.video.url }}" type="video/mp4">
-                                    Your browser does not support the video tag.
+                                    {% trans "Your browser does not support the video tag." %}
                                 </video>
                             </div>
                         </figure>
@@ -54,7 +58,7 @@
                     <div class="swiper-slide">
                         <figure class="detail-media-box">
                             <div class="media-wrapper">
-                                <p>Нет медиа для отображения</p>
+                                <p>{% trans "No media available" %}</p>
                             </div>
                         </figure>
                     </div>
@@ -100,13 +104,13 @@
                 {% if project.github_link %}
                 <a href="{{ project.github_link }}" class="btn" target="_blank">
                     <ion-icon name="logo-github"></ion-icon>
-                    GitHub
+                    {% trans "GitHub" %}
                 </a>
                 {% endif %}
                 {% if project.demo_link %}
                 <a href="{{ project.demo_link }}" class="btn" target="_blank">
                     <ion-icon name="globe-outline"></ion-icon>
-                    Live Demo
+                    {% trans "Live Demo" %}
                 </a>
                 {% endif %}
             </div>

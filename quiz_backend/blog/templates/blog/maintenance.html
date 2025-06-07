@@ -1,32 +1,35 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'blog/css/animations.css' %}">
 {% endblock %}
 
 {% block content %}
+{% comment %}
+This template displays a "under construction" page for the chat functionality.
+All static text is localized using {% trans %} for English msgid and translations.
+{% endcomment %}
 <article class="maintenance active" data-page="maintenance">
     <header>
-        <h2 class="h2 article-title">В разработке</h2>
+        <h2 class="h2 article-title">{% trans "Under Development" %}</h2>
     </header>
 
     <div class="content-card" style="text-align: center; padding: 40px 20px;">
         <div style="margin-bottom: 30px;">
-            <img src="https://cdn-icons-png.flaticon.com/512/5578/5578703.png" alt="under construction" width="150">
+            <img src="https://cdn-icons-png.flaticon.com/512/5578/5578703.png" alt="{% trans 'under construction' %}" width="150">
         </div>
-        
-        <h3 class="h3" style="margin-bottom: 20px;">Функционал чата находится в разработке</h3>
-        
+
+        <h3 class="h3" style="margin-bottom: 20px;">{% trans "Chat functionality is under development" %}</h3>
+
         <p style="color: var(--light-gray); margin-bottom: 30px;">
-            Мы работаем над тем, чтобы сделать общение на платформе удобным и полезным.
-            Совсем скоро эта функция станет доступна!
+            {% trans "We are working to make communication on the platform convenient and useful. This feature will be available soon!" %}
         </p>
-        
+
         <a href="{% url 'blog:home' %}" class="btn">
             <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
-            Вернуться на главную
+            {% trans "Return to Home" %}
         </a>
     </div>
 </article>
-{% endblock %} 
+{% endblock %}

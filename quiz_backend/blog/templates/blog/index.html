@@ -9,7 +9,7 @@
 {% block content %}
 <article class="about active" data-page="home">
     <header>
-        <h2 class="h2 article-title">{% trans "Главная" %}</h2>
+        <h2 class="h2 article-title">{% trans "Home" %}</h2>
     </header>
 
     <section class="video section-gap">
@@ -49,57 +49,50 @@
     {% endif %}
 
     <section class="service">
-        <h3 class="h3 service-title">{% trans "Возможности платформы" %}</h3>
+        <h3 class="h3 service-title">{% trans "Platform Features" %}</h3>
 
         <ul class="service-list">
             <li class="service-item">
                 <a href="{% url 'blog:quizes' %}" class="service-link">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2641/2641457.png" alt="{% trans 'Иконка квиза' %}" width="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2641/2641457.png" alt="{% trans 'Quiz Icon' %}" width="40">
                     </div>
-
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Задачи и викторины" %}</h4>
-                        <p class="service-item-text">{% trans "Практикуйтесь в решении задач разной сложности, от основ до продвинутых тем программирования." %}</p>
+                        <h4 class="h4 service-item-title">{% trans "Tasks and Quizzes" %}</h4>
+                        <p class="service-item-text">{% trans "Practice solving tasks of varying difficulty, from basics to advanced programming topics." %}</p>
                     </div>
                 </a>
             </li>
-
             <li class="service-item">
-                <a href="/statistics/" class="service-link">
+                <a href="{% url 'blog:statistics' %}" class="service-link">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1584/1584892.png" alt="{% trans 'Иконка статистики' %}" width="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1584/1584892.png" alt="{% trans 'Statistics Icon' %}" width="40">
                     </div>
-
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Статистика и аналитика" %}</h4>
-                        <p class="service-item-text">{% trans "Детальная статистика по темам, технологиям, рейтинг TOP-50 пользователей и графики прогресса." %}</p>
+                        <h4 class="h4 service-item-title">{% trans "Statistics and Analytics" %}</h4>
+                        <p class="service-item-text">{% trans "Detailed statistics on topics, technologies, top-50 user rankings, and progress charts." %}</p>
                     </div>
                 </a>
             </li>
-
             <li class="service-item">
                 <a href="{% url 'blog:blog' %}" class="service-link">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2232/2232688.png" alt="{% trans 'Иконка обучения' %}" width="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/2232/2232688.png" alt="{% trans 'Learning Icon' %}" width="40">
                     </div>
-
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Учебные материалы" %}</h4>
-                        <p class="service-item-text">{% trans "Полезные статьи, библиотеки, фреймворки и обучающие ресурсы для разработчиков." %}</p>
+                        <h4 class="h4 service-item-title">{% trans "Learning Materials" %}</h4>
+                        <p class="service-item-text">{% trans "Useful articles, libraries, frameworks, and learning resources for developers." %}</p>
                     </div>
                 </a>
             </li>
-
             <li class="service-item">
                 <a href="{% url 'blog:maintenance' %}" class="service-link">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" alt="{% trans 'Иконка чата' %}" width="40">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" alt="{% trans 'Chat Icon' %}" width="40">
                     </div>
-
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Общение" %}</h4>
-                        <p class="service-item-text">{% trans "Обсуждайте задачи, делитесь опытом и общайтесь с другими разработчиками в нашем чате." %}</p>
+                        <h4 class="h4 service-item-title">{% trans "Communication" %}</h4>
+                        <p class="service-item-text">{% trans "Discuss tasks, share experiences, and connect with other developers in our chat." %}</p>
                     </div>
                 </a>
             </li>
@@ -107,7 +100,7 @@
     </section>
 
     <section class="testimonials">
-        <h3 class="h3 testimonials-title">{% trans "Топ пользователей" %}</h3>
+        <h3 class="h3 testimonials-title">{% trans "Top Users" %}</h3>
         <ul class="testimonials-list has-scrollbar">
             {% for user in personal_info.top_users|slice:"3" %}
                 <li class="testimonials-item" data-username="{{ user.username|default:user.name }}">
@@ -118,13 +111,13 @@
                         <div class="testimonials-content">
                             <h4 class="h4 testimonials-item-title" data-testimonials-title>{{ user.name }}</h4>
                             <div class="user-stats">
-                                <span class="rank">{% trans "Ранг" %}: #{{ user.rank }}</span>
-                                <span class="score">{% trans "Очки" %}: {{ user.total_score|floatformat:0 }}</span>
+                                <span class="rank">{% trans "Rank" %}: #{{ user.rank }}</span>
+                                <span class="score">{% trans "Points" %}: {{ user.total_score|floatformat:0 }}</span>
                             </div>
                             <div class="testimonials-text" data-testimonials-text>
-                                <p>{% trans "Пройдено викторин" %}: {{ user.quizzes_count }}</p>
-                                <p>{% trans "Средний результат" %}: {{ user.avg_score }}%</p>
-                                <p>{% trans "Любимая категория" %}: {{ user.favorite_category|default:"Не указана" }}</p>
+                                <p>{% trans "Quizzes Completed" %}: {{ user.quizzes_count }}</p>
+                                <p>{% trans "Average Score" %}: {{ user.avg_score }}%</p>
+                                <p>{% trans "Favorite Category" %}: {{ user.favorite_category|default:"Not specified" }}</p>
                             </div>
                         </div>
                     </div>
@@ -132,14 +125,13 @@
             {% empty %}
                 <li class="testimonials-item">
                     <div class="content-card">
-                        <p>{% trans "Пока нет данных о пользователях" %}</p>
+                        <p>{% trans "No user data available yet" %}</p>
                     </div>
                 </li>
             {% endfor %}
         </ul>
     </section>
 
-    <!-- Модальное окно для пользователей -->
     <div class="modal-container" data-modal-container>
         <div class="overlay" data-overlay></div>
         <section class="testimonials-modal top-user-modal">
@@ -155,23 +147,21 @@
                 <h4 class="h3 modal-title" data-modal-title></h4>
                 <time data-modal-date></time>
                 <div data-modal-text></div>
-                <a href="#" class="modal-profile-btn" data-profile-link>{% trans "Перейти в профиль" %}</a>
+                <a href="#" class="modal-profile-btn" data-profile-link>{% trans "View Profile" %}</a>
             </div>
         </section>
     </div>
 
-    <!-- Модальное окно для статистики викторин -->
     <div id="quizStatsModal" class="modal">
         <div class="modal-content">
             <span class="close-stats-modal">×</span>
-            <h3>{% trans "Статистика" %}</h3>
+            <h3>{% trans "Statistics" %}</h3>
             <canvas id="quizStatsChart"></canvas>
         </div>
     </div>
 
     <section class="resources section-gap">
-        <h3 class="h3 resources-title">{% trans "Наши ресурсы" %}</h3>
-
+        <h3 class="h3 resources-title">{% trans "Our Resources" %}</h3>
         <ul class="resources-list">
             {% for key, resource in personal_info.resources.items %}
             <li class="resources-item">
@@ -179,7 +169,6 @@
                     <div class="resources-icon-box">
                         <img src="{{ resource.icon }}" alt="{{ resource.name }}" width="40">
                     </div>
-
                     <div class="resources-content-box">
                         <h4 class="h4 resources-item-title">{{ resource.name }}</h4>
                         <p class="resources-item-text">{{ resource.description }}</p>
@@ -191,48 +180,40 @@
     </section>
 
     <section class="skill section-gap">
-        <h3 class="h3 skills-title">{% trans "Популярные квизы" %}</h3>
-
+        <h3 class="h3 skills-title">{% trans "Popular Quizzes" %}</h3>
         <ul class="skills-list content-card">
             <li class="skills-item quiz-card" data-quiz-id="1" onclick="showQuizStats(1)">
                 <div class="title-wrapper">
-                    <h5 class="h5">{% trans "Основы программирования" %}</h5>
-                    <data value="80">{% trans "80% популярность" %}</data>
+                    <h5 class="h5">{% trans "Programming Basics" %}</h5>
+                    <data value="80">{% trans "80% popularity" %}</data>
                 </div>
-
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: 80%;"></div>
                 </div>
             </li>
-
             <li class="skills-item quiz-card" data-quiz-id="2" onclick="showQuizStats(2)">
                 <div class="title-wrapper">
-                    <h5 class="h5">{% trans "Всемирная история" %}</h5>
-                    <data value="70">{% trans "70% популярность" %}</data>
+                    <h5 class="h5">{% trans "World History" %}</h5>
+                    <data value="70">{% trans "70% popularity" %}</data>
                 </div>
-
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: 70%;"></div>
                 </div>
             </li>
-
             <li class="skills-item quiz-card" data-quiz-id="3" onclick="showQuizStats(3)">
                 <div class="title-wrapper">
-                    <h5 class="h5">{% trans "Научный квиз" %}</h5>
-                    <data value="90">{% trans "90% популярность" %}</data>
+                    <h5 class="h5">{% trans "Science Quiz" %}</h5>
+                    <data value="90">{% trans "90% popularity" %}</data>
                 </div>
-
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: 90%;"></div>
                 </div>
             </li>
-
             <li class="skills-item quiz-card" data-quiz-id="4" onclick="showQuizStats(4)">
                 <div class="title-wrapper">
-                    <h5 class="h5">{% trans "Мастера литературы" %}</h5>
-                    <data value="50">{% trans "50% популярность" %}</data>
+                    <h5 class="h5">{% trans "Literature Masters" %}</h5>
+                    <data value="50">{% trans "50% popularity" %}</data>
                 </div>
-
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: 50%;"></div>
                 </div>
@@ -313,9 +294,9 @@ function showQuizStats(quizId) {
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['{% trans "Янв" %}', '{% trans "Фев" %}', '{% trans "Мар" %}', '{% trans "Апр" %}', '{% trans "Май" %}', '{% trans "Июн" %}'],
+            labels: ['{% trans "Jan" %}', '{% trans "Feb" %}', '{% trans "Mar" %}', '{% trans "Apr" %}', '{% trans "May" %}', '{% trans "Jun" %}'],
             datasets: [{
-                label: '{% trans "Количество прохождений" %}',
+                label: '{% trans "Number of Attempts" %}',
                 data: [65, 59, 80, 81, 56, 55],
                 backgroundColor: gradient,
                 borderColor: 'hsl(45, 100%, 72%)',

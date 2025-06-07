@@ -3,15 +3,15 @@
 
 {% block content %}
 <div>
-    <p>Вы уверены, что хотите удалить выбранные сообщения? Все вложения также будут удалены.</p>
+    <p>{% trans "Are you sure you want to delete the selected messages? All attachments will also be deleted." %}</p>
     <form method="post">{% csrf_token %}
         <div>
             {% for item in queryset %}
                 <input type="hidden" name="_selected_action" value="{{ item.pk }}" />
             {% endfor %}
             <input type="hidden" name="action" value="delete_selected_messages" />
-            <input type="submit" value="Да, я уверен" />
-            <a href="#" onclick="window.history.back(); return false;" class="button cancel-link">Отмена</a>
+            <input type="submit" value="{% trans 'Yes, I am sure' %}" />
+            <a href="#" onclick="window.history.back(); return false;" class="button cancel-link">{% trans "Cancel" %}</a>
         </div>
     </form>
 </div>

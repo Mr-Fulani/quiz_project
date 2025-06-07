@@ -1,18 +1,21 @@
 {% extends "blog/base.html" %}
-{% load static %}
-{% load blog_tags %}
+{% load static blog_tags i18n %}
 
 {% block content %}
+{% comment %}
+This template displays a portfolio page with project listings, filters, and a no-content message.
+All static text is localized using {% trans %} for English msgid and translations.
+{% endcomment %}
 <article class="blog active" data-page="portfolio">
     <header class="filter-header">
-        <h2 class="h2 article-title">Portfolio</h2>
+        <h2 class="h2 article-title">{% trans "Portfolio" %}</h2>
         <button class="filter-toggle-btn" data-filter-toggle>
-            <span>Filter</span>
+            <span>{% trans "Filter" %}</span>
             <ion-icon name="chevron-down-outline"></ion-icon>
         </button>
         <ul class="filter-dropdown" data-filter-dropdown>
             <li class="filter-item">
-                <button class="active" data-filter-btn>All</button>
+                <button class="active" data-filter-btn>{% trans "All" %}</button>
             </li>
             {% for category in portfolio_categories %}
             <li class="filter-item">
@@ -46,7 +49,7 @@
                         {% endif %}
                     {% else %}
                         <figure class="blog-banner-box no-image">
-                            <span>No Image</span>
+                            <span>{% trans "No Image" %}</span>
                         </figure>
                     {% endif %}
                     {% endwith %}
@@ -69,13 +72,14 @@
             </li>
             {% endfor %}
             <div class="no-content-message">
-                <h3>Пока здесь пусто, но мы активно работаем!</h3>
-                <p>Новые проекты скоро появятся, следите за обновлениями!</p>
+                <h3>{% trans "No projects yet, but we're working on it!" %}</h3>
+                <p>{% trans "New projects will appear soon, stay tuned!" %}</p>
             </div>
         </ul>
     </section>
 </article>
 {% endblock %}
+
 {% block scripts %}
 <script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
 <script type="module" src="{% static 'blog/js/filter-dropdown.js' %}"></script>

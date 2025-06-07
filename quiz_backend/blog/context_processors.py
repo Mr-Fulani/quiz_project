@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, Case, When, IntegerField, Value
 from django.urls import reverse
-from django.utils.translation import get_language
+from django.utils.translation import get_language, gettext as _
 from tasks.models import TaskStatistics
 
 logger = logging.getLogger(__name__)
@@ -57,13 +57,14 @@ def personal_info(request):
                     'quizzes_count': user.tasks_completed,
                     'avg_score': 0,
                     'total_score': (user.total_score or 0) * 100,
-                    'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else "Не определено"
+                    'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
                 }
                 top_users_data.append(user_data)
             except Exception as e:
                 logger.error(f"Error processing user {user.username}: {e}")
                 continue
 
+        # Локализованные тексты
         personal_info_data = {
             'name': 'Anvar Sh.',
             'title': 'Web Developer',
@@ -97,7 +98,7 @@ def personal_info(request):
                 'dzen': {
                     'url': 'https://dzen.ru/yourpage',
                     'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Yandex_Zen_logo_icon.svg/512px-Yandex_Zen_logo_icon.svg.png',
-                    'name': 'Яндекс Дзен'
+                    'name': _('Yandex Zen')
                 },
                 'instagram': {
                     'url': 'https://www.instagram.com/fulani_developer',
@@ -111,16 +112,16 @@ def personal_info(request):
                 }
             },
             'about_text': [
-                "Создаю высоконагруженные веб-приложения, функциональные сайты, мощные Telegram-боты любой сложности, сайты-визитки и другие цифровые решения.",
-                "Использую микросервисную архитектуру, модульный подход, современные базы данных и оптимизированные API. Это позволяет разрабатывать гибкие, надежные и масштабируемые проекты, которые легко адаптируются под любые задачи.",
-                "Этот блог – не только визитка, но и полезный ресурс для разработчиков. Здесь я делюсь: обучающими материалами, гайдами и примерами, которые помогут прокачать навыки в программировании.",
-                "Будь то автоматизация процессов, интеграция с внешними сервисами или создание уникального цифрового продукта – я помогу воплотить вашу идею в надежное и элегантное решение."
+                _("I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."),
+                _("I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."),
+                _("This blog is not only a business card, but also a useful resource for developers. Here I share: educational materials, guides and examples that will help you improve your programming skills."),
+                _("Whether it's process automation, integration with external services or creating a unique digital product - I will help bring your idea to life in a reliable and elegant solution.")
             ],
             'home_text': [
-                "Добро пожаловать на QuizHub – ваш ресурс для программирования и викторин. Здесь вы найдете последние новости, подробные руководства и практические советы, охватывающие всё от Python до React.",
-                "На нашем сайте вы сможете изучать новые технологии, проходить увлекательные интерактивные викторины и отслеживать свой прогресс с подробной статистикой.",
-                "Мы стремимся сделать обучение программированию доступным, интересным и эффективным для каждого, будь вы новичком или профессионалом.",
-                "Начните своё обучение прямо сейчас – погрузитесь в мир кода, проходите викторины, совершенствуйте свои навыки и отслеживать свой рост."
+                _("Welcome to QuizHub - your resource for programming and quizzes. Here you will find the latest news, detailed guides and practical tips covering everything from Python to React."),
+                _("On our site you can learn new technologies, take exciting interactive quizzes and track your progress with detailed statistics."),
+                _("We strive to make learning programming accessible, interesting and effective for everyone, whether you are a beginner or a professional."),
+                _("Start your learning right now - dive into the world of code, take quizzes, improve your skills and track your growth.")
             ],
             'top_users': top_users_data
         }
@@ -165,22 +166,22 @@ def seo_context(request):
     base_url = f"http://{request.get_host()}"
 
     seo_data = {
-        'meta_title': 'Quiz Project',
-        'meta_description': 'Добро пожаловать в Quiz Project — блог и портфолио с квизами и проектами.',
-        'meta_keywords': 'quiz, блог, портфолио, проекты, программирование',
+        'meta_title': _('Quiz Project'),
+        'meta_description': _('Welcome to Quiz Project — blog and portfolio with quizzes and projects.'),
+        'meta_keywords': _('quiz, blog, portfolio, projects, programming'),
         'canonical_url': base_url + reverse('blog:home'),
         'hreflang_url': base_url + reverse('blog:home'),
-        'og_title': 'Quiz Project',
-        'og_description': 'Добро пожаловать в Quiz Project — блог и портфолио с квизами и проектами.',
+        'og_title': _('Quiz Project'),
+        'og_description': _('Welcome to Quiz Project — blog and portfolio with quizzes and projects.'),
         'og_image': request.build_absolute_uri('/static/blog/images/default-og-image.jpg'),
         'og_url': base_url + reverse('blog:home'),
     }
 
     if path == reverse('blog:resume'):
         seo_data.update({
-            'meta_title': 'Резюме — Quiz Project' if language == 'ru' else 'Resume — Quiz Project',
-            'meta_description': 'Мое профессиональное резюме с опытом и навыками.' if language == 'ru' else 'My professional resume with experience and skills.',
-            'meta_keywords': 'резюме, программист, портфолио' if language == 'ru' else 'resume, programmer, portfolio',
+            'meta_title': _('Resume — Quiz Project'),
+            'meta_description': _('My professional resume with experience and skills.'),
+            'meta_keywords': _('resume, programmer, portfolio'),
             'canonical_url': base_url + reverse('blog:resume'),
             'hreflang_url': base_url + reverse('blog:resume'),
             'og_title': seo_data['meta_title'],
@@ -189,9 +190,9 @@ def seo_context(request):
         })
     elif path == reverse('blog:about'):
         seo_data.update({
-            'meta_title': 'Обо мне — Quiz Project' if language == 'ru' else 'About Me — Quiz Project',
-            'meta_description': 'Узнайте больше обо мне и моих проектах.' if language == 'ru' else 'Learn more about me and my projects.',
-            'meta_keywords': 'обо мне, разработчик, программирование' if language == 'ru' else 'about me, developer, programming',
+            'meta_title': _('About Me — Quiz Project'),
+            'meta_description': _('Learn more about me and my projects.'),
+            'meta_keywords': _('about me, developer, programming'),
             'canonical_url': base_url + reverse('blog:about'),
             'hreflang_url': base_url + reverse('blog:about'),
             'og_title': seo_data['meta_title'],
@@ -200,9 +201,9 @@ def seo_context(request):
         })
     elif path == reverse('blog:contact'):
         seo_data.update({
-            'meta_title': 'Контакты — Quiz Project' if language == 'ru' else 'Contact — Quiz Project',
-            'meta_description': 'Свяжитесь со мной для сотрудничества или вопросов.' if language == 'ru' else 'Contact me for collaboration or questions.',
-            'meta_keywords': 'контакты, программист, сотрудничество' if language == 'ru' else 'contact, programmer, collaboration',
+            'meta_title': _('Contact — Quiz Project'),
+            'meta_description': _('Contact me for collaboration or questions.'),
+            'meta_keywords': _('contact, programmer, collaboration'),
             'canonical_url': base_url + reverse('blog:contact'),
             'hreflang_url': base_url + reverse('blog:contact'),
             'og_title': seo_data['meta_title'],

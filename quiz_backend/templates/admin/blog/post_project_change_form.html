@@ -4,7 +4,6 @@
 {% block extrahead %}
 {{ block.super }}
 <style>
-    /* Стили для модального окна предпросмотра */
     .preview-modal {
         display: none;
         position: fixed;
@@ -37,7 +36,6 @@
         font-size: 20px;
         cursor: pointer;
     }
-    /* Стили для контента предпросмотра (аналогично фронтенду) */
     .preview-content .blog-text {
         max-width: 100%;
         overflow: hidden;
@@ -65,28 +63,25 @@
     }
 </style>
 <script>
-    // JavaScript для открытия/закрытия модального окна
-    document.addEventListener('DOMContentLoaded', function() {
-        const previewBtn = document.querySelector('#preview-btn');
-        const previewModal = document.querySelector('#preview-modal');
-        const closePreview = document.querySelector('#close-preview');
-
-        if (previewBtn && previewModal && closePreview) {
-            previewBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                previewModal.style.display = 'flex';
-            });
-            closePreview.addEventListener('click', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const previewBtn = document.querySelector('#preview-btn');
+    const previewModal = document.querySelector('#preview-modal');
+    const closePreview = document.querySelector('#close-preview');
+    if (previewBtn && previewModal && closePreview) {
+        previewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            previewModal.style.display = 'flex';
+        });
+        closePreview.addEventListener('click', function() {
+            previewModal.style.display = 'none';
+        });
+        previewModal.addEventListener('click', function(e) {
+            if (e.target === previewModal) {
                 previewModal.style.display = 'none';
-            });
-            // Закрытие при клике вне контента
-            previewModal.addEventListener('click', function(e) {
-                if (e.target === previewModal) {
-                    previewModal.style.display = 'none';
-                }
-            });
-        }
-    });
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
 

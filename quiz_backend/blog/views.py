@@ -674,16 +674,6 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     dont_know_option_dict = {
         'ru': _("Я не знаю, но хочу узнать"),
         'en': _("I don't know, but I want to learn"),
-        'tr': _("Bilmiyorum, ama öğrenmek istiyorum"),
-        'ar': _("لا أعرف، ولكن أريد أن أتعلم"),
-        'de': _("Ich weiß nicht, aber ich möchte lernen"),
-        'es': _("No lo sé, pero quiero aprender"),
-        'fr': _("Je ne sais pas, mais je veux apprendre"),
-        'it': _("Non lo so, ma voglio imparare"),
-        'pt': _("Não sei, mas quero aprender"),
-        'zh': _("我不知道，但我想学"),
-        'ja': _("知らないけど学びたい"),
-        'ko': _("모르겠지만 배우고 싶어요"),
     }
 
     for task in page_obj:
@@ -771,16 +761,6 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
     dont_know_options = [
         "Я не знаю, но хочу узнать",
         "I don't know, but I want to learn",
-        "Bilmiyorum, ama öğrenmek istiyorum",
-        "لا أعرف، ولكن أريد أن أتعلم",
-        "Ich weiß nicht, aber ich möchte lernen",
-        "No lo sé, pero quiero aprender",
-        "Je ne sais pas, mais je veux apprendre",
-        "Non lo so, ma voglio imparare",
-        "Não sei, mas quero aprender",
-        "我不知道，但我想学",
-        "知らないけど学びたい",
-        "모르겠지만 배우고 싶어요"
     ]
     if selected_answer not in answers and selected_answer not in dont_know_options:
         logger.error(f"Invalid answer selected for task_id={task_id}: {selected_answer}")
