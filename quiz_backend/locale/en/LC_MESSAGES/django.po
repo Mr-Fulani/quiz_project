@@ -1,0 +1,1541 @@
+# English translations for Quiz Project
+# Copyright (C) 2025 Mr-Fulani
+# This file is distributed under the same license as the Quiz Project package.
+# Mr-Fulani <mr.fulani@example.com>, 2025
+#
+# This file contains translations for the Quiz Project Django application
+# for the English language (en). It maps original strings (msgid) to their
+# English translations (msgstr). Strings that are already in English in msgid
+# may have an empty msgstr, as Django will use msgid in such cases.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Quiz Project 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-06-07 12:07+0000\n"
+"PO-Revision-Date: 2025-06-07 11:50+0300\n"
+"Last-Translator: Mr-Fulani <mr.fulani@example.com>\n"
+"Language-Team: English <en@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: accounts/templates/accounts/dashboard.html:16
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: accounts/templates/accounts/dashboard.html:36
+#: accounts/templates/accounts/dashboard.html:44
+msgid "Personal Info"
+msgstr "Personal Info"
+
+#: accounts/templates/accounts/dashboard.html:37
+#: accounts/templates/accounts/dashboard.html:45
+#: accounts/templates/accounts/dashboard.html:138
+msgid "Settings"
+msgstr "Settings"
+
+#: accounts/templates/accounts/dashboard.html:38
+#: accounts/templates/accounts/dashboard.html:46
+msgid "Security"
+msgstr "Security"
+
+#: accounts/templates/accounts/dashboard.html:70
+#: accounts/templates/accounts/login.html:14
+#, fuzzy
+#| msgid "Users"
+msgid "Username"
+msgstr "Username"
+
+#: accounts/templates/accounts/dashboard.html:73
+#: templates/admin/blog/message/change_form.html:47
+msgid "Email"
+msgstr "Email"
+
+#: accounts/templates/accounts/dashboard.html:76
+msgid "First Name"
+msgstr "First Name"
+
+#: accounts/templates/accounts/dashboard.html:79
+#, fuzzy
+#| msgid "Last message"
+msgid "Last Name"
+msgstr "Last Name"
+
+#: accounts/templates/accounts/dashboard.html:82
+msgid "Bio"
+msgstr "Bio"
+
+#: accounts/templates/accounts/dashboard.html:85
+#: accounts/templates/accounts/profile.html:65
+#, fuzzy
+#| msgid "Action"
+msgid "Location"
+msgstr "Location"
+
+#: accounts/templates/accounts/dashboard.html:88
+msgid "Birth Date"
+msgstr "Birth Date"
+
+#: accounts/templates/accounts/dashboard.html:126
+msgid "Save Changes"
+msgstr "Save Changes"
+
+#: accounts/templates/accounts/dashboard.html:143
+#, fuzzy
+#| msgid "View Profile"
+msgid "Public Profile"
+msgstr "Public Profile"
+
+#: accounts/templates/accounts/dashboard.html:144
+msgid "Allow others to view your profile"
+msgstr "Allow others to view your profile"
+
+#: accounts/templates/accounts/dashboard.html:155
+msgid "Email Notifications"
+msgstr "Email Notifications"
+
+#: accounts/templates/accounts/dashboard.html:156
+msgid "Receive email notifications"
+msgstr "Receive email notifications"
+
+#: accounts/templates/accounts/dashboard.html:166
+msgid "Dark Mode"
+msgstr "Dark Mode"
+
+#: accounts/templates/accounts/dashboard.html:167
+msgid "Enable dark mode for the dashboard"
+msgstr "Enable dark mode for the dashboard"
+
+#: accounts/templates/accounts/dashboard.html:182
+msgid "Security Settings"
+msgstr "Security Settings"
+
+#: accounts/templates/accounts/dashboard.html:186
+#: accounts/templates/accounts/dashboard.html:232
+#: accounts/templates/accounts/profile.html:246
+msgid "Password changed successfully!"
+msgstr "Password changed successfully!"
+
+#: accounts/templates/accounts/dashboard.html:196
+msgid "Current Password"
+msgstr "Current Password"
+
+#: accounts/templates/accounts/dashboard.html:202
+#: accounts/templates/accounts/login.html:17
+msgid "Password"
+msgstr "Password"
+
+#: accounts/templates/accounts/dashboard.html:203
+msgid "Minimum 8 characters"
+msgstr "Minimum 8 characters"
+
+#: accounts/templates/accounts/dashboard.html:208
+msgid "Confirm Password"
+msgstr "Confirm Password"
+
+#: accounts/templates/accounts/dashboard.html:209
+msgid "Repeat new password"
+msgstr "Repeat new password"
+
+#: accounts/templates/accounts/dashboard.html:216
+msgid "Authenticate"
+msgstr "Authenticate"
+
+#: accounts/templates/accounts/dashboard.html:226
+msgid "Avatar updated successfully!"
+msgstr "Avatar updated successfully!"
+
+#: accounts/templates/accounts/dashboard.html:227
+msgid "Error updating avatar."
+msgstr "Error updating avatar."
+
+#: accounts/templates/accounts/dashboard.html:228
+msgid "Profile updated successfully!"
+msgstr "Profile updated successfully!"
+
+#: accounts/templates/accounts/dashboard.html:229
+msgid "Error updating profile."
+msgstr "Error updating profile."
+
+#: accounts/templates/accounts/dashboard.html:230
+msgid "Settings updated!"
+msgstr "Settings updated successfully!"
+
+#: accounts/templates/accounts/dashboard.html:231
+#, fuzzy
+#| msgid "Error resetting statistics."
+msgid "Error updating settings."
+msgstr "Error updating settings."
+
+#: accounts/templates/accounts/dashboard.html:233
+msgid "Error changing password."
+msgstr "Error changing password."
+
+#: accounts/templates/accounts/dashboard.html:234
+msgid "Failed to load content."
+msgstr "Failed to load content."
+
+#: accounts/templates/accounts/dashboard.html:235
+#: accounts/templates/accounts/profile.html:248
+#: accounts/templates/accounts/statistics.html:181
+#: accounts/templates/accounts/user_sidebar.html:47
+#: accounts/templates/accounts/user_statistics.html:11
+msgid "Solved Tasks"
+msgstr "Solved Tasks"
+
+#: accounts/templates/accounts/dashboard.html:236
+#: accounts/templates/accounts/profile.html:249
+#: accounts/templates/accounts/statistics.html:182
+msgid "Task Count"
+msgstr "Task Count"
+
+#: accounts/templates/accounts/dashboard.html:242
+#: blog/templates/blog/base.html:83
+msgid "Profile"
+msgstr "Profile"
+
+#: accounts/templates/accounts/dashboard.html:245
+msgid "You must"
+msgstr "You must"
+
+#: accounts/templates/accounts/dashboard.html:245
+msgid "Log in"
+msgstr "Log in"
+
+#: accounts/templates/accounts/dashboard.html:245
+msgid "view your profile information."
+msgstr "view your profile information."
+
+#: accounts/templates/accounts/inbox.html:17
+#: accounts/templates/accounts/profile.html:47
+#: accounts/templates/accounts/user_sidebar.html:72
+#: templates/admin/blog/message/change_list.html:307
+msgid "Messages"
+msgstr "Messages"
+
+#: accounts/templates/accounts/inbox.html:48
+#, fuzzy
+#| msgid "Conversation between"
+msgid "No conversations yet"
+msgstr "No conversations yet"
+
+#: accounts/templates/accounts/inbox.html:68
+#, fuzzy
+#| msgid "Last message"
+msgid "Type a message..."
+msgstr "Type a message..."
+
+#: accounts/templates/accounts/inbox.html:88
+msgid "Error loading conversation."
+msgstr "Error loading conversation."
+
+#: accounts/templates/accounts/inbox.html:89
+#: accounts/templates/accounts/profile.html:245
+#, fuzzy
+#| msgid "Error resetting statistics."
+msgid "Error sending message."
+msgstr "Error sending message."
+
+#: accounts/templates/accounts/inbox.html:90
+#: accounts/templates/accounts/profile.html:244
+#, fuzzy
+#| msgid "Message sent!"
+msgid "Message sent successfully!"
+msgstr "Message sent successfully!"
+
+#: accounts/templates/accounts/login.html:7
+#: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:91
+msgid "Login"
+msgstr "Login"
+
+#: accounts/templates/accounts/login.html:18
+msgid "Reveal Password"
+msgstr "Reveal Password"
+
+#: accounts/templates/accounts/login.html:37
+msgid "Reveal"
+msgstr "Reveal"
+
+#: accounts/templates/accounts/profile.html:45
+msgid "Info"
+msgstr "Info"
+
+#: accounts/templates/accounts/profile.html:46
+#: accounts/templates/accounts/statistics.html:11
+#: blog/templates/blog/index.html:158
+msgid "Statistics"
+msgstr "Statistics"
+
+#: accounts/templates/accounts/profile.html:60
+#, fuzzy
+#| msgid "About me"
+msgid "About"
+msgstr "About"
+
+#: accounts/templates/accounts/profile.html:61
+#, fuzzy
+#| msgid "No media available"
+msgid "No bio available"
+msgstr "No bio available"
+
+#: accounts/templates/accounts/profile.html:66
+msgid "Not specified"
+msgstr "Not specified"
+
+#: accounts/templates/accounts/profile.html:122
+#, fuzzy
+#| msgid "Quiz Project"
+msgid "Quiz Performance"
+msgstr "Quiz Performance"
+
+#: accounts/templates/accounts/profile.html:131
+#: accounts/templates/accounts/statistics.html:28
+#, fuzzy
+#| msgid "Number of Attempts"
+msgid "Total Attempts"
+msgstr "Total Attempts"
+
+#: accounts/templates/accounts/profile.html:141
+#: accounts/templates/accounts/statistics.html:37
+msgid "Successful"
+msgstr "Successful"
+
+#: accounts/templates/accounts/profile.html:151
+#: accounts/templates/accounts/statistics.html:46
+#: accounts/templates/accounts/statistics.html:77
+#: accounts/templates/accounts/user_statistics.html:29
+msgid "Success Rate"
+msgstr "Success Rate"
+
+#: accounts/templates/accounts/profile.html:162
+msgid "Activity Over Time"
+msgstr "Activity Over Time"
+
+#: accounts/templates/accounts/profile.html:168
+#, fuzzy
+#| msgid "No user data available yet"
+msgid "No activity data available"
+msgstr "No activity data available"
+
+#: accounts/templates/accounts/profile.html:174
+#, fuzzy
+#| msgid "Favorite Category"
+msgid "Performance by Category"
+msgstr "Performance by Category"
+
+#: accounts/templates/accounts/profile.html:180
+#, fuzzy
+#| msgid "No user data available yet"
+msgid "No category data available"
+msgstr "No category data available"
+
+#: accounts/templates/accounts/profile.html:186
+#: accounts/templates/accounts/statistics.html:94
+msgid "Attempts Distribution"
+msgstr "Attempts Distribution"
+
+#: accounts/templates/accounts/profile.html:192
+#, fuzzy
+#| msgid "No user data available yet"
+msgid "No attempts data available"
+msgstr "No attempts data available"
+
+#: accounts/templates/accounts/profile.html:199
+msgid "Detailed statistics are private"
+msgstr "Detailed statistics are private"
+
+#: accounts/templates/accounts/profile.html:211
+#: blog/templates/blog/contact.html:33
+msgid "Send Message"
+msgstr "Send Message"
+
+#: accounts/templates/accounts/profile.html:216
+#, fuzzy
+#| msgid "Your Message"
+msgid "Write your message..."
+msgstr "Write your message..."
+
+#: accounts/templates/accounts/profile.html:221
+msgid "Add Files"
+msgstr "Add Files"
+
+#: accounts/templates/accounts/profile.html:229
+#, fuzzy
+#| msgid "Sender"
+msgid "Send"
+msgstr "Send"
+
+#: accounts/templates/accounts/profile.html:247
+msgid "Failed to change password."
+msgstr "Failed to change password."
+
+#: accounts/templates/accounts/sidebar.html:14
+#: accounts/templates/accounts/user_sidebar.html:33
+#, fuzzy
+#| msgid "Contact"
+msgid "Show Contacts"
+msgstr "Show Contacts"
+
+#: accounts/templates/accounts/sidebar.html:27
+#, fuzzy
+#| msgid "About me"
+msgid "About Me"
+msgstr "About Me"
+
+#: accounts/templates/accounts/sidebar.html:28
+#: blog/templates/blog/includes/testimonial_modals.html:29
+#: blog/templates/blog/index.html:150
+msgid "View Profile"
+msgstr "View Profile"
+
+#: accounts/templates/accounts/sidebar.html:37
+msgid "Resume"
+msgstr "Resume"
+
+#: accounts/templates/accounts/sidebar.html:38
+msgid "View Resume"
+msgstr "View Resume"
+
+#: accounts/templates/accounts/sidebar.html:47
+#: blog/templates/blog/portfolio.html:11
+msgid "Portfolio"
+msgstr "Portfolio"
+
+#: accounts/templates/accounts/sidebar.html:48
+#, fuzzy
+#| msgid "Quiz Project"
+msgid "View Projects"
+msgstr "View Projects"
+
+#: accounts/templates/accounts/sidebar.html:57
+#: blog/templates/blog/contact.html:8
+msgid "Contact"
+msgstr "Contact"
+
+#: accounts/templates/accounts/sidebar.html:58
+#, fuzzy
+#| msgid "Contact"
+msgid "Contact Me"
+msgstr "Contact Me"
+
+#: accounts/templates/accounts/statistics.html:59
+#: accounts/templates/accounts/user_list.html:7
+#: blog/templates/blog/base.html:82
+msgid "Users"
+msgstr "Users"
+
+#: accounts/templates/accounts/statistics.html:68
+#: blog/templates/blog/index.html:118
+msgid "Quizzes Completed"
+msgstr "Quizzes Completed"
+
+#: accounts/templates/accounts/statistics.html:86
+msgid "Activity"
+msgstr "Activity"
+
+#: accounts/templates/accounts/statistics.html:90
+msgid "Categories"
+msgstr "Categories"
+
+#: accounts/templates/accounts/user_list.html:40
+#: accounts/templates/accounts/user_profile.html:50
+#: blog/templates/blog/index.html:115
+msgid "Points"
+msgstr "Points"
+
+#: accounts/templates/accounts/user_list.html:44
+#: accounts/templates/accounts/user_profile.html:54
+#: blog/templates/blog/base.html:79 blog/templates/blog/quizes.html:18
+msgid "Quizzes"
+msgstr "Quizzes"
+
+#: accounts/templates/accounts/user_list.html:50
+#, fuzzy
+#| msgid "No messages found"
+msgid "No users found."
+msgstr "No users found."
+
+#: accounts/templates/accounts/user_list.html:57
+#: blog/templates/blog/all_testimonials.html:57
+#: blog/templates/blog/quiz_subtopic.html:83
+msgid "Previous"
+msgstr "Previous"
+
+#: accounts/templates/accounts/user_list.html:61
+#: blog/templates/blog/quiz_subtopic.html:85
+msgid "Page"
+msgstr "Page"
+
+#: accounts/templates/accounts/user_list.html:61
+#: blog/templates/blog/quiz_subtopic.html:85
+msgid "of"
+msgstr "of"
+
+#: accounts/templates/accounts/user_list.html:65
+#: blog/templates/blog/all_testimonials.html:67
+#: blog/templates/blog/quiz_subtopic.html:87
+msgid "Next"
+msgstr "Next"
+
+#: accounts/templates/accounts/user_profile.html:24
+msgid "Online"
+msgstr "Online"
+
+#: accounts/templates/accounts/user_profile.html:26
+#, fuzzy
+#| msgid "Last message"
+msgid "Last seen"
+msgstr "Last seen"
+
+#: accounts/templates/accounts/user_profile.html:33
+msgid "Member since"
+msgstr "Member since"
+
+#: accounts/templates/accounts/user_profile.html:61
+#, fuzzy
+#| msgid "View Profile"
+msgid "View Full Profile"
+msgstr "View Full Profile"
+
+#: accounts/templates/accounts/user_sidebar.html:20
+msgid "User Avatar"
+msgstr "User Avatar"
+
+#: accounts/templates/accounts/user_sidebar.html:59
+msgid "Rating"
+msgstr "Rating"
+
+#: accounts/templates/accounts/user_sidebar.html:179
+#, fuzzy
+#| msgid "avatar"
+msgid "Default avatar"
+msgstr "Default avatar"
+
+#: accounts/templates/accounts/user_sidebar.html:182
+msgid "Guest"
+msgstr "Guest"
+
+#: accounts/templates/accounts/user_sidebar.html:183
+msgid "Visitor"
+msgstr "Visitor"
+
+#: accounts/templates/accounts/user_sidebar.html:187
+msgid "Please"
+msgstr "Please"
+
+#: accounts/templates/accounts/user_sidebar.html:187
+msgid "log in"
+msgstr "log in"
+
+#: accounts/templates/accounts/user_sidebar.html:187
+msgid "to view your profile information."
+msgstr "to view your profile information."
+
+#: accounts/templates/accounts/user_statistics.html:20
+#, fuzzy
+#| msgid "Number of Attempts"
+msgid "Attempts"
+msgstr "Attempts"
+
+#: blog/admin.py:99
+msgid "Вложение сообщения"
+msgstr "Message attachment"
+
+#: blog/admin.py:100
+msgid "Вложения сообщения"
+msgstr "Message attachments"
+
+#: blog/admin.py:179
+msgid "Не выбрано ни одного элемента для удаления."
+msgstr "No items selected for deletion."
+
+#: blog/admin.py:256
+msgid "Ошибка при удалении сообщения PK {message_pk_for_log}: {str(e)}"
+msgstr "Error deleting message PK {message_pk_for_log}: {str(e)}"
+
+#: blog/admin.py:261
+#, python-brace-format
+msgid "Обнаружен неверный формат ID сообщения: '{item_ids_str}'."
+msgstr "Invalid message ID format detected: '{item_ids_str}'."
+
+#: blog/admin.py:265
+msgid "Ошибка при обработке элемента для удаления: {str(e)}"
+msgstr "Error processing item for deletion: {str(e)}"
+
+#: blog/admin.py:270
+#, python-brace-format
+msgid "Успешно удалено {actual_deleted_messages_count} сообщений (ID: {deleted_pks_str}) и их вложений."
+msgstr "Successfully deleted {actual_deleted_messages_count} messages (ID: {deleted_pks_str}) and their attachments."
+
+#: blog/admin.py:276
+msgid "Сообщения для удаления не найдены или уже были удалены."
+msgstr "Messages for deletion not found or already deleted."
+
+#: blog/admin.py:279
+msgid "Удалить выбранные сообщения"
+msgstr "Delete selected messages"
+
+#: blog/admin.py:301
+#, python-brace-format
+msgid "Отмечено как прочитанные {updated_count} сообщений."
+msgstr "Marked as read {updated_count} messages."
+
+#: blog/admin.py:303
+msgid "Отметить как прочитанные"
+msgstr "Mark as read"
+
+#: blog/admin.py:324
+#, python-brace-format
+msgid "Отмечено как непрочитанные {updated_count} сообщений."
+msgstr "Marked as unread {updated_count} messages."
+
+#: blog/admin.py:326
+msgid "Отметить как непрочитанные"
+msgstr "Mark as unread"
+
+#: blog/admin.py:347
+#, python-brace-format
+msgid "Помечено как удалённое отправителем для {updated_count} сообщений."
+msgstr "Marked as deleted by sender for {updated_count} messages."
+
+#: blog/admin.py:349
+msgid "Поместить в корзину для отправителя"
+msgstr "Move to sender's trash"
+
+#: blog/admin.py:370
+#, python-brace-format
+msgid "Помечено как удалённое получателем для {updated_count} сообщений."
+msgstr "Marked as deleted by recipient for {updated_count} messages."
+
+#: blog/admin.py:372
+msgid "Поместить в корзину для получателя"
+msgstr "Move to recipient's trash"
+
+#: blog/context_processors.py:60
+msgid "Not determined"
+msgstr "Not determined"
+
+#: blog/context_processors.py:101
+msgid "Yandex Zen"
+msgstr "Yandex Zen"
+
+#: blog/context_processors.py:115
+msgid "I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."
+msgstr "I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."
+
+#: blog/context_processors.py:116
+msgid "I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."
+msgstr "I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."
+
+#: blog/context_processors.py:117
+msgid "This blog is not only a business card, but also a useful resource for developers. Here I share: educational materials, guides and examples that will help you improve your programming skills."
+msgstr "This blog is not only a business card, but also a useful resource for developers. Here I share: educational materials, guides and examples that will help you improve your programming skills."
+
+#: blog/context_processors.py:118
+msgid "Whether it's process automation, integration with external services or creating a unique digital product - I will help bring your idea to life in a reliable and elegant solution."
+msgstr "Whether it's process automation, integration with external services or creating a unique digital product - I will help bring your idea to life in a reliable and elegant solution."
+
+#: blog/context_processors.py:121
+msgid "Welcome to QuizHub - your resource for programming and quizzes. Here you will find the latest news, detailed guides and practical tips covering everything from Python to React."
+msgstr "Welcome to QuizHub - your resource for programming and quizzes. Here you will find the latest news, detailed guides and practical tips covering everything from Python to React."
+
+#: blog/context_processors.py:122
+msgid "On our site you can learn new technologies, take exciting interactive quizzes and track your progress with detailed statistics."
+msgstr "On our site you can learn new technologies, take exciting interactive quizzes and track your progress with detailed statistics."
+
+#: blog/context_processors.py:123
+msgid "We strive to make learning programming accessible, interesting and effective for everyone, whether you are a beginner or a professional."
+msgstr "We strive to make learning programming accessible, interesting and effective for everyone, whether you are a beginner or a professional."
+
+#: blog/context_processors.py:124
+msgid "Start your learning right now - dive into the world of code, take quizzes, improve your skills and track your growth."
+msgstr "Start your learning right now - dive into the world of code, take quizzes, improve your skills and track your growth."
+
+#: blog/context_processors.py:169 blog/context_processors.py:174
+msgid "Quiz Project"
+msgstr "Quiz Project"
+
+#: blog/context_processors.py:170 blog/context_processors.py:175
+msgid "Welcome to Quiz Project — blog and portfolio with quizzes and projects."
+msgstr "Welcome to Quiz Project — blog and portfolio with quizzes and projects."
+
+#: blog/context_processors.py:171
+msgid "quiz, blog, portfolio, projects, programming"
+msgstr "quiz, blog, portfolio, projects, programming"
+
+#: blog/context_processors.py:182
+msgid "Resume — Quiz Project"
+msgstr "Resume — Quiz Project"
+
+#: blog/context_processors.py:183
+msgid "My professional resume with experience and skills."
+msgstr "My professional resume with experience and skills."
+
+#: blog/context_processors.py:184
+msgid "resume, programmer, portfolio"
+msgstr "resume, programmer, portfolio"
+
+#: blog/context_processors.py:193
+msgid "About Me — Quiz Project"
+msgstr "About Me — Quiz Project"
+
+#: blog/context_processors.py:194
+msgid "Learn more about me and my projects."
+msgstr "Learn more about me and my projects."
+
+#: blog/context_processors.py:195
+msgid "about me, developer, programming"
+msgstr "about me, developer, programming"
+
+#: blog/context_processors.py:204
+msgid "Contact — Quiz Project"
+msgstr "Contact — Quiz Project"
+
+#: blog/context_processors.py:205
+msgid "Contact me for collaboration or questions."
+msgstr "Contact me for collaboration or questions."
+
+#: blog/context_processors.py:206
+msgid "contact, programmer, collaboration"
+msgstr "contact, programmer, collaboration"
+
+#: blog/mixins.py:27 blog/views.py:152 blog/views.py:177 blog/views.py:221
+#: blog/views.py:273 blog/views.py:314 blog/views.py:332 blog/views.py:352
+#: blog/views.py:373 blog/views.py:465 blog/views.py:496 blog/views.py:545
+#: blog/views.py:561 blog/views.py:640 blog/views.py:657 blog/views.py:1280
+#: blog/views.py:1312
+msgid "Главная"
+msgstr "Home"
+
+#: blog/templates/blog/about.html:11
+msgid "About me"
+msgstr "About me"
+
+#: blog/templates/blog/about.html:50
+msgid "What I do"
+msgstr "What I do"
+
+#: blog/templates/blog/about.html:54
+msgid "Development of websites and web applications"
+msgstr "Development of websites and web applications"
+
+#: blog/templates/blog/about.html:56
+msgid "Web development icon"
+msgstr "Web development icon"
+
+#: blog/templates/blog/about.html:60
+msgid "Web Development"
+msgstr "Web Development"
+
+#: blog/templates/blog/about.html:61
+msgid "High-quality website development at a professional level."
+msgstr "High-quality website development at a professional level."
+
+#: blog/templates/blog/about.html:67
+msgid "Development of Telegram mini-apps"
+msgstr "Development of Telegram mini-apps"
+
+#: blog/templates/blog/about.html:69
+msgid "Telegram Mini Apps icon"
+msgstr "Telegram Mini Apps icon"
+
+#: blog/templates/blog/about.html:73
+msgid "Telegram Mini-App"
+msgstr "Telegram Mini-App"
+
+#: blog/templates/blog/about.html:74
+msgid "Development of interactive mini-applications for Telegram with integration into the messenger ecosystem."
+msgstr "Development of interactive mini-applications for Telegram with integration into the messenger ecosystem."
+
+#: blog/templates/blog/about.html:80
+msgid "Creation of Telegram bots"
+msgstr "Creation of Telegram bots"
+
+#: blog/templates/blog/about.html:82
+msgid "Telegram bots icon"
+msgstr "Telegram bots icon"
+
+#: blog/templates/blog/about.html:86
+msgid "Telegram Bots"
+msgstr "Telegram Bots"
+
+#: blog/templates/blog/about.html:87
+msgid "Development of Telegram bots of any complexity with integration into various APIs."
+msgstr "Development of Telegram bots of any complexity with integration into various APIs."
+
+#: blog/templates/blog/about.html:93
+msgid "Business process automation"
+msgstr "Business process automation"
+
+#: blog/templates/blog/about.html:95
+msgid "Automation icon"
+msgstr "Automation icon"
+
+#: blog/templates/blog/about.html:99
+msgid "Automation"
+msgstr "Automation"
+
+#: blog/templates/blog/about.html:100
+msgid "Creating scripts and programs to automate routine tasks and business processes."
+msgstr "Creating scripts and programs to automate routine tasks and business processes."
+
+#: blog/templates/blog/about.html:113
+msgid "All Feedback"
+msgstr "All Feedback"
+
+#: blog/templates/blog/about.html:120 blog/templates/blog/about.html:125
+#: blog/templates/blog/includes/testimonial_modals.html:42
+msgid "Leave Feedback"
+msgstr "Leave Feedback"
+
+#: blog/templates/blog/about.html:163
+msgid "My Skills"
+msgstr "My Skills"
+
+#: blog/templates/blog/about.html:168
+msgid "Python"
+msgstr "Python"
+
+#: blog/templates/blog/about.html:179
+msgid "Django"
+msgstr "Django"
+
+#: blog/templates/blog/about.html:190
+msgid "FastAPI"
+msgstr "FastAPI"
+
+#: blog/templates/blog/about.html:201
+msgid "Flask"
+msgstr "Flask"
+
+#: blog/templates/blog/about.html:211
+msgid "SQL"
+msgstr "SQL"
+
+#: blog/templates/blog/about.html:221
+msgid "PostgreSQL"
+msgstr "PostgreSQL"
+
+#: blog/templates/blog/about.html:231
+msgid "Docker"
+msgstr "Docker"
+
+#: blog/templates/blog/about.html:241
+msgid "Git"
+msgstr "Git"
+
+#: blog/templates/blog/about.html:251
+msgid "Linux"
+msgstr "Linux"
+
+#: blog/templates/blog/all_testimonials.html:11
+msgid "All Reviews"
+msgstr "All Reviews"
+
+#: blog/templates/blog/all_testimonials.html:23
+#: blog/templates/blog/all_testimonials.html:28
+msgid "avatar"
+msgstr "avatar"
+
+#: blog/templates/blog/all_testimonials.html:75
+msgid "No reviews yet"
+msgstr "No reviews yet"
+
+#: blog/templates/blog/all_testimonials.html:79
+msgid "Modal windows"
+msgstr "Modal windows"
+
+#: blog/templates/blog/base.html:76 blog/templates/blog/index.html:12
+msgid "Home"
+msgstr "Home"
+
+#: blog/templates/blog/base.html:78
+msgid "Posts"
+msgstr "Posts"
+
+#: blog/templates/blog/base.html:87
+msgid "Logout"
+msgstr "Logout"
+
+#: blog/templates/blog/base.html:98
+msgid "English"
+msgstr "English"
+
+#: blog/templates/blog/base.html:99
+msgid "Русский"
+msgstr "Russian"
+
+#: blog/templates/blog/blog_page.html:13
+msgid "Blog"
+msgstr "Blog"
+
+#: blog/templates/blog/blog_page.html:15 blog/templates/blog/portfolio.html:13
+msgid "Filter"
+msgstr "Filter"
+
+#: blog/templates/blog/blog_page.html:20 blog/templates/blog/portfolio.html:18
+#: templates/admin/blog/message/change_list.html:201
+msgid "All"
+msgstr "All"
+
+#: blog/templates/blog/blog_page.html:54 blog/templates/blog/portfolio.html:52
+msgid "No Image"
+msgstr "No Image"
+
+#: blog/templates/blog/blog_page.html:73
+msgid "No posts yet, but we're working on it!"
+msgstr "No posts yet, but we're working on it!"
+
+#: blog/templates/blog/blog_page.html:74
+msgid "New posts will appear soon, stay tuned!"
+msgstr "New posts will appear soon, stay tuned!"
+
+#: blog/templates/blog/contact.html:20
+msgid "Contact Form"
+msgstr "Contact Form"
+
+#: blog/templates/blog/contact.html:25
+msgid "Full name"
+msgstr "Full name"
+
+#: blog/templates/blog/contact.html:26
+msgid "Email address"
+msgstr "Email address"
+
+#: blog/templates/blog/contact.html:29
+msgid "Your Message"
+msgstr "Your Message"
+
+#: blog/templates/blog/contact.html:33
+msgid "Send Message"
+msgstr "Send Message"
+
+#: blog/templates/blog/contact.html:44
+msgid "Message sent!"
+msgstr "Message sent!"
+
+#: blog/templates/blog/contact.html:45
+msgid "Error:"
+msgstr "Error:"
+
+#: blog/templates/blog/contact.html:88
+msgid "Server error"
+msgstr "Server error"
+
+#: blog/templates/blog/includes/testimonial_modals.html:46
+msgid "Your Feedback:"
+msgstr "Your Feedback:"
+
+#: blog/templates/blog/includes/testimonial_modals.html:52
+msgid "Share your experience..."
+msgstr "Share your experience..."
+
+#: blog/templates/blog/includes/testimonial_modals.html:54
+msgid "Submit Feedback"
+msgstr "Submit Feedback"
+
+#: blog/templates/blog/index.html:52
+msgid "Platform Features"
+msgstr "Platform Features"
+
+#: blog/templates/blog/index.html:58
+msgid "Quiz Icon"
+msgstr "Quiz Icon"
+
+#: blog/templates/blog/index.html:61
+msgid "Tasks and Quizzes"
+msgstr "Tasks and Quizzes"
+
+#: blog/templates/blog/index.html:62
+msgid "Practice solving tasks of varying difficulty, from basics to advanced programming topics."
+msgstr "Practice solving tasks of varying difficulty, from basics to advanced programming topics."
+
+#: blog/templates/blog/index.html:69
+msgid "Statistics Icon"
+msgstr "Statistics Icon"
+
+#: blog/templates/blog/index.html:72
+msgid "Statistics and Analytics"
+msgstr "Statistics and Analytics"
+
+#: blog/templates/blog/index.html:73
+msgid "Detailed statistics on topics, technologies, top-50 user rankings, and progress charts."
+msgstr "Detailed statistics on topics, technologies, top-50 user rankings, and progress charts."
+
+#: blog/templates/blog/index.html:80
+msgid "Learning Icon"
+msgstr "Learning Icon"
+
+#: blog/templates/blog/index.html:83
+msgid "Learning Materials"
+msgstr "Learning Materials"
+
+#: blog/templates/blog/index.html:84
+msgid "Useful articles, libraries, frameworks, and learning resources for developers."
+msgstr "Useful articles, libraries, frameworks, and learning resources for developers."
+
+#: blog/templates/blog/index.html:91
+msgid "Chat Icon"
+msgstr "Chat Icon"
+
+#: blog/templates/blog/index.html:94
+msgid "Communication"
+msgstr "Communication"
+
+#: blog/templates/blog/index.html:95
+msgid "Discuss tasks, share experiences, and connect with other developers in our chat."
+msgstr "Discuss tasks, share experiences, and connect with other developers in our chat."
+
+#: blog/templates/blog/index.html:103
+msgid "Top Users"
+msgstr "Top Users"
+
+#: blog/templates/blog/index.html:114
+msgid "Rank"
+msgstr "Rank"
+
+#: blog/templates/blog/index.html:115
+msgid "Points"
+msgstr "Points"
+
+#: blog/templates/blog/index.html:118
+msgid "Quizzes Completed"
+msgstr "Quizzes Completed"
+
+#: blog/templates/blog/index.html:119
+msgid "Average Score"
+msgstr "Average Score"
+
+#: blog/templates/blog/index.html:120
+msgid "Favorite Category"
+msgstr "Favorite Category"
+
+#: blog/templates/blog/index.html:128
+msgid "No user data available yet"
+msgstr "No user data available yet"
+
+#: blog/templates/blog/index.html:150
+msgid "View Profile"
+msgstr "View Profile"
+
+#: blog/templates/blog/index.html:158
+msgid "Statistics"
+msgstr "Statistics"
+
+#: blog/templates/blog/index.html:164
+msgid "Our Resources"
+msgstr "Our Resources"
+
+#: blog/templates/blog/index.html:183
+msgid "Popular Quizzes"
+msgstr "Popular Quizzes"
+
+#: blog/templates/blog/index.html:187
+msgid "Programming Basics"
+msgstr "Programming Basics"
+
+#: blog/templates/blog/index.html:188
+#, python-format
+msgid "80%% popularity"
+msgstr "80%% popularity"
+
+#: blog/templates/blog/index.html:196
+msgid "World History"
+msgstr "World History"
+
+#: blog/templates/blog/index.html:197
+#, python-format
+msgid "70%% popularity"
+msgstr "70%% popularity"
+
+#: blog/templates/blog/index.html:205
+msgid "Science Quiz"
+msgstr "Science Quiz"
+
+#: blog/templates/blog/index.html:206
+#, python-format
+msgid "90%% popularity"
+msgstr "90%% popularity"
+
+#: blog/templates/blog/index.html:214
+msgid "Literature Masters"
+msgstr "Literature Masters"
+
+#: blog/templates/blog/index.html:215
+#, python-format
+msgid "50%% popularity"
+msgstr "50%% popularity"
+
+#: blog/templates/blog/index.html:297
+msgid "Jan"
+msgstr "Jan"
+
+#: blog/templates/blog/index.html:297
+msgid "Feb"
+msgstr "Feb"
+
+#: blog/templates/blog/index.html:297
+msgid "Mar"
+msgstr "Mar"
+
+#: blog/templates/blog/index.html:297
+msgid "Apr"
+msgstr "Apr"
+
+#: blog/templates/blog/index.html:297
+msgid "May"
+msgstr "May"
+
+#: blog/templates/blog/index.html:297
+msgid "Jun"
+msgstr "Jun"
+
+#: blog/templates/blog/index.html:299
+msgid "Number of Attempts"
+msgstr "Number of Attempts"
+
+#: blog/templates/blog/maintenance.html:15
+msgid "Under Development"
+msgstr "Under Development"
+
+#: blog/templates/blog/maintenance.html:20
+msgid "under construction"
+msgstr "under construction"
+
+#: blog/templates/blog/maintenance.html:23
+msgid "Chat functionality is under development"
+msgstr "Chat functionality is under development"
+
+#: blog/templates/blog/maintenance.html:26
+msgid "We are working to make communication on the platform convenient and useful. This feature will be available soon!"
+msgstr "We are working to make communication on the platform convenient and useful. This feature will be available soon!"
+
+#: blog/templates/blog/maintenance.html:31
+msgid "Return to Home"
+msgstr "Return to Home"
+
+#: blog/templates/blog/portfolio.html:11
+msgid "Portfolio"
+msgstr "Portfolio"
+
+#: blog/templates/blog/portfolio.html:13
+msgid "Filter"
+msgstr "Filter"
+
+#: blog/templates/blog/portfolio.html:18
+msgid "All"
+msgstr "All"
+
+#: blog/templates/blog/portfolio.html:52
+msgid "No Image"
+msgstr "No Image"
+
+#: blog/templates/blog/portfolio.html:75
+msgid "No projects yet, but we're working on it!"
+msgstr "No projects yet, but we're working on it!"
+
+#: blog/templates/blog/portfolio.html:76
+msgid "New projects will appear soon, stay tuned!"
+msgstr "New projects will appear soon, stay tuned!"
+
+#: blog/templates/blog/post_detail.html:55
+#: blog/templates/blog/project_detail.html:51
+msgid "Your browser does not support the video tag."
+msgstr "Your browser does not support the video tag."
+
+#: blog/templates/blog/post_detail.html:65
+#: blog/templates/blog/project_detail.html:61
+msgid "No media available"
+msgstr "No media available"
+
+#: blog/templates/blog/project_detail.html:107
+msgid "GitHub"
+msgstr "GitHub"
+
+#: blog/templates/blog/project_detail.html:113
+msgid "Live Demo"
+msgstr "Live Demo"
+
+#: blog/templates/blog/quiz_detail.html:22
+msgid "Available Subtopics"
+msgstr "Available Subtopics"
+
+#: blog/templates/blog/quiz_detail.html:30
+#, python-format
+msgid "%(subtopic_name)s icon"
+msgstr "%(subtopic_name)s icon"
+
+#: blog/templates/blog/quiz_detail.html:34
+msgid "Test on subtopic"
+msgstr "Test on subtopic"
+
+#: blog/templates/blog/quiz_detail.html:41
+msgid "No subtopics available for"
+msgstr "No subtopics available for"
+
+#: blog/templates/blog/quiz_detail.html:47
+#: blog/templates/blog/quiz_difficulty.html:48
+#: blog/templates/blog/quizes.html:47
+msgid "View my progress"
+msgstr "View my progress"
+
+#: blog/templates/blog/quiz_detail.html:49
+#: blog/templates/blog/quiz_difficulty.html:50
+#: blog/templates/blog/quizes.html:49
+msgid "Log in to track progress"
+msgstr "Log in to track progress"
+
+#: blog/templates/blog/quiz_difficulty.html:22
+msgid "Difficulty"
+msgstr "Difficulty"
+
+#: blog/templates/blog/quiz_difficulty.html:25
+msgid "Available Difficulty Levels"
+msgstr "Available Difficulty Levels"
+
+#: blog/templates/blog/quiz_difficulty.html:32
+#, python-format
+msgid "%(difficulty_name)s icon"
+msgstr "%(difficulty_name)s icon"
+
+#: blog/templates/blog/quiz_difficulty.html:36
+msgid "Tasks of level"
+msgstr "Tasks of level"
+
+#: blog/templates/blog/quiz_difficulty.html:43
+msgid "No difficulty levels available"
+msgstr "No difficulty levels available"
+
+#: blog/templates/blog/quiz_subtopic.html:29
+msgid "Image is missing."
+msgstr "Image is missing."
+
+#: blog/templates/blog/quiz_subtopic.html:48
+msgid "Translation is missing. Please contact the administrator."
+msgstr "Translation is missing. Please contact the administrator."
+
+#: blog/templates/blog/quiz_subtopic.html:62
+msgid "Are you sure you want to retake the test? Statistics for the subtopic"
+msgstr "Are you sure you want to retake the test? Statistics for the subtopic"
+
+#: blog/templates/blog/quiz_subtopic.html:62
+msgid "will be reset."
+msgstr "will be reset."
+
+#: blog/templates/blog/quiz_subtopic.html:63
+msgid "Retake Test"
+msgstr "Retake Test"
+
+#: blog/templates/blog/quiz_subtopic.html:74
+msgid "View My Progress"
+msgstr "View My Progress"
+
+#: blog/templates/blog/quiz_subtopic.html:76
+msgid "Login to track progress"
+msgstr "Login to track progress"
+
+#: blog/templates/blog/quiz_subtopic.html:191
+msgid "Error resetting statistics."
+msgstr "Error resetting statistics."
+
+#: blog/templates/blog/quiz_subtopic.html:195
+msgid "An error occurred while resetting statistics."
+msgstr "An error occurred while resetting statistics."
+
+#: blog/templates/blog/quizes.html:18
+msgid "Quizzes"
+msgstr "Quizzes"
+
+#: blog/templates/blog/quizes.html:22
+msgid "Available Topics"
+msgstr "Available Topics"
+
+#: blog/templates/blog/quizes.html:30
+#, python-format
+msgid "%(topic_name)s icon"
+msgstr "%(topic_name)s icon"
+
+#: blog/templates/blog/quizes.html:34
+msgid "Test on topic"
+msgstr "Test on topic"
+
+#: blog/templates/blog/quizes.html:41
+msgid "No topics available"
+msgstr "No topics available"
+
+#: blog/views.py:178
+msgid "Обо мне"
+msgstr "About me"
+
+#: blog/views.py:222 blog/views.py:353
+msgid "Блог"
+msgstr "Blog"
+
+#: blog/views.py:274 blog/views.py:333
+msgid "Портфолио"
+msgstr "Portfolio"
+
+#: blog/views.py:315
+msgid "Резюме"
+msgstr "Resume"
+
+#: blog/views.py:374
+msgid "Контакты"
+msgstr "Contact"
+
+#: blog/views.py:466 blog/views.py:497 blog/views.py:546 blog/views.py:562
+#: blog/views.py:641 blog/views.py:658
+msgid "Квизы"
+msgstr "Quizzes"
+
+#: blog/views.py:629
+msgid "Легкий"
+msgstr "Easy"
+
+#: blog/views.py:630
+msgid "Средний"
+msgstr "Medium"
+
+#: blog/views.py:631
+msgid "Сложный"
+msgstr "Hard"
+
+#: blog/views.py:675
+msgid "Я не знаю, но хочу узнать"
+msgstr "I don't know, but I want to learn"
+
+#: blog/views.py:676
+msgid "I don't know, but I want to learn"
+msgstr "I don't know, but I want to learn"
+
+#: blog/views.py:1281
+msgid "Техническое обслуживание"
+msgstr "Maintenance"
+
+#: blog/views.py:1312
+msgid "Отзывы"
+msgstr "Reviews"
+
+#: blog/views.py:1321
+msgid "Все отзывы"
+msgstr "All Reviews"
+
+#: platforms/models.py:15
+msgid "Telegram группа/канал"
+msgstr "Telegram group/channel"
+
+#: platforms/models.py:16
+msgid "Telegram группы/каналы"
+msgstr "Telegram groups/channels"
+
+#: platforms/models.py:22
+msgid "Имя группы или канала"
+msgstr "Group or channel name"
+
+#: platforms/models.py:28
+msgid "Telegram ID группы или канала"
+msgstr "Telegram ID of group or channel"
+
+#: platforms/models.py:40
+msgid "Язык группы или канала"
+msgstr "Language of group or channel"
+
+#: platforms/models.py:50
+msgid "Тип: группа, канал или веб-сайт"
+msgstr "Type: group, channel, or website"
+
+#: platforms/models.py:56
+msgid "Username группы или канала"
+msgstr "Username of group or channel"
+
+#: templates/admin/blog/message/change_form.html:42
+msgid "Message Details"
+msgstr "Message Details"
+
+#: templates/admin/blog/message/change_form.html:44
+msgid "Sender"
+msgstr "Sender"
+
+#: templates/admin/blog/message/change_form.html:45
+msgid "Recipient"
+msgstr "Recipient"
+
+#: templates/admin/blog/message/change_form.html:46
+msgid "Fullname"
+msgstr "Fullname"
+
+#: templates/admin/blog/message/change_form.html:47
+msgid "Email"
+msgstr "Email"
+
+#: templates/admin/blog/message/change_form.html:48
+msgid "Content"
+msgstr "Content"
+
+#: templates/admin/blog/message/change_form.html:49
+msgid "Created At"
+msgstr "Created At"
+
+#: templates/admin/blog/message/change_form.html:50
+msgid "Is Read"
+msgstr "Is Read"
+
+#: templates/admin/blog/message/change_form.html:51
+msgid "Deleted by Sender"
+msgstr "Deleted by Sender"
+
+#: templates/admin/blog/message/change_form.html:52
+msgid "Deleted by Recipient"
+msgstr "Deleted by Recipient"
+
+#: templates/admin/blog/message/change_form.html:54
+#: templates/admin/blog/message/change_list.html:248
+msgid "Attachments"
+msgstr "Attachments"
+
+#: templates/admin/blog/message/change_form.html:72
+#: templates/admin/blog/message/change_list.html:263
+msgid "No file"
+msgstr "No file"
+
+#: templates/admin/blog/message/change_form.html:77
+msgid "No attachments"
+msgstr "No attachments"
+
+#: templates/admin/blog/message/change_form.html:81
+msgid "Error"
+msgstr "Error"
+
+#: templates/admin/blog/message/change_form.html:81
+msgid "No message object found in context."
+msgstr "No message object found in context."
+
+#: templates/admin/blog/message/change_list.html:188
+msgid "Conversation between"
+msgstr "Conversation between"
+
+#: templates/admin/blog/message/change_list.html:194
+msgid "Unknown"
+msgstr "Unknown"
+
+#: templates/admin/blog/message/change_list.html:198
+msgid "Filters"
+msgstr "Filters"
+
+#: templates/admin/blog/message/change_list.html:201
+msgid "All"
+msgstr "All"
+
+#: templates/admin/blog/message/change_list.html:204
+#: templates/admin/blog/message/change_list.html:331
+msgid "Read"
+msgstr "Read"
+
+#: templates/admin/blog/message/change_list.html:207
+#: templates/admin/blog/message/change_list.html:333
+msgid "Unread"
+msgstr "Unread"
+
+#: templates/admin/blog/message/change_list.html:215
+#: templates/admin/blog/message/change_list.html:291
+msgid "Action"
+msgstr "Action"
+
+#: templates/admin/blog/message/change_list.html:218
+#: templates/admin/blog/message/change_list.html:294
+msgid "Mark as read"
+msgstr "Mark as read"
+
+#: templates/admin/blog/message/change_list.html:219
+#: templates/admin/blog/message/change_list.html:295
+msgid "Mark as unread"
+msgstr "Mark as unread"
+
+#: templates/admin/blog/message/change_list.html:220
+#: templates/admin/blog/message/change_list.html:296
+msgid "Delete selected messages"
+msgstr "Delete selected messages"
+
+#: templates/admin/blog/message/change_list.html:223
+#: templates/admin/blog/message/change_list.html:299
+msgid "Apply"
+msgstr "Apply"
+
+#: templates/admin/blog/message/change_list.html:238
+msgid "Anonymous"
+msgstr "Anonymous"
+
+#: templates/admin/blog/message/change_list.html:248
+msgid "Attachments"
+msgstr "Attachments"
+
+#: templates/admin/blog/message/change_list.html:263
+msgid "No file"
+msgstr "No file"
+
+#: templates/admin/blog/message/change_list.html:274
+msgid "No messages found"
+msgstr "No messages found"
+
+#: templates/admin/blog/message/change_list.html:277
+msgid "Back to dialogs"
+msgstr "Back to dialogs"
+
+#: templates/admin/blog/message/change_list.html:282
+msgid "Dialogs"
+msgstr "Dialogs"
+
+#: templates/admin/blog/message/change_list.html:285
+msgid "No dialogs found"
+msgstr "No dialogs found"
+
+#: templates/admin/blog/message/change_list.html:305
+msgid "Dialog"
+msgstr "Dialog"
+
+#: templates/admin/blog/message/change_list.html:306
+msgid "Last message"
+msgstr "Last message"
+
+#: templates/admin/blog/message/change_list.html:307
+msgid "Messages"
+msgstr "Messages"
+
+#: templates/admin/blog/message/change_list.html:308
+msgid "Date"
+msgstr "Date"
+
+#: templates/admin/blog/message/change_list.html:309
+msgid "Status"
+msgstr "Status"
+
+#: templates/admin/blog/message/delete_confirmation.html:6
+msgid "Are you sure you want to delete the selected messages? All attachments will also be deleted."
+msgstr "Are you sure you want to delete the selected messages? All attachments will also be deleted."
+
+#: templates/admin/blog/message/delete_confirmation.html:13
+msgid "Yes, I am sure"
+msgstr "Yes, I am sure"
+
+#: templates/admin/blog/message/delete_confirmation.html:14
+msgid "Cancel"
+msgstr "Cancel"
+
+#: templates/admin/blog/post_project_change_form.html:91
+msgid "Preview"
+msgstr "Preview"
+
+#: templates/admin/blog/post_project_change_form.html:103
+msgid "Excerpt"
+msgstr "Excerpt"
+
+#: templates/admin/blog/post_project_change_form.html:107
+msgid "Content"
+msgstr "Content"
+
+#: templates/admin/blog/post_project_change_form.html:110
+msgid "Description"
+msgstr "Description"

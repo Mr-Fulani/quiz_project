@@ -195,12 +195,12 @@
                     <div class="input-wrapper">
                         <label for="id_old_password">{% trans "Current Password" %}</label>
                         <input type="password" id="id_old_password" name="old_password" class="form-input" required>
-                        {% if password_form.old_password.errors %}
-                            <div class="error">{{ password_form.old_password.errors }}</div>
+                        {% if password_form.errors %}
+                            <div class="error">{{ password_form.errors }}</div>
                         {% endif %}
 
-                        <label for="id_new_password1">{% trans "New Password" %}</label>
-                        <input type="password" id="id_new_password1" name="new_password1" class="form-input" required minlength="8" placeholder="{% trans 'Minimum 8 characters, letters, numbers, symbols' %}">
+                        <label for="id_new_password1">{% trans "Password" %}</label>
+                        <input type="password" id="id_new_password1" name="new_password1" class="form-input" required minlength="8" placeholder="{% trans 'Minimum 8 characters' %}">
                         {% if password_form.new_password1.errors %}
                             <div class="error">{{ password_form.new_password1.errors }}</div>
                         {% endif %}
@@ -213,7 +213,7 @@
                     </div>
 
                     <button class="form-btn" type="submit">
-                        <span>{% trans "Change Password" %}</span>
+                        <span>{% trans "Authenticate" %}</span>
                     </button>
                 </form>
             </div>
@@ -227,19 +227,22 @@
         avatar_error: "{% trans 'Error updating avatar.' %}",
         profile_updated: "{% trans 'Profile updated successfully!' %}",
         profile_error: "{% trans 'Error updating profile.' %}",
-        settings_updated: "{% trans 'Settings updated successfully!' %}",
+        settings_updated: "{% trans 'Settings updated!' %}",
         settings_error: "{% trans 'Error updating settings.' %}",
-        password_error: "{% trans 'Error changing password.' %}"
-    };
-</script>
+        password_changed: "{% trans 'Password changed successfully!' %}",
+        password_error: "{% trans 'Error changing password.' %}",
+        content_load_error: "{% trans 'Failed to load content.' %}",
+        solved_tasks: "{% trans 'Solved Tasks' %}",
+        task_count: "{% trans 'Task Count' %}"
+    };</script>
 <script src="{% static 'accounts/js/dashboard.js' %}"></script>
 {% else %}
 <article class="profile active" data-page="profile">
     <header>
         <h2 class="h2 article-title">{% trans "Profile" %}</h2>
     </header>
-    <section class="login-prompt">
-        <p>{% trans "You must" %} <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">{% trans "log in" %}</a> {% trans "to view your profile information." %}</p>
+    <section class="alert">
+        <p>{% trans "You must" %} <a href="#" class="open-login-btn" data-login-url="{% url 'login' %}">{% trans "Log in" %}</a> {% trans "view your profile information." %}</p>
     </section>
 </article>
 {% endif %}

@@ -1,7 +1,6 @@
 {# accounts/profile.html #}
 {% extends "blog/base.html" %}
-{% load static %}
-{% load form_tags %}
+{% load static i18n form_tags %}
 
 {% block sidebar %}
 {% include 'accounts/sidebar.html' %}
@@ -43,9 +42,9 @@
     <section class="profile-content">
         <!-- Profile Navigation -->
         <div class="profile-tabs">
-            <button class="tab-btn active" data-tab="info">Info</button>
-            <button class="tab-btn" data-tab="statistics">Statistics</button>
-            <button class="tab-btn" data-tab="messages">Messages</button>
+            <button class="tab-btn active" data-tab="info">{% trans "Info" %}</button>
+            <button class="tab-btn" data-tab="statistics">{% trans "Statistics" %}</button>
+            <button class="tab-btn" data-tab="messages">{% trans "Messages" %}</button>
         </div>
 
         <!-- Info Tab -->
@@ -58,13 +57,13 @@
 
                     <div class="profile-info readonly">
                         <div class="info-section">
-                            <h3>About</h3>
-                            <p>{{ profile_user.bio|default:"No bio available" }}</p>
+                            <h3>{% trans "About" %}</h3>
+                            <p>{{ profile_user.bio|default:_("No bio available") }}</p>
                         </div>
 
                         <div class="info-section">
-                            <h3>Location</h3>
-                            <p>{{ profile_user.location|default:"Not specified" }}</p>
+                            <h3>{% trans "Location" %}</h3>
+                            <p>{{ profile_user.location|default:_("Not specified") }}</p>
                         </div>
 
                         {% if profile_user.is_public %}
@@ -120,7 +119,7 @@
         <!-- Statistics Tab -->
         <div class="tab-content" data-tab-content="statistics">
             <div class="profile-card">
-                <h3 class="h3">Quiz Performance</h3>
+                <h3 class="h3">{% trans "Quiz Performance" %}</h3>
 
                 <!-- Stats Cards Grid -->
                 <div class="stats-grid">
@@ -129,7 +128,7 @@
                             <ion-icon name="document-text-outline"></ion-icon>
                         </div>
                         <div class="stat-info">
-                            <h4>Total Attempts</h4>
+                            <h4>{% trans "Total Attempts" %}</h4>
                             <p>{{ stats.total_attempts }}</p>
                         </div>
                     </div>
@@ -139,7 +138,7 @@
                             <ion-icon name="checkmark-circle-outline"></ion-icon>
                         </div>
                         <div class="stat-info">
-                            <h4>Successful</h4>
+                            <h4>{% trans "Successful" %}</h4>
                             <p>{{ stats.successful_attempts }}</p>
                         </div>
                     </div>
@@ -149,7 +148,7 @@
                             <ion-icon name="trending-up-outline"></ion-icon>
                         </div>
                         <div class="stat-info">
-                            <h4>Success Rate</h4>
+                            <h4>{% trans "Success Rate" %}</h4>
                             <p>{{ stats.success_rate }}%</p>
                         </div>
                     </div>
@@ -160,44 +159,44 @@
                 <div class="charts-grid">
                     <!-- Activity Chart -->
                     <div class="chart-container">
-                        <h4>Activity Over Time</h4>
+                        <h4>{% trans "Activity Over Time" %}</h4>
                         {% if has_activity_data %}
                         <div class="chart-wrapper">
                             <canvas id="activityChart"></canvas>
                         </div>
                         {% else %}
-                        <p class="no-data-message">Нет данных об активности</p>
+                        <p class="no-data-message">{% trans "No activity data available" %}</p>
                         {% endif %}
                     </div>
 
                     <!-- Categories Chart -->
                     <div class="chart-container">
-                        <h4>Performance by Category</h4>
+                        <h4>{% trans "Performance by Category" %}</h4>
                         {% if has_categories_data %}
                         <div class="chart-wrapper">
                             <canvas id="categoriesChart"></canvas>
                         </div>
                         {% else %}
-                        <p class="no-data-message">Нет данных по категориям</p>
+                        <p class="no-data-message">{% trans "No category data available" %}</p>
                         {% endif %}
                     </div>
 
                     <!-- Attempts Chart -->
                     <div class="chart-container">
-                        <h4>Attempts Distribution</h4>
+                        <h4>{% trans "Attempts Distribution" %}</h4>
                         {% if has_attempts_data %}
                         <div class="chart-wrapper">
                             <canvas id="attemptsChart"></canvas>
                         </div>
                         {% else %}
-                        <p class="no-data-message">Нет данных по попыткам</p>
+                        <p class="no-data-message">{% trans "No attempts data available" %}</p>
                         {% endif %}
                     </div>
                 </div>
                 {% else %}
                 <div class="private-notice">
                     <ion-icon name="lock-closed-outline"></ion-icon>
-                    <p>Detailed statistics are private</p>
+                    <p>{% trans "Detailed statistics are private" %}</p>
                 </div>
                 {% endif %}
             </div>
@@ -209,17 +208,17 @@
                 {% if is_owner %}
                 <!-- Пустой блок, перенаправление через JavaScript -->
                 {% else %}
-                <h3 class="h3">Send Message</h3>
+                <h3 class="h3">{% trans "Send Message" %}</h3>
                 <div id="messageForm" class="message-form">
                     <form method="POST" action="{% url 'blog:send_message' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <input type="hidden" name="recipient_username" value="{{ profile_user.username }}">
-                        <textarea name="content" placeholder="Write your message..." required></textarea>
+                        <textarea name="content" placeholder="{% trans 'Write your message...' %}" required></textarea>
 
                         <div class="attachment-section">
                             <label for="attachments" class="attachment-label">
                                 <ion-icon name="attach-outline"></ion-icon>
-                                Add Files
+                                {% trans "Add Files" %}
                             </label>
                             <input type="file" id="attachments" name="attachments" multiple style="display: none;">
                             <div id="selected-files" class="selected-files"></div>
@@ -227,7 +226,7 @@
 
                         <button type="submit" class="send-btn">
                             <ion-icon name="send-outline"></ion-icon>
-                            Send
+                            {% trans "Send" %}
                         </button>
                     </form>
                 </div>
@@ -241,130 +240,88 @@
 {% if profile_user.is_public or is_owner %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    var messages = {
+        message_sent: "{% trans 'Message sent successfully!' %}",
+        message_error: "{% trans 'Error sending message.' %}",
+        password_changed: "{% trans 'Password changed successfully!' %}",
+        password_error: "{% trans 'Failed to change password.' %}",
+        solved_tasks: "{% trans 'Solved Tasks' %}",
+        task_count: "{% trans 'Task Count' %}"
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
-        {%
-            if has_activity_data %
-        }
+        {% if has_activity_data %}
         new Chart(document.getElementById('activityChart'), {
             type: 'line',
             data: {
-                labels: {
-        {
-            activity_dates | safe
-        }
-    },
-        datasets: [{
-            label: 'Решено задач',
-            data: {{activity_data | safe
-    }
-    },
-        borderColor: '#f5a623',
-            backgroundColor
-    :
-        'rgba(245, 166, 35, 0.1)',
-            tension
-    :
-        0.4,
-            fill
-    :
-        true
-    }]
-    },
-        options: {
-            responsive: true,
-                maintainAspectRatio
-        :
-            false,
-                plugins
-        :
-            {
-                legend: {
-                    display: false
+                labels: {{ activity_dates | safe }},
+                datasets: [{
+                    label: messages.solved_tasks,
+                    data: {{ activity_data | safe }},
+                    borderColor: '#f5a623',
+                    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
                 }
             }
-        }
-    })
-        ;
-        {%
-            endif %
-        }
+        });
+        {% endif %}
 
-        {%
-            if has_categories_data %
-        }
+        {% if has_categories_data %}
         new Chart(document.getElementById('categoriesChart'), {
             type: 'doughnut',
             data: {
-                labels: {
-        {
-            categories_labels | safe
-        }
-    },
-        datasets: [{
-            data: {{categories_data | safe
-    }
-    },
-        backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
-    }]
-    },
-        options: {
-            responsive: true, maintainAspectRatio
-        :
-            false
-        }
-    })
-        ;
-        {%
-            endif %
-        }
+                labels: {{ categories_labels | safe }},
+                datasets: [{
+                    data: {{ categories_data | safe }},
+                    backgroundColor: ['#f5a623', '#4a90e2', '#50e3c2', '#e54d42', '#b8e986']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+        {% endif %}
 
-        {%
-            if has_attempts_data %
-        }
+        {% if has_attempts_data %}
         new Chart(document.getElementById('attemptsChart'), {
                 type: 'bar',
                 data: {
                     labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
                     datasets: [{
-                        label: 'Количество задач',
-                        data: {{attempts_distribution | safe
+                        label: messages.task_count,
+                        data: {{ attempts_distribution | safe }},
+                        backgroundColor: '#4a90e2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
                 }
-            },
-            backgroundColor
-    :
-        '#4a90e2'
-    }]
-    },
-        options: {
-            responsive: true,
-                maintainAspectRatio
-        :
-            false,
-                plugins
-        :
-            {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    })
-        ;
-        {%
-            endif %
-        }
+        });
+        {% endif %}
     });
 </script>
 {% endif %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const messagesTab = document.querySelector('button[data-tab="messages"]');
-        const isOwner = {
-        {
-            is_owner | lower
-        }
-    }
-        ;
+        const isOwner = {{ is_owner | lower }};
 
         if (messagesTab && isOwner) {
             messagesTab.addEventListener('click', function (event) {

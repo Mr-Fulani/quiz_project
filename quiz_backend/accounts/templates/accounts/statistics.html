@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block sidebar %}
     {% include 'accounts/user_sidebar.html' %}
@@ -8,7 +8,7 @@
 {% block content %}
 <article class="statistics active" data-page="statistics">
     <header>
-        <h2 class="h2 article-title">Статистика</h2>
+        <h2 class="h2 article-title">{% trans "Statistics" %}</h2>
     </header>
 
     {% comment %}
@@ -24,7 +24,7 @@
                 </div>
                 <div class="stat-details">
                     <h3>{{ user_stats.total_attempts }}</h3>
-                    <p>Всего попыток</p>
+                    <p>{% trans "Total Attempts" %}</p>
                 </div>
             </div>
             <div class="stat-card">
@@ -33,7 +33,7 @@
                 </div>
                 <div class="stat-details">
                     <h3>{{ user_stats.successful_attempts }}</h3>
-                    <p>Успешных</p>
+                    <p>{% trans "Successful" %}</p>
                 </div>
             </div>
             <div class="stat-card">
@@ -42,7 +42,7 @@
                 </div>
                 <div class="stat-details">
                     <h3>{{ user_stats.success_rate }}%</h3>
-                    <p>Успешность</p>
+                    <p>{% trans "Success Rate" %}</p>
                 </div>
             </div>
         </div>
@@ -55,7 +55,7 @@
                 </div>
                 <div class="stat-details">
                     <h3>{{ total_users }}</h3>
-                    <p>Пользователей</p>
+                    <p>{% trans "Users" %}</p>
                 </div>
             </div>
             <div class="stat-card">
@@ -64,7 +64,7 @@
                 </div>
                 <div class="stat-details">
                     <h3>{{ total_quizzes_completed }}</h3>
-                    <p>Решено задач</p>
+                    <p>{% trans "Quizzes Completed" %}</p>
                 </div>
             </div>
             <div class="stat-card">
@@ -73,7 +73,7 @@
                 </div>
                 <div class="stat-details">
                     <h3>{{ avg_score|floatformat:1 }}%</h3>
-                    <p>Успешность</p>
+                    <p>{% trans "Success Rate" %}</p>
                 </div>
             </div>
         </div>
@@ -82,15 +82,15 @@
     <!-- Графики (общие для обеих версий) -->
     <div class="charts-grid">
         <div class="chart-container">
-            <h3 class="h3">Активность</h3>
+            <h3 class="h3">{% trans "Activity" %}</h3>
             <canvas id="activityChart"></canvas>
         </div>
         <div class="chart-container">
-            <h3 class="h3">Категории</h3>
+            <h3 class="h3">{% trans "Categories" %}</h3>
             <canvas id="categoriesChart"></canvas>
         </div>
         <div class="chart-container">
-            <h3 class="h3">Распределение попыток</h3>
+            <h3 class="h3">{% trans "Attempts Distribution" %}</h3>
             <canvas id="scoresChart"></canvas>
         </div>
     </div>
@@ -131,10 +131,10 @@
 .stat-details h3 {
     font-size: 24px;
     margin-bottom: 5px;
-    color: var(--light-gray-70);
+    color: #666;
 }
 .stat-details p {
-    color: var(--light-gray);
+    color: #888;
     font-size: 14px;
 }
 .charts-grid {
@@ -150,7 +150,7 @@
 }
 .chart-container h3 {
     margin-bottom: 15px;
-    color: var(--light-gray-70);
+    color: #666;
     font-size: 18px;
 }
 @media (min-width: 768px) {
@@ -176,6 +176,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+var messages = {
+    solved_tasks: "{% trans 'Solved Tasks' %}",
+    task_count: "{% trans 'Task Count' %}"
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     Chart.defaults.color = '#fff';
     Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
@@ -185,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: {{ activity_dates|safe }},
             datasets: [{
-                label: 'Решено задач',
+                label: messages.solved_tasks,
                 data: {{ activity_data|safe }},
                 borderColor: '#f5a623',
                 backgroundColor: 'rgba(245, 166, 35, 0.1)',
@@ -217,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
             datasets: [{
-                label: 'Количество задач',
+                label: messages.task_count,
                 data: {{ scores_distribution|safe }},
                 backgroundColor: '#4a90e2'
             }]

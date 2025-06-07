@@ -3,11 +3,33 @@
  */
 document.addEventListener('DOMContentLoaded', function () {
     // ================================
+    // 0. Проверяем наличие переменной messages из шаблона
+    // ================================
+    if (typeof messages === 'undefined') {
+        console.warn('Messages object not found. Using default English messages.');
+        window.messages = {
+            avatar_updated: "Avatar updated successfully!",
+            avatar_error: "Error updating avatar.",
+            profile_updated: "Profile updated successfully!",
+            profile_error: "Error updating profile.",
+            settings_updated: "Settings updated!",
+            settings_error: "Error updating settings.",
+            password_changed: "Password changed successfully!",
+            password_error: "Error changing password.",
+            content_load_error: "Failed to load content.",
+            solved_tasks: "Solved Tasks",
+            task_count: "Task Count"
+        };
+    }
+
+    // ================================
     // 1. Переключение вкладок (Tabs)
     // ================================
     const tabs = document.querySelectorAll('.tab-btn');
     const mobileTabs = document.querySelectorAll('.mobile-tab-btn');
     const contents = document.querySelectorAll('.tab-content');
+
+    console.log('Found tabs:', tabs.length, 'mobile tabs:', mobileTabs.length, 'contents:', contents.length);
 
     /**
      * Переключает вкладки и загружает содержимое через AJAX, если есть data-url.
@@ -15,16 +37,32 @@ document.addEventListener('DOMContentLoaded', function () {
      * @param {boolean} isMobile - Флаг мобильного меню.
      */
     function switchTab(tab, isMobile = false) {
+        console.log('Switching to tab:', tab.dataset.tab, 'isMobile:', isMobile);
+
         // Удаляем класс active у всех вкладок и контента
         tabs.forEach(t => t.classList.remove('active'));
         mobileTabs.forEach(mt => mt.classList.remove('active'));
         contents.forEach(c => c.classList.remove('active'));
 
         // Добавляем класс active для текущей вкладки
-        tab.classList.add('active');
         const tabId = tab.dataset.tab;
+        tab.classList.add('active');
+
+        // Синхронизируем десктопные и мобильные кнопки
+        const desktopTab = document.querySelector(`.profile-tabs .tab-btn[data-tab="${tabId}"]`);
+        const mobileTab = document.querySelector(`.mobile-tab-btn[data-tab="${tabId}"]`);
+
+        if (desktopTab) desktopTab.classList.add('active');
+        if (mobileTab) mobileTab.classList.add('active');
+
+        // Активируем соответствующий контент
         const content = document.querySelector(`[data-tab-content="${tabId}"]`);
-        content.classList.add('active');
+        if (content) {
+            content.classList.add('active');
+            console.log('Activated content for tab:', tabId);
+        } else {
+            console.warn('Content not found for tab:', tabId);
+        }
 
         // Если есть data-url, загружаем содержимое через AJAX
         if (tab.dataset.url) {
@@ -46,27 +84,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(error => {
                     console.error('Error loading content:', error);
-                    showNotification('Failed to load content', 'error');
+                    showNotification(messages.content_load_error, 'error');
                 });
             }
         }
 
         // Закрываем мобильное меню, если это мобильная вкладка
         if (isMobile) {
-            document.querySelector('.mobile-menu-content').classList.remove('active');
+            const mobileMenuContent = document.querySelector('.mobile-menu-content');
+            if (mobileMenuContent) {
+                mobileMenuContent.classList.remove('active');
+            }
         }
     }
 
     // Переключение вкладок для десктопных кнопок
     tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Desktop tab clicked:', tab.dataset.tab);
             switchTab(tab);
         });
     });
 
     // Переключение вкладок для мобильных кнопок
     mobileTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Mobile tab clicked:', tab.dataset.tab);
             switchTab(tab, true);
         });
     });
@@ -91,15 +136,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 const data = await response.json();
                 if (response.ok && data.status === 'success') {
-                    showNotification('Avatar updated successfully!', 'success');
+                    showNotification(messages.avatar_updated, 'success');
                     const avatarImg = document.querySelector('.profile-avatar img');
                     avatarImg.src = data.avatar_url;
                 } else {
-                    showNotification(data.message || 'Failed to update avatar', 'error');
+                    showNotification(data.message || messages.avatar_error, 'error');
                 }
             } catch (error) {
                 console.error('Error uploading avatar:', error);
-                showNotification('Failed to update avatar', 'error');
+                showNotification(messages.avatar_error, 'error');
             }
         });
         // Предотвращаем стандартную отправку формы
@@ -131,15 +176,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = await response.json();
                 console.log('Response data:', data);
                 if (response.ok && data.status === 'success') {
-                    showNotification('Профиль успешно обновлён!', 'success');
+                    showNotification(messages.profile_updated, 'success');
                     const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/users/dashboard/';
                     window.location.href = dashboardUrl;
                 } else {
-                    showNotification(data.message || 'Не удалось обновить профиль', 'error');
+                    showNotification(data.message || messages.profile_error, 'error');
                 }
             } catch (error) {
                 console.error('Personal info form submission error:', error);
-                showNotification('Не удалось обновить профиль', 'error');
+                showNotification(messages.profile_error, 'error');
             }
         });
     }
@@ -172,12 +217,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (response.ok && data.status === 'success') {
                     // Успешная смена пароля
-                    showNotification('Пароль успешно изменён!', 'success');
+                    showNotification(messages.password_changed, 'success');
 
                     // Создаем элемент для успешного сообщения
                     const successElement = document.createElement('div');
                     successElement.className = 'success';
-                    successElement.textContent = 'Пароль успешно изменён!';
+                    successElement.textContent = messages.password_changed;
                     successElement.style.display = 'block';
 
                     // Вставляем сообщение в начало формы
@@ -212,11 +257,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                     }
-                    showNotification(data.message || 'Не удалось сменить пароль', 'error');
+                    showNotification(data.message || messages.password_error, 'error');
                 }
             } catch (error) {
                 console.error('Security form submission error:', error);
-                showNotification('Не удалось сменить пароль', 'error');
+                showNotification(messages.password_error, 'error');
             }
         });
     }
@@ -242,11 +287,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     })
                 });
                 if (!response.ok) throw new Error('Settings update failed');
-                showNotification('Settings updated successfully!', 'success');
+                showNotification(messages.settings_updated, 'success');
             } catch (error) {
                 console.error('Error:', error);
                 this.checked = !this.checked;
-                showNotification('Failed to update settings', 'error');
+                showNotification(messages.settings_error, 'error');
             }
         });
     });
@@ -254,19 +299,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // ================================
     // 5. Обработка параметра URL "tab" для переключения вкладок
     // ================================
-    // Исправленная обработка параметра URL "tab" (строки ~290-310)
+    // Исправленная обработка параметра URL "tab"
     const urlParams = new URLSearchParams(window.location.search);
-    const activeTab = urlParams.get('tab');
-    if (activeTab) {
-        const tabButton = document.querySelector(`.profile-tabs .tab-btn[data-tab="${activeTab}"]`);
+    const activeTabFromUrl = urlParams.get('tab');
+
+    if (activeTabFromUrl) {
+        // Если есть параметр tab в URL, переключаемся на эту вкладку
+        const tabButton = document.querySelector(`.profile-tabs .tab-btn[data-tab="${activeTabFromUrl}"]`);
         if (tabButton) {
             switchTab(tabButton);
         }
     } else {
-        // Проверяем, есть ли уже активная вкладка в HTML
-        const alreadyActiveTab = document.querySelector('.tab-btn.active');
-        if (!alreadyActiveTab) {
-            // Только если нет активной вкладки, активируем Personal Info по умолчанию
+        // Проверяем, какая вкладка активна в HTML (из Django шаблона)
+        const activeTabButton = document.querySelector('.tab-btn.active');
+        if (activeTabButton) {
+            // Если есть активная кнопка, убеждаемся что соответствующий контент тоже активен
+            const tabId = activeTabButton.dataset.tab;
+            const activeContent = document.querySelector(`[data-tab-content="${tabId}"]`);
+            if (activeContent && !activeContent.classList.contains('active')) {
+                activeContent.classList.add('active');
+            }
+            // Синхронизируем мобильные кнопки
+            const mobileTabButton = document.querySelector(`.mobile-tab-btn[data-tab="${tabId}"]`);
+            if (mobileTabButton && !mobileTabButton.classList.contains('active')) {
+                mobileTabButton.classList.add('active');
+            }
+        } else {
+            // Если нет активной вкладки, активируем Personal Info по умолчанию
             const defaultTabButton = document.querySelector('.profile-tabs .tab-btn[data-tab="personal"]');
             if (defaultTabButton) {
                 switchTab(defaultTabButton);
@@ -359,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: activityDates,
                 datasets: [{
-                    label: 'Решено задач',
+                    label: messages.solved_tasks,
                     data: activityData,
                     borderColor: '#f5a623',
                     backgroundColor: 'rgba(245, 166, 35, 0.1)',
@@ -391,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: ['1-5', '6-10', '11-15', '16-20', '21-25'],
                 datasets: [{
-                    label: 'Количество задач',
+                    label: messages.task_count,
                     data: scoresDistribution,
                     backgroundColor: '#4a90e2'
                 }]
