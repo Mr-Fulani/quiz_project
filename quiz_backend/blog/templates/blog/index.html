@@ -4,6 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'blog/css/resources.css' %}">
 <link rel="stylesheet" href="{% static 'blog/css/card_animations.css' %}">
+<link rel="stylesheet" href="{% static 'blog/css/bug-report.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -177,6 +178,14 @@
             </li>
             {% endfor %}
         </ul>
+    </section>
+
+    <!-- Бегущая строка под блоком соцсетей -->
+    <section class="bug-report-marquee" data-debug="marquee">
+        <div class="marquee-content">
+            <span>{% trans "Found a bug? Write to us in social networks!" %}</span>
+            <span>{% trans "Found a bug? Write to us in social networks!" %}</span>
+        </div>
     </section>
 
     <section class="skill section-gap">

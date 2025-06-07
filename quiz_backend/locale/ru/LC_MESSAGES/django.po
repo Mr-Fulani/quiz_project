@@ -1559,3 +1559,8 @@ msgstr "Отрывок"
 #: templates/admin/blog/post_project_change_form.html:110
 msgid "Description"
 msgstr "Описание"
+
+
+# locale/ru/LC_MESSAGES/django.po
+msgid "Found a bug? Write to us in social networks!"
+msgstr "Нашли баг? Напишите нам в социальных сетях!"
