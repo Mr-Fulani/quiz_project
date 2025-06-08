@@ -434,4 +434,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script>
+    // В файле static/blog/js/marquee.js
+    document.addEventListener('DOMContentLoaded', function() {
+        const marqueeLinks = document.querySelectorAll('.bug-report-marquee a[href^="tg://"]');
+        marqueeLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Проверяем, поддерживается ли протокол tg://
+                const testLink = document.createElement('a');
+                testLink.href = 'tg://';
+                if (!testLink.protocol.startsWith('tg')) {
+                    e.preventDefault();
+                    alert('Пожалуйста, установите Telegram, чтобы открыть этот чат.');
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

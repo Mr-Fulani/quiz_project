@@ -528,6 +528,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const dontKnowOptions = [
         "Я не знаю, но хочу узнать",
         "I don't know, but I want to learn",
+
+
     ];
 
     /**

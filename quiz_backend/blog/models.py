@@ -3,6 +3,9 @@ import logging
 import os
 
 from PIL import Image, ImageOps
+import re
+from django.core.validators import URLValidator, ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import translation
@@ -533,6 +536,63 @@ class Testimonial(models.Model):
 
 
 
+class CustomURLValidator(URLValidator):
+    """Кастомный валидатор для URL, включая tg:// протокол."""
+    schemes = ['http', 'https', 'ftp', 'ftps', 'tg']
+
+    def __call__(self, value):
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if value.startswith('tg://'):
+            # Валидация Telegram-ссылок
+            self._validate_telegram_url(value)
+            return value
+        else:
+            # Для обычных URL используем стандартную валидацию
+            try:
+                super().__call__(value)
+            except (ValidationError, DjangoValidationError) as e:
+                raise ValidationError(f'Недопустимый URL: {str(e)}')
+            return value
+
+    def _validate_telegram_url(self, value):
+        """Валидирует Telegram URL."""
+        # Паттерны для различных типов Telegram-ссылок
+        patterns = [
+            # tg://resolve?domain=@username
+            r'^tg://resolve\?domain=@[\w\-_]+$',
+            # tg://resolve?domain@username (ваш формат)
+            r'^tg://resolve\?domain@[\w\-_]+$',
+            # tg://resolve?domain=username (без @)
+            r'^tg://resolve\?domain=[\w\-_]+$',
+            # tg://msg_url?url=... (для сообщений)
+            r'^tg://msg_url\?url=.+$',
+            # tg://join?invite=... (для приглашений)
+            r'^tg://join\?invite=[\w\-_]+$',
+            # tg://addstickers?set=... (для стикеров)
+            r'^tg://addstickers\?set=[\w\-_]+$',
+        ]
+
+        # Проверяем соответствие хотя бы одному паттерну
+        for pattern in patterns:
+            if re.match(pattern, value, re.IGNORECASE):
+                return True
+
+        # Если ни один паттерн не подошел, выбрасываем ошибку
+        raise ValidationError(
+            'Недопустимый формат Telegram-ссылки. '
+            'Поддерживаемые форматы:\n'
+            '• tg://resolve?domain=@username\n'
+            '• tg://resolve?domain@username\n'
+            '• tg://resolve?domain=username\n'
+            '• tg://msg_url?url=...\n'
+            '• tg://join?invite=...\n'
+            '• tg://addstickers?set=...'
+        )
+
 
 
 
@@ -552,9 +612,16 @@ class MarqueeText(models.Model):
     text_tr = models.CharField(max_length=255, blank=True, verbose_name="Текст (турецкий)")
     text_ar = models.CharField(max_length=255, blank=True, verbose_name="Текст (арабский)")
     is_active = models.BooleanField(default=False, verbose_name="Активно")
-    link_url = models.URLField(max_length=200, blank=True, verbose_name="URL ссылки")
+    link_url = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="URL ссылки",
+        validators=[CustomURLValidator()],  # Используем исправленный валидатор
+        help_text="URL для ссылки (поддерживает http/https и Telegram-ссылки: tg://resolve?domain@username)"
+    )
     link_target_blank = models.BooleanField(default=False, verbose_name="Открывать ссылку в новой вкладке")
-    order = models.PositiveIntegerField(default=0, verbose_name="Порядок отображения", help_text="Число, определяющее порядок строки (меньше — выше).")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок отображения",
+                                        help_text="Число, определяющее порядок строки (меньше — выше).")
 
     class Meta:
         verbose_name = "Бегущая строка"
@@ -574,3 +641,24 @@ class MarqueeText(models.Model):
         text_field = f"text_{lang_code.split('-')[0]}"  # Учитываем en-US → en
         text = getattr(self, text_field, '')
         return text or self.text or ''
+
+    def clean(self):
+        """
+        Дополнительная валидация на уровне модели.
+        """
+        super().clean()
+
+        # Проверяем, что хотя бы один текст заполнен
+        if not any([self.text, self.text_en, self.text_ru, self.text_es, self.text_fr,
+                    self.text_de, self.text_zh, self.text_ja, self.text_tj, self.text_tr, self.text_ar]):
+            raise ValidationError('Необходимо заполнить хотя бы одно текстовое поле')
+
+    def save(self, *args, **kwargs):
+        """
+        Переопределяем сохранение для дополнительной обработки.
+        """
+        # Если основной текст пуст, но есть английский - копируем его
+        if not self.text and self.text_en:
+            self.text = self.text_en
+
+        super().save(*args, **kwargs)

@@ -77,7 +77,7 @@ def personal_info(request):
             'avatar': 'blog/images/avatar/my-avatar.png',
             'social_links': {
                 'facebook': 'https://www.facebook.com/badr.commerce.3',
-                'telegram': 'tg://resolve?domain@Mr-Fulani',
+                'telegram': 'https://t.me/Mr_Fulani',
                 'whatsapp': 'whatsapp://send?phone=05525821497',
                 'instagram': 'https://www.instagram.com/fulani_developer',
             },
