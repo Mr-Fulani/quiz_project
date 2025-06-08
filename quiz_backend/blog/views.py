@@ -34,7 +34,7 @@ from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
 
 from .mixins import BreadcrumbsMixin
-from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial
+from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 
 logger = logging.getLogger(__name__)
@@ -164,6 +164,7 @@ class HomePageView(BreadcrumbsMixin, TemplateView):
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
         context['page_videos'] = PageVideo.objects.filter(page='index')
+        context['marquee_texts'] = MarqueeText.objects.filter(is_active=True).order_by('order')
         context['meta_title'] = _('Quiz Python, Go, JavaScript, Java, C#')
         return context
 

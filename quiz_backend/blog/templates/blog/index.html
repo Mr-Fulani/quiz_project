@@ -180,39 +180,33 @@
         </ul>
     </section>
 
-    {% with marquee=marquee_text %}
-        {% if marquee and marquee.is_active %}
+    {% with marquees=marquee_texts %}
+        {% if marquees %}
         <section class="bug-report-marquee">
             <div class="marquee-content">
-                <span>
-                    {% if marquee.link_url %}
-                        <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                {% for marquee in marquees %}
+                    <span>
+                        {% if marquee.link_url %}
+                            <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                                {{ marquee.get_text }}
+                            </a>
+                        {% else %}
                             {{ marquee.get_text }}
-                        </a>
-                    {% else %}
-                        {{ marquee.get_text }}
-                    {% endif %}
-                </span>
-                <!-- Дублируем текст для плавной анимации -->
-                <span>
-                    {% if marquee.link_url %}
-                        <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                        {% endif %}
+                    </span>
+                {% endfor %}
+                <!-- Дублируем для плавной анимации -->
+                {% for marquee in marquees %}
+                    <span>
+                        {% if marquee.link_url %}
+                            <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                                {{ marquee.get_text }}
+                            </a>
+                        {% else %}
                             {{ marquee.get_text }}
-                        </a>
-                    {% else %}
-                        {{ marquee.get_text }}
-                    {% endif %}
-                </span>
-                <!-- Дублируем текст для плавной анимации -->
-                <span>
-                    {% if marquee.link_url %}
-                        <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
-                            {{ marquee.get_text }}
-                        </a>
-                    {% else %}
-                        {{ marquee.get_text }}
-                    {% endif %}
-                </span>
+                        {% endif %}
+                    </span>
+                {% endfor %}
             </div>
         </section>
         {% endif %}
@@ -428,6 +422,15 @@ document.querySelector('.close-stats-modal')?.addEventListener('click', function
     if (modal) {
         modal.style.display = "none";
         console.log("Quiz modal closed:", modal.style.display);
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const marqueeContent = document.querySelector('.bug-report-marquee .marquee-content');
+    if (marqueeContent) {
+        const itemCount = marqueeContent.querySelectorAll('span').length / 2; // Учитываем дублирование
+        marqueeContent.style.setProperty('--marquee-items', itemCount);
     }
 });
 </script>
