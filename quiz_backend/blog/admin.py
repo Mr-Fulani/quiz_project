@@ -1,7 +1,11 @@
+import json
 import os
 import traceback
 
+from django import forms
+from django.conf import settings
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Max, Count
 from django.http import HttpResponseRedirect
@@ -9,7 +13,8 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, MessageAttachment
+from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
+    MessageAttachment, MarqueeText
 import logging
 
 logger = logging.getLogger(__name__)
@@ -794,3 +799,95 @@ class TestimonialAdmin(admin.ModelAdmin):
         queryset.update(is_approved=False)
 
     disapprove_testimonials.short_description = "Отклонить выбранные отзывы"
+
+
+
+
+
+
+
+
+
+
+
+
+
+logger = logging.getLogger(__name__)
+
+class MarqueeTextForm(forms.ModelForm):
+    """
+    Форма для управления моделью MarqueeText с поддержкой многоязычных текстов.
+    """
+    class Meta:
+        model = MarqueeText
+        fields = [
+            'is_active', 'link_url', 'link_target_blank',
+            'text_en', 'text_ru', 'text_es', 'text_fr', 'text_de',
+            'text_zh', 'text_ja', 'text_tj', 'text_tr', 'text_ar',
+            'text'
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        logger.info("MarqueeTextForm init called")
+        logger.info(f"Form fields: {list(self.fields.keys())}")
+
+    def save(self, commit=True):
+        """
+        Сохраняет данные формы, обновляя text на основе text_en, если он заполнен.
+        """
+        instance = super().save(commit=False)
+        instance.text = instance.text_en or instance.text
+        if commit:
+            instance.save()
+        logger.info(f"Saved instance: text_en={instance.text_en}, text={instance.text}")
+        return instance
+
+@admin.register(MarqueeText)
+class MarqueeTextAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для модели MarqueeText.
+    """
+    form = MarqueeTextForm
+    list_display = ("__str__", "is_active", "link_url")
+    search_fields = ('text', 'text_en', 'text_ru')
+    list_filter = ('is_active',)
+
+    fieldsets = [
+        (None, {
+            'fields': ['is_active', 'link_url', 'link_target_blank', 'text'],
+        }),
+        ('Переводы', {
+            'fields': [
+                'text_en', 'text_ru', 'text_es', 'text_fr', 'text_de',
+                'text_zh', 'text_ja', 'text_tj', 'text_tr', 'text_ar'
+            ],
+            'description': 'Заполните текст на нужных языках. Текст на текущем языке будет выбран автоматически.'
+        }),
+    ]
+
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Переопределяет метод get_form для логирования.
+        """
+        logger.info("MarqueeTextAdmin get_form called")
+        form = super().get_form(request, obj, **kwargs)
+        logger.info(f"Form fields: {list(form.base_fields.keys())}")
+        return form
+
+    def get_preview_text(self, obj):
+        """
+        Возвращает первые 50 символов текста для предпросмотра.
+        """
+        return obj.text[:50] if obj.text else "-"
+    get_preview_text.short_description = "Превью"
+
+    def has_link(self, obj):
+        """
+        Показывает, есть ли ссылка у объекта.
+        """
+        return bool(obj.link_url)
+    has_link.boolean = True
+    has_link.short_description = "Ссылка?"
+
+

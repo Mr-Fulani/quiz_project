@@ -7,6 +7,8 @@ from django.urls import reverse
 from django.utils.translation import get_language, gettext as _
 from tasks.models import TaskStatistics
 
+from blog.models import MarqueeText
+
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
@@ -155,6 +157,8 @@ def unread_messages_count(request):
         return {'unread_messages_count': len(list(count))}
     return {'unread_messages_count': 0}
 
+
+
 def seo_context(request):
     """
     Контекстный процессор для предоставления SEO-тегов для статических страниц.
@@ -213,3 +217,10 @@ def seo_context(request):
 
     logger.info("=== DEBUG: seo_context data prepared: %s", seo_data.keys())
     return seo_data
+
+
+
+def marquee_text(request):
+    return {
+        'marquee_text': MarqueeText.objects.filter(is_active=True).first()
+    }

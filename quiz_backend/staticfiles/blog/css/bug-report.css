@@ -3,7 +3,7 @@ section.bug-report-marquee {
   width: 100%;
   overflow: hidden;
   background: #1e1e1e; /* Тёмный фон, как в редакторе кода */
-  color: #00ff00; /* Неоново-зелёный текст */
+  color: #00ff00; /* Неоново-зелёный текст для обычного текста */
   padding: 12px 0;
   font-family: 'Courier New', 'Consolas', monospace; /* Моноширинный шрифт */
   font-size: 16px; /* Увеличенный размер текста */
@@ -20,7 +20,7 @@ section.bug-report-marquee {
 section.bug-report-marquee .marquee-content {
   display: flex;
   width: max-content;
-  animation: marquee 15s linear infinite;
+  animation: marquee 8s linear infinite; /* Ускорена анимация */
   will-change: transform; /* Оптимизация анимации */
 }
 
@@ -29,6 +29,17 @@ section.bug-report-marquee .marquee-content span {
   white-space: nowrap;
   margin-right: 30px;
   display: inline-block; /* Для корректного отображения */
+  color: #00ff00; /* Зелёный цвет для текста без ссылок */
+}
+
+/* Стили для ссылок */
+section.bug-report-marquee .marquee-content a {
+  white-space: nowrap;
+  margin-right: 30px;
+  display: inline-block; /* Для корректного отображения */
+  color: #00008B !important; /* Тёмно-синий цвет для ссылок */
+  /* Альтернатива: color: #8B0000 !important; /* Красный цвет для ссылок */
+  text-decoration: underline; /* Подчёркивание для ссылок */
 }
 
 /* Анимация бегущей строки */
@@ -58,9 +69,14 @@ section.bug-report-marquee + section.skill {
   }
   section.bug-report-marquee .marquee-content span {
     margin-right: 20px;
+    color: #00ff00; /* Зелёный цвет для текста без ссылок */
+  }
+  section.bug-report-marquee .marquee-content a {
+    margin-right: 20px;
+    color: #00008B !important; /* Тёмно-синий цвет для ссылок */
+    /* Альтернатива: color: #8B0000 !important; /* Красный цвет для ссылок */
   }
   section.bug-report-marquee + section.skill {
     margin-top: 5px; /* Увеличенный отступ для мобильных */
   }
 }
-
