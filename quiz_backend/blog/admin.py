@@ -14,7 +14,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
-    MessageAttachment, MarqueeText
+    MessageAttachment, MarqueeText, CustomURLValidator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -809,13 +809,11 @@ class TestimonialAdmin(admin.ModelAdmin):
 
 
 
-
-
-
 class MarqueeTextForm(forms.ModelForm):
     """
     Форма для управления моделью MarqueeText с поддержкой многоязычных текстов.
     """
+
     class Meta:
         model = MarqueeText
         fields = [
@@ -824,22 +822,88 @@ class MarqueeTextForm(forms.ModelForm):
             'text_zh', 'text_ja', 'text_tj', 'text_tr', 'text_ar',
             'text'
         ]
+        widgets = {
+            'link_url': forms.TextInput(attrs={
+                'placeholder': 'https://example.com или tg://resolve?domain@username',
+                'style': 'width: 100%;'
+            }),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logger.info("MarqueeTextForm init called")
         logger.info(f"Form fields: {list(self.fields.keys())}")
 
+        # Добавляем дополнительную справку для поля URL
+        if 'link_url' in self.fields:
+            self.fields['link_url'].help_text = (
+                "Поддерживаемые форматы:\n"
+                "• HTTP/HTTPS: https://example.com\n"
+                "• Telegram: tg://resolve?domain@username\n"
+                "• Telegram: tg://resolve?domain=@username"
+            )
+
+    def clean_link_url(self):
+        """
+        Дополнительная валидация для поля link_url.
+        """
+        link_url = self.cleaned_data.get('link_url', '').strip()
+
+        if not link_url:
+            return link_url
+
+        logger.info(f"Validating URL: {link_url}")
+
+        try:
+            # Используем валидатор из модели
+            validator = CustomURLValidator()
+            validator(link_url)
+            logger.info(f"URL validation passed: {link_url}")
+            return link_url
+
+        except ValidationError as e:
+            logger.error(f"URL validation failed for {link_url}: {e}")
+            # Для отладки - попробуем более мягкую валидацию
+            if link_url.startswith('tg://'):
+                # Базовая проверка для Telegram URL
+                if len(link_url) > 10 and ('resolve' in link_url or 'msg_url' in link_url or 'join' in link_url):
+                    logger.info(f"Telegram URL passed basic validation: {link_url}")
+                    return link_url
+
+            raise ValidationError(f"Недопустимый URL: {str(e)}")
+
+    def clean(self):
+        """
+        Общая валидация формы.
+        """
+        cleaned_data = super().clean()
+
+        # Проверяем, что хотя бы один текст заполнен
+        text_fields = ['text', 'text_en', 'text_ru', 'text_es', 'text_fr',
+                       'text_de', 'text_zh', 'text_ja', 'text_tj', 'text_tr', 'text_ar']
+
+        if not any(cleaned_data.get(field) for field in text_fields):
+            raise ValidationError('Необходимо заполнить хотя бы одно текстовое поле')
+
+        return cleaned_data
+
     def save(self, commit=True):
         """
         Сохраняет данные формы, обновляя text на основе text_en, если он заполнен.
         """
         instance = super().save(commit=False)
-        instance.text = instance.text_en or instance.text
+
+        # Если основной текст пуст, копируем из английского
+        if not instance.text and instance.text_en:
+            instance.text = instance.text_en
+
         if commit:
             instance.save()
-        logger.info(f"Saved instance: text_en={instance.text_en}, text={instance.text}, order={instance.order}")
+
+        logger.info(f"Saved instance: text_en={instance.text_en}, text={instance.text}, "
+                    f"link_url={instance.link_url}, order={instance.order}")
         return instance
+
 
 @admin.register(MarqueeText)
 class MarqueeTextAdmin(admin.ModelAdmin):
@@ -847,21 +911,30 @@ class MarqueeTextAdmin(admin.ModelAdmin):
     Админ-панель для модели MarqueeText.
     """
     form = MarqueeTextForm
-    list_display = ("__str__", "is_active", "link_url", "order")
+    list_display = ("get_preview_text", "is_active", "has_link", "link_url", "order")
     search_fields = ('text', 'text_en', 'text_ru')
     list_filter = ('is_active',)
     ordering = ('order', 'text')
 
     fieldsets = [
         (None, {
-            'fields': ['is_active', 'link_url', 'link_target_blank', 'order', 'text'],
+            'fields': ['is_active', 'order'],
+        }),
+        ('Ссылка', {
+            'fields': ['link_url', 'link_target_blank'],
+            'description': 'Необязательная ссылка для текста бегущей строки'
+        }),
+        ('Основной текст', {
+            'fields': ['text'],
+            'description': 'Основной текст (используется как запасной вариант)'
         }),
         ('Переводы', {
             'fields': [
                 'text_en', 'text_ru', 'text_es', 'text_fr', 'text_de',
                 'text_zh', 'text_ja', 'text_tj', 'text_tr', 'text_ar'
             ],
-            'description': 'Заполните текст на нужных языках. Текст на текущем языке будет выбран автоматически.'
+            'description': 'Заполните текст на нужных языках. Текст на текущем языке будет выбран автоматически.',
+            'classes': ['collapse']  # Сворачиваем секцию по умолчанию
         }),
     ]
 
@@ -878,14 +951,26 @@ class MarqueeTextAdmin(admin.ModelAdmin):
         """
         Возвращает первые 50 символов текста для предпросмотра.
         """
-        return obj.text[:50] if obj.text else "-"
-    get_preview_text.short_description = "Превью"
+        text = obj.get_text() or obj.text or "-"
+        return text[:50] + "..." if len(text) > 50 else text
+
+    get_preview_text.short_description = "Текст"
 
     def has_link(self, obj):
         """
         Показывает, есть ли ссылка у объекта.
         """
         return bool(obj.link_url)
+
     has_link.boolean = True
     has_link.short_description = "Ссылка?"
+
+    def save_model(self, request, obj, form, change):
+        """
+        Дополнительная обработка при сохранении через админку.
+        """
+        logger.info(f"Admin save_model called for: {obj}")
+        super().save_model(request, obj, form, change)
+
+
 
