@@ -1,9 +1,11 @@
 # blog/models.py
+import logging
 import os
 
 from PIL import Image, ImageOps
 from django.db import models
 from django.urls import reverse
+from django.utils import translation
 from django.utils.text import slugify
 from accounts.models import CustomUser
 from django.contrib.auth import get_user_model
@@ -12,6 +14,8 @@ from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
 
 User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 
 class Category(models.Model):
@@ -524,4 +528,43 @@ class Testimonial(models.Model):
 
     def __str__(self):
         return f'Отзыв от {self.user.username}'
-    
+
+
+
+
+
+
+
+
+class MarqueeText(models.Model):
+    """
+    Модель для бегущей строки с поддержкой нескольких языков.
+    """
+    text = models.CharField(max_length=255, blank=True, help_text="Основной текст (используется как запасной)")
+    text_en = models.CharField(max_length=255, blank=True, verbose_name="Текст (английский)")
+    text_ru = models.CharField(max_length=255, blank=True, verbose_name="Текст (русский)")
+    text_es = models.CharField(max_length=255, blank=True, verbose_name="Текст (испанский)")
+    text_fr = models.CharField(max_length=255, blank=True, verbose_name="Текст (французский)")
+    text_de = models.CharField(max_length=255, blank=True, verbose_name="Текст (немецкий)")
+    text_zh = models.CharField(max_length=255, blank=True, verbose_name="Текст (китайский)")
+    text_ja = models.CharField(max_length=255, blank=True, verbose_name="Текст (японский)")
+    text_tj = models.CharField(max_length=255, blank=True, verbose_name="Текст (таджикский)")
+    text_tr = models.CharField(max_length=255, blank=True, verbose_name="Текст (турецкий)")
+    text_ar = models.CharField(max_length=255, blank=True, verbose_name="Текст (арабский)")
+    is_active = models.BooleanField(default=False, verbose_name="Активно")
+    link_url = models.URLField(max_length=200, blank=True, verbose_name="URL ссылки")
+    link_target_blank = models.BooleanField(default=False, verbose_name="Открывать ссылку в новой вкладке")
+
+    def __str__(self):
+        return self.text or "No text"
+
+    def get_text(self):
+        """
+        Возвращает текст на текущем языке или английский по умолчанию.
+        Если текст для текущего языка не заполнен, возвращает self.text.
+        """
+        lang_code = translation.get_language() or 'en'
+        logger.info(f"get_text called: lang_code={lang_code}")
+        text_field = f"text_{lang_code.split('-')[0]}"  # Учитываем en-US → en
+        text = getattr(self, text_field, '')
+        return text or self.text or ''

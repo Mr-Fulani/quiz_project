@@ -180,13 +180,43 @@
         </ul>
     </section>
 
-    <!-- Бегущая строка под блоком соцсетей -->
-    <section class="bug-report-marquee" data-debug="marquee">
-        <div class="marquee-content">
-            <span>{% trans "Found a bug? Write to us in social networks!" %}</span>
-            <span>{% trans "Found a bug? Write to us in social networks!" %}</span>
-        </div>
-    </section>
+    {% with marquee=marquee_text %}
+        {% if marquee and marquee.is_active %}
+        <section class="bug-report-marquee">
+            <div class="marquee-content">
+                <span>
+                    {% if marquee.link_url %}
+                        <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                            {{ marquee.get_text }}
+                        </a>
+                    {% else %}
+                        {{ marquee.get_text }}
+                    {% endif %}
+                </span>
+                <!-- Дублируем текст для плавной анимации -->
+                <span>
+                    {% if marquee.link_url %}
+                        <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                            {{ marquee.get_text }}
+                        </a>
+                    {% else %}
+                        {{ marquee.get_text }}
+                    {% endif %}
+                </span>
+                <!-- Дублируем текст для плавной анимации -->
+                <span>
+                    {% if marquee.link_url %}
+                        <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                            {{ marquee.get_text }}
+                        </a>
+                    {% else %}
+                        {{ marquee.get_text }}
+                    {% endif %}
+                </span>
+            </div>
+        </section>
+        {% endif %}
+    {% endwith %}
 
     <section class="skill section-gap">
         <h3 class="h3 skills-title">{% trans "Popular Quizzes" %}</h3>
