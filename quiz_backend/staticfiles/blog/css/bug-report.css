@@ -20,7 +20,7 @@ section.bug-report-marquee {
 section.bug-report-marquee .marquee-content {
   display: flex;
   width: max-content;
-  animation: marquee 8s linear infinite; /* Ускорена анимация */
+  animation: marquee calc(var(--marquee-items) * 8s) linear infinite; /* Динамическая длительность */
   will-change: transform; /* Оптимизация анимации */
 }
 
@@ -37,8 +37,7 @@ section.bug-report-marquee .marquee-content a {
   white-space: nowrap;
   margin-right: 30px;
   display: inline-block; /* Для корректного отображения */
-  color: #00008B !important; /* Тёмно-синий цвет для ссылок */
-  /* Альтернатива: color: #8B0000 !important; /* Красный цвет для ссылок */
+  color: #FFDB70 !important; /* Жёлтый цвет для ссылок */
   text-decoration: underline; /* Подчёркивание для ссылок */
 }
 
@@ -73,8 +72,7 @@ section.bug-report-marquee + section.skill {
   }
   section.bug-report-marquee .marquee-content a {
     margin-right: 20px;
-    color: #00008B !important; /* Тёмно-синий цвет для ссылок */
-    /* Альтернатива: color: #8B0000 !important; /* Красный цвет для ссылок */
+    color: #FFDB70 !important; /* Жёлтый цвет для ссылок */
   }
   section.bug-report-marquee + section.skill {
     margin-top: 5px; /* Увеличенный отступ для мобильных */

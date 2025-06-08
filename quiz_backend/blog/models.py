@@ -554,6 +554,12 @@ class MarqueeText(models.Model):
     is_active = models.BooleanField(default=False, verbose_name="Активно")
     link_url = models.URLField(max_length=200, blank=True, verbose_name="URL ссылки")
     link_target_blank = models.BooleanField(default=False, verbose_name="Открывать ссылку в новой вкладке")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок отображения", help_text="Число, определяющее порядок строки (меньше — выше).")
+
+    class Meta:
+        verbose_name = "Бегущая строка"
+        verbose_name_plural = "Бегущие строки"
+        ordering = ['order', 'text']
 
     def __str__(self):
         return self.text or "No text"

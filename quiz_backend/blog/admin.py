@@ -812,8 +812,6 @@ class TestimonialAdmin(admin.ModelAdmin):
 
 
 
-logger = logging.getLogger(__name__)
-
 class MarqueeTextForm(forms.ModelForm):
     """
     Форма для управления моделью MarqueeText с поддержкой многоязычных текстов.
@@ -821,7 +819,7 @@ class MarqueeTextForm(forms.ModelForm):
     class Meta:
         model = MarqueeText
         fields = [
-            'is_active', 'link_url', 'link_target_blank',
+            'is_active', 'link_url', 'link_target_blank', 'order',
             'text_en', 'text_ru', 'text_es', 'text_fr', 'text_de',
             'text_zh', 'text_ja', 'text_tj', 'text_tr', 'text_ar',
             'text'
@@ -840,7 +838,7 @@ class MarqueeTextForm(forms.ModelForm):
         instance.text = instance.text_en or instance.text
         if commit:
             instance.save()
-        logger.info(f"Saved instance: text_en={instance.text_en}, text={instance.text}")
+        logger.info(f"Saved instance: text_en={instance.text_en}, text={instance.text}, order={instance.order}")
         return instance
 
 @admin.register(MarqueeText)
@@ -849,13 +847,14 @@ class MarqueeTextAdmin(admin.ModelAdmin):
     Админ-панель для модели MarqueeText.
     """
     form = MarqueeTextForm
-    list_display = ("__str__", "is_active", "link_url")
+    list_display = ("__str__", "is_active", "link_url", "order")
     search_fields = ('text', 'text_en', 'text_ru')
     list_filter = ('is_active',)
+    ordering = ('order', 'text')
 
     fieldsets = [
         (None, {
-            'fields': ['is_active', 'link_url', 'link_target_blank', 'text'],
+            'fields': ['is_active', 'link_url', 'link_target_blank', 'order', 'text'],
         }),
         ('Переводы', {
             'fields': [
@@ -889,5 +888,4 @@ class MarqueeTextAdmin(admin.ModelAdmin):
         return bool(obj.link_url)
     has_link.boolean = True
     has_link.short_description = "Ссылка?"
-
 
