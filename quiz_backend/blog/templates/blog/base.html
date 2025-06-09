@@ -5,19 +5,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ meta_title }}{% endblock %}</title>
+    <title>{% block title %}{{ meta_title|default:"Default Title" }}{% endblock %}</title>
+    <!-- Исправленные meta теги -->
     <meta name="description"
-          content="{% block meta_description %}{% if meta_description %}{{ meta_description|truncatechars:160 }}{% else %}Welcome to my website — blog, projects and quizzes.{% endif %}{% endblock %}">
+          content="{% block meta_description %}{{ meta_description|truncatechars:160|default:'Welcome to my website — blog, projects and quizzes.' }}{% endblock %}">
     <meta name="keywords"
-          content="{% block meta_keywords %}{% if meta_keywords %}{{ meta_keywords }}{% else %}blog, projects, quizzes, technology{% endif %}{% endblock %}">
-    <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
-
+          content="{% block meta_keywords %}{{ meta_keywords|default:'blog, projects, quizzes, technology' }}{% endblock %}">
     <meta property="og:title"
-          content="{% block og_title %}{% if page_title %}{{ page_title }}{% else %}{{ personal_info.name }} - Portfolio{% endif %}{% endblock %}">
+          content="{% block og_title %}{{ page_title|default:personal_info.name|default:'Portfolio' }}{% endblock %}">
     <meta property="og:description"
-          content="{% block og_description %}{% if meta_description %}{{ meta_description|truncatechars:200 }}{% else %}Explore posts, projects and quizzes on my website.{% endif %}{% endblock %}">
+          content="{% block og_description %}{{ meta_description|truncatechars:200|default:'Explore posts, projects and quizzes on my website.' }}{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
     <meta property="og:image"
-          content="{% block og_image %}{% if og_image_url %}{{ og_image_url }}{% else %}{% static 'blog/favicon/favicon.png' %}{% endif %}{% endblock %}">
+          content="{% block og_image %}{{ og_image_url|default:'/static/blog/favicon/favicon.png' }}{% endblock %}">
     <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
     <meta property="og:type" content="website">
 
@@ -32,12 +32,13 @@
 
     <script type="module" src="{% static 'js/ionicons/ionicons.esm.js' %}"></script>
     <script nomodule src="{% static 'js/ionicons/ionicons.js' %}"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <script src="{% static 'js/font-awesome.min.js' %}"></script>
 
     <script src="https://assets.codepen.io/16327/MorphSVGPlugin3.min.js"></script>
     <script src="https://assets.codepen.io/16327/ScrambleTextPlugin3.min.js"></script>
-    <script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
+    <script src="{% static 'js/gsap.min.js' %}"></script>
 
     {% block extra_head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -50,19 +51,9 @@
         </script>
     {% endif %}
 
-    {% if GOOGLE_ANALYTICS_ID %}
-    <script async src="https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_ID }}"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
 
-        function gtag() {
-            dataLayer.push(arguments);
-        }
 
-        gtag('js', new Date());
-        gtag('config', '{{ GOOGLE_ANALYTICS_ID }}');
-    </script>
-    {% endif %}
+
 </head>
 <body data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
 <main>
@@ -333,6 +324,128 @@
                 hiddenForm.submit();
             }, 150);
         }
+    }
+</script>
+<script>
+    // Исправленный скрипт для сайдбара
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+
+        if (sidebar) {
+            // Функция для проверки мобильного устройства
+            function isMobileOrTablet() {
+                return window.innerWidth <= 1024; // Планшеты и мобильные
+            }
+
+            // Создаем overlay для закрытия сайдбара при клике вне его
+            const overlay = document.createElement('div');
+            overlay.className = 'sidebar-overlay';
+            document.body.appendChild(overlay);
+
+            // Ищем кнопку-указатель для открытия сайдбара (обычно это иконка меню)
+            const sidebarToggle = document.querySelector('.sidebar-toggle, .menu-toggle, .hamburger');
+
+            // Функция для открытия сайдбара
+            function openSidebar() {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+                document.body.classList.add('sidebar-open');
+            }
+
+            // Функция для закрытия сайдбара
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+
+            // Функция для переключения состояния сайдбара
+            function toggleSidebar() {
+                if (sidebar.classList.contains('active')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            }
+
+            // Обработчик клика по кнопке-указателю (если есть)
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (isMobileOrTablet()) {
+                        toggleSidebar();
+                    }
+                });
+            }
+
+            // Обработчик клика по сайдбару на мобильных устройствах
+            sidebar.addEventListener('click', function(e) {
+                if (isMobileOrTablet()) {
+                    // Если кликнули по ссылке - НЕ обрабатываем клик
+                    if (e.target.tagName === 'A' || e.target.closest('a')) {
+                        return; // Выходим из функции, не изменяя состояние сайдбара
+                    }
+
+                    e.stopPropagation();
+
+                    // Переключаем состояние сайдбара при клике на любую область (кроме ссылок)
+                    toggleSidebar();
+                }
+            });
+
+            // Закрытие сайдбара при клике на overlay
+            overlay.addEventListener('click', function() {
+                closeSidebar();
+            });
+
+            // Закрытие сайдбара при нажатии Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+
+            // Закрытие сайдбара при изменении размера окна на десктоп
+            window.addEventListener('resize', function() {
+                if (!isMobileOrTablet() && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+
+            // Альтернативный вариант: если нет специальной кнопки-указателя,
+            // можно добавить обработчик для клика по области сайдбара, которая не является ссылкой
+            // Например, по заголовку или пустой области
+            const sidebarHeader = sidebar.querySelector('.sidebar-header, .profile-info');
+            if (sidebarHeader) {
+                sidebarHeader.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (isMobileOrTablet()) {
+                        toggleSidebar();
+                    }
+                });
+            }
+        }
+    });
+
+    // Ищем кнопку-указатель по атрибуту data-sidebar-btn
+    const sidebarButton = document.querySelector('[data-sidebar-btn]');
+
+    if (sidebarButton) {
+        sidebarButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (isMobileOrTablet()) {
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                } else {
+                    sidebar.classList.add('active');
+                    overlay.classList.add('active');
+                    document.body.classList.add('sidebar-open');
+                }
+            }
+        });
     }
 </script>
 <style>

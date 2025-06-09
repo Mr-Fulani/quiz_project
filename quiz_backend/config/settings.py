@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'tinymce',
     'imagekit',
+    'analytical',
 ]
 
 TINYMCE_DEFAULT_CONFIG = {
@@ -344,4 +345,15 @@ EMAIL_ADMIN = ['fulani.dev@gmail.com']
 
 
 
-GOOGLE_ANALYTICS_ID = 'YOUR_GA_ID'
+
+
+# Google Analytics
+GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_ID', 'UA-XXXXXX-X')  # Замените на ваш ID
+
+# Yandex Metrica
+YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', 'XXXXXXXX')  # Замените на ваш ID
+
+# Отключение аналитики на локальном сервере (опционально)
+ANALYTICAL_INTERNAL_IPS = ['127.0.0.1', 'localhost']
+
+
