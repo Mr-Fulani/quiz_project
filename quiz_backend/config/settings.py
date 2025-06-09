@@ -37,7 +37,7 @@ DEBUG = True
 
 
 
-ALLOWED_HOSTS = ['*']  # Не используйте '*' в продакшене!
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -70,7 +70,6 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'tinymce',
     'imagekit',
-    'analytical',
 ]
 
 TINYMCE_DEFAULT_CONFIG = {
@@ -148,6 +147,7 @@ TEMPLATES = [
                 'accounts.context_processors.user_profile',
                 'blog.context_processors.unread_messages_count',
                 'blog.context_processors.seo_context',
+                'blog.context_processors.analytics_context',
             ],
             'loaders': [
                 'django.template.loaders.filesystem.Loader',
@@ -347,11 +347,9 @@ EMAIL_ADMIN = ['fulani.dev@gmail.com']
 
 
 
-# Google Analytics
-GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_ID', 'UA-XXXXXX-X')  # Замените на ваш ID
-
-# Yandex Metrica
-YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', 'XXXXXXXX')  # Замените на ваш ID
+# Analytics settings
+GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
+YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', '')  # Замените на ваш ID
 
 # Отключение аналитики на локальном сервере (опционально)
 ANALYTICAL_INTERNAL_IPS = ['127.0.0.1', 'localhost']

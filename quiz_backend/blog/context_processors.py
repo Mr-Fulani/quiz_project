@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, Case, When, IntegerField, Value
@@ -223,4 +224,15 @@ def seo_context(request):
 def marquee_text(request):
     return {
         'marquee_text': MarqueeText.objects.filter(is_active=True).first()
+    }
+
+
+
+def analytics_context(request):
+    """
+    Добавляет переменные аналитики в контекст всех шаблонов
+    """
+    return {
+        'GOOGLE_ANALYTICS_PROPERTY_ID': settings.GOOGLE_ANALYTICS_PROPERTY_ID,
+        'YANDEX_METRICA_ID': settings.YANDEX_METRICA_ID,
     }
