@@ -23,7 +23,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, get_language
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import TemplateView, DetailView, ListView
@@ -32,6 +32,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
 from topics.models import Topic, Subtopic
+
 
 from .mixins import BreadcrumbsMixin
 from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText
@@ -489,24 +490,54 @@ class QuizesView(BreadcrumbsMixin, ListView):
 
 
 
+
+
 class QuizDetailView(BreadcrumbsMixin, ListView):
     """
-    Отображает страницу подтем для выбранной темы.
-    Использует шаблон blog/quiz_detail.html, показывает подтемы с опубликованными задачами.
+    Отображает список подтем для выбранной темы, фильтруя по наличию задач с переводом на текущий язык сайта.
+
+    Класс запрашивает подтемы для указанной темы, включая только те, у которых есть опубликованные
+    задачи с переводом на текущий язык сайта (определяемый через get_language()). Используется для
+    рендеринга шаблона blog/quiz_detail.html.
+
+    Attributes:
+        template_name (str): Шаблон для рендеринга ('blog/quiz_detail.html').
+        context_object_name (str): Имя объекта в контексте шаблона ('subtopics').
+        breadcrumbs (list): Список хлебных крошек для навигации.
     """
     template_name = 'blog/quiz_detail.html'
     context_object_name = 'subtopics'
 
     def get_queryset(self):
+        """
+        Возвращает Queryset подтем, у которых есть задачи с переводом на текущий язык сайта.
+
+        Фильтрует подтемы по теме (из URL-параметра quiz_type) и наличию опубликованных задач
+        с переводом на текущий язык сайта.
+
+        Returns:
+            Queryset: Список подтем, удовлетворяющих условиям.
+        """
         logger.info("QuizDetailView is running!")
         topic_name = self.kwargs['quiz_type'].lower()
         logger.info(f"Processing topic: {topic_name}")
         topic = get_object_or_404(Topic, name__iexact=topic_name)
-        subtopics = Subtopic.objects.filter(topic=topic, tasks__published=True).distinct()
-        logger.info(f"QuizDetailView - Topic: {topic_name}, Subtopics: {list(subtopics)}")
+        preferred_language = get_language()  # Изменено: используем get_language()
+        subtopics = Subtopic.objects.filter(
+            topic=topic,
+            tasks__published=True,
+            tasks__translations__language=preferred_language  # Изменено: фильтрация по языку сайта
+        ).distinct()
+        logger.info(f"QuizDetailView - Topic: {topic_name}, Subtopics: {list(subtopics)}, Language: {preferred_language}")  # Изменено: добавлен язык в логи
         return subtopics
 
     def get_breadcrumbs(self):
+        """
+        Возвращает список хлебных крошек для текущей темы.
+
+        Returns:
+            list: Список словарей с названиями и URL для навигации.
+        """
         topic = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
         return [
             {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
@@ -515,22 +546,52 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         ]
 
     def get_context_data(self, **kwargs):
+        """
+        Формирует контекст для шаблона, включая тему и метаданные.
+
+        Добавляет в контекст объект темы, мета-заголовок, описание, ключевые слова и сообщение,
+        если подтемы отсутствуют из-за языковой фильтрации.
+
+        Returns:
+            dict: Контекст для рендеринга шаблона.
+        """
         context = super().get_context_data(**kwargs)
         context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
-        context['meta_title'] = _('%(topic_name)s Quizzes — Programming Languages') % {'topic_name': context['topic'].name}  # Добавлено
-        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': context['topic'].name}  # Добавлено
-        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': context['topic'].name}  # Добавлено
+        context['meta_title'] = _('%(topic_name)s Quizzes — Programming Languages') % {'topic_name': context['topic'].name}
+        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': context['topic'].name}
+        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': context['topic'].name}
+        if not context['subtopics']:
+            context['no_subtopics_message'] = _(
+                'No subtopics with tasks available in your language for %(topic_name)s.'
+            ) % {'topic_name': context['topic'].name}  # Изменено: добавлено сообщение
         logger.info(f"Context topic: {context['topic']}")
         return context
 
 
 
+
+
+
 def quiz_difficulty(request, quiz_type, subtopic):
     """
-    Отображает подтемы и уровни сложности для темы, только если есть задачи.
-    Использует шаблон blog/quiz_difficulty.html.
+    Отображает уровни сложности для подтемы, фильтруя по наличию задач с переводом на текущий язык сайта.
+
+    Функция запрашивает подтему по указанным теме и имени подтемы, затем определяет доступные уровни сложности,
+    основываясь на задачах с переводом на текущий язык сайта (определяемый через get_language()). Используется
+    для рендеринга шаблона blog/quiz_difficulty.html.
+
+    Args:
+        request: HTTP-запрос.
+        quiz_type (str): Название темы (например, 'python').
+        subtopic (str): Подтема (например, 'api-requests').
+
+    Returns:
+        HttpResponse: Рендеринг шаблона blog/quiz_difficulty.html с контекстом.
+
+    Raises:
+        Http404: Если тема или подтема не найдены.
     """
-    logger.info(f"Rendering quiz_difficulty: {quiz_type}/{subtopic}")
+    logger.info(f"quiz_difficulty: {quiz_type}/{subtopic}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
     normalized_subtopic = subtopic.replace('-', '[ -/]')
     subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
@@ -541,32 +602,42 @@ def quiz_difficulty(request, quiz_type, subtopic):
         logger.error(f"Subtopic not found for query: {subtopic_query}")
         raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
 
+    preferred_language = get_language()  # Изменено: используем get_language()
+
+    # Определяем доступные уровни сложности
+    difficulty_names = {
+        'easy': str(_('Easy')),
+        'medium': str(_('Medium')),
+        'hard': str(_('Hard')),
+    }
     difficulties = []
     for diff in ['easy', 'medium', 'hard']:
         if Task.objects.filter(
             topic=topic,
             subtopic=subtopic_obj,
             published=True,
-            difficulty=diff
+            difficulty=diff,
+            translations__language=preferred_language  # Изменено: добавлена фильтрация по языку
         ).exists() or Task.objects.filter(
             topic=topic,
             subtopic__isnull=True,
             published=True,
-            difficulty=diff
+            difficulty=diff,
+            translations__language=preferred_language  # Изменено: добавлена фильтрация по языку
         ).exists():
-            difficulties.append({'value': diff, 'name': diff.title()})
+            difficulties.append({'value': diff, 'name': difficulty_names[diff]})  # Изменено: локализованное имя
+
+    logger.info(f"Found {len(difficulties)} difficulties for subtopic '{subtopic_obj.name}' on language '{preferred_language}'")  # Изменено: добавлено логирование
 
     context = {
         'topic': topic,
         'subtopic': subtopic_obj,
         'difficulties': difficulties,
         'breadcrumbs': [
-            {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
-            {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
+            {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
+            {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
             {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty',
-                                                            kwargs={'quiz_type': topic.name.lower(),
-                                                                    'subtopic': subtopic})},
+            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
         ],
         'breadcrumbs_json_ld': {
             "@context": "https://schema.org",
@@ -579,40 +650,45 @@ def quiz_difficulty(request, quiz_type, subtopic):
                     "item": request.build_absolute_uri(crumb['url'])
                 }
                 for index, crumb in enumerate([
-                    {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
-                    {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
-                    {'name': topic.name,
-                     'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty',
-                                                                    kwargs={'quiz_type': topic.name.lower(),
-                                                                            'subtopic': subtopic})},
+                    {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
+                    {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
+                    {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
                 ])
             ]
         },
-        'meta_title': _('%(subtopic_name)s Quizzes — Programming Languages') % {'subtopic_name': subtopic_obj.name},  # Добавлено
-        'meta_description': _('Test your skills with %(subtopic_name)s quizzes.') % {
-            'subtopic_name': subtopic_obj.name},  # Добавлено
-        'meta_keywords': _('%(subtopic_name)s, quizzes, programming') % {'subtopic_name': subtopic_obj.name},
-        # Добавлено
+        'meta_title': _('%(subtopic_name)s Difficulty Levels — Quiz Project') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
+        'meta_description': _('Choose difficulty levels for %(subtopic_name)s quizzes.') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
+        'meta_keywords': _('%(subtopic_name)s, difficulty levels, quizzes, programming') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
     }
+
     return render(request, 'blog/quiz_difficulty.html', context)
+
+
+
 
 
 
 
 def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
-    Отображает задачи для подтемы и уровня сложности с пагинацией.
-    Использует шаблон blog/quiz_subtopic.html.
+    Отображает задачи для подтемы и уровня сложности с пагинацией, фильтруя по текущему языку сайта.
+
+    Функция запрашивает задачи для указанной темы, подтемы и уровня сложности, включая только те,
+    у которых есть перевод на текущий язык сайта (определяемый через get_language()). Использует
+    пагинацию с 3 задачами на страницу. Если задач нет, отображается сообщение об их отсутствии.
 
     Args:
         request: HTTP-запрос.
-        quiz_type: Название темы (например, 'python').
-        subtopic: Подтема (например, 'api-requests').
-        difficulty: Уровень сложности (например, 'hard').
+        quiz_type (str): Название темы (например, 'python').
+        subtopic (str): Подтема (например, 'api-requests').
+        difficulty (str): Уровень сложности (например, 'hard').
 
     Returns:
-        HttpResponse: Рендеринг шаблона с контекстом.
+        HttpResponse: Рендеринг шаблона blog/quiz_subtopic.html с контекстом.
+
+    Raises:
+        Http404: Если подтема не найдена.
     """
     logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
@@ -625,24 +701,31 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         logger.error(f"Subtopic not found for query: {subtopic_query}")
         raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
 
+    # Определяем текущий язык сайта
+    preferred_language = get_language()  # Изменено: используем get_language() вместо request.user.language
+
+    # Фильтруем задачи по наличию перевода на текущий язык
     tasks = Task.objects.filter(
         topic=topic,
         subtopic=subtopic_obj,
         published=True,
-        difficulty=difficulty.lower()
+        difficulty=difficulty.lower(),
+        translations__language=preferred_language  # Изменено: фильтрация по языку сайта
     ).select_related('subtopic', 'topic').prefetch_related('translations')
 
     if not tasks.exists():
+        # Проверяем задачи без подтемы, но с переводом на текущий язык
         tasks = Task.objects.filter(
             topic=topic,
             subtopic__isnull=True,
             published=True,
-            difficulty=difficulty.lower()
+            difficulty=difficulty.lower(),
+            translations__language=preferred_language  # Изменено: фильтрация по языку сайта
         )
         if tasks.exists():
             logger.warning(f"Found {tasks.count()} tasks with null subtopic")
 
-    logger.info(f"Found {tasks.count()} tasks")
+    logger.info(f"Found {tasks.count()} tasks for language {preferred_language}")  # Изменено: добавлено логирование языка
 
     if request.user.is_authenticated:
         task_stats = TaskStatistics.objects.filter(
@@ -717,20 +800,20 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     }
 
     if not tasks.exists():
-        context['no_tasks_message'] = (
-            f'No tasks for difficulty level "{difficulty_names.get(difficulty.lower(), difficulty)}" '
-            f'in subtopic "{subtopic_obj.name}".'
-        )
+        context['no_tasks_message'] = _(
+            'No tasks available for difficulty level "%(difficulty)s" in subtopic "%(subtopic_name)s".'
+        ) % {
+                                          'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title()),
+                                          'subtopic_name': subtopic_obj.name
+                                      }
 
-    preferred_language = request.user.language if request.user.is_authenticated else 'ru'
     dont_know_option_dict = {
         'ru': str(_('I don\'t know, but I want to learn')),
         'en': str(_('I don\'t know, but I want to learn')),
     }
 
     for task in page_obj:
-        translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first() or \
-                      TaskTranslation.objects.filter(task=task).first()
+        translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first()  # Изменено: фильтрация по языку сайта
         task.translation = translation
         if translation:
             try:
@@ -747,9 +830,12 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         else:
             task.answers = []
             task.correct_answer = None
+            logger.warning(f"No translation found for task {task.id} on language {preferred_language}")  # Изменено: логирование
 
     context['dont_know_option_dict'] = dont_know_option_dict
     return render(request, 'blog/quiz_subtopic.html', context)
+
+
 
 
 

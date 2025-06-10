@@ -1544,3 +1544,6 @@ msgstr "Description"
 # locale/en/LC_MESSAGES/django.po
 msgid "Found a bug? Write to us in social networks!"
 msgstr "Found a bug? Write to us in social networks!"
+
+msgid "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
+msgstr "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
