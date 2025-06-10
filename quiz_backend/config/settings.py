@@ -39,6 +39,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# Настройки django-debug-toolbar
+INTERNAL_IPS = [
+    '127.0.0.1',
+    'localhost',
+]
+
 
 # Application definition
 
@@ -70,6 +76,8 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'tinymce',
     'imagekit',
+    'debug_toolbar',
+    'silk',
 ]
 
 TINYMCE_DEFAULT_CONFIG = {
@@ -125,9 +133,19 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.UpdateLastSeenMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
+
+
+# Настройки django-silk
+SILKY_PYTHON_PROFILER = True
+SILKY_AUTHENTICATION = True
+SILKY_AUTHORISATION = True
+SILKY_PERMISSIONS = lambda user: user.is_superuser
+
 
 TEMPLATES = [
     {

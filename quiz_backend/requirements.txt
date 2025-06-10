@@ -66,3 +66,5 @@ django-admin-autocomplete-filter==0.7.1
 validators==0.35.0
 django-tinymce==4.1.0
 django-imagekit==5.0.0
+django-debug-toolbar==4.4.6
+django-silk==5.2.0

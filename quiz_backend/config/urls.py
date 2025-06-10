@@ -101,5 +101,13 @@ urlpatterns += [
     path('404/', test_404, name='404'),  # Пример ссылки на тестовый 404
 ]
 
+
+
+# Debugging and profiling tools
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    import debug_toolbar
+    urlpatterns += [
+        path('__debug__/', include(debug_toolbar.urls)),  # django-debug-toolbar
+        path('silk/', include('silk.urls', namespace='silk')),  # django-silk
+    ]
+
