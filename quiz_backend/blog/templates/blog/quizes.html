@@ -21,25 +21,33 @@ All static text is localized using {% trans %} for English msgid and translation
   <section class="service">
     <h3 class="h3 service-title">{% trans "Available Topics" %}</h3>
 
-    {% if topics %}
-      <ul class="service-list">
-        {% for topic in topics %}
+    <ul class="service-list">
+      {% if topics %}
+          {% for topic in topics %}
+            <li class="service-item">
+              <a href="{% url 'blog:quiz_detail' quiz_type=topic.name|lower %}" class="service-link">
+                <div class="service-icon-box">
+                  <img src="{{ topic.icon }}" alt="{% blocktrans with topic_name=topic.name %}{{ topic_name }} icon{% endblocktrans %}" width="40">
+                </div>
+                <div class="service-content-box">
+                  <h4 class="h4 service-item-title">{{ topic.name }}</h4>
+                  <p class="service-item-text">{% trans "Test on topic" %} {{ topic.name }}.</p>
+                </div>
+              </a>
+            </li>
+          {% endfor %}
+      {% else %}
           <li class="service-item">
-            <a href="{% url 'blog:quiz_detail' quiz_type=topic.name|lower %}" class="service-link">
               <div class="service-icon-box">
-                <img src="{{ topic.icon }}" alt="{% blocktrans with topic_name=topic.name %}{{ topic_name }} icon{% endblocktrans %}" width="40">
+                  <img src="{% static 'blog/images/icons/default-icon.png' %}" alt="{% trans 'No topics' %}" width="36">
               </div>
               <div class="service-content-box">
-                <h4 class="h4 service-item-title">{{ topic.name }}</h4>
-                <p class="service-item-text">{% trans "Test on topic" %} {{ topic.name }}.</p>
+                  <h4 class="h4 service-item-title">{% trans "No Quizzes Available" %}</h4>
+                  <p class="service-item-text">{% trans "There are no quiz topics available at the moment." %}</p>
               </div>
-            </a>
           </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>{% trans "No topics available" %}</p>
-    {% endif %}
+      {% endif %}
+    </ul>
   </section>
 
   <div class="user-score">

@@ -23,8 +23,8 @@ All static text is localized using {% trans %} for English msgid and translation
     </header>
     <section class="service">
         <h3 class="h3 service-title">{% trans "Available Difficulty Levels" %}</h3>
-        {% if difficulties %}
-            <ul class="service-list">
+        <ul class="service-list">
+            {% if difficulties %}
                 {% for difficulty in difficulties %}
                     <li class="service-item">
                         <a href="{% url 'blog:quiz_subtopic' quiz_type=topic.name|lower subtopic=subtopic.name|slugify difficulty=difficulty.value|lower %}" class="service-link">
@@ -38,10 +38,18 @@ All static text is localized using {% trans %} for English msgid and translation
                         </a>
                     </li>
                 {% endfor %}
-            </ul>
-        {% else %}
-            <p>{% trans "No difficulty levels available" %}</p>
-        {% endif %}
+            {% else %}
+                <li class="service-item">
+                    <div class="service-icon-box">
+                        <img src="{% static 'blog/images/icons/default-icon.png' %}" alt="{% trans 'No difficulty levels' %}" width="40">
+                    </div>
+                    <div class="service-content-box">
+                        <h4 class="h4 service-item-title">{% trans "No Difficulty Levels Available" %}</h4>
+                        <p class="service-item-text">{% trans "No difficulty levels available for this subtopic." %}</p>
+                    </div>
+                </li>
+            {% endif %}
+        </ul>
     </section>
     <div class="user-score">
         {% if user.is_authenticated %}
