@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Quiz Project 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-07 12:07+0000\n"
+"POT-Creation-Date: 2025-06-10 01:02+0000\n"
 "PO-Revision-Date: 2025-06-07 12:15+0300\n"
 "Last-Translator: Mr-Fulani <mr.fulani@example.com>\n"
 "Language-Team: Russian <ru@li.org>\n"
@@ -196,7 +196,7 @@ msgid "Task Count"
 msgstr "Количество задач"
 
 #: accounts/templates/accounts/dashboard.html:242
-#: blog/templates/blog/base.html:83
+#: blog/templates/blog/base.html:109
 msgid "Profile"
 msgstr "Профиль"
 
@@ -250,7 +250,7 @@ msgid "Message sent successfully!"
 msgstr "Сообщение успешно отправлено!"
 
 #: accounts/templates/accounts/login.html:7
-#: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:91
+#: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:117
 msgid "Login"
 msgstr "Войти"
 
@@ -268,7 +268,7 @@ msgstr "Информация"
 
 #: accounts/templates/accounts/profile.html:46
 #: accounts/templates/accounts/statistics.html:11
-#: blog/templates/blog/index.html:158
+#: blog/templates/blog/index.html:159
 msgid "Statistics"
 msgstr "Статистика"
 
@@ -390,7 +390,7 @@ msgstr "Обо мне"
 
 #: accounts/templates/accounts/sidebar.html:28
 #: blog/templates/blog/includes/testimonial_modals.html:29
-#: blog/templates/blog/index.html:150
+#: blog/templates/blog/index.html:151 blog/templates/blog/index.html:265
 msgid "View Profile"
 msgstr "Посмотреть профиль"
 
@@ -426,12 +426,12 @@ msgstr "Связаться со мной"
 
 #: accounts/templates/accounts/statistics.html:59
 #: accounts/templates/accounts/user_list.html:7
-#: blog/templates/blog/base.html:82
+#: blog/templates/blog/base.html:108
 msgid "Users"
 msgstr "Пользователи"
 
 #: accounts/templates/accounts/statistics.html:68
-#: blog/templates/blog/index.html:118
+#: blog/templates/blog/index.html:119
 msgid "Quizzes Completed"
 msgstr "Пройдено квизов"
 
@@ -445,12 +445,14 @@ msgstr "Категории"
 
 #: accounts/templates/accounts/user_list.html:40
 #: accounts/templates/accounts/user_profile.html:50
+#: blog/templates/blog/index.html:116
 msgid "Points"
 msgstr "Очки"
 
 #: accounts/templates/accounts/user_list.html:44
 #: accounts/templates/accounts/user_profile.html:54
-#: blog/templates/blog/base.html:79 blog/templates/blog/quizes.html:18
+#: blog/templates/blog/base.html:106 blog/templates/blog/quizes.html:18
+#: blog/views.py:638 blog/views.py:654 blog/views.py:764 blog/views.py:781
 msgid "Quizzes"
 msgstr "Квизы"
 
@@ -462,23 +464,23 @@ msgstr "Пользователи не найдены."
 
 #: accounts/templates/accounts/user_list.html:57
 #: blog/templates/blog/all_testimonials.html:57
-#: blog/templates/blog/quiz_subtopic.html:83
+#: blog/templates/blog/quiz_subtopic.html:82
 msgid "Previous"
 msgstr "Предыдущая"
 
 #: accounts/templates/accounts/user_list.html:61
-#: blog/templates/blog/quiz_subtopic.html:85
+#: blog/templates/blog/quiz_subtopic.html:84
 msgid "Page"
 msgstr "Страница"
 
 #: accounts/templates/accounts/user_list.html:61
-#: blog/templates/blog/quiz_subtopic.html:85
+#: blog/templates/blog/quiz_subtopic.html:84
 msgid "of"
 msgstr "из"
 
 #: accounts/templates/accounts/user_list.html:65
 #: blog/templates/blog/all_testimonials.html:67
-#: blog/templates/blog/quiz_subtopic.html:87
+#: blog/templates/blog/quiz_subtopic.html:86
 msgid "Next"
 msgstr "Следующая"
 
@@ -542,32 +544,32 @@ msgstr "чтобы просмотреть информацию вашего пр
 msgid "Attempts"
 msgstr "Попытки"
 
-#: blog/admin.py:99
+#: blog/admin.py:104
 msgid "Вложение сообщения"
 msgstr "Вложение сообщения"
 
-#: blog/admin.py:100
+#: blog/admin.py:105
 msgid "Вложения сообщения"
 msgstr "Вложения сообщения"
 
-#: blog/admin.py:179
+#: blog/admin.py:184
 msgid "Не выбрано ни одного элемента для удаления."
 msgstr "Не выбрано ни одного элемента для удаления."
 
-#: blog/admin.py:256
+#: blog/admin.py:261
 msgid "Ошибка при удалении сообщения PK {message_pk_for_log}: {str(e)}"
 msgstr "Ошибка при удалении сообщения PK {message_pk_for_log}: {str(e)}"
 
-#: blog/admin.py:261
+#: blog/admin.py:266
 #, python-brace-format
 msgid "Обнаружен неверный формат ID сообщения: '{item_ids_str}'."
 msgstr "Обнаружен неверный формат ID сообщения: '{item_ids_str}'."
 
-#: blog/admin.py:265
+#: blog/admin.py:270
 msgid "Ошибка при обработке элемента для удаления: {str(e)}"
 msgstr "Ошибка при обработке элемента для удаления: {str(e)}"
 
-#: blog/admin.py:270
+#: blog/admin.py:275
 #, python-brace-format
 msgid ""
 "Успешно удалено {actual_deleted_messages_count} сообщений (ID: "
@@ -576,59 +578,59 @@ msgstr ""
 "Успешно удалено {actual_deleted_messages_count} сообщений (ID: "
 "{deleted_pks_str}) и их вложений."
 
-#: blog/admin.py:276
+#: blog/admin.py:281
 msgid "Сообщения для удаления не найдены или уже были удалены."
 msgstr "Сообщения для удаления не найдены или уже были удалены."
 
-#: blog/admin.py:279
+#: blog/admin.py:284
 msgid "Удалить выбранные сообщения"
 msgstr "Удалить выбранные сообщения"
 
-#: blog/admin.py:301
+#: blog/admin.py:306
 #, python-brace-format
 msgid "Отмечено как прочитанные {updated_count} сообщений."
 msgstr "Отмечено как прочитанные {updated_count} сообщений."
 
-#: blog/admin.py:303
+#: blog/admin.py:308
 msgid "Отметить как прочитанные"
 msgstr "Отметить как прочитанные"
 
-#: blog/admin.py:324
+#: blog/admin.py:329
 #, python-brace-format
 msgid "Отмечено как непрочитанные {updated_count} сообщений."
 msgstr "Отмечено как непрочитанные {updated_count} сообщений."
 
-#: blog/admin.py:326
+#: blog/admin.py:331
 msgid "Отметить как непрочитанные"
 msgstr "Отметить как непрочитанные"
 
-#: blog/admin.py:347
+#: blog/admin.py:352
 #, python-brace-format
 msgid "Помечено как удалённое отправителем для {updated_count} сообщений."
 msgstr "Помечено как удалённое отправителем для {updated_count} сообщений."
 
-#: blog/admin.py:349
+#: blog/admin.py:354
 msgid "Поместить в корзину для отправителя"
 msgstr "Поместить в корзину для отправителя"
 
-#: blog/admin.py:370
+#: blog/admin.py:375
 #, python-brace-format
 msgid "Помечено как удалённое получателем для {updated_count} сообщений."
 msgstr "Помечено как удалённое получателем для {updated_count} сообщений."
 
-#: blog/admin.py:372
+#: blog/admin.py:377
 msgid "Поместить в корзину для получателя"
 msgstr "Поместить в корзину для получателя"
 
-#: blog/context_processors.py:60
+#: blog/context_processors.py:63
 msgid "Not determined"
 msgstr "Не определено"
 
-#: blog/context_processors.py:101
+#: blog/context_processors.py:104
 msgid "Yandex Zen"
 msgstr "Яндекс Дзен"
 
-#: blog/context_processors.py:115
+#: blog/context_processors.py:118
 msgid ""
 "I create high-load web applications, functional websites, powerful Telegram "
 "bots of any complexity, business cards and other digital solutions."
@@ -636,7 +638,7 @@ msgstr ""
 "Я создаю высоконагруженные веб-приложения, функциональные сайты, мощные "
 "Telegram-боты любой сложности, визитки и другие цифровые решения."
 
-#: blog/context_processors.py:116
+#: blog/context_processors.py:119
 msgid ""
 "I use microservice architecture, modular approach, modern databases and "
 "optimized APIs. This allows you to develop flexible, reliable and scalable "
@@ -646,7 +648,7 @@ msgstr ""
 "данных и оптимизированные API. Это позволяет разрабатывать гибкие, надежные "
 "и масштабируемые проекты, легко адаптируемые под любые задачи."
 
-#: blog/context_processors.py:117
+#: blog/context_processors.py:120
 msgid ""
 "This blog is not only a business card, but also a useful resource for "
 "developers. Here I share: educational materials, guides and examples that "
@@ -656,7 +658,7 @@ msgstr ""
 "я делюсь: учебными материалами, руководствами и примерами, которые помогут "
 "улучшить ваши навыки программирования."
 
-#: blog/context_processors.py:118
+#: blog/context_processors.py:121
 msgid ""
 "Whether it's process automation, integration with external services or "
 "creating a unique digital product - I will help bring your idea to life in a "
@@ -666,7 +668,7 @@ msgstr ""
 "создание уникального цифрового продукта — я помогу воплотить вашу идею в "
 "надежное и элегантное решение."
 
-#: blog/context_processors.py:121
+#: blog/context_processors.py:124
 msgid ""
 "Welcome to QuizHub - your resource for programming and quizzes. Here you "
 "will find the latest news, detailed guides and practical tips covering "
@@ -676,7 +678,7 @@ msgstr ""
 "вы найдете последние новости, подробные руководства и практические советы, "
 "охватывающие все — от Python до React."
 
-#: blog/context_processors.py:122
+#: blog/context_processors.py:125
 msgid ""
 "On our site you can learn new technologies, take exciting interactive "
 "quizzes and track your progress with detailed statistics."
@@ -685,7 +687,7 @@ msgstr ""
 "интерактивные квизы и отслеживать свой прогресс с помощью подробной "
 "статистики."
 
-#: blog/context_processors.py:123
+#: blog/context_processors.py:126
 msgid ""
 "We strive to make learning programming accessible, interesting and effective "
 "for everyone, whether you are a beginner or a professional."
@@ -693,7 +695,7 @@ msgstr ""
 "Мы стремимся сделать изучение программирования доступным, интересным и "
 "эффективным для всех, будь вы новичок или профессионал."
 
-#: blog/context_processors.py:124
+#: blog/context_processors.py:127
 msgid ""
 "Start your learning right now - dive into the world of code, take quizzes, "
 "improve your skills and track your growth."
@@ -701,60 +703,67 @@ msgstr ""
 "Начните обучение прямо сейчас — погрузитесь в мир кода, проходите квизы, "
 "улучшайте свои навыки и отслеживайте свой рост."
 
-#: blog/context_processors.py:169 blog/context_processors.py:174
-msgid "Quiz Project"
-msgstr "Квиз Проект"
+#: blog/context_processors.py:174 blog/views.py:169
+msgid "Quiz Python, Go, JavaScript, Java, C#"
+msgstr ""
 
-#: blog/context_processors.py:170 blog/context_processors.py:175
+#: blog/context_processors.py:175 blog/context_processors.py:180
 msgid "Welcome to Quiz Project — blog and portfolio with quizzes and projects."
 msgstr ""
 "Добро пожаловать в Квиз Проект — блог и портфолио с квизами и проектами."
 
-#: blog/context_processors.py:171
+#: blog/context_processors.py:176
 msgid "quiz, blog, portfolio, projects, programming"
 msgstr "квиз, блог, портфолио, проекты, программирование"
 
-#: blog/context_processors.py:182
-msgid "Resume — Quiz Project"
-msgstr "Резюме — Квиз Проект"
+#: blog/context_processors.py:179
+msgid "Quiz Project"
+msgstr "Квиз Проект"
 
-#: blog/context_processors.py:183
+#: blog/context_processors.py:187
+msgid "Resume — web developer"
+msgstr ""
+
+#: blog/context_processors.py:188 blog/views.py:324
 msgid "My professional resume with experience and skills."
 msgstr "Мое профессиональное резюме с опытом и навыками."
 
-#: blog/context_processors.py:184
+#: blog/context_processors.py:189 blog/views.py:325
 msgid "resume, programmer, portfolio"
 msgstr "резюме, программист, портфолио"
 
-#: blog/context_processors.py:193
-msgid "About Me — Quiz Project"
+#: blog/context_processors.py:198
+#, fuzzy
+#| msgid "About Me — Quiz Project"
+msgid "About Me — web developer"
 msgstr "Обо мне — Квиз Проект"
 
-#: blog/context_processors.py:194
+#: blog/context_processors.py:199
 msgid "Learn more about me and my projects."
 msgstr "Узнайте больше обо мне и моих проектах."
 
-#: blog/context_processors.py:195
+#: blog/context_processors.py:200
 msgid "about me, developer, programming"
 msgstr "обо мне, разработчик, программирование"
 
-#: blog/context_processors.py:204
-msgid "Contact — Quiz Project"
+#: blog/context_processors.py:209
+#, fuzzy
+#| msgid "Contact — Quiz Project"
+msgid "Contact — web developer"
 msgstr "Контакты — Квиз Проект"
 
-#: blog/context_processors.py:205
+#: blog/context_processors.py:210
 msgid "Contact me for collaboration or questions."
 msgstr "Свяжитесь со мной для сотрудничества или вопросов."
 
-#: blog/context_processors.py:206
+#: blog/context_processors.py:211
 msgid "contact, programmer, collaboration"
 msgstr "контакты, программист, сотрудничество"
 
-#: blog/mixins.py:27 blog/views.py:152 blog/views.py:177 blog/views.py:221
-#: blog/views.py:273 blog/views.py:314 blog/views.py:332 blog/views.py:352
-#: blog/views.py:373 blog/views.py:465 blog/views.py:496 blog/views.py:545
-#: blog/views.py:561 blog/views.py:640 blog/views.py:657 blog/views.py:1280
-#: blog/views.py:1312
+#: blog/mixins.py:27 blog/views.py:153 blog/views.py:180 blog/views.py:224
+#: blog/views.py:276 blog/views.py:317 blog/views.py:337 blog/views.py:359
+#: blog/views.py:382 blog/views.py:476 blog/views.py:543 blog/views.py:1418
+#: blog/views.py:1450
 msgid "Главная"
 msgstr "Главная"
 
@@ -907,25 +916,19 @@ msgstr "Пока нет отзывов"
 msgid "Modal windows"
 msgstr "Модальные окна"
 
-#: blog/templates/blog/base.html:76 blog/templates/blog/index.html:12
+#: blog/templates/blog/base.html:100 blog/templates/blog/base.html:102
+#: blog/templates/blog/index.html:13 blog/views.py:637 blog/views.py:653
+#: blog/views.py:763 blog/views.py:780
 msgid "Home"
 msgstr "Главная"
 
-#: blog/templates/blog/base.html:78
+#: blog/templates/blog/base.html:105
 msgid "Posts"
 msgstr "Посты"
 
-#: blog/templates/blog/base.html:87
+#: blog/templates/blog/base.html:113
 msgid "Logout"
 msgstr "Выйти"
-
-#: blog/templates/blog/base.html:98
-msgid "English"
-msgstr "Английский"
-
-#: blog/templates/blog/base.html:99
-msgid "Русский"
-msgstr "Русский"
 
 #: blog/templates/blog/blog_page.html:13
 msgid "Blog"
@@ -992,20 +995,19 @@ msgstr "Поделитесь своим опытом..."
 msgid "Submit Feedback"
 msgstr "Отправить отзыв"
 
-#: blog/templates/blog/index.html:52
+#: blog/templates/blog/index.html:53
 msgid "Platform Features"
 msgstr "Особенности платформы"
 
-#: blog/templates/blog/index.html:58
+#: blog/templates/blog/index.html:59
 msgid "Quiz Icon"
 msgstr "Иконка квиза"
 
-
-#: blog/templates/blog/index.html:61
+#: blog/templates/blog/index.html:62
 msgid "Tasks and Quizzes"
 msgstr "Задачи и квизы"
 
-#: blog/templates/blog/index.html:62
+#: blog/templates/blog/index.html:63
 msgid ""
 "Practice solving tasks of varying difficulty, from basics to advanced "
 "programming topics."
@@ -1013,15 +1015,15 @@ msgstr ""
 "Практикуйтесь в решении задач разной сложности, от основ до продвинутых тем "
 "программирования."
 
-#: blog/templates/blog/index.html:69
+#: blog/templates/blog/index.html:70
 msgid "Statistics Icon"
 msgstr "Иконка статистики"
 
-#: blog/templates/blog/index.html:72
+#: blog/templates/blog/index.html:73
 msgid "Statistics and Analytics"
 msgstr "Статистика и аналитика"
 
-#: blog/templates/blog/index.html:73
+#: blog/templates/blog/index.html:74
 msgid ""
 "Detailed statistics on topics, technologies, top-50 user rankings, and "
 "progress charts."
@@ -1029,30 +1031,30 @@ msgstr ""
 "Подробная статистика по темам, технологиям, рейтингам топ-50 пользователей и "
 "графикам прогресса."
 
-#: blog/templates/blog/index.html:80
+#: blog/templates/blog/index.html:81
 msgid "Learning Icon"
 msgstr "Иконка обучения"
 
-#: blog/templates/blog/index.html:83
+#: blog/templates/blog/index.html:84
 msgid "Learning Materials"
 msgstr "Учебные материалы"
 
-#: blog/templates/blog/index.html:84
+#: blog/templates/blog/index.html:85
 msgid ""
 "Useful articles, libraries, frameworks, and learning resources for "
 "developers."
 msgstr ""
 "Полезные статьи, библиотеки, фреймворки и учебные ресурсы для разработчиков."
 
-#: blog/templates/blog/index.html:91
+#: blog/templates/blog/index.html:92
 msgid "Chat Icon"
 msgstr "Иконка чата"
 
-#: blog/templates/blog/index.html:94
+#: blog/templates/blog/index.html:95
 msgid "Communication"
 msgstr "Коммуникация"
 
-#: blog/templates/blog/index.html:95
+#: blog/templates/blog/index.html:96
 msgid ""
 "Discuss tasks, share experiences, and connect with other developers in our "
 "chat."
@@ -1060,95 +1062,153 @@ msgstr ""
 "Обсуждайте задачи, делитесь опытом и общайтесь с другими разработчиками в "
 "нашем чате."
 
-#: blog/templates/blog/index.html:103
+#: blog/templates/blog/index.html:104
 msgid "Top Users"
 msgstr "Топ пользователей"
 
-#: blog/templates/blog/index.html:114
+#: blog/templates/blog/index.html:115
 msgid "Rank"
 msgstr "Ранг"
 
-#: blog/templates/blog/index.html:119
+#: blog/templates/blog/index.html:120
 msgid "Average Score"
 msgstr "Средний балл"
 
-#: blog/templates/blog/index.html:120
+#: blog/templates/blog/index.html:121
 msgid "Favorite Category"
 msgstr "Любимая категория"
 
-#: blog/templates/blog/index.html:128
+#: blog/templates/blog/index.html:129
 msgid "No user data available yet"
 msgstr "Данные пользователей пока недоступны"
 
-#: blog/templates/blog/index.html:164
+#: blog/templates/blog/index.html:165
 msgid "Our Resources"
 msgstr "Наши ресурсы"
 
-#: blog/templates/blog/index.html:183
+#: blog/templates/blog/index.html:216
 msgid "Popular Quizzes"
 msgstr "Популярные квизы"
 
-#: blog/templates/blog/index.html:187
+#: blog/templates/blog/index.html:220
 msgid "Programming Basics"
 msgstr "Основы программирования"
 
-#: blog/templates/blog/index.html:188
+#: blog/templates/blog/index.html:221
 #, python-format
 msgid "80%% popularity"
 msgstr "80%% популярности"
 
-#: blog/templates/blog/index.html:196
+#: blog/templates/blog/index.html:229
 msgid "World History"
 msgstr "Всемирная история"
 
-#: blog/templates/blog/index.html:197
+#: blog/templates/blog/index.html:230
 #, python-format
 msgid "70%% popularity"
 msgstr "70%% популярности"
 
-#: blog/templates/blog/index.html:205
+#: blog/templates/blog/index.html:238
 msgid "Science Quiz"
 msgstr "Научный квиз"
 
-#: blog/templates/blog/index.html:206
+#: blog/templates/blog/index.html:239
 #, python-format
 msgid "90%% popularity"
 msgstr "90%% популярности"
 
-#: blog/templates/blog/index.html:214
+#: blog/templates/blog/index.html:247
 msgid "Literature Masters"
 msgstr "Мастера литературы"
 
-#: blog/templates/blog/index.html:215
+#: blog/templates/blog/index.html:248
 #, python-format
 msgid "50%% popularity"
 msgstr "50%% популярности"
 
-#: blog/templates/blog/index.html:297
+#: blog/templates/blog/index.html:266
+#, fuzzy
+#| msgid "Login to track progress"
+msgid "Login to view profile"
+msgstr "Войдите, чтобы отслеживать прогресс"
+
+#: blog/templates/blog/index.html:267
+#, fuzzy
+#| msgid "No media available"
+msgid "Profile unavailable"
+msgstr "Биография недоступна"
+
+#: blog/templates/blog/index.html:268
+#, fuzzy
+#| msgid "Modal windows"
+msgid "Modal closed"
+msgstr "Модальные окна"
+
+#: blog/templates/blog/index.html:269
+#, fuzzy
+#| msgid "Modal windows"
+msgid "Modal opened"
+msgstr "Модальные окна"
+
+#: blog/templates/blog/index.html:270
+msgid "User not authenticated, preventing modal open"
+msgstr ""
+
+#: blog/templates/blog/index.html:271
+msgid "Add testimonial modal opened"
+msgstr ""
+
+#: blog/templates/blog/index.html:272
+msgid "Add testimonial button not found"
+msgstr ""
+
+#: blog/templates/blog/index.html:273
+msgid "Add testimonial modal not found"
+msgstr ""
+
+#: blog/templates/blog/index.html:274
+msgid "Modal not found for closing"
+msgstr ""
+
+#: blog/templates/blog/index.html:275
+msgid "Thank you! Your testimonial has been successfully added."
+msgstr ""
+
+#: blog/templates/blog/index.html:276
+#, fuzzy
+#| msgid "An error occurred while resetting statistics."
+msgid "An error occurred while submitting the testimonial. Please try again."
+msgstr "Произошла ошибка при сбросе статистики."
+
+#: blog/templates/blog/index.html:277
+msgid "Add testimonial button clicked, isAuthenticated:"
+msgstr ""
+
+#: blog/templates/blog/index.html:350
 msgid "Jan"
 msgstr "Янв"
 
-#: blog/templates/blog/index.html:297
+#: blog/templates/blog/index.html:350
 msgid "Feb"
 msgstr "Фев"
 
-#: blog/templates/blog/index.html:297
+#: blog/templates/blog/index.html:350
 msgid "Mar"
 msgstr "Мар"
 
-#: blog/templates/blog/index.html:297
+#: blog/templates/blog/index.html:350
 msgid "Apr"
 msgstr "Апр"
 
-#: blog/templates/blog/index.html:297
+#: blog/templates/blog/index.html:350
 msgid "May"
 msgstr "Май"
 
-#: blog/templates/blog/index.html:297
+#: blog/templates/blog/index.html:350
 msgid "Jun"
 msgstr "Июн"
 
-#: blog/templates/blog/index.html:299
+#: blog/templates/blog/index.html:352
 msgid "Number of Attempts"
 msgstr "Количество попыток"
 
@@ -1202,38 +1262,54 @@ msgstr "GitHub"
 msgid "Live Demo"
 msgstr "Живая демо"
 
-#: blog/templates/blog/quiz_detail.html:22
+#: blog/templates/blog/quiz_detail.html:18
 msgid "Available Subtopics"
 msgstr "Доступные подтемы"
 
-#: blog/templates/blog/quiz_detail.html:30
+#: blog/templates/blog/quiz_detail.html:26
 #, python-format
 msgid "%(subtopic_name)s icon"
 msgstr "Иконка %(subtopic_name)s"
 
-#: blog/templates/blog/quiz_detail.html:34
+#: blog/templates/blog/quiz_detail.html:30
 msgid "Test on subtopic"
 msgstr "Тест по подтеме"
 
+#: blog/templates/blog/quiz_detail.html:38
+#, fuzzy
+#| msgid "Test on subtopic"
+msgid "No subtopics"
+msgstr "Тест по подтеме"
+
 #: blog/templates/blog/quiz_detail.html:41
-msgid "No subtopics available for"
+#, fuzzy
+#| msgid "No topics available"
+msgid "No Subtopics Available"
+msgstr "Нет доступных тем"
+
+#: blog/templates/blog/quiz_detail.html:42
+#, fuzzy, python-format
+#| msgid "No subtopics available for"
+msgid "No subtopics available for %(topic_name)s."
 msgstr "Нет доступных подтем для"
 
-#: blog/templates/blog/quiz_detail.html:47
-#: blog/templates/blog/quiz_difficulty.html:48
-#: blog/templates/blog/quizes.html:47
+#: blog/templates/blog/quiz_detail.html:51
+#: blog/templates/blog/quiz_difficulty.html:56
+#: blog/templates/blog/quizes.html:55
 msgid "View my progress"
 msgstr "Посмотреть мой прогресс"
 
-#: blog/templates/blog/quiz_detail.html:49
-#: blog/templates/blog/quiz_difficulty.html:50
-#: blog/templates/blog/quizes.html:49
+#: blog/templates/blog/quiz_detail.html:53
+#: blog/templates/blog/quiz_difficulty.html:58
+#: blog/templates/blog/quizes.html:57
 msgid "Log in to track progress"
 msgstr "Войдите, чтобы отслеживать прогресс"
 
 #: blog/templates/blog/quiz_difficulty.html:22
-msgid "Difficulty"
-msgstr "Сложность"
+#, fuzzy
+#| msgid "Available Difficulty Levels"
+msgid "Difficulty Levels"
+msgstr "Доступные уровни сложности"
 
 #: blog/templates/blog/quiz_difficulty.html:25
 msgid "Available Difficulty Levels"
@@ -1248,43 +1324,57 @@ msgstr "Иконка %(difficulty_name)s"
 msgid "Tasks of level"
 msgstr "Задачи уровня"
 
-#: blog/templates/blog/quiz_difficulty.html:43
-msgid "No difficulty levels available"
+#: blog/templates/blog/quiz_difficulty.html:44
+#, fuzzy
+#| msgid "No difficulty levels available"
+msgid "No difficulty levels"
 msgstr "Нет доступных уровней сложности"
 
-#: blog/templates/blog/quiz_subtopic.html:29
+#: blog/templates/blog/quiz_difficulty.html:47
+#, fuzzy
+#| msgid "No difficulty levels available"
+msgid "No Difficulty Levels Available"
+msgstr "Нет доступных уровней сложности"
+
+#: blog/templates/blog/quiz_difficulty.html:48
+#, fuzzy
+#| msgid "No difficulty levels available"
+msgid "No difficulty levels available for this subtopic."
+msgstr "Нет доступных уровней сложности"
+
+#: blog/templates/blog/quiz_subtopic.html:28
 msgid "Image is missing."
 msgstr "Изображение отсутствует."
 
-#: blog/templates/blog/quiz_subtopic.html:48
+#: blog/templates/blog/quiz_subtopic.html:47
 msgid "Translation is missing. Please contact the administrator."
 msgstr "Перевод отсутствует. Пожалуйста, свяжитесь с администратором."
 
-#: blog/templates/blog/quiz_subtopic.html:62
+#: blog/templates/blog/quiz_subtopic.html:61
 msgid "Are you sure you want to retake the test? Statistics for the subtopic"
 msgstr "Вы уверены, что хотите пересдать тест? Статистика по подтеме"
 
-#: blog/templates/blog/quiz_subtopic.html:62
+#: blog/templates/blog/quiz_subtopic.html:61
 msgid "will be reset."
 msgstr "будет сброшена."
 
-#: blog/templates/blog/quiz_subtopic.html:63
+#: blog/templates/blog/quiz_subtopic.html:62
 msgid "Retake Test"
 msgstr "Пересдать тест"
 
-#: blog/templates/blog/quiz_subtopic.html:74
+#: blog/templates/blog/quiz_subtopic.html:73
 msgid "View My Progress"
 msgstr "Посмотреть мой прогресс"
 
-#: blog/templates/blog/quiz_subtopic.html:76
+#: blog/templates/blog/quiz_subtopic.html:75
 msgid "Login to track progress"
 msgstr "Войдите, чтобы отслеживать прогресс"
 
-#: blog/templates/blog/quiz_subtopic.html:191
+#: blog/templates/blog/quiz_subtopic.html:190
 msgid "Error resetting statistics."
 msgstr "Ошибка при сбросе статистики."
 
-#: blog/templates/blog/quiz_subtopic.html:195
+#: blog/templates/blog/quiz_subtopic.html:194
 msgid "An error occurred while resetting statistics."
 msgstr "Произошла ошибка при сбросе статистики."
 
@@ -1301,64 +1391,169 @@ msgstr "Иконка %(topic_name)s"
 msgid "Test on topic"
 msgstr "Тест по теме"
 
-#: blog/templates/blog/quizes.html:41
-msgid "No topics available"
+#: blog/templates/blog/quizes.html:42
+#, fuzzy
+#| msgid "No topics available"
+msgid "No topics"
 msgstr "Нет доступных тем"
 
-#: blog/views.py:178
+#: blog/templates/blog/quizes.html:45
+#, fuzzy
+#| msgid "No media available"
+msgid "No Quizzes Available"
+msgstr "Биография недоступна"
+
+#: blog/templates/blog/quizes.html:46
+msgid "There are no quiz topics available at the moment."
+msgstr ""
+
+#: blog/views.py:181
 msgid "Обо мне"
 msgstr "Обо мне"
 
-#: blog/views.py:222 blog/views.py:353
+#: blog/views.py:225 blog/views.py:360
 msgid "Блог"
 msgstr "Блог"
 
-#: blog/views.py:274 blog/views.py:333
+#: blog/views.py:277 blog/views.py:338
 msgid "Портфолио"
 msgstr "Портфолио"
 
-#: blog/views.py:315
+#: blog/views.py:318
 msgid "Резюме"
 msgstr "Резюме"
 
-#: blog/views.py:374
+#: blog/views.py:345
+msgid "Explore my portfolio of projects."
+msgstr ""
+
+#: blog/views.py:346
+#, fuzzy
+#| msgid "quiz, blog, portfolio, projects, programming"
+msgid "portfolio, projects, programming"
+msgstr "квиз, блог, портфолио, проекты, программирование"
+
+#: blog/views.py:370
+msgid "Explore articles and posts on programming and quizzes."
+msgstr ""
+
+#: blog/views.py:371
+msgid "blog, programming, quizzes"
+msgstr ""
+
+#: blog/views.py:383
 msgid "Контакты"
 msgstr "Контакты"
 
-#: blog/views.py:466 blog/views.py:497 blog/views.py:546 blog/views.py:562
-#: blog/views.py:641 blog/views.py:658
+#: blog/views.py:388
+msgid "Get in touch with us."
+msgstr ""
+
+#: blog/views.py:389
+#, fuzzy
+#| msgid "Contact — Quiz Project"
+msgid "contact, feedback, quiz project"
+msgstr "Контакты — Квиз Проект"
+
+#: blog/views.py:477 blog/views.py:544
 msgid "Квизы"
 msgstr "Квизы"
 
-#: blog/views.py:629
-msgid "Легкий"
-msgstr "Легкий"
+#: blog/views.py:485
+msgid "Test your knowledge with our interactive quizzes."
+msgstr ""
 
-#: blog/views.py:630
-msgid "Средний"
-msgstr "Средний"
+#: blog/views.py:486
+#, fuzzy
+#| msgid "quiz, blog, portfolio, projects, programming"
+msgid "quizzes, tests, programming"
+msgstr "квиз, блог, портфолио, проекты, программирование"
 
-#: blog/views.py:631
-msgid "Сложный"
-msgstr "Сложный"
+#: blog/views.py:560
+#, python-format
+msgid "%(topic_name)s Quizzes — Programming Languages"
+msgstr ""
 
-#: blog/views.py:675
-msgid "Я не знаю, но хочу узнать"
-msgstr "Я не знаю, но хочу узнать"
+#: blog/views.py:561
+#, python-format
+msgid "Explore quizzes on %(topic_name)s."
+msgstr ""
 
-#: blog/views.py:676
+#: blog/views.py:562
+#, fuzzy, python-format
+#| msgid "%(topic_name)s icon"
+msgid "%(topic_name)s, quizzes, programming"
+msgstr "Иконка %(topic_name)s"
+
+#: blog/views.py:565
+#, python-format
+msgid "No subtopics with tasks available in your language for %(topic_name)s."
+msgstr ""
+
+#: blog/views.py:609 blog/views.py:752
+msgid "Easy"
+msgstr ""
+
+#: blog/views.py:610 blog/views.py:753
+msgid "Medium"
+msgstr ""
+
+#: blog/views.py:611 blog/views.py:754
+msgid "Hard"
+msgstr ""
+
+#: blog/views.py:660
+#, python-format
+msgid "%(subtopic_name)s Difficulty Levels — Quiz Project"
+msgstr ""
+
+#: blog/views.py:661
+#, python-format
+msgid "Choose difficulty levels for %(subtopic_name)s quizzes."
+msgstr ""
+
+#: blog/views.py:662
+#, python-format
+msgid "%(subtopic_name)s, difficulty levels, quizzes, programming"
+msgstr ""
+
+#: blog/views.py:788
+#, python-format
+msgid "%(subtopic_name)s %(difficulty)s Quizzes — Quiz Project"
+msgstr ""
+
+#: blog/views.py:792
+#, python-format
+msgid "Try %(subtopic_name)s %(difficulty)s quizzes to test your skills."
+msgstr ""
+
+#: blog/views.py:796
+#, python-format
+msgid "%(subtopic_name)s, %(difficulty)s, quizzes, programming"
+msgstr ""
+
+#: blog/views.py:804
+#, python-format
+msgid ""
+"No tasks available for difficulty level \"%(difficulty)s\" in subtopic "
+"\"%(subtopic_name)s\"."
+msgstr ""
+"Нет задач для уровня сложности \"%(difficulty)s\" в подтеме "
+"\"%(subtopic_name)s\"."
+
+#: blog/views.py:811 blog/views.py:812
 msgid "I don't know, but I want to learn"
 msgstr "Я не знаю, но хочу узнать"
 
-#: blog/views.py:1281
+#: blog/views.py:1419
 msgid "Техническое обслуживание"
 msgstr "Техническое обслуживание"
 
-#: blog/views.py:1313
+#: blog/views.py:1451
 msgid "Отзывы"
 msgstr "Отзывы"
 
-#: blog/views.py:1321
+#: blog/views.py:1459
 msgid "Все отзывы"
 msgstr "Все отзывы"
 
@@ -1560,11 +1755,30 @@ msgstr "Отрывок"
 msgid "Description"
 msgstr "Описание"
 
+#~ msgid "Resume — Quiz Project"
+#~ msgstr "Резюме — Квиз Проект"
+
+#~ msgid "English"
+#~ msgstr "Английский"
+
+#~ msgid "Русский"
+#~ msgstr "Русский"
+
+#~ msgid "Difficulty"
+#~ msgstr "Сложность"
+
+#~ msgid "Легкий"
+#~ msgstr "Легкий"
+
+#~ msgid "Средний"
+#~ msgstr "Средний"
+
+#~ msgid "Сложный"
+#~ msgstr "Сложный"
+
+#~ msgid "Я не знаю, но хочу узнать"
+#~ msgstr "Я не знаю, но хочу узнать"
 
 # locale/ru/LC_MESSAGES/django.po
-msgid "Found a bug? Write to us in social networks!"
-msgstr "Нашли баг? Напишите нам в социальных сетях!"
-
-
-msgid "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
-msgstr "Нет задач для уровня сложности \"%(difficulty)s\" в подтеме \"%(subtopic_name)s\"."
+#~ msgid "Found a bug? Write to us in social networks!"
+#~ msgstr "Нашли баг? Напишите нам в социальных сетях!"
