@@ -145,11 +145,36 @@ input, textarea {
 html {
     font-family: var(--ff-poppins);
     color: var(--white2); /* Светлый текст по умолчанию */
+    /* Предотвращение горизонтального скролла и проблем с viewport */
+    overflow-x: hidden;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
     html {
         color: var(--white1); /* Белый для мобильных */
+        /* Дополнительная защита от zoom при фокусе на input */
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        /* Принудительная фиксация размера viewport */
+        height: 100%;
+        max-width: 100vw;
+    }
+    
+    /* Дополнительная защита body на мобильных */
+    body {
+        min-height: 100vh;
+        max-width: 100vw;
+        -webkit-text-size-adjust: 100%;
+        /* Принудительно отключаем возможность изменения масштаба */
+        touch-action: manipulation;
+    }
+    
+    /* Фиксация размера для main контейнера */
+    main {
+        max-width: 100vw;
+        min-height: 100vh;
     }
 }
 
@@ -157,6 +182,10 @@ html {
 /* 74: Задаём фон для <body> документа */
 body {
     background: var(--smoky-black);
+    /* Предотвращение горизонтального скролла */
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
 }
 
 /* 76: Основной контейнер main: отступы и минимальная ширина */
@@ -1706,6 +1735,32 @@ article.active {
     border: 1px solid var(--jet); /* 1087: Рамка поля ввода с цветом, заданным переменной --jet */
     border-radius: 14px; /* 1088: Скругление углов поля – 14px */
     outline: none; /* 1089: Убираем стандартное выделение (outline) при фокусе */
+    transform-origin: center; /* Точка трансформации по центру */
+    transition: border-color var(--transition1); /* Плавный переход только для border-color */
+}
+
+/* Предотвращение автоматического zoom на мобильных устройствах */
+@media (max-width: 768px) {
+    .form-input {
+        font-size: 16px !important; /* Минимум 16px для предотвращения zoom в мобильных браузерах */
+        -webkit-text-size-adjust: 100%;
+        -webkit-appearance: none;
+        transform: none !important; /* Запрещаем любые трансформации */
+    }
+    
+    /* Дополнительная защита для всех input и textarea */
+    input, textarea, select {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100%;
+        -webkit-appearance: none;
+        zoom: 1;
+    }
+    
+    /* Принудительно устанавливаем размер для placeholder */
+    .form-input::placeholder {
+        font-size: 16px !important;
+        -webkit-text-size-adjust: 100%;
+    }
 }
 
 /* 1091: Стили для плейсхолдера внутри .form-input */
@@ -1730,6 +1785,16 @@ textarea.form-input {
     max-height: 200px; /* 1103: Максимальная высота – 200px, чтобы избежать чрезмерного роста поля */
     resize: vertical; /* 1104: Разрешено изменение размера только по вертикали */
     margin-bottom: 25px; /* 1105: Отступ снизу – 25px для разделения от следующих элементов */
+}
+
+/* Дополнительные стили для предотвращения zoom на мобильных */
+@media (max-width: 768px) {
+    textarea.form-input {
+        font-size: 16px !important; /* Минимум 16px для textarea на мобильных */
+        -webkit-text-size-adjust: 100%;
+        -webkit-appearance: none;
+        transform: none !important;
+    }
 }
 
 /* 1107: Скрытие стандартного элемента изменения размера для textarea в Webkit-браузерах */
