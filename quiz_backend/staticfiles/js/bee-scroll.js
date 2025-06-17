@@ -18,16 +18,28 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   premultipliedAlpha: false
 });
-renderer.setSize(600, 600);
+// Устанавливаем размер в зависимости от устройства
+const isMobileDevice = window.innerWidth <= 580;
+const initialSize = isMobileDevice ? 400 : 600;
+renderer.setSize(initialSize, initialSize);
 renderer.setClearColor(0x000000, 0); // Прозрачный фон
+// Сразу устанавливаем прозрачность canvas
+renderer.domElement.style.background = 'transparent';
+renderer.domElement.style.border = 'none';
+renderer.domElement.style.boxShadow = 'none';
 const container = document.getElementById("bee-container");
 if (container) {
-  // Скрываем контейнер до загрузки модели
+  // Скрываем контейнер до загрузки модели и обеспечиваем прозрачность
   container.style.opacity = '0';
+  container.style.background = 'transparent';
+  container.style.border = 'none';
+  container.style.boxShadow = 'none';
   container.appendChild(renderer.domElement);
   // Убеждаемся, что canvas тоже прозрачный
   renderer.domElement.style.background = 'transparent';
-  console.log("Renderer appended to #bee-container");
+  renderer.domElement.style.border = 'none';
+  renderer.domElement.style.boxShadow = 'none';
+  console.log("Renderer appended to #bee-container, size:", initialSize + "px");
 } else {
   console.error("Container #bee-container not found");
 }
@@ -120,6 +132,7 @@ function setInitialBeePosition() {
 loader.load(
   "/static/assets/bee.glb",
   function (gltf) {
+    console.log("✅ Bee model loaded successfully");
     bee = gltf.scene;
     scene.add(bee);
     
@@ -129,38 +142,49 @@ loader.load(
     const currentDeviceType = isMobile ? 'mobile' : 'desktop';
     
     if (savedDeviceType && savedDeviceType !== currentDeviceType) {
-      // Устройство изменилось, очищаем сохраненную позицию
+      // Устройство изменилось, очищаем сохраненную позицию и масштаб
       localStorage.removeItem('beePosition');
-      console.log("Device type changed, cleared saved position");
+      console.log("Device type changed from", savedDeviceType, "to", currentDeviceType, "- cleared saved data");
     }
     localStorage.setItem('beeDeviceType', currentDeviceType);
     
     // Устанавливаем масштаб в зависимости от ширины экрана
-    const scale = isMobile ? 0.2 : 0.3; // Меньше на мобильных
+    // Можно увеличить эти значения, если пчела все еще кажется маленькой
+    const scale = isMobile ? 0.4 : 0.3; // Увеличили размер на мобильных еще больше
     bee.scale.set(scale, scale, scale);
-    console.log("Bee scale set to:", scale, "isMobile:", isMobile);
+    console.log("✅ Bee scale set to:", scale, "isMobile:", isMobile);
     
     // Устанавливаем позицию на основе текущего скролла или сохраненной позиции
     setInitialBeePosition();
+    console.log("✅ Bee position set");
     
     // Сохраняем начальную позицию и масштаб
     setTimeout(() => {
       saveBeePosition();
     }, 100);
     
-    console.log("Bee model added to scene");
+    console.log("✅ Bee model added to scene");
 
-    mixer = new THREE.AnimationMixer(bee);
+        mixer = new THREE.AnimationMixer(bee);
     mixer.clipAction(gltf.animations[0]).play();
-    console.log("Bee animation started");
+    console.log("✅ Bee animation started");
 
     // Плавно показываем контейнер после загрузки модели
     setTimeout(() => {
       if (container) {
-        container.style.transition = 'opacity 0.5s ease-in-out';
+        console.log("🔍 Showing bee container...");
+        console.log("🔍 Container current opacity:", container.style.opacity);
+        // Убеждаемся в прозрачности фона перед показом
+        container.style.background = 'transparent';
+        renderer.domElement.style.background = 'transparent';
+        // Показываем контейнер
         container.style.opacity = '1';
+        console.log("✅ Bee container shown, opacity set to 1");
+        console.log("🔍 Container new opacity:", container.style.opacity);
+      } else {
+        console.error("❌ Container not found when trying to show bee");
       }
-    }, 100);
+    }, 200); // Уменьшил задержку
 
     // Настройка анимации скролла
     setupScrollAnimation();
@@ -174,8 +198,16 @@ loader.load(
 );
 
 // Анимация и рендер
+let animationStarted = false;
 const animate = () => {
   requestAnimationFrame(animate);
+  
+  // Первый кадр - убеждаемся в прозрачности
+  if (!animationStarted) {
+    renderer.domElement.style.background = 'transparent';
+    animationStarted = true;
+  }
+  
   if (mixer) mixer.update(0.02);
   renderer.render(scene, camera);
 };
@@ -185,13 +217,18 @@ animate();
 window.addEventListener("resize", () => {
   const container = document.getElementById("bee-container");
   if (container) {
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    // Обновляем позицию контейнера
+    // Обновляем позицию и размер контейнера
     updateContainerPosition();
+    
+    // Обновляем размер рендерера
+    const isMobile = window.innerWidth <= 580;
+    const size = isMobile ? 400 : 600;
+    renderer.setSize(size, size);
+    camera.aspect = 1; // Всегда квадратный
+    camera.updateProjectionMatrix();
+    
     // НЕ изменяем масштаб пчелы при resize, оставляем как было установлено изначально
-    console.log("Container resized, but bee scale preserved");
+    console.log("Container resized, size:", size + "px", "bee scale preserved");
   }
 });
 
@@ -200,12 +237,9 @@ function updateContainerPosition() {
   const isMobile = window.innerWidth <= 580;
   const container = document.getElementById("bee-container");
   if (container) {
+    // Обновляем только позицию, размеры остаются в CSS
     gsap.set(container, {
-      position: "fixed",
-      top: "60%",
-      left: isMobile ? "30%" : "70%", // Ещё ближе к центру на мобильных
-      transform: "translate(-50%, -50%)",
-      zIndex: 999 // z-index для отображения поверх контента
+      left: isMobile ? "30%" : "70%" // Ближе к центру на мобильных
     });
     console.log("Container position updated:", "isMobile:", isMobile, "left:", isMobile ? "30%" : "70%");
   }
