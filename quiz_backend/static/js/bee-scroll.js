@@ -13,12 +13,24 @@ camera.position.z = 5;
 camera.lookAt(0, 0, 0);
 
 // Рендерер
-const renderer = new THREE.WebGLRenderer({ alpha: true });
-renderer.setSize(600, 600);
+const renderer = new THREE.WebGLRenderer({ 
+  alpha: true,
+  antialias: true,
+  premultipliedAlpha: false
+});
+// Устанавливаем размер в зависимости от устройства
+const isMobileDevice = window.innerWidth <= 580;
+const initialSize = isMobileDevice ? 400 : 600;
+renderer.setSize(initialSize, initialSize);
+renderer.setClearColor(0x000000, 0); // Прозрачный фон
 const container = document.getElementById("bee-container");
 if (container) {
+  // Скрываем контейнер до загрузки модели
+  container.style.opacity = '0';
   container.appendChild(renderer.domElement);
-  console.log("Renderer appended to #bee-container");
+  // Убеждаемся, что canvas тоже прозрачный
+  renderer.domElement.style.background = 'transparent';
+  console.log("Renderer appended to #bee-container, size:", initialSize + "px");
 } else {
   console.error("Container #bee-container not found");
 }
@@ -34,23 +46,124 @@ scene.add(topLight);
 let bee;
 let mixer;
 const loader = new GLTFLoader();
+
+// Функция для сохранения позиции и масштаба пчелы
+function saveBeePosition() {
+  if (bee) {
+    const position = {
+      position: { x: bee.position.x, y: bee.position.y, z: bee.position.z },
+      rotation: { x: bee.rotation.x, y: bee.rotation.y, z: bee.rotation.z },
+      scale: { x: bee.scale.x, y: bee.scale.y, z: bee.scale.z }
+    };
+    localStorage.setItem('beePosition', JSON.stringify(position));
+  }
+}
+
+// Функция для восстановления позиции пчелы
+function restoreBeePosition() {
+  const savedPosition = localStorage.getItem('beePosition');
+  if (savedPosition && bee) {
+    try {
+      const position = JSON.parse(savedPosition);
+      bee.position.set(position.position.x, position.position.y, position.position.z);
+      bee.rotation.set(position.rotation.x, position.rotation.y, position.rotation.z);
+      console.log("Bee position restored from localStorage");
+    } catch (e) {
+      console.error("Error restoring bee position:", e);
+    }
+  }
+}
+
+// Функция для установки начальной позиции на основе текущего скролла
+function setInitialBeePosition() {
+  if (!bee) return;
+  
+  // Сначала пытаемся восстановить сохраненную позицию
+  const savedPosition = localStorage.getItem('beePosition');
+  if (savedPosition) {
+    try {
+      const position = JSON.parse(savedPosition);
+      bee.position.set(position.position.x, position.position.y, position.position.z);
+      bee.rotation.set(position.rotation.x, position.rotation.y, position.rotation.z);
+      // Восстанавливаем масштаб, если он был сохранен
+      if (position.scale) {
+        bee.scale.set(position.scale.x, position.scale.y, position.scale.z);
+      }
+      console.log("Bee position and scale restored from localStorage:", position);
+      return; // Выходим, если восстановили сохраненную позицию
+    } catch (e) {
+      console.error("Error restoring bee position:", e);
+    }
+  }
+  
+  // Если нет сохраненной позиции, устанавливаем на основе скролла
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const scrollPercent = documentHeight > 0 ? Math.min((scrollTop / documentHeight) * 100, 100) : 0;
+  
+  // Находим подходящую позицию на основе процента скролла
+  const scrollPositions = getScrollPositions();
+  let targetPosition = scrollPositions[0];
+  for (let i = 0; i < scrollPositions.length; i++) {
+    if (scrollPercent >= scrollPositions[i].scrollPercent) {
+      targetPosition = scrollPositions[i];
+    } else {
+      break;
+    }
+  }
+  
+  // Устанавливаем позицию без анимации
+  const direction = scrollTop > 0 ? "down" : "up";
+  const coords = targetPosition[direction];
+  bee.position.set(coords.position.x, coords.position.y, coords.position.z);
+  bee.rotation.set(coords.rotation.x, coords.rotation.y, coords.rotation.z);
+  console.log("Bee position set based on scroll:", coords, "scrollPercent:", scrollPercent);
+}
+
 loader.load(
   "/static/assets/bee.glb",
   function (gltf) {
     bee = gltf.scene;
     scene.add(bee);
-    // Устанавливаем масштаб в зависимости от ширины экрана
+    
+    // Проверяем, изменился ли тип устройства и очищаем сохраненные данные если нужно
     const isMobile = window.innerWidth <= 580;
-    const scale = isMobile ? 0.2 : 0.3; // Меньше на мобильных
+    const savedDeviceType = localStorage.getItem('beeDeviceType');
+    const currentDeviceType = isMobile ? 'mobile' : 'desktop';
+    
+    if (savedDeviceType && savedDeviceType !== currentDeviceType) {
+      // Устройство изменилось, очищаем сохраненную позицию
+      localStorage.removeItem('beePosition');
+      console.log("Device type changed, cleared saved position");
+    }
+    localStorage.setItem('beeDeviceType', currentDeviceType);
+    
+    // Устанавливаем масштаб в зависимости от ширины экрана
+    const scale = isMobile ? 0.35 : 0.3; // Увеличили размер на мобильных
     bee.scale.set(scale, scale, scale);
     console.log("Bee scale set to:", scale, "isMobile:", isMobile);
-    bee.position.set(0, -0.5, 0); // Центр контейнера
-    bee.rotation.set(0, 1.5, 0);
+    
+    // Устанавливаем позицию на основе текущего скролла или сохраненной позиции
+    setInitialBeePosition();
+    
+    // Сохраняем начальную позицию и масштаб
+    setTimeout(() => {
+      saveBeePosition();
+    }, 100);
+    
     console.log("Bee model added to scene");
 
     mixer = new THREE.AnimationMixer(bee);
     mixer.clipAction(gltf.animations[0]).play();
     console.log("Bee animation started");
+
+    // Плавно показываем контейнер после загрузки модели
+    setTimeout(() => {
+      if (container) {
+        container.style.transition = 'opacity 0.5s ease-in-out';
+        container.style.opacity = '1';
+      }
+    }, 100);
 
     // Настройка анимации скролла
     setupScrollAnimation();
@@ -75,44 +188,42 @@ animate();
 window.addEventListener("resize", () => {
   const container = document.getElementById("bee-container");
   if (container) {
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    // Обновляем позицию контейнера
+    // Обновляем позицию и размер контейнера
     updateContainerPosition();
-    // Обновляем масштаб пчелы
+    
+    // Обновляем размер рендерера
     const isMobile = window.innerWidth <= 580;
-    const scale = isMobile ? 0.2 : 0.3;
-    if (bee) {
-      bee.scale.set(scale, scale, scale);
-      console.log("Bee scale updated on resize:", scale, "isMobile:", isMobile);
-    }
+    const size = isMobile ? 400 : 600;
+    renderer.setSize(size, size);
+    camera.aspect = 1; // Всегда квадратный
+    camera.updateProjectionMatrix();
+    
+    // НЕ изменяем масштаб пчелы при resize, оставляем как было установлено изначально
+    console.log("Container resized, size:", size + "px", "bee scale preserved");
   }
 });
 
 // Функция для динамического позиционирования контейнера
 function updateContainerPosition() {
   const isMobile = window.innerWidth <= 580;
-  gsap.set("#bee-container", {
-    position: "fixed",
-    top: "60%",
-    left: isMobile ? "30%" : "70%", // Ещё ближе к центру на мобильных
-    transform: "translate(-50%, -50%)",
-    zIndex: 1000 // Добавляем z-index для отображения поверх контента
-  });
-  console.log("Container position updated:", "isMobile:", isMobile, "left:", isMobile ? "30%" : "70%");
+  const container = document.getElementById("bee-container");
+  if (container) {
+    gsap.set(container, {
+      position: "fixed",
+      top: "60%",
+      left: isMobile ? "30%" : "70%", // Ближе к центру на мобильных
+      transform: "translate(-50%, -50%)",
+      zIndex: 999, // z-index для отображения поверх контента
+      width: isMobile ? "400px" : "600px",
+      height: isMobile ? "400px" : "600px"
+    });
+    console.log("Container updated:", "isMobile:", isMobile, "size:", isMobile ? "400px" : "600px");
+  }
 }
 
-// Универсальная анимация скролла для всех страниц
-function setupScrollAnimation() {
-  console.log("Setting up universal scroll animation");
-  gsap.registerPlugin(ScrollTrigger);
-
-  // Начальная позиция контейнера
-  updateContainerPosition();
-
-  // Универсальные позиции для разных этапов скролла
-  const scrollPositions = [
+// Функция для получения позиций скролла
+function getScrollPositions() {
+  return [
     {
       scrollPercent: 0,
       down: { position: { x: 0, y: -0.5, z: 0 }, rotation: { x: 0, y: 1.5, z: 0 } },
@@ -139,6 +250,15 @@ function setupScrollAnimation() {
       up: { position: { x: 0.3, y: -0.4, z: 0 }, rotation: { x: 0, y: -0.5, z: 0.02 } }
     }
   ];
+}
+
+// Универсальная анимация скролла для всех страниц
+function setupScrollAnimation() {
+  console.log("Setting up universal scroll animation");
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Начальная позиция контейнера
+  updateContainerPosition();
 
   // Отслеживание направления скролла
   let lastScrollTop = 0;
@@ -156,6 +276,7 @@ function setupScrollAnimation() {
     lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
 
     // Находим подходящую позицию на основе процента скролла
+    const scrollPositions = getScrollPositions();
     let targetPosition = scrollPositions[0];
     for (let i = 0; i < scrollPositions.length; i++) {
       if (scrollPercent >= scrollPositions[i].scrollPercent) {
@@ -185,9 +306,16 @@ function setupScrollAnimation() {
   };
 
   // Запуск движения при скролле
+  let scrollTimeout;
   window.addEventListener("scroll", () => {
     if (bee) {
       modelMove();
+      
+      // Сохраняем позицию через небольшую задержку после окончания скролла
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        saveBeePosition();
+      }, 100);
     }
   });
 
