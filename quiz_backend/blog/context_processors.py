@@ -16,58 +16,68 @@ User = get_user_model()
 
 def personal_info(request):
     """
-    Контекстный процессор для предоставления данных личного кабинета и топа пользователей.
+    Контекстный процессор для предоставления данных личного кабинета.
+
+    Отключает top_users_data для страниц квизов, чтобы минимизировать SQL-запросы.
+    Логирует путь запроса и состояние top_users_data для отладки.
+
+    Args:
+        request: HTTP-запрос.
+
+    Returns:
+        dict: Контекст с данными личного кабинета.
     """
     logger.info("=== DEBUG: personal_info processor called for request: %s", request.path)
 
     try:
-        # Получаем топ пользователей (3 карточки по total_score)
-        top_users = User.objects.annotate(
-            tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
-            total_score=Sum(
-                Case(
-                    When(statistics__successful=True, then=Case(
-                        When(statistics__task__difficulty='easy', then=Value(1)),
-                        When(statistics__task__difficulty='medium', then=Value(2)),
-                        When(statistics__task__difficulty='hard', then=Value(3)),
-                        default=Value(1),
-                        output_field=IntegerField(),
-                    )),
-                    default=0,
-                    output_field=IntegerField(),
-                )
-            )
-        ).order_by('-total_score')[:3]
-
-        # Формируем данные
+        # Проверяем, нужна ли top_users_data
         top_users_data = []
-        for i, user in enumerate(top_users, 1):
-            try:
-                favorite_topic = TaskStatistics.objects.filter(
-                    user=user,
-                    successful=True
-                ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
+        path = request.path.lower()
+        if not (path.startswith('/en/quiz/') or path.startswith('/ru/quiz/') or path.startswith('/en/quizes/') or path.startswith('/ru/quizes/')):
+            logger.info("=== DEBUG: top_users_data enabled for path: %s", path)
+            top_users = User.objects.annotate(
+                tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
+                total_score=Sum(
+                    Case(
+                        When(statistics__successful=True, then=Case(
+                            When(statistics__task__difficulty='easy', then=Value(1)),
+                            When(statistics__task__difficulty='medium', then=Value(2)),
+                            When(statistics__task__difficulty='hard', then=Value(3)),
+                            default=Value(1),
+                            output_field=IntegerField(),
+                        )),
+                        default=0,
+                        output_field=IntegerField(),
+                    )
+                )
+            ).order_by('-total_score')[:3]
 
-                # Используем get_avatar_url из CustomUser
-                avatar_url = user.get_avatar_url
+            for i, user in enumerate(top_users, 1):
+                try:
+                    favorite_topic = TaskStatistics.objects.filter(
+                        user=user,
+                        successful=True
+                    ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
 
-                user_data = {
-                    'rank': i,
-                    'username': user.username,
-                    'name': f"{user.first_name} {user.last_name}".strip() or user.username,
-                    'display_name': f"{user.first_name} {user.last_name}".strip() or user.username,
-                    'avatar': avatar_url,
-                    'quizzes_count': user.tasks_completed,
-                    'avg_score': 0,
-                    'total_score': (user.total_score or 0) * 100,
-                    'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
-                }
-                top_users_data.append(user_data)
-            except Exception as e:
-                logger.error(f"Error processing user {user.username}: {e}")
-                continue
+                    avatar_url = user.get_avatar_url
+                    user_data = {
+                        'rank': i,
+                        'username': user.username,
+                        'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                        'display_name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                        'avatar': avatar_url,
+                        'quizzes_count': user.tasks_completed,
+                        'avg_score': 0,
+                        'total_score': (user.total_score or 0) * 100,
+                        'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
+                    }
+                    top_users_data.append(user_data)
+                except Exception as e:
+                    logger.error(f"Error processing user {user.username}: {e}")
+                    continue
+        else:
+            logger.info("=== DEBUG: top_users_data disabled for path: %s", path)
 
-        # Локализованные тексты
         personal_info_data = {
             'name': 'Anvar Sh.',
             'title': 'Web Developer',

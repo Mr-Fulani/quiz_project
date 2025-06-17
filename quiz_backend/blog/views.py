@@ -15,8 +15,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
-from django.db import transaction
-from django.db.models import Count, F, Q, Max
+from django.db import transaction, connection
+from django.db.models import Count, F, Q, Max, Prefetch
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse, FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
@@ -494,49 +494,57 @@ class QuizesView(BreadcrumbsMixin, ListView):
 
 class QuizDetailView(BreadcrumbsMixin, ListView):
     """
-    Отображает список подтем для выбранной темы, фильтруя по наличию задач с переводом на текущий язык сайта.
+    Отображает список подтем для выбранной темы.
 
-    Класс запрашивает подтемы для указанной темы, включая только те, у которых есть опубликованные
-    задачи с переводом на текущий язык сайта (определяемый через get_language()). Используется для
-    рендеринга шаблона blog/quiz_detail.html.
+    Фильтрует подтемы по теме и наличию опубликованных задач с переводом на текущий язык.
 
     Attributes:
-        template_name (str): Шаблон для рендеринга ('blog/quiz_detail.html').
-        context_object_name (str): Имя объекта в контексте шаблона ('subtopics').
-        breadcrumbs (list): Список хлебных крошек для навигации.
+        template_name (str): Шаблон ('blog/quiz_detail.html').
+        context_object_name (str): Имя объекта в контексте ('subtopics').
     """
     template_name = 'blog/quiz_detail.html'
     context_object_name = 'subtopics'
 
     def get_queryset(self):
         """
-        Возвращает Queryset подтем, у которых есть задачи с переводом на текущий язык сайта.
+        Возвращает подтемы с задачами на текущем языке.
 
-        Фильтрует подтемы по теме (из URL-параметра quiz_type) и наличию опубликованных задач
-        с переводом на текущий язык сайта.
+        Использует select_related и prefetch_related для минимизации запросов.
 
         Returns:
-            Queryset: Список подтем, удовлетворяющих условиям.
+            Queryset: Список подтем.
         """
-        logger.info("QuizDetailView is running!")
         topic_name = self.kwargs['quiz_type'].lower()
-        logger.info(f"Processing topic: {topic_name}")
         topic = get_object_or_404(Topic, name__iexact=topic_name)
-        preferred_language = get_language()  # Изменено: используем get_language()
+        preferred_language = get_language()
         subtopics = Subtopic.objects.filter(
             topic=topic,
             tasks__published=True,
-            tasks__translations__language=preferred_language  # Изменено: фильтрация по языку сайта
+            tasks__translations__language=preferred_language
+        ).select_related('topic').prefetch_related(
+            Prefetch(
+                'tasks',
+                queryset=Task.objects.filter(
+                    published=True,
+                    translations__language=preferred_language
+                ).select_related('topic', 'subtopic').prefetch_related(
+                    Prefetch(
+                        'translations',
+                        queryset=TaskTranslation.objects.filter(language=preferred_language)
+                    )
+                )
+            )
         ).distinct()
-        logger.info(f"QuizDetailView - Topic: {topic_name}, Subtopics: {list(subtopics)}, Language: {preferred_language}")  # Изменено: добавлен язык в логи
+        logger.info(f"QuizDetailView - Topic: {topic_name}, Subtopics: {subtopics.count()}, Language: {preferred_language}")
+        logger.info(f"Total queries: {len(connection.queries)}")
         return subtopics
 
     def get_breadcrumbs(self):
         """
-        Возвращает список хлебных крошек для текущей темы.
+        Возвращает хлебные крошки.
 
         Returns:
-            list: Список словарей с названиями и URL для навигации.
+            list: Список словарей с названиями и URL.
         """
         topic = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
         return [
@@ -547,26 +555,21 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Формирует контекст для шаблона, включая тему и метаданные.
-
-        Добавляет в контекст объект темы, мета-заголовок, описание, ключевые слова и сообщение,
-        если подтемы отсутствуют из-за языковой фильтрации.
+        Формирует контекст для шаблона.
 
         Returns:
-            dict: Контекст для рендеринга шаблона.
+            dict: Контекст с темой и метаданными.
         """
         context = super().get_context_data(**kwargs)
         context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
-        context['meta_title'] = _('%(topic_name)s Quizzes — Programming Languages') % {'topic_name': context['topic'].name}
+        context['meta_title'] = _('%(topic_name)s Quizzes') % {'topic_name': context['topic'].name}
         context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': context['topic'].name}
         context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': context['topic'].name}
         if not context['subtopics']:
             context['no_subtopics_message'] = _(
                 'No subtopics with tasks available in your language for %(topic_name)s.'
-            ) % {'topic_name': context['topic'].name}  # Изменено: добавлено сообщение
-        logger.info(f"Context topic: {context['topic']}")
+            ) % {'topic_name': context['topic'].name}
         return context
-
 
 
 
@@ -672,81 +675,117 @@ def quiz_difficulty(request, quiz_type, subtopic):
 
 def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
-    Отображает задачи для подтемы и уровня сложности с пагинацией, фильтруя по текущему языку сайта.
+    Отображает задачи для подтемы и уровня сложности с пагинацией.
 
-    Функция запрашивает задачи для указанной темы, подтемы и уровня сложности, включая только те,
-    у которых есть перевод на текущий язык сайта (определяемый через get_language()). Использует
-    пагинацию с 3 задачами на страницу. Если задач нет, отображается сообщение об их отсутствии.
+    Запрашивает задачи с переводом на текущий язык и статистикой для авторизованного пользователя.
+    Использует select_related и prefetch_related для оптимизации запросов. Обрабатывает варианты
+    ответов, добавляя опцию "I don't know" и перемешивая их.
 
     Args:
         request: HTTP-запрос.
-        quiz_type (str): Название темы (например, 'python').
-        subtopic (str): Подтема (например, 'api-requests').
-        difficulty (str): Уровень сложности (например, 'hard').
+        quiz_type (str): Название темы (например, 'golang').
+        subtopic (str): Подтема (например, 'interfaces').
+        difficulty (str): Уровень сложности ('easy', 'medium', 'hard').
 
     Returns:
-        HttpResponse: Рендеринг шаблона blog/quiz_subtopic.html с контекстом.
-
-    Raises:
-        Http404: Если подтема не найдена.
+        HttpResponse: Рендеринг шаблона 'blog/quiz_subtopic.html'.
     """
-    logger.info(f"quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
+    logger.info(f"Starting quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
     normalized_subtopic = subtopic.replace('-', '[ -/]')
-    subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
-    logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
-    try:
-        subtopic_obj = Subtopic.objects.get(subtopic_query)
-    except Subtopic.DoesNotExist:
-        logger.error(f"Subtopic not found for query: {subtopic_query}")
-        raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
+    subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iregex=normalized_subtopic)
+    preferred_language = get_language()
 
-    # Определяем текущий язык сайта
-    preferred_language = get_language()  # Изменено: используем get_language() вместо request.user.language
-
-    # Фильтруем задачи по наличию перевода на текущий язык
-    tasks = Task.objects.filter(
-        topic=topic,
-        subtopic=subtopic_obj,
-        published=True,
-        difficulty=difficulty.lower(),
-        translations__language=preferred_language  # Изменено: фильтрация по языку сайта
-    ).select_related('subtopic', 'topic').prefetch_related('translations')
-
-    if not tasks.exists():
-        # Проверяем задачи без подтемы, но с переводом на текущий язык
-        tasks = Task.objects.filter(
+    # Оптимизированный запрос задач
+    tasks = (
+        Task.objects.filter(
             topic=topic,
-            subtopic__isnull=True,
+            subtopic=subtopic_obj,
             published=True,
             difficulty=difficulty.lower(),
-            translations__language=preferred_language  # Изменено: фильтрация по языку сайта
+            translations__language=preferred_language
         )
-        if tasks.exists():
-            logger.warning(f"Found {tasks.count()} tasks with null subtopic")
+        .select_related('topic', 'subtopic')
+        .prefetch_related(
+            Prefetch(
+                'translations',
+                queryset=TaskTranslation.objects.filter(language=preferred_language)
+            ),
+            Prefetch(
+                'statistics',
+                queryset=TaskStatistics.objects.filter(
+                    user=request.user
+                ).select_related('user') if request.user.is_authenticated else TaskStatistics.objects.none()
+            )
+        )
+    )
 
-    logger.info(f"Found {tasks.count()} tasks for language {preferred_language}")  # Изменено: добавлено логирование языка
+    if not tasks.exists():
+        tasks = (
+            Task.objects.filter(
+                topic=topic,
+                subtopic__isnull=True,
+                published=True,
+                difficulty=difficulty.lower(),
+                translations__language=preferred_language
+            )
+            .select_related('topic')
+            .prefetch_related(
+                Prefetch(
+                    'translations',
+                    queryset=TaskTranslation.objects.filter(language=preferred_language)
+                ),
+                Prefetch(
+                    'statistics',
+                    queryset=TaskStatistics.objects.filter(
+                        user=request.user
+                    ).select_related('user') if request.user.is_authenticated else TaskStatistics.objects.none()
+                )
+            )
+        )
 
+    # Пагинация
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(tasks, 3)
+    page_obj = paginator.get_page(page_number)
+
+    # Словарь для опции "I don't know"
+    dont_know_option_dict = {
+        'ru': str(_('I don\'t know, but I want to learn')),
+        'en': str(_('I don\'t know, but I want to learn')),
+    }
+
+    # Обработка переводов и ответов
+    for task in page_obj:
+        translation = task.translations.first()  # Перевод уже загружен через prefetch_related
+        task.translation = translation
+        if translation:
+            try:
+                answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error parsing answers for task {task.id}: {e}")
+                answers = []
+            options = answers[:]
+            random.shuffle(options)
+            dont_know_option = dont_know_option_dict.get(translation.language, dont_know_option_dict['ru'])
+            options.append(dont_know_option)
+            task.answers = options
+            task.correct_answer = translation.correct_answer
+        else:
+            task.answers = []
+            task.correct_answer = None
+            logger.warning(f"No translation found for task {task.id} on language {preferred_language}")
+
+    # Формируем словарь статистики
     if request.user.is_authenticated:
         task_stats = TaskStatistics.objects.filter(
             user=request.user,
-            task__in=tasks
+            task__id__in=[task.id for task in page_obj]
         ).values('task_id', 'selected_answer')
         task_stats_dict = {stat['task_id']: stat['selected_answer'] for stat in task_stats}
-        for task in tasks:
+        for task in page_obj:
             task.is_solved = task.id in task_stats_dict
             task.selected_answer = task_stats_dict.get(task.id)
-
-    session_key = f"quiz_page_{quiz_type}_{subtopic}_{difficulty}"
-    if request.user.is_authenticated:
-        if 'page' in request.GET:
-            request.session[session_key] = request.GET.get('page')
-        page_number = request.session.get(session_key, request.GET.get('page', 1))
-    else:
-        page_number = request.GET.get('page', 1)
-
-    paginator = Paginator(tasks, 3)
-    page_obj = paginator.get_page(page_number)
 
     difficulty_names = {
         'easy': str(_('Easy')),
@@ -766,75 +805,13 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
             {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
             {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
         ],
-        'breadcrumbs_json_ld': {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-                {
-                    "@type": "ListItem",
-                    "position": index + 1,
-                    "name": crumb['name'],
-                    "item": request.build_absolute_uri(crumb['url'])
-                }
-                for index, crumb in enumerate([
-                    {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
-                    {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
-                    {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
-                    {'name': difficulty_names.get(difficulty.lower(), difficulty.title()), 'url': reverse_lazy('blog:quiz_subtopic', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic, 'difficulty': difficulty})},
-                ])
-            ]
-        },
-        'meta_title': _('%(subtopic_name)s %(difficulty)s Quizzes — Quiz Project') % {
-            'subtopic_name': subtopic_obj.name,
-            'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title())
-        },
-        'meta_description': _('Try %(subtopic_name)s %(difficulty)s quizzes to test your skills.') % {
-            'subtopic_name': subtopic_obj.name,
-            'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title())
-        },
-        'meta_keywords': _('%(subtopic_name)s, %(difficulty)s, quizzes, programming') % {
-            'subtopic_name': subtopic_obj.name,
-            'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title())
-        },
+        'meta_title': _('%(subtopic_name)s — %(difficulty)s Quizzes') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
+        'meta_description': _('Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level.') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
+        'meta_keywords': _('%(subtopic_name)s, quizzes, %(difficulty)s, programming') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
     }
 
-    if not tasks.exists():
-        context['no_tasks_message'] = _(
-            'No tasks available for difficulty level "%(difficulty)s" in subtopic "%(subtopic_name)s".'
-        ) % {
-                                          'difficulty': difficulty_names.get(difficulty.lower(), difficulty.title()),
-                                          'subtopic_name': subtopic_obj.name
-                                      }
-
-    dont_know_option_dict = {
-        'ru': str(_('I don\'t know, but I want to learn')),
-        'en': str(_('I don\'t know, but I want to learn')),
-    }
-
-    for task in page_obj:
-        translation = TaskTranslation.objects.filter(task=task, language=preferred_language).first()  # Изменено: фильтрация по языку сайта
-        task.translation = translation
-        if translation:
-            try:
-                answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
-            except json.JSONDecodeError as e:
-                logger.error(f"Error parsing answers for task {task.id}: {e}")
-                answers = []
-            options = answers[:]
-            random.shuffle(options)
-            dont_know_option = dont_know_option_dict.get(translation.language, dont_know_option_dict['ru'])
-            options.append(dont_know_option)
-            task.answers = options
-            task.correct_answer = translation.correct_answer
-        else:
-            task.answers = []
-            task.correct_answer = None
-            logger.warning(f"No translation found for task {task.id} on language {preferred_language}")  # Изменено: логирование
-
-    context['dont_know_option_dict'] = dont_know_option_dict
+    logger.info(f"Total queries in quiz_subtopic: {len(connection.queries)}")
     return render(request, 'blog/quiz_subtopic.html', context)
-
 
 
 
@@ -1306,104 +1283,113 @@ def custom_404(request, exception=None):
 @login_required
 def statistics_view(request):
     """
-    Отображает страницу статистики по квизам и пользователям.
+    Отображает статистику по квизам.
 
-    Использует шаблон accounts/statistics.html, предоставляет общую статистику и,
-    если пользователь авторизован и указан параметр view=personal, личную статистику.
+    Показывает общую или личную статистику (view=personal).
+
+    Args:
+        request: HTTP-запрос.
+
+    Returns:
+        HttpResponse: Рендеринг 'accounts/statistics.html'.
     """
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)
 
-    # Общая статистика (для view != personal)
+    # Общая статистика
+    stats = TaskStatistics.objects.aggregate(
+        total_quizzes=Count('id'),
+        successful_quizzes=Count('id', filter=Q(successful=True))
+    )
+    total_users = CustomUser.objects.count()
+    total_quizzes_completed = stats['total_quizzes']
+    avg_score = (
+        (stats['successful_quizzes'] / total_quizzes_completed * 100.0)
+        if total_quizzes_completed else 0
+    )
+
+    # Графики: активность
+    activity_stats = TaskStatistics.objects.filter(
+        last_attempt_date__date__gte=start_date,
+        last_attempt_date__date__lte=end_date
+    ).values('last_attempt_date__date').annotate(count=Count('id')).order_by('last_attempt_date__date')
+    activity_dates = [(start_date + timedelta(n)).strftime('%d.%m') for n in range(31)]
+    activity_data = [0] * 31
+    for stat in activity_stats:
+        day_index = (stat['last_attempt_date__date'] - start_date.date()).days
+        if 0 <= day_index < 31:
+            activity_data[day_index] = stat['count']
+
+    # Графики: категории
+    categories_stats = Topic.objects.annotate(task_count=Count('tasks')).values('name', 'task_count')
+    categories_labels = [stat['name'] for stat in categories_stats] or ['No data']
+    categories_data = [stat['task_count'] for stat in categories_stats] or [0]
+
+    # Графики: попытки
+    scores_distribution = [
+        TaskStatistics.objects.filter(attempts__gt=i, attempts__lte=i + 5).count()
+        for i in range(0, 25, 5)
+    ]
+
     context = {
-        'total_users': CustomUser.objects.count(),
-        'total_quizzes_completed': TaskStatistics.objects.count(),
-        'avg_score': (TaskStatistics.objects.filter(successful=True).count() * 100.0 /
-                      TaskStatistics.objects.count()) if TaskStatistics.objects.exists() else 0,
-        'activity_dates': json.dumps([
-            (start_date + timedelta(n)).strftime('%d.%m')
-            for n in range(31)
-        ]),
-        'activity_data': json.dumps([
-            TaskStatistics.objects.filter(
-                last_attempt_date__date=(start_date + timedelta(n))
-            ).count()
-            for n in range(31)
-        ]),
-        'categories_labels': json.dumps(
-            list(
-                Topic.objects.annotate(task_count=Count('tasks'))
-                .values_list('name', flat=True)
-            )
-        ),
-        'categories_data': json.dumps(
-            list(
-                Topic.objects.annotate(task_count=Count('tasks'))
-                .values_list('task_count', flat=True)
-            )
-        ),
-        'scores_distribution': json.dumps([
-            TaskStatistics.objects.filter(attempts__gt=i, attempts__lte=i + 5).count()
-            for i in range(0, 25, 5)
-        ]),
+        'total_users': total_users,
+        'total_quizzes_completed': total_quizzes_completed,
+        'avg_score': avg_score,
+        'activity_dates': json.dumps(activity_dates),
+        'activity_data': json.dumps(activity_data),
+        'categories_labels': json.dumps(categories_labels),
+        'categories_data': json.dumps(categories_data),
+        'scores_distribution': json.dumps(scores_distribution),
     }
 
-    # Личная статистика (для view=personal)
-    if request.user.is_authenticated and request.GET.get('view') == "personal":
-        user = request.user
+    # Личная статистика
+    if request.user.is_authenticated:
+        user_stats = TaskStatistics.objects.filter(user=request.user).aggregate(
+            total_attempts=Count('id'),
+            successful_attempts=Count('id', filter=Q(successful=True)),
+            rating=Count('id')
+        )
+        user_stats['success_rate'] = (
+            round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
+            if user_stats['total_attempts'] > 0 else 0
+        )
+        user_stats['solved_tasks'] = user_stats['successful_attempts']
 
-        # Базовая статистика пользователя
-        stats = {
-            'total_attempts': TaskStatistics.objects.filter(user=user).count(),
-            'successful_attempts': TaskStatistics.objects.filter(user=user, successful=True).count(),
-        }
-        stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1) if stats['total_attempts'] > 0 else 0
-
-        # Activity Chart
-        activity_stats = TaskStatistics.objects.filter(
-            user=user,
+        # Личная активность
+        user_activity_stats = TaskStatistics.objects.filter(
+            user=request.user,
             last_attempt_date__isnull=False
-        ).annotate(
-            date=TruncDate('last_attempt_date')
-        ).values('date').annotate(
-            count=Count('id')
-        ).order_by('date')
-        activity_dates = json.dumps([stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data'])
-        activity_data = json.dumps([stat['count'] for stat in activity_stats] or [0])
+        ).values('last_attempt_date__date').annotate(count=Count('id')).order_by('last_attempt_date__date')
+        user_activity_dates = [stat['last_attempt_date__date'].strftime('%d.%m') for stat in user_activity_stats] or ['No data']
+        user_activity_data = [stat['count'] for stat in user_activity_stats] or [0]
 
-        # Categories Chart
-        category_stats = TaskStatistics.objects.filter(user=user).values(
+        # Личные категории
+        user_category_stats = TaskStatistics.objects.filter(user=request.user).values(
             'task__topic__name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')[:5]
-        categories_labels = json.dumps([stat['task__topic__name'] if stat['task__topic__name'] else 'Unknown' for stat in category_stats] or ['No data'])
-        categories_data = json.dumps([stat['count'] for stat in category_stats] or [0])
+        ).annotate(count=Count('id')).order_by('-count')[:5]
+        user_categories_labels = [stat['task__topic__name'] or 'Unknown' for stat in user_category_stats] or ['No data']
+        user_categories_data = [stat['count'] for stat in user_category_stats] or [0]
 
-        # Attempts Chart (ранее Scores Chart)
-        attempts = TaskStatistics.objects.filter(user=user).values('attempts').annotate(count=Count('id'))
-        attempts_distribution = [0] * 5  # Диапазоны: 1-5, 6-10, 11-15, 16-20, 21-25
-        for attempt in attempts:
-            attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
-            if attempts_value > 0:
-                bin_index = min((attempts_value - 1) // 5, 4)
-                attempts_distribution[bin_index] += attempt['count']
-            elif attempts_value == 0:
-                attempts_distribution[0] += attempt['count']
-        scores_distribution = json.dumps(attempts_distribution)
+        # Личные попытки
+        user_attempts = TaskStatistics.objects.filter(user=request.user).values('attempts').annotate(count=Count('id'))
+        user_attempts_distribution = [0] * 5
+        for attempt in user_attempts:
+            attempts_value = int(attempt['attempts'] or 0)
+            bin_index = min((attempts_value - 1) // 5, 4) if attempts_value > 0 else 0
+            user_attempts_distribution[bin_index] += attempt['count']
 
-        # Добавляем личную статистику в контекст
         context.update({
-            'user_stats': stats,
-            'activity_dates': activity_dates,
-            'activity_data': activity_data,
-            'categories_labels': categories_labels,
-            'categories_data': categories_data,
-            'scores_distribution': scores_distribution,
+            'user_stats': user_stats,
+            'sidebar_stats': user_stats,
+            'unread_messages_count': request.user.received_messages.filter(is_read=False).count(),
+            'activity_dates': json.dumps(user_activity_dates if request.GET.get('view') == 'personal' else activity_dates),
+            'activity_data': json.dumps(user_activity_data if request.GET.get('view') == 'personal' else activity_data),
+            'categories_labels': json.dumps(user_categories_labels if request.GET.get('view') == 'personal' else categories_labels),
+            'categories_data': json.dumps(user_categories_data if request.GET.get('view') == 'personal' else categories_data),
+            'scores_distribution': json.dumps(user_attempts_distribution if request.GET.get('view') == 'personal' else scores_distribution),
         })
 
     return render(request, 'accounts/statistics.html', context)
-
 
 
 
