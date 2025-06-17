@@ -97,33 +97,44 @@ function updateContainerPosition() {
     position: "fixed",
     top: "60%",
     left: isMobile ? "30%" : "70%", // Ещё ближе к центру на мобильных
-    transform: "translate(-50%, -50%)"
+    transform: "translate(-50%, -50%)",
+    zIndex: 1000 // Добавляем z-index для отображения поверх контента
   });
   console.log("Container position updated:", "isMobile:", isMobile, "left:", isMobile ? "30%" : "70%");
 }
 
-// Анимация скролла
+// Универсальная анимация скролла для всех страниц
 function setupScrollAnimation() {
-  console.log("Setting up scroll animation");
+  console.log("Setting up universal scroll animation");
   gsap.registerPlugin(ScrollTrigger);
 
   // Начальная позиция контейнера
   updateContainerPosition();
 
-  // Массив позиций для разных секций и направлений скролла
-  const arrPositionModel = [
+  // Универсальные позиции для разных этапов скролла
+  const scrollPositions = [
     {
-      id: "filter-list",
+      scrollPercent: 0,
       down: { position: { x: 0, y: -0.5, z: 0 }, rotation: { x: 0, y: 1.5, z: 0 } },
       up: { position: { x: 0, y: -0.5, z: 0 }, rotation: { x: 0, y: -1.5, z: 0 } }
     },
     {
-      id: "blog-posts-list",
+      scrollPercent: 25,
+      down: { position: { x: 0.2, y: -0.4, z: -0.1 }, rotation: { x: 0.02, y: 0.5, z: 0.01 } },
+      up: { position: { x: -0.2, y: -0.6, z: 0.1 }, rotation: { x: -0.02, y: 2.5, z: -0.01 } }
+    },
+    {
+      scrollPercent: 50,
       down: { position: { x: 0.3, y: -0.6, z: -0.1 }, rotation: { x: 0.03, y: -0.5, z: 0.02 } },
       up: { position: { x: -0.3, y: -0.3, z: 0 }, rotation: { x: -0.03, y: 0.5, z: -0.02 } }
     },
     {
-      id: "pagination",
+      scrollPercent: 75,
+      down: { position: { x: -0.1, y: -0.7, z: -0.2 }, rotation: { x: 0.01, y: 1.0, z: -0.01 } },
+      up: { position: { x: 0.1, y: -0.3, z: 0.1 }, rotation: { x: -0.01, y: -1.0, z: 0.01 } }
+    },
+    {
+      scrollPercent: 100,
       down: { position: { x: -0.3, y: -0.7, z: -0.2 }, rotation: { x: 0, y: 0.5, z: -0.02 } },
       up: { position: { x: 0.3, y: -0.4, z: 0 }, rotation: { x: 0, y: -0.5, z: 0.02 } }
     }
@@ -133,39 +144,41 @@ function setupScrollAnimation() {
   let lastScrollTop = 0;
   let scrollDirection = "down";
 
-  // Функция движения пчелы
+  // Функция движения пчелы на основе процента скролла
   const modelMove = () => {
-    const sections = document.querySelectorAll(".filter-list, .blog-posts-list, .pagination");
-    let currentSection;
-    sections.forEach((section) => {
-      const rect = section.getBoundingClientRect();
-      if (rect.top <= window.innerHeight / 2) {
-        currentSection = section.className.split(" ")[0];
-      }
-    });
+    // Вычисляем процент скролла страницы
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollPercent = documentHeight > 0 ? Math.min((scrollTop / documentHeight) * 100, 100) : 0;
 
     // Определяем направление скролла
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     scrollDirection = scrollTop > lastScrollTop ? "down" : "up";
     lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
 
-    let position_active = arrPositionModel.findIndex(
-      (val) => val.id === currentSection
-    );
-    if (position_active >= 0 && bee) {
-      let new_coordinates = arrPositionModel[position_active][scrollDirection];
+    // Находим подходящую позицию на основе процента скролла
+    let targetPosition = scrollPositions[0];
+    for (let i = 0; i < scrollPositions.length; i++) {
+      if (scrollPercent >= scrollPositions[i].scrollPercent) {
+        targetPosition = scrollPositions[i];
+      } else {
+        break;
+      }
+    }
+
+    if (bee && targetPosition) {
+      let newCoordinates = targetPosition[scrollDirection];
       gsap.to(bee.position, {
-        x: new_coordinates.position.x,
-        y: new_coordinates.position.y,
-        z: new_coordinates.position.z,
-        duration: 3,
+        x: newCoordinates.position.x,
+        y: newCoordinates.position.y,
+        z: newCoordinates.position.z,
+        duration: 2,
         ease: "power1.out"
       });
       gsap.to(bee.rotation, {
-        x: new_coordinates.rotation.x,
-        y: new_coordinates.rotation.y,
-        z: new_coordinates.rotation.z,
-        duration: 3,
+        x: newCoordinates.rotation.x,
+        y: newCoordinates.rotation.y,
+        z: newCoordinates.rotation.z,
+        duration: 2,
         ease: "power1.out"
       });
     }
@@ -177,4 +190,18 @@ function setupScrollAnimation() {
       modelMove();
     }
   });
+
+  // Добавляем плавное движение пчелы при простое (idle анимация)
+  setInterval(() => {
+    if (bee && lastScrollTop === (window.pageYOffset || document.documentElement.scrollTop)) {
+      // Если пользователь не скроллит, добавляем легкое покачивание
+      gsap.to(bee.rotation, {
+        y: bee.rotation.y + 0.1,
+        duration: 3,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: 1
+      });
+    }
+  }, 5000); // Каждые 5 секунд
 }
