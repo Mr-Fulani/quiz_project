@@ -1008,11 +1008,11 @@ input:checked + .slider:before {
    ========================================== */
 @media (min-width: 769px) {
     .mobile-menu {
-        display: none;
+        display: none !important;
     }
 
     .profile-tabs {
-        display: flex;
+        display: flex !important;
     }
 
     .profile-content {
@@ -1073,28 +1073,7 @@ input:checked + .slider:before {
 /* Mobile styles for tabs logout */
 @media (max-width: 768px) {
     .profile-tabs {
-        flex-direction: column;
-        gap: 15px;
-        align-items: stretch;
-    }
-    
-    .tabs-container {
-        order: 2;
-    }
-    
-    .tabs-logout-form {
-        order: 1;
-        align-self: center;
-    }
-    
-    .logout-btn {
-        padding: 8px 16px;
-        font-size: 0.85rem;
-        gap: 5px;
-    }
-    
-    .logout-btn ion-icon {
-        font-size: 1rem;
+        display: none !important;
     }
 }
 
@@ -1170,5 +1149,5 @@ input:checked + .slider:before {
 }
 
 .mobile-logout-btn ion-icon {
-    font-size: 1.1rem;
+    display: none;
 }
