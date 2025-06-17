@@ -104,15 +104,10 @@
                 </li>
                 <li class="navbar-item"><a href="{% url 'blog:blog' %}" class="navbar-link">{% trans "Posts" %}</a></li>
                 <li class="navbar-item"><a href="{% url 'blog:quizes' %}" class="navbar-link">{% trans "Quizzes" %}</a></li>
+                <li class="navbar-item"><a href="#" class="navbar-link">{% trans "Donate" %}</a></li>
                 {% if user.is_authenticated %}
                 <li class="navbar-item"><a href="{% url 'accounts:user-list' %}" class="navbar-link">{% trans "Users" %}</a></li>
                 <li class="navbar-item"><a href="{% url 'accounts:profile' %}" class="navbar-link">{% trans "Profile" %}</a></li>
-                <li class="navbar-item">
-                    <form method="post" action="{% url 'accounts:logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="navbar-link">{% trans "Logout" %}</button>
-                    </form>
-                </li>
                 {% else %}
                 <li class="navbar-item"><a href="#" id="login-link" class="navbar-link">{% trans "Login" %}</a></li>
                 {% endif %}

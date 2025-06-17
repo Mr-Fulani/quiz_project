@@ -36,14 +36,31 @@
                 <button class="mobile-tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">{% trans "Personal Info" %}</button>
                 <button class="mobile-tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">{% trans "Settings" %}</button>
                 <button class="mobile-tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">{% trans "Security" %}</button>
+                <div class="mobile-logout-separator"></div>
+                <form method="post" action="{% url 'accounts:logout' %}" class="mobile-logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="mobile-logout-btn">
+                        <ion-icon name="log-out-outline"></ion-icon>
+                        <span>{% trans "Logout" %}</span>
+                    </button>
+                </form>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="profile-tabs">
-            <button class="tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">{% trans "Personal Info" %}</button>
-            <button class="tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">{% trans "Settings" %}</button>
-            <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">{% trans "Security" %}</button>
+            <div class="tabs-container">
+                <button class="tab-btn {% if active_tab == 'personal' or not active_tab %}active{% endif %}" data-tab="personal">{% trans "Personal Info" %}</button>
+                <button class="tab-btn {% if active_tab == 'settings' %}active{% endif %}" data-tab="settings">{% trans "Settings" %}</button>
+                <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" data-tab="security">{% trans "Security" %}</button>
+            </div>
+            <form method="post" action="{% url 'accounts:logout' %}" class="tabs-logout-form">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">
+                    <ion-icon name="log-out-outline"></ion-icon>
+                    <span>{% trans "Logout" %}</span>
+                </button>
+            </form>
         </div>
 
         <!-- Personal Info Tab -->
