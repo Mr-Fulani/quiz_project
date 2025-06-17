@@ -64,17 +64,15 @@
         </li>
 
         <li class="contact-item">
-          {% with unread_count=user.get_unread_messages_count %}
             <div class="icon-box">
               <ion-icon name="mail-outline"></ion-icon>
             </div>
             <div class="contact-info">
               <p class="contact-title">{% trans "Messages" %}</p>
               <a href="{% url 'blog:inbox' %}" class="contact-link">
-                {{ unread_count|default:"0" }}
+                {{ unread_messages_count|default:"0" }}
               </a>
             </div>
-          {% endwith %}
         </li>
       </ul>
 
