@@ -38,7 +38,7 @@
 
     <script src="https://assets.codepen.io/16327/MorphSVGPlugin3.min.js"></script>
     <script src="https://assets.codepen.io/16327/ScrambleTextPlugin3.min.js"></script>
-    <script src="{% static 'js/gsap.min.js' %}"></script>
+    <!-- GSAP будет подключен в футере для анимации пчелы -->
 
     {% block extra_head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -144,6 +144,9 @@
 
         {% block content %}{% endblock %}
     </div>
+    
+    <!-- Контейнер для 3D анимации пчелы -->
+    <div id="bee-container"></div>
 </main>
 
 {% if not user.is_authenticated %}
@@ -519,7 +522,32 @@
         justify-content: center;
     }
 
+    /* Стили для контейнера 3D пчелы */
+    #bee-container {
+        position: fixed;
+        width: 600px;
+        height: 600px;
+        pointer-events: none;
+        z-index: 999;
+        top: 60%;
+        left: 70%;
+        transform: translate(-50%, -50%);
+    }
+
+    @media (max-width: 580px) {
+        #bee-container {
+            width: 300px;
+            height: 300px;
+            left: 30%;
+        }
+    }
+
 </style>
+<!-- Скрипты для 3D анимации пчелы -->
+<script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
+<script src="https://unpkg.com/gsap@3.11.0/dist/ScrollTrigger.min.js"></script>
+<script type="module" src="{% static 'js/bee-scroll.js' %}"></script>
+
 {% block scripts %}{% endblock %}
 
 </body>
