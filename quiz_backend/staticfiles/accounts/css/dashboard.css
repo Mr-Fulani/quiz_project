@@ -1018,3 +1018,109 @@ input:checked + .slider:before {
         padding: 30px;
     }
 }
+
+/* ==========================================
+   Tabs with Logout Button
+   ========================================== */
+.profile-tabs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.tabs-container {
+    display: flex;
+    gap: 10px;
+}
+
+.tabs-logout-form {
+    display: inline-block;
+}
+
+.logout-btn {
+    background: linear-gradient(135deg, var(--bittersweet-shimmer), #d32f2f);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+.logout-btn:hover {
+    background: linear-gradient(135deg, #d32f2f, var(--bittersweet-shimmer));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+}
+
+.logout-btn ion-icon {
+    font-size: 1.1rem;
+}
+
+/* Mobile styles for tabs logout */
+@media (max-width: 768px) {
+    .profile-tabs {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .tabs-container {
+        order: 2;
+    }
+    
+    .tabs-logout-form {
+        order: 1;
+        align-self: center;
+    }
+    
+    .logout-btn {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        gap: 5px;
+    }
+    
+    .logout-btn ion-icon {
+        font-size: 1rem;
+    }
+}
+
+/* ==========================================
+   Bee Container Styles
+   ========================================== */
+#bee-container {
+    width: 600px;
+    height: 600px;
+    position: fixed;
+    z-index: 1000;
+    overflow: visible;
+    pointer-events: none;
+}
+
+@media screen and (max-width: 580px) {
+    #bee-container {
+        width: 300px;
+        height: 300px;
+        pointer-events: none;
+    }
+}
+
+@media screen and (min-width: 1024px) {
+    #bee-container {
+        width: 650px;
+        height: 650px;
+        pointer-events: none;
+    }
+}
