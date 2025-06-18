@@ -19,6 +19,8 @@ function showNotification(message, type) {
         notification.style.backgroundColor = '#4CAF50';
     } else if (type === 'error') {
         notification.style.backgroundColor = '#f44336';
+    } else if (type === 'info') {
+        notification.style.backgroundColor = '#2196F3';
     }
 
     document.body.appendChild(notification);

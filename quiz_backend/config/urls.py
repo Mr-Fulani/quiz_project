@@ -13,7 +13,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from blog.views import tinymce_image_upload
-from donation.views import create_payment_intent, confirm_payment
+from donation.views import create_payment_intent, confirm_payment, stripe_webhook
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, StaticSitemap
 
@@ -55,6 +55,7 @@ urlpatterns = [
     # Donation API endpoints (вне языковых паттернов)
     path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),
     path('donation/confirm-payment/', confirm_payment, name='confirm_payment'),
+    path('donation/stripe-webhook/', stripe_webhook, name='stripe_webhook'),
     
 ] + i18n_patterns(
     path('admin/', admin.site.urls),

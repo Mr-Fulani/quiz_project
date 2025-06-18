@@ -26,70 +26,18 @@ if not settings.STRIPE_PUBLISHABLE_KEY or settings.STRIPE_PUBLISHABLE_KEY.starts
 
 def donation_page(request):
     """Страница donation с формой оплаты"""
-    success_message = None
-    error_message = None
+    # Теперь обработка платежей происходит через JavaScript + Stripe API
+    # Этот view только отображает форму
     
-    if request.method == 'POST':
-        form = DonationForm(request.POST)
-        if form.is_valid():
-            try:
-                donation = form.save(commit=False)
-                if request.user.is_authenticated:
-                    donation.user = request.user
-                
-                # Получаем имя из поля карты
-                card_name = request.POST.get('card_name', '')
-                if card_name:
-                    donation.name = card_name
-                elif request.user.is_authenticated:
-                    donation.name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
-                else:
-                    donation.name = "Anonymous"
-                
-                # Создаем Payment Intent в Stripe
-                intent = stripe.PaymentIntent.create(
-                    amount=int(donation.amount * 100),  # Stripe принимает центы
-                    currency='usd',
-                    metadata={
-                        'donation_id': str(donation.id) if donation.id else 'new',
-                        'user_email': donation.email,
-                        'user_name': donation.name
-                    }
-                )
-                
-                # Сохраняем donation с payment_intent_id
-                donation.stripe_payment_intent_id = intent.id
-                donation.status = 'pending'
-                donation.save()
-                
-                success_message = _('Thank you for your donation! Your contribution helps us improve the platform.')
-                
-                # Очищаем форму после успешной отправки
-                form = DonationForm()
-                if request.user.is_authenticated:
-                    form.initial['email'] = request.user.email
-                    
-            except stripe.error.StripeError as e:
-                logger.error(f"Stripe error: {str(e)}")
-                error_message = _('Payment processing error. Please try again.')
-            except Exception as e:
-                logger.error(f"Donation processing error: {str(e)}")
-                error_message = _('An error occurred. Please try again.')
-        else:
-            # Ошибки валидации
-            error_message = _('Please correct the errors below and try again.')
-    else:
-        form = DonationForm()
-        # Если пользователь авторизован, предзаполняем email
-        if request.user.is_authenticated:
-            form.initial['email'] = request.user.email
+    form = DonationForm()
+    # Если пользователь авторизован, предзаполняем email
+    if request.user.is_authenticated:
+        form.initial['email'] = request.user.email
     
     context = {
         'form': form,
         'title': _('Support'),
         'page_title': _('Donation'),
-        'success_message': success_message,
-        'error_message': error_message,
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
     }
     return render(request, 'donation/donation_page.html', context)
@@ -102,24 +50,51 @@ def create_payment_intent(request):
     try:
         data = json.loads(request.body)
         amount = data.get('amount')
-        email = data.get('email')
-        name = data.get('name')
+        currency = data.get('currency', 'usd')
+        email = data.get('email', '')
+        name = data.get('name', '')
         
-        if not amount or float(amount) <= 0:
+        # Валидация данных
+        if not amount or float(amount) < 1:
             return JsonResponse({
                 'success': False,
-                'message': _('Invalid amount')
+                'message': _('Invalid amount. Minimum amount is $1.00')
             }, status=400)
+        
+        if not name or not name.strip():
+            return JsonResponse({
+                'success': False,
+                'message': _('Name is required')
+            }, status=400)
+        
+        # Проверка поддерживаемых валют
+        supported_currencies = ['usd', 'eur', 'rub']
+        if currency not in supported_currencies:
+            return JsonResponse({
+                'success': False,
+                'message': _('Unsupported currency')
+            }, status=400)
+        
+        # Конвертируем в центы для Stripe (для RUB не нужно умножать на 100)
+        if currency == 'rub':
+            amount_cents = int(float(amount))
+        else:
+            amount_cents = int(float(amount) * 100)
         
         # Создаем Payment Intent
         intent = stripe.PaymentIntent.create(
-            amount=int(float(amount) * 100),  # Stripe принимает центы
-            currency='usd',
+            amount=amount_cents,
+            currency=currency,
             metadata={
-                'user_email': email or '',
-                'user_name': name or ''
+                'user_email': email,
+                'user_name': name,
+            },
+            automatic_payment_methods={
+                'enabled': True,
             }
         )
+        
+        logger.info(f"Payment intent created: {intent.id} for {amount} {currency}")
         
         return JsonResponse({
             'success': True,
@@ -127,17 +102,67 @@ def create_payment_intent(request):
             'payment_intent_id': intent.id
         })
         
+    except stripe.error.CardError as e:
+        logger.error(f"Stripe card error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Card error: ') + str(e.user_message)
+        }, status=400)
+        
+    except stripe.error.RateLimitError as e:
+        logger.error(f"Stripe rate limit error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Too many requests. Please try again later.')
+        }, status=429)
+        
+    except stripe.error.InvalidRequestError as e:
+        logger.error(f"Stripe invalid request error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Invalid request parameters')
+        }, status=400)
+        
+    except stripe.error.AuthenticationError as e:
+        logger.error(f"Stripe authentication error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Authentication error. Please contact support.')
+        }, status=500)
+        
+    except stripe.error.APIConnectionError as e:
+        logger.error(f"Stripe API connection error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Network error. Please check your connection.')
+        }, status=500)
+        
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error: {str(e)}")
         return JsonResponse({
             'success': False,
-            'message': _('Payment processing error')
-        }, status=400)
-    except Exception as e:
-        logger.error(f"Payment intent creation error: {str(e)}")
+            'message': _('Payment service error. Please try again.')
+        }, status=500)
+        
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in request body")
         return JsonResponse({
             'success': False,
-            'message': _('An error occurred')
+            'message': _('Invalid request format')
+        }, status=400)
+        
+    except ValueError as e:
+        logger.error(f"Value error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Invalid amount format')
+        }, status=400)
+        
+    except Exception as e:
+        logger.error(f"Unexpected error creating payment intent: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('An unexpected error occurred. Please try again.')
         }, status=500)
 
 
@@ -159,12 +184,18 @@ def confirm_payment(request):
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
         
         if intent.status == 'succeeded':
+            # Конвертируем сумму в зависимости от валюты
+            if intent.currency == 'rub':
+                amount = intent.amount  # RUB не конвертируем
+            else:
+                amount = intent.amount / 100  # USD/EUR конвертируем из центов
+            
             # Создаем или обновляем donation
             donation, created = Donation.objects.get_or_create(
                 stripe_payment_intent_id=payment_intent_id,
                 defaults={
-                    'amount': intent.amount / 100,  # Конвертируем из центов
-                    'currency': intent.currency.upper(),
+                    'amount': amount,
+                    'currency': intent.currency,
                     'status': 'completed',
                     'name': intent.metadata.get('user_name', 'Anonymous'),
                     'email': intent.metadata.get('user_email', ''),
@@ -205,6 +236,102 @@ def test_stripe(request):
     return render(request, 'donation/test_stripe.html', {
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY
     })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook(request):
+    """Webhook для обработки событий Stripe"""
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
+    
+    if not endpoint_secret:
+        logger.warning("Stripe webhook secret not configured")
+        return JsonResponse({'status': 'error', 'message': 'Webhook not configured'}, status=400)
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError:
+        logger.error("Invalid payload in webhook")
+        return JsonResponse({'status': 'error', 'message': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError:
+        logger.error("Invalid signature in webhook")
+        return JsonResponse({'status': 'error', 'message': 'Invalid signature'}, status=400)
+    
+    # Обработка различных типов событий
+    if event['type'] == 'payment_intent.succeeded':
+        payment_intent = event['data']['object']
+        logger.info(f"Webhook: Payment succeeded for {payment_intent['id']}")
+        
+        try:
+            # Конвертируем сумму в зависимости от валюты
+            if payment_intent['currency'] == 'rub':
+                amount = payment_intent['amount']
+            else:
+                amount = payment_intent['amount'] / 100
+            
+            # Обновляем или создаем donation
+            donation, created = Donation.objects.get_or_create(
+                stripe_payment_intent_id=payment_intent['id'],
+                defaults={
+                    'amount': amount,
+                    'currency': payment_intent['currency'],
+                    'status': 'completed',
+                    'name': payment_intent['metadata'].get('user_name', 'Anonymous'),
+                    'email': payment_intent['metadata'].get('user_email', ''),
+                    'payment_method': 'stripe'
+                }
+            )
+            
+            if not created and donation.status != 'completed':
+                donation.status = 'completed'
+                donation.save()
+                logger.info(f"Donation {donation.id} updated to completed via webhook")
+            
+        except Exception as e:
+            logger.error(f"Error processing webhook payment_intent.succeeded: {str(e)}")
+            
+    elif event['type'] == 'payment_intent.payment_failed':
+        payment_intent = event['data']['object']
+        logger.info(f"Webhook: Payment failed for {payment_intent['id']}")
+        
+        try:
+            donation = Donation.objects.filter(
+                stripe_payment_intent_id=payment_intent['id']
+            ).first()
+            
+            if donation and donation.status != 'failed':
+                donation.status = 'failed'
+                donation.save()
+                logger.info(f"Donation {donation.id} marked as failed via webhook")
+                
+        except Exception as e:
+            logger.error(f"Error processing webhook payment_intent.payment_failed: {str(e)}")
+            
+    elif event['type'] == 'payment_intent.canceled':
+        payment_intent = event['data']['object']
+        logger.info(f"Webhook: Payment canceled for {payment_intent['id']}")
+        
+        try:
+            donation = Donation.objects.filter(
+                stripe_payment_intent_id=payment_intent['id']
+            ).first()
+            
+            if donation and donation.status not in ['completed', 'cancelled']:
+                donation.status = 'cancelled'
+                donation.save()
+                logger.info(f"Donation {donation.id} marked as cancelled via webhook")
+                
+        except Exception as e:
+            logger.error(f"Error processing webhook payment_intent.canceled: {str(e)}")
+    
+    else:
+        logger.info(f"Webhook: Unhandled event type {event['type']}")
+    
+    return JsonResponse({'status': 'success'})
 
 
  
