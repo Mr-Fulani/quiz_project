@@ -33,9 +33,16 @@ class Donation(models.Model):
         decimal_places=2,
         verbose_name=_('Amount')
     )
+    CURRENCY_CHOICES = [
+        ('usd', 'USD ($)'),
+        ('eur', 'EUR (€)'),
+        ('rub', 'RUB (₽)'),
+    ]
+    
     currency = models.CharField(
         max_length=3,
-        default='USD',
+        choices=CURRENCY_CHOICES,
+        default='usd',
         verbose_name=_('Currency')
     )
     payment_method = models.CharField(

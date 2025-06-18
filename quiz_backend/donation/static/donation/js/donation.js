@@ -9,6 +9,10 @@ const ccicon = document.getElementById('ccicon');
 const ccsingle = document.getElementById('ccsingle');
 const generatecard = document.getElementById('generatecard');
 
+// Stripe интеграция
+let stripe = null;
+let clientSecret = null;
+
 
 let cctype = null;
 
@@ -284,20 +288,37 @@ securitycode.addEventListener('focus', function () {
     document.querySelector('.creditcard').classList.add('flipped');
 });
 
-// Handle form submission with notifications
+// Handle form submission with Stripe integration
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Donation page loaded');
+    
+    // Initialize Stripe
+    let stripe = null;
+    if (window.stripeInstance) {
+        stripe = window.stripeInstance;
+        console.log('Stripe initialized successfully');
+    } else {
+        console.error('Stripe not available - window.stripeInstance is:', window.stripeInstance);
+        showNotification('Ошибка загрузки платежной системы', 'error');
+        return;
+    }
     
     const donationForm = document.querySelector('.donation-form');
     console.log('Donation form found:', !!donationForm);
     
     if (donationForm) {
-        donationForm.addEventListener('submit', function(e) {
-            console.log('Form submission started');
+        console.log('Adding event listener to donation form');
+        donationForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Всегда предотвращаем стандартную отправку
+            console.log('=== FORM SUBMISSION STARTED ===');
+            console.log('Event:', e);
+            showNotification('🚀 ОБРАБОТЧИК ФОРМЫ ЗАПУЩЕН!', 'success');
             
             // Validate required fields
             const amountField = document.getElementById('id_amount');
             const nameField = document.getElementById('name');
+            const emailField = document.getElementById('id_email');
+            const currencyField = document.getElementById('currency');
             const hiddenNameField = document.getElementById('hidden_card_name');
             
             console.log('Amount field:', amountField?.value);
@@ -310,22 +331,129 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (!amountField || !amountField.value || parseFloat(amountField.value) < 1) {
-                e.preventDefault();
                 console.log('Validation failed: amount');
                 showNotification('Пожалуйста, введите корректную сумму donation (минимум $1.00)', 'error');
                 return false;
             }
             
             if (!nameField || !nameField.value.trim()) {
-                e.preventDefault();
                 console.log('Validation failed: name');
                 showNotification('Пожалуйста, введите ваше имя на карте', 'error');
                 return false;
             }
             
+            if (!cardnumber.value || !expirationdate.value || !securitycode.value) {
+                console.log('Validation failed: card details');
+                showNotification('Пожалуйста, заполните все данные карты', 'error');
+                return false;
+            }
+            
             // Show processing message
-            console.log('Form validation passed, submitting...');
-            showNotification('Обработка вашего donation...', 'success');
+            console.log('Form validation passed, processing with Stripe...');
+            console.log('Stripe instance available:', !!stripe);
+            showNotification('Обработка вашего donation...', 'info');
+            
+            try {
+                // Create payment intent
+                const response = await fetch('/donation/create-payment-intent/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        amount: parseFloat(amountField.value),
+                        currency: currencyField ? currencyField.value : 'usd',
+                        email: emailField ? emailField.value : '',
+                        name: nameField.value
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Payment intent response:', data);
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to create payment intent');
+                }
+                
+                const clientSecret = data.client_secret;
+                
+                // Create payment method
+                const cardElement = {
+                    number: cardnumber.value.replace(/\s/g, ''),
+                    exp_month: parseInt(expirationdate.value.split('/')[0]),
+                    exp_year: parseInt('20' + expirationdate.value.split('/')[1]),
+                    cvc: securitycode.value
+                };
+                
+                // Confirm payment
+                const result = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: nameField.value,
+                            email: emailField ? emailField.value : ''
+                        }
+                    }
+                });
+                
+                console.log('Payment result:', result);
+                
+                if (result.error) {
+                    console.error('Payment failed:', result.error);
+                    showNotification('Ошибка оплаты: ' + result.error.message, 'error');
+                } else {
+                    console.log('Payment succeeded');
+                    
+                    // Confirm payment on server
+                    const confirmResponse = await fetch('/donation/confirm-payment/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({
+                            payment_intent_id: result.paymentIntent.id
+                        })
+                    });
+                    
+                    const confirmData = await confirmResponse.json();
+                    console.log('Confirm response:', confirmData);
+                    
+                    if (confirmData.success) {
+                        const currencySymbols = {
+                            'usd': '$',
+                            'eur': '€',
+                            'rub': '₽'
+                        };
+                        const symbol = currencySymbols[currencyField ? currencyField.value : 'usd'] || '$';
+                        showNotification(`Спасибо за ваш donation ${symbol}${amountField.value}! Платеж успешно обработан.`, 'success');
+                        
+                        // Reset form
+                        donationForm.reset();
+                        name.value = '';
+                        cardnumber.value = '';
+                        expirationdate.value = '';
+                        securitycode.value = '';
+                        
+                        // Reset card display
+                        document.getElementById('svgname').innerHTML = 'John Doe';
+                        document.getElementById('svgnameback').innerHTML = 'John Doe';
+                        document.getElementById('svgnumber').innerHTML = '0123 4567 8910 1112';
+                        document.getElementById('svgexpire').innerHTML = '01/23';
+                        document.getElementById('svgsecurity').innerHTML = '985';
+                        ccicon.innerHTML = '';
+                        ccsingle.innerHTML = '';
+                        swapColor('grey');
+                    } else {
+                        showNotification('Ошибка при подтверждении платежа: ' + confirmData.message, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                showNotification('Произошла ошибка при обработке платежа: ' + error.message, 'error');
+            }
         });
     }
 });

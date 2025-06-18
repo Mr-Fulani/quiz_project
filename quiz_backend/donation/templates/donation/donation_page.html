@@ -118,20 +118,15 @@
         <input id="name" maxlength="20" type="text">
     </div>
     <div class="field-container">
-        <label for="cardnumber">Card Number</label><span id="generatecard">generate random</span>
-        <input id="cardnumber" type="text" pattern="[0-9]*" inputmode="numeric">
+        <label for="card-element">Card Number</label><span id="generatecard">generate random</span>
+        <div id="card-element" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; background: white;">
+            <!-- Stripe Elements will create form elements here -->
+        </div>
         <svg id="ccicon" class="ccicon" width="750" height="471" viewBox="0 0 750 471" version="1.1" xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink">
         </svg>
     </div>
-    <div class="field-container">
-        <label for="expirationdate">Expiration (mm/yy)</label>
-        <input id="expirationdate" type="text" pattern="[0-9]*" inputmode="numeric">
-    </div>
-    <div class="field-container">
-        <label for="securitycode">Security Code</label>
-        <input id="securitycode" type="text" pattern="[0-9]*" inputmode="numeric">
-    </div>
+    <div id="card-errors" role="alert" style="color: #fa755a; margin-top: 8px; text-align: center;"></div>
 </div>
 
 <!-- Donation Form -->
@@ -145,6 +140,14 @@
                 {{ form.amount }}
             </div>
             <div class="field-container">
+                <label for="currency">{% trans "Currency" %}</label>
+                <select id="currency" name="currency" class="form-control">
+                    <option value="usd">USD ($)</option>
+                    <option value="eur">EUR (€)</option>
+                    <option value="rub">RUB (₽)</option>
+                </select>
+            </div>
+            <div class="field-container">
                 <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
                 {{ form.email }}
             </div>
@@ -154,28 +157,279 @@
 </div>
 
     <link rel="stylesheet" href="{% static 'donation/css/donation.css' %}">
+    <script src="https://js.stripe.com/v3/"></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/imask/3.4.0/imask.min.js'></script>
     <script src="{% static 'donation/js/notifications.js' %}"></script>
     <script src="{% static 'donation/js/donation.js' %}"></script>
     
-    {% if success_message %}
     <script>
+        // Инициализация Stripe
+        console.log('Template script loading...');
+        console.log('Stripe publishable key:', '{{ stripe_publishable_key }}');
+        
+        if ('{{ stripe_publishable_key }}') {
+            const stripe = Stripe('{{ stripe_publishable_key }}');
+            console.log('Stripe object created:', stripe);
+            
+            // Создаем Elements
+            const elements = stripe.elements();
+            
+            // Создаем Card Element
+            const cardElement = elements.create('card', {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#424770',
+                        '::placeholder': {
+                            color: '#aab7c4',
+                        },
+                    },
+                    invalid: {
+                        color: '#9e2146',
+                    },
+                },
+            });
+            
+            // Монтируем Card Element в DOM
+            cardElement.mount('#card-element');
+            
+            // Обработка ошибок и обновление анимации карты
+            cardElement.on('change', (event) => {
+                const displayError = document.getElementById('card-errors');
+                if (event.error) {
+                    displayError.textContent = event.error.message;
+                } else {
+                    displayError.textContent = '';
+                }
+                
+                // Обновляем SVG анимацию на основе данных Stripe
+                if (event.complete || event.value) {
+                    updateCardAnimation(event);
+                }
+            });
+            
+                         // Передаем в глобальные переменные
+             window.stripeInstance = stripe;
+             window.cardElement = cardElement;
+             
+             // Инициализация анимации карты
+             initCardAnimation();
+        } else {
+            console.error('No Stripe publishable key provided');
+        }
+        
+                                 // Функция инициализации анимации карты
+        function initCardAnimation() {
+            const nameField = document.getElementById('name');
+            
+            if (!nameField) return;
+            
+            // Обновление имени на карте
+            nameField.addEventListener('input', function() {
+                const name = this.value || 'JOHN DOE';
+                const svgname = document.getElementById('svgname');
+                const svgnameback = document.getElementById('svgnameback');
+                if (svgname) svgname.innerHTML = name.toUpperCase();
+                if (svgnameback) svgnameback.innerHTML = name;
+            });
+        }
+        
+        // Функция обновления анимации на основе данных Stripe
+        function updateCardAnimation(event) {
+            // К сожалению, Stripe Elements не предоставляет прямого доступа к данным карты
+            // для безопасности, поэтому полная анимация невозможна
+            // Но мы можем обновить тип карты на основе brand
+            if (event.brand) {
+                updateCardTypeFromBrand(event.brand);
+            }
+        }
+        
+        // Функция обновления типа карты на основе Stripe brand
+        function updateCardTypeFromBrand(brand) {
+            const ccicon = document.getElementById('ccicon');
+            const ccsingle = document.getElementById('ccsingle');
+            
+            if (!ccicon || !ccsingle) return;
+            
+            switch(brand) {
+                case 'visa':
+                    ccicon.innerHTML = '<use href="#visa"></use>';
+                    ccsingle.innerHTML = '<use href="#visa"></use>';
+                    swapColor('blue');
+                    break;
+                case 'mastercard':
+                    ccicon.innerHTML = '<use href="#mastercard"></use>';
+                    ccsingle.innerHTML = '<use href="#mastercard"></use>';
+                    swapColor('red');
+                    break;
+                case 'amex':
+                    ccicon.innerHTML = '<use href="#amex"></use>';
+                    ccsingle.innerHTML = '<use href="#amex"></use>';
+                    swapColor('green');
+                    break;
+                default:
+                    ccicon.innerHTML = '';
+                    ccsingle.innerHTML = '';
+                    swapColor('grey');
+            }
+        }
+        
+        // Функция смены цвета карты (упрощенная)
+        function swapColor(color) {
+            const creditcard = document.querySelector('.creditcard');
+            if (!creditcard) return;
+            
+            creditcard.className = creditcard.className.replace(/\b(blue|red|green|grey)\b/g, '');
+            creditcard.classList.add(color);
+        }
+
+        // Инициализация обработчика формы
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                showNotification('{{ success_message|escapejs }}', 'success');
-            }, 500);
-        });
+             const donationForm = document.querySelector('.donation-form');
+             if (donationForm) {
+                 donationForm.addEventListener('submit', async function(e) {
+                     e.preventDefault();
+                      
+                                             // Validate required fields
+                       const amountField = document.getElementById('id_amount');
+                       const nameField = document.getElementById('name');
+                       const emailField = document.getElementById('id_email');
+                       const currencyField = document.getElementById('currency');
+                       
+                       if (!amountField || !amountField.value || parseFloat(amountField.value) < 1) {
+                           showNotification('Введите сумму не менее $1', 'error');
+                           return;
+                       }
+                       
+                       if (!nameField || !nameField.value.trim()) {
+                           showNotification('Введите имя на карте', 'error');
+                           return;
+                       }
+                       
+                       // Проверяем доступность Stripe Elements
+                       if (!window.stripeInstance || !window.cardElement) {
+                           showNotification('Ошибка загрузки платежной системы', 'error');
+                           return;
+                       }
+                      
+                      try {
+                          showNotification('Обработка платежа...', 'info');
+                          
+                          // 1. Создаем Payment Intent
+                          const paymentData = {
+                              amount: parseFloat(amountField.value),
+                              currency: currencyField?.value || 'usd',
+                              name: nameField.value.trim(),
+                              email: emailField?.value || ''
+                          };
+                          
+                          const createResponse = await fetch('/donation/create-payment-intent/', {
+                              method: 'POST',
+                              headers: {
+                                  'Content-Type': 'application/json',
+                                  'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                              },
+                              body: JSON.stringify(paymentData)
+                          });
+                          
+                          const createData = await createResponse.json();
+                          
+                          if (!createData.success) {
+                              throw new Error(createData.message || 'Ошибка создания платежа');
+                          }
+                          
+                                                     // 2. Создаем payment method из Card Element (который невидим)
+                           const {error: pmError, paymentMethod} = await window.stripeInstance.createPaymentMethod({
+                               type: 'card',
+                               card: window.cardElement,
+                               billing_details: {
+                                   name: nameField.value.trim(),
+                                   email: emailField?.value || ''
+                               }
+                           });
+                           
+                           if (pmError) {
+                               throw new Error(pmError.message || 'Ошибка создания метода платежа');
+                           }
+                           
+                           // 3. Подтверждаем платеж используя созданный payment method
+                           const {error, paymentIntent} = await window.stripeInstance.confirmCardPayment(
+                               createData.client_secret,
+                               {
+                                   payment_method: paymentMethod.id
+                               }
+                           );
+                          
+                          if (error) {
+                              throw new Error(error.message || 'Ошибка обработки платежа');
+                          }
+                          
+                          if (paymentIntent.status === 'succeeded') {
+                              // 4. Подтверждаем успешный платеж на сервере
+                              const confirmResponse = await fetch('/donation/confirm-payment/', {
+                                  method: 'POST',
+                                  headers: {
+                                      'Content-Type': 'application/json',
+                                      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                  },
+                                  body: JSON.stringify({
+                                      payment_intent_id: paymentIntent.id
+                                  })
+                              });
+                              
+                              const confirmData = await confirmResponse.json();
+                              
+                              if (confirmData.success) {
+                                  const currencySymbols = {
+                                      'usd': '$',
+                                      'eur': '€',
+                                      'rub': '₽'
+                                  };
+                                  const symbol = currencySymbols[currencyField ? currencyField.value : 'usd'] || '$';
+                                  showNotification(`Спасибо за ваш donation ${symbol}${amountField.value}! Платеж успешно обработан.`, 'success');
+                                  
+                                                                     // Reset form
+                                   donationForm.reset();
+                                   nameField.value = '';
+                                   
+                                   // Clear Card Element
+                                   window.cardElement.clear();
+                                   
+                                   // Reset card display
+                                   const svgname = document.getElementById('svgname');
+                                   const svgnameback = document.getElementById('svgnameback'); 
+                                   const svgnumber = document.getElementById('svgnumber');
+                                   const svgexpire = document.getElementById('svgexpire');
+                                   const svgsecurity = document.getElementById('svgsecurity');
+                                   const ccicon = document.getElementById('ccicon');
+                                   const ccsingle = document.getElementById('ccsingle');
+                                   
+                                   if (svgname) svgname.innerHTML = 'JOHN DOE';
+                                   if (svgnameback) svgnameback.innerHTML = 'John Doe';
+                                   if (svgnumber) svgnumber.innerHTML = '0123 4567 8910 1112';
+                                   if (svgexpire) svgexpire.innerHTML = '01/23';
+                                   if (svgsecurity) svgsecurity.innerHTML = '985';
+                                   if (ccicon) ccicon.innerHTML = '';
+                                   if (ccsingle) ccsingle.innerHTML = '';
+                                   
+                                   // Reset card flip
+                                   document.querySelector('.creditcard')?.classList.remove('flipped');
+                                   swapColor('grey');
+                              } else {
+                                  throw new Error(confirmData.message || 'Ошибка подтверждения платежа');
+                              }
+                          } else {
+                              throw new Error('Платеж не был завершен');
+                          }
+                          
+                      } catch (error) {
+                          showNotification('Ошибка: ' + (error.message || 'Произошла ошибка при обработке платежа'), 'error');
+                      }
+                  });
+                             }
+         });
     </script>
-    {% endif %}
     
-    {% if error_message %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                showNotification('{{ error_message|escapejs }}', 'error');
-            }, 500);
-        });
-    </script>
-    {% endif %}
+
 </article>
 {% endblock %} 
