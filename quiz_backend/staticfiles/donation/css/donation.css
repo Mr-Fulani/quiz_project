@@ -36,6 +36,7 @@
     max-width: 400px;
     padding: 20px;
     color: #707070;
+    margin: 0 auto;
 }
 
 label {
@@ -352,10 +353,6 @@ input:focus {
     max-width: 400px;
     margin: 20px auto;
     padding: 20px;
-    background: hsl(240, 2%, 12%);
-    border: 1px solid hsl(0, 0%, 25%);
-    border-radius: 16px;
-    box-shadow: 0 16px 30px hsla(0, 0%, 0%, .25);
 }
 
 .donation-form h3 {

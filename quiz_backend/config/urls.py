@@ -13,6 +13,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from blog.views import tinymce_image_upload
+from donation.views import create_payment_intent, confirm_payment
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, StaticSitemap
 
@@ -43,6 +44,18 @@ sitemaps = {
 
 urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),  # URL для обработки переключения языка
+    
+    # API endpoints (вне языковых паттернов)
+    path('api/', include('tasks.urls')),
+    path('api/', include('topics.urls')),
+    path('api/', include('platforms.urls')),
+    path('api/', include('feedback.urls')),
+    path('api/webhooks/', include('webhooks.urls')),
+    
+    # Donation API endpoints (вне языковых паттернов)
+    path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),
+    path('donation/confirm-payment/', confirm_payment, name='confirm_payment'),
+    
 ] + i18n_patterns(
     path('admin/', admin.site.urls),
     #   -> Админ-панель Django
@@ -56,19 +69,11 @@ urlpatterns = [
     path('users/', include('accounts.urls')),
     #   -> Подключение URL-ов из приложения accounts (регистрация, профили и т.д.)
 
-    path('donate/', include('donation.urls')),
+    path('donation/', include('donation.urls')),
     #   -> Подключение URL-ов из приложения donation (страница пожертвований)
 
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     #   -> Логаут с редиректом на главную
-
-
-    # API для tasks, topics, platforms, feedback, webhooks
-    path('api/', include('tasks.urls')),
-    path('api/', include('topics.urls')),
-    path('api/', include('platforms.urls')),
-    path('api/', include('feedback.urls')),
-    path('api/webhooks/', include('webhooks.urls')),
 
     # Swagger URLs (документация API)
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

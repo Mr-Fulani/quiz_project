@@ -373,4 +373,9 @@ YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', '')  # Замените на 
 # Отключение аналитики на локальном сервере (опционально)
 ANALYTICAL_INTERNAL_IPS = ['127.0.0.1', 'localhost']
 
+# Stripe настройки
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', 'pk_test_...')  # Тестовый ключ
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_...')  # Тестовый ключ
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_...')  # Для webhook
+
 

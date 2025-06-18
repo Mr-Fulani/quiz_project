@@ -67,3 +67,4 @@ validators==0.35.0
 fastapi~=0.115.12
 django-tinymce~=4.1.0
 django-imagekit==5.0.0
+stripe==10.12.0

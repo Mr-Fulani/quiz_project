@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Stripe Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #5469d4;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #4053c7;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .card-element {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+        .success {
+            color: #27ae60;
+            margin-top: 10px;
+        }
+        .test-cards {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .test-cards h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-cards p {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Stripe Payment</h1>
+        
+        <div class="test-cards">
+            <h3>Тестовые карты:</h3>
+            <p><strong>Успешная оплата:</strong> 4242 4242 4242 4242</p>
+            <p><strong>Отклонена:</strong> 4000 0000 0000 0002</p>
+            <p><strong>Недостаточно средств:</strong> 4000 0000 0000 9995</p>
+            <p><strong>Любая дата в будущем, любой CVC</strong></p>
+        </div>
+        
+        <form id="payment-form">
+            <div class="form-group">
+                <label for="amount">Сумма ($):</label>
+                <input type="number" id="amount" value="10" min="1" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="test@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">Имя:</label>
+                <input type="text" id="name" value="Test User" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Данные карты:</label>
+                <div id="card-element" class="card-element">
+                    <!-- Stripe Elements будет вставлен здесь -->
+                </div>
+            </div>
+            
+            <button type="submit" id="submit-button">
+                Оплатить $<span id="amount-display">10</span>
+            </button>
+            
+            <div id="error-message" class="error"></div>
+            <div id="success-message" class="success"></div>
+        </form>
+    </div>
+
+    <script>
+        // Инициализация Stripe
+        const stripe = Stripe('{{ stripe_publishable_key }}');
+        const elements = stripe.elements();
+
+        // Создание элемента карты
+        const cardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                        color: '#aab7c4',
+                    },
+                },
+            },
+        });
+
+        cardElement.mount('#card-element');
+
+        // Обновление суммы в кнопке
+        const amountInput = document.getElementById('amount');
+        const amountDisplay = document.getElementById('amount-display');
+        
+        amountInput.addEventListener('input', function() {
+            amountDisplay.textContent = this.value;
+        });
+
+        // Обработка формы
+        const form = document.getElementById('payment-form');
+        const submitButton = document.getElementById('submit-button');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Обработка...';
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+
+            const amount = document.getElementById('amount').value;
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
+
+            try {
+                // Создаем Payment Intent
+                const response = await fetch('/donation/create-payment-intent/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        email: email,
+                        name: name
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+
+                // Подтверждаем платеж
+                const {error, paymentIntent} = await stripe.confirmCardPayment(data.client_secret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: name,
+                            email: email,
+                        },
+                    }
+                });
+
+                if (error) {
+                    throw new Error(error.message);
+                }
+
+                if (paymentIntent.status === 'succeeded') {
+                    // Уведомляем сервер об успешном платеже
+                    await fetch('/donation/confirm-payment/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            payment_intent_id: paymentIntent.id
+                        })
+                    });
+
+                    successMessage.textContent = 'Платеж успешно выполнен!';
+                    form.reset();
+                    amountDisplay.textContent = '10';
+                }
+
+            } catch (error) {
+                errorMessage.textContent = error.message;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = `Оплатить $${amount}`;
+            }
+        });
+    </script>
+</body>
+</html> 
