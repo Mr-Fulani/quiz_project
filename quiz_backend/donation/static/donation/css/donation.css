@@ -36,6 +36,7 @@
     max-width: 400px;
     padding: 20px;
     color: #707070;
+    margin: 0 auto;
 }
 
 label {
@@ -66,7 +67,7 @@ input:focus {
     height: 38px;
     position: absolute;
     right: 6px;
-    top: calc(50% - 17px);
+    top: calc(50% - 10px);
     width: 60px;
 }
 
@@ -436,6 +437,68 @@ input:focus {
         max-width: 350px;
         margin: 15px auto;
         padding: 15px;
+    }
+    
+    /* Fix card icon positioning on mobile */
+    .ccicon {
+        height: 32px;
+        width: 50px;
+        top: calc(50% + 10px);
+        right: 8px;
+    }
+    
+    /* Add more spacing between generate random button and input field */
+    #generatecard {
+        margin-bottom: 8px;
+        margin-top: 4px;
+        display: block;
+        clear: both;
+    }
+    
+    /* Add spacing for card number field container on mobile */
+    .field-container:nth-of-type(2) {
+        margin-bottom: 15px;
+    }
+    
+    /* Ensure input field has proper height on mobile */
+    input {
+        padding: 12px 15px;
+        min-height: 20px;
+        box-sizing: border-box;
+    }
+    
+    /* Better positioning for card number input field */
+    .field-container:nth-of-type(2) input {
+        margin-top: 8px;
+    }
+}
+
+/* Additional fixes for very small screens */
+@media (max-width: 480px) {
+    /* Further adjust card icon for very small screens */
+    .ccicon {
+        height: 28px;
+        width: 45px;
+        top: calc(50% + 10px);
+        right: 10px;
+    }
+    
+    /* More spacing for generate random on small screens */
+    #generatecard {
+        margin-bottom: 10px;
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    
+    /* Adjust input padding for small screens */
+    input {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    
+    /* Ensure enough space for card icon */
+    .field-container:nth-of-type(2) input {
+        padding-right: 55px;
     }
 }
 
