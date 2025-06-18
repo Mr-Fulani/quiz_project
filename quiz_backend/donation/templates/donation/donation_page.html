@@ -2,7 +2,7 @@
 {% load static %}
 {% load i18n %}
 
-{% block title %}Donation - Support Our Quiz Platform{% endblock %}
+{% block title %}Donation{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600" rel="stylesheet">
@@ -10,11 +10,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="donation-page-wrapper">
-    <div class="donation-container">
-        <div class="payment-title">
-            <h1>Payment Information</h1>
-        </div>
+<article class="donation active" data-page="donation">
+    <header>
+        <h1 class="h2 article-title">Donation</h1>
+    </header>
 <div class="container preload">
     <div class="creditcard">
         <div class="front">
@@ -178,6 +177,5 @@
         });
     </script>
     {% endif %}
-    </div>
-</div>
+</article>
 {% endblock %} 

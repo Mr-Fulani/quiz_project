@@ -1,33 +1,6 @@
 /* Removed global body styles to avoid conflicts with site styles */
 
-.payment-title {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 30px;
-    position: relative;
-    padding-bottom: 7px;
-}
 
-.payment-title h1 {
-    color: hsl(0, 0%, 98%); /* Same as --white2 from global.css */
-    font-size: 32px;
-    font-weight: 600;
-    margin: 0;
-    text-transform: capitalize;
-}
-
-/* Add decorative line under title like other pages */
-.payment-title::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 30px;
-    height: 3px;
-    background: linear-gradient(to right, hsl(45, 100%, 72%), hsl(35, 100%, 68%));
-    border-radius: 3px;
-}
 
 .form-container .field-container:first-of-type {
     grid-area: name;
@@ -448,10 +421,6 @@ input:focus {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .payment-title h1 {
-        font-size: 24px;
-    }
-    
     .container {
         padding: 10px;
         max-width: 350px;
@@ -468,40 +437,5 @@ input:focus {
         margin: 15px auto;
         padding: 15px;
     }
-    
-    .donation-container {
-        padding: 20px;
-        margin: 0 10px;
-    }
-    
-    .donation-page-wrapper {
-        padding: 80px 10px 20px 10px;
-    }
 }
 
-/* Page wrapper for donation content */
-.donation-page-wrapper {
-    padding-top: 80px; /* Space for fixed navigation */
-    min-height: calc(100vh - 80px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    font-family: 'Raleway', sans-serif;
-    width: 100%;
-    padding: 80px 20px 20px 20px;
-    box-sizing: border-box;
-}
-
-/* Main donation container with rounded edges like other pages */
-.donation-container {
-    background: hsl(240, 2%, 12%); /* Same as --eerie-black2 from global.css */
-    border: 1px solid hsl(0, 0%, 22%); /* Same as --jet from global.css */
-    border-radius: 20px; /* Same as other pages */
-    box-shadow: -4px 8px 24px hsla(0, 0%, 0%, .25); /* Same as --shadow1 */
-    padding: 30px;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-}
