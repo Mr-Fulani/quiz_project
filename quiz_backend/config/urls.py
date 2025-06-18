@@ -56,6 +56,9 @@ urlpatterns = [
     path('users/', include('accounts.urls')),
     #   -> Подключение URL-ов из приложения accounts (регистрация, профили и т.д.)
 
+    path('donate/', include('donation.urls')),
+    #   -> Подключение URL-ов из приложения donation (страница пожертвований)
+
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     #   -> Логаут с редиректом на главную
 

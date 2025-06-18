@@ -51,6 +51,7 @@ INTERNAL_IPS = [
 INSTALLED_APPS = [
     # Ваши приложения
     'accounts',
+    'donation',
 
     # REST framework
     'rest_framework',

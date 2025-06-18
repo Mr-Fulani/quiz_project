@@ -351,47 +351,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ================================
-    // 7. Функция для показа уведомлений
+    // 7. Используем глобальную функцию уведомлений из base.html
     // ================================
-    function showNotification(message, type) {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        notification.style.position = 'fixed';
-        notification.style.top = '20px';
-        notification.style.right = '20px';
-        notification.style.padding = '15px 25px';
-        notification.style.borderRadius = '8px';
-        notification.style.color = 'white';
-        notification.style.fontSize = '14px';
-        notification.style.zIndex = '1000';
-        notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
-        notification.style.transform = 'translateX(120%)';
-        notification.style.transition = 'transform 0.3s ease';
-
-        if (type === 'success') {
-            notification.style.backgroundColor = '#4CAF50';
-        } else if (type === 'error') {
-            notification.style.backgroundColor = '#f44336';
-        }
-
-        document.body.appendChild(notification);
-
-        // Показываем уведомление
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-
-        // Удаляем уведомление через 3 секунды
-        setTimeout(() => {
-            notification.style.transform = 'translateX(120%)';
-            setTimeout(() => {
-                if (notification && notification.parentNode) {
-                    notification.remove();
-                }
-            }, 300);
-        }, 3000);
-    }
+    // showNotification теперь доступна глобально через window.showNotification
 
     // ================================
     // 8. Инициализация графиков (Statistics)
