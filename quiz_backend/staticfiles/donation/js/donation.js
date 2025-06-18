@@ -286,15 +286,7 @@ securitycode.addEventListener('focus', function () {
 
 // Handle form submission with notifications
 document.addEventListener('DOMContentLoaded', function() {
-    // Test notification on page load
-    console.log('Donation page loaded, testing notification...');
-    setTimeout(() => {
-        if (typeof showNotification === 'function') {
-            showNotification('Страница donation загружена успешно!', 'success');
-        } else {
-            console.error('showNotification function not found!');
-        }
-    }, 1000);
+    console.log('Donation page loaded');
     
     const donationForm = document.querySelector('.donation-form');
     console.log('Donation form found:', !!donationForm);

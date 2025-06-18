@@ -55,7 +55,7 @@ def donation_page(request):
     
     context = {
         'form': form,
-        'title': _('Support Our Project'),
+        'title': _('Support'),
         'page_title': _('Donation'),
         'success_message': success_message,
         'error_message': error_message,
