@@ -136,10 +136,26 @@
             </div>
         </div>
         
-        <!-- Скрытые поля только для анимации -->
-        <input id="cardnumber" type="hidden">
+        <!-- Поля для анимации - можно сделать видимыми для лучшего UX -->
+        <div style="display: none;" id="animation-fields">
+            <div class="field-container">
+                <label for="cardnumber-anim">Card Number (Animation)</label>
+                <input id="cardnumber" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="1234 5678 9012 3456">
+            </div>
+            <div class="field-container">
+                <label for="expirationdate-anim">Expiration (Animation)</label>
+                <input id="expirationdate" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="MM/YY">
+            </div>
+            <div class="field-container">
+                <label for="securitycode-anim">Security Code (Animation)</label>
+                <input id="securitycode" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="123">
+            </div>
+        </div>
+        
+        <!-- Альтернативно - полностью скрытые поля -->
+        <!-- <input id="cardnumber" type="hidden">
         <input id="expirationdate" type="hidden">  
-        <input id="securitycode" type="hidden">
+        <input id="securitycode" type="hidden"> -->
         <svg id="ccicon" class="ccicon" width="750" height="471" viewBox="0 0 750 471" version="1.1" xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink">
         </svg>
@@ -279,6 +295,153 @@
             
             // Инициализация значений по умолчанию
             updateCardDisplay('•••• •••• •••• ••••', '••/••', '•••');
+            
+            // Инициализация IMask для анимационных полей (если они видимы)
+            initAnimationFieldMasks();
+        }
+        
+        // Функция инициализации IMask для анимационных полей
+        function initAnimationFieldMasks() {
+            const cardnumberField = document.getElementById('cardnumber');
+            const expirationdateField = document.getElementById('expirationdate');
+            const securitycodeField = document.getElementById('securitycode');
+            
+            if (!cardnumberField || cardnumberField.type === 'hidden') {
+                showDebug('Анимационные поля скрыты, IMask не нужен');
+                return;
+            }
+            
+            // Если поля видимы, применяем IMask как в оригинале
+            if (window.IMask && cardnumberField) {
+                const cardnumber_mask = new IMask(cardnumberField, {
+                    mask: [
+                        {
+                            mask: '0000 000000 00000',
+                            regex: '^3[47]\\d{0,13}',
+                            cardtype: 'amex'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            regex: '^(?:6011|65\\d{0,2}|64[4-9]\\d?)\\d{0,12}',
+                            cardtype: 'discover'
+                        },
+                        {
+                            mask: '0000 000000 0000',
+                            regex: '^3(?:0([0-5]|9)|[689]\\d?)\\d{0,11}',
+                            cardtype: 'diners'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            regex: '^(5[1-5]\\d{0,2}|22[2-9]\\d{0,1}|2[3-7]\\d{0,2})\\d{0,12}',
+                            cardtype: 'mastercard'
+                        },
+                        {
+                            mask: '0000 000000 00000',
+                            regex: '^(?:2131|1800)\\d{0,11}',
+                            cardtype: 'jcb15'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            regex: '^(?:35\\d{0,2})\\d{0,12}',
+                            cardtype: 'jcb'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            regex: '^(?:5[0678]\\d{0,2}|6304|67\\d{0,2})\\d{0,12}',
+                            cardtype: 'maestro'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            regex: '^4\\d{0,15}',
+                            cardtype: 'visa'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            regex: '^62\\d{0,14}',
+                            cardtype: 'unionpay'
+                        },
+                        {
+                            mask: '0000 0000 0000 0000',
+                            cardtype: 'Unknown'
+                        }
+                    ],
+                    dispatch: function (appended, dynamicMasked) {
+                        var number = (dynamicMasked.value + appended).replace(/\D/g, '');
+                        for (var i = 0; i < dynamicMasked.compiledMasks.length; i++) {
+                            let re = new RegExp(dynamicMasked.compiledMasks[i].regex);
+                            if (number.match(re) != null) {
+                                return dynamicMasked.compiledMasks[i];
+                            }
+                        }
+                    }
+                });
+                
+                // Обновление номера карты в реальном времени
+                cardnumber_mask.on('accept', function () {
+                    const svgnumber = document.getElementById('svgnumber');
+                    if (svgnumber) {
+                        svgnumber.innerHTML = cardnumber_mask.value || '•••• •••• •••• ••••';
+                    }
+                    
+                    // Обновление типа карты
+                    const cardtype = cardnumber_mask.masked.currentMask.cardtype;
+                    updateCardTypeFromBrandAdvanced(cardtype);
+                    showDebug('IMask detected card type: ' + cardtype);
+                });
+                
+                // Сохраняем маску в глобальном объекте
+                window.cardMasks = window.cardMasks || {};
+                window.cardMasks.cardnumber = cardnumber_mask;
+            }
+            
+            // Mask для даты истечения
+            if (window.IMask && expirationdateField) {
+                const expirationdate_mask = new IMask(expirationdateField, {
+                    mask: 'MM{/}YY',
+                    groups: {
+                        YY: new IMask.MaskedPattern.Group.Range([0, 99]),
+                        MM: new IMask.MaskedPattern.Group.Range([1, 12]),
+                    }
+                });
+                
+                // Обновление даты истечения в реальном времени
+                expirationdate_mask.on('accept', function () {
+                    const svgexpire = document.getElementById('svgexpire');
+                    if (svgexpire) {
+                        svgexpire.innerHTML = expirationdate_mask.value || '••/••';
+                    }
+                });
+                
+                window.cardMasks = window.cardMasks || {};
+                window.cardMasks.expirationdate = expirationdate_mask;
+            }
+            
+            // Mask для кода безопасности
+            if (window.IMask && securitycodeField) {
+                const securitycode_mask = new IMask(securitycodeField, {
+                    mask: '0000',
+                });
+                
+                // Обновление кода безопасности в реальном времени
+                securitycode_mask.on('accept', function () {
+                    const svgsecurity = document.getElementById('svgsecurity');
+                    if (svgsecurity) {
+                        svgsecurity.innerHTML = securitycode_mask.value || '•••';
+                    }
+                });
+                
+                // События фокуса для переворота карты
+                securitycodeField.addEventListener('focus', function() {
+                    document.querySelector('.creditcard')?.classList.add('flipped');
+                });
+                
+                securitycodeField.addEventListener('blur', function() {
+                    document.querySelector('.creditcard')?.classList.remove('flipped');
+                });
+                
+                window.cardMasks = window.cardMasks || {};
+                window.cardMasks.securitycode = securitycode_mask;
+            }
         }
         
         // Функция обновления отображения карты
@@ -303,7 +466,7 @@
             
             // Обновляем тип карты на основе brand от Stripe
             if (event.brand) {
-                updateCardTypeFromBrand(event.brand);
+                updateCardTypeFromBrandAdvanced(event.brand);
             }
             
             // Реалистичная анимация на основе состояния Stripe
@@ -331,6 +494,73 @@
                 const cardNumber = getPartialCardNumber(event.brand);
                 updateCardDisplay(cardNumber, '••/••', '•••');
                 showDebug('⏳ Stripe field partially filled');
+            }
+        }
+        
+        // Расширенная функция обновления типа карты с полной поддержкой SVG
+        function updateCardTypeFromBrandAdvanced(brand) {
+            const ccicon = document.getElementById('ccicon');
+            const ccsingle = document.getElementById('ccsingle');
+            
+            if (!ccicon || !ccsingle) return;
+            
+            // Define card brand SVG icons
+            const cardIcons = {
+                visa: `<g><rect fill="#1434CB" x="0" y="0" width="750" height="471" rx="40"></rect><path fill="white" d="M278.198,334.228l33.36-195.763h53.358l-33.384,195.763H278.198z M524.307,142.687c-10.57-3.966-27.135-8.222-47.822-8.222c-52.725,0-89.863,26.551-90.18,64.604c-0.297,28.129,26.514,43.821,46.754,53.185c20.77,9.597,27.752,15.716,27.652,24.283c-0.133,13.123-16.586,19.116-31.924,19.116c-21.355,0-32.701-2.967-50.225-10.274l-6.877-3.112l-7.488,43.823c12.463,5.466,35.508,10.199,59.438,10.445c56.09,0,92.502-26.248,92.916-66.884c0.199-22.27-14.016-39.216-44.801-53.188c-18.65-9.056-30.072-15.099-29.951-24.269c0-8.137,9.668-16.838,30.559-16.838c17.447-0.271,30.088,3.534,39.936,7.5l4.781,2.259L524.307,142.687 M661.615,138.464h-41.23c-12.773,0-22.332,3.486-27.941,16.234l-79.244,179.402h56.031c0,0,9.16-24.121,11.232-29.418c6.123,0,60.555,0.084,68.336,0.084c1.596,6.854,6.492,29.334,6.492,29.334h49.512L661.615,138.464z M596.198,264.872c4.414-11.279,21.26-54.724,21.26-54.724c-0.314,0.521,4.381-11.334,7.074-18.684l3.607,16.878c0,0,10.217,46.729,12.352,56.527h-44.293V264.872z M232.903,138.464L180.664,271.96l-5.565-27.129c-9.726-31.274-40.025-65.157-73.898-82.12l47.767,171.204l56.455-0.064l84.004-195.386L232.903,138.464 M131.92,138.464H45.879l-0.682,4.073c66.939,16.204,111.232,55.363,129.618,102.415l-18.709-89.96C152.877,142.596,143.509,138.896,131.92,138.464"></path></g>`,
+                mastercard: `<g><rect fill="#000000" x="0" y="0" width="750" height="471" rx="40"></rect><rect fill="#FF5F00" x="170.55" y="32.39" width="143.72" height="234.42"></rect><path fill="#EB001B" d="M185.05,149.6c0.06-45.687,20.96-88.862,56.79-117.21c-61.128-48.07-148.928-41.084-201.687,16.048c-52.759,57.132-52.759,145.225,0,202.357c52.759,57.133,140.559,64.119,201.687,16.048C206.01,238.462,185.11,195.287,185.05,149.6z"></path><path fill="#F79E1B" d="M483.26,149.6c0.041,57.047-32.504,109.106-83.806,134.057C348.154,308.607,287.109,302.064,242.26,266.81c35.839-28.31,56.742-71.49,56.742-117.21s-20.902-88.9-56.742-117.21c44.849-35.254,105.894-41.797,157.195-16.846C450.756,40.494,483.301,92.553,483.26,149.6z"></path></g>`,
+                amex: `<g><rect fill="#2557D6" x="0" y="0" width="750" height="471" rx="40"></rect><path fill="white" d="M554.594,130.608l-14.521,35.039h29.121L554.594,130.608z M387.03,152.321c2.738-1.422,4.349-4.515,4.349-8.356c0-3.764-1.693-6.49-4.431-7.771c-2.492-1.42-6.328-1.584-10.006-1.584h-25.978v19.523h25.63C380.7,154.134,384.131,154.074,387.03,152.321z"></path></g>`,
+                discover: `<g><path fill="#4D4D4D" d="M52.877,0C23.679,0,0,23.155,0,51.71v367.58C0,447.845,23.672,471,52.877,471h644.246C726.321,471,750,447.845,750,419.29V51.71C750,23.149,726.328,0,697.123,0H52.877z"></path><path fill="#F47216" d="M749.983,271.094c-25.048,17.233-212.574,140.397-537.264,199.891h484.386c29.198,0,52.877-23.155,52.877-51.71V271.094z"></path></g>`,
+                jcb: `<g><rect fill="#0E4C96" x="0" y="0" width="750" height="471" rx="40"></rect><path fill="white" d="M617.242,346.766c0,41.615-33.729,75.36-75.357,75.36H132.759V124.245c0-41.626,33.73-75.371,75.364-75.371h409.12V346.766z"></path></g>`,
+                diners: `<g><path fill="#0079BE" d="M584.934,236.947c0-99.416-82.98-168.133-173.896-168.1h-78.241c-92.003-0.033-167.73,68.705-167.73,168.1c0,90.931,75.729,165.641,167.73,165.203h78.241C501.951,402.587,584.934,327.857,584.934,236.947z"></path><path fill="white" d="M333.281,82.932c-84.069,0.026-152.193,68.308-152.215,152.58c0.021,84.258,68.145,152.532,152.215,152.559c84.088-0.026,152.229-68.301,152.239-152.559C485.508,151.238,417.369,82.958,333.281,82.932z"></path><path fill="#0079BE" d="M237.066,235.098c0.08-41.18,25.747-76.296,61.94-90.25v180.479C262.813,311.381,237.145,276.283,237.066,235.098z M368.066,325.373V144.848c36.208,13.921,61.915,49.057,61.981,90.256C429.981,276.316,404.274,311.426,368.066,325.373z"></path></g>`,
+                maestro: `<g><rect fill="#000000" x="0" y="0" width="750" height="471" rx="40"></rect><rect fill="#7673C0" x="176.95" y="32.39" width="130.5" height="234.51"></rect><path fill="#EB001B" d="M185.24,149.64c-0.035-45.717,20.985-88.955,57-117.26c-61.128-48.072-148.928-41.086-201.687,16.048c-52.759,57.132-52.759,145.225,0,202.357c52.759,57.133,140.559,64.119,201.687,16.048C206.225,238.596,185.275,195.371,185.24,149.64z"></path><path fill="#00A1DF" d="M483.5,149.64c0.041,57.047-32.504,109.106-83.806,134.057c-51.301,24.95-112.346,18.407-157.195-16.847c35.839-28.31,56.742-71.49,56.742-117.21s-20.902-88.9-56.742-117.21c44.849-35.254,105.894-41.797,157.195-16.846C450.996,40.534,483.541,92.593,483.5,149.64z"></path></g>`,
+                unionpay: `<g><rect fill="white" x="0" y="0" width="750" height="471" rx="40"></rect><path fill="#D10429" d="M201.81,55h142.393c19.869,0,32.287,16.406,27.63,36.47L305.5,378.948c-4.657,20.064-24.629,36.47-44.498,36.47H118.609c-19.869,0-32.287-16.406-27.63-36.47L157.312,91.47C161.968,71.302,181.837,55,201.706,55H201.81z"></path><path fill="#022E64" d="M331.75,55h163.815c19.869,0-8.964,16.406-3.307,36.47L426.925,378.948c-4.657,20.064-2.208,36.47-22.077,36.47H240.863c-19.973,0-32.287-16.406-27.63-36.47L279.566,91.47C284.223,71.302,304.092,55,323.964,55H331.75z"></path><path fill="#076F74" d="M489.815,55h142.394c19.869,0,32.287,16.406,27.63,36.47L593.506,378.948c-4.657,20.064-24.629,36.47-44.498,36.47H406.614c-19.973,0-32.287-16.406-27.63-36.47L444.317,91.47C448.974,71.302,468.843,55,488.711,55H489.815z"></path></g>`
+            };
+            
+            switch(brand) {
+                case 'visa':
+                    ccicon.innerHTML = cardIcons.visa;
+                    ccsingle.innerHTML = cardIcons.visa;
+                    swapColor('blue');
+                    break;
+                case 'mastercard':
+                    ccicon.innerHTML = cardIcons.mastercard;
+                    ccsingle.innerHTML = cardIcons.mastercard;
+                    swapColor('red');
+                    break;
+                case 'amex':
+                    ccicon.innerHTML = cardIcons.amex;
+                    ccsingle.innerHTML = cardIcons.amex;
+                    swapColor('green');
+                    break;
+                case 'discover':
+                    ccicon.innerHTML = cardIcons.discover;
+                    ccsingle.innerHTML = cardIcons.discover;
+                    swapColor('orange');
+                    break;
+                case 'jcb':
+                    ccicon.innerHTML = cardIcons.jcb;
+                    ccsingle.innerHTML = cardIcons.jcb;
+                    swapColor('purple');
+                    break;
+                case 'diners':
+                    ccicon.innerHTML = cardIcons.diners;
+                    ccsingle.innerHTML = cardIcons.diners;
+                    swapColor('cyan');
+                    break;
+                case 'maestro':
+                    ccicon.innerHTML = cardIcons.maestro;
+                    ccsingle.innerHTML = cardIcons.maestro;
+                    swapColor('yellow');
+                    break;
+                case 'unionpay':
+                    ccicon.innerHTML = cardIcons.unionpay;
+                    ccsingle.innerHTML = cardIcons.unionpay;
+                    swapColor('lime');
+                    break;
+                default:
+                    ccicon.innerHTML = '';
+                    ccsingle.innerHTML = '';
+                    swapColor('grey');
             }
         }
         
@@ -478,7 +708,7 @@
                 // Обновляем анимацию напрямую
                 const formattedNumber = formatCardNumber(randomCard.number);
                 updateCardDisplay(formattedNumber, '12/25', '123');
-                updateCardTypeFromBrand(randomCard.brand);
+                updateCardTypeFromBrandAdvanced(randomCard.brand);
                 
                 showDebug('🎲 Сгенерирована случайная карта: ' + randomCard.brand + ' - ' + formattedNumber);
                 showNotification('Сгенерирована тестовая карта ' + randomCard.brand.toUpperCase() + '! Введите эти данные в поле Stripe.', 'info');
