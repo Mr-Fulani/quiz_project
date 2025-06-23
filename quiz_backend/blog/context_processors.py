@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.conf import settings
@@ -188,7 +189,7 @@ def seo_context(request):
         'hreflang_url': base_url + reverse('blog:home'),
         'og_title': _('Quiz Project'),
         'og_description': _('Welcome to Quiz Project — blog and portfolio with quizzes and projects.'),
-        'og_image': request.build_absolute_uri('/static/blog/images/default-og-image.jpg'),
+        'og_image': request.build_absolute_uri('/static/blog/images/default-og-image.jpeg'),
         'og_url': base_url + reverse('blog:home'),
     }
 
@@ -226,6 +227,32 @@ def seo_context(request):
             'og_url': base_url + reverse('blog:contact'),
         })
 
+    # Добавляем структурированные данные JSON-LD
+    
+    website_data = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Quiz Project",
+        "url": request.build_absolute_uri('/'),
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": request.build_absolute_uri('/?search={search_term_string}'),
+            "query-input": "required name=search_term_string"
+        }
+    }
+    
+    organization_data = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Quiz Project",
+        "url": request.build_absolute_uri('/'),
+        "foundingDate": "2024",
+        "description": seo_data['meta_description']
+    }
+    
+    seo_data['website_json_ld'] = json.dumps(website_data, ensure_ascii=False, indent=2)
+    seo_data['organization_json_ld'] = json.dumps(organization_data, ensure_ascii=False, indent=2)
+
     logger.info("=== DEBUG: seo_context data prepared: %s", seo_data.keys())
     return seo_data
 
@@ -240,9 +267,53 @@ def marquee_text(request):
 
 def analytics_context(request):
     """
-    Добавляет переменные аналитики в контекст всех шаблонов
+    Добавляет переменные аналитики и социальных сетей в контекст всех шаблонов
     """
     return {
         'GOOGLE_ANALYTICS_PROPERTY_ID': settings.GOOGLE_ANALYTICS_PROPERTY_ID,
         'YANDEX_METRICA_ID': settings.YANDEX_METRICA_ID,
+        'twitter_username': getattr(settings, 'TWITTER_USERNAME', None),
     }
+
+
+def page_meta_context(request):
+    """
+    Добавляет переменные времени публикации и изменения страниц в контекст.
+    Автоматически определяет даты для постов и проектов на основе URL.
+    """
+    context = {}
+    
+    # Пытаемся определить тип объекта на основе URL
+    path = request.path
+    
+    try:
+        # Для постов блога
+        if '/post/' in path or '/blog/' in path:
+            from blog.models import Post
+            # Извлекаем slug из URL
+            slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            if slug and slug != 'blog':
+                try:
+                    post = Post.objects.get(slug=slug)
+                    context['page_published_time'] = post.published_at or post.created_at
+                    context['page_modified_time'] = post.updated_at
+                except Post.DoesNotExist:
+                    pass
+        
+        # Для проектов портфолио
+        elif '/project/' in path or '/portfolio/' in path:
+            from blog.models import Project
+            # Извлекаем slug из URL
+            slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            if slug and slug != 'portfolio':
+                try:
+                    project = Project.objects.get(slug=slug)
+                    context['page_published_time'] = project.created_at
+                    context['page_modified_time'] = project.updated_at
+                except Project.DoesNotExist:
+                    pass
+    
+    except Exception as e:
+        logger.error(f"Error in page_meta_context for path {path}: {e}")
+    
+    return context
