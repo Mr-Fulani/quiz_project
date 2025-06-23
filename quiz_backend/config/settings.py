@@ -167,6 +167,7 @@ TEMPLATES = [
                 'blog.context_processors.unread_messages_count',
                 'blog.context_processors.seo_context',
                 'blog.context_processors.analytics_context',
+                'blog.context_processors.page_meta_context',
             ],
             'loaders': [
                 'django.template.loaders.filesystem.Loader',
@@ -377,5 +378,8 @@ ANALYTICAL_INTERNAL_IPS = ['127.0.0.1', 'localhost']
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', 'pk_test_...')  # Тестовый ключ
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_...')  # Тестовый ключ
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_...')  # Для webhook
+
+# Социальные сети настройки
+TWITTER_USERNAME = os.getenv('TWITTER_USERNAME', '')  # Имя пользователя Twitter без @
 
 
