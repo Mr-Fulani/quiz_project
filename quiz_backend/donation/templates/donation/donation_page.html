@@ -117,58 +117,46 @@
         <label for="name">Name</label>
         <input id="name" maxlength="20" type="text">
     </div>
-    <!-- Поля для анимации - прозрачные поверх Stripe Elements -->
-    <div class="field-container">
+    <!-- Stripe Payment Section -->
+    <div class="field-container" style="margin-bottom: 20px;">
         <label for="cardnumber">Card Number</label>
         <span id="generatecard" style="cursor: pointer; color: blue; margin-left: 10px;">generate random</span>
         <span id="show-debug" style="cursor: pointer; color: green; margin-left: 10px;">показать отладку</span>
+        
         <!-- Stripe Element - единственное поле ввода -->
-        <div style="padding: 10px; border: 2px solid #4CAF50; border-radius: 8px; background: #f8fff8;">
+        <div style="padding: 15px; border: 2px solid #4CAF50; border-radius: 8px; background: #f8fff8; margin-top: 10px;">
             <div style="font-weight: bold; color: #2E7D32; margin-bottom: 8px;">
                 💳 Введите данные карты
             </div>
-            <div id="card-element-visible" style="padding: 15px; border: 1px solid #ccc; border-radius: 4px; background: white; 
+            <div id="card-element-visible" style="padding: 15px; border: 2px solid #007cba; border-radius: 6px; background: white; 
                                                    font-size: 16px; min-height: 50px; box-sizing: border-box;">
                 <!-- Stripe Elements будет здесь -->
             </div>
-            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            <div style="font-size: 12px; color: #2E7D32; margin-top: 8px; font-weight: 500;">
                 🎨 Анимация карты обновляется автоматически при вводе
             </div>
         </div>
-        
-        <!-- Поля для анимации - можно сделать видимыми для лучшего UX -->
-        <div style="display: none;" id="animation-fields">
-            <div class="field-container">
-                <label for="cardnumber-anim">Card Number (Animation)</label>
-                <input id="cardnumber" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="1234 5678 9012 3456">
-            </div>
-            <div class="field-container">
-                <label for="expirationdate-anim">Expiration (Animation)</label>
-                <input id="expirationdate" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="MM/YY">
-            </div>
-            <div class="field-container">
-                <label for="securitycode-anim">Security Code (Animation)</label>
-                <input id="securitycode" type="text" pattern="[0-9]*" inputmode="numeric" placeholder="123">
-            </div>
-        </div>
-        
-        <!-- Альтернативно - полностью скрытые поля -->
-        <!-- <input id="cardnumber" type="hidden">
-        <input id="expirationdate" type="hidden">  
-        <input id="securitycode" type="hidden"> -->
+    </div>
+    
+    <!-- Скрытые поля только для хранения данных анимации -->
+    <input id="cardnumber" type="hidden">
+    <input id="expirationdate" type="hidden">  
+    <input id="securitycode" type="hidden">
+    
+    <!-- Card Animation Display -->
+    <div class="field-container" style="margin-bottom: 20px;">
         <svg id="ccicon" class="ccicon" width="750" height="471" viewBox="0 0 750 471" version="1.1" xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink">
         </svg>
     </div>
+    <!-- Error Messages -->
+    <div id="card-errors" role="alert" style="color: #fa755a; margin: 15px 0; text-align: center; padding: 8px; border-radius: 4px; background: #ffeaea; display: none;"></div>
     
-
-    
-    <div id="card-errors" role="alert" style="color: #fa755a; margin-top: 8px; text-align: center;"></div>
-    
-    <!-- Отладочная информация -->
-    <div id="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 12px; display: none;">
-        <strong>Отладка:</strong><br>
+    <!-- Отладочная информация - компактная -->
+    <div id="debug-info" style="position: fixed; top: 10px; right: 10px; background: rgba(240,240,240,0.95); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 10px; display: none; max-width: 300px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+        <div style="font-weight: bold; margin-bottom: 5px; color: #333;">🔧 Debug</div>
         <div id="debug-content"></div>
+        <button onclick="document.getElementById('debug-info').style.display='none'" style="position: absolute; top: 2px; right: 5px; border: none; background: none; font-size: 12px; cursor: pointer;">×</button>
     </div>
 </div>
 
@@ -217,13 +205,19 @@
             // Создаем Elements
             const elements = stripe.elements();
             
-            // Создаем один общий Card Element (скрытый)
+            // Создаем один общий Card Element (видимый)
             const cardElement = elements.create('card', {
                 style: {
                     base: {
                         fontSize: '16px',
-                        color: 'transparent',
-                        '::placeholder': { color: 'transparent' },
+                        color: '#424770',
+                        fontFamily: 'Arial, sans-serif',
+                        '::placeholder': { 
+                            color: '#aab7c4' 
+                        },
+                    },
+                    invalid: {
+                        color: '#9e2146',
                     }
                 },
                 hidePostalCode: true
@@ -237,8 +231,10 @@
                 const displayError = document.getElementById('card-errors');
                 if (event.error) {
                     displayError.textContent = event.error.message;
+                    displayError.style.display = 'block';
                 } else {
                     displayError.textContent = '';
+                    displayError.style.display = 'none';
                 }
                 
                 // Обновляем анимацию на основе данных из Stripe
@@ -248,13 +244,22 @@
             // Обработка фокуса на Stripe Element
             cardElement.on('focus', (event) => {
                 showDebug('🎯 Focus on Stripe Element');
+                // При фокусе показываем лицевую сторону карты (если не вводим CVC)
                 const creditcard = document.querySelector('.creditcard');
-                if (creditcard) creditcard.classList.remove('flipped');
+                if (creditcard && !isEnteringCVC) {
+                    creditcard.classList.remove('flipped');
+                }
             });
             
             // Обработка потери фокуса
             cardElement.on('blur', (event) => {
                 showDebug('👋 Blur from Stripe Element');
+                // При потере фокуса возвращаем карту на лицевую сторону
+                const creditcard = document.querySelector('.creditcard');
+                if (creditcard) {
+                    creditcard.classList.remove('flipped');
+                }
+                isEnteringCVC = false;
             });
             
             // Передаем в глобальные переменные
@@ -306,10 +311,17 @@
             const expirationdateField = document.getElementById('expirationdate');
             const securitycodeField = document.getElementById('securitycode');
             
-            if (!cardnumberField || cardnumberField.type === 'hidden') {
-                showDebug('Анимационные поля скрыты, IMask не нужен');
+            if (!cardnumberField) {
+                showDebug('Анимационные поля не найдены');
                 return;
             }
+            
+            if (cardnumberField.type === 'hidden') {
+                showDebug('✅ Анимационные поля скрыты - используем только Stripe для ввода');
+                return;
+            }
+            
+            showDebug('Анимационные поля видимы, инициализируем IMask');
             
             // Если поля видимы, применяем IMask как в оригинале
             if (window.IMask && cardnumberField) {
@@ -469,21 +481,38 @@
                 updateCardTypeFromBrandAdvanced(event.brand);
             }
             
+            // Синхронизируем скрытые поля с состоянием Stripe
+            const cardnumberField = document.getElementById('cardnumber');
+            const expirationdateField = document.getElementById('expirationdate');
+            const securitycodeField = document.getElementById('securitycode');
+            
             // Реалистичная анимация на основе состояния Stripe
             if (event.complete) {
                 // Полностью заполнено - показываем реалистичные данные
                 const cardNumber = getCardNumberByBrand(event.brand);
-                updateCardDisplay(cardNumber, '12/25', '123');
-                showDebug('✅ Stripe field complete - показываем заполненную анимацию');
+                const formattedNumber = formatCardNumber(cardNumber);
+                
+                // Синхронизируем скрытые поля
+                if (cardnumberField) cardnumberField.value = cardNumber.replace(/\s/g, '');
+                if (expirationdateField) expirationdateField.value = '1225';
+                if (securitycodeField) securitycodeField.value = '123';
+                
+                // Обновляем отображение
+                updateCardDisplay(formattedNumber, '12/25', '123');
+                showDebug('✅ Stripe complete - синхронизировано: ' + formattedNumber);
                 
                 // Убираем переворот карты
                 const creditcard = document.querySelector('.creditcard');
                 if (creditcard) creditcard.classList.remove('flipped');
                 
             } else if (event.empty) {
-                // Пустое поле - показываем placeholder
+                // Пустое поле - очищаем все
+                if (cardnumberField) cardnumberField.value = '';
+                if (expirationdateField) expirationdateField.value = '';
+                if (securitycodeField) securitycodeField.value = '';
+                
                 updateCardDisplay('•••• •••• •••• ••••', '••/••', '•••');
-                showDebug('⭕ Stripe field empty - показываем пустую анимацию');
+                showDebug('⭕ Stripe empty - очищено');
                 
                 // Убираем переворот карты
                 const creditcard = document.querySelector('.creditcard');
@@ -491,9 +520,16 @@
                 
             } else {
                 // Частично заполнено - показываем прогресс
-                const cardNumber = getPartialCardNumber(event.brand);
-                updateCardDisplay(cardNumber, '••/••', '•••');
-                showDebug('⏳ Stripe field partially filled');
+                if (event.brand) {
+                    const partialNumber = getPartialCardNumber(event.brand);
+                    const cardNumber = getCardNumberByBrand(event.brand);
+                    
+                    // Частично синхронизируем
+                    if (cardnumberField) cardnumberField.value = cardNumber.replace(/\s/g, '').substring(0, 4);
+                    
+                    updateCardDisplay(partialNumber, '••/••', '•••');
+                    showDebug('⏳ Stripe partial - показываем: ' + partialNumber);
+                }
             }
         }
         
@@ -722,33 +758,79 @@
         
         // Функция инициализации кнопки отладки
         function initDebugButton() {
-            const debugBtn = document.getElementById('show-debug');
-            if (!debugBtn) return;
-            
-            debugBtn.addEventListener('click', function() {
-                clearDebug();
-                showDebug('=== ОТЛАДКА ПО ЗАПРОСУ ===');
-                
-                const cardnumberField = document.getElementById('cardnumber');
-                const expirationdateField = document.getElementById('expirationdate');
-                const securitycodeField = document.getElementById('securitycode');
-                
-                showDebug('cardnumberField.value: "' + (cardnumberField?.value || 'пустое') + '"');
-                showDebug('expirationdateField.value: "' + (expirationdateField?.value || 'пустое') + '"');
-                showDebug('securitycodeField.value: "' + (securitycodeField?.value || 'пустое') + '"');
-                
-                if (window.cardMasks) {
-                    showDebug('cardMasks найден!');
-                    if (window.cardMasks.cardnumber) {
-                        showDebug('cardMasks.cardnumber.value: "' + window.cardMasks.cardnumber.value + '"');
-                        showDebug('cardMasks.cardnumber.unmaskedValue: "' + window.cardMasks.cardnumber.unmaskedValue + '"');
-                    } else {
-                        showDebug('cardMasks.cardnumber НЕ НАЙДЕН!');
-                    }
+            // Создаем скрытую кнопку переключения отладки
+            const debugToggle = document.createElement('div');
+            debugToggle.innerHTML = '🔧';
+            debugToggle.title = 'Toggle Debug (Click to show/hide debug info)';
+            debugToggle.style.cssText = `
+                position: fixed; 
+                bottom: 10px; 
+                right: 10px; 
+                width: 30px; 
+                height: 30px; 
+                border-radius: 50%; 
+                background: rgba(108, 117, 125, 0.8); 
+                color: white; 
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px; 
+                cursor: pointer; 
+                z-index: 1002;
+                opacity: 0.6;
+                transition: all 0.3s ease;
+            `;
+            debugToggle.onmouseover = function() {
+                this.style.opacity = '1';
+                this.style.transform = 'scale(1.1)';
+            };
+            debugToggle.onmouseout = function() {
+                this.style.opacity = '0.6';
+                this.style.transform = 'scale(1)';
+            };
+            debugToggle.onclick = function() {
+                const debugInfo = document.getElementById('debug-info');
+                if (debugInfo.style.display === 'none') {
+                    debugInfo.style.display = 'block';
+                    this.style.background = 'rgba(40, 167, 69, 0.8)';
+                    this.innerHTML = '🔧';
                 } else {
-                    showDebug('window.cardMasks НЕ НАЙДЕН!');
+                    debugInfo.style.display = 'none';
+                    this.style.background = 'rgba(108, 117, 125, 0.8)';
+                    this.innerHTML = '🔧';
                 }
-            });
+            };
+            document.body.appendChild(debugToggle);
+            
+            // Также поддерживаем старую кнопку если она есть
+            const debugBtn = document.getElementById('show-debug');
+            if (debugBtn) {
+                debugBtn.style.display = 'none'; // Скрываем старую кнопку
+                debugBtn.addEventListener('click', function() {
+                    clearDebug();
+                    showDebug('=== ОТЛАДКА ПО ЗАПРОСУ ===');
+                    
+                    const cardnumberField = document.getElementById('cardnumber');
+                    const expirationdateField = document.getElementById('expirationdate');
+                    const securitycodeField = document.getElementById('securitycode');
+                    
+                    showDebug('cardnumberField.value: "' + (cardnumberField?.value || 'пустое') + '"');
+                    showDebug('expirationdateField.value: "' + (expirationdateField?.value || 'пустое') + '"');
+                    showDebug('securitycodeField.value: "' + (securitycodeField?.value || 'пустое') + '"');
+                    
+                    if (window.cardMasks) {
+                        showDebug('cardMasks найден!');
+                        if (window.cardMasks.cardnumber) {
+                            showDebug('cardMasks.cardnumber.value: "' + window.cardMasks.cardnumber.value + '"');
+                            showDebug('cardMasks.cardnumber.unmaskedValue: "' + window.cardMasks.cardnumber.unmaskedValue + '"');
+                        } else {
+                            showDebug('cardMasks.cardnumber НЕ НАЙДЕН!');
+                        }
+                    } else {
+                        showDebug('window.cardMasks НЕ НАЙДЕН!');
+                    }
+                });
+            }
         }
         
         // Инициализация обработчика формы
