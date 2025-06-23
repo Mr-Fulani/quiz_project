@@ -168,6 +168,70 @@ def create_payment_intent(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+def create_payment_method(request):
+    """Создание payment method на сервере"""
+    try:
+        data = json.loads(request.body)
+        
+        # Получаем данные карты
+        card_number = data.get('card_number')
+        exp_month = data.get('exp_month')
+        exp_year = data.get('exp_year')
+        cvc = data.get('cvc')
+        name = data.get('name', '')
+        email = data.get('email', '')
+        
+        # Валидация
+        if not all([card_number, exp_month, exp_year, cvc]):
+            return JsonResponse({
+                'success': False,
+                'message': _('All card fields are required')
+            }, status=400)
+        
+        # Создаем payment method в Stripe
+        payment_method = stripe.PaymentMethod.create(
+            type='card',
+            card={
+                'number': card_number,
+                'exp_month': exp_month,
+                'exp_year': exp_year,
+                'cvc': cvc,
+            },
+            billing_details={
+                'name': name,
+                'email': email,
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'payment_method_id': payment_method.id
+        })
+        
+    except stripe.error.CardError as e:
+        logger.error(f"Stripe card error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e.user_message)
+        }, status=400)
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('Payment method creation error')
+        }, status=400)
+        
+    except Exception as e:
+        logger.error(f"Payment method creation error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('An error occurred')
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
 def confirm_payment(request):
     """Подтверждение успешного платежа"""
     try:
