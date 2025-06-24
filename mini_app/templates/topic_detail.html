@@ -73,7 +73,76 @@ function startQuiz(topicId) {
 }
 
 function goBack() {
-    window.history.back();
+    console.log('Going back to main page via AJAX...');
+    
+    // Используем AJAX навигацию для возврата на главную
+    const loadMainPage = async () => {
+        try {
+            const contentContainer = document.querySelector('.content');
+            if (!contentContainer) {
+                console.log('Content container not found, using browser back');
+                window.history.back();
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            contentContainer.style.opacity = '0.7';
+            
+            const response = await fetch('/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.ok) {
+                const html = await response.text();
+                
+                // Парсим HTML и извлекаем контент
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.querySelector('.content');
+                
+                if (newContent) {
+                    // Плавно заменяем контент
+                    setTimeout(() => {
+                        contentContainer.innerHTML = newContent.innerHTML;
+                        contentContainer.style.opacity = '1';
+                        
+                        // Обновляем URL в браузере
+                        window.history.pushState({}, '', '/');
+                        
+                        // Обновляем активную навигацию
+                        const navItems = document.querySelectorAll('.navigation .list');
+                        navItems.forEach(item => {
+                            item.classList.remove('active');
+                            if (item.getAttribute('data-href') === '/') {
+                                item.classList.add('active');
+                            }
+                        });
+                        
+                        // Перезапускаем скрипты карточек
+                        if (window.initTopicCards) {
+                            console.log('Reinitializing topic cards after back navigation...');
+                            window.initTopicCards();
+                        }
+                        
+                        console.log('Returned to main page via AJAX successfully');
+                    }, 200);
+                } else {
+                    console.log('New content not found, using browser back');
+                    window.history.back();
+                }
+            } else {
+                console.log('AJAX request failed, using browser back');
+                window.history.back();
+            }
+        } catch (error) {
+            console.error('Error during AJAX back navigation:', error);
+            window.history.back();
+        }
+    };
+    
+    loadMainPage();
 }
 </script>
 {% endblock %} 
