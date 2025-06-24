@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
 {% block title %}
-{{ topic.title }} - Тема опроса
+{{ topic.name }} - Тема опроса
 {% endblock %}
 
 {% block content %}
 <div class="topic-detail">
     <div class="topic-header">
-        <img src="{{ topic.image_url }}" alt="{{ topic.title }}" class="topic-image">
+        <img src="{{ topic.image_url }}" alt="{{ topic.name }}" class="topic-image">
         <div class="topic-info">
-            <h1>{{ topic.title }}</h1>
+            <h1>{{ topic.name }}</h1>
             <p class="topic-description">{{ topic.description }}</p>
             <div class="topic-stats">
                 <span class="difficulty difficulty-{{ topic.difficulty.lower() }}">
@@ -34,17 +34,17 @@
     <div class="topic-preview">
         <h3>О чём будет опрос:</h3>
         <ul class="preview-list">
-            {% if topic.title == "Python" %}
+            {% if topic.name == "Python" %}
                 <li>Основы синтаксиса Python</li>
                 <li>Работа с данными и структурами</li>
                 <li>Объектно-ориентированное программирование</li>
                 <li>Библиотеки и фреймворки</li>
-            {% elif topic.title == "JavaScript" %}
+            {% elif topic.name == "JavaScript" %}
                 <li>Основы JavaScript</li>
                 <li>DOM манипуляции</li>
                 <li>Асинхронное программирование</li>
                 <li>ES6+ возможности</li>
-            {% elif topic.title == "React" %}
+            {% elif topic.name == "React" %}
                 <li>Компоненты и JSX</li>
                 <li>State и Props</li>
                 <li>Hooks и жизненный цикл</li>
