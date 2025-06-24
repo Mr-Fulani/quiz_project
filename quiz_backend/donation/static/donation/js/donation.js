@@ -1,3 +1,8 @@
+// Функция для получения локализованного сообщения
+function getLocalizedMessage(key, fallback = '') {
+    return (window.DONATION_MESSAGES && window.DONATION_MESSAGES[key]) || fallback;
+}
+
 window.onload = function () {
 
 const name = document.getElementById('name');
@@ -299,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Stripe initialized successfully');
     } else {
         console.error('Stripe not available - window.stripeInstance is:', window.stripeInstance);
-        showNotification('Ошибка загрузки платежной системы', 'error');
+        showNotification(getLocalizedMessage('payment_system_error', 'Payment system loading error'), 'error');
         return;
     }
     
@@ -312,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault(); // Всегда предотвращаем стандартную отправку
             console.log('=== FORM SUBMISSION STARTED ===');
             console.log('Event:', e);
-            showNotification('🚀 ОБРАБОТЧИК ФОРМЫ ЗАПУЩЕН!', 'success');
+            showNotification(getLocalizedMessage('form_handler_started', '🚀 Form handler started!'), 'success');
             
             // Validate required fields
             const amountField = document.getElementById('id_amount');
@@ -332,26 +337,26 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!amountField || !amountField.value || parseFloat(amountField.value) < 1) {
                 console.log('Validation failed: amount');
-                showNotification('Пожалуйста, введите корректную сумму donation (минимум $1.00)', 'error');
+                showNotification(getLocalizedMessage('invalid_amount', 'Please enter a valid donation amount (minimum $1.00)'), 'error');
                 return false;
             }
             
             if (!nameField || !nameField.value.trim()) {
                 console.log('Validation failed: name');
-                showNotification('Пожалуйста, введите ваше имя на карте', 'error');
+                showNotification(getLocalizedMessage('name_required', 'Please enter your name on the card'), 'error');
                 return false;
             }
             
             if (!cardnumber.value || !expirationdate.value || !securitycode.value) {
                 console.log('Validation failed: card details');
-                showNotification('Пожалуйста, заполните все данные карты', 'error');
+                showNotification(getLocalizedMessage('card_details_required', 'Please fill in all card details'), 'error');
                 return false;
             }
             
             // Show processing message
             console.log('Form validation passed, processing with Stripe...');
             console.log('Stripe instance available:', !!stripe);
-            showNotification('Обработка вашего donation...', 'info');
+            showNotification(getLocalizedMessage('processing_donation', 'Processing your donation...'), 'info');
             
             try {
                 // Create payment intent
@@ -401,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (result.error) {
                     console.error('Payment failed:', result.error);
-                    showNotification('Ошибка оплаты: ' + result.error.message, 'error');
+                    showNotification(getLocalizedMessage('payment_error', 'Payment error: ') + result.error.message, 'error');
                 } else {
                     console.log('Payment succeeded');
                     
@@ -427,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             'rub': '₽'
                         };
                         const symbol = currencySymbols[currencyField ? currencyField.value : 'usd'] || '$';
-                        showNotification(`Спасибо за ваш donation ${symbol}${amountField.value}! Платеж успешно обработан.`, 'success');
+                        showNotification(getLocalizedMessage('thank_you_donation', 'Thank you for your donation') + ` ${symbol}${amountField.value}! ` + getLocalizedMessage('payment_processed', 'Payment processed successfully.'), 'success');
                         
                         // Reset form
                         donationForm.reset();
@@ -446,13 +451,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         ccsingle.innerHTML = '';
                         swapColor('grey');
                     } else {
-                        showNotification('Ошибка при подтверждении платежа: ' + confirmData.message, 'error');
+                        showNotification(getLocalizedMessage('payment_confirmation_error', 'Payment confirmation error: ') + confirmData.message, 'error');
                     }
                 }
                 
             } catch (error) {
                 console.error('Error processing payment:', error);
-                showNotification('Произошла ошибка при обработке платежа: ' + error.message, 'error');
+                showNotification(getLocalizedMessage('payment_processing_error', 'Payment processing error: ') + error.message, 'error');
             }
         });
     }

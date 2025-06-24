@@ -1782,3 +1782,128 @@ msgstr "Описание"
 # locale/ru/LC_MESSAGES/django.po
 #~ msgid "Found a bug? Write to us in social networks!"
 #~ msgstr "Нашли баг? Напишите нам в социальных сетях!"
+
+# Donation page translations
+msgid "Donation"
+msgstr "Пожертвование"
+
+msgid "Name"
+msgstr "Имя"
+
+msgid "Card Number"
+msgstr "Номер карты"
+
+msgid "generate random"
+msgstr "генерировать случайную"
+
+
+
+msgid "Enter card details"
+msgstr "Введите данные карты"
+
+msgid "Card animation updates automatically when entering data"
+msgstr "Анимация карты обновляется автоматически при вводе"
+
+msgid "Complete Donation"
+msgstr "Завершить пожертвование"
+
+msgid "Currency"
+msgstr "Валюта"
+
+msgid "cardholder name"
+msgstr "имя держателя карты"
+
+msgid "expiration"
+msgstr "срок действия"
+
+msgid "card number"
+msgstr "номер карты"
+
+msgid "security code"
+msgstr "код безопасности"
+
+# Donation error messages
+msgid "Invalid amount. Minimum amount is $1.00"
+msgstr "Неверная сумма. Минимальная сумма $1.00"
+
+msgid "Name is required"
+msgstr "Имя обязательно"
+
+msgid "Unsupported currency"
+msgstr "Неподдерживаемая валюта"
+
+msgid "Card error: "
+msgstr "Ошибка карты: "
+
+msgid "Too many requests. Please try again later."
+msgstr "Слишком много запросов. Попробуйте позже."
+
+msgid "Invalid request parameters"
+msgstr "Неверные параметры запроса"
+
+msgid "Authentication error. Please contact support."
+msgstr "Ошибка аутентификации. Обратитесь в поддержку."
+
+msgid "Network error. Please check your connection."
+msgstr "Ошибка сети. Проверьте соединение."
+
+msgid "Payment service error. Please try again."
+msgstr "Ошибка платежного сервиса. Попробуйте еще раз."
+
+msgid "Invalid request format"
+msgstr "Неверный формат запроса"
+
+msgid "Invalid amount format"
+msgstr "Неверный формат суммы"
+
+msgid "An unexpected error occurred. Please try again."
+msgstr "Произошла неожиданная ошибка. Попробуйте еще раз."
+
+msgid "All card fields are required"
+msgstr "Все поля карты обязательны"
+
+msgid "Payment method creation error"
+msgstr "Ошибка создания метода оплаты"
+
+msgid "An error occurred"
+msgstr "Произошла ошибка"
+
+msgid "Payment intent ID required"
+msgstr "Требуется ID намерения платежа"
+
+# JavaScript messages
+msgid "Payment system loading error"
+msgstr "Ошибка загрузки платежной системы"
+
+msgid "Form handler started!"
+msgstr "Обработчик формы запущен!"
+
+msgid "Please enter a valid donation amount (minimum $1.00)"
+msgstr "Пожалуйста, введите корректную сумму пожертвования (минимум $1.00)"
+
+msgid "Please enter your name on the card"
+msgstr "Пожалуйста, введите ваше имя на карте"
+
+msgid "Please fill in all card details"
+msgstr "Пожалуйста, заполните все данные карты"
+
+msgid "Processing your donation..."
+msgstr "Обработка вашего пожертвования..."
+
+msgid "Payment error: "
+msgstr "Ошибка оплаты: "
+
+msgid "Thank you for your donation"
+msgstr "Спасибо за ваше пожертвование"
+
+msgid "Payment processed successfully."
+msgstr "Платеж успешно обработан."
+
+msgid "Payment confirmation error: "
+msgstr "Ошибка подтверждения платежа: "
+
+msgid "Error processing payment: "
+msgstr "Ошибка обработки платежа: "
+
+msgid "payment_processing_error"
+msgstr "Ошибка обработки платежа: "
