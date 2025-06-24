@@ -1,0 +1,93 @@
+{% extends "admin/change_list.html" %}
+{% load admin_urls static admin_list humanize %}
+
+{% block content_title %}
+{{ block.super }}
+{% if donation_stats %}
+<div style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #007cba;">
+    <h3 style="margin-top: 0; color: #333;">📊 Статистика донатов</h3>
+    
+    <!-- Общая статистика -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 5px 0; color: #666;">📈 Всего донатов</h4>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #007cba;">{{ donation_stats.total_donations }}</p>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 5px 0; color: #666;">✅ Завершенных</h4>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #28a745;">{{ donation_stats.completed_donations }}</p>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 5px 0; color: #666;">⏳ Ожидающих</h4>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #ffc107;">{{ donation_stats.pending_donations }}</p>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 5px 0; color: #666;">❌ Неудачных</h4>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #dc3545;">{{ donation_stats.failed_donations }}</p>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 5px 0; color: #666;">📅 За 30 дней</h4>
+            <p style="margin: 0; font-size: 24px; font-weight: bold; color: #007cba;">{{ donation_stats.recent_donations }}</p>
+        </div>
+    </div>
+    
+    <!-- Статистика по валютам -->
+    <h4 style="color: #333; margin: 20px 0 10px 0;">💱 Статистика по валютам</h4>
+    {% for currency_code, stats in donation_stats.currency_stats.items %}
+    <div style="background: white; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #007cba 0%, #0056b3 100%); color: white; padding: 12px 20px;">
+            <h4 style="margin: 0; font-size: 18px;">
+                {% if currency_code == 'usd' %}💵 {{ stats.name }}
+                {% elif currency_code == 'eur' %}💶 {{ stats.name }}
+                {% elif currency_code == 'rub' %}💷 {{ stats.name }}
+                {% else %}💰 {{ stats.name }}{% endif %}
+            </h4>
+        </div>
+        <div style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;">
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ВСЕГО ДОНАТОВ</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #007cba;">{{ stats.total_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ЗАВЕРШЕНО</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #28a745;">{{ stats.completed_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ОЖИДАЕТ</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #ffc107;">{{ stats.pending_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">НЕУДАЧНО</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #dc3545;">{{ stats.failed_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ОБЩАЯ СУММА</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #28a745;">{{ stats.total_amount|floatformat:2 }}</p>
+                </div>
+            </div>
+            
+            <!-- За 30 дней -->
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                <p style="margin: 0 0 10px 0; color: #666; font-weight: bold; font-size: 14px;">📅 За последние 30 дней:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                    <div style="text-align: center;">
+                        <p style="margin: 0; color: #666; font-size: 11px;">ДОНАТОВ</p>
+                        <p style="margin: 0; font-size: 16px; font-weight: bold; color: #007cba;">{{ stats.recent_donations }}</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="margin: 0; color: #666; font-size: 11px;">ЗАВЕРШЕНО</p>
+                        <p style="margin: 0; font-size: 16px; font-weight: bold; color: #28a745;">{{ stats.recent_completed }}</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="margin: 0; color: #666; font-size: 11px;">СУММА</p>
+                        <p style="margin: 0; font-size: 16px; font-weight: bold; color: #28a745;">{{ stats.recent_amount|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %} 
