@@ -656,7 +656,7 @@ body {
 .topic-detail {
     width: 350px;
     height: 600px;
-    margin: 60px auto 100px;
+    margin: 60px auto 100px; /* Отступы как у увеличенной карточки */
     padding: 20px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 15px;
@@ -665,7 +665,7 @@ body {
     overflow-y: auto;
     box-sizing: border-box;
     position: relative;
-    top: -30px;
+    top: -60px; /* Поднимаем выше, чтобы совпадало с увеличенной карточкой */
 }
 
 .topic-header {

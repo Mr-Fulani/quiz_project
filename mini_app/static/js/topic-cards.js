@@ -19,15 +19,15 @@ function initTopicCards() {
         return;
     }
     
-    // Проверяем, не инициализированы ли уже карточки
-    const alreadyInitialized = Array.from(topicCards).some(card => 
-        card.hasAttribute('data-initialized')
-    );
+    // Удаляем старые обработчики если они есть
+    topicCards.forEach(card => {
+        // Клонируем элемент чтобы удалить все event listeners
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+    });
     
-    if (alreadyInitialized) {
-        console.log('Cards already initialized, skipping...');
-        return;
-    }
+    // Получаем обновленные элементы после клонирования
+    const updatedTopicCards = document.querySelectorAll('.topic-card');
     
     let selectedCard = null;
     let selectedCardOverlay = null;
@@ -71,10 +71,19 @@ function initTopicCards() {
         }
     });
 
+    // Скрываем клавиатуру при клике на галерею (но не на карточки)
+    gallery.addEventListener('click', function(e) {
+        // Скрываем клавиатуру только если клик не на карточке
+        if (!e.target.closest('.topic-card')) {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.blur();
+            }
+        }
+    });
+
     // Добавляем обработчики для каждой карточки
-    topicCards.forEach(card => {
-        // Помечаем карточку как инициализированную
-        card.setAttribute('data-initialized', 'true');
+    updatedTopicCards.forEach(card => {
         // Обработка клика на карточку
         card.addEventListener('click', function(e) {
             // Скрываем клавиатуру при клике на карточку
@@ -236,6 +245,12 @@ function initTopicCards() {
             console.log('Resetting gallery state...');
             
             try {
+                // Скрываем клавиатуру
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    searchInput.blur();
+                }
+                
                 // Сбрасываем выбранную карточку
                 if (selectedCard) {
                     selectedCard.classList.remove('selected');
@@ -294,7 +309,7 @@ function initTopicCards() {
     console.log('Используйте window.galleryController.debug() для диагностики');
     
     // Проверяем, что обработчики установлены
-    console.log('Cards with click handlers:', topicCards.length);
+    console.log('Cards with click handlers:', updatedTopicCards.length);
 }
 
 // Функция для загрузки данных темы через API
