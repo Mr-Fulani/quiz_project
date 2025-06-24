@@ -1,0 +1,30 @@
+🎉 THANK YOU SO MUCH! 🎉
+
+Hello, {{ donation.name }}!
+
+We have received your generous donation of {{ donation.amount }} {{ donation.currency|upper }} and want to thank you from the bottom of our hearts! ❤️
+
+Your support is incredibly important to us. Thanks to people like you, our project can grow and get better every day! 🚀
+
+📊 YOUR DONATION DETAILS:
+💳 Transaction ID: {{ donation.stripe_payment_intent_id|default:"—" }}
+📅 Date: {{ donation.created_at|date:"M d, Y H:i" }}
+💱 Currency: {{ donation.get_currency_display }}
+✅ Status: Successfully processed
+
+🎯 WHAT'S NEXT?
+Your funds have already been directed to project development. Follow updates on our social media!
+
+📱 OUR SOCIAL MEDIA:
+Telegram: https://t.me/Mr_Fulani
+VK: https://vk.com/development_hub  
+YouTube: https://www.youtube.com/@Mr_Fulani
+Instagram: https://www.instagram.com/fulani_developer
+TikTok: https://www.tiktok.com/@fulani_developer
+Facebook: https://www.facebook.com/badr.commerce.3
+
+---
+Quiz Project Team
+If you have any questions, contact us: fulani.dev@gmail.com
+
+This is an automated email. Please do not reply to it. 

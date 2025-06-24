@@ -82,7 +82,7 @@ def personal_info(request):
         personal_info_data = {
             'name': 'Anvar Sh.',
             'title': 'Web Developer',
-            'email': 'anvar.sharipov.1986@gmail.com',
+            'email': 'fulani.dev@gmail.com',
             'phone': '+90 (552) 582-1497',
             'birthday': 'October 1, 1986',
             'location': 'Istanbul, Turkey',

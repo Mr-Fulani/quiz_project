@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спасибо за ваш донат!</title>
+    <style>
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+        
+        .heart {
+            animation: heartbeat 2s infinite;
+            color: #e74c3c;
+            font-size: 24px;
+        }
+        
+        .fade-up {
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .sparkle {
+            animation: sparkle 2s infinite;
+            position: absolute;
+            color: #f1c40f;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            text-align: center;
+            padding: 40px 20px;
+            position: relative;
+        }
+        
+        .content {
+            background: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .amount-badge {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+        }
+        
+        .title {
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0 0 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .message {
+            color: #333;
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        
+        .stats {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            border-left: 5px solid #007cba;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            font-size: 14px;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .social-links a {
+            transition: transform 0.2s ease;
+        }
+        
+        .social-links a:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 20px; background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%); min-height: 100vh;">
+    <div class="container fade-up">
+        <!-- Sparkle animations -->
+        <div class="sparkle" style="top: 50px; left: 50px;">✨</div>
+        <div class="sparkle" style="top: 80px; right: 80px; animation-delay: 1s;">⭐</div>
+        <div class="sparkle" style="top: 120px; left: 150px; animation-delay: 0.5s;">💫</div>
+        <div class="sparkle" style="top: 60px; right: 200px; animation-delay: 1.5s;">✨</div>
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🎉</div>
+            <h1 class="title">Огромное спасибо!</h1>
+            <p class="subtitle">Ваша поддержка невероятно важна для нас</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <div class="heart">❤️</div>
+            
+            <h2 style="color: #2c3e50; margin: 20px 0;">Привет, {{ donation.name }}!</h2>
+            
+            <div class="amount-badge">
+                {{ donation.amount }} {{ donation.currency|upper }} 💰
+            </div>
+            
+            <div class="message">
+                <p>Мы получили ваш щедрый донат и хотим от всего сердца поблагодарить вас!</p>
+                <p>Благодаря таким людям, как вы, наш проект может развиваться и становиться лучше каждый день. 🚀</p>
+            </div>
+            
+            <div class="stats">
+                <h3 style="color: #007cba; margin-top: 0;">📊 Детали вашего доната:</h3>
+                <p><strong>💳 ID транзакции:</strong> {{ donation.stripe_payment_intent_id|default:"—" }}</p>
+                <p><strong>📅 Дата:</strong> {{ donation.created_at|date:"d.m.Y H:i" }}</p>
+                <p><strong>💱 Валюта:</strong> {{ donation.get_currency_display }}</p>
+                <p><strong>✅ Статус:</strong> Успешно обработан</p>
+            </div>
+            
+            <div style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 15px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">🎯 Что дальше?</h3>
+                <p style="margin-bottom: 0;">Ваши средства уже направлены на развитие проекта. Следите за обновлениями в наших социальных сетях!</p>
+            </div>
+            
+            <div class="social-links">
+                <p>Подписывайтесь на наши социальные сети:</p>
+                <div style="margin: 10px 0;">
+                    <a href="https://t.me/Mr_Fulani" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #0088cc; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📱 Telegram</a>
+                    <a href="https://vk.com/development_hub" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #4680c2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📘 VK</a>
+                </div>
+                <div style="margin: 10px 0;">
+                    <a href="https://www.youtube.com/@Mr_Fulani" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #ff0000; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🎥 YouTube</a>
+                    <a href="https://www.instagram.com/fulani_developer" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #e4405f; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📷 Instagram</a>
+                </div>
+                <div style="margin: 10px 0;">
+                    <a href="https://www.tiktok.com/@fulani_developer" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #000000; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🎵 TikTok</a>
+                    <a href="https://www.facebook.com/badr.commerce.3" target="_blank" style="display: inline-block; margin: 5px; padding: 10px 15px; background: #1877f2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">👤 Facebook</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Quiz Project Team</strong></p>
+            <p>Если у вас есть вопросы, свяжитесь с нами: fulani.dev@gmail.com</p>
+            <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">
+                Это автоматическое письмо. Пожалуйста, не отвечайте на него.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

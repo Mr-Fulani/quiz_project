@@ -1907,3 +1907,77 @@ msgstr "Ошибка обработки платежа: "
 
 msgid "payment_processing_error"
 msgstr "Ошибка обработки платежа: "
+
+# Donation admin translations
+msgid "Amount"
+msgstr "Сумма"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Days ago"
+msgstr "Дней назад"
+
+msgid "%(days)d days ago"
+msgstr "%(days)d дней назад"
+
+msgid "Mark selected donations as completed"
+msgstr "Отметить выбранные донаты как завершенные"
+
+msgid "Mark selected donations as failed"
+msgstr "Отметить выбранные донаты как неудачные"
+
+msgid "Export selected donations to CSV"
+msgstr "Экспортировать выбранные донаты в CSV"
+
+msgid "Send thank you emails to completed donations"
+msgstr "Отправить благодарственные письма завершенным донатам"
+
+msgid "Successfully marked %(count)d donations as completed."
+msgstr "Успешно отмечено как завершенные: %(count)d донатов."
+
+msgid "Successfully marked %(count)d donations as failed."
+msgstr "Успешно отмечено как неудачные: %(count)d донатов."
+
+msgid "Sent %(sent)d thank you emails out of %(total)d completed donations."
+msgstr "Отправлено %(sent)d благодарственных писем из %(total)d завершенных донатов."
+
+# Donation statistics translations
+msgid "Donation Statistics"
+msgstr "Статистика донатов"
+
+msgid "Total Donations"
+msgstr "Всего донатов"
+
+msgid "Completed"
+msgstr "Завершенных"
+
+msgid "Last 30 Days"
+msgstr "За 30 дней"
+
+msgid "Statistics by Currency"
+msgstr "Статистика по валютам"
+
+msgid "TOTAL DONATIONS"
+msgstr "ВСЕГО ДОНАТОВ"
+
+msgid "COMPLETED"
+msgstr "ЗАВЕРШЕНО"
+
+msgid "PENDING"
+msgstr "ОЖИДАЕТ"
+
+msgid "FAILED"
+msgstr "НЕУДАЧНО"
+
+msgid "TOTAL AMOUNT"
+msgstr "ОБЩАЯ СУММА"
+
+msgid "Last 30 days:"
+msgstr "За последние 30 дней:"
+
+msgid "DONATIONS"
+msgstr "ДОНАТОВ"
+
+msgid "AMOUNT"
+msgstr "СУММА"
