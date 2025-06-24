@@ -64,16 +64,76 @@
     </nav>
 
     <script>
-        // Magic Navigation Menu Script - упрощенная версия без предотвращения перехода
+        // Magic Navigation Menu Script с AJAX навигацией
         const list = document.querySelectorAll('.list');
+        const contentContainer = document.querySelector('.content');
         
-        function activeLink(){
+        function activeLink(e){
+            // Предотвращаем стандартное поведение ссылки
+            e.preventDefault();
+            
             // Убираем активный класс со всех элементов
             list.forEach((item) => item.classList.remove('active'));
             
             // Добавляем активный класс к текущему элементу
             this.classList.add('active');
+            
+            // Получаем URL из href
+            const href = this.querySelector('a').getAttribute('href');
+            
+            // Загружаем контент через AJAX
+            loadPage(href);
         }
+        
+        async function loadPage(url) {
+            try {
+                // Показываем индикатор загрузки (опционально)
+                contentContainer.style.opacity = '0.7';
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    
+                    // Парсим HTML и извлекаем контент
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.querySelector('.content');
+                    
+                    if (newContent) {
+                        // Плавно заменяем контент
+                        setTimeout(() => {
+                            contentContainer.innerHTML = newContent.innerHTML;
+                            contentContainer.style.opacity = '1';
+                            
+                            // Обновляем URL в браузере
+                            window.history.pushState({}, '', url);
+                            
+                            // Перезапускаем скрипты карточек если они есть
+                            if (window.initTopicCards) {
+                                window.initTopicCards();
+                            }
+                        }, 200);
+                    }
+                } else {
+                    // Если AJAX не сработал, делаем обычный переход
+                    window.location.href = url;
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки страницы:', error);
+                // Fallback к обычному переходу
+                window.location.href = url;
+            }
+        }
+        
+        // Обработка кнопки "Назад" браузера
+        window.addEventListener('popstate', function(e) {
+            loadPage(window.location.pathname);
+        });
         
         // Добавляем обработчики событий
         list.forEach((item) => item.addEventListener('click', activeLink));

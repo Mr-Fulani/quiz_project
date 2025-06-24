@@ -394,12 +394,12 @@ body {
     line-height: 75px;
     font-size: 1.5rem;
     text-align: center;
-    transition: 0.5s;
+    transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     color: var(--clr);
 }
 
 .navigation ul li.active a .icon {
-    transform: translateY(-35px);
+    transform: translateY(-40px);
 }
 
 .navigation ul li a .text {
@@ -408,7 +408,7 @@ body {
     font-weight: 400;
     font-size: 0.75em;
     letter-spacing: 0.05em;
-    transition: 0.5s;
+    transition: all 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     opacity: 0;
     transform: translateY(20px);
 }
@@ -437,7 +437,7 @@ body {
     background: var(--active-color);
     border-radius: 50%;
     border: 6px solid var(--clr);
-    transition: 0.5s;
+    transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     z-index: 0;
 }
 

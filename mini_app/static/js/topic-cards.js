@@ -1,13 +1,18 @@
 // topic-cards.js
 // Обработка карточек тем с увеличением на месте
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Topic cards script loaded');
+function initTopicCards() {
+    console.log('Topic cards script initialized');
     
     // Получаем элементы галереи
     const gallery = document.querySelector('.gallery');
     const galleryContainer = document.querySelector('.gallery__container');
     const topicCards = document.querySelectorAll('.topic-card');
+    
+    if (!gallery || !galleryContainer || topicCards.length === 0) {
+        console.log('Gallery elements not found, skipping initialization');
+        return;
+    }
     
     let selectedCard = null;
     let selectedCardOverlay = null;
@@ -134,8 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {
             rotateCarousel('right');
         }
     }
-    
-
     
     // Функция воспроизведения звука свайпа
     function playSwipeSound() {
@@ -323,8 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-
-    
     // Функции управления
     function selectCard(card) {
         console.log('Selecting card:', card.getAttribute('data-topic-id'));
@@ -456,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Gallery controller initialized');
     console.log('Используйте window.galleryController.debug() для диагностики');
-});
+}
 
 // Функция для загрузки данных темы через API
 async function loadTopicData(topicId) {
@@ -468,4 +469,10 @@ async function loadTopicData(topicId) {
         console.error('Error loading topic data:', error);
         return null;
     }
-} 
+}
+
+// Экспортируем функцию глобально для доступа из других скриптов
+window.initTopicCards = initTopicCards;
+
+// Инициализируем при загрузке страницы
+document.addEventListener('DOMContentLoaded', initTopicCards); 
