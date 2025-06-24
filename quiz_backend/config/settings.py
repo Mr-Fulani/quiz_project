@@ -37,7 +37,15 @@ DEBUG = True
 
 
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'quiz_backend',  # Имя контейнера в Docker сети
+    'quiz_backend:8000',  # Полный адрес с портом для внутренних запросов
+    'quiz_backend:8001',  # Полный адрес с портом для внутренних запросов
+    '0.0.0.0',
+    '*'  # Разрешаем все для разработки (уберите в продакшене)
+]
 
 # Настройки django-debug-toolbar
 INTERNAL_IPS = [
@@ -125,10 +133,11 @@ LOGGING = {
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'django.middleware.common.CommonMiddleware',  # Возвращаем обратно
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -267,16 +276,20 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # Разрешаем доступ без токена
     ],
 }
 
 # Настройки безопасности
-# settings.py
 CSRF_COOKIE_SECURE = False  # Для HTTP
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Отключаем CSRF для API endpoints
+CSRF_EXEMPT_PATHS = [
+    '/api/',
+]
 
 SESSION_COOKIE_SECURE = False  # Для HTTP
 SESSION_COOKIE_SAMESITE = 'Lax'
@@ -285,14 +298,14 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8001',
     'http://127.0.0.1:8001',
+    'http://quiz_backend:8000',  # Для Docker сети
+    'http://quiz_backend:8001',  # Для Docker сети
+    'http://localhost:8080',  # Для мини-приложения
 ]
 
-# CORS настройки
+# CORS настройки - Разрешаем все для разработки
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8001",
-    "http://127.0.0.1:8001",
-]
 
 # Настройки Swagger/OpenAPI
 SWAGGER_SETTINGS = {
@@ -307,11 +320,7 @@ SWAGGER_SETTINGS = {
     'JSON_EDITOR': True,
 }
 
-# CORS настройки
-CORS_ALLOW_ALL_ORIGINS = True  # Только для разработки!
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^http://localhost:8001$",
-]
+# CORS настройки дублируются - убираем дубли
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',

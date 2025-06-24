@@ -1,11 +1,13 @@
 # quiz_project/mini_app/app.py
 
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
 import os
+import httpx
+import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -20,6 +22,13 @@ logger = logging.getLogger(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Настройки для подключения к Django API
+DJANGO_API_BASE_URL = "http://quiz_backend:8000"  # Адрес Django сервера в Docker сети
+DJANGO_TOPICS_ENDPOINT = f"{DJANGO_API_BASE_URL}/api/simple/"  # Исправленный URL
+DJANGO_API_TOKEN = os.getenv('DJANGO_API_TOKEN', '')  # Токен из переменной окружения
+
+# PostgreSQL подключение больше не нужно - используем Django API
+
 # Включаем CORS (разрешаем доступ с любых доменов)
 app.add_middleware(
     CORSMiddleware,
@@ -29,73 +38,81 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Данные тем опросов
-QUIZ_TOPICS = [
-    {
-        "id": 1,
-        "title": "Python",
-        "description": "Тестирование знаний Python",
-        "image_url": "https://picsum.photos/400/400?1",
-        "difficulty": "Средний",
-        "questions_count": 25
-    },
-    {
-        "id": 2,
-        "title": "JavaScript", 
-        "description": "Основы JavaScript",
-        "image_url": "https://picsum.photos/400/400?2",
-        "difficulty": "Легкий",
-        "questions_count": 20
-    },
-    {
-        "id": 3,
-        "title": "React",
-        "description": "React фреймворк",
-        "image_url": "https://picsum.photos/400/400?3", 
-        "difficulty": "Сложный",
-        "questions_count": 30
-    },
-    {
-        "id": 4,
-        "title": "SQL",
-        "description": "Базы данных SQL",
-        "image_url": "https://picsum.photos/400/400?4",
-        "difficulty": "Средний", 
-        "questions_count": 22
-    },
-    {
-        "id": 5,
-        "title": "Django",
-        "description": "Django веб-фреймворк",
-        "image_url": "https://picsum.photos/400/400?5",
-        "difficulty": "Сложный",
-        "questions_count": 28
-    },
-    {
-        "id": 6,
-        "title": "Git",
-        "description": "Система контроля версий",
-        "image_url": "https://picsum.photos/400/400?6", 
-        "difficulty": "Легкий",
-        "questions_count": 15
-    },
-    {
-        "id": 7,
-        "title": "Docker",
-        "description": "Контейнеризация",
-        "image_url": "https://picsum.photos/400/400?7",
-        "difficulty": "Средний",
-        "questions_count": 18
-    },
-    {
-        "id": 8,
-        "title": "Linux",
-        "description": "Администрирование Linux",
-        "image_url": "https://picsum.photos/400/400?8",
-        "difficulty": "Сложный", 
-        "questions_count": 35
-    }
-]
+# Прямое подключение к БД больше не нужно - используем Django API
+
+
+
+# Функция для получения тем из Django API
+async def fetch_topics_from_django(search: str = None):
+    """
+    Получает список тем из Django API
+    """
+    try:
+        params = {}
+        if search:
+            params['search'] = search
+            
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': f'Token {DJANGO_API_TOKEN}' if DJANGO_API_TOKEN else '',
+        }
+        async with httpx.AsyncClient() as client:
+            response = await client.get(DJANGO_TOPICS_ENDPOINT, params=params, headers=headers, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            # Django API возвращает список напрямую, не объект с 'results'
+            return data if isinstance(data, list) else data.get('results', data)
+    except httpx.RequestError as e:
+        logger.error(f"Ошибка подключения к Django API: {e}")
+        # Fallback на статические данные
+        return get_fallback_topics()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Django API вернул ошибку {e.response.status_code}: {e.response.text}")
+        return get_fallback_topics()
+    except Exception as e:
+        logger.error(f"Неожиданная ошибка при обращении к Django API: {e}")
+        return get_fallback_topics()
+
+# Fallback данные на случай недоступности Django API
+def get_fallback_topics():
+    """
+    Резервные статические данные тем на случай недоступности Django API
+    """
+    return [
+        {
+            "id": 1,
+            "name": "Python",
+            "description": "Тестирование знаний Python",
+            "image_url": "https://picsum.photos/400/400?1",
+            "difficulty": "Средний",
+            "questions_count": 25
+        },
+        {
+            "id": 2,
+            "name": "JavaScript", 
+            "description": "Основы JavaScript",
+            "image_url": "https://picsum.photos/400/400?2",
+            "difficulty": "Легкий",
+            "questions_count": 20
+        },
+        {
+            "id": 3,
+            "name": "React",
+            "description": "React фреймворк",
+            "image_url": "https://picsum.photos/400/400?3", 
+            "difficulty": "Сложный",
+            "questions_count": 30
+        },
+        {
+            "id": 4,
+            "name": "SQL",
+            "description": "Базы данных SQL",
+            "image_url": "https://picsum.photos/400/400?4",
+            "difficulty": "Средний", 
+            "questions_count": 22
+        }
+    ]
 
 @app.get("/static/css/{filename}")
 async def serve_css(filename: str):
@@ -118,9 +135,10 @@ templates = Jinja2Templates(directory=templates_dir)
 
 # Обработка главной страницы
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index(request: Request, search: str = None):
     logger.info("Rendering index page")
-    return templates.TemplateResponse("index.html", {"request": request, "topics": QUIZ_TOPICS})
+    topics = await fetch_topics_from_django(search)
+    return templates.TemplateResponse("index.html", {"request": request, "topics": topics})
 
 # Обработка страницы профиля
 @app.get("/profile", response_class=HTMLResponse)
@@ -199,24 +217,28 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
 @app.get("/topic/{topic_id}", response_class=HTMLResponse)
 async def topic_detail(request: Request, topic_id: int):
     logger.info(f"Rendering topic detail page for topic {topic_id}")
-    topic = next((t for t in QUIZ_TOPICS if t["id"] == topic_id), None)
+    topics = await fetch_topics_from_django()
+    topic = next((t for t in topics if t["id"] == topic_id), None)
     if not topic:
-        return JSONResponse(content={"error": "Topic not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Topic not found")
     return templates.TemplateResponse("topic_detail.html", {"request": request, "topic": topic})
 
 # API для получения тем
 @app.get("/api/topics")
-async def get_topics():
+async def get_topics(search: str = None):
     logger.info("API request for topics")
-    return {"topics": QUIZ_TOPICS}
+    # Используем Django API вместо прямого подключения к БД
+    topics = await fetch_topics_from_django(search)
+    return {"topics": topics}
 
 # API для получения конкретной темы
 @app.get("/api/topic/{topic_id}")
 async def get_topic(topic_id: int):
     logger.info(f"API request for topic {topic_id}")
-    topic = next((t for t in QUIZ_TOPICS if t["id"] == topic_id), None)
+    topics = await fetch_topics_from_django()
+    topic = next((t for t in topics if t["id"] == topic_id), None)
     if not topic:
-        return JSONResponse(content={"error": "Topic not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Topic not found")
     return {"topic": topic}
 
 if __name__ == "__main__":

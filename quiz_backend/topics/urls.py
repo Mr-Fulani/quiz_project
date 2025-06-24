@@ -4,7 +4,13 @@ from . import views
 app_name = 'topics'
 
 urlpatterns = [
-    # Topics
+    # Simple endpoint for mini-app (тестовый)
+    path('simple/', views.topics_simple, name='topics-simple'),
+    
+    # Topics for mini-app (открытый доступ)
+    path('mini-app/', views.TopicMiniAppListView.as_view(), name='topic-mini-app-list'),
+    
+    # Topics (требует аутентификации)
     path('', views.TopicListView.as_view(), name='topic-list'),
     path('<int:pk>/', views.TopicDetailView.as_view(), name='topic-detail'),
     path('create/', views.TopicCreateView.as_view(), name='topic-create'),
