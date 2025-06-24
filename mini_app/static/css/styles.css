@@ -399,7 +399,7 @@ body {
 }
 
 .navigation ul li.active a .icon {
-    transform: translateY(-40px);
+    transform: translateY(-32px);
 }
 
 .navigation ul li a .text {
@@ -431,7 +431,7 @@ body {
 /* Индикатор (ползунок) */
 .indicator {
     position: absolute;
-    top: -50%;
+    top: -48%;
     width: 70px;
     height: 70px;
     background: var(--active-color);
