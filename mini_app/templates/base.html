@@ -33,31 +33,31 @@
     <!-- Фиксированное нижнее меню -->
     <nav class="navigation">
         <ul>
-            <li class="list {% if request.url.path == '/' %}active{% endif %}">
+            <li class="list {% if request.url.path == '/' %}active{% endif %}" data-href="/">
                 <a href="/">
                     <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
                     <span class="text">Главная</span>
                 </a>
             </li>
-            <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}">
+            <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}" data-href="/profile">
                 <a href="/profile">
                     <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
                     <span class="text">Профиль</span>
                 </a>
             </li>
-            <li class="list {% if request.url.path == '/achievements' %}active{% endif %}">
+            <li class="list {% if request.url.path == '/achievements' %}active{% endif %}" data-href="/achievements">
                 <a href="/achievements">
                     <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
                     <span class="text">Достижения</span>
                 </a>
             </li>
-            <li class="list {% if request.url.path == '/statistics' %}active{% endif %}">
+            <li class="list {% if request.url.path == '/statistics' %}active{% endif %}" data-href="/statistics">
                 <a href="/statistics">
                     <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
                     <span class="text">Статистика</span>
                 </a>
             </li>
-            <li class="list {% if request.url.path == '/settings' %}active{% endif %}">
+            <li class="list {% if request.url.path == '/settings' %}active{% endif %}" data-href="/settings">
                 <a href="/settings">
                     <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
                     <span class="text">Настройки</span>
@@ -66,6 +66,34 @@
             <div class="indicator"></div>
         </ul>
     </nav>
+
+    <script>
+        // Magic Navigation Menu Script
+        const list = document.querySelectorAll('.list');
+        
+        function activeLink(e){
+            // Предотвращаем стандартное поведение ссылки
+            e.preventDefault();
+            
+            // Убираем активный класс со всех элементов
+            list.forEach((item) => item.classList.remove('active'));
+            
+            // Добавляем активный класс к текущему элементу
+            this.classList.add('active');
+            
+            // Получаем URL из data-href
+            const href = this.getAttribute('data-href');
+            
+            // Делаем плавный переход через небольшую задержку для анимации
+            setTimeout(() => {
+                window.location.href = href;
+            }, 200);
+        }
+        
+        // Добавляем обработчики событий
+        list.forEach((item) => item.addEventListener('click', activeLink));
+    </script>
+
     <!-- Подключаем скрипты -->
     {% block extra_js %}
     {% endblock %}
