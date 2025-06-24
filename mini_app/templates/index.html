@@ -12,7 +12,7 @@
         {% for topic in topics %}
         <span style="--i:{{ loop.index0 }};" class="topic-card" data-topic-id="{{ topic.id }}">
             <img src="{{ topic.image_url }}" alt="{{ topic.title }}">
-            <div class="card-overlay">
+            <div class="card-overlay always-visible">
                 <h3>{{ topic.title }}</h3>
                 <p class="difficulty">{{ topic.difficulty }}</p>
                 <p class="questions">{{ topic.questions_count }} вопросов</p>

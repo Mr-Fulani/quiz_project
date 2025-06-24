@@ -21,15 +21,23 @@ document.addEventListener('DOMContentLoaded', function() {
     let startY = 0;
     let startTime = 0;
     
-    // Добавляем touch события для свайпа на всю галерею
+    // Добавляем touch события для свайпа только на пустом пространстве
+    let touchStarted = false;
+    
     gallery.addEventListener('touchstart', function(e) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        startTime = Date.now();
+        // Проверяем что касание НЕ на карточке
+        if (!e.target.closest('.topic-card')) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            touchStarted = true;
+        }
     }, { passive: true });
     
     gallery.addEventListener('touchend', function(e) {
-        if (selectedCard) return;
+        if (!touchStarted || selectedCard) {
+            touchStarted = false;
+            return;
+        }
         
         const endX = e.changedTouches[0].clientX;
         const endY = e.changedTouches[0].clientY;
@@ -41,10 +49,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
             rotateCarousel(deltaX > 0 ? 'right' : 'left');
         }
+        
+        touchStarted = false;
     }, { passive: true });
     
     // Добавляем клавиатурное управление для десктопа
     document.addEventListener('keydown', handleKeyPress);
+    
+    // Инициализируем полосу управления
+    initializeControlBar();
     
     // Создаем overlay для увеличенной карточки
     function createSelectedCardOverlay() {
@@ -132,6 +145,142 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Инициализация полосы управления
+    function initializeControlBar() {
+        const slider = document.getElementById('carouselSlider');
+        const track = document.querySelector('.control-track');
+        const indicators = document.querySelectorAll('.control-indicators .indicator');
+        
+        if (!slider || !track) return;
+        
+        let isDragging = false;
+        let startX = 0;
+        let currentPosition = 50; // Начальная позиция в центре (%)
+        let currentStep = 0; // Текущий шаг (0-7 для 8 карточек)
+        
+        // Touch события для полосы
+        slider.addEventListener('touchstart', function(e) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            gallery.classList.add('manual-control');
+            e.preventDefault();
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            
+            const currentX = e.touches[0].clientX;
+            const deltaX = currentX - startX;
+            const trackRect = track.getBoundingClientRect();
+            const trackWidth = trackRect.width;
+            
+            // Вычисляем новую позицию
+            const deltaPercent = (deltaX / trackWidth) * 100;
+            currentPosition = Math.max(0, Math.min(100, currentPosition + deltaPercent));
+            
+            // Обновляем позицию слайдера
+            slider.style.left = currentPosition + '%';
+            
+            // Вычисляем текущий шаг
+            const newStep = Math.round((currentPosition / 100) * 7);
+            if (newStep !== currentStep) {
+                currentStep = newStep;
+                updateCarouselPosition(currentStep);
+                updateIndicators(currentStep);
+                playSwipeSound();
+                
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(20);
+                }
+            }
+            
+            startX = currentX;
+            e.preventDefault();
+        }, { passive: false });
+        
+        document.addEventListener('touchend', function(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            // Возвращаем автоматическое вращение через 3 секунды
+            setTimeout(() => {
+                if (!selectedCard) {
+                    gallery.classList.remove('manual-control');
+                    galleryContainer.style.transform = '';
+                    galleryContainer.style.transition = '';
+                    // Сбрасываем позицию слайдера
+                    slider.style.left = '50%';
+                    currentPosition = 50;
+                    currentStep = 0;
+                    updateIndicators(0);
+                }
+            }, 3000);
+        });
+        
+        // Mouse события для десктопа
+        slider.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            startX = e.clientX;
+            gallery.classList.add('manual-control');
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            const currentX = e.clientX;
+            const deltaX = currentX - startX;
+            const trackRect = track.getBoundingClientRect();
+            const trackWidth = trackRect.width;
+            
+            const deltaPercent = (deltaX / trackWidth) * 100;
+            currentPosition = Math.max(0, Math.min(100, currentPosition + deltaPercent));
+            
+            slider.style.left = currentPosition + '%';
+            
+            const newStep = Math.round((currentPosition / 100) * 7);
+            if (newStep !== currentStep) {
+                currentStep = newStep;
+                updateCarouselPosition(currentStep);
+                updateIndicators(currentStep);
+                playSwipeSound();
+            }
+            
+            startX = currentX;
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            setTimeout(() => {
+                if (!selectedCard) {
+                    gallery.classList.remove('manual-control');
+                    galleryContainer.style.transform = '';
+                    galleryContainer.style.transition = '';
+                    slider.style.left = '50%';
+                    currentPosition = 50;
+                    currentStep = 0;
+                    updateIndicators(0);
+                }
+            }, 3000);
+        });
+        
+        // Функция обновления позиции карусели
+        function updateCarouselPosition(step) {
+            const angle = step * 45; // 45 градусов на шаг
+            galleryContainer.style.transition = 'transform 0.1s ease';
+            galleryContainer.style.transform = `perspective(1000px) rotateY(${angle}deg)`;
+        }
+        
+        // Функция обновления индикаторов
+        function updateIndicators(activeStep) {
+            indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === activeStep);
+            });
+        }
+    }
+    
     // Добавляем обработчики для каждой карточки
     topicCards.forEach(card => {
         // Обработка клика на карточку
@@ -156,15 +305,15 @@ document.addEventListener('DOMContentLoaded', function() {
             selectCard(this);
         });
         
-        // Обработка наведения мыши - останавливаем галерею
+        // Обработка наведения мыши - останавливаем галерею только на десктопе
         card.addEventListener('mouseenter', function() {
-            if (!selectedCard) {
+            if (!selectedCard && !('ontouchstart' in window)) {
                 pauseGallery();
             }
         });
         
         card.addEventListener('mouseleave', function() {
-            if (!selectedCard) {
+            if (!selectedCard && !('ontouchstart' in window)) {
                 setTimeout(() => {
                     if (!selectedCard) {
                         resumeGallery();
