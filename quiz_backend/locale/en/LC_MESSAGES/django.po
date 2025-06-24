@@ -1547,3 +1547,128 @@ msgstr "Found a bug? Write to us in social networks!"
 
 msgid "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
 msgstr "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
+
+# Donation page translations
+msgid "Donation"
+msgstr "Donation"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Card Number"
+msgstr "Card Number"
+
+msgid "generate random"
+msgstr "generate random"
+
+
+
+msgid "Enter card details"
+msgstr "Enter card details"
+
+msgid "Card animation updates automatically when entering data"
+msgstr "Card animation updates automatically when entering data"
+
+msgid "Complete Donation"
+msgstr "Complete Donation"
+
+msgid "Currency"
+msgstr "Currency"
+
+msgid "cardholder name"
+msgstr "cardholder name"
+
+msgid "expiration"
+msgstr "expiration"
+
+msgid "card number"
+msgstr "card number"
+
+msgid "security code"
+msgstr "security code"
+
+# Donation error messages
+msgid "Invalid amount. Minimum amount is $1.00"
+msgstr "Invalid amount. Minimum amount is $1.00"
+
+msgid "Name is required"
+msgstr "Name is required"
+
+msgid "Unsupported currency"
+msgstr "Unsupported currency"
+
+msgid "Card error: "
+msgstr "Card error: "
+
+msgid "Too many requests. Please try again later."
+msgstr "Too many requests. Please try again later."
+
+msgid "Invalid request parameters"
+msgstr "Invalid request parameters"
+
+msgid "Authentication error. Please contact support."
+msgstr "Authentication error. Please contact support."
+
+msgid "Network error. Please check your connection."
+msgstr "Network error. Please check your connection."
+
+msgid "Payment service error. Please try again."
+msgstr "Payment service error. Please try again."
+
+msgid "Invalid request format"
+msgstr "Invalid request format"
+
+msgid "Invalid amount format"
+msgstr "Invalid amount format"
+
+msgid "An unexpected error occurred. Please try again."
+msgstr "An unexpected error occurred. Please try again."
+
+msgid "All card fields are required"
+msgstr "All card fields are required"
+
+msgid "Payment method creation error"
+msgstr "Payment method creation error"
+
+msgid "An error occurred"
+msgstr "An error occurred"
+
+msgid "Payment intent ID required"
+msgstr "Payment intent ID required"
+
+# JavaScript messages
+msgid "Payment system loading error"
+msgstr "Payment system loading error"
+
+msgid "Form handler started!"
+msgstr "Form handler started!"
+
+msgid "Please enter a valid donation amount (minimum $1.00)"
+msgstr "Please enter a valid donation amount (minimum $1.00)"
+
+msgid "Please enter your name on the card"
+msgstr "Please enter your name on the card"
+
+msgid "Please fill in all card details"
+msgstr "Please fill in all card details"
+
+msgid "Processing your donation..."
+msgstr "Processing your donation..."
+
+msgid "Payment error: "
+msgstr "Payment error: "
+
+msgid "Thank you for your donation"
+msgstr "Thank you for your donation"
+
+msgid "Payment processed successfully."
+msgstr "Payment processed successfully."
+
+msgid "Payment confirmation error: "
+msgstr "Payment confirmation error: "
+
+msgid "Error processing payment: "
+msgstr "Error processing payment: "
+
+msgid "payment_processing_error"
+msgstr "Payment processing error: "
