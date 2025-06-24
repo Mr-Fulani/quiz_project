@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ topic.title }} - Тема опроса
+{% endblock %}
+
+{% block content %}
+<div class="topic-detail">
+    <div class="topic-header">
+        <img src="{{ topic.image_url }}" alt="{{ topic.title }}" class="topic-image">
+        <div class="topic-info">
+            <h1>{{ topic.title }}</h1>
+            <p class="topic-description">{{ topic.description }}</p>
+            <div class="topic-stats">
+                <span class="difficulty difficulty-{{ topic.difficulty.lower() }}">
+                    Сложность: {{ topic.difficulty }}
+                </span>
+                <span class="questions-count">
+                    Вопросов: {{ topic.questions_count }}
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="topic-actions">
+        <button class="btn btn-primary" onclick="startQuiz({{ topic.id }})">
+            Начать опрос
+        </button>
+        <button class="btn btn-secondary" onclick="goBack()">
+            Вернуться назад
+        </button>
+    </div>
+    
+    <div class="topic-preview">
+        <h3>О чём будет опрос:</h3>
+        <ul class="preview-list">
+            {% if topic.title == "Python" %}
+                <li>Основы синтаксиса Python</li>
+                <li>Работа с данными и структурами</li>
+                <li>Объектно-ориентированное программирование</li>
+                <li>Библиотеки и фреймворки</li>
+            {% elif topic.title == "JavaScript" %}
+                <li>Основы JavaScript</li>
+                <li>DOM манипуляции</li>
+                <li>Асинхронное программирование</li>
+                <li>ES6+ возможности</li>
+            {% elif topic.title == "React" %}
+                <li>Компоненты и JSX</li>
+                <li>State и Props</li>
+                <li>Hooks и жизненный цикл</li>
+                <li>Redux и состояние</li>
+            {% else %}
+                <li>Основные концепции</li>
+                <li>Практические примеры</li>
+                <li>Лучшие практики</li>
+                <li>Продвинутые темы</li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+<script>
+function startQuiz(topicId) {
+    console.log(`Starting quiz for topic ${topicId}`);
+    
+    // Добавим вибрацию для мобильных устройств
+    if ('vibrate' in navigator) {
+        navigator.vibrate(100);
+    }
+    
+    // Здесь будет переход к опросу
+    alert(`Запускаем опрос по теме "${topicId}"!\n\nЭта функция будет подключена к вашей системе опросов.`);
+}
+
+function goBack() {
+    window.history.back();
+}
+</script>
+{% endblock %} 
