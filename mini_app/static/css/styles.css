@@ -399,8 +399,7 @@ body {
 }
 
 .navigation ul li.active a .icon {
-    transform: translateY(-32px);
-    color: var(--active-color);
+    transform: translateY(-35px);
 }
 
 .navigation ul li a .text {
@@ -417,13 +416,11 @@ body {
 .navigation ul li.active a .text {
     transform: translateY(10px);
     opacity: 1;
-    color: var(--active-color);
 }
 
 /* Hover эффекты */
 .navigation ul li:hover a .icon {
-    transform: translateY(-25px);
-    color: var(--active-color);
+    transform: translateY(-28px);
 }
 
 .navigation ul li:hover a .text {

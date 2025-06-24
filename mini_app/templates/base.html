@@ -24,10 +24,6 @@
         <!-- содержимое страницы -->
         {% endblock %}
     </div>
-
-    <!-- Кнопка закрытия полноэкранного режима -->
-    <button class="fullscreen-close" onclick="window.galleryController?.exitFullscreen()" title="Закрыть">
-        ✕
     </button>
 
     <!-- Фиксированное нижнее меню -->
@@ -68,26 +64,15 @@
     </nav>
 
     <script>
-        // Magic Navigation Menu Script
+        // Magic Navigation Menu Script - упрощенная версия без предотвращения перехода
         const list = document.querySelectorAll('.list');
         
-        function activeLink(e){
-            // Предотвращаем стандартное поведение ссылки
-            e.preventDefault();
-            
+        function activeLink(){
             // Убираем активный класс со всех элементов
             list.forEach((item) => item.classList.remove('active'));
             
             // Добавляем активный класс к текущему элементу
             this.classList.add('active');
-            
-            // Получаем URL из data-href
-            const href = this.getAttribute('data-href');
-            
-            // Делаем плавный переход через небольшую задержку для анимации
-            setTimeout(() => {
-                window.location.href = href;
-            }, 200);
         }
         
         // Добавляем обработчики событий
