@@ -29,14 +29,77 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
+# Данные тем опросов
+QUIZ_TOPICS = [
+    {
+        "id": 1,
+        "title": "Python",
+        "description": "Тестирование знаний Python",
+        "image_url": "https://picsum.photos/400/400?1",
+        "difficulty": "Средний",
+        "questions_count": 25
+    },
+    {
+        "id": 2,
+        "title": "JavaScript", 
+        "description": "Основы JavaScript",
+        "image_url": "https://picsum.photos/400/400?2",
+        "difficulty": "Легкий",
+        "questions_count": 20
+    },
+    {
+        "id": 3,
+        "title": "React",
+        "description": "React фреймворк",
+        "image_url": "https://picsum.photos/400/400?3", 
+        "difficulty": "Сложный",
+        "questions_count": 30
+    },
+    {
+        "id": 4,
+        "title": "SQL",
+        "description": "Базы данных SQL",
+        "image_url": "https://picsum.photos/400/400?4",
+        "difficulty": "Средний", 
+        "questions_count": 22
+    },
+    {
+        "id": 5,
+        "title": "Django",
+        "description": "Django веб-фреймворк",
+        "image_url": "https://picsum.photos/400/400?5",
+        "difficulty": "Сложный",
+        "questions_count": 28
+    },
+    {
+        "id": 6,
+        "title": "Git",
+        "description": "Система контроля версий",
+        "image_url": "https://picsum.photos/400/400?6", 
+        "difficulty": "Легкий",
+        "questions_count": 15
+    },
+    {
+        "id": 7,
+        "title": "Docker",
+        "description": "Контейнеризация",
+        "image_url": "https://picsum.photos/400/400?7",
+        "difficulty": "Средний",
+        "questions_count": 18
+    },
+    {
+        "id": 8,
+        "title": "Linux",
+        "description": "Администрирование Linux",
+        "image_url": "https://picsum.photos/400/400?8",
+        "difficulty": "Сложный", 
+        "questions_count": 35
+    }
+]
 
 @app.get("/static/css/{filename}")
 async def serve_css(filename: str):
     return FileResponse(f"static/css/{filename}", headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
-
-
 
 # Путь к папке со статическими файлами
 current_dir = os.path.dirname(__file__)
@@ -57,7 +120,7 @@ templates = Jinja2Templates(directory=templates_dir)
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     logger.info("Rendering index page")
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "topics": QUIZ_TOPICS})
 
 # Обработка страницы профиля
 @app.get("/profile", response_class=HTMLResponse)
@@ -131,6 +194,30 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Ошибка при обновлении профиля: {str(e)}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
+
+# Обработка страницы темы
+@app.get("/topic/{topic_id}", response_class=HTMLResponse)
+async def topic_detail(request: Request, topic_id: int):
+    logger.info(f"Rendering topic detail page for topic {topic_id}")
+    topic = next((t for t in QUIZ_TOPICS if t["id"] == topic_id), None)
+    if not topic:
+        return JSONResponse(content={"error": "Topic not found"}, status_code=404)
+    return templates.TemplateResponse("topic_detail.html", {"request": request, "topic": topic})
+
+# API для получения тем
+@app.get("/api/topics")
+async def get_topics():
+    logger.info("API request for topics")
+    return {"topics": QUIZ_TOPICS}
+
+# API для получения конкретной темы
+@app.get("/api/topic/{topic_id}")
+async def get_topic(topic_id: int):
+    logger.info(f"API request for topic {topic_id}")
+    topic = next((t for t in QUIZ_TOPICS if t["id"] == topic_id), None)
+    if not topic:
+        return JSONResponse(content={"error": "Topic not found"}, status_code=404)
+    return {"topic": topic}
 
 if __name__ == "__main__":
     import uvicorn

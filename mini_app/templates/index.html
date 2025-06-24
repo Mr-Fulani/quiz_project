@@ -4,50 +4,33 @@
 Главная страница
 {% endblock %}
 
-{% block rain %}
-<div class="matrix-rain"></div>
-{% endblock %}
-
 {% block content %}
-<!-- Контейнер для эффекта печатающегося текста -->
-<div class="typewriter">
-    <span id="typed-text"></span>
-    <span id="cursor">|</span>
-</div>
-
 <!-- Галерея -->
-<div class="gallery">
+<div class="gallery" id="gallery">
     <div class="gallery__container">
-        <!-- Каждый span представляет собой элемент галереи с уникальным изображением -->
-        <span style="--i:0;">
-            <img src="https://picsum.photos/200/200?1" alt="Изображение 1">
+        <!-- Каждый span представляет собой кликабельную карточку темы -->
+        {% for topic in topics %}
+        <span style="--i:{{ loop.index0 }};" class="topic-card" data-topic-id="{{ topic.id }}">
+            <img src="{{ topic.image_url }}" alt="{{ topic.title }}">
+            <div class="card-overlay">
+                <h3>{{ topic.title }}</h3>
+                <p class="difficulty">{{ topic.difficulty }}</p>
+                <p class="questions">{{ topic.questions_count }} вопросов</p>
+                <div class="card-actions">
+                    <button class="btn-start" onclick="startTopic(event, {{ topic.id }})">Начать</button>
+                    <button class="btn-back" onclick="goBack(event)">Назад</button>
+                </div>
+            </div>
         </span>
-        <span style="--i:1;">
-            <img src="https://picsum.photos/200/200?2" alt="Изображение 2">
-        </span>
-        <span style="--i:2;">
-            <img src="https://picsum.photos/200/200?3" alt="Изображение 3">
-        </span>
-        <span style="--i:3;">
-            <img src="https://picsum.photos/200/200?4" alt="Изображение 4">
-        </span>
-        <span style="--i:4;">
-            <img src="https://picsum.photos/200/200?5" alt="Изображение 5">
-        </span>
-        <span style="--i:5;">
-            <img src="https://picsum.photos/200/200?6" alt="Изображение 6">
-        </span>
-        <span style="--i:6;">
-            <img src="https://picsum.photos/200/200?7" alt="Изображение 7">
-        </span>
-        <span style="--i:7;">
-            <img src="https://picsum.photos/200/200?8" alt="Изображение 8">
-        </span>
-        <!-- При необходимости добавьте больше изображений, увеличив значение --i -->
+        {% endfor %}
     </div>
 </div>
 
+<!-- Аудио элементы для звуков -->
+<audio id="swipe-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+D2u2scCTN+zO/aix0ONYu85Z2QNw0LUJ/j7KtTFAg+ltL3yHkqCypuv+PQeSsFJHbE7N2SQggUXrTq7qNTGAg7ltfHznEpBSR0wu3QeSYMKm/A5dRPFAg6mdfH0H4kDDJowdjEVGYHMYLN7NYUEb26nBcBnUE7kdf0ZKA=" type="audio/wav">
+</audio>
+
 <!-- Подключаем скрипты -->
-<script src="/static/js/matrix.js"></script>
-<script src="/static/js/typewriter.js"></script>
+<script src="/static/js/topic-cards.js"></script>
 {% endblock %}

@@ -18,17 +18,17 @@
     <!-- Слой 1: Тёмный полупрозрачный фон -->
     <div class="background-layer"></div>
 
-    <!-- Слой 2: «Дождь» матрицы, только если блок rain переопределён -->
-    {% block rain %}
-    <!-- По умолчанию дождя нет -->
-    {% endblock %}
-
-    <!-- Слой 3: Основной контент -->
+    <!-- Слой 2: Основной контент -->
     <div class="content">
         {% block content %}
         <!-- содержимое страницы -->
         {% endblock %}
     </div>
+
+    <!-- Кнопка закрытия полноэкранного режима -->
+    <button class="fullscreen-close" onclick="window.galleryController?.exitFullscreen()" title="Закрыть">
+        ✕
+    </button>
 
     <!-- Фиксированное нижнее меню -->
     <nav class="navigation">
@@ -66,10 +66,7 @@
             <div class="indicator"></div>
         </ul>
     </nav>
-    <!-- Аудио элемент для звука печати -->
-    <audio id="typing-sound" src="/static/audio/typing.mp3" preload="auto"></audio>
     <!-- Подключаем скрипты -->
-    <script src="/static/js/matrix.js"></script>
     {% block extra_js %}
     {% endblock %}
 </body>
