@@ -90,6 +90,7 @@ services:
     environment:
       - APP_HOST=0.0.0.0
       - APP_PORT=8080
+      - DJANGO_API_TOKEN=${DJANGO_API_TOKEN}
     volumes:
       - ./mini_app:/mini_app
       - ./mini_app/static:/mini_app/static

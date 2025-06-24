@@ -5,15 +5,21 @@
 {% endblock %}
 
 {% block content %}
+<!-- Поиск -->
+<div class="search-container">
+    <input type="text" id="search-input" placeholder="Поиск тем..." onkeyup="handleSearch(event)">
+    <div class="search-results" id="search-results"></div>
+</div>
+
 <!-- Галерея -->
 <div class="gallery" id="gallery">
     <div class="gallery__container">
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
         <span style="--i:{{ loop.index0 }};" class="topic-card" data-topic-id="{{ topic.id }}">
-            <img src="{{ topic.image_url }}" alt="{{ topic.title }}">
+            <img src="{{ topic.image_url }}" alt="{{ topic.name }}">
             <div class="card-overlay always-visible">
-                <h3>{{ topic.title }}</h3>
+                <h3>{{ topic.name }}</h3>
                 <p class="difficulty">{{ topic.difficulty }}</p>
                 <p class="questions">{{ topic.questions_count }} вопросов</p>
                 <div class="card-actions">
@@ -26,11 +32,9 @@
     </div>
 </div>
 
-<!-- Аудио элементы для звуков -->
-<audio id="swipe-sound" preload="auto">
-    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+D2u2scCTN+zO/aix0ONYu85Z2QNw0LUJ/j7KtTFAg+ltL3yHkqCypuv+PQeSsFJHbE7N2SQggUXrTq7qNTGAg7ltfHznEpBSR0wu3QeSYMKm/A5dRPFAg6mdfH0H4kDDJowdjEVGYHMYLN7NYUEb26nBcBnUE7kdf0ZKA=" type="audio/wav">
-</audio>
+
 
 <!-- Подключаем скрипты -->
 <script src="/static/js/topic-cards.js"></script>
+<script src="/static/js/search.js"></script>
 {% endblock %}

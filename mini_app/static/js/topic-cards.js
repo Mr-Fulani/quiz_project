@@ -20,50 +20,6 @@ function initTopicCards() {
     // Создаем overlay при инициализации
     createSelectedCardOverlay();
     
-    // Переменные для свайпа
-    let swipeSound = document.getElementById('swipe-sound');
-    let startX = 0;
-    let startY = 0;
-    let startTime = 0;
-    
-    // Добавляем touch события для свайпа только на пустом пространстве
-    let touchStarted = false;
-    
-    gallery.addEventListener('touchstart', function(e) {
-        // Проверяем что касание НЕ на карточке
-        if (!e.target.closest('.topic-card')) {
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            touchStarted = true;
-        }
-    }, { passive: true });
-    
-    gallery.addEventListener('touchend', function(e) {
-        if (!touchStarted || selectedCard) {
-            touchStarted = false;
-            return;
-        }
-        
-        const endX = e.changedTouches[0].clientX;
-        const endY = e.changedTouches[0].clientY;
-        
-        const deltaX = endX - startX;
-        const deltaY = endY - startY;
-        
-        // СУПЕР отзывчивый свайп - минимум 20px движения
-        if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
-            rotateCarousel(deltaX > 0 ? 'right' : 'left');
-        }
-        
-        touchStarted = false;
-    }, { passive: true });
-    
-    // Добавляем клавиатурное управление для десктопа
-    document.addEventListener('keydown', handleKeyPress);
-    
-    // Инициализируем полосу управления
-    initializeControlBar();
-    
     // Создаем overlay для увеличенной карточки
     function createSelectedCardOverlay() {
         if (selectedCardOverlay) return selectedCardOverlay;
@@ -87,203 +43,13 @@ function initTopicCards() {
         return selectedCardOverlay;
     }
     
-    // Функция поворота карусели
-    function rotateCarousel(direction) {
-        if (selectedCard) return;
-        
-        // Останавливаем автоматическое вращение МГНОВЕННО
-        gallery.classList.add('manual-control');
-        
-        // Поворачиваем на один шаг (45 градусов) с БЫСТРОЙ анимацией
-        const currentTransform = galleryContainer.style.transform || 'perspective(1000px) rotateY(0deg)';
-        const currentAngle = parseFloat(currentTransform.match(/rotateY\(([^)]+)deg\)/)?.[1] || 0);
-        const newAngle = direction === 'left' ? currentAngle - 45 : currentAngle + 45;
-        
-        // МГНОВЕННЫЙ поворот с быстрой анимацией
-        galleryContainer.style.transition = 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        galleryContainer.style.transform = `perspective(1000px) rotateY(${newAngle}deg)`;
-        
-        // Проигрываем звук
-        playSwipeSound();
-        
-        // Вибрация
-        if ('vibrate' in navigator) {
-            navigator.vibrate(30); // Короткая вибрация
+    // Добавляем клавиатурное управление только для Escape
+    document.addEventListener('keydown', function(e) {
+        if (selectedCard && e.key === 'Escape') {
+            goBack();
         }
-        
-        // Возобновляем автоматическое вращение через 5 секунд (дольше)
-        setTimeout(() => {
-            if (!selectedCard) {
-                gallery.classList.remove('manual-control');
-                galleryContainer.style.transform = '';
-                galleryContainer.style.transition = '';
-            }
-        }, 5000);
-    }
-    
-    // Функция обработки клавиатуры
-    function handleKeyPress(e) {
-        if (selectedCard) {
-            if (e.key === 'Escape') {
-                goBack();
-            }
-            return;
-        }
-        
-        // Стрелки влево/вправо для поворота карусели
-        if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            rotateCarousel('left');
-        } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            rotateCarousel('right');
-        }
-    }
-    
-    // Функция воспроизведения звука свайпа
-    function playSwipeSound() {
-        if (swipeSound) {
-            swipeSound.currentTime = 0;
-            swipeSound.play().catch(e => console.log('Audio play failed:', e));
-        }
-    }
-    
-    // Инициализация полосы управления
-    function initializeControlBar() {
-        const slider = document.getElementById('carouselSlider');
-        const track = document.querySelector('.control-track');
-        const indicators = document.querySelectorAll('.control-indicators .indicator');
-        
-        if (!slider || !track) return;
-        
-        let isDragging = false;
-        let startX = 0;
-        let currentPosition = 50; // Начальная позиция в центре (%)
-        let currentStep = 0; // Текущий шаг (0-7 для 8 карточек)
-        
-        // Touch события для полосы
-        slider.addEventListener('touchstart', function(e) {
-            isDragging = true;
-            startX = e.touches[0].clientX;
-            gallery.classList.add('manual-control');
-            e.preventDefault();
-        }, { passive: false });
-        
-        document.addEventListener('touchmove', function(e) {
-            if (!isDragging) return;
-            
-            const currentX = e.touches[0].clientX;
-            const deltaX = currentX - startX;
-            const trackRect = track.getBoundingClientRect();
-            const trackWidth = trackRect.width;
-            
-            // Вычисляем новую позицию
-            const deltaPercent = (deltaX / trackWidth) * 100;
-            currentPosition = Math.max(0, Math.min(100, currentPosition + deltaPercent));
-            
-            // Обновляем позицию слайдера
-            slider.style.left = currentPosition + '%';
-            
-            // Вычисляем текущий шаг
-            const newStep = Math.round((currentPosition / 100) * 7);
-            if (newStep !== currentStep) {
-                currentStep = newStep;
-                updateCarouselPosition(currentStep);
-                updateIndicators(currentStep);
-                playSwipeSound();
-                
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(20);
-                }
-            }
-            
-            startX = currentX;
-            e.preventDefault();
-        }, { passive: false });
-        
-        document.addEventListener('touchend', function(e) {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            // Возвращаем автоматическое вращение через 3 секунды
-            setTimeout(() => {
-                if (!selectedCard) {
-                    gallery.classList.remove('manual-control');
-                    galleryContainer.style.transform = '';
-                    galleryContainer.style.transition = '';
-                    // Сбрасываем позицию слайдера
-                    slider.style.left = '50%';
-                    currentPosition = 50;
-                    currentStep = 0;
-                    updateIndicators(0);
-                }
-            }, 3000);
-        });
-        
-        // Mouse события для десктопа
-        slider.addEventListener('mousedown', function(e) {
-            isDragging = true;
-            startX = e.clientX;
-            gallery.classList.add('manual-control');
-            e.preventDefault();
-        });
-        
-        document.addEventListener('mousemove', function(e) {
-            if (!isDragging) return;
-            
-            const currentX = e.clientX;
-            const deltaX = currentX - startX;
-            const trackRect = track.getBoundingClientRect();
-            const trackWidth = trackRect.width;
-            
-            const deltaPercent = (deltaX / trackWidth) * 100;
-            currentPosition = Math.max(0, Math.min(100, currentPosition + deltaPercent));
-            
-            slider.style.left = currentPosition + '%';
-            
-            const newStep = Math.round((currentPosition / 100) * 7);
-            if (newStep !== currentStep) {
-                currentStep = newStep;
-                updateCarouselPosition(currentStep);
-                updateIndicators(currentStep);
-                playSwipeSound();
-            }
-            
-            startX = currentX;
-        });
-        
-        document.addEventListener('mouseup', function() {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            setTimeout(() => {
-                if (!selectedCard) {
-                    gallery.classList.remove('manual-control');
-                    galleryContainer.style.transform = '';
-                    galleryContainer.style.transition = '';
-                    slider.style.left = '50%';
-                    currentPosition = 50;
-                    currentStep = 0;
-                    updateIndicators(0);
-                }
-            }, 3000);
-        });
-        
-        // Функция обновления позиции карусели
-        function updateCarouselPosition(step) {
-            const angle = step * 45; // 45 градусов на шаг
-            galleryContainer.style.transition = 'transform 0.1s ease';
-            galleryContainer.style.transform = `perspective(1000px) rotateY(${angle}deg)`;
-        }
-        
-        // Функция обновления индикаторов
-        function updateIndicators(activeStep) {
-            indicators.forEach((indicator, index) => {
-                indicator.classList.toggle('active', index === activeStep);
-            });
-        }
-    }
-    
+    });
+
     // Добавляем обработчики для каждой карточки
     topicCards.forEach(card => {
         // Обработка клика на карточку
@@ -363,11 +129,6 @@ function initTopicCards() {
             overlay.classList.add('active');
         }, 50);
         
-        // Вибрация для мобильных устройств
-        if ('vibrate' in navigator) {
-            navigator.vibrate(100);
-        }
-        
         console.log('Card selected successfully');
     }
     
@@ -405,16 +166,6 @@ function initTopicCards() {
     
     function navigateToTopic(topicId) {
         console.log(`Navigating to topic: ${topicId}`);
-        
-        // Вибрация
-        if ('vibrate' in navigator) {
-            navigator.vibrate(200);
-        }
-        
-        // Плавное затухание
-        if (selectedCard) {
-            selectedCard.style.opacity = '0.7';
-        }
         
         setTimeout(() => {
             window.location.href = `/topic/${topicId}`;
