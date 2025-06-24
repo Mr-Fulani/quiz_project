@@ -1,11 +1,20 @@
 // topic-cards.js
 // Обработка карточек тем с увеличением на месте
 
+console.log('🔥 TOPIC-CARDS.JS LOADED!');
+console.log('Current page URL:', window.location.href);
+console.log('DOM ready state:', document.readyState);
+
 function initTopicCards() {
-    console.log('Topic cards script initialized');
+    console.log('🚀 Topic cards script initialized');
+    
+    // Проверяем DOM
+    console.log('DOM ready state:', document.readyState);
+    console.log('Current URL:', window.location.pathname);
     
     // Очищаем предыдущее состояние если оно есть
     if (window.galleryController && window.galleryController.resetState) {
+        console.log('Resetting previous state...');
         window.galleryController.resetState();
     }
     
@@ -14,20 +23,19 @@ function initTopicCards() {
     const galleryContainer = document.querySelector('.gallery__container');
     const topicCards = document.querySelectorAll('.topic-card');
     
+    console.log('Gallery elements check:');
+    console.log('- gallery:', gallery ? '✅' : '❌');
+    console.log('- galleryContainer:', galleryContainer ? '✅' : '❌');
+    console.log('- topicCards count:', topicCards.length);
+    
     if (!gallery || !galleryContainer || topicCards.length === 0) {
-        console.log('Gallery elements not found, skipping initialization');
+        console.log('❌ Gallery elements not found, skipping initialization');
+        console.log('Available elements:', document.querySelectorAll('*').length, 'total elements in DOM');
         return;
     }
     
-    // Удаляем старые обработчики если они есть
-    topicCards.forEach(card => {
-        // Клонируем элемент чтобы удалить все event listeners
-        const newCard = card.cloneNode(true);
-        card.parentNode.replaceChild(newCard, card);
-    });
-    
-    // Получаем обновленные элементы после клонирования
-    const updatedTopicCards = document.querySelectorAll('.topic-card');
+    // Простая очистка - используем оригинальные карточки
+    console.log('Found topic cards:', topicCards.length);
     
     let selectedCard = null;
     let selectedCardOverlay = null;
@@ -71,64 +79,87 @@ function initTopicCards() {
         }
     });
 
-    // Скрываем клавиатуру при клике на галерею (но не на карточки)
-    gallery.addEventListener('click', function(e) {
-        // Скрываем клавиатуру только если клик не на карточке
-        if (!e.target.closest('.topic-card')) {
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                searchInput.blur();
-            }
-        }
-    });
-
-    // Добавляем обработчики для каждой карточки
-    updatedTopicCards.forEach(card => {
-        // Обработка клика на карточку
-        card.addEventListener('click', function(e) {
-            // Скрываем клавиатуру при клике на карточку
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                searchInput.blur();
-            }
-            
-            // Если клик был на кнопке - игнорируем
-            if (e.target.tagName === 'BUTTON') {
-                return;
-            }
-            
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const topicId = this.getAttribute('data-topic-id');
-            console.log(`Clicked on topic card with ID: ${topicId}`);
-            
-            // Если карточка уже выбрана - ничего не делаем
-            if (this.classList.contains('selected')) {
-                return;
-            }
-            
-            // Выбираем карточку
-            selectCard(this);
-        });
+        // НОВЫЙ ПОДХОД: Используем делегирование событий на родительском контейнере
+    // Это работает для всех карточек, включая динамически созданные
+    
+    // Удаляем старый обработчик если он есть
+    if (gallery.clickHandlerAdded) {
+        console.log('Removing old gallery click handler...');
+        gallery.removeEventListener('click', gallery.clickHandler);
+    }
+    
+    // Создаем новый обработчик
+    gallery.clickHandler = function(e) {
+        console.log('🔥 GALLERY CLICKED!', e.target);
         
-        // Обработка наведения мыши - останавливаем галерею только на десктопе
-        card.addEventListener('mouseenter', function() {
-            if (!selectedCard && !('ontouchstart' in window)) {
+        // Скрываем клавиатуру при любом клике в галерее
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.blur();
+        }
+        
+        // Находим ближайшую карточку
+        const clickedCard = e.target.closest('.topic-card');
+        
+        if (!clickedCard) {
+            console.log('Clicked outside cards');
+            return;
+        }
+        
+        console.log('🎯 CARD FOUND!', clickedCard.getAttribute('data-topic-id'));
+        
+        // Если клик был на кнопке - игнорируем
+        if (e.target.tagName === 'BUTTON') {
+            console.log('Button clicked, ignoring...');
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const topicId = clickedCard.getAttribute('data-topic-id');
+        console.log(`Clicked on topic card with ID: ${topicId}`);
+        
+        // Если карточка уже выбрана - ничего не делаем
+        if (clickedCard.classList.contains('selected')) {
+            console.log('Card already selected, ignoring...');
+            return;
+        }
+        
+        // Выбираем карточку
+        console.log('Calling selectCard...');
+        selectCard(clickedCard);
+    };
+    
+    // Добавляем обработчик
+    gallery.addEventListener('click', gallery.clickHandler);
+    gallery.clickHandlerAdded = true;
+    
+    console.log('✅ Gallery click handler with delegation added');
+
+    // Добавляем hover эффекты через делегирование
+    if (!gallery.hoverHandlerAdded) {
+        gallery.addEventListener('mouseenter', function(e) {
+            const card = e.target.closest('.topic-card');
+            if (card && !selectedCard && !('ontouchstart' in window)) {
                 pauseGallery();
             }
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            if (!selectedCard && !('ontouchstart' in window)) {
+        }, true);
+
+        gallery.addEventListener('mouseleave', function(e) {
+            const card = e.target.closest('.topic-card');
+            if (card && !selectedCard && !('ontouchstart' in window)) {
                 setTimeout(() => {
                     if (!selectedCard) {
                         resumeGallery();
                     }
                 }, 500);
             }
-        });
-    });
+        }, true);
+        
+        gallery.hoverHandlerAdded = true;
+        console.log('✅ Gallery hover handlers added');
+    }
     
     // Функции управления
     function selectCard(card) {
@@ -211,9 +242,81 @@ function initTopicCards() {
     function navigateToTopic(topicId) {
         console.log(`Navigating to topic: ${topicId}`);
         
-        setTimeout(() => {
-            window.location.href = `/topic/${topicId}`;
+        // Используем AJAX навигацию вместо полной перезагрузки страницы
+        setTimeout(async () => {
+            try {
+                const url = `/topic/${topicId}`;
+                console.log('Loading topic page via AJAX:', url);
+                
+                // Сначала сбрасываем состояние галереи
+                if (window.galleryController && window.galleryController.resetState) {
+                    window.galleryController.resetState();
+                }
+                
+                const contentContainer = document.querySelector('.content');
+                if (!contentContainer) {
+                    console.log('Content container not found, falling back to normal navigation');
+                    window.location.href = url;
+                    return;
+                }
+                
+                // Показываем индикатор загрузки
+                contentContainer.style.opacity = '0.7';
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    
+                    // Парсим HTML и извлекаем контент
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.querySelector('.content');
+                    
+                    if (newContent) {
+                        // Плавно заменяем контент
+                        setTimeout(() => {
+                            contentContainer.innerHTML = newContent.innerHTML;
+                            contentContainer.style.opacity = '1';
+                            
+                            // Обновляем URL в браузере
+                            window.history.pushState({}, '', url);
+                            
+                            // Обновляем активную навигацию
+                            updateActiveNavigation(url);
+                            
+                            console.log('Topic page loaded via AJAX successfully');
+                        }, 200);
+                    } else {
+                        console.log('New content not found, falling back to normal navigation');
+                        window.location.href = url;
+                    }
+                } else {
+                    console.log('AJAX request failed, falling back to normal navigation');
+                    window.location.href = url;
+                }
+            } catch (error) {
+                console.error('Error during AJAX navigation:', error);
+                // Fallback к обычному переходу
+                window.location.href = `/topic/${topicId}`;
+            }
         }, 300);
+    }
+    
+    // Функция для обновления активной навигации
+    function updateActiveNavigation(url) {
+        const navItems = document.querySelectorAll('.navigation .list');
+        navItems.forEach(item => {
+            item.classList.remove('active');
+            // Для страниц тем активируем "Главная"
+            if (url.startsWith('/topic/') && item.getAttribute('data-href') === '/') {
+                item.classList.add('active');
+            }
+        });
     }
     
     // Экспортируем функции для использования в HTML
@@ -232,6 +335,10 @@ function initTopicCards() {
         }
         navigateToTopic(topicId);
     };
+    
+    // Экспортируем функции глобально для экстренного доступа
+    window.selectCard = selectCard;
+    window.goBack = goBack;
     
     // Объект для управления галереей
     window.galleryController = {
@@ -277,8 +384,9 @@ function initTopicCards() {
                 });
                 
                 // Убираем класс выбора с контейнера
-                if (galleryContainer) {
-                    galleryContainer.classList.remove('has-selection');
+                const currentGalleryContainer = document.querySelector('.gallery__container');
+                if (currentGalleryContainer) {
+                    currentGalleryContainer.classList.remove('has-selection');
                 }
                 
                 // Убираем классы выбора со всех карточек
@@ -286,11 +394,12 @@ function initTopicCards() {
                 allCards.forEach(card => card.classList.remove('selected'));
                 
                 // Возобновляем галерею
-                if (gallery) {
-                    gallery.classList.remove('paused');
+                const currentGallery = document.querySelector('.gallery');
+                if (currentGallery) {
+                    currentGallery.classList.remove('paused');
                 }
                 
-                console.log('Gallery state reset complete');
+                console.log('Gallery state reset complete (delegation preserved)');
             } catch (error) {
                 console.error('Error during state reset:', error);
             }
@@ -308,8 +417,22 @@ function initTopicCards() {
     console.log('Gallery controller initialized');
     console.log('Используйте window.galleryController.debug() для диагностики');
     
-    // Проверяем, что обработчики установлены
-    console.log('Cards with click handlers:', updatedTopicCards.length);
+    // Проверяем, что карточки найдены
+    console.log('Found topic cards:', topicCards.length);
+    
+    // Добавляем тестовую функцию для диагностики
+    window.testCardClick = function(cardIndex = 0) {
+        const cards = document.querySelectorAll('.topic-card');
+        if (cards[cardIndex]) {
+            console.log('Testing click on card:', cardIndex);
+            cards[cardIndex].click();
+        } else {
+            console.log('Card not found:', cardIndex);
+        }
+    };
+    
+    console.log('💡 Для тестирования кликов используйте: window.testCardClick(0)');
+    console.log('✅ Gallery initialization complete with event delegation');
 }
 
 // Функция для загрузки данных темы через API
@@ -324,8 +447,70 @@ async function loadTopicData(topicId) {
     }
 }
 
+// ЭКСТРЕННЫЙ ФИКС: Добавляем глобальный обработчик кликов
+console.log('🚨 Adding emergency global click handler...');
+
+document.addEventListener('click', function(e) {
+    console.log('🔥 GLOBAL CLICK:', e.target);
+    
+    const card = e.target.closest('.topic-card');
+    if (card) {
+        console.log('🎯 CARD DETECTED GLOBALLY!', card.getAttribute('data-topic-id'));
+        
+        // Скрываем клавиатуру
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.blur();
+        }
+        
+        // Если клик на кнопке - игнорируем
+        if (e.target.tagName === 'BUTTON') {
+            console.log('Button clicked, ignoring...');
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Если карточка уже выбрана - ничего не делаем
+        if (card.classList.contains('selected')) {
+            console.log('Card already selected, ignoring...');
+            return;
+        }
+        
+        // Вызываем функцию выбора карточки
+        if (window.galleryController && window.galleryController.selectCard) {
+            console.log('Calling selectCard via galleryController...');
+            window.galleryController.selectCard(card);
+        } else {
+            console.log('⚠️ galleryController not found, trying direct call...');
+            // Прямой вызов функции selectCard
+            if (typeof selectCard === 'function') {
+                selectCard(card);
+            } else {
+                console.error('❌ selectCard function not available!');
+            }
+        }
+    }
+}, true); // Используем capture phase
+
+console.log('✅ Emergency global click handler added');
+
 // Экспортируем функцию глобально для доступа из других скриптов
 window.initTopicCards = initTopicCards;
 
 // Инициализируем при загрузке страницы
-document.addEventListener('DOMContentLoaded', initTopicCards); 
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔥 DOMContentLoaded fired!');
+    initTopicCards();
+});
+
+// Дополнительная инициализация для случаев когда DOM уже готов
+if (document.readyState === 'loading') {
+    console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
+} else {
+    console.log('✅ DOM already ready, initializing immediately...');
+    initTopicCards();
+}
+
+console.log('🔥 TOPIC-CARDS.JS SCRIPT END REACHED!'); 
