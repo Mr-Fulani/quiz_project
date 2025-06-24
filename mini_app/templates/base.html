@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>{% block title %}Мое приложение{% endblock %}</title>
 
     <!-- Подключение шрифтов -->
@@ -29,7 +29,7 @@
     <!-- Фиксированное нижнее меню -->
     <nav class="navigation">
         <ul>
-            <li class="list {% if request.url.path == '/' %}active{% endif %}" data-href="/">
+            <li class="list {% if request.url.path == '/' or request.url.path.startswith('/topic/') %}active{% endif %}" data-href="/">
                 <a href="/">
                     <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
                     <span class="text">Главная</span>
@@ -111,6 +111,11 @@
                     if (newContent) {
                         // Плавно заменяем контент
                         setTimeout(() => {
+                            // ВАЖНО: Сбрасываем состояние карточек перед загрузкой новой страницы
+                            if (window.galleryController) {
+                                window.galleryController.resetState();
+                            }
+                            
                             contentContainer.innerHTML = newContent.innerHTML;
                             contentContainer.style.opacity = '1';
                             

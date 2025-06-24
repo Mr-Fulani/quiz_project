@@ -4,6 +4,11 @@
 function initTopicCards() {
     console.log('Topic cards script initialized');
     
+    // Очищаем предыдущее состояние если оно есть
+    if (window.galleryController && window.galleryController.resetState) {
+        window.galleryController.resetState();
+    }
+    
     // Получаем элементы галереи
     const gallery = document.querySelector('.gallery');
     const galleryContainer = document.querySelector('.gallery__container');
@@ -11,6 +16,16 @@ function initTopicCards() {
     
     if (!gallery || !galleryContainer || topicCards.length === 0) {
         console.log('Gallery elements not found, skipping initialization');
+        return;
+    }
+    
+    // Проверяем, не инициализированы ли уже карточки
+    const alreadyInitialized = Array.from(topicCards).some(card => 
+        card.hasAttribute('data-initialized')
+    );
+    
+    if (alreadyInitialized) {
+        console.log('Cards already initialized, skipping...');
         return;
     }
     
@@ -34,6 +49,12 @@ function initTopicCards() {
         
         // Закрытие по клику на фон
         selectedCardOverlay.addEventListener('click', function(e) {
+            // Скрываем клавиатуру
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.blur();
+            }
+            
             if (e.target === selectedCardOverlay) {
                 goBack();
             }
@@ -52,8 +73,16 @@ function initTopicCards() {
 
     // Добавляем обработчики для каждой карточки
     topicCards.forEach(card => {
+        // Помечаем карточку как инициализированную
+        card.setAttribute('data-initialized', 'true');
         // Обработка клика на карточку
         card.addEventListener('click', function(e) {
+            // Скрываем клавиатуру при клике на карточку
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.blur();
+            }
+            
             // Если клик был на кнопке - игнорируем
             if (e.target.tagName === 'BUTTON') {
                 return;
@@ -117,11 +146,17 @@ function initTopicCards() {
         
         // Копируем содержимое карточки
         const img = card.querySelector('img');
-        const cardOverlay = card.querySelector('.card-overlay');
+        const title = card.querySelector('.card-overlay h3').textContent;
         
         container.innerHTML = `
             <img src="${img.src}" alt="${img.alt}" style="width: 100%; height: 100%; object-fit: cover;">
-            ${cardOverlay.outerHTML}
+            <div class="card-overlay always-visible">
+                <h3>${title}</h3>
+                <div class="card-actions">
+                    <button class="btn-start" onclick="startTopic(event, ${card.getAttribute('data-topic-id')})">Начать</button>
+                    <button class="btn-back" onclick="goBack(event)">Назад</button>
+                </div>
+            </div>
         `;
         
         // Показываем overlay
@@ -196,6 +231,55 @@ function initTopicCards() {
         pauseGallery,
         resumeGallery,
         navigateToTopic,
+        // Функция сброса состояния для AJAX навигации
+        resetState: function() {
+            console.log('Resetting gallery state...');
+            
+            try {
+                // Сбрасываем выбранную карточку
+                if (selectedCard) {
+                    selectedCard.classList.remove('selected');
+                    selectedCard = null;
+                }
+                
+                // Убираем overlay если он активен
+                if (selectedCardOverlay) {
+                    selectedCardOverlay.classList.remove('active');
+                    // Небольшая задержка перед удалением для анимации
+                    setTimeout(() => {
+                        if (selectedCardOverlay && selectedCardOverlay.parentNode) {
+                            selectedCardOverlay.remove();
+                        }
+                        selectedCardOverlay = null;
+                    }, 100);
+                }
+                
+                // Убираем все overlay-элементы на всякий случай
+                const allOverlays = document.querySelectorAll('.selected-card-overlay');
+                allOverlays.forEach(overlay => {
+                    overlay.classList.remove('active');
+                    setTimeout(() => overlay.remove(), 100);
+                });
+                
+                // Убираем класс выбора с контейнера
+                if (galleryContainer) {
+                    galleryContainer.classList.remove('has-selection');
+                }
+                
+                // Убираем классы выбора со всех карточек
+                const allCards = document.querySelectorAll('.topic-card.selected');
+                allCards.forEach(card => card.classList.remove('selected'));
+                
+                // Возобновляем галерею
+                if (gallery) {
+                    gallery.classList.remove('paused');
+                }
+                
+                console.log('Gallery state reset complete');
+            } catch (error) {
+                console.error('Error during state reset:', error);
+            }
+        },
         // Диагностическая функция
         debug: function() {
             console.log('=== Gallery Debug Info ===');
@@ -208,6 +292,9 @@ function initTopicCards() {
     
     console.log('Gallery controller initialized');
     console.log('Используйте window.galleryController.debug() для диагностики');
+    
+    // Проверяем, что обработчики установлены
+    console.log('Cards with click handlers:', topicCards.length);
 }
 
 // Функция для загрузки данных темы через API

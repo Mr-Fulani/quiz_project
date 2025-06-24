@@ -83,24 +83,37 @@ function updateGallery(topics) {
 }
 
 function initializeCardHandlers() {
-    // Добавляем обработчики кликов для новых карточек
-    document.querySelectorAll('.topic-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            if (e.target.closest('.card-actions')) {
-                return; // Не обрабатываем клики по кнопкам
-            }
-            
-            // Переключаем увеличенное состояние
-            if (this.classList.contains('enlarged')) {
-                this.classList.remove('enlarged');
-            } else {
-                // Убираем увеличение с других карточек
-                document.querySelectorAll('.topic-card.enlarged').forEach(otherCard => {
-                    otherCard.classList.remove('enlarged');
-                });
-                this.classList.add('enlarged');
-            }
-        });
+    // Переинициализируем галерею после обновления карточек
+    if (window.initTopicCards) {
+        window.initTopicCards();
+    }
+}
+
+// Обработчик для скрытия клавиатуры
+function hideKeyboard() {
+    if (searchInput) {
+        searchInput.blur();
+    }
+}
+
+// Скрываем клавиатуру при клике вне поля поиска
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.search-container') && 
+        !event.target.closest('.topic-card') &&
+        !event.target.closest('.selected-card-overlay')) {
+        hideKeyboard();
+    }
+}, true); // Используем capture phase
+
+// Скрываем клавиатуру при скролле
+document.addEventListener('scroll', hideKeyboard);
+
+// Скрываем клавиатуру при нажатии Enter
+if (searchInput) {
+    searchInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            hideKeyboard();
+        }
     });
 }
 
