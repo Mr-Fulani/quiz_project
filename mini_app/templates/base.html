@@ -71,15 +71,19 @@
         function activeLink(e){
             // Предотвращаем стандартное поведение ссылки
             e.preventDefault();
+            e.stopPropagation();
             
-            // Убираем активный класс со всех элементов
+            // Убираем активный класс со всех элементов навигации
             list.forEach((item) => item.classList.remove('active'));
             
-            // Добавляем активный класс к текущему элементу
-            this.classList.add('active');
+            // Добавляем активный класс к родительскому li
+            const parentLi = this.closest('.list');
+            if (parentLi) {
+                parentLi.classList.add('active');
+            }
             
             // Получаем URL из href
-            const href = this.querySelector('a').getAttribute('href');
+            const href = this.getAttribute('href');
             
             // Загружаем контент через AJAX
             loadPage(href);
@@ -135,8 +139,10 @@
             loadPage(window.location.pathname);
         });
         
-        // Добавляем обработчики событий
-        list.forEach((item) => item.addEventListener('click', activeLink));
+        // Добавляем обработчики событий только к ссылкам навигации
+        document.querySelectorAll('.navigation a').forEach((link) => {
+            link.addEventListener('click', activeLink);
+        });
     </script>
 
     <!-- Подключаем скрипты -->
