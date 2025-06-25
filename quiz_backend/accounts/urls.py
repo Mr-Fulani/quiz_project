@@ -20,6 +20,9 @@ urlpatterns = [
     path('dashboard/', dashboard_view, name='dashboard'),
     path('profile/', profile_redirect_view, name='profile'),
 
+    # API для профиля и социальных сетей
+    path('api/profile/<int:user_id>/', views.PublicProfileAPIView.as_view(), name='public-profile-api'),
+
     # Управление подписками
     path('subscriptions/', views.SubscriptionListView.as_view(), name='subscription-list'),
     path('subscriptions/<int:pk>/', views.SubscriptionDetailView.as_view(), name='subscription-detail'),

@@ -289,6 +289,238 @@
     padding: 20px;
 }
 
+/* Стили для социальных сетей */
+.social-section {
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+}
+
+.social-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.edit-social-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.edit-social-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.social-links {
+    display: grid;
+    gap: 12px;
+}
+
+.social-link-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 16px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.social-link-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.social-link-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.social-link-card:hover::before {
+    left: 100%;
+}
+
+.social-icon {
+    font-size: 24px;
+    margin-right: 16px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.social-link-card:hover .social-icon {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.social-info {
+    flex: 1;
+}
+
+.social-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 16px;
+}
+
+.social-url {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.social-url::after {
+    content: '↗';
+    font-size: 12px;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+}
+
+.social-link-card:hover .social-url::after {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.social-edit-form {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(10px);
+}
+
+.social-input-group {
+    margin-bottom: 20px;
+}
+
+.social-input-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: white;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.social-input-group input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-size: 15px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.social-input-group input:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.social-input-group input:focus {
+    outline: none;
+    border-color: rgba(96, 165, 250, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+}
+
+.social-input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.social-edit-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.save-social-btn, .cancel-social-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.save-social-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+}
+
+.save-social-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.cancel-social-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cancel-social-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.social-empty {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 20px;
+    font-style: italic;
+}
+
 @media (max-width: 480px) {
     .content {
         padding: 15px !important;
@@ -491,6 +723,92 @@ function renderProfile() {
                 border-radius: 4px; overflow: hidden; margin-left: 15px;
             }
             .progress-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); }
+            
+            /* Стили для социальных сетей */
+            .social-section { margin-bottom: 30px; }
+            .social-title { 
+                font-size: 18px; font-weight: 600; color: white; margin-bottom: 15px;
+                display: flex; justify-content: space-between; align-items: center;
+            }
+            .edit-social-btn { 
+                background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+                color: white; padding: 8px 12px; border-radius: 10px; cursor: pointer;
+                transition: all 0.3s ease; font-size: 14px;
+            }
+            .edit-social-btn:hover { 
+                background: rgba(255, 255, 255, 0.2); 
+                transform: translateY(-1px);
+            }
+            .social-links { 
+                display: grid; gap: 10px;
+            }
+            .social-link-card { 
+                background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 12px; padding: 15px; transition: all 0.3s ease;
+                display: flex; align-items: center; text-decoration: none; color: white;
+            }
+            .social-link-card:hover { 
+                background: rgba(255, 255, 255, 0.2); 
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            }
+            .social-icon { font-size: 20px; margin-right: 12px; width: 24px; text-align: center; }
+            .social-info { flex: 1; }
+            .social-name { font-weight: 600; margin-bottom: 2px; }
+            .social-url { font-size: 14px; color: rgba(255, 255, 255, 0.7); }
+            .social-edit-form { 
+                background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 15px; padding: 20px; backdrop-filter: blur(10px);
+            }
+            .social-input-group { margin-bottom: 15px; }
+            .social-input-group label { 
+                display: block; font-weight: 600; color: white; margin-bottom: 5px; font-size: 14px;
+            }
+            .social-input-group input { 
+                width: 100%; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 10px; background: rgba(255, 255, 255, 0.1); color: white;
+                font-size: 14px; box-sizing: border-box;
+            }
+            .social-input-group input::placeholder { color: rgba(255, 255, 255, 0.5); }
+            .social-input-group input:focus { 
+                outline: none; border-color: #60a5fa; 
+                box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+            }
+            .social-edit-actions { 
+                display: flex; gap: 10px; margin-top: 20px;
+            }
+            .save-social-btn, .cancel-social-btn { 
+                flex: 1; padding: 12px; border: none; border-radius: 10px;
+                font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+            }
+            .save-social-btn { 
+                background: #22c55e; color: white;
+            }
+            .save-social-btn:hover { 
+                background: #16a34a; transform: translateY(-1px);
+            }
+            .cancel-social-btn { 
+                background: rgba(255, 255, 255, 0.1); color: white;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .cancel-social-btn:hover { 
+                background: rgba(255, 255, 255, 0.2);
+            }
+            
+            /* Стили для action buttons */
+            .profile-actions { display: flex; flex-direction: column; gap: 10px; }
+            .action-btn { 
+                background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+                color: white; padding: 15px 20px; border-radius: 12px; text-decoration: none;
+                transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;
+                font-weight: 600;
+            }
+            .action-btn:hover { 
+                background: rgba(255, 255, 255, 0.2); 
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            }
+            .action-btn-icon { font-size: 18px; }
         </style>
         <div class="profile-content-loaded">
         <div class="profile-header">
@@ -537,6 +855,82 @@ function renderProfile() {
                 '<div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">Пока нет данных о прогрессе. Пройдите первый квиз!</div>'
             }
         </div>
+
+        <div class="achievements-preview">
+            <div class="achievements-title">
+                🏆 Достижения
+                <a href="/achievements" class="view-all-link">Все достижения</a>
+            </div>
+            <div class="achievements-grid">
+                ${profileData.achievements.map(ach => `
+                    <div class="achievement-badge ${ach.unlocked ? '' : 'locked'}" title="${ach.name}">
+                        ${ach.icon}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        <!-- Социальные сети -->
+        <div class="social-section">
+            <div class="social-title">
+                🔗 Социальные сети
+                <button class="edit-social-btn" onclick="toggleSocialEdit()">
+                    ✏️ Редактировать
+                </button>
+            </div>
+            
+            <!-- Просмотр социальных сетей -->
+            <div id="social-view" class="social-links">
+                <!-- Заполняется через JavaScript -->
+            </div>
+            
+            <!-- Редактирование социальных сетей -->
+            <div id="social-edit" class="social-edit-form" style="display: none;">
+                <div class="social-input-group">
+                    <label>🌐 Веб-сайт</label>
+                    <input type="url" id="website" placeholder="https://example.com">
+                </div>
+                <div class="social-input-group">
+                    <label>✈️ Telegram</label>
+                    <input type="text" id="telegram" placeholder="@username">
+                </div>
+                <div class="social-input-group">
+                    <label>💻 GitHub</label>
+                    <input type="url" id="github" placeholder="https://github.com/username">
+                </div>
+                <div class="social-input-group">
+                    <label>💼 LinkedIn</label>
+                    <input type="url" id="linkedin" placeholder="https://linkedin.com/in/username">
+                </div>
+                <div class="social-input-group">
+                    <label>📸 Instagram</label>
+                    <input type="url" id="instagram" placeholder="https://instagram.com/username">
+                </div>
+                <div class="social-input-group">
+                    <label>📘 Facebook</label>
+                    <input type="url" id="facebook" placeholder="https://facebook.com/username">
+                </div>
+                <div class="social-input-group">
+                    <label>📺 YouTube</label>
+                    <input type="url" id="youtube" placeholder="https://youtube.com/c/username">
+                </div>
+                <div class="social-edit-actions">
+                    <button class="save-social-btn" onclick="saveSocialLinks()">
+                        💾 Сохранить
+                    </button>
+                    <button class="cancel-social-btn" onclick="cancelSocialEdit()">
+                        ❌ Отмена
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <button class="action-btn refresh-btn" onclick="refreshProfile()">
+                🔄 Обновить профиль
+                <span class="action-btn-icon">⟳</span>
+            </button>
+        </div>
         </div>
     `;
 }
@@ -554,7 +948,207 @@ function showError(message) {
     `;
 }
 
+// Функции для управления социальными сетями
+let socialData = {};
+
+async function loadSocialLinks() {
+    try {
+        const response = await fetch('/api/profile/full');
+        if (response.ok) {
+            const data = await response.json();
+            socialData = {
+                website: data.website || '',
+                telegram: data.telegram || '',
+                github: data.github || '',
+                linkedin: data.linkedin || '',
+                instagram: data.instagram || '',
+                facebook: data.facebook || '',
+                youtube: data.youtube || ''
+            };
+            renderSocialLinks();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки социальных сетей:', error);
+        renderEmptySocialLinks();
+    }
+}
+
+function renderSocialLinks() {
+    const socialView = document.getElementById('social-view');
+    const socialNetworks = [
+        { key: 'website', icon: '🌐', name: 'Веб-сайт' },
+        { key: 'telegram', icon: '✈️', name: 'Telegram' },
+        { key: 'github', icon: '💻', name: 'GitHub' },
+        { key: 'linkedin', icon: '💼', name: 'LinkedIn' },
+        { key: 'instagram', icon: '📸', name: 'Instagram' },
+        { key: 'facebook', icon: '📘', name: 'Facebook' },
+        { key: 'youtube', icon: '📺', name: 'YouTube' }
+    ];
+
+    const filledNetworks = socialNetworks.filter(network => socialData[network.key]);
+    
+    if (filledNetworks.length === 0) {
+        renderEmptySocialLinks();
+        return;
+    }
+
+    socialView.innerHTML = filledNetworks.map(network => {
+        const url = socialData[network.key];
+        const displayUrl = url.length > 30 ? url.substring(0, 30) + '...' : url;
+        
+        return `
+            <a href="${url}" target="_blank" rel="noopener noreferrer" class="social-link-card">
+                <div class="social-icon">${network.icon}</div>
+                <div class="social-info">
+                    <div class="social-name">${network.name}</div>
+                    <div class="social-url">${displayUrl}</div>
+                </div>
+            </a>
+        `;
+    }).join('');
+}
+
+function renderEmptySocialLinks() {
+    const socialView = document.getElementById('social-view');
+    socialView.innerHTML = `
+        <div style="
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 30px;
+            font-style: italic;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+        ">
+            Нажмите "Редактировать", чтобы добавить социальные сети
+        </div>
+    `;
+}
+
+function toggleSocialEdit() {
+    const socialView = document.getElementById('social-view');
+    const socialEdit = document.getElementById('social-edit');
+    
+    if (socialEdit.style.display === 'none') {
+        // Заполняем форму текущими данными
+        document.getElementById('website').value = socialData.website || '';
+        document.getElementById('telegram').value = socialData.telegram || '';
+        document.getElementById('github').value = socialData.github || '';
+        document.getElementById('linkedin').value = socialData.linkedin || '';
+        document.getElementById('instagram').value = socialData.instagram || '';
+        document.getElementById('facebook').value = socialData.facebook || '';
+        document.getElementById('youtube').value = socialData.youtube || '';
+        
+        socialView.style.display = 'none';
+        socialEdit.style.display = 'grid';
+    } else {
+        cancelSocialEdit();
+    }
+}
+
+function cancelSocialEdit() {
+    const socialView = document.getElementById('social-view');
+    const socialEdit = document.getElementById('social-edit');
+    
+    socialView.style.display = 'grid';
+    socialEdit.style.display = 'none';
+}
+
+async function saveSocialLinks() {
+    const newSocialData = {
+        website: document.getElementById('website').value,
+        telegram: document.getElementById('telegram').value,
+        github: document.getElementById('github').value,
+        linkedin: document.getElementById('linkedin').value,
+        instagram: document.getElementById('instagram').value,
+        facebook: document.getElementById('facebook').value,
+        youtube: document.getElementById('youtube').value
+    };
+
+    try {
+        const response = await fetch('/api/profile/social-links', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newSocialData)
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            socialData = newSocialData;
+            renderSocialLinks();
+            cancelSocialEdit();
+            
+            // Показываем уведомление об успехе
+            showNotification('Социальные сети обновлены! ✅', 'success');
+        } else {
+            showNotification('Ошибка сохранения: ' + (result.message || 'Неизвестная ошибка'), 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        showNotification('Ошибка сохранения социальных сетей', 'error');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        animation: slideInRight 0.3s ease-out;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    if (type === 'success') {
+        notification.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+    } else if (type === 'error') {
+        notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+    }
+    
+    notification.textContent = message;
+    
+    // Добавляем стили анимации
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Убираем уведомление через 3 секунды
+    setTimeout(() => {
+        notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+            document.head.removeChild(style);
+        }, 300);
+    }, 3000);
+}
+
+function refreshProfile() {
+    loadProfileData();
+    loadSocialLinks();
+}
+
 // Загружаем данные при загрузке страницы
-document.addEventListener('DOMContentLoaded', loadProfileData);
+document.addEventListener('DOMContentLoaded', () => {
+    loadProfileData();
+    loadSocialLinks();
+});
 </script>
 {% endblock %}

@@ -16,7 +16,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction, connection
-from django.db.models import Count, F, Q, Max, Prefetch
+from django.db.models import Count, F, Q, Max, Prefetch, Subquery, OuterRef
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ from topics.models import Topic, Subtopic
 from .mixins import BreadcrumbsMixin
 from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
+from accounts.serializers import ProfileSerializer, SocialLinksSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -1611,3 +1612,55 @@ def user_profile_stats_api(request):
         return DRFResponse({
             'error': 'Не удалось загрузить статистику профиля'
         }, status=500)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def profile_api(request):
+    """
+    API для получения и обновления профиля пользователя.
+    """
+    if request.method == 'GET':
+        try:
+            serializer = ProfileSerializer(request.user)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'PATCH':
+        try:
+            serializer = ProfileSerializer(request.user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def social_links_api(request):
+    """
+    API для управления социальными сетями пользователя.
+    """
+    if request.method == 'GET':
+        try:
+            serializer = SocialLinksSerializer(request.user)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'PATCH':
+        try:
+            serializer = SocialLinksSerializer(request.user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'success': True,
+                    'message': 'Социальные сети обновлены',
+                    'data': serializer.data
+                })
+            return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
