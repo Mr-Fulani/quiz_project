@@ -126,6 +126,9 @@
                             if (window.initTopicCards) {
                                 window.initTopicCards();
                             }
+                            
+                            // Загружаем специфичные скрипты для страницы
+                            loadPageSpecificScripts(url);
                         }, 200);
                     }
                 } else {
@@ -136,6 +139,26 @@
                 console.error('Ошибка загрузки страницы:', error);
                 // Fallback к обычному переходу
                 window.location.href = url;
+            }
+        }
+        
+        // Функция для загрузки специфичных скриптов страницы
+        function loadPageSpecificScripts(url) {
+            console.log('📜 Loading page-specific scripts for:', url);
+            
+            // Удаляем все динамические скрипты
+            const dynamicScripts = document.querySelectorAll('script[data-dynamic="true"]');
+            dynamicScripts.forEach(script => script.remove());
+            
+            // Загружаем скрипты в зависимости от страницы
+            if (url.startsWith('/topic/')) {
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '/static/js/topic-detail.js';
+                script.onload = function() {
+                    console.log('✅ Topic detail script loaded via base template');
+                };
+                document.head.appendChild(script);
             }
         }
         

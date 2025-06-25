@@ -662,47 +662,42 @@ body {
     border-radius: 15px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    overflow-y: auto;
     box-sizing: border-box;
     position: relative;
     top: -60px; /* Поднимаем выше, чтобы совпадало с увеличенной карточкой */
+    display: flex;
+    flex-direction: column;
 }
 
 .topic-header {
+    flex: 1;
     display: flex;
-    gap: 20px;
-    margin-bottom: 30px;
-    align-items: center;
-}
-
-.topic-image {
-    width: 120px;
-    height: 120px;
-    border-radius: 15px;
-    object-fit: cover;
-    box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
 }
 
 .topic-info h1 {
     color: var(--active-color);
     font-size: 2em;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .topic-description {
     color: #cccccc;
     font-size: 1.1em;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .topic-stats {
     display: flex;
-    gap: 20px;
+    gap: 15px;
+    justify-content: center;
     flex-wrap: wrap;
 }
 
 .difficulty {
-    padding: 5px 12px;
+    padding: 8px 15px;
     border-radius: 20px;
     font-size: 0.9em;
     font-weight: 500;
@@ -727,7 +722,7 @@ body {
 }
 
 .questions-count {
-    padding: 5px 12px;
+    padding: 8px 15px;
     background: rgba(33, 150, 243, 0.2);
     color: #2196F3;
     border: 1px solid #2196F3;
@@ -737,9 +732,9 @@ body {
 
 .topic-actions {
     display: flex;
-    gap: 15px;
     justify-content: center;
-    margin: 30px 0;
+    margin-top: auto;
+    padding-top: 20px;
 }
 
 .btn {
@@ -775,58 +770,16 @@ body {
     transform: translateY(-2px);
 }
 
-.topic-preview {
-    margin-top: 30px;
-}
 
-.topic-preview h3 {
-    color: var(--active-color);
-    margin-bottom: 15px;
-    font-size: 1.3em;
-}
-
-.preview-list {
-    list-style: none;
-    padding: 0;
-}
-
-.preview-list li {
-    padding: 8px 0;
-    padding-left: 25px;
-    position: relative;
-    color: #cccccc;
-}
-
-.preview-list li:before {
-    content: "▶";
-    position: absolute;
-    left: 0;
-    color: var(--active-color);
-}
 
 /* Адаптивность для мобильных устройств */
 @media (max-width: 480px) {
-    .topic-header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .topic-image {
-        width: 100px;
-        height: 100px;
-    }
-    
     .topic-info h1 {
         font-size: 1.5em;
     }
     
     .topic-stats {
         justify-content: center;
-    }
-    
-    .topic-actions {
-        flex-direction: column;
-        align-items: center;
     }
     
     .btn {
