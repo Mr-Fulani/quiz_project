@@ -194,7 +194,7 @@ function initTopicCards() {
                 <h3>${title}</h3>
                 <div class="card-actions">
                     <button class="btn-start" onclick="startTopic(event, ${card.getAttribute('data-topic-id')})">Начать</button>
-                    <button class="btn-back" onclick="goBack(event)">Назад</button>
+                    <button class="btn-back" onclick="goBackFromCard(event)">Назад</button>
                 </div>
             </div>
         `;
@@ -289,6 +289,9 @@ function initTopicCards() {
                             // Обновляем активную навигацию
                             updateActiveNavigation(url);
                             
+                            // Загружаем скрипт для страницы темы
+                            loadTopicDetailScript();
+                            
                             console.log('Topic page loaded via AJAX successfully');
                         }, 200);
                     } else {
@@ -319,9 +322,33 @@ function initTopicCards() {
         });
     }
     
+    // Функция для динамической загрузки скрипта страницы темы
+    function loadTopicDetailScript() {
+        console.log('📜 Loading topic detail script...');
+        
+        // Удаляем предыдущий скрипт если он есть
+        const existingScript = document.getElementById('topic-detail-script');
+        if (existingScript) {
+            existingScript.remove();
+        }
+        
+        // Создаем новый скрипт
+        const script = document.createElement('script');
+        script.id = 'topic-detail-script';
+        script.src = '/static/js/topic-detail.js';
+        script.onload = function() {
+            console.log('✅ Topic detail script loaded successfully');
+        };
+        script.onerror = function() {
+            console.error('❌ Failed to load topic detail script');
+        };
+        
+        document.head.appendChild(script);
+    }
+    
     // Экспортируем функции для использования в HTML
     window.selectCard = selectCard;
-    window.goBack = function(event) {
+    window.goBackFromCard = function(event) {
         if (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -338,7 +365,7 @@ function initTopicCards() {
     
     // Экспортируем функции глобально для экстренного доступа
     window.selectCard = selectCard;
-    window.goBack = goBack;
+    window.goBackFromCard = goBack;
     
     // Объект для управления галереей
     window.galleryController = {
@@ -452,6 +479,13 @@ console.log('🚨 Adding emergency global click handler...');
 
 document.addEventListener('click', function(e) {
     console.log('🔥 GLOBAL CLICK:', e.target);
+    
+    // Проверяем, находимся ли мы на странице темы
+    const isTopicPage = window.location.pathname.startsWith('/topic/');
+    if (isTopicPage) {
+        console.log('🚫 On topic page, ignoring global click handler');
+        return;
+    }
     
     const card = e.target.closest('.topic-card');
     if (card) {
