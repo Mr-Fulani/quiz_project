@@ -42,6 +42,101 @@ app.add_middleware(
 
 
 
+# Функция для получения подтем из Django API
+async def fetch_subtopics_from_django(topic_id: int):
+    """
+    Получает список подтем для указанной темы из Django API
+    """
+    logger.info(f"Fetching subtopics for topic_id: {topic_id}")
+    
+    try:
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': f'Token {DJANGO_API_TOKEN}' if DJANGO_API_TOKEN else '',
+        }
+        
+        # Пробуем получить подтемы из Django API
+        subtopics_url = f"{DJANGO_API_BASE_URL}/api/{topic_id}/subtopics/"
+        logger.info(f"Requesting subtopics from: {subtopics_url}")
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(subtopics_url, headers=headers, timeout=10.0)
+            logger.info(f"Subtopics API response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"Got subtopics from API: {data}")
+                return data if isinstance(data, list) else data.get('results', data)
+            else:
+                logger.warning(f"Subtopics API returned {response.status_code}, using fallback data")
+                return get_fallback_subtopics(topic_id)
+                
+    except Exception as e:
+        logger.error(f"Ошибка при получении подтем: {e}")
+        return get_fallback_subtopics(topic_id)
+
+# Fallback данные для подтем
+def get_fallback_subtopics(topic_id: int):
+    """
+    Резервные данные подтем на случай недоступности Django API
+    """
+    fallback_data = {
+        8: [  # Python
+            {"id": 1, "name": "Синтаксис", "questions_count": 8},
+            {"id": 2, "name": "Структуры данных", "questions_count": 6},
+            {"id": 3, "name": "ООП", "questions_count": 7},
+            {"id": 4, "name": "Библиотеки", "questions_count": 5}
+        ],
+        9: [  # JavaScript
+            {"id": 5, "name": "DOM", "questions_count": 5},
+            {"id": 6, "name": "Async/Await", "questions_count": 4},
+            {"id": 7, "name": "ES6+", "questions_count": 6},
+            {"id": 8, "name": "Frameworks", "questions_count": 5}
+        ],
+        10: [  # React
+            {"id": 9, "name": "Компоненты", "questions_count": 8},
+            {"id": 10, "name": "Hooks", "questions_count": 7},
+            {"id": 11, "name": "State Management", "questions_count": 6},
+            {"id": 12, "name": "Router", "questions_count": 4}
+        ],
+        11: [  # SQL
+            {"id": 13, "name": "SELECT запросы", "questions_count": 6},
+            {"id": 14, "name": "JOIN операции", "questions_count": 5},
+            {"id": 15, "name": "Индексы", "questions_count": 4},
+            {"id": 16, "name": "Процедуры", "questions_count": 3}
+        ],
+        13: [  # Django
+            {"id": 17, "name": "Модели и ORM", "questions_count": 6},
+            {"id": 18, "name": "Views и URLs", "questions_count": 5},
+            {"id": 19, "name": "Templates", "questions_count": 4},
+            {"id": 20, "name": "Forms", "questions_count": 5}
+        ],
+        14: [  # Docker
+            {"id": 21, "name": "Контейнеры", "questions_count": 7},
+            {"id": 22, "name": "Docker Compose", "questions_count": 6},
+            {"id": 23, "name": "Volumes", "questions_count": 4},
+            {"id": 24, "name": "Networks", "questions_count": 3}
+        ],
+        15: [  # Git
+            {"id": 25, "name": "Основные команды", "questions_count": 8},
+            {"id": 26, "name": "Ветки", "questions_count": 5},
+            {"id": 27, "name": "Merge и Rebase", "questions_count": 4},
+            {"id": 28, "name": "Remote репозитории", "questions_count": 3}
+        ],
+        16: [  # Golang
+            {"id": 29, "name": "Goroutines", "questions_count": 7},
+            {"id": 30, "name": "Channels", "questions_count": 5},
+            {"id": 31, "name": "Interfaces", "questions_count": 6},
+            {"id": 32, "name": "Packages", "questions_count": 4}
+        ]
+    }
+    
+    logger.info(f"Getting fallback subtopics for topic_id: {topic_id}")
+    result = fallback_data.get(topic_id, [])
+    logger.info(f"Returning {len(result)} subtopics for topic {topic_id}")
+    return result
+
 # Функция для получения тем из Django API
 async def fetch_topics_from_django(search: str = None):
     """
@@ -221,6 +316,13 @@ async def topic_detail(request: Request, topic_id: int):
     topic = next((t for t in topics if t["id"] == topic_id), None)
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
+    
+    # Получаем подтемы из Django API
+    subtopics = await fetch_subtopics_from_django(topic_id)
+    logger.info(f"Got {len(subtopics)} subtopics for topic {topic_id}")
+    topic["subtopics"] = subtopics
+    
+    logger.info(f"Final topic data: {topic}")
     return templates.TemplateResponse("topic_detail.html", {"request": request, "topic": topic})
 
 # API для получения тем

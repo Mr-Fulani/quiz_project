@@ -14,6 +14,39 @@ class SubtopicSerializer(serializers.ModelSerializer):
             'topic'
         ]
 
+class SubtopicWithTasksSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для подтем с количеством задач (для мини-приложения).
+    """
+    questions_count = serializers.SerializerMethodField()
+    topic_id = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Subtopic
+        fields = [
+            'id', 
+            'name',
+            'description',
+            'questions_count',
+            'topic_id'
+        ]
+
+    def get_questions_count(self, obj):
+        # Подсчитываем количество задач для подтемы с переводами на русском (пока hardcode)
+        # TODO: добавить поддержку динамического языка из запроса
+        language = 'ru'
+        return obj.tasks.filter(
+            published=True,
+            translations__language=language
+        ).distinct().count()
+    
+    def get_topic_id(self, obj):
+        return obj.topic.id
+    
+    def get_description(self, obj):
+        return f'Подтема: {obj.name}'
+
 class TopicSerializer(serializers.ModelSerializer):
     """
     Сериализатор для тем с вложенными подтемами.

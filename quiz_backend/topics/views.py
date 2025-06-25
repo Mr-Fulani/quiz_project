@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, permissions
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Topic, Subtopic
-from .serializers import TopicSerializer, SubtopicSerializer, TopicMiniAppSerializer
+from .serializers import TopicSerializer, SubtopicSerializer, TopicMiniAppSerializer, SubtopicWithTasksSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -120,11 +120,25 @@ class SubtopicDeleteView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
 
 class TopicSubtopicsView(generics.ListCreateAPIView):
-    serializer_class = SubtopicSerializer
+    serializer_class = SubtopicWithTasksSerializer  # Используем новый сериализатор
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
+        # Возвращаем только подтемы с задачами на русском языке (пока hardcode)
+        # TODO: добавить поддержку динамического языка из запроса  
+        language = 'ru'
+        queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
+        
+        # Фильтруем только те подтемы, у которых есть опубликованные задачи с переводами на нужном языке
+        subtopics_with_tasks = []
+        for subtopic in queryset:
+            if subtopic.tasks.filter(
+                published=True,
+                translations__language=language
+            ).exists():
+                subtopics_with_tasks.append(subtopic.id)
+        
+        return queryset.filter(id__in=subtopics_with_tasks)
 
     def perform_create(self, serializer):
         serializer.save(topic_id=self.kwargs['topic_id'])
@@ -155,3 +169,5 @@ def topics_simple(request):
             'image_url': f'https://picsum.photos/400/400?{topic.id}',
         })
     return Response(data)
+
+
