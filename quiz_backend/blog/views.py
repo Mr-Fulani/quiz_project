@@ -17,6 +17,9 @@ from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction, connection
 from django.db.models import Count, F, Q, Max, Prefetch
+import logging
+
+logger = logging.getLogger(__name__)
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse, FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
@@ -27,7 +30,9 @@ from django.utils.translation import gettext_lazy as _, get_language
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import TemplateView, DetailView, ListView
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response as DRFResponse
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from tasks.models import Task, TaskTranslation, TaskStatistics
@@ -1496,3 +1501,113 @@ def tinymce_image_upload(request):
         return JsonResponse({'location': image_url})
 
     return JsonResponse({'error': 'Неверный запрос'}, status=400)
+
+
+# API для мини-приложения: статистика профиля пользователя
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_profile_stats_api(request):
+    """
+    API endpoint для получения статистики профиля пользователя для мини-приложения
+    """
+    try:
+        user = request.user
+        
+        # Основная статистика пользователя (используем ту же логику что и в statistics_view)
+        user_stats = TaskStatistics.objects.filter(user=user).aggregate(
+            total_attempts=Count('id'),
+            successful_attempts=Count('id', filter=Q(successful=True)),
+            rating=Count('id')
+        )
+        
+        success_rate = (
+            round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
+            if user_stats['total_attempts'] > 0 else 0
+        )
+        
+        # Прогресс по темам (топ 5)
+        topic_progress = []
+        user_category_stats = TaskStatistics.objects.filter(user=user).values(
+            'task__topic__name',
+            'task__topic__id'
+        ).annotate(
+            completed=Count('id', filter=Q(successful=True)),
+            total=Count('id')
+        ).order_by('-total')[:5]
+        
+        for stat in user_category_stats:
+            topic_name = stat['task__topic__name'] or 'Unknown'
+            completed = stat['completed']
+            total = stat['total']
+            percentage = round((completed / total * 100), 0) if total > 0 else 0
+            
+            topic_progress.append({
+                'name': topic_name,
+                'completed': completed,
+                'total': total,
+                'percentage': percentage
+            })
+        
+        # Подсчет очков (пример: 10 очков за правильный ответ)
+        total_points = user_stats['successful_attempts'] * 10
+        
+        # Серия (streak) - считаем последние попытки подряд
+        recent_attempts = TaskStatistics.objects.filter(
+            user=user
+        ).order_by('-last_attempt_date')[:10]
+        
+        current_streak = 0
+        best_streak = 0
+        temp_streak = 0
+        
+        for attempt in recent_attempts:
+            if attempt.successful:
+                temp_streak += 1
+                if current_streak == 0:  # Это первая успешная попытка в серии
+                    current_streak = temp_streak
+            else:
+                if temp_streak > best_streak:
+                    best_streak = temp_streak
+                temp_streak = 0
+        
+        if temp_streak > best_streak:
+            best_streak = temp_streak
+            
+        # Информация о пользователе
+        user_info = {
+            'telegram_id': getattr(user, 'telegram_id', None) or user.id,
+            'username': user.username,
+            'first_name': user.first_name or user.username,
+            'last_name': user.last_name or '',
+            'avatar_url': None  # Пока без аватаров
+        }
+        
+        # Моковые достижения (позже можно сделать реальную систему)
+        achievements = [
+            {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
+            {'id': 2, 'name': 'Знаток Python', 'icon': '🐍', 'unlocked': success_rate > 60},
+            {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
+            {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
+            {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
+            {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
+        ]
+        
+        return DRFResponse({
+            'user': user_info,
+            'stats': {
+                'total_quizzes': user_stats['total_attempts'],
+                'completed_quizzes': user_stats['successful_attempts'],
+                'success_rate': int(success_rate),
+                'total_points': total_points,
+                'current_streak': current_streak,
+                'best_streak': best_streak
+            },
+            'topic_progress': topic_progress,
+            'achievements': achievements
+        })
+        
+    except Exception as e:
+        logger.error(f"Ошибка в user_profile_stats_api: {e}")
+        return DRFResponse({
+            'error': 'Не удалось загрузить статистику профиля'
+        }, status=500)

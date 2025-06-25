@@ -1,26 +1,560 @@
 {% extends "base.html" %}
 
 {% block title %}
-Профиль пользователя
+Профиль
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Переопределяем стили для content на странице профиля */
+.content {
+    display: block !important;
+    padding: 20px !important;
+    min-height: calc(100vh - 70px);
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+.profile-container {
+    max-width: 400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-sizing: border-box;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 52px;
+    color: white;
+    font-weight: bold;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.profile-name {
+    font-size: 24px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 5px;
+}
+
+.profile-username {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 15px;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4ade80;
+    margin-bottom: 5px;
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.progress-section {
+    margin-bottom: 30px;
+}
+
+.progress-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 15px;
+}
+
+.progress-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.progress-info {
+    flex: 1;
+}
+
+.progress-topic {
+    font-size: 16px;
+    color: white;
+    margin-bottom: 5px;
+}
+
+.progress-details {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.progress-bar {
+    width: 100px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-left: 15px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    transition: width 0.3s ease;
+}
+
+.achievements-preview {
+    margin-bottom: 30px;
+}
+
+.achievements-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.view-all-link {
+    font-size: 14px;
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.achievement-badge {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.achievement-badge.locked {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.action-btn {
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 15px;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.action-btn-icon {
+    font-size: 20px;
+}
+
+/* Специальные стили для кнопки обновления */
+.refresh-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    cursor: pointer;
+    color: white !important;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 15px !important;
+    border-radius: 15px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.refresh-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%) !important;
+    transform: translateY(-2px);
+}
+
+.refresh-btn:active {
+    transform: translateY(0);
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+}
+
+/* Анимация появления профиля */
+.profile-content-loaded {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error {
+    text-align: center;
+    color: #ef4444;
+    padding: 20px;
+}
+
+@media (max-width: 480px) {
+    .content {
+        padding: 15px !important;
+    }
+    
+    .profile-container {
+        margin: 0;
+        padding: 15px;
+        border-radius: 15px;
+    }
+    
+    .profile-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .stat-card {
+        padding: 12px;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 44px;
+    }
+    
+    .achievements-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+    }
+    
+    .achievement-badge {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
+    .action-btn {
+        padding: 15px;
+        font-size: 15px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="centered-text">
-    <h1>Профиль пользователя</h1>
-
-    {% if user %}
-        <p>Telegram ID: {{ user.telegram_id }}</p>
-        <p>Username: {{ user.username }}</p>
-        <img src="{{ user.avatar_url }}" alt="Аватар пользователя" width="150" height="150">
-
-        <!-- Пример формы для загрузки аватарки -->
-        <form action="/profile/{{ user.telegram_id }}/update/" method="post" enctype="multipart/form-data">
-            <label for="avatar">Аватар:</label>
-            <input type="file" name="avatar" id="avatar" required>
-            <button type="submit">Обновить профиль</button>
-        </form>
-    {% else %}
-        <p>Информация о пользователе недоступна.</p>
-    {% endif %}
+<div class="profile-container">
+    <div id="profile-content">
+        <div class="loading">
+            Загрузка профиля...
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let profileData = null;
+
+async function loadProfileData() {
+    // Показываем красивый индикатор загрузки
+    const content = document.getElementById('profile-content');
+    content.innerHTML = `
+        <div style="text-align: center; padding: 80px 20px; color: white; animation: fadeInUp 0.5s ease-out;">
+            <div style="font-size: 48px; margin-bottom: 24px; animation: pulse 1.5s infinite;">💫</div>
+            <div style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Загружаем профиль</div>
+            <div style="font-size: 16px; color: rgba(255, 255, 255, 0.7); margin-bottom: 32px;">Подождите немного...</div>
+            <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 0 auto; overflow: hidden;">
+                <div style="width: 100%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2, #f093fb); animation: loading 2s infinite; border-radius: 2px; transform: translateX(-100%);"></div>
+            </div>
+        </div>
+        <style>
+            @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+            @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        </style>
+    `;
+    
+    try {
+        const response = await fetch('/api/profile/stats', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        profileData = await response.json();
+        
+        renderProfile();
+    } catch (error) {
+        // Fallback к mock данным при ошибке
+        profileData = {
+            user: {
+                telegram_id: 12345,
+                username: "user",
+                first_name: "User",
+                last_name: "",
+                avatar_url: null
+            },
+            stats: {
+                total_quizzes: 0,
+                completed_quizzes: 0,
+                success_rate: 0,
+                total_points: 0,
+                current_streak: 0,
+                best_streak: 0
+            },
+            topic_progress: [],
+            achievements: [
+                { id: 1, name: "Первый шаг", icon: "🏆", unlocked: false },
+                { id: 2, name: "Знаток Python", icon: "🐍", unlocked: false },
+                { id: 3, name: "Веб-мастер", icon: "🌐", unlocked: false },
+                { id: 4, name: "Серия", icon: "🔥", unlocked: false },
+                { id: 5, name: "Эксперт", icon: "⭐", unlocked: false },
+                { id: 6, name: "Скорость", icon: "⚡", unlocked: false }
+            ]
+        };
+        
+        renderProfile();
+    }
+}
+
+function renderProfile() {
+    const content = document.getElementById('profile-content');
+    const user = profileData.user;
+    const stats = profileData.stats;
+    
+    // Получаем первую букву имени для аватара
+    const avatarLetter = user.first_name ? user.first_name[0].toUpperCase() : user.username[0].toUpperCase();
+    
+    content.innerHTML = `
+        <style>
+            @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+            @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); } 50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.8), 0 0 40px rgba(118, 75, 162, 0.6); } }
+            
+            .profile-content-loaded { animation: fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+            .profile-header { text-align: center; margin-bottom: 30px; }
+            .profile-avatar { 
+                width: 200px; height: 120px; border-radius: 20px; margin: 0 auto 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+                display: flex; align-items: center; justify-content: center;
+                font-size: 48px; color: white; font-weight: bold;
+                border: 4px solid rgba(255, 255, 255, 0.4);
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(102, 126, 234, 0.7);
+                position: relative; overflow: hidden; cursor: pointer;
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            }
+            .profile-avatar:hover { 
+                transform: scale(1.05) translateY(-4px); 
+                animation: glow 2s infinite;
+                border-color: rgba(255, 255, 255, 0.6);
+            }
+            .profile-avatar::before {
+                content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                transition: left 0.8s ease;
+            }
+            .profile-avatar:hover::before { left: 100%; }
+            .profile-name { font-size: 24px; font-weight: 600; color: white; margin-bottom: 5px; }
+            .profile-username { font-size: 16px; color: rgba(255, 255, 255, 0.7); margin-bottom: 15px; }
+            .profile-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+                         .stat-card { 
+                background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+                border-radius: 18px; padding: 18px; text-align: center; position: relative;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(15px); transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                overflow: hidden; cursor: pointer;
+            }
+            .stat-card:hover { 
+                background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+                transform: translateY(-8px) scale(1.02);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+            .stat-card::before {
+                content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+                transition: left 0.6s ease; z-index: 1;
+            }
+            .stat-card:hover::before { left: 100%; }
+            .stat-number { 
+                font-size: 32px; font-weight: 800; margin-bottom: 8px; position: relative; z-index: 2;
+                background: linear-gradient(135deg, #4ade80, #22c55e, #16a34a);
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                background-clip: text; color: #4ade80; text-shadow: 0 2px 10px rgba(74, 222, 128, 0.3);
+                animation: pulse 2s infinite;
+            }
+            .stat-label { font-size: 14px; color: rgba(255, 255, 255, 0.8); }
+            .progress-section { margin-bottom: 30px; }
+            .progress-title { font-size: 18px; font-weight: 600; color: white; margin-bottom: 15px; }
+            .progress-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+            .progress-info { flex: 1; }
+            .progress-topic { font-size: 16px; color: white; margin-bottom: 5px; }
+            .progress-details { font-size: 14px; color: rgba(255, 255, 255, 0.7); }
+            .progress-bar { 
+                width: 100px; height: 8px; background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px; overflow: hidden; margin-left: 15px;
+            }
+            .progress-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); }
+        </style>
+        <div class="profile-content-loaded">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                ${user.avatar_url ? `<img src="${user.avatar_url}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 16px; object-fit: cover;">` : avatarLetter}
+            </div>
+            <div class="profile-name">${user.first_name || user.username}</div>
+            <div class="profile-username">@${user.username}</div>
+        </div>
+
+        <div class="profile-stats">
+            <div class="stat-card">
+                <div class="stat-number">${stats.completed_quizzes}</div>
+                <div class="stat-label">Пройдено</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.success_rate}%</div>
+                <div class="stat-label">Успешность</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.total_points}</div>
+                <div class="stat-label">Очки</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${stats.current_streak}</div>
+                <div class="stat-label">Серия</div>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-title">Прогресс по темам</div>
+            ${profileData.topic_progress.length > 0 ? 
+                profileData.topic_progress.map(topic => `
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-topic">${topic.name}</div>
+                            <div class="progress-details">${topic.completed}/${topic.total} завершено</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${topic.percentage}%"></div>
+                        </div>
+                    </div>
+                `).join('') :
+                '<div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">Пока нет данных о прогрессе. Пройдите первый квиз!</div>'
+            }
+        </div>
+        </div>
+    `;
+}
+
+function showError(message) {
+    const content = document.getElementById('profile-content');
+    content.innerHTML = `
+        <div class="error">
+            <h3>Ошибка</h3>
+            <p>${message}</p>
+            <button onclick="loadProfileData()" style="margin-top: 15px; padding: 10px 20px; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer;">
+                Попробовать снова
+            </button>
+        </div>
+    `;
+}
+
+// Загружаем данные при загрузке страницы
+document.addEventListener('DOMContentLoaded', loadProfileData);
+</script>
 {% endblock %}
