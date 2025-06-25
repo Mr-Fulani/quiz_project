@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/', include('topics.urls')),
     path('api/', include('platforms.urls')),
     path('api/', include('feedback.urls')),
+    path('api/', include('blog.api_urls')),  # Добавляем blog API
     path('api/webhooks/', include('webhooks.urls')),
     
     # Donation API endpoints (вне языковых паттернов)

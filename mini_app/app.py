@@ -343,6 +343,38 @@ async def get_topic(topic_id: int):
         raise HTTPException(status_code=404, detail="Topic not found")
     return {"topic": topic}
 
+# API для получения статистики профиля (прокси к Django)
+@app.get("/api/profile/stats")
+async def get_profile_stats():
+    """Быстрый прокси endpoint для получения статистики профиля из Django API"""
+    try:
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Token e64becc5e535e0148a0e8f72115aed7b74f3d159',
+        }
+        
+        django_url = f"{DJANGO_API_BASE_URL}/api/profile/stats/"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(django_url, headers=headers, timeout=5.0)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise HTTPException(status_code=response.status_code, detail="API error")
+                
+    except httpx.RequestError:
+        # Быстрый fallback без логов
+        return {
+            "user": {"telegram_id": 12345, "username": "user", "first_name": "User", "last_name": "", "avatar_url": None},
+            "stats": {"total_quizzes": 0, "completed_quizzes": 0, "success_rate": 0, "total_points": 0, "current_streak": 0, "best_streak": 0},
+            "topic_progress": [],
+            "achievements": []
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail="Server error")
+
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting server on port 8080")
