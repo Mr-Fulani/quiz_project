@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
 from rest_framework import generics, status, permissions
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import AllowAny
@@ -34,7 +35,9 @@ from .serializers import (
     LoginSerializer,
     RegisterSerializer,
     SubscriptionSerializer,
-    AdminSerializer
+    AdminSerializer,
+    ProfileSerializer,
+    SocialLinksSerializer
 )
 
 
@@ -214,6 +217,44 @@ class UserStatsView(APIView):
             'subscriptions': user.channel_subscriptions.count()
         }
         return Response(stats)
+
+
+class PublicProfileAPIView(APIView):
+    """
+    API для получения публичного профиля пользователя.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, user_id=None):
+        """Получение публичного профиля по ID"""
+        try:
+            if user_id:
+                user = get_object_or_404(CustomUser, id=user_id)
+            else:
+                if not request.user.is_authenticated:
+                    return Response({'error': 'Authentication required'}, 
+                                  status=status.HTTP_401_UNAUTHORIZED)
+                user = request.user
+
+            # Проверяем публичность профиля
+            if user != request.user and not user.is_public:
+                return Response({'error': 'Private profile'}, 
+                              status=status.HTTP_403_FORBIDDEN)
+
+            serializer = ProfileSerializer(user)
+            data = serializer.data
+            
+            # Скрываем приватную информацию для чужих профилей
+            if user != request.user:
+                private_fields = ['email', 'birth_date', 'email_notifications']
+                for field in private_fields:
+                    data.pop(field, None)
+
+            return Response(data)
+
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found'}, 
+                          status=status.HTTP_404_NOT_FOUND)
 
 
 @method_decorator(csrf_exempt, name='dispatch')

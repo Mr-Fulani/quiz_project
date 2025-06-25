@@ -51,15 +51,37 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для профиля пользователя.
+    Расширенный сериализатор для профиля пользователя с социальными сетями.
     """
+    avatar_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = CustomUser
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name',
-            'language', 'subscription_status', 'created_at'
+            'bio', 'location', 'birth_date', 'website',
+            'telegram', 'github', 'linkedin', 'instagram', 
+            'facebook', 'youtube', 'avatar', 'avatar_url',
+            'language', 'subscription_status', 'created_at',
+            'theme_preference', 'is_public', 'email_notifications',
+            'total_points', 'quizzes_completed', 'average_score'
         )
         read_only_fields = ('id', 'created_at', 'subscription_status')
+    
+    def get_avatar_url(self, obj):
+        """Возвращает URL аватара"""
+        return obj.get_avatar_url
+
+class SocialLinksSerializer(serializers.ModelSerializer):
+    """
+    Отдельный сериализатор только для социальных сетей.
+    """
+    class Meta:
+        model = CustomUser
+        fields = (
+            'website', 'telegram', 'github', 'linkedin', 
+            'instagram', 'facebook', 'youtube'
+        )
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     """

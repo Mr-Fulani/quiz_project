@@ -351,7 +351,8 @@ async def get_profile_stats():
         headers = {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'Authorization': 'Token e64becc5e535e0148a0e8f72115aed7b74f3d159',
+            'Authorization': f'Token {DJANGO_API_TOKEN}',
+            'Host': 'localhost:8001',
         }
         
         django_url = f"{DJANGO_API_BASE_URL}/api/profile/stats/"
@@ -374,6 +375,106 @@ async def get_profile_stats():
         }
     except Exception:
         raise HTTPException(status_code=500, detail="Server error")
+
+# API для получения полного профиля пользователя
+@app.get("/api/profile/full")
+async def get_full_profile():
+    """Получение полного профиля пользователя включая социальные сети"""
+    try:
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': f'Token {DJANGO_API_TOKEN}',
+        }
+        
+        django_url = f"{DJANGO_API_BASE_URL}/api/profile/"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(django_url, headers=headers, timeout=5.0)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Django profile API error: {response.status_code}")
+                # Возвращаем fallback только при ошибке API
+                return {
+                    "id": 1,
+                    "username": "demo_user",
+                    "email": "demo@example.com",
+                    "first_name": "Demo",
+                    "last_name": "User",
+                    "bio": "Пример пользователя",
+                    "location": "Москва",
+                    "website": "https://example.com",
+                    "telegram": "https://t.me/demo_user",
+                    "github": "https://github.com/demo_user", 
+                    "linkedin": "",
+                    "instagram": "",
+                    "facebook": "",
+                    "youtube": "",
+                    "avatar_url": "/static/images/default_avatar.png",
+                    "theme_preference": "dark",
+                    "is_public": True,
+                    "total_points": 150,
+                    "quizzes_completed": 5
+                }
+                
+    except Exception as e:
+        logger.error(f"Connection error to Django: {e}")
+        # Fallback данные только при сетевых ошибках
+        return {
+            "id": 1,
+            "username": "demo_user",
+            "email": "demo@example.com",
+            "first_name": "Demo",
+            "last_name": "User",
+            "bio": "Пример пользователя",
+            "location": "Москва",
+            "website": "https://example.com",
+            "telegram": "https://t.me/demo_user",
+            "github": "https://github.com/demo_user", 
+            "linkedin": "",
+            "instagram": "",
+            "facebook": "",
+            "youtube": "",
+            "avatar_url": "/static/images/default_avatar.png",
+            "theme_preference": "dark",
+            "is_public": True,
+            "total_points": 150,
+            "quizzes_completed": 5
+        }
+
+# API для обновления социальных сетей
+@app.patch("/api/profile/social-links")
+async def update_social_links(social_data: dict):
+    """Обновление социальных сетей пользователя"""
+    try:
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': f'Token {DJANGO_API_TOKEN}',
+        }
+        
+        django_url = f"{DJANGO_API_BASE_URL}/api/social-links/"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(django_url, json=social_data, headers=headers, timeout=5.0)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Django API error {response.status_code}")
+                # Возвращаем ошибку пользователю
+                raise HTTPException(status_code=response.status_code, detail=f"Django API error: {response.status_code}")
+                
+    except httpx.RequestError as e:
+        logger.error(f"Connection error to Django: {e}")
+        raise HTTPException(status_code=503, detail="Django service unavailable")
+    except HTTPException:
+        raise  # Перебрасываем HTTPException как есть
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 if __name__ == "__main__":
     import uvicorn
