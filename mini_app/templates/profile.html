@@ -154,79 +154,34 @@
     transition: width 0.3s ease;
 }
 
-.achievements-preview {
-    margin-bottom: 30px;
-}
-
-.achievements-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: white;
-    margin-bottom: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.view-all-link {
-    font-size: 14px;
-    color: #60a5fa;
-    text-decoration: none;
-}
-
-.achievements-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-
-.achievement-badge {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-}
-
-.achievement-badge.locked {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.3);
-}
-
 .profile-actions {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
 .action-btn {
-    padding: 18px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
+    padding: 15px 20px;
+    border-radius: 12px;
     text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    font-weight: 500;
-    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
 }
 
 .action-btn:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .action-btn-icon {
-    font-size: 20px;
+    font-size: 18px;
 }
 
 /* Специальные стили для кнопки обновления */
@@ -295,37 +250,34 @@
     background: rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 20px;
+    padding-top: 30px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(10px);
-}
-
-.social-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: white;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    position: relative;
 }
 
 .edit-social-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 36px;
+    height: 36px;
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 14px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    font-size: 18px;
+    backdrop-filter: blur(5px);
 }
 
 .edit-social-btn:hover {
     background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
+    transform: translateY(-2px) rotate(15deg);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -631,14 +583,7 @@ async function loadProfileData() {
                 best_streak: 0
             },
             topic_progress: [],
-            achievements: [
-                { id: 1, name: "Первый шаг", icon: "🏆", unlocked: false },
-                { id: 2, name: "Знаток Python", icon: "🐍", unlocked: false },
-                { id: 3, name: "Веб-мастер", icon: "🌐", unlocked: false },
-                { id: 4, name: "Серия", icon: "🔥", unlocked: false },
-                { id: 5, name: "Эксперт", icon: "⭐", unlocked: false },
-                { id: 6, name: "Скорость", icon: "⚡", unlocked: false }
-            ]
+
         };
         
         renderProfile();
@@ -795,20 +740,7 @@ function renderProfile() {
                 background: rgba(255, 255, 255, 0.2);
             }
             
-            /* Стили для action buttons */
-            .profile-actions { display: flex; flex-direction: column; gap: 10px; }
-            .action-btn { 
-                background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
-                color: white; padding: 15px 20px; border-radius: 12px; text-decoration: none;
-                transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;
-                font-weight: 600;
-            }
-            .action-btn:hover { 
-                background: rgba(255, 255, 255, 0.2); 
-                transform: translateY(-2px);
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-            }
-            .action-btn-icon { font-size: 18px; }
+
         </style>
         <div class="profile-content-loaded">
         <div class="profile-header">
@@ -856,33 +788,17 @@ function renderProfile() {
             }
         </div>
 
-        <div class="achievements-preview">
-            <div class="achievements-title">
-                🏆 Достижения
-                <a href="/achievements" class="view-all-link">Все достижения</a>
-            </div>
-            <div class="achievements-grid">
-                ${profileData.achievements.map(ach => `
-                    <div class="achievement-badge ${ach.unlocked ? '' : 'locked'}" title="${ach.name}">
-                        ${ach.icon}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
 
         <!-- Социальные сети -->
         <div class="social-section">
-            <div class="social-title">
-                🔗 Социальные сети
-                <button class="edit-social-btn" onclick="toggleSocialEdit()">
-                    ✏️ Редактировать
-                </button>
-            </div>
-            
             <!-- Просмотр социальных сетей -->
             <div id="social-view" class="social-links">
                 <!-- Заполняется через JavaScript -->
             </div>
+            
+            <button class="edit-social-btn" onclick="toggleSocialEdit()" title="Редактировать социальные сети">
+                ✏️
+            </button>
             
             <!-- Редактирование социальных сетей -->
             <div id="social-edit" class="social-edit-form" style="display: none;">
@@ -925,14 +841,11 @@ function renderProfile() {
             </div>
         </div>
 
-        <div class="profile-actions">
-            <button class="action-btn refresh-btn" onclick="refreshProfile()">
-                🔄 Обновить профиль
-                <span class="action-btn-icon">⟳</span>
-            </button>
-        </div>
         </div>
     `;
+
+    // Загружаем и отображаем социальные сети после рендеринга профиля
+    loadSocialLinks();
 }
 
 function showError(message) {
@@ -966,6 +879,9 @@ async function loadSocialLinks() {
                 youtube: data.youtube || ''
             };
             renderSocialLinks();
+        } else {
+            // Если ошибка 404 или другая, показываем пустое состояние
+            renderEmptySocialLinks();
         }
     } catch (error) {
         console.error('Ошибка загрузки социальных сетей:', error);
@@ -1019,8 +935,9 @@ function renderEmptySocialLinks() {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
             border: 1px dashed rgba(255, 255, 255, 0.2);
+            margin-top: 10px;
         ">
-            Нажмите "Редактировать", чтобы добавить социальные сети
+            Нажмите ✏️ чтобы добавить социальные сети
         </div>
     `;
 }
@@ -1040,7 +957,7 @@ function toggleSocialEdit() {
         document.getElementById('youtube').value = socialData.youtube || '';
         
         socialView.style.display = 'none';
-        socialEdit.style.display = 'grid';
+        socialEdit.style.display = 'block';
     } else {
         cancelSocialEdit();
     }
@@ -1050,19 +967,19 @@ function cancelSocialEdit() {
     const socialView = document.getElementById('social-view');
     const socialEdit = document.getElementById('social-edit');
     
-    socialView.style.display = 'grid';
+    socialView.style.display = 'block';
     socialEdit.style.display = 'none';
 }
 
 async function saveSocialLinks() {
     const newSocialData = {
-        website: document.getElementById('website').value,
-        telegram: document.getElementById('telegram').value,
-        github: document.getElementById('github').value,
-        linkedin: document.getElementById('linkedin').value,
-        instagram: document.getElementById('instagram').value,
-        facebook: document.getElementById('facebook').value,
-        youtube: document.getElementById('youtube').value
+        website: document.getElementById('website').value.trim(),
+        telegram: document.getElementById('telegram').value.trim(),
+        github: document.getElementById('github').value.trim(),
+        linkedin: document.getElementById('linkedin').value.trim(),
+        instagram: document.getElementById('instagram').value.trim(),
+        facebook: document.getElementById('facebook').value.trim(),
+        youtube: document.getElementById('youtube').value.trim()
     };
 
     try {
@@ -1074,17 +991,18 @@ async function saveSocialLinks() {
             body: JSON.stringify(newSocialData)
         });
 
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            socialData = newSocialData;
-            renderSocialLinks();
-            cancelSocialEdit();
-            
-            // Показываем уведомление об успехе
-            showNotification('Социальные сети обновлены! ✅', 'success');
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                socialData = newSocialData;
+                renderSocialLinks();
+                cancelSocialEdit();
+                showNotification('Социальные сети обновлены! ✅', 'success');
+            } else {
+                showNotification('Ошибка сохранения: ' + (result.message || 'Неизвестная ошибка'), 'error');
+            }
         } else {
-            showNotification('Ошибка сохранения: ' + (result.message || 'Неизвестная ошибка'), 'error');
+            showNotification('Ошибка сохранения: ' + response.statusText, 'error');
         }
     } catch (error) {
         console.error('Ошибка сохранения:', error);
@@ -1100,43 +1018,21 @@ function showNotification(message, type = 'info') {
         right: 20px;
         padding: 15px 20px;
         border-radius: 10px;
+        background: ${type === 'success' ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)'};
         color: white;
+        font-size: 14px;
         font-weight: 500;
         z-index: 1000;
-        animation: slideInRight 0.3s ease-out;
-        max-width: 300px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease-out;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     `;
-    
-    if (type === 'success') {
-        notification.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
-    } else if (type === 'error') {
-        notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-    } else {
-        notification.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
-    }
-    
     notification.textContent = message;
-    
-    // Добавляем стили анимации
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    
     document.body.appendChild(notification);
-    
-    // Убираем уведомление через 3 секунды
+
     setTimeout(() => {
-        notification.style.animation = 'slideInRight 0.3s ease-out reverse';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-            document.head.removeChild(style);
-        }, 300);
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 
