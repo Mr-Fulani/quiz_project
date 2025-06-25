@@ -32,26 +32,85 @@
     margin-bottom: 30px;
 }
 
-.profile-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    margin: 0 auto 15px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.profile-avatar-container {
+    position: relative;
+    width: 200px;
+    margin: 0 auto;
+}
+
+.profile-avatar { 
+    width: 200px; 
+    height: 120px; 
+    border-radius: 20px; 
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-size: 48px; 
+    color: white; 
+    font-weight: bold;
+    border: 4px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    position: relative; 
+    overflow: hidden; 
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+.profile-avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 52px;
-    color: white;
-    font-weight: bold;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 16px;
 }
 
-.profile-avatar:hover {
-    transform: scale(1.05);
-    border-color: rgba(255, 255, 255, 0.5);
+.profile-avatar:hover .profile-avatar-overlay {
+    opacity: 1;
+}
+
+.avatar-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.avatar-action-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.avatar-action-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+#avatar-upload {
+    display: none;
 }
 
 .profile-name {
@@ -245,12 +304,13 @@
 }
 
 /* Стили для социальных сетей */
-.social-section {
+.social-section { 
     margin-bottom: 30px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 20px;
     padding-top: 30px;
+    padding-bottom: 30px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(10px);
     position: relative;
@@ -612,7 +672,7 @@ function renderProfile() {
                 display: flex; align-items: center; justify-content: center;
                 font-size: 48px; color: white; font-weight: bold;
                 border: 4px solid rgba(255, 255, 255, 0.4);
-                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(102, 126, 234, 0.7);
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
                 position: relative; overflow: hidden; cursor: pointer;
                 transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             }
@@ -744,8 +804,30 @@ function renderProfile() {
         </style>
         <div class="profile-content-loaded">
         <div class="profile-header">
-            <div class="profile-avatar">
-                ${user.avatar_url ? `<img src="${user.avatar_url}" alt="Аватар" style="width: 100%; height: 100%; border-radius: 16px; object-fit: cover;">` : avatarLetter}
+            <div class="profile-avatar-container">
+                <div class="profile-avatar" onclick="document.getElementById('avatar-upload').click()">
+                    ${user.avatar_url ? 
+                        `<img src="${user.avatar_url}" alt="Аватар">` : 
+                        (profileData.default_avatar_url ? 
+                            `<img src="${profileData.default_avatar_url}" alt="Аватар по умолчанию">` : 
+                            avatarLetter
+                        )
+                    }
+                    <div class="profile-avatar-overlay">
+                        <div class="avatar-actions">
+                            <button class="avatar-action-btn" onclick="event.stopPropagation(); uploadAvatar()" title="Загрузить новое фото">
+                                📤
+                            </button>
+                            ${user.avatar_url ? 
+                                `<button class="avatar-action-btn" onclick="event.stopPropagation(); deleteAvatar()" title="Удалить фото">
+                                    🗑️
+                                </button>` : 
+                                ''
+                            }
+                        </div>
+                    </div>
+                </div>
+                <input type="file" id="avatar-upload" accept="image/*" onchange="handleAvatarUpload(event)" style="display: none;">
             </div>
             <div class="profile-name">${user.first_name || user.username}</div>
             <div class="profile-username">@${user.username}</div>
@@ -1046,5 +1128,113 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProfileData();
     loadSocialLinks();
 });
+
+// Функции для работы с аватаром
+async function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Проверяем тип файла
+    if (!file.type.startsWith('image/')) {
+        showNotification('Пожалуйста, выберите изображение', 'error');
+        return;
+    }
+
+    // Проверяем размер файла (максимум 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('Размер файла не должен превышать 5MB', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+        const response = await fetch('/api/profile/avatar', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                // Обновляем аватар на странице
+                const avatarImg = document.querySelector('.profile-avatar img') || document.createElement('img');
+                avatarImg.src = result.avatar_url;
+                avatarImg.alt = 'Аватар';
+                
+                const profileAvatar = document.querySelector('.profile-avatar');
+                if (!document.querySelector('.profile-avatar img')) {
+                    profileAvatar.innerHTML = '';
+                    profileAvatar.appendChild(avatarImg);
+                }
+
+                // Добавляем кнопку удаления, если её нет
+                const avatarActions = document.querySelector('.avatar-actions');
+                if (!document.querySelector('.avatar-actions button[onclick*="deleteAvatar"]')) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'avatar-action-btn';
+                    deleteBtn.onclick = (e) => { e.stopPropagation(); deleteAvatar(); };
+                    deleteBtn.title = 'Удалить фото';
+                    deleteBtn.innerHTML = '🗑️';
+                    avatarActions.appendChild(deleteBtn);
+                }
+
+                showNotification('Аватар успешно обновлен! ✅', 'success');
+            } else {
+                showNotification(result.message || 'Ошибка при обновлении аватара', 'error');
+            }
+        } else {
+            showNotification('Ошибка при загрузке аватара', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки аватара:', error);
+        showNotification('Ошибка при загрузке аватара', 'error');
+    }
+
+    // Очищаем input для возможности повторной загрузки того же файла
+    event.target.value = '';
+}
+
+async function deleteAvatar() {
+    try {
+        const response = await fetch('/api/profile/avatar', {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                // Возвращаем аватар по умолчанию или букву
+                const profileAvatar = document.querySelector('.profile-avatar');
+                if (result.default_avatar_url) {
+                    profileAvatar.innerHTML = `<img src="${result.default_avatar_url}" alt="Аватар по умолчанию">`;
+                } else {
+                    const avatarLetter = (profileData.user.first_name || profileData.user.username)[0].toUpperCase();
+                    profileAvatar.innerHTML = avatarLetter;
+                }
+
+                // Удаляем кнопку удаления
+                const deleteBtn = document.querySelector('.avatar-actions button[onclick*="deleteAvatar"]');
+                if (deleteBtn) {
+                    deleteBtn.remove();
+                }
+
+                showNotification('Аватар успешно удален! ✅', 'success');
+            } else {
+                showNotification(result.message || 'Ошибка при удалении аватара', 'error');
+            }
+        } else {
+            showNotification('Ошибка при удалении аватара', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка удаления аватара:', error);
+        showNotification('Ошибка при удалении аватара', 'error');
+    }
+}
+
+function uploadAvatar() {
+    document.getElementById('avatar-upload').click();
+}
 </script>
 {% endblock %}
