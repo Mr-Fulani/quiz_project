@@ -7,17 +7,19 @@
 {% block content %}
 <div class="topic-detail">
     <div class="topic-header">
-        <div class="topic-info">
-            <h1>{{ topic.name }}</h1>
-            <p class="topic-description">{{ topic.description }}</p>
-            <div class="topic-stats">
-                <span class="difficulty difficulty-{{ topic.difficulty.lower() }}">
-                    Сложность: {{ topic.difficulty }}
-                </span>
-                <span class="questions-count">
-                    Вопросов: {{ topic.questions_count }}
-                </span>
-            </div>
+        <h1>{{ topic.name }}</h1>
+        <p class="topic-description">{{ topic.description }}</p>
+    </div>
+    
+    <div class="topic-content">
+        <div class="topic-buttons">
+            {% for subtopic in topic.subtopics %}
+            <button class="topic-btn subtopic-btn">
+                <span class="btn-icon">📚</span>
+                <span class="btn-text">{{ subtopic.name }}</span>
+                <span class="btn-count">{{ subtopic.questions_count }}</span>
+            </button>
+            {% endfor %}
         </div>
     </div>
     
