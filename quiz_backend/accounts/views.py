@@ -322,72 +322,19 @@ def profile_view(request, username, is_dashboard=False):
     is_owner = request.user == profile_user
     template_name = 'accounts/dashboard.html' if is_dashboard else 'accounts/profile.html'
 
-    stats = {
-        'total_attempts': TaskStatistics.objects.filter(user=profile_user).count(),
-        'successful_attempts': TaskStatistics.objects.filter(user=profile_user, successful=True).count()
-    }
-    stats['success_rate'] = round((stats['successful_attempts'] / stats['total_attempts']) * 100, 1) if stats['total_attempts'] > 0 else 0
+    # Вся логика статистики теперь в модели TaskStatistics
+    dashboard_stats = TaskStatistics.get_stats_for_dashboard(profile_user)
 
     inbox_messages = profile_user.received_messages.all().order_by('-created_at')[:10] if is_owner else []
     sent_messages = profile_user.sent_messages.all().order_by('-created_at')[:10] if is_owner else []
-
-    activity_stats = TaskStatistics.objects.filter(
-        user=profile_user,
-        last_attempt_date__isnull=False
-    ).annotate(
-        date=TruncDate('last_attempt_date')
-    ).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
-    activity_dates = [stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data']
-    activity_data = [stat['count'] for stat in activity_stats] or [0]
-    has_activity_data = len(activity_stats) > 0
-
-    category_stats = TaskStatistics.objects.filter(user=profile_user).values(
-        'task__topic__name'
-    ).annotate(
-        count=Count('id')
-    ).order_by('-count')[:5]
-    categories_labels = [stat['task__topic__name'] if stat['task__topic__name'] else 'Unknown' for stat in category_stats] or ['No data']
-    categories_data = [stat['count'] for stat in category_stats] or [0]
-    has_categories_data = len(category_stats) > 0
-
-    attempts = TaskStatistics.objects.filter(user=profile_user).values('attempts').annotate(count=Count('id'))
-    attempts_distribution = [0] * 5
-    for attempt in attempts:
-        attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
-        if attempts_value > 0:
-            bin_index = min((attempts_value - 1) // 5, 4)
-            attempts_distribution[bin_index] += attempt['count']
-        elif attempts_value == 0:
-            attempts_distribution[0] += attempt['count']
-    has_attempts_data = any(attempts_distribution)
-
-    print(f"\nDebug chart data for user {profile_user.username}:")
-    print(f"Activity dates: {activity_dates}")
-    print(f"Activity data: {activity_data}")
-    print(f"Has activity data: {has_activity_data}")
-    print(f"Categories labels: {categories_labels}")
-    print(f"Categories data: {categories_data}")
-    print(f"Has categories data: {has_categories_data}")
-    print(f"Attempts distribution: {attempts_distribution}")
-    print(f"Has attempts data: {has_attempts_data}")
-
+    
     context = {
         'profile_user': profile_user,
         'is_owner': is_owner,
-        'stats': stats,
-        'activity_dates': activity_dates,
-        'activity_data': activity_data,
-        'has_activity_data': has_activity_data,
-        'categories_labels': categories_labels,
-        'categories_data': categories_data,
-        'has_categories_data': has_categories_data,
-        'attempts_distribution': attempts_distribution,
-        'has_attempts_data': has_attempts_data,
         'inbox_messages': inbox_messages,
         'sent_messages': sent_messages
     }
+    context.update(dashboard_stats)
 
     if is_dashboard:
         context.update({

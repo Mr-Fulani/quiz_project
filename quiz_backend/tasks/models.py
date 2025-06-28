@@ -3,7 +3,11 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
+from django.db.models import Count, Q
+import logging
+from django.db.models.functions import TruncDate
 
+logger = logging.getLogger(__name__)
 
 
 class Task(models.Model):
@@ -184,6 +188,170 @@ class TaskStatistics(models.Model):
 
 
 
+
+    @classmethod
+    def get_stats_for_mini_app(cls, user):
+        """
+        Возвращает полную статистику для профиля пользователя в мини-приложении.
+        """
+        try:
+            # Основная статистика пользователя
+            user_stats = cls.objects.filter(user=user).aggregate(
+                total_attempts=Count('id'),
+                successful_attempts=Count('id', filter=Q(successful=True)),
+                rating=Count('id')
+            )
+            
+            success_rate = (
+                round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
+                if user_stats['total_attempts'] > 0 else 0
+            )
+            
+            # Прогресс по темам (топ 5)
+            topic_progress = []
+            user_category_stats = cls.objects.filter(user=user).values(
+                'task__topic__name',
+                'task__topic__id'
+            ).annotate(
+                completed=Count('id', filter=Q(successful=True)),
+                total=Count('id')
+            ).order_by('-total')[:5]
+            
+            for stat in user_category_stats:
+                topic_name = stat['task__topic__name'] or 'Unknown'
+                completed = stat['completed']
+                total = stat['total']
+                percentage = round((completed / total * 100), 0) if total > 0 else 0
+                
+                topic_progress.append({
+                    'name': topic_name,
+                    'completed': completed,
+                    'total': total,
+                    'percentage': percentage
+                })
+            
+            # Подсчет очков
+            total_points = user_stats['successful_attempts'] * 10
+            
+            # Серия (streak)
+            recent_attempts = cls.objects.filter(user=user).order_by('-last_attempt_date')[:10]
+            current_streak = 0
+            best_streak = 0
+            temp_streak = 0
+            
+            for attempt in recent_attempts:
+                if attempt.successful:
+                    temp_streak += 1
+                    if current_streak == 0:
+                        current_streak = temp_streak
+                else:
+                    if temp_streak > best_streak:
+                        best_streak = temp_streak
+                    temp_streak = 0
+            
+            if temp_streak > best_streak:
+                best_streak = temp_streak
+                
+            # Информация о пользователе
+            user_info = {
+                'telegram_id': getattr(user, 'telegram_id', None) or user.id,
+                'username': user.username,
+                'first_name': user.first_name or user.username,
+                'last_name': user.last_name or '',
+                'avatar_url': None
+            }
+            
+            # Моковые достижения
+            achievements = [
+                {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
+                {'id': 2, 'name': 'Знаток Python', 'icon': '🐍', 'unlocked': success_rate > 60},
+                {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
+                {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
+                {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
+                {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
+            ]
+            
+            return {
+                'user': user_info,
+                'stats': {
+                    'total_quizzes': user_stats['total_attempts'],
+                    'completed_quizzes': user_stats['successful_attempts'],
+                    'success_rate': int(success_rate),
+                    'total_points': total_points,
+                    'current_streak': current_streak,
+                    'best_streak': best_streak
+                },
+                'topic_progress': topic_progress,
+                'achievements': achievements
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка в get_stats_for_mini_app для пользователя {user.id}: {e}")
+            return {'error': 'Не удалось сгенерировать статистику'}
+
+    @classmethod
+    def get_stats_for_dashboard(cls, user):
+        """
+        Возвращает статистику для веб-профиля (dashboard).
+        """
+        try:
+            # Общая статистика попыток
+            stats = cls.objects.filter(user=user).aggregate(
+                total_attempts=Count('id'),
+                successful_attempts=Count('id', filter=Q(successful=True))
+            )
+            stats['success_rate'] = round(
+                (stats['successful_attempts'] / stats['total_attempts']) * 100, 1
+            ) if stats['total_attempts'] > 0 else 0
+
+            # Статистика активности для графика
+            activity_stats = cls.objects.filter(
+                user=user,
+                last_attempt_date__isnull=False
+            ).annotate(
+                date=TruncDate('last_attempt_date')
+            ).values('date').annotate(
+                count=Count('id')
+            ).order_by('date')
+
+            activity_dates = [stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data']
+            activity_data = [stat['count'] for stat in activity_stats] or [0]
+            
+            # Статистика по категориям для графика
+            category_stats = cls.objects.filter(user=user).values(
+                'task__topic__name'
+            ).annotate(
+                count=Count('id')
+            ).order_by('-count')[:5]
+            
+            categories_labels = [stat['task__topic__name'] if stat['task__topic__name'] else 'Unknown' for stat in category_stats] or ['No data']
+            categories_data = [stat['count'] for stat in category_stats] or [0]
+
+            # Распределение попыток
+            attempts = cls.objects.filter(user=user).values('attempts').annotate(count=Count('id'))
+            attempts_distribution = [0] * 5
+            for attempt in attempts:
+                attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
+                if attempts_value > 0:
+                    bin_index = min((attempts_value - 1) // 5, 4)
+                    attempts_distribution[bin_index] += attempt['count']
+                elif attempts_value == 0:
+                    attempts_distribution[0] += attempt['count']
+            
+            return {
+                'stats': stats,
+                'activity_dates': activity_dates,
+                'activity_data': activity_data,
+                'has_activity_data': len(activity_data) > 1 or (len(activity_data) == 1 and activity_data[0] != 0),
+                'categories_labels': categories_labels,
+                'categories_data': categories_data,
+                'has_categories_data': len(categories_data) > 1 or (len(categories_data) == 1 and categories_data[0] != 0),
+                'attempts_distribution': attempts_distribution,
+                'has_attempts_data': any(attempts_distribution),
+            }
+        except Exception as e:
+            logger.error(f"Ошибка в get_stats_for_dashboard для пользователя {user.id}: {e}")
+            return {}
 
     @classmethod
     def get_user_statistics(cls, user):
