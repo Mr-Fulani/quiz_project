@@ -5,68 +5,21 @@ import os
 from blog.models import Message
 from django import forms
 from django.contrib import messages
-from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
-from rest_framework import generics, status, permissions
-from rest_framework.authentication import TokenAuthentication, SessionAuthentication
-from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
 from tasks.models import TaskStatistics
 
 from .forms import PersonalInfoForm
-from .models import CustomUser, TelegramAdmin, DjangoAdmin, \
-    UserChannelSubscription  # Изменено для объединения Profile и CustomUser: удалён импорт Profile
-from .serializers import (
-    UserSerializer,  # Изменено для объединения Profile и CustomUser: заменён ProfileSerializer на UserSerializer
-    LoginSerializer,
-    RegisterSerializer,
-    SubscriptionSerializer,
-    AdminSerializer,
-    ProfileSerializer,
-    SocialLinksSerializer
-)
-
-
-class LoginView(APIView):
-    """
-    APIView для входа пользователя.
-    При POST-передаче данных (логин/пароль) валидируем, логиним.
-    """
-    permission_classes = (AllowAny,)
-
-    def post(self, request):
-        """
-        Получаем логин/пароль из request.data,
-        если ок, login(request, user) и возвращаем JSON с данными пользователя.
-        """
-        print(f"Login request data: {request.data}")
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            login(request, user)
-            print(f"User {user.username} logged in")
-            next_url = request.POST.get('next', '/')
-            return Response({
-                'success': True,
-                'user': UserSerializer(user).data,
-                'next': next_url
-            })
-        print(f"Login errors: {serializer.errors}")
-        return Response({'error': 'Неверный логин или пароль'}, status=status.HTTP_400_BAD_REQUEST)
+from .models import CustomUser
 
 
 class CustomLogoutView(LogoutView):
@@ -78,205 +31,6 @@ class CustomLogoutView(LogoutView):
     def post(self, request, *args, **kwargs):
         print(f"Logout request: {request.POST}")
         return super().post(request, *args, **kwargs)
-
-
-class RegisterView(generics.CreateAPIView):
-    """
-    Регистрация нового пользователя.
-    """
-    permission_classes = (AllowAny,)
-    serializer_class = RegisterSerializer
-
-    def get(self, request, *args, **kwargs):
-        """Перенаправление на главную."""
-        return HttpResponseRedirect('/?open_register=true')
-
-    def create(self, request, *args, **kwargs):
-        """Создание и логин пользователя."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        user = serializer.instance
-        login(request, user)
-        next_url = request.POST.get('next', '/')
-        return HttpResponseRedirect(f"{next_url}?registration_success=true")
-
-
-class ProfileUpdateView(generics.UpdateAPIView):
-    """
-    APIView для обновления профиля (PATCH/PUT /accounts/profile/update/).
-    """
-    serializer_class = UserSerializer  # Изменено для объединения Profile и CustomUser: заменён ProfileSerializer на UserSerializer
-
-    def get_object(self):
-        """
-        Текущий пользователь (request.user).
-        """
-        return self.request.user
-
-
-class ProfileDeactivateView(APIView):
-    """
-    APIView для деактивации профиля (POST).
-    Ставит is_active=False, вызывает logout.
-    """
-    def post(self, request):
-        """
-        Деактивирует пользователя, разлогинивает, возвращает 200 OK.
-        """
-        user = request.user
-        user.is_active = False
-        user.save()
-        logout(request)
-        return Response(status=status.HTTP_200_OK)
-
-
-class SubscriptionListView(generics.ListCreateAPIView):
-    """
-    Список/создание подписок (UserChannelSubscription) текущего пользователя.
-    """
-    serializer_class = SubscriptionSerializer
-
-    def get_queryset(self):
-        """
-        Возвращает все подписки, связанные с request.user.
-        """
-        return UserChannelSubscription.objects.filter(user=self.request.user)
-
-
-class SubscriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Получение/обновление/удаление конкретной подписки (по pk).
-    """
-    serializer_class = SubscriptionSerializer
-
-    def get_queryset(self):
-        """
-        Если это swagger_fake_view, возвращаем пустой QuerySet.
-        Иначе подписки, принадлежащие request.user.
-        """
-        if getattr(self, 'swagger_fake_view', False):
-            return UserChannelSubscription.objects.none()
-        return UserChannelSubscription.objects.filter(user=self.request.user)
-
-
-class AdminListView(generics.ListAPIView):
-    """
-    Список всех администраторов (is_staff=True, но не superuser).
-    """
-    serializer_class = AdminSerializer
-    permission_classes = (permissions.IsAdminUser,)
-
-    def get_queryset(self):
-        """Фильтрация администраторов."""
-        return CustomUser.objects.filter(is_staff=True).exclude(is_superuser=True)
-
-
-class AdminDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Получение/изменение/удаление конкретного администратора.
-    """
-    serializer_class = AdminSerializer
-    permission_classes = (permissions.IsAdminUser,)
-
-    def get_queryset(self):
-        """Фильтрация администраторов."""
-        return CustomUser.objects.filter(is_staff=True).exclude(is_superuser=True)
-
-
-class TelegramAdminListView(generics.ListAPIView):
-    """
-    Список администраторов TelegramAdmin.
-    """
-    serializer_class = AdminSerializer
-    permission_classes = (permissions.IsAdminUser,)
-    queryset = TelegramAdmin.objects.all()
-
-
-class DjangoAdminListView(generics.ListAPIView):
-    """
-    Список администраторов DjangoAdmin.
-    """
-    serializer_class = AdminSerializer
-    permission_classes = (permissions.IsAdminUser,)
-    queryset = DjangoAdmin.objects.all()
-
-
-class UserStatsView(APIView):
-    """
-    APIView для возвращения статистики текущего пользователя (заглушка).
-    """
-    def get(self, request):
-        """
-        Возвращает словарь с заглушкой статистики.
-        """
-        user = request.user
-        stats = {
-            'total_tasks': 0,
-            'successful_tasks': 0,
-            'subscriptions': user.channel_subscriptions.count()
-        }
-        return Response(stats)
-
-
-class PublicProfileAPIView(APIView):
-    """
-    API для получения публичного профиля пользователя.
-    """
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, user_id=None):
-        """Получение публичного профиля по ID"""
-        try:
-            if user_id:
-                user = get_object_or_404(CustomUser, id=user_id)
-            else:
-                if not request.user.is_authenticated:
-                    return Response({'error': 'Authentication required'}, 
-                                  status=status.HTTP_401_UNAUTHORIZED)
-                user = request.user
-
-            # Проверяем публичность профиля
-            if user != request.user and not user.is_public:
-                return Response({'error': 'Private profile'}, 
-                              status=status.HTTP_403_FORBIDDEN)
-
-            serializer = ProfileSerializer(user)
-            data = serializer.data
-            
-            # Скрываем приватную информацию для чужих профилей
-            if user != request.user:
-                private_fields = ['email', 'birth_date', 'email_notifications']
-                for field in private_fields:
-                    data.pop(field, None)
-
-            return Response(data)
-
-        except CustomUser.DoesNotExist:
-            return Response({'error': 'User not found'}, 
-                          status=status.HTTP_404_NOT_FOUND)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class CustomObtainAuthToken(ObtainAuthToken):
-    """
-    Получение токена через POST (логин/пароль).
-    """
-    permission_classes = [AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        """
-        Создаёт или возвращает уже существующий токен для пользователя.
-        """
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'username': user.username
-        })
 
 
 class CustomPasswordChangeForm(forms.Form):
@@ -385,10 +139,10 @@ def change_password(request):
 
     return render(request, 'accounts/dashboard.html', {
         'password_form': form,
-        'personal_info_form': PersonalInfoForm(instance=request.user, user=request.user),  # Изменено для объединения Profile и CustomUser: instance=request.user.profile -> instance=request.user
+        'personal_info_form': PersonalInfoForm(instance=request.user, user=request.user),
         'profile_user': request.user,
         'is_owner': True,
-        'user_settings': request.user,  # Изменено для объединения Profile и CustomUser: user_settings=request.user.profile -> user_settings=request.user
+        'user_settings': request.user,
         'active_tab': 'security',
         'password_change_success': success
     })
@@ -403,15 +157,15 @@ def update_personal_info(request):
     if request.method == 'POST':
         print(f"POST data: {request.POST}")
         print(f"FILES: {request.FILES}")
-        user = request.user  # Изменено для объединения Profile и CustomUser: profile = request.user.profile -> user = request.user
+        user = request.user
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
         if 'avatar' in request.FILES and 'personal_info' not in request.POST:
-            old_avatar = user.avatar  # Изменено для объединения Profile и CustomUser: profile.avatar -> user.avatar
+            old_avatar = user.avatar
             form = PersonalInfoForm(
                 request.POST,
                 request.FILES,
-                instance=user,  # Изменено для объединения Profile и CustomUser: instance=profile -> instance=user
+                instance=user,
                 user=user,
                 avatar_only=True
             )
@@ -424,7 +178,7 @@ def update_personal_info(request):
                         print(f"Error deleting old avatar: {e}")
                 form.save()
                 if is_ajax:
-                    return JsonResponse({'status': 'success', 'avatar_url': user.get_avatar_url})  # Изменено для объединения Profile и CustomUser: profile.get_avatar_url -> user.get_avatar_url
+                    return JsonResponse({'status': 'success', 'avatar_url': user.get_avatar_url})
                 messages.success(request, 'Аватар успешно обновлён!')
                 return redirect('accounts:dashboard')
             else:
@@ -441,16 +195,16 @@ def update_personal_info(request):
             form = PersonalInfoForm(
                 request.POST,
                 request.FILES,
-                instance=user,  # Изменено для объединения Profile и CustomUser: instance=profile -> instance=user
+                instance=user,
                 user=user
             )
             print(f"Form created with data: {form.data}")
             if form.is_valid():
                 print(f"Form is valid, cleaned data: {form.cleaned_data}")
-                form.save()  # Изменено для объединения Profile и CustomUser: убрано отдельное сохранение user и profile, так как всё в CustomUser
+                form.save()
                 print(f"User {user.username} saved with email: {user.email}, first_name: {user.first_name}")
                 if is_ajax:
-                    return JsonResponse({'status': 'success', 'avatar_url': user.get_avatar_url})  # Изменено для объединения Profile и CustomUser: profile.get_avatar_url -> user.get_avatar_url
+                    return JsonResponse({'status': 'success', 'avatar_url': user.get_avatar_url})
                 messages.success(request, 'Профиль успешно обновлён!')
                 return redirect('accounts:dashboard')
             else:
@@ -464,13 +218,13 @@ def update_personal_info(request):
                 messages.error(request, 'Исправьте ошибки в форме.')
                 return redirect('accounts:dashboard')
     else:
-        form = PersonalInfoForm(instance=request.user, user=request.user)  # Изменено для объединения Profile и CustomUser: instance=request.user.profile -> instance=request.user
+        form = PersonalInfoForm(instance=request.user, user=request.user)
 
     return render(request, 'accounts/dashboard.html', {
         'personal_info_form': form,
         'profile_user': request.user,
         'is_owner': True,
-        'user_settings': request.user,  # Изменено для объединения Profile и CustomUser: user_settings=request.user.profile -> user_settings=request.user
+        'user_settings': request.user,
         'active_tab': 'personal'
     })
 
@@ -505,7 +259,7 @@ class UserListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         """Фильтрация не-администраторов."""
-        return CustomUser.objects.exclude(is_staff=True).order_by('-date_joined')  # Изменено для объединения Profile и CustomUser: убрано select_related('profile')
+        return CustomUser.objects.exclude(is_staff=True).order_by('-date_joined')
 
 
 @login_required
@@ -513,7 +267,7 @@ def user_list(request):
     """
     Отображение списка активных пользователей (кроме текущего).
     """
-    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).order_by('-last_seen')  # Изменено для объединения Profile и CustomUser: убрано select_related('profile') и сортировка по -last_seen вместо -profile__last_seen
+    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).order_by('-last_seen')
     paginator = Paginator(users_list, 12)
     page = request.GET.get('page')
     users = paginator.get_page(page)
@@ -637,8 +391,8 @@ def profile_view(request, username, is_dashboard=False):
 
     if is_dashboard:
         context.update({
-            'personal_info_form': PersonalInfoForm(instance=profile_user, user=profile_user),  # Изменено для объединения Profile и CustomUser: instance=profile_user.profile -> instance=profile_user
-            'user_settings': profile_user  # Изменено для объединения Profile и CustomUser: user_settings=profile_user.profile -> user_settings=profile_user
+            'personal_info_form': PersonalInfoForm(instance=profile_user, user=profile_user),
+            'user_settings': profile_user
         })
 
     return render(request, template_name, context)
@@ -648,78 +402,52 @@ def get_user_chart_data(user):
     """
     Возвращает данные для графиков: активность, темы, сложность.
     """
-    activity_stats = TaskStatistics.objects.filter(user=user).annotate(
+    # Активность по дням
+    activity_stats = TaskStatistics.objects.filter(
+        user=user,
+        last_attempt_date__isnull=False
+    ).annotate(
         date=TruncDate('last_attempt_date')
     ).values('date').annotate(
-        attempts=Count('id'),
-        successful=Count('id', filter=Q(successful=True))
+        count=Count('id')
     ).order_by('date')
-
-    topic_stats = TaskStatistics.objects.filter(user=user).values(
+    
+    activity_dates = [stat['date'].strftime('%d.%m') for stat in activity_stats]
+    activity_data = [stat['count'] for stat in activity_stats]
+    
+    # Статистика по темам
+    category_stats = TaskStatistics.objects.filter(user=user).values(
         'task__topic__name'
     ).annotate(
-        total=Count('id'),
-        successful=Count('id', filter=Q(successful=True))
-    ).order_by('-total')[:5]
-
-    difficulty_stats = TaskStatistics.objects.filter(user=user).values(
-        'task__difficulty'
-    ).annotate(
-        total=Count('id'),
-        successful=Count('id', filter=Q(successful=True))
-    )
-
-    print(f"\nDebug get_user_chart_data for user {user.username}:")
-    print(f"Activity stats: {list(activity_stats)}")
-    print(f"Topic stats: {list(topic_stats)}")
-    print(f"Difficulty stats: {list(difficulty_stats)}")
-
-    activity_data = {
-        'labels': [stat['date'].strftime('%d.%m') for stat in activity_stats] or ['No data'],
-        'datasets': [
-            {
-                'label': 'Attempts',
-                'data': [stat['attempts'] for stat in activity_stats] or [0],
-                'borderColor': '#ffaa00',
-                'fill': False
-            },
-            {
-                'label': 'Successful',
-                'data': [stat['successful'] for stat in activity_stats] or [0],
-                'borderColor': '#00ff00',
-                'fill': False
-            }
-        ]
-    }
-
-    topics_data = {
-        'labels': [stat['task__topic__name'] for stat in topic_stats] or ['No data'],
-        'datasets': [{
-            'label': 'Success Rate (%)',
-            'data': [
-                round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
-                for stat in topic_stats
-            ] or [0],
-            'backgroundColor': '#ffaa00'
-        }]
-    }
-
-    difficulty_data = {
-        'labels': [stat['task__difficulty'] for stat in difficulty_stats] or ['No data'],
-        'datasets': [{
-            'label': 'Success Rate (%)',
-            'data': [
-                round((stat['successful'] / stat['total']) * 100 if stat['total'] > 0 else 0, 1)
-                for stat in difficulty_stats
-            ] or [0],
-            'backgroundColor': ['#ffaa00', '#ffd700', '#ffa500']
-        }]
-    }
-
+        count=Count('id')
+    ).order_by('-count')[:5]
+    
+    categories_labels = [stat['task__topic__name'] for stat in category_stats]
+    categories_data = [stat['count'] for stat in category_stats]
+    
+    # Распределение попыток
+    attempts = TaskStatistics.objects.filter(user=user).values('attempts').annotate(count=Count('id'))
+    attempts_distribution = [0] * 5  # 5 групп: 1, 2-5, 6-10, 11-15, 16+
+    
+    for attempt in attempts:
+        attempts_value = int(attempt['attempts']) if attempt['attempts'] is not None else 0
+        if attempts_value == 1:
+            attempts_distribution[0] += attempt['count']
+        elif 2 <= attempts_value <= 5:
+            attempts_distribution[1] += attempt['count']
+        elif 6 <= attempts_value <= 10:
+            attempts_distribution[2] += attempt['count']
+        elif 11 <= attempts_value <= 15:
+            attempts_distribution[3] += attempt['count']
+        else:
+            attempts_distribution[4] += attempt['count']
+    
     return {
-        'activity': activity_data,
-        'topics': topics_data,
-        'difficulty': difficulty_data
+        'activity_dates': activity_dates,
+        'activity_data': activity_data,
+        'categories_labels': categories_labels,
+        'categories_data': categories_data,
+        'attempts_distribution': attempts_distribution,
     }
 
 
@@ -727,26 +455,25 @@ def get_user_chart_data(user):
 @require_POST
 def update_settings(request):
     """
-    AJAX для обновления настроек профиля.
+    AJAX-обработчик для обновления настроек пользователя.
     """
     try:
         data = json.loads(request.body)
-        setting = data.get('setting')
-        value = data.get('value')
-        user = request.user  # Изменено для объединения Profile и CustomUser: profile = request.user.profile -> user = request.user
-
-        if setting == 'email_notifications':
-            user.email_notifications = value
-        elif setting == 'is_public':
-            user.is_public = value
-        elif setting == 'theme_preference':
-            user.theme_preference = 'dark' if value else 'light'
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Invalid setting'}, status=400)
-
+        user = request.user
+        
+        # Обновляем настройки
+        if 'email_notifications' in data:
+            user.email_notifications = data['email_notifications']
+        if 'is_public' in data:
+            user.is_public = data['is_public']
+        if 'theme' in data:
+            user.theme = data['theme']
+        if 'language' in data:
+            user.language = data['language']
+            
         user.save()
-        return JsonResponse({'status': 'success'})
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        
+        return JsonResponse({'status': 'success', 'message': 'Настройки сохранены'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        print(f"Error updating settings: {e}")
+        return JsonResponse({'status': 'error', 'message': 'Ошибка при сохранении'}, status=400)
