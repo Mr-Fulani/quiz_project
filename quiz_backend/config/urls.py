@@ -12,7 +12,7 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
-from blog.views import tinymce_image_upload
+from blog.api.views import tinymce_image_upload
 from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, StaticSitemap
