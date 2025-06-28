@@ -35,17 +35,10 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Отключаем проверку хостов для разработки
+USE_L10N = False
 
-
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'quiz_backend',  # Имя контейнера в Docker сети
-    'quiz_backend:8000',  # Полный адрес с портом для внутренних запросов
-    'quiz_backend:8001',  # Полный адрес с портом для внутренних запросов
-    '0.0.0.0',
-    '*'  # Разрешаем все для разработки (уберите в продакшене)
-]
+ALLOWED_HOSTS = ['*']  # Разрешаем все хосты для разработки
 
 # Настройки django-debug-toolbar
 INTERNAL_IPS = [
@@ -132,6 +125,7 @@ LOGGING = {
 }
 
 MIDDLEWARE = [
+    'config.middleware.AllowAllHostsMiddleware',  # Разрешаем все хосты для разработки
     'corsheaders.middleware.CorsMiddleware',
     'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.middleware.security.SecurityMiddleware',

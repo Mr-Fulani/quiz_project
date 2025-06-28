@@ -49,46 +49,32 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+class UserProgressSerializer(serializers.Serializer):
+    """Сериализатор для прогресса пользователя по теме."""
+    topic_name = serializers.CharField()
+    completed_quizzes = serializers.IntegerField()
+    total_quizzes = serializers.IntegerField()
+    progress_percentage = serializers.IntegerField()
+
 class ProfileSerializer(serializers.ModelSerializer):
     """
-    Расширенный сериализатор для профиля пользователя с социальными сетями.
+    Расширенный сериализатор для профиля пользователя.
+    Приводим поля к формату, который ожидает фронтенд mini_app.
     """
-    avatar_url = serializers.SerializerMethodField()
+    points = serializers.IntegerField(source='total_points', default=0)
+    rating = serializers.IntegerField(default=0) # Заглушка, так как в модели нет рейтинга
+    quizzes_completed = serializers.IntegerField(default=0)
+    success_rate = serializers.FloatField(source='average_score', default=0.0)
+    progress = UserProgressSerializer(many=True, read_only=True, source='get_progress_data')
     
     class Meta:
         model = CustomUser
         fields = (
-            'id', 'username', 'email', 'first_name', 'last_name',
-            'bio', 'location', 'birth_date', 'website',
-            'telegram', 'github', 'linkedin', 'instagram', 
-            'facebook', 'youtube', 'avatar', 'avatar_url',
-            'language', 'subscription_status', 'created_at',
-            'theme_preference', 'is_public', 'email_notifications',
-            'total_points', 'quizzes_completed', 'average_score'
+            'id', 'telegram_id', 'username', 'first_name', 'last_name',
+            'avatar', 'is_public', 
+            'points', 'rating', 'quizzes_completed', 'success_rate',
+            'progress'
         )
-        read_only_fields = ('id', 'created_at', 'subscription_status')
-    
-    def get_avatar_url(self, obj):
-        """Возвращает URL аватара"""
-        return obj.get_avatar_url
-
-    def to_representation(self, instance):
-        """
-        Динамически скрывает приватные поля, если профиль просматривает не владелец.
-        """
-        data = super().to_representation(instance)
-        request = self.context.get('request')
-
-        # Если запроса нет или пользователь является владельцем, возвращаем все данные
-        if not request or not request.user.is_authenticated or instance == request.user:
-            return data
-
-        # Для других пользователей скрываем приватные поля
-        private_fields = ['email', 'birth_date', 'email_notifications']
-        for field in private_fields:
-            data.pop(field, None)
-        
-        return data
 
 class SocialLinksSerializer(serializers.ModelSerializer):
     """

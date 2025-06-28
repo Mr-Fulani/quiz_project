@@ -135,13 +135,17 @@ async def setup_telegram_menu(bot: Bot):
         Exception: Если произошла ошибка при настройке меню.
     """
     await bot.set_my_commands([])
+    
+    # Формируем корректный URL для страницы профиля
+    profile_url = f"{WEBAPP_URL}/profile"
+    
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
-            text="Меню",
-            web_app=WebAppInfo(url=WEBAPP_URL)
+            text="Профиль", # Изменим текст для ясности
+            web_app=WebAppInfo(url=profile_url)
         )
     )
-    logger.info("✅ Меню Telegram обновлено — одна кнопка запускает Web App.")
+    logger.info(f"✅ Меню Telegram обновлено — кнопка Web App ведет на {profile_url}")
 
 async def start_publication_bot():
     """

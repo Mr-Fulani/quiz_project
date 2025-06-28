@@ -132,6 +132,14 @@ class CustomUser(AbstractUser):
                    .annotate(count=Count('id')) \
                    .order_by('-count')[:3]
 
+    def get_progress_data(self):
+        """
+        Возвращает данные о прогрессе по темам.
+        Временная заглушка, чтобы фронтенд не падал.
+        """
+        # TODO: Реализовать реальную логику выборки прогресса
+        return []
+
 
 
 

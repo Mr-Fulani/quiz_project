@@ -79,10 +79,11 @@ services:
       - quiz_network
 
   mini_app:
+    container_name: mini_app
     build:
       context: ./mini_app
-      dockerfile: Dockerfile
-    container_name: mini_app
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     networks:
@@ -91,9 +92,14 @@ services:
       - APP_HOST=0.0.0.0
       - APP_PORT=8080
       - DJANGO_API_TOKEN=${DJANGO_API_TOKEN}
+      - DJANGO_API_BASE_URL=http://quiz_backend:8000
+      - PYTHONPATH=/mini_app
     volumes:
       - ./mini_app:/mini_app
       - ./mini_app/static:/mini_app/static
+    command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+    depends_on:
+      - quiz_backend
 
 networks:
   quiz_network:
