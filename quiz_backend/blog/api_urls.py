@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import user_profile_stats_api, tinymce_image_upload, profile_api, social_links_api
+from .api import views as api_views
 
 app_name = 'blog_api'
 
 urlpatterns = [
-    path('profile/stats/', user_profile_stats_api, name='user_profile_stats_api'),
-    path('profile/', profile_api, name='profile_api'),
-    path('social-links/', social_links_api, name='social_links_api'),
+    path('profile/stats/', api_views.user_profile_stats_api, name='user_profile_stats_api'),
+    path('profile/', api_views.profile_api, name='profile_api'),
+    path('social-links/', api_views.social_links_api, name='social_links_api'),
+    path('tinymce-upload/', api_views.tinymce_image_upload, name='tinymce_image_upload'),
 ] 

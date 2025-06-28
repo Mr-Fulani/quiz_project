@@ -15,6 +15,7 @@ from django.contrib.auth import get_user_model
 from tinymce.models import HTMLField
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
+from django.conf import settings
 
 User = get_user_model()
 
@@ -42,6 +43,11 @@ class Category(models.Model):
     def __str__(self):
         """Возвращает строковое представление категории."""
         return f"{self.name} ({'Portfolio' if self.is_portfolio else 'Blog'})"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
 
 class Post(models.Model):
@@ -378,9 +384,6 @@ class MessageAttachment(models.Model):
         super().save(*args, **kwargs)
 
 
-
-
-
 class Message(models.Model):
     """Модель сообщений между пользователями."""
     sender = models.ForeignKey(
@@ -440,7 +443,6 @@ class Message(models.Model):
     def is_completely_deleted(self):
         """Проверяет, полностью ли удалено сообщение (обоими сторонами)."""
         return self.is_deleted_by_sender and self.is_deleted_by_recipient
-
 
 
 class PageVideo(models.Model):
@@ -533,9 +535,6 @@ class Testimonial(models.Model):
         return f'Отзыв от {self.user.username}'
 
 
-
-
-
 class CustomURLValidator(URLValidator):
     """Кастомный валидатор для URL, включая tg:// протокол."""
     schemes = ['http', 'https', 'ftp', 'ftps', 'tg']
@@ -592,8 +591,6 @@ class CustomURLValidator(URLValidator):
             '• tg://join?invite=...\n'
             '• tg://addstickers?set=...'
         )
-
-
 
 
 class MarqueeText(models.Model):
