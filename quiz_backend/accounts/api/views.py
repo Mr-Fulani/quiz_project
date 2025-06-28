@@ -225,15 +225,9 @@ class PublicProfileAPIView(APIView):
                 return Response({'error': 'Private profile'}, 
                               status=status.HTTP_403_FORBIDDEN)
 
-            serializer = ProfileSerializer(user)
+            serializer = ProfileSerializer(user, context={'request': request})
             data = serializer.data
             
-            # Скрываем приватную информацию для чужих профилей
-            if user != request.user:
-                private_fields = ['email', 'birth_date', 'email_notifications']
-                for field in private_fields:
-                    data.pop(field, None)
-
             return Response(data)
 
         except CustomUser.DoesNotExist:

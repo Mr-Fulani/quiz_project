@@ -72,6 +72,24 @@ class ProfileSerializer(serializers.ModelSerializer):
         """Возвращает URL аватара"""
         return obj.get_avatar_url
 
+    def to_representation(self, instance):
+        """
+        Динамически скрывает приватные поля, если профиль просматривает не владелец.
+        """
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+
+        # Если запроса нет или пользователь является владельцем, возвращаем все данные
+        if not request or not request.user.is_authenticated or instance == request.user:
+            return data
+
+        # Для других пользователей скрываем приватные поля
+        private_fields = ['email', 'birth_date', 'email_notifications']
+        for field in private_fields:
+            data.pop(field, None)
+        
+        return data
+
 class SocialLinksSerializer(serializers.ModelSerializer):
     """
     Отдельный сериализатор только для социальных сетей.

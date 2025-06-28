@@ -1513,99 +1513,12 @@ def user_profile_stats_api(request):
     """
     try:
         user = request.user
+        stats_data = TaskStatistics.get_stats_for_mini_app(user)
         
-        # Основная статистика пользователя (используем ту же логику что и в statistics_view)
-        user_stats = TaskStatistics.objects.filter(user=user).aggregate(
-            total_attempts=Count('id'),
-            successful_attempts=Count('id', filter=Q(successful=True)),
-            rating=Count('id')
-        )
-        
-        success_rate = (
-            round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
-            if user_stats['total_attempts'] > 0 else 0
-        )
-        
-        # Прогресс по темам (топ 5)
-        topic_progress = []
-        user_category_stats = TaskStatistics.objects.filter(user=user).values(
-            'task__topic__name',
-            'task__topic__id'
-        ).annotate(
-            completed=Count('id', filter=Q(successful=True)),
-            total=Count('id')
-        ).order_by('-total')[:5]
-        
-        for stat in user_category_stats:
-            topic_name = stat['task__topic__name'] or 'Unknown'
-            completed = stat['completed']
-            total = stat['total']
-            percentage = round((completed / total * 100), 0) if total > 0 else 0
+        if 'error' in stats_data:
+            return DRFResponse(stats_data, status=500)
             
-            topic_progress.append({
-                'name': topic_name,
-                'completed': completed,
-                'total': total,
-                'percentage': percentage
-            })
-        
-        # Подсчет очков (пример: 10 очков за правильный ответ)
-        total_points = user_stats['successful_attempts'] * 10
-        
-        # Серия (streak) - считаем последние попытки подряд
-        recent_attempts = TaskStatistics.objects.filter(
-            user=user
-        ).order_by('-last_attempt_date')[:10]
-        
-        current_streak = 0
-        best_streak = 0
-        temp_streak = 0
-        
-        for attempt in recent_attempts:
-            if attempt.successful:
-                temp_streak += 1
-                if current_streak == 0:  # Это первая успешная попытка в серии
-                    current_streak = temp_streak
-            else:
-                if temp_streak > best_streak:
-                    best_streak = temp_streak
-                temp_streak = 0
-        
-        if temp_streak > best_streak:
-            best_streak = temp_streak
-            
-        # Информация о пользователе
-        user_info = {
-            'telegram_id': getattr(user, 'telegram_id', None) or user.id,
-            'username': user.username,
-            'first_name': user.first_name or user.username,
-            'last_name': user.last_name or '',
-            'avatar_url': None  # Пока без аватаров
-        }
-        
-        # Моковые достижения (позже можно сделать реальную систему)
-        achievements = [
-            {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
-            {'id': 2, 'name': 'Знаток Python', 'icon': '🐍', 'unlocked': success_rate > 60},
-            {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
-            {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
-            {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
-            {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
-        ]
-        
-        return DRFResponse({
-            'user': user_info,
-            'stats': {
-                'total_quizzes': user_stats['total_attempts'],
-                'completed_quizzes': user_stats['successful_attempts'],
-                'success_rate': int(success_rate),
-                'total_points': total_points,
-                'current_streak': current_streak,
-                'best_streak': best_streak
-            },
-            'topic_progress': topic_progress,
-            'achievements': achievements
-        })
+        return DRFResponse(stats_data)
         
     except Exception as e:
         logger.error(f"Ошибка в user_profile_stats_api: {e}")
@@ -1622,14 +1535,14 @@ def profile_api(request):
     """
     if request.method == 'GET':
         try:
-            serializer = ProfileSerializer(request.user)
+            serializer = ProfileSerializer(request.user, context={'request': request})
             return Response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     elif request.method == 'PATCH':
         try:
-            serializer = ProfileSerializer(request.user, data=request.data, partial=True)
+            serializer = ProfileSerializer(request.user, data=request.data, partial=True, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
