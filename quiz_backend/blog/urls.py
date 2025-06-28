@@ -1,8 +1,6 @@
 from django.http import HttpResponse
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 from .views import (
-    CategoryViewSet, PostViewSet, ProjectViewSet,
     HomePageView, PostDetailView, ProjectDetailView,
     ResumeView, PortfolioView, BlogView, AboutView,
     ContactView, QuizesView, QuizDetailView, inbox,
@@ -21,11 +19,6 @@ app_name = 'blog'
 def debug_view(request):
     return HttpResponse("Debug view is working!")
 
-# Создаём DefaultRouter для DRF ViewSet-ов (Category, Post, Project).
-router = DefaultRouter()
-router.register(r'categories', CategoryViewSet)
-router.register(r'posts', PostViewSet)
-router.register(r'projects', ProjectViewSet)
 
 urlpatterns = [
     path('', HomePageView.as_view(), name='home'),
@@ -90,10 +83,6 @@ urlpatterns = [
 
     path('maintenance/', MaintenanceView.as_view(), name='maintenance'),
     #   -> Страница "В разработке"
-
-    path('api/', include(router.urls)),
-    #   -> Подключает URL-ы из DRF DefaultRouter:
-    #      /api/categories/, /api/posts/, /api/projects/ и т.д.
 
     path('add-testimonial/', add_testimonial, name='add_testimonial'),
     path('testimonials/', AllTestimonialsView.as_view(), name='all_testimonials'),
