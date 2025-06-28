@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.http import HttpResponseRedirect
+import logging
 
 from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription
 from ..serializers import (
@@ -24,6 +25,7 @@ from ..serializers import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -233,6 +235,48 @@ class PublicProfileAPIView(APIView):
         except CustomUser.DoesNotExist:
             return Response({'error': 'User not found'}, 
                           status=status.HTTP_404_NOT_FOUND)
+
+
+class ProfileByTelegramID(APIView):
+    """
+    API для получения профиля пользователя по telegram_id.
+    Если пользователь не найден, он будет создан.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, telegram_id):
+        user, created = CustomUser.objects.get_or_create(
+            telegram_id=telegram_id,
+            defaults={
+                'username': f'user_{telegram_id}',
+                'first_name': 'New',
+                'last_name': 'User'
+            }
+        )
+
+        if created:
+            logger.info(f"Создан новый пользователь с telegram_id: {telegram_id}")
+
+        serializer = ProfileSerializer(user)
+        return Response(serializer.data)
+
+
+class ProfileUpdateByTelegramView(generics.UpdateAPIView):
+    """
+    APIView для обновления профиля пользователя по его telegram_id.
+    Используется для mini_app, чтобы загружать аватар.
+    """
+    queryset = CustomUser.objects.all()
+    serializer_class = ProfileSerializer
+    permission_classes = [permissions.IsAuthenticated] # Можно заменить на кастомный пермишн для mini_app
+    lookup_field = 'telegram_id'
+
+    def get_object(self):
+        """
+        Получаем пользователя по telegram_id из URL.
+        """
+        telegram_id = self.kwargs.get('telegram_id')
+        return get_object_or_404(CustomUser, telegram_id=telegram_id)
 
 
 @method_decorator(csrf_exempt, name='dispatch')

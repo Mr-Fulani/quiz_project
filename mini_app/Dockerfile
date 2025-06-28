@@ -1,5 +1,5 @@
 # quiz_project/mini_app/Dockerfile
-FROM python:3.9
+FROM python:3.11-slim
 
 # Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /mini_app
@@ -20,6 +20,11 @@ COPY static/images/* static/images/
 
 # Копируем шаблоны
 COPY templates/* templates/
+
+# Копируем папки с кодом приложения
+COPY routers/ routers/
+COPY services/ services/
+COPY core/ core/
 
 # Копируем основной файл приложения
 COPY app.py .
