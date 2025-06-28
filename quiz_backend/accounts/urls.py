@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 from . import views
-from .api import views as api_views
+from .api import api_views
 from .views import dashboard_view, profile_redirect_view, profile_view, update_settings, update_personal_info
 
 app_name = 'accounts'

@@ -1,0 +1,30 @@
+from django.urls import path
+from . import api_views
+
+app_name = 'accounts_api'
+
+urlpatterns = [
+    # Аутентификация и токены
+    path('token/', api_views.CustomObtainAuthToken.as_view(), name='token'),
+    path('login/', api_views.LoginView.as_view(), name='login'),
+    path('register/', api_views.RegisterView.as_view(), name='register'),
+
+    # Профили пользователей
+    path('profile/', api_views.PublicProfileAPIView.as_view(), name='profile'),
+    path('profile/update/', api_views.ProfileUpdateView.as_view(), name='profile-update'),
+    path('profile/deactivate/', api_views.ProfileDeactivateView.as_view(), name='profile-deactivate'),
+    path('profile/<int:user_id>/', api_views.PublicProfileAPIView.as_view(), name='public-profile'),
+
+    # Управление подписками
+    path('subscriptions/', api_views.SubscriptionListView.as_view(), name='subscription-list'),
+    path('subscriptions/<int:pk>/', api_views.SubscriptionDetailView.as_view(), name='subscription-detail'),
+
+    # Администраторы
+    path('admins/', api_views.AdminListView.as_view(), name='admin-list'),
+    path('admins/<int:pk>/', api_views.AdminDetailView.as_view(), name='admin-detail'),
+    path('admins/telegram/', api_views.TelegramAdminListView.as_view(), name='telegram-admin-list'),
+    path('admins/django/', api_views.DjangoAdminListView.as_view(), name='django-admin-list'),
+
+    # Статистика
+    path('stats/', api_views.UserStatsView.as_view(), name='user-stats'),
+] 
