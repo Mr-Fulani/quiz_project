@@ -309,7 +309,8 @@ class PublicProfileByTelegramAPIView(APIView):
         """
         try:
             user = get_object_or_404(CustomUser, telegram_id=telegram_id)
-            serializer = ProfileSerializer(user)
+            # Передаем контекст запроса для правильной генерации URL аватара
+            serializer = ProfileSerializer(user, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Ошибка при получении профиля по telegram_id {telegram_id}: {e}")
