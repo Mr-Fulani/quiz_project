@@ -121,7 +121,7 @@ class SubtopicDeleteView(generics.DestroyAPIView):
 
 class TopicSubtopicsView(generics.ListCreateAPIView):
     serializer_class = SubtopicWithTasksSerializer  # Используем новый сериализатор
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Разрешаем доступ без аутентификации для mini_app
 
     def get_queryset(self):
         # Возвращаем только подтемы с задачами на русском языке (пока hardcode)

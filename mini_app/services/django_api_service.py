@@ -54,13 +54,40 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении подтем для темы {topic_id}: {e}")
             return []
     
+    async def get_or_create_user_profile(self, user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Получение или создание профиля пользователя"""
+        telegram_id = user_data.get('telegram_id')
+        if not telegram_id:
+            logger.error("telegram_id отсутствует в user_data")
+            return None
+            
+        try:
+            # Сначала пытаемся получить существующий профиль
+            profile = await self.get_user_profile(telegram_id)
+            if profile:
+                logger.info(f"Найден существующий профиль для telegram_id={telegram_id}")
+                return profile
+            
+            # Если профиль не найден, создаем новый
+            logger.info(f"Создаем новый профиль для telegram_id={telegram_id}")
+            data = await self._make_request(
+                "POST", 
+                f"/api/accounts/profile/by-telegram/", 
+                json=user_data
+            )
+            return data
+        except Exception as e:
+            logger.error(f"Ошибка при получении/создании профиля: {e}")
+            return None
+
     async def get_user_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
         """Получение профиля пользователя"""
         try:
-            data = await self._make_request("GET", f"/users/{telegram_id}/")
+            data = await self._make_request("GET", f"/api/accounts/profile/by-telegram/{telegram_id}/")
             return data
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
+                logger.warning(f"Профиль для telegram_id={telegram_id} не найден (404).")
                 return None
             raise
         except Exception as e:

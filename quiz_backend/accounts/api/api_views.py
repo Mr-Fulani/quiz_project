@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model, logout, login
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from django.http import HttpResponseRedirect
 import logging
 
@@ -239,26 +240,83 @@ class PublicProfileAPIView(APIView):
 
 class ProfileByTelegramID(APIView):
     """
-    API для получения профиля пользователя по telegram_id.
-    Если пользователь не найден, он будет создан.
+    API для получения или создания профиля пользователя по telegram_id.
+    Принимает POST-запрос с данными пользователя.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        telegram_id = data.get('telegram_id')
+        if not telegram_id:
+            return Response({'error': 'telegram_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Данные по умолчанию для нового пользователя
+        defaults = {
+            'first_name': data.get('first_name', ''),
+            'last_name': data.get('last_name', ''),
+            'username': data.get('username') or f'user_{telegram_id}',
+            'is_telegram_user': True,
+            'is_active': True,
+            # Устанавливаем начальные значения для статистики
+            'total_points': 0,
+            'quizzes_completed': 0,
+            'average_score': 0.0,
+        }
+
+        user, created = CustomUser.objects.get_or_create(
+            telegram_id=telegram_id,
+            defaults=defaults
+        )
+
+        if created:
+            logger.info(f"Создан новый пользователь с telegram_id: {telegram_id} и данными: {defaults}")
+        else:
+            # Обновляем данные при каждом входе (имя, фамилия, username могут измениться в Telegram)
+            update_fields = []
+            if data.get('first_name') and user.first_name != data.get('first_name'):
+                user.first_name = data.get('first_name')
+                update_fields.append('first_name')
+            if data.get('last_name') and user.last_name != data.get('last_name'):
+                user.last_name = data.get('last_name')
+                update_fields.append('last_name')
+            if data.get('username') and user.username != data.get('username'):
+                user.username = data.get('username')
+                update_fields.append('username')
+            
+            # Обновляем время последнего визита
+            user.last_seen = timezone.now()
+            update_fields.append('last_seen')
+            
+            if update_fields:
+                user.save(update_fields=update_fields)
+                logger.info(f"Обновлен пользователь с telegram_id: {telegram_id}, поля: {update_fields}")
+
+        # Передаем контекст запроса в сериализатор для правильной генерации URL
+        serializer = ProfileSerializer(user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class PublicProfileByTelegramAPIView(APIView):
+    """
+    API для получения публичного профиля пользователя по telegram_id.
     """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, telegram_id):
-        user, created = CustomUser.objects.get_or_create(
-            telegram_id=telegram_id,
-            defaults={
-                'username': f'user_{telegram_id}',
-                'first_name': 'New',
-                'last_name': 'User'
-            }
-        )
-
-        if created:
-            logger.info(f"Создан новый пользователь с telegram_id: {telegram_id}")
-
-        serializer = ProfileSerializer(user)
-        return Response(serializer.data)
+        """
+        Получение профиля пользователя по telegram_id.
+        """
+        try:
+            user = get_object_or_404(CustomUser, telegram_id=telegram_id)
+            serializer = ProfileSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Ошибка при получении профиля по telegram_id {telegram_id}: {e}")
+            return Response(
+                {"error": "Профиль не найден"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class ProfileUpdateByTelegramView(generics.UpdateAPIView):
@@ -268,7 +326,7 @@ class ProfileUpdateByTelegramView(generics.UpdateAPIView):
     """
     queryset = CustomUser.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [permissions.IsAuthenticated] # Можно заменить на кастомный пермишн для mini_app
+    permission_classes = [permissions.AllowAny]  # Временно разрешаем без аутентификации для mini_app
     lookup_field = 'telegram_id'
 
     def get_object(self):
