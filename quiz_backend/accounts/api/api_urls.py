@@ -14,7 +14,8 @@ urlpatterns = [
     path('profile/update/', api_views.ProfileUpdateView.as_view(), name='profile-update'),
     path('profile/deactivate/', api_views.ProfileDeactivateView.as_view(), name='profile-deactivate'),
     path('profile/<int:user_id>/', api_views.PublicProfileAPIView.as_view(), name='public-profile'),
-    path('profile/by-telegram/<int:telegram_id>/', api_views.ProfileByTelegramID.as_view(), name='public-profile-by-telegram'),
+    path('profile/by-telegram/', api_views.ProfileByTelegramID.as_view(), name='public-profile-by-telegram'),
+    path('profile/by-telegram/<int:telegram_id>/', api_views.PublicProfileByTelegramAPIView.as_view(), name='get-profile-by-telegram'),
     path('profile/by-telegram/<int:telegram_id>/update/', api_views.ProfileUpdateByTelegramView.as_view(), name='profile-update-by-telegram'),
 
     # Управление подписками

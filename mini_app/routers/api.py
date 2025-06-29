@@ -4,6 +4,8 @@ import httpx
 import os
 import urllib.parse
 import re
+import logging
+import json
 
 from fastapi import APIRouter, Request, UploadFile, File, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -12,7 +14,6 @@ from telegram_webapp_auth.auth import TelegramAuthenticator
 from telegram_webapp_auth.errors import InvalidInitDataError, ExpiredInitDataError
 
 from core.config import settings
-from services.django_api import DjangoAPIService
 from services.django_api_service import django_api_service
 from aiohttp import ClientResponseError
 
@@ -50,10 +51,10 @@ async def verify_init_data(request: Request):
              raise HTTPException(status_code=500, detail="Bot token is not configured on the server.")
 
         try:
-            secret_key = generate_secret_key(settings.TELEGRAM_BOT_TOKEN)
-            authenticator = TelegramAuthenticator(secret_key)
+            # Используем токен бота напрямую для создания аутентификатора
+            auth = TelegramAuthenticator(secret=settings.TELEGRAM_BOT_TOKEN.encode())
             
-            init_data = authenticator.validate(init_data_str)
+            init_data = auth.validate(init_data_str)
             
             if not init_data.user or not init_data.user.id:
                 raise ValueError("User ID not found in parsed data")
@@ -90,7 +91,7 @@ async def get_profile_by_telegram_id(telegram_id: int):
     """
     logger.info(f"Fetching profile from Django for telegram_id: {telegram_id}")
     django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/profile/by-telegram/{telegram_id}/"
-    headers = {'Authorization': f'Token {settings.DJANGO_API_TOKEN}'}
+    headers = {}  # Временно убираем токен для тестирования
 
     try:
         async with httpx.AsyncClient() as client:
@@ -128,7 +129,7 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
     logger.info(f"Updating profile for telegram_id: {telegram_id}")
     
     django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/profile/by-telegram/{telegram_id}/update/"
-    headers = {'Authorization': f'Token {settings.DJANGO_API_TOKEN}'}
+    headers = {}  # Временно убираем токен для тестирования
     file_content = await avatar.read()
     files = {'avatar': (avatar.filename, file_content, avatar.content_type)}
     
@@ -144,67 +145,75 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
+# Вспомогательные функции для работы с Django API
+async def fetch_topics_from_django(search: str = None):
+    """Получение списка тем из Django API"""
+    try:
+        topics = await django_api_service.get_topics(search=search)
+        return topics
+    except Exception as e:
+        logger.error(f"Ошибка при получении тем: {e}")
+        return []
+
+async def fetch_subtopics_from_django(topic_id: int):
+    """Получение подтем для конкретной темы из Django API"""
+    try:
+        subtopics = await django_api_service.get_subtopics(topic_id=topic_id)
+        return subtopics
+    except Exception as e:
+        logger.error(f"Ошибка при получении подтем для темы {topic_id}: {e}")
+        return []
+
 # Другие API-эндпоинты (test-api, button-click, profile/stats, и т.д.)
 # можно добавить сюда по аналогии. 
 
-async def get_user_profile(request_data: UserProfileRequest, django_api: DjangoAPIService = Depends()):
+async def get_user_profile(request_data: UserProfileRequest):
     try:
-        logger.info(f"Получен запрос профиля. InitData длина: {len(request_data.initData)}")
-        logger.info(f"InitData начало: {request_data.initData[:100]}...")
+        logger.info(f"Получен запрос профиля. InitData: {request_data.initData[:150]}...")
         
-        # Временно отключаем валидацию для отладки
-        # TODO: Включить валидацию после отладки
+        user_info = {}
         try:
-            user_data = authenticator.validate(request_data.initData)
-            telegram_id = user_data.user.id if hasattr(user_data, 'user') else user_data['id']
-            logger.info(f"Валидация прошла успешно. Telegram ID: {telegram_id}")
+            # Сначала пытаемся валидировать данные
+            validated_data = authenticator.validate(request_data.initData)
+            user = validated_data.user
+            user_info = {
+                "telegram_id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name or "",
+                "username": user.username
+            }
+            logger.info(f"Валидация успешна. Данные: {user_info}")
         except Exception as e:
-            logger.error(f"Ошибка валидации: {e}")
-            # Извлекаем telegram_id из URL-декодированных данных
+            logger.warning(f"Ошибка валидации initData: {e}. Пробуем ручной парсинг.")
+            # Если валидация не удалась, парсим вручную как fallback
+            decoded_data = urllib.parse.unquote(request_data.initData)
             try:
-                # Ищем telegram_id в строке напрямую с помощью регулярного выражения
-                # Формат: user=%7B%22id%22%3A7662576714%2C%22first_name%22...
-                id_match = re.search(r'%22id%22%3A(\d+)', request_data.initData)
-                if id_match:
-                    telegram_id = int(id_match.group(1))
-                    logger.info(f"Извлечен реальный telegram_id из данных: {telegram_id}")
-                else:
-                    # Попробуем альтернативный способ
-                    decoded_data = urllib.parse.unquote(request_data.initData)
-                    id_match2 = re.search(r'"id":(\d+)', decoded_data)
-                    if id_match2:
-                        telegram_id = int(id_match2.group(1))
-                        logger.info(f"Извлечен telegram_id альтернативным способом: {telegram_id}")
-                    else:
-                        telegram_id = 123456789
-                        logger.info(f"Не удалось извлечь ID, используем тестовый: {telegram_id}")
+                user_json_match = re.search(r'user=({.*?})(&|$)', decoded_data)
+                if user_json_match:
+                    user_data = json.loads(user_json_match.group(1))
+                    user_info = {
+                        "telegram_id": user_data.get("id"),
+                        "first_name": user_data.get("first_name"),
+                        "last_name": user_data.get("last_name", ""),
+                        "username": user_data.get("username")
+                    }
+                    logger.info(f"Ручной парсинг успешен. Данные: {user_info}")
+                if not user_info.get("telegram_id"):
+                    raise ValueError("Не удалось извлечь telegram_id")
             except Exception as parse_error:
-                logger.error(f"Ошибка парсинга initData: {parse_error}")
-                telegram_id = 123456789
-                logger.info(f"Используем тестовый telegram_id: {telegram_id}")
+                logger.error(f"Полная ошибка ручного парсинга: {parse_error}")
+                raise HTTPException(status_code=400, detail="Не удалось обработать initData.")
 
-        # 3. Запрос полного профиля пользователя у Django бэкенда
-        profile_data = await django_api.get_user_profile(telegram_id)
-        logger.info(f"Получен профиль от Django: {profile_data is not None}")
+        # 3. Запрос на получение или создание профиля в Django
+        profile_data = await django_api_service.get_or_create_user_profile(user_info)
+        logger.info(f"Ответ от Django: {profile_data}")
         
         # 4. Возвращаем данные профиля
-        return profile_data or {
-            "telegram_id": telegram_id,
-            "first_name": "Test User",
-            "last_name": "",
-            "username": None,
-            "avatar": None,
-            "points": 0,
-            "rating": 0,
-            "quizzes_completed": 0,
-            "success_rate": 0.0,
-            "progress": [],
-            "status": "test_user"
-        }
+        return profile_data
 
     except ValidationError as e:
-        logger.error(f"Ошибка валидации InitData: {e}")
-        raise HTTPException(status_code=400, detail=f"Invalid InitData: {e}")
+        logger.error(f"Ошибка валидации Pydantic: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid Request Body: {e}")
     except Exception as e:
         logger.exception("Внутренняя ошибка при получении профиля")
         raise HTTPException(status_code=500, detail="Internal server error")

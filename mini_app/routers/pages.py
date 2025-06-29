@@ -43,9 +43,19 @@ async def settings(request: Request):
 async def topic_detail(request: Request, topic_id: int):
     logger.info(f"Rendering topic detail page for topic_id: {topic_id}")
     subtopics = await django_api_service.get_subtopics(topic_id=topic_id)
-    # Нужна логика для получения имени темы
-    topic_name = "Тема" # Заглушка
-    return templates.TemplateResponse("topic_detail.html", {"request": request, "topic_name": topic_name, "subtopics": subtopics})
+    
+    # Получаем информацию о теме
+    topics = await django_api_service.get_topics()
+    topic = None
+    for t in topics:
+        if t.get('id') == topic_id:
+            topic = t
+            break
+    
+    if not topic:
+        topic = {"id": topic_id, "name": f"Тема {topic_id}", "description": ""}
+    
+    return templates.TemplateResponse("topic_detail.html", {"request": request, "topic": topic, "subtopics": subtopics})
 
 # Загрузка аватара останется здесь, так как она связана со страницей профиля
 @router.post("/profile/{telegram_id}/update/", response_class=HTMLResponse)
