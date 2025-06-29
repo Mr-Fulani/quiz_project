@@ -53,119 +53,85 @@ document.documentElement.classList.add('profile-page');
         </div>
     </div>
 
+    <div class="social-section">
+        <h2 class="progress-title">Социальные сети</h2>
+        <div id="social-links-container">
+            <!-- Сюда будут добавляться социальные ссылки -->
+            <p class="social-empty">Социальные сети не указаны.</p>
+        </div>
+    </div>
+
     <div class="profile-actions">
+        <button id="edit-profile-btn" class="action-btn edit-btn">
+            <span>Редактировать профиль</span>
+            <i class="fas fa-edit action-btn-icon"></i>
+        </button>
         <button id="refresh-btn" class="action-btn refresh-btn">
             <span>Обновить данные</span>
             <i class="fas fa-sync-alt action-btn-icon"></i>
         </button>
+    </div>
+
+    <!-- Модальное окно редактирования профиля -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать профиль</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="edit-profile-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="avatar-input">Аватар:</label>
+                    <input type="file" id="avatar-input" name="avatar" accept="image/*">
+                    <div class="avatar-preview" id="avatar-preview"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="website-input">Веб-сайт:</label>
+                    <input type="url" id="website-input" name="website" placeholder="https://example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="telegram-input">Telegram:</label>
+                    <input type="text" id="telegram-input" name="telegram" placeholder="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="github-input">GitHub:</label>
+                    <input type="url" id="github-input" name="github" placeholder="https://github.com/username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="linkedin-input">LinkedIn:</label>
+                    <input type="url" id="linkedin-input" name="linkedin" placeholder="https://linkedin.com/in/username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="instagram-input">Instagram:</label>
+                    <input type="url" id="instagram-input" name="instagram" placeholder="https://instagram.com/username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="facebook-input">Facebook:</label>
+                    <input type="url" id="facebook-input" name="facebook" placeholder="https://facebook.com/username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="youtube-input">YouTube:</label>
+                    <input type="url" id="youtube-input" name="youtube" placeholder="https://youtube.com/channel/...">
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel">Отмена</button>
+                    <button type="submit" class="btn-save">Сохранить</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    const loader = document.getElementById('loader');
-    const profileContainer = document.getElementById('profile-container');
-    const refreshBtn = document.getElementById('refresh-btn');
-
-    function updateProfileDOM(userData) {
-        if (!userData) {
-            console.error("No user data received to update DOM");
-            loader.innerText = "Не удалось загрузить данные профиля.";
-            return;
-        }
-
-        document.getElementById('profile-name').innerText = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Пользователь';
-        document.getElementById('profile-username').innerText = userData.username ? `@${userData.username}` : 'скрыт';
-        
-        const avatarDiv = document.getElementById('profile-avatar');
-        if (userData.avatar) {
-            avatarDiv.innerHTML = `<img src="${userData.avatar}" alt="Avatar">`;
-        } else {
-            const initial = (userData.first_name || 'U').charAt(0);
-            avatarDiv.innerHTML = `<span>${initial}</span>`;
-            avatarDiv.style.backgroundColor = '#764ba2'; // Default color
-        }
-
-        document.getElementById('profile-points').innerText = userData.points || 0;
-        document.getElementById('profile-rating').innerText = userData.rating || 0;
-        document.getElementById('profile-quizzes').innerText = userData.quizzes_completed || 0;
-        document.getElementById('profile-success').innerText = `${(userData.success_rate || 0).toFixed(1)}%`;
-
-        const progressContainer = document.getElementById('progress-container');
-        progressContainer.innerHTML = ''; 
-        if (userData.progress && userData.progress.length > 0) {
-            userData.progress.forEach(item => {
-                const progressItem = document.createElement('div');
-                progressItem.className = 'progress-item';
-                progressItem.innerHTML = `
-                    <div class="progress-info">
-                        <div class="progress-topic">${item.topic_name}</div>
-                        <div class="progress-details">${item.completed_quizzes} / ${item.total_quizzes} квизов</div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${item.progress_percentage}%;"></div>
-                    </div>
-                `;
-                progressContainer.appendChild(progressItem);
-            });
-        } else {
-            progressContainer.innerHTML = '<p>Нет данных о прогрессе.</p>';
-        }
-
-        loader.style.display = 'none';
-        profileContainer.style.display = 'block';
-    }
-
-    async function fetchProfileData() {
-        loader.style.display = 'flex';
-        profileContainer.style.display = 'none';
-
-        if (!tg.initData) {
-            console.error("Telegram.WebApp.initData is not available.");
-            loader.innerText = "Ошибка: Telegram InitData недоступны. Откройте приложение через Telegram.";
-            // Для отладки в браузере можно использовать моковые данные
-            // const mockUser = {"id":123,"first_name":"Test","last_name":"User","username":"testuser","language_code":"en","allows_write_to_pm":true};
-            // const mockInitData = "query_id=TEST&user="+encodeURIComponent(JSON.stringify(mockUser))+"&auth_date=TEST&hash=TEST";
-            // await sendInitData(mockInitData);
-            return;
-        }
-
-        await sendInitData(tg.initData);
-    }
-
-    async function sendInitData(initData) {
-        try {
-            const response = await fetch('/api/profile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ initData: initData })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            updateProfileDOM(data);
-
-        } catch (error) {
-            console.error('Error fetching profile data:', error);
-            loader.innerText = `Ошибка при загрузке: ${error.message}`;
-        }
-    }
-
-    refreshBtn.addEventListener('click', fetchProfileData);
-
-    // Initial load
-    fetchProfileData();
-});
-</script>
+<script src="/static/js/profile.js"></script>
 {% endblock %}
