@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (response.ok && data.status === 'success') {
                     showNotification(messages.avatar_updated, 'success');
                     const avatarImg = document.querySelector('.profile-avatar img');
-                    avatarImg.src = data.avatar_url;
+                    avatarImg.src = data.avatar_url + '?v=' + new Date().getTime();
                 } else {
                     showNotification(data.message || messages.avatar_error, 'error');
                 }

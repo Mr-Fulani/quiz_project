@@ -6,7 +6,7 @@ from django.contrib.auth.views import LogoutView
 from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.views import serve
 from django.shortcuts import render
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.views.static import serve as static_serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -47,6 +47,7 @@ sitemaps = {
 
 urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),  # URL для обработки переключения языка
+    re_path(r'^admin$', RedirectView.as_view(url='/admin/', permanent=True)), # Редирект для /admin
     path('admin/', admin.site.urls),
 
     # API endpoints (вне языковых паттернов)
@@ -99,9 +100,10 @@ urlpatterns = [
     path('robots.txt', static_serve, {'document_root': settings.STATIC_ROOT, 'path': 'robots.txt'}),
 )
 
-# Подключение статических файлов, если DEBUG=True
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) \
-               + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Подключение статических и медиа-файлов в режиме разработки (DEBUG=True)
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 def test_404(request):
@@ -114,9 +116,13 @@ def test_404(request):
 handler404 = 'blog.views.custom_404'
 # -> Обработчик 404 направлен на функцию custom_404 в blog/views.py
 
+# Убрал дублирование, так как static() уже обрабатывает это для DEBUG=True
 # Всегда обслуживаем статические файлы (если требуется)
+# urlpatterns += [
+#     path('static/<path:path>', serve, {'document_root': settings.STATIC_ROOT}),
+#     path('404/', test_404, name='404'),  # Пример ссылки на тестовый 404
+# ]
 urlpatterns += [
-    path('static/<path:path>', serve, {'document_root': settings.STATIC_ROOT}),
     path('404/', test_404, name='404'),  # Пример ссылки на тестовый 404
 ]
 

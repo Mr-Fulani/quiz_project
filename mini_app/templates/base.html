@@ -177,6 +177,15 @@
         document.querySelectorAll('.navigation a').forEach((link) => {
             link.addEventListener('click', activeLink);
         });
+
+        // **Инициализация при первой загрузке**
+        // Загружаем контент для текущей страницы при первом открытии
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем, что это не результат нажатия "назад"
+            if (performance.navigation.type !== performance.navigation.TYPE_BACK_FORWARD) {
+                 loadPage(window.location.pathname);
+            }
+        });
     </script>
 
     <!-- Подключаем скрипты -->
