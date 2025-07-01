@@ -15,7 +15,7 @@ from rest_framework import permissions
 from blog.api.api_views import tinymce_image_upload
 from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook
 
-from blog.sitemaps import ProjectSitemap, PostSitemap, StaticSitemap
+from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
 
 # Настройки Swagger
 schema_view = get_schema_view(
@@ -36,7 +36,9 @@ schema_view = get_schema_view(
 sitemaps = {
     'posts': PostSitemap,
     'projects': ProjectSitemap,
-    'static': StaticSitemap,
+    'main': MainPagesSitemap,
+    'quizzes': QuizSitemap,
+    'images': ImageSitemap,
 }
 
 

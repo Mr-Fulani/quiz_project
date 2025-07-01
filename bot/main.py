@@ -145,7 +145,6 @@ async def setup_telegram_menu(bot: Bot):
             web_app=WebAppInfo(url=profile_url)
         )
     )
-    logger.info(f"✅ Меню Telegram обновлено — кнопка Web App ведет на {profile_url}")
 
 async def start_publication_bot():
     """

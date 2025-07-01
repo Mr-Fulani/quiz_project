@@ -1,0 +1,17 @@
+# Robots.txt для Telegram Mini App
+# Этот robots.txt предотвращает индексацию мини-приложения поисковыми системами
+
+User-agent: *
+Disallow: /
+
+# Запрещаем индексацию всех файлов и папок
+Disallow: /static/
+Disallow: /media/
+Disallow: /api/
+Disallow: /admin/
+
+# Нет sitemap для мини-приложения
+# Основной sitemap находится на quiz-code.com
+
+# Причина: Telegram Mini App не должен индексироваться поисковиками
+# так как он предназначен только для работы внутри Telegram 

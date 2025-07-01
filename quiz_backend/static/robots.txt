@@ -5,7 +5,9 @@ Disallow: /swagger/
 Disallow: /redoc/
 Disallow: /messages/
 Disallow: /inbox/
+Disallow: /silk/
+Disallow: /__debug__/
 Allow: /
 
-
-Sitemap: http://localhost:8001/sitemap.xml
+# ЗАМЕНИТЕ yourdomain.com на ваш реальный домен!
+Sitemap: https://quiz-code.com/sitemap.xml

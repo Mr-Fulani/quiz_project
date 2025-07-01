@@ -147,6 +147,12 @@ class PostImage(models.Model):
         verbose_name="Главное изображение",
         help_text="Отметьте, если это медиа будет отображаться как миниатюра поста."
     )
+    alt_text = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Alt текст",
+        help_text="Текст, который будет отображаться, если изображение не загрузится. Важно для SEO."
+    )
 
     class Meta:
         verbose_name = "Медиа поста"
@@ -163,6 +169,8 @@ class PostImage(models.Model):
         return f"Media for {self.post.title}"
 
     def save(self, *args, **kwargs):
+        if not self.alt_text:
+            self.alt_text = self.post.title
         super().save(*args, **kwargs)
 
         # Обработка photo
@@ -282,6 +290,12 @@ class ProjectImage(models.Model):
         verbose_name="Главное изображение",
         help_text="Отметьте, если это медиа будет отображаться как миниатюра проекта."
     )
+    alt_text = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Alt текст",
+        help_text="Текст, который будет отображаться, если изображение не загрузится. Важно для SEO."
+    )
 
     class Meta:
         verbose_name = "Медиа проекта"
@@ -298,6 +312,8 @@ class ProjectImage(models.Model):
         return f"Media for {self.project.title}"
 
     def save(self, *args, **kwargs):
+        if not self.alt_text:
+            self.alt_text = self.project.title
         super().save(*args, **kwargs)
 
         # Обработка photo

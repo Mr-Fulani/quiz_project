@@ -5,23 +5,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{% block title %}{{ meta_title|default:"Default Title" }}{% endblock %}</title>
-    <!-- Исправленные meta теги -->
-    <meta name="description"
-          content="{% block meta_description %}{{ meta_description|truncatechars:160|default:'Welcome to my website — blog, projects and quizzes.' }}{% endblock %}">
-    <meta name="keywords"
-          content="{% block meta_keywords %}{{ meta_keywords|default:'blog, projects, quizzes, technology' }}{% endblock %}">
-    <meta property="og:title"
-          content="{% block og_title %}{{ page_title|default:personal_info.name|default:'Portfolio' }}{% endblock %}">
-    <meta property="og:description"
-          content="{% block og_description %}{{ meta_description|truncatechars:200|default:'Explore posts, projects and quizzes on my website.' }}{% endblock %}">
-    <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
-    <meta property="og:image"
-          content="{% block og_image %}{{ og_image_url|default:'/static/blog/favicon/favicon.png' }}{% endblock %}">
-    <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
-    <meta property="og:type" content="website">
-
-    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <title>{% block title %}{{ dynamic_seo.meta_title|default:meta_title|default:"QuizHub - Programming Quizzes & Learning" }}{% endblock %}</title>
+    
+    <!-- Basic Meta Tags -->
+    <meta name="description" content="{% block meta_description %}{{ dynamic_seo.meta_description|default:meta_description|truncatechars:160|default:'Master programming with interactive quizzes and tutorials.' }}{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}{{ dynamic_seo.meta_keywords|default:meta_keywords|default:'programming quiz, coding challenges, learning platform' }}{% endblock %}">
+    <meta name="author" content="{{ meta_author|default:'Anvar Sh.' }}">
+    <meta name="copyright" content="{{ meta_copyright }}">
+    <meta name="rating" content="{{ meta_rating|default:'general' }}">
+    <meta name="distribution" content="{{ meta_distribution|default:'global' }}">
+    <meta name="revisit-after" content="{{ meta_revisit_after|default:'7 days' }}">
+    <meta name="robots" content="{% block meta_robots %}{{ dynamic_seo.robots_content|default:robots_content|default:'index, follow' }}{% endblock %}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{% block canonical_url %}{{ dynamic_seo.canonical_url|default:canonical_url }}{% endblock %}">
+    
+    <!-- Hreflang Tags -->
+    {% if hreflang_en %}<link rel="alternate" hreflang="en" href="{{ hreflang_en }}">{% endif %}
+    {% if hreflang_ru %}<link rel="alternate" hreflang="ru" href="{{ hreflang_ru }}">{% endif %}
+    {% if hreflang_x_default %}<link rel="alternate" hreflang="x-default" href="{{ hreflang_x_default }}">{% endif %}
+    
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="{% block og_title %}{{ dynamic_seo.og_title|default:og_title|default:'QuizHub - Programming Quizzes' }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ dynamic_seo.og_description|default:og_description|truncatechars:200|default:'Master programming with interactive quizzes and tutorials.' }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ dynamic_seo.og_image|default:og_image|default:'/static/blog/images/default-og-image.jpeg' }}{% endblock %}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:url" content="{% block og_url %}{{ dynamic_seo.og_url|default:og_url }}{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}{{ dynamic_seo.og_type|default:'website' }}{% endblock %}">
+    <meta property="og:site_name" content="{{ og_site_name|default:'QuizHub' }}">
+    <meta property="og:locale" content="{{ og_locale|default:'en_US' }}">
+    
+    <!-- Article specific OG tags (for blog posts) -->
+    {% if dynamic_seo.article_author %}<meta property="article:author" content="{{ dynamic_seo.article_author }}">{% endif %}
+    {% if dynamic_seo.article_published_time %}<meta property="article:published_time" content="{{ dynamic_seo.article_published_time }}">{% endif %}
+    {% if dynamic_seo.article_modified_time %}<meta property="article:modified_time" content="{{ dynamic_seo.article_modified_time }}">{% endif %}
+    {% if dynamic_seo.article_section %}<meta property="article:section" content="{{ dynamic_seo.article_section }}">{% endif %}
+    {% if dynamic_seo.article_tag %}
+        {% for tag in dynamic_seo.article_tag %}
+            <meta property="article:tag" content="{{ tag }}">
+        {% endfor %}
+    {% endif %}
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="{{ twitter_card|default:'summary_large_image' }}">
+    <meta name="twitter:site" content="{{ twitter_site|default:'@quiz_code_hub' }}">
+    <meta name="twitter:creator" content="{{ twitter_creator|default:'@mr_fulani' }}">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ dynamic_seo.twitter_title|default:twitter_title|default:'QuizHub - Programming Quizzes' }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ dynamic_seo.twitter_description|default:twitter_description|truncatechars:200|default:'Master programming with interactive quizzes and tutorials.' }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ dynamic_seo.twitter_image|default:twitter_image|default:'/static/blog/images/default-og-image.jpeg' }}{% endblock %}">
+    
+    <!-- Mobile and App Meta Tags -->
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="msapplication-TileColor" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="QuizHub">
+    
+    <!-- Telegram Mini App specific -->
+    {% if is_mini_app %}
+        <meta name="telegram-mini-app" content="true">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    {% endif %}
 
     <link rel="shortcut icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/x-icon">
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
@@ -76,6 +122,37 @@
     {% endif %}
 
 
+    <!-- Structured Data (JSON-LD) -->
+    {% if website_json_ld %}
+        <script type="application/ld+json">
+            {{ website_json_ld | safe }}
+        </script>
+    {% endif %}
+    
+    {% if organization_json_ld %}
+        <script type="application/ld+json">
+            {{ organization_json_ld | safe }}
+        </script>
+    {% endif %}
+    
+    {% if dynamic_seo.article_json_ld %}
+        <script type="application/ld+json">
+            {{ dynamic_seo.article_json_ld | safe }}
+        </script>
+    {% endif %}
+    
+    {% if dynamic_seo.project_json_ld %}
+        <script type="application/ld+json">
+            {{ dynamic_seo.project_json_ld | safe }}
+        </script>
+    {% endif %}
+    
+    {% if webapp_json_ld %}
+        <script type="application/ld+json">
+            {{ webapp_json_ld | safe }}
+        </script>
+    {% endif %}
+    
     <!-- Structured data for breadcrumbs (BreadcrumbList) -->
     {% if breadcrumbs_json_ld %}
         <script type="application/ld+json">
