@@ -51,6 +51,11 @@ else:
     if not ALLOWED_HOSTS:
         logger.warning("ALLOWED_HOSTS environment variable is not set for production.")
 
+# Добавляем хост ngrok для локальной разработки и тестирования
+NGROK_HOST = os.getenv('NGROK_HOST')
+if NGROK_HOST:
+    ALLOWED_HOSTS.append(NGROK_HOST)
+
 # Настройки django-debug-toolbar
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -278,6 +283,9 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+if not DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -319,6 +327,10 @@ else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     CORS_ALLOW_CREDENTIALS = True # или False, в зависимости от ваших нужд
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 2592000  # 30 дней
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 # Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)
 CSRF_EXEMPT_PATHS = [

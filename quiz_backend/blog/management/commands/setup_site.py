@@ -42,20 +42,20 @@ class Command(BaseCommand):
                     )
             
             # Проверяем настройки
-            self.stdout.write('\n📊 Текущие настройки:')
-            self.stdout.write(f'   SITE_ID: {getattr(settings, "SITE_ID", "НЕ УСТАНОВЛЕН")}')
-            self.stdout.write(f'   Домен: {site.domain}')
-            self.stdout.write(f'   Название: {site.name}')
-            
-            # Информация о sitemap
-            self.stdout.write('\n🗺️  Sitemap будет доступен по адресу:')
-            self.stdout.write(f'   https://{site.domain}/sitemap.xml')
-            
-            # Информация о robots.txt
-            self.stdout.write('\n🤖 Robots.txt:')
-            self.stdout.write(f'   Основной сайт: https://{site.domain}/static/robots.txt')
-            self.stdout.write(f'   Мини-приложение: https://mini.quiz-code.com/api/robots.txt')
-            
+            current_site = Site.objects.get_current()
+            self.stdout.write('\n' + '📊 Текущие настройки:')
+            self.stdout.write(f"   SITE_ID: {settings.SITE_ID}")
+            self.stdout.write(f"   Домен: {current_site.domain}")
+            self.stdout.write(f"   Название: {current_site.name}")
+
+            self.stdout.write('\n' + '🗺️  Sitemap будет доступен по адресу:')
+            self.stdout.write(f"   https://{current_site.domain}/sitemap.xml")
+
+            self.stdout.write('\n' + '🤖 Robots.txt:')
+            self.stdout.write(f"   Основной сайт: https://{current_site.domain}/static/robots.txt")
+            self.stdout.write(f"   Мини-приложение: https://mini.quiz-code.com/api/robots.txt")
+
+
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'❌ Ошибка при настройке сайта: {e}')
