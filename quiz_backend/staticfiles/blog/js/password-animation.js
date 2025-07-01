@@ -1,3 +1,7 @@
+import { gsap } from "gsap";
+import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
+
 gsap.registerPlugin(ScrambleTextPlugin, MorphSVGPlugin);
 
 const BLINK_SPEED = 0.075;
@@ -135,3 +139,7 @@ if (TOGGLE) {
         }
     });
 }
+
+document.querySelectorAll('.password-group').forEach(group => {
+    // ... existing code ...
+});
