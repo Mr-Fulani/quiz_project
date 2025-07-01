@@ -43,7 +43,6 @@ from .mixins import BreadcrumbsMixin
 from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from accounts.serializers import ProfileSerializer, SocialLinksSerializer
-from .sitemaps import PostSitemap, ProjectSitemap, StaticSitemap
 
 from .forms import (ContactForm, PostForm, ProjectForm, TestimonialForm,
                     TaskFilterForm)
@@ -254,7 +253,7 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
         context['og_image'] = (
             first_image.photo.url
             if first_image and first_image.photo
-            else '/static/blog/images/default-og-image.jpg'
+            else '/static/blog/images/default-og-image.jpeg'
         )
         context['og_url'] = self.request.build_absolute_uri()
         context['canonical_url'] = context['og_url']
@@ -305,7 +304,7 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
         context['og_image'] = (
             project.images.first().photo.url
             if project.images.exists() and project.images.first().photo
-            else '/static/blog/images/default-og-image.jpg'
+            else '/static/blog/images/default-og-image.jpeg'
         )
         context['og_url'] = self.request.build_absolute_uri()
         context['canonical_url'] = context['og_url']

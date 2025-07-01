@@ -126,6 +126,12 @@
                             if (window.initTopicCards) {
                                 window.initTopicCards();
                             }
+
+                            // ЕСЛИ ЗАГРУЖЕНА СТРАНИЦА ПРОФИЛЯ - ВЫЗЫВАЕМ ЕЕ ИНИЦИАЛИЗАЦИЮ
+                            if (url === '/profile' && typeof window.initProfilePage === 'function') {
+                                console.log('🚀 Calling initProfilePage for profile page.');
+                                window.initProfilePage();
+                            }
                             
                             // Загружаем специфичные скрипты для страницы
                             loadPageSpecificScripts(url);

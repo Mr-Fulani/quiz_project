@@ -33,12 +33,23 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+if not DEBUG and not SECRET_KEY:
+    logger.critical("SECRET_KEY is not set for production environment!")
+    # В продакшене лучше выбросить исключение, чтобы предотвратить запуск с небезопасной конфигурацией
+    raise ValueError("SECRET_KEY is not set for production environment!")
+
 
 # Отключаем проверку хостов для разработки
 USE_L10N = False
 
-ALLOWED_HOSTS = ['*']  # Разрешаем все хосты для разработки
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+    if not ALLOWED_HOSTS:
+        logger.warning("ALLOWED_HOSTS environment variable is not set for production.")
 
 # Настройки django-debug-toolbar
 INTERNAL_IPS = [
@@ -66,6 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',
+    'django.contrib.sites',
     'tasks',
     'topics',
     'feedback',
@@ -78,9 +90,13 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'tinymce',
     'imagekit',
-    'debug_toolbar',
-    'silk',
 ]
+
+if DEBUG:
+    INSTALLED_APPS.extend([
+        'debug_toolbar',
+        'silk',
+    ])
 
 TINYMCE_DEFAULT_CONFIG = {
     'height': 400,
@@ -125,7 +141,6 @@ LOGGING = {
 }
 
 MIDDLEWARE = [
-    'config.middleware.AllowAllHostsMiddleware',  # Разрешаем все хосты для разработки
     'corsheaders.middleware.CorsMiddleware',
     'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.middleware.security.SecurityMiddleware',
@@ -137,9 +152,17 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.UpdateLastSeenMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
-    'silk.middleware.SilkyMiddleware',
 ]
+
+if DEBUG:
+    # Добавляем middleware для разработки
+    # AllowAllHostsMiddleware можно использовать, если ALLOWED_HOSTS = ['*'] не подходит
+    # В данном случае, мы используем '*', так что этот middleware можно закомментировать или удалить
+    # MIDDLEWARE.insert(0, 'config.middleware.AllowAllHostsMiddleware')
+    MIDDLEWARE.extend([
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+        'silk.middleware.SilkyMiddleware',
+    ])
 
 ROOT_URLCONF = 'config.urls'
 
@@ -169,6 +192,7 @@ TEMPLATES = [
                 'accounts.context_processors.user_profile',
                 'blog.context_processors.unread_messages_count',
                 'blog.context_processors.seo_context',
+                'blog.context_processors.dynamic_seo_context',  # НОВЫЙ SEO контекст!
                 'blog.context_processors.analytics_context',
             ],
             'loaders': [
@@ -275,31 +299,41 @@ REST_FRAMEWORK = {
 }
 
 # Настройки безопасности
-CSRF_COOKIE_SECURE = False  # Для HTTP
-CSRF_COOKIE_HTTPONLY = False
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SAMESITE = 'Lax'
+if DEBUG:
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:8001',
+        'http://127.0.0.1:8001',
+        'http://quiz_backend:8000',
+        'http://quiz_backend:8001',
+        'http://localhost:8080',
+    ]
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    # Для продакшена лучше указать конкретные доверенные источники
+    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    CORS_ALLOW_CREDENTIALS = True # или False, в зависимости от ваших нужд
 
-# Отключаем CSRF для API endpoints
+# Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)
 CSRF_EXEMPT_PATHS = [
     '/api/',
 ]
 
-SESSION_COOKIE_SECURE = False  # Для HTTP
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-# Разрешаем CSRF для конкретных доменов
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8001',
-    'http://127.0.0.1:8001',
-    'http://quiz_backend:8000',  # Для Docker сети
-    'http://quiz_backend:8001',  # Для Docker сети
-    'http://localhost:8080',  # Для мини-приложения
-]
 
-# CORS настройки - Разрешаем все для разработки
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+
+
+
 
 # Настройки Swagger/OpenAPI
 SWAGGER_SETTINGS = {
@@ -351,7 +385,10 @@ CACHES = {
 
 
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Для разработки
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 
 EMAIL_HOST = os.getenv('EMAIL_HOST')
@@ -380,5 +417,40 @@ ANALYTICAL_INTERNAL_IPS = ['127.0.0.1', 'localhost']
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', 'pk_test_...')  # Тестовый ключ
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_...')  # Тестовый ключ
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_...')  # Для webhook
+
+
+
+
+
+
+
+
+
+# Site Framework Configuration
+SITE_ID = 1
+
+# SEO and Social Media Settings
+DEFAULT_OG_IMAGE = '/static/blog/images/default-og-image.jpeg'
+DEFAULT_OG_IMAGE_WIDTH = 1200
+DEFAULT_OG_IMAGE_HEIGHT = 630
+
+# Site Information
+SITE_NAME = 'QuizHub'
+SITE_DESCRIPTION = 'Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#'
+SITE_URL = 'https://quiz-code.com'
+
+# Social Media Handles (замените на ваши реальные)
+TWITTER_HANDLE = '@quiz_code_hub'
+TWITTER_CREATOR = '@mr_fulani'
+
+# SEO Settings
+DEFAULT_META_DESCRIPTION = 'Master programming with interactive quizzes and tutorials. Learn Python, JavaScript, Go, Java, C# through practical coding challenges.'
+DEFAULT_META_KEYWORDS = 'programming quiz, coding challenges, Python tutorial, JavaScript learning, programming education'
+
+
+
+
+
+
 
 

@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.conf import settings
+from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, Case, When, IntegerField, Value
@@ -176,55 +177,96 @@ def seo_context(request):
     Контекстный процессор для предоставления SEO-тегов для статических страниц.
     Поддерживает многоязычность через request.LANGUAGE_CODE.
     """
-    logger.info("=== DEBUG: seo_context processor called for request: %s", request.path)
     language = get_language() or 'en'
     path = request.path
-    base_url = f"http://{request.get_host()}"
+    host = request.get_host()
+    
+    # ИСПРАВЛЕНИЕ: Используем HTTPS в продакшене
+    scheme = 'https' if request.is_secure() else 'http'
+    
+    # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
+    if host == 'mini.quiz-code.com':
+        base_url = f"{scheme}://quiz-code.com"  # canonical на основной домен
+        is_mini_app = True
+    else:
+        base_url = f"{scheme}://{host}"
+        is_mini_app = False
 
+    # Базовые SEO данные
     seo_data = {
-        'meta_title': _('Quiz Python, Go, JavaScript, Java, C#'),
-        'meta_description': _('Welcome to Quiz Project — blog and portfolio with quizzes and projects.'),
-        'meta_keywords': _('quiz, blog, portfolio, projects, programming'),
+        'meta_title': _('Quiz Python, Go, JavaScript, Java, C# | Programming Quizzes & Learning'),
+        'meta_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment.'),
+        'meta_keywords': _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding'),
         'canonical_url': base_url + reverse('blog:home'),
         'hreflang_url': base_url + reverse('blog:home'),
-        'og_title': _('Quiz Project'),
-        'og_description': _('Welcome to Quiz Project — blog and portfolio with quizzes and projects.'),
-        'og_image': request.build_absolute_uri('/static/blog/images/default-og-image.jpeg'),
+        'og_title': _('QuizHub - Interactive Programming Quizzes & Learning Platform'),
+        'og_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment.'),
+        'og_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
         'og_url': base_url + reverse('blog:home'),
+        'og_site_name': 'QuizHub',
+        'og_locale': 'en_US' if language == 'en' else 'ru_RU',
+        'is_mini_app': is_mini_app,
+        'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',
+        # Добавляем Twitter Card данные
+        'twitter_card': 'summary_large_image',
+        'twitter_site': '@quiz_code_hub',  # замените на ваш Twitter handle
+        'twitter_creator': '@mr_fulani',   # замените на ваш Twitter handle
+        'twitter_title': _('QuizHub - Interactive Programming Quizzes'),
+        'twitter_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#.'),
+        'twitter_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
+        # Добавляем дополнительные мета теги
+        'meta_author': 'Anvar Sh.',
+        'meta_copyright': f'© {timezone.now().year} QuizHub. All rights reserved.',
+        'meta_rating': 'general',
+        'meta_distribution': 'global',
+        'meta_revisit_after': '7 days',
+        # Языковые альтернативы
+        'hreflang_en': f"{base_url}/en/",
+        'hreflang_ru': f"{base_url}/ru/",
+        'hreflang_x_default': f"{base_url}/en/",
     }
 
+    # Специфичные SEO данные для разных страниц
     if path == reverse('blog:resume'):
         seo_data.update({
-            'meta_title': _('Resume — web developer'),
-            'meta_description': _('My professional resume with experience and skills.'),
-            'meta_keywords': _('resume, programmer, portfolio'),
+            'meta_title': _('Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React'),
+            'meta_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies. View my professional resume and portfolio.'),
+            'meta_keywords': _('full stack developer, Python developer, Django developer, React developer, web developer resume, portfolio'),
             'canonical_url': base_url + reverse('blog:resume'),
             'hreflang_url': base_url + reverse('blog:resume'),
-            'og_title': seo_data['meta_title'],
-            'og_description': seo_data['meta_description'],
+            'og_title': _('Anvar Sh. - Full Stack Web Developer Resume'),
+            'og_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies.'),
             'og_url': base_url + reverse('blog:resume'),
+            'og_type': 'profile',
+            'twitter_title': _('Anvar Sh. - Full Stack Developer Resume'),
+            'twitter_description': _('Experienced developer specializing in Python, Django, React, and modern web technologies.'),
         })
     elif path == reverse('blog:about'):
         seo_data.update({
-            'meta_title': _('About Me — web developer'),
-            'meta_description': _('Learn more about me and my projects.'),
-            'meta_keywords': _('about me, developer, programming'),
+            'meta_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
+            'meta_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor creating educational content and powerful web applications.'),
+            'meta_keywords': _('about developer, programming instructor, web developer story, coding mentor, educational content creator'),
             'canonical_url': base_url + reverse('blog:about'),
             'hreflang_url': base_url + reverse('blog:about'),
-            'og_title': seo_data['meta_title'],
-            'og_description': seo_data['meta_description'],
+            'og_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
+            'og_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor.'),
             'og_url': base_url + reverse('blog:about'),
+            'og_type': 'profile',
+            'twitter_title': _('About Anvar Sh. - Web Developer'),
+            'twitter_description': _('Passionate web developer and programming instructor creating educational content.'),
         })
     elif path == reverse('blog:contact'):
         seo_data.update({
-            'meta_title': _('Contact — web developer'),
-            'meta_description': _('Contact me for collaboration or questions.'),
-            'meta_keywords': _('contact, programmer, collaboration'),
+            'meta_title': _('Contact Anvar Sh. - Web Development Services & Collaboration'),
+            'meta_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation. Available for freelance projects.'),
+            'meta_keywords': _('contact developer, web development services, freelance developer, programming consultation, collaboration'),
             'canonical_url': base_url + reverse('blog:contact'),
             'hreflang_url': base_url + reverse('blog:contact'),
-            'og_title': seo_data['meta_title'],
-            'og_description': seo_data['meta_description'],
+            'og_title': _('Contact Anvar Sh. - Web Development Services'),
+            'og_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation.'),
             'og_url': base_url + reverse('blog:contact'),
+            'twitter_title': _('Contact Anvar Sh. - Web Development Services'),
+            'twitter_description': _('Get in touch for web development services and collaboration opportunities.'),
         })
 
     # Добавляем структурированные данные JSON-LD
@@ -232,28 +274,73 @@ def seo_context(request):
     website_data = {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Quiz Project",
+        "name": "QuizHub",
+        "alternateName": "Quiz Code Hub",
         "url": request.build_absolute_uri('/'),
+        "description": seo_data['meta_description'],
+        "inLanguage": ["en", "ru"],
         "potentialAction": {
             "@type": "SearchAction",
-            "target": request.build_absolute_uri('/?search={search_term_string}'),
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": request.build_absolute_uri('/?search={search_term_string}')
+            },
             "query-input": "required name=search_term_string"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "Anvar Sh.",
+            "url": request.build_absolute_uri('/'),
+            "sameAs": [
+                "https://www.youtube.com/@Mr_Fulani",
+                "https://t.me/Mr_Fulani",
+                "https://www.instagram.com/fulani_developer"
+            ]
         }
     }
     
     organization_data = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Quiz Project",
+        "name": "QuizHub",
         "url": request.build_absolute_uri('/'),
+        "logo": request.build_absolute_uri('/static/blog/images/logo.png'),
         "foundingDate": "2024",
-        "description": seo_data['meta_description']
+        "description": seo_data['meta_description'],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+90-552-582-1497",
+            "contactType": "customer service",
+            "availableLanguage": ["English", "Russian"]
+        },
+        "sameAs": [
+            "https://www.youtube.com/@Mr_Fulani",
+            "https://t.me/Mr_Fulani",
+            "https://www.instagram.com/fulani_developer"
+        ]
     }
+
+    # Добавляем WebApplication schema для мини-приложения
+    if is_mini_app:
+        webapp_data = {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "QuizHub Mini App",
+            "description": "Interactive programming quizzes in Telegram Mini App",
+            "url": f"{scheme}://mini.quiz-code.com",
+            "applicationCategory": "EducationalApplication",
+            "operatingSystem": "Web",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            }
+        }
+        seo_data['webapp_json_ld'] = json.dumps(webapp_data, ensure_ascii=False, indent=2)
     
     seo_data['website_json_ld'] = json.dumps(website_data, ensure_ascii=False, indent=2)
     seo_data['organization_json_ld'] = json.dumps(organization_data, ensure_ascii=False, indent=2)
 
-    logger.info("=== DEBUG: seo_context data prepared: %s", seo_data.keys())
     return seo_data
 
 
@@ -317,3 +404,159 @@ def page_meta_context(request):
         logger.error(f"Error in page_meta_context for path {path}: {e}")
     
     return context
+
+
+def dynamic_seo_context(request):
+    """
+    Динамический SEO контекст для постов и проектов.
+    Генерирует оптимизированные SEO теги на основе контента.
+    """
+    seo_data = {}
+    path = request.path
+    host = request.get_host()
+    
+    scheme = 'https' if request.is_secure() else 'http'
+    
+    # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
+    if host == 'mini.quiz-code.com':
+        base_url = f"{scheme}://quiz-code.com"  # canonical на основной домен
+        is_mini_app = True
+    else:
+        base_url = f"{scheme}://{host}"
+        is_mini_app = False
+    
+    try:
+        # SEO для постов блога
+        if '/post/' in path:
+            from blog.models import Post
+            slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            if slug:
+                try:
+                    post = Post.objects.filter(slug=slug, published=True).select_related('category').prefetch_related('images').first()
+                    if post:
+                        # Используем custom meta fields или генерируем автоматически
+                        meta_description = post.meta_description or (post.excerpt[:160] if post.excerpt else f"Read {post.title} - {post.content[:100]}...")
+                        meta_keywords = post.meta_keywords or f"{post.title}, {post.category.name}, blog, programming, quiz"
+                        
+                        main_image = post.get_main_image()
+                        og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        
+                        seo_data.update({
+                            'meta_title': f"{post.title} | Quiz Project Blog",
+                            'meta_description': meta_description[:160],
+                            'meta_keywords': meta_keywords,
+                            'canonical_url': base_url + post.get_absolute_url(),
+                            'og_title': post.title,
+                            'og_description': meta_description[:160],
+                            'og_image': request.build_absolute_uri(og_image),
+                            'og_url': base_url + post.get_absolute_url(),
+                            'og_type': 'article',
+                            'article_author': 'Anvar Sh.',
+                            'article_published_time': (post.published_at or post.created_at).isoformat(),
+                            'article_modified_time': post.updated_at.isoformat(),
+                            'article_section': post.category.name,
+                            'article_tag': meta_keywords.split(', ') if meta_keywords else [post.category.name],
+                            'is_mini_app': is_mini_app,  # ДОБАВЛЕНО: флаг для mini app
+                            'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',  # ДОБАВЛЕНО: robots для mini app
+                        })
+                        
+                        # JSON-LD для статьи
+                        article_data = {
+                            "@context": "https://schema.org",
+                            "@type": "BlogPosting",
+                            "headline": post.title,
+                            "description": meta_description[:160],
+                            "image": request.build_absolute_uri(og_image),
+                            "author": {
+                                "@type": "Person",
+                                "name": "Anvar Sh.",
+                                "url": request.build_absolute_uri('/'),
+                                "sameAs": [
+                                    "https://www.youtube.com/@Mr_Fulani",
+                                    "https://t.me/Mr_Fulani"
+                                ]
+                            },
+                            "publisher": {
+                                "@type": "Organization",
+                                "name": "Quiz Project",
+                                "url": request.build_absolute_uri('/'),
+                                "logo": {
+                                    "@type": "ImageObject",
+                                    "url": request.build_absolute_uri('/static/blog/images/logo.png')
+                                }
+                            },
+                            "datePublished": (post.published_at or post.created_at).isoformat(),
+                            "dateModified": post.updated_at.isoformat(),
+                            "mainEntityOfPage": {
+                                "@type": "WebPage",
+                                "@id": base_url + post.get_absolute_url()
+                            },
+                            "articleSection": post.category.name,
+                            "wordCount": len(post.content.split()) if post.content else 0,
+                        }
+                        seo_data['article_json_ld'] = json.dumps(article_data, ensure_ascii=False, indent=2)
+                        
+                except Exception as e:
+                    logger.error(f"Error processing post SEO for {slug}: {e}")
+        
+        # SEO для проектов портфолио
+        elif '/project/' in path:
+            from blog.models import Project
+            slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            if slug:
+                try:
+                    project = Project.objects.filter(slug=slug).select_related('category').prefetch_related('images').first()
+                    if project:
+                        meta_description = project.meta_description or f"{project.title} - {project.description[:100]}..."
+                        meta_keywords = project.meta_keywords or f"{project.title}, {project.technologies}, portfolio, project, web development"
+                        
+                        main_image = project.get_main_image()
+                        og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        
+                        seo_data.update({
+                            'meta_title': f"{project.title} | Portfolio - Quiz Project",
+                            'meta_description': meta_description[:160],
+                            'meta_keywords': meta_keywords,
+                            'canonical_url': base_url + project.get_absolute_url(),
+                            'og_title': project.title,
+                            'og_description': meta_description[:160],
+                            'og_image': request.build_absolute_uri(og_image),
+                            'og_url': base_url + project.get_absolute_url(),
+                            'og_type': 'website',
+                            'is_mini_app': is_mini_app,  # ДОБАВЛЕНО: флаг для mini app
+                            'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',  # ДОБАВЛЕНО: robots для mini app
+                        })
+                        
+                        # JSON-LD для проекта
+                        project_data = {
+                            "@context": "https://schema.org",
+                            "@type": "CreativeWork",
+                            "name": project.title,
+                            "description": meta_description[:160],
+                            "image": request.build_absolute_uri(og_image),
+                            "author": {
+                                "@type": "Person",
+                                "name": "Anvar Sh.",
+                                "url": request.build_absolute_uri('/')
+                            },
+                            "dateCreated": project.created_at.isoformat(),
+                            "dateModified": project.updated_at.isoformat(),
+                            "url": base_url + project.get_absolute_url(),
+                            "keywords": project.technologies,
+                            "genre": "Web Development Project"
+                        }
+                        
+                        if project.github_link:
+                            project_data["codeRepository"] = project.github_link
+                        if project.demo_link:
+                            project_data["workExample"] = project.demo_link
+                            
+                        seo_data['project_json_ld'] = json.dumps(project_data, ensure_ascii=False, indent=2)
+                        
+                except Exception as e:
+                    logger.error(f"Error processing project SEO for {slug}: {e}")
+                    
+    except Exception as e:
+        logger.error(f"Error in dynamic_seo_context: {e}")
+    
+    return {'dynamic_seo': seo_data}

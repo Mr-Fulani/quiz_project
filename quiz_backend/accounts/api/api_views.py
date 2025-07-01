@@ -12,9 +12,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.http import HttpResponseRedirect
+from django.db import transaction, IntegrityError
 import logging
 
-from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription
+from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser
 from ..serializers import (
     UserSerializer,
     LoginSerializer,
@@ -246,55 +247,83 @@ class ProfileByTelegramID(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        data = request.data
-        telegram_id = data.get('telegram_id')
+        """
+        Ищет пользователя по telegram_id. Если находит - возвращает его
+        профиль. Если нет - пытается привязать по username или создает нового
+        пользователя с данными из запроса и возвращает его профиль.
+        """
+        user_data = request.data
+        telegram_id = user_data.get('telegram_id')
+        username = user_data.get('username')
+
         if not telegram_id:
-            return Response({'error': 'telegram_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "telegram_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Данные по умолчанию для нового пользователя
-        defaults = {
-            'first_name': data.get('first_name', ''),
-            'last_name': data.get('last_name', ''),
-            'username': data.get('username') or f'user_{telegram_id}',
-            'is_telegram_user': True,
-            'is_active': True,
-            # Устанавливаем начальные значения для статистики
-            'total_points': 0,
-            'quizzes_completed': 0,
-            'average_score': 0.0,
-        }
+        # Вся логика выполняется в одной транзакции для атомарности
+        try:
+            with transaction.atomic():
+                # Шаг 1: Ищем пользователя по telegram_id
+                user = CustomUser.objects.filter(telegram_id=telegram_id).first()
 
-        user, created = CustomUser.objects.get_or_create(
-            telegram_id=telegram_id,
-            defaults=defaults
-        )
+                if not user:
+                    # Шаг 2: Не нашли. Пытаемся привязать аккаунт по username.
+                    if username:
+                        unlinked_user = CustomUser.objects.filter(
+                            username=username, telegram_id__isnull=True
+                        ).first()
+                        if unlinked_user:
+                            logger.info(f"Связываем аккаунт: найден пользователь сайта '{username}', привязываем telegram_id {telegram_id}.")
+                            unlinked_user.telegram_id = telegram_id
+                            unlinked_user.is_telegram_user = True
+                            unlinked_user.first_name = user_data.get('first_name', unlinked_user.first_name)
+                            unlinked_user.last_name = user_data.get('last_name', unlinked_user.last_name)
+                            unlinked_user.save()
+                            user = unlinked_user
 
-        if created:
-            logger.info(f"Создан новый пользователь с telegram_id: {telegram_id} и данными: {defaults}")
-        else:
-            # Обновляем данные при каждом входе (имя, фамилия, username могут измениться в Telegram)
-            update_fields = []
-            if data.get('first_name') and user.first_name != data.get('first_name'):
-                user.first_name = data.get('first_name')
-                update_fields.append('first_name')
-            if data.get('last_name') and user.last_name != data.get('last_name'):
-                user.last_name = data.get('last_name')
-                update_fields.append('last_name')
-            if data.get('username') and user.username != data.get('username'):
-                user.username = data.get('username')
-                update_fields.append('username')
-            
-            # Обновляем время последнего визита
-            user.last_seen = timezone.now()
-            update_fields.append('last_seen')
-            
-            if update_fields:
-                user.save(update_fields=update_fields)
-                logger.info(f"Обновлен пользователь с telegram_id: {telegram_id}, поля: {update_fields}")
+                # Шаг 3: Если пользователь все еще не найден, создаем нового.
+                if not user:
+                    logger.info(f"Создаем нового пользователя для telegram_id {telegram_id}.")
+                    try:
+                        user = CustomUser.objects.create(
+                            telegram_id=telegram_id,
+                            username=username or f"user_{telegram_id}",
+                            first_name=user_data.get('first_name', ''),
+                            last_name=user_data.get('last_name', ''),
+                            is_telegram_user=True,
+                        )
+                    except IntegrityError:
+                        logger.warning(f"Имя пользователя '{username}' уже занято. Создаем уникальное имя.")
+                        unique_username = f"{username}_{telegram_id}"
+                        user = CustomUser.objects.create(
+                            telegram_id=telegram_id,
+                            username=unique_username,
+                            first_name=user_data.get('first_name', ''),
+                            last_name=user_data.get('last_name', ''),
+                            is_telegram_user=True,
+                        )
 
-        # Передаем контекст запроса в сериализатор для правильной генерации URL
+                # Шаг 4: Обновляем или создаем запись в модели TelegramUser
+                TelegramUser.objects.update_or_create(
+                    user=user,
+                    telegram_id=telegram_id,
+                    defaults={
+                        'username': username,
+                        'first_name': user_data.get('first_name'),
+                        'last_name': user_data.get('last_name'),
+                        'language_code': user_data.get('language_code'),
+                        'photo_url': user_data.get('photo_url')
+                    }
+                )
+
+        except Exception as e:
+            logger.exception(f"Критическая ошибка при создании/обновлении профиля для telegram_id={telegram_id}: {e}")
+            return Response({"error": "An internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         serializer = ProfileSerializer(user, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class PublicProfileByTelegramAPIView(APIView):
@@ -304,20 +333,25 @@ class PublicProfileByTelegramAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, telegram_id):
-        """
-        Получение профиля пользователя по telegram_id.
-        """
+        """Получение публичного профиля по telegram_id"""
         try:
-            user = get_object_or_404(CustomUser, telegram_id=telegram_id)
-            # Передаем контекст запроса для правильной генерации URL аватара
+            # Используем .get() вместо get_object_or_404, чтобы вручную
+            # обработать случай, когда пользователь не найден.
+            user = CustomUser.objects.get(telegram_id=telegram_id)
+            
             serializer = ProfileSerializer(user, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
+
+        except CustomUser.DoesNotExist:
+            # Это ожидаемое поведение для новых пользователей.
+            # Возвращаем 404, чтобы сервис mini_app понял, что нужно создать профиль.
+            logger.info(f"Профиль для telegram_id={telegram_id} не найден, возвращаем 404.")
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
         except Exception as e:
-            logger.error(f"Ошибка при получении профиля по telegram_id {telegram_id}: {e}")
-            return Response(
-                {"error": "Профиль не найден"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            # Логируем полную трассировку для неожиданных ошибок
+            logger.exception(f"Unexpected error in PublicProfileByTelegramAPIView for telegram_id={telegram_id}")
+            return Response({'error': 'An internal server error occurred'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ProfileUpdateByTelegramView(generics.UpdateAPIView):

@@ -6,9 +6,11 @@ import urllib.parse
 import re
 import logging
 import json
+import hmac
+import hashlib
 
 from fastapi import APIRouter, Request, UploadFile, File, HTTPException, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, ValidationError
 from telegram_webapp_auth.auth import TelegramAuthenticator
 from telegram_webapp_auth.errors import InvalidInitDataError, ExpiredInitDataError
@@ -42,46 +44,70 @@ async def verify_init_data(request: Request):
     Принимает initData от клиента, безопасно валидирует подпись
     и возвращает полные данные профиля из нашего бэкенда.
     """
+    logger.info(f"Начало обработки /verify-init-data")
     try:
         data = await request.json()
         init_data_str = data.get('initData')
+
         if not init_data_str:
+            logger.error("В запросе отсутствует initData")
             raise HTTPException(status_code=400, detail="initData is missing")
+
         if not settings.TELEGRAM_BOT_TOKEN:
-             raise HTTPException(status_code=500, detail="Bot token is not configured on the server.")
+            logger.error("TELEGRAM_BOT_TOKEN не настроен на сервере")
+            raise HTTPException(status_code=500, detail="Bot token is not configured on the server.")
 
-        try:
-            # Используем токен бота напрямую для создания аутентификатора
-            auth = TelegramAuthenticator(secret=settings.TELEGRAM_BOT_TOKEN.encode())
-            
-            init_data = auth.validate(init_data_str)
-            
-            if not init_data.user or not init_data.user.id:
-                raise ValueError("User ID not found in parsed data")
-            
-            telegram_id = init_data.user.id
-
-        except (InvalidInitDataError, ExpiredInitDataError) as e:
-            raise HTTPException(status_code=401, detail=f"Invalid initData: {e}")
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-        if not telegram_id:
-            raise HTTPException(status_code=400, detail="Could not extract user ID from initData")
-
-        logger.info(f"Successfully validated initData. Extracted telegram_id: {telegram_id}")
-
-        profile_response = await get_profile_by_telegram_id(telegram_id)
+        # ПРАВИЛЬНАЯ ВАЛИДАЦИЯ:
+        # Сначала создаем секретный ключ по документации Telegram
+        secret_key = hmac.new(
+            key=b"WebAppData", 
+            msg=settings.TELEGRAM_BOT_TOKEN.encode(), 
+            digestmod=hashlib.sha256
+        ).digest()
         
-        if isinstance(profile_response, JSONResponse):
-             profile_data = json.loads(profile_response.body.decode('utf-8'))
-             return JSONResponse(content=profile_data, status_code=200)
-        else:
-            return profile_response
+        # Теперь используем этот ключ для инициализации аутентификатора
+        auth = TelegramAuthenticator(secret=secret_key)
+        init_data = auth.validate(init_data_str)
+        
+        if not init_data.user or not init_data.user.id:
+            raise ValueError("User ID not found in parsed data")
+        
+        user_info = {
+            "telegram_id": init_data.user.id,
+            "first_name": init_data.user.first_name,
+            "last_name": init_data.user.last_name or "",
+            "username": init_data.user.username,
+        }
+        logger.info(f"Успешная валидация для telegram_id: {user_info['telegram_id']}")
 
+        # Получаем хост и схему из оригинального запроса, чтобы
+        # бэкенд мог строить правильные абсолютные URL
+        host = request.headers.get('host')
+        scheme = request.url.scheme
+
+        profile_data = await django_api_service.get_or_create_user_profile(
+            user_data=init_data.user,
+            host=host,
+            scheme=scheme
+        )
+        
+        if not profile_data:
+            logger.error(f"Сервис не смог получить или создать профиль для telegram_id: {user_info['telegram_id']}")
+            raise HTTPException(status_code=502, detail="Backend service failed to process profile.")
+            
+        logger.info(f"Профиль для telegram_id: {user_info['telegram_id']} успешно получен/создан.")
+        return JSONResponse(content=profile_data)
+
+    except (InvalidInitDataError, ExpiredInitDataError) as e:
+        logger.warning(f"Ошибка валидации initData: {e}")
+        raise HTTPException(status_code=401, detail=f"Invalid initData: {e}")
+    except (ValueError, ValidationError) as e:
+        logger.warning(f"Ошибка в данных initData: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error in verify_init_data: {e}")
-        raise HTTPException(status_code=500, detail=f"An internal server error occurred: {e}")
+        # Логируем полную трассировку ошибки
+        logger.exception(f"Непредвиденная ошибка в verify_init_data: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
 @router.get("/profile/by-telegram/{telegram_id}/")
@@ -219,4 +245,30 @@ async def get_user_profile(request_data: UserProfileRequest):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Регистрация эндпоинта в роутере
-router.add_api_route("/profile", get_user_profile, methods=["POST"]) 
+router.add_api_route("/profile", get_user_profile, methods=["POST"])
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt():
+    """
+    Возвращает robots.txt для мини-приложения.
+    Блокирует индексацию поисковыми системами.
+    """
+    robots_content = """# Robots.txt для Telegram Mini App
+# Этот robots.txt предотвращает индексацию мини-приложения поисковыми системами
+
+User-agent: *
+Disallow: /
+
+# Запрещаем индексацию всех файлов и папок
+Disallow: /static/
+Disallow: /media/
+Disallow: /api/
+Disallow: /admin/
+
+# Нет sitemap для мини-приложения
+# Основной sitemap находится на quiz-code.com
+
+# Причина: Telegram Mini App не должен индексироваться поисковиками
+# так как он предназначен только для работы внутри Telegram"""
+    
+    return robots_content 
