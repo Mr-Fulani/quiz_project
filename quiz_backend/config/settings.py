@@ -156,8 +156,8 @@ LOGGING = {
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.middleware.security.SecurityMiddleware',
+    'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',  # Возвращаем обратно
