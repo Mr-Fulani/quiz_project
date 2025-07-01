@@ -11,6 +11,7 @@ from django.views.static import serve as static_serve
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from django.views.generic.base import RedirectView
 
 from blog.api.api_views import tinymce_image_upload
 from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook
@@ -62,6 +63,9 @@ urlpatterns = [
     path('donation/confirm-payment/', confirm_payment, name='confirm_payment'),
     path('donation/stripe-webhook/', stripe_webhook, name='stripe_webhook'),
     
+    # Редирект с корневого URL на язык по умолчанию
+    path('', RedirectView.as_view(pattern_name='blog:home', permanent=False), name='root-redirect'),
+
 ] + i18n_patterns(
     path('admin/', admin.site.urls),
     #   -> Админ-панель Django
