@@ -1,6 +1,6 @@
-import { gsap } from "gsap";
-import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
-import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
+import { gsap } from "https://cdn.skypack.dev/gsap";
+import { ScrambleTextPlugin } from "https://cdn.skypack.dev/gsap/ScrambleTextPlugin";
+import { MorphSVGPlugin } from "https://cdn.skypack.dev/gsap/MorphSVGPlugin";
 
 gsap.registerPlugin(ScrambleTextPlugin, MorphSVGPlugin);
 

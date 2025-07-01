@@ -109,7 +109,7 @@ services:
       - "443:443"
     volumes:
       - ./quiz_backend/staticfiles:/app/staticfiles
-      - ./quiz_backend/media:/app/media
+      - ./media:/app/media
       - ./certbot/www:/var/www/certbot/
       - ./certbot/conf/:/etc/letsencrypt/
     depends_on:
