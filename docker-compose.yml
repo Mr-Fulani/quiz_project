@@ -101,6 +101,36 @@ services:
     depends_on:
       - quiz_backend
 
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./quiz_backend/staticfiles:/app/staticfiles
+      - ./quiz_backend/media:/app/media
+      - ./certbot/www:/var/www/certbot/
+      - ./certbot/conf/:/etc/letsencrypt/
+    depends_on:
+      - quiz_backend
+      - mini_app
+    networks:
+      - quiz_network
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot/
+      - ./certbot/conf/:/etc/letsencrypt/
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    depends_on:
+      - nginx
+    networks:
+      - quiz_network
+
 networks:
   quiz_network:
     driver: bridge
