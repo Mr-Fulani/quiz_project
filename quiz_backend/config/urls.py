@@ -47,7 +47,8 @@ sitemaps = {
 
 urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),  # URL для обработки переключения языка
-    
+    path('admin/', admin.site.urls),
+
     # API endpoints (вне языковых паттернов)
     path('api/', include('tasks.urls')),
     path('api/', include('topics.urls')),
@@ -67,7 +68,7 @@ urlpatterns = [
     path('', RedirectView.as_view(pattern_name='blog:home', permanent=False), name='root-redirect'),
 
 ] + i18n_patterns(
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls), -> Перенесено выше
     #   -> Админ-панель Django
 
     path('', include('blog.urls')),
