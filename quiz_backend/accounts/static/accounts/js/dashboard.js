@@ -3,6 +3,18 @@
  */
 document.addEventListener('DOMContentLoaded', function () {
     // ================================
+    // НАДЕЖНАЯ ФУНКЦИЯ УВЕДОМЛЕНИЙ
+    // ================================
+    // Проверяем, существует ли глобальная функция, и если нет, создаем свою (alert).
+    // Это предотвращает падение скрипта, если другой файл с showNotification сломался.
+    if (typeof window.showNotification !== 'function') {
+        console.warn('Global showNotification() not found. Using fallback alert().');
+        window.showNotification = function(message, type = 'success') {
+            alert(message);
+        };
+    }
+
+    // ================================
     // 0. Проверяем наличие переменной messages из шаблона
     // ================================
     if (typeof messages === 'undefined') {
@@ -138,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (response.ok && data.status === 'success') {
                     showNotification(messages.avatar_updated, 'success');
                     const avatarImg = document.querySelector('.profile-avatar img');
+                    // РЕШЕНИЕ: Добавляем параметр для сброса кэша браузера
                     avatarImg.src = data.avatar_url + '?v=' + new Date().getTime();
                 } else {
                     showNotification(data.message || messages.avatar_error, 'error');
@@ -176,15 +189,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = await response.json();
                 console.log('Response data:', data);
                 if (response.ok && data.status === 'success') {
-                    showNotification(messages.profile_updated, 'success');
+                    alert(messages.profile_updated || 'Профиль успешно обновлен!');
                     const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/users/dashboard/';
                     window.location.href = dashboardUrl;
                 } else {
-                    showNotification(data.message || messages.profile_error, 'error');
+                    alert(data.message || messages.profile_error || 'Ошибка при обновлении профиля.');
                 }
             } catch (error) {
                 console.error('Personal info form submission error:', error);
-                showNotification(messages.profile_error, 'error');
+                alert(messages.profile_error || 'Ошибка при обновлении профиля.');
             }
         });
     }
@@ -217,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (response.ok && data.status === 'success') {
                     // Успешная смена пароля
-                    showNotification(messages.password_changed, 'success');
+                    alert(messages.password_changed || 'Пароль успешно изменен!');
 
                     // Создаем элемент для успешного сообщения
                     const successElement = document.createElement('div');
@@ -247,26 +260,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Обработка ошибок
                     if (data.errors) {
                         const errors = JSON.parse(data.errors);
+                        let errorMessages = '';
                         for (const [field, errorList] of Object.entries(errors)) {
-                            const input = document.querySelector(`#id_${field}`);
-                            if (input) {
-                                const errorDiv = document.createElement('div');
-                                errorDiv.className = 'error';
-                                errorDiv.textContent = errorList.map(e => e.message).join(' ');
-                                input.parentNode.appendChild(errorDiv);
-                            }
+                            errorMessages += `${field}: ${errorList.map(e => e.message).join(', ')}\n`;
                         }
+                        alert(errorMessages);
+                    } else {
+                        alert(data.message || 'Произошла ошибка.');
                     }
-                    showNotification(data.message || messages.password_error, 'error');
                 }
             } catch (error) {
                 console.error('Security form submission error:', error);
-                showNotification(messages.password_error, 'error');
+                alert('Произошла критическая ошибка.');
             }
         });
     }
-
-
 
     // ================================
     // 4. Обработка настроек
@@ -351,12 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ================================
-    // 7. Используем глобальную функцию уведомлений из base.html
-    // ================================
-    // showNotification теперь доступна глобально через window.showNotification
-
-    // ================================
-    // 8. Инициализация графиков (Statistics)
+    // 7. Инициализация графиков (Statistics)
     // ================================
     function initializeCharts() {
         const activityChartCanvas = document.getElementById('activityChart');
@@ -425,3 +428,45 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+/**
+ * DEPRECATED: Вместо этой функции теперь используется alert()
+ * Показывает уведомление в правом верхнем углу.
+ * @param {string} message - Сообщение для уведомления.
+ * @param {string} type - 'success' или 'error'.
+ */
+function showNotification(message, type = 'success') {
+    // Этот код больше не используется, но оставлен для истории.
+    // Мы перешли на alert() для максимальной надежности и устранения
+    // ошибок "ReferenceError: showNotification is not defined".
+    console.warn("showNotification is deprecated. Using alert() instead.", { message, type });
+    alert(`${type.toUpperCase()}: ${message}`);
+
+    /*
+    const container = document.getElementById('notification-container');
+    if (!container) {
+        console.error('Notification container not found!');
+        alert(message); // Fallback to alert
+        return;
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+
+    container.appendChild(notification);
+
+    // Показываем уведомление
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Скрываем и удаляем уведомление через 3 секунды
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            container.removeChild(notification);
+        }, 500);
+    }, 3000);
+    */
+}

@@ -342,7 +342,7 @@
     window.loginUrl = "{% url 'accounts:login' %}";
 </script>
 <script defer src="{% static 'blog/js/auth_modal.js' %}"></script>
-<script defer src="{% static 'blog/js/password-animation.js' %}"></script>
+<script type="module" src="{% static 'blog/js/password-animation.js' %}"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
