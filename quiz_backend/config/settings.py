@@ -56,6 +56,15 @@ NGROK_HOST = os.getenv('NGROK_HOST')
 if NGROK_HOST:
     ALLOWED_HOSTS.append(NGROK_HOST)
 
+# Настройки для работы за прокси-сервером (Nginx)
+CSRF_TRUSTED_ORIGINS = [
+    'https://quiz-code.com',
+    'https://www.quiz-code.com',
+    'https://mini.quiz-code.com',
+]
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Настройки django-debug-toolbar
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -331,6 +340,10 @@ else:
     SECURE_HSTS_SECONDS = 2592000  # 30 дней
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+    # Настройки для работы за прокси-сервером (Nginx)
+    USE_X_FORWARDED_HOST = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)
 CSRF_EXEMPT_PATHS = [
