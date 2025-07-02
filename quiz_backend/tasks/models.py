@@ -438,8 +438,12 @@ class TaskStatistics(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Очищаем кэш статистики пользователя
-        cache_key = f'user_statistics_{self.user_id}'
+        from django.core.cache import cache
+        cache_key = f'user_stats_{self.user_id}'
         cache.delete(cache_key)
+        # Также вызываем метод инвалидации кэша у пользователя
+        if self.user:
+            self.user.invalidate_statistics_cache()
 
 
 class TaskPoll(models.Model):

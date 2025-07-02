@@ -200,11 +200,11 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.i18n',
-                'blog.context_processors.unread_messages',
+                'blog.context_processors.unread_messages_count',
+                'blog.context_processors.user_statistics',
                 'blog.context_processors.personal_info',
                 'blog.context_processors.marquee_text',
                 'accounts.context_processors.user_profile',
-                'blog.context_processors.unread_messages_count',
                 'blog.context_processors.seo_context',
                 'blog.context_processors.dynamic_seo_context',  # НОВЫЙ SEO контекст!
                 'blog.context_processors.analytics_context',

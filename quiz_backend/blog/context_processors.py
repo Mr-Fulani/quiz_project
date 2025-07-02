@@ -37,22 +37,11 @@ def personal_info(request):
         path = request.path.lower()
         if not (path.startswith('/en/quiz/') or path.startswith('/ru/quiz/') or path.startswith('/en/quizes/') or path.startswith('/ru/quizes/')):
             logger.info("=== DEBUG: top_users_data enabled for path: %s", path)
+            # Сначала сортируем по количеству решенных задач, потом по рейтингу
             top_users = User.objects.annotate(
                 tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
-                total_score=Sum(
-                    Case(
-                        When(statistics__successful=True, then=Case(
-                            When(statistics__task__difficulty='easy', then=Value(1)),
-                            When(statistics__task__difficulty='medium', then=Value(2)),
-                            When(statistics__task__difficulty='hard', then=Value(3)),
-                            default=Value(1),
-                            output_field=IntegerField(),
-                        )),
-                        default=0,
-                        output_field=IntegerField(),
-                    )
-                )
-            ).order_by('-total_score')[:3]
+                total_score=User.get_rating_annotation()
+            ).filter(tasks_completed__gt=0).order_by('-tasks_completed', '-total_score')[:3]
 
             for i, user in enumerate(top_users, 1):
                 try:
@@ -70,7 +59,8 @@ def personal_info(request):
                         'avatar': avatar_url,
                         'quizzes_count': user.tasks_completed,
                         'avg_score': 0,
-                        'total_score': (user.total_score or 0) * 100,
+                        'total_score': (user.total_score or 0),
+                        'total_score_formatted': f"{(user.total_score or 0)} pts",
                         'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
                     }
                     top_users_data.append(user_data)
@@ -148,27 +138,62 @@ def personal_info(request):
         logger.error("=== DEBUG: Error in personal_info processor: %s", str(e))
         return {'personal_info': {}}
 
-def unread_messages(request):
-    """
-    Контекстный процессор для количества непрочитанных сообщений пользователя.
-    """
-    logger.info("=== DEBUG: unread_messages processor called for request: %s", request.path)
-    if request.user.is_authenticated:
-        count = request.user.get_unread_messages_count()
-        logger.info("=== DEBUG: unread_messages count: %d", count)
-        return {'unread_messages_count': count}
-    return {'unread_messages_count': 0}
-
 def unread_messages_count(request):
     """
-    Контекстный процессор для количества непрочитанных сообщений из Django messages framework.
+    Контекстный процессор для количества непрочитанных сообщений пользователя.
+    Объединяет логику подсчета сообщений из БД и Django messages framework.
     """
     logger.info("=== DEBUG: unread_messages_count processor called for request: %s", request.path)
     if request.user.is_authenticated:
-        count = messages.get_messages(request)._loaded_messages
-        logger.info("=== DEBUG: unread_messages_count from messages framework: %d", len(list(count)))
-        return {'unread_messages_count': len(list(count))}
+        # Сообщения из БД (модель Message)
+        db_messages_count = request.user.get_unread_messages_count()
+        
+        # Сообщения из Django messages framework
+        django_messages = messages.get_messages(request)
+        django_messages_count = len(list(django_messages))
+        
+        total_count = db_messages_count + django_messages_count
+        logger.info("=== DEBUG: DB messages: %d, Django messages: %d, Total: %d", 
+                   db_messages_count, django_messages_count, total_count)
+        return {'unread_messages_count': total_count}
     return {'unread_messages_count': 0}
+
+def user_statistics(request):
+    """
+    Контекстный процессор для статистики пользователя с кэшированием.
+    """
+    if not request.user.is_authenticated:
+        return {
+            'user_statistics': {
+                'solved_tasks': 0,
+                'rating': 0,
+                'total_attempts': 0
+            }
+        }
+    
+    try:
+        # Кэшируем статистику на 5 минут для каждого пользователя
+        from django.core.cache import cache
+        cache_key = f'user_stats_{request.user.id}'
+        stats = cache.get(cache_key)
+        
+        if stats is None:
+            stats = request.user.get_statistics()
+            cache.set(cache_key, stats, 300)  # 5 минут
+            logger.info("=== DEBUG: User statistics cached for user %s: %s", request.user.username, stats)
+        else:
+            logger.info("=== DEBUG: User statistics from cache for user %s: %s", request.user.username, stats)
+            
+        return {'user_statistics': stats}
+    except Exception as e:
+        logger.error("=== DEBUG: Error in user_statistics processor: %s", str(e))
+        return {
+            'user_statistics': {
+                'solved_tasks': 0,
+                'rating': 0,
+                'total_attempts': 0
+            }
+        }
 
 
 
