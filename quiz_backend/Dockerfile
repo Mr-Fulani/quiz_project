@@ -21,7 +21,11 @@ RUN mkdir -p /app/templates
 COPY . /app/
 COPY templates /app/templates
 
+# Копируем entrypoint скрипт
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Команда по умолчанию
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["/entrypoint.sh"]
 
 
