@@ -287,6 +287,11 @@
         <div class="login register">
             <span class="close-btn">×</span>
             <h2>Register</h2>
+            {% if request.GET.error %}
+                <div class="error-message">
+                    <p>{{ request.GET.error|safe }}</p>
+                </div>
+            {% endif %}
             <form method="post" action="{% url 'accounts:register' %}">
                 {% csrf_token %}
                 <div class="inputBx">
@@ -347,7 +352,10 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 DOMContentLoaded сработал');
         const urlParams = new URLSearchParams(window.location.search);
+        
+        // Показываем уведомление об успешной регистрации
         if (urlParams.has('registration_success')) {
             const notification = document.createElement('div');
             notification.className = 'message-notification success';
@@ -356,6 +364,36 @@
             setTimeout(() => {
                 notification.remove();
             }, 3000);
+        }
+        
+        // Автоматически открываем модальное окно регистрации при наличии ошибок
+        console.log('🔍 Проверяем URL параметры...');
+        console.log('URL params:', urlParams.toString());
+        console.log('open_register:', urlParams.has('open_register'));
+        console.log('error:', urlParams.has('error'));
+        
+        if (urlParams.has('open_register')) {
+            console.log('🔍 Найден параметр open_register');
+            
+            // Добавляем небольшую задержку для гарантии загрузки DOM
+            setTimeout(() => {
+                const registerModal = document.getElementById('register-modal');
+                console.log('📋 Модальное окно регистрации:', registerModal);
+                
+                if (registerModal) {
+                    console.log('✅ Открываем модальное окно регистрации');
+                    registerModal.classList.add('active');
+                    console.log('🎯 Модальное окно активировано');
+                } else {
+                    console.log('❌ Модальное окно регистрации не найдено');
+                    console.log('🔍 Все элементы с id на странице:');
+                    document.querySelectorAll('[id]').forEach(el => {
+                        console.log('  -', el.id, ':', el.tagName);
+                    });
+                }
+            }, 100);
+        } else {
+            console.log('❌ Параметр open_register не найден');
         }
     });
 </script>

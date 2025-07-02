@@ -68,6 +68,7 @@ class LoginView(APIView):
         return Response({'error': 'Неверный логин или пароль'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(generics.CreateAPIView):
     """
     Регистрация нового пользователя.
@@ -77,12 +78,52 @@ class RegisterView(generics.CreateAPIView):
 
     def get(self, request, *args, **kwargs):
         """Перенаправление на главную."""
-        return HttpResponseRedirect('/?open_register=true')
+        from django.utils.translation import get_language
+        lang_code = get_language() or 'ru'
+        return HttpResponseRedirect(f'/{lang_code}/?open_register=true')
 
     def create(self, request, *args, **kwargs):
         """Создание и логин пользователя."""
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            # Для обычных форм возвращаем редирект с ошибками
+            if request.content_type == 'application/x-www-form-urlencoded':
+                errors = serializer.errors
+                error_messages = []
+                
+                # Словарь для перевода ошибок
+                error_translations = {
+                    'A user with that username already exists.': 'Пользователь с таким именем уже существует. Выберите другое имя.',
+                    'This field is required.': 'Это поле обязательно для заполнения.',
+                    'Enter a valid email address.': 'Введите корректный email адрес.',
+                    'This password is too short. It must contain at least 8 characters.': 'Пароль слишком короткий. Минимум 8 символов.',
+                    'This password is too common.': 'Пароль слишком простой. Выберите более сложный пароль.',
+                    'This password is entirely numeric.': 'Пароль не может состоять только из цифр.',
+                    'The two password fields didn\'t match.': 'Пароли не совпадают.',
+                    'Пароли не совпадают.': 'Пароли не совпадают.'
+                }
+                
+                for field, field_errors in errors.items():
+                    if isinstance(field_errors, list):
+                        for error in field_errors:
+                            # Переводим ошибку если есть перевод
+                            translated_error = error_translations.get(str(error), str(error))
+                            error_messages.append(translated_error)
+                    else:
+                        translated_error = error_translations.get(str(field_errors), str(field_errors))
+                        error_messages.append(translated_error)
+                
+                # Объединяем все сообщения об ошибках в одно с разделителем
+                combined_error = ' | '.join(error_messages)
+                from urllib.parse import quote
+                from django.utils.translation import get_language
+                error_param = quote(combined_error)
+                lang_code = get_language() or 'ru'
+                return HttpResponseRedirect(f'/{lang_code}/?open_register=true&error={error_param}')
+            
+            # Для API запросов возвращаем JSON
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         self.perform_create(serializer)
         user = serializer.instance
         login(request, user)
