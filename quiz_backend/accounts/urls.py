@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 from . import views
 from .api import api_views
-from .views import dashboard_view, profile_redirect_view, profile_view, update_settings, update_personal_info
+from .views import dashboard_view, profile_redirect_view, profile_view, update_settings, update_personal_info, CustomPasswordResetView, CustomPasswordResetConfirmView, CustomPasswordResetDoneView, CustomPasswordResetCompleteView
 
 app_name = 'accounts'
 
@@ -28,4 +28,10 @@ urlpatterns = [
     path('settings/update/', update_settings, name='update_settings'),
     path('dashboard/change-password/', views.change_password, name='change_password'),
     path('dashboard/update-personal-info/', update_personal_info, name='update_personal_info'),
+
+    # Кастомные password reset URLs
+    path('password_reset/', CustomPasswordResetView.as_view(), name='password_reset'),
+    path('password_reset/done/', CustomPasswordResetDoneView.as_view(), name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('reset/done/', CustomPasswordResetCompleteView.as_view(), name='password_reset_complete'),
 ]

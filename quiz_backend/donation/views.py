@@ -11,6 +11,7 @@ import stripe
 
 from .forms import DonationForm
 from .models import Donation
+from .utils import send_donation_thank_you_email
 
 logger = logging.getLogger(__name__)
 
@@ -271,6 +272,13 @@ def confirm_payment(request):
                 donation.status = 'completed'
                 donation.save()
             
+            # Отправляем email благодарности
+            try:
+                send_donation_thank_you_email(donation)
+                logger.info(f"Thank you email sent for donation {donation.id}")
+            except Exception as e:
+                logger.error(f"Failed to send thank you email for donation {donation.id}: {str(e)}")
+            
             return JsonResponse({
                 'success': True,
                 'message': _('Payment confirmed successfully')
@@ -354,6 +362,13 @@ def stripe_webhook(request):
                 donation.status = 'completed'
                 donation.save()
                 logger.info(f"Donation {donation.id} updated to completed via webhook")
+                
+                # Отправляем email благодарности
+                try:
+                    send_donation_thank_you_email(donation)
+                    logger.info(f"Thank you email sent for donation {donation.id} via webhook")
+                except Exception as e:
+                    logger.error(f"Failed to send thank you email for donation {donation.id} via webhook: {str(e)}")
             
         except Exception as e:
             logger.error(f"Error processing webhook payment_intent.succeeded: {str(e)}")

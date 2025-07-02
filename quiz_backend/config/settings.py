@@ -192,7 +192,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': False,
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -209,10 +209,10 @@ TEMPLATES = [
                 'blog.context_processors.dynamic_seo_context',  # НОВЫЙ SEO контекст!
                 'blog.context_processors.analytics_context',
             ],
-            'loaders': [
-                'django.template.loaders.filesystem.Loader',
-                'django.template.loaders.app_directories.Loader',
-            ],
+            # 'loaders': [
+            #     'django.template.loaders.filesystem.Loader',
+            #     'django.template.loaders.app_directories.Loader',
+            # ],
         },
     },
 ]
@@ -410,10 +410,12 @@ CACHES = {
 
 
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Для разработки
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Временно включаем email для тестирования
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# if DEBUG:
+#     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# else:
+#     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 
 EMAIL_HOST = os.getenv('EMAIL_HOST')

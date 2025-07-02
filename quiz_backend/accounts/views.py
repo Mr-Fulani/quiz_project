@@ -8,18 +8,24 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LogoutView
+from django.contrib.auth.views import LogoutView, PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
 from tasks.models import TaskStatistics
+from django.urls import reverse_lazy
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
-from .forms import PersonalInfoForm
+from .forms import PersonalInfoForm, CustomPasswordResetForm
 from .models import CustomUser
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CustomLogoutView(LogoutView):
@@ -424,3 +430,29 @@ def update_settings(request):
     except Exception as e:
         print(f"Error updating settings: {e}")
         return JsonResponse({'status': 'error', 'message': 'Ошибка при сохранении'}, status=400)
+
+
+class CustomPasswordResetView(PasswordResetView):
+    """Кастомный view для сброса пароля с использованием нашей формы"""
+    template_name = 'registration/password_reset_form.html'
+    email_template_name = 'registration/password_reset_email.txt'
+    html_email_template_name = 'registration/password_reset_email.html'
+    subject_template_name = 'registration/password_reset_subject.txt'
+    form_class = CustomPasswordResetForm
+    success_url = reverse_lazy('password_reset_done')
+
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    """Кастомный view для подтверждения сброса пароля"""
+    template_name = 'registration/password_reset_confirm.html'
+    success_url = reverse_lazy('password_reset_complete')
+
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    """Кастомный view для страницы успешной отправки email"""
+    template_name = 'registration/password_reset_done.html'
+
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    """Кастомный view для страницы успешного сброса пароля"""
+    template_name = 'registration/password_reset_complete.html'
