@@ -1,0 +1,79 @@
+/* Бегущая строка в стиле кодинга */
+section.bug-report-marquee {
+  width: 100%;
+  overflow: hidden;
+  background: #1e1e1e; /* Тёмный фон, как в редакторе кода */
+  color: #00ff00; /* Неоново-зелёный текст для обычного текста */
+  padding: 12px 0;
+  font-family: 'Courier New', 'Consolas', monospace; /* Моноширинный шрифт */
+  font-size: 16px; /* Увеличенный размер текста */
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  position: relative;
+  z-index: 10;
+  min-height: 40px; /* Явная высота для видимости */
+  margin-top: 20px; /* Отступ сверху от блока соцсетей */
+  margin-bottom: 8px; /* Увеличенный отступ снизу для десктопа */
+}
+
+/* Контент бегущей строки */
+section.bug-report-marquee .marquee-content {
+  display: flex;
+  width: max-content;
+  animation: marquee calc(var(--marquee-items) * 8s) linear infinite; /* Динамическая длительность */
+  will-change: transform; /* Оптимизация анимации */
+}
+
+/* Элементы текста */
+section.bug-report-marquee .marquee-content span {
+  white-space: nowrap;
+  margin-right: 30px;
+  display: inline-block; /* Для корректного отображения */
+  color: #00ff00; /* Зелёный цвет для текста без ссылок */
+}
+
+/* Стили для ссылок */
+section.bug-report-marquee .marquee-content a {
+  white-space: nowrap;
+  margin-right: 30px;
+  display: inline-block; /* Для корректного отображения */
+  color: #FFDB70 !important; /* Жёлтый цвет для ссылок */
+}
+
+/* Анимация бегущей строки */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Пауза при наведении */
+section.bug-report-marquee:hover .marquee-content {
+  animation-play-state: paused;
+}
+
+/* Уменьшение отступа для секции Popular Quizzes после бегущей строки */
+section.bug-report-marquee + section.skill {
+  margin-top: 8px; /* Увеличенный отступ сверху для секции Popular Quizzes */
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 480px) {
+  section.bug-report-marquee {
+    font-size: 14px; /* Увеличенный размер текста для мобильных */
+    padding: 10px 0;
+    min-height: 30px;
+    margin-top: 10px; /* Сохранён меньший отступ сверху */
+    margin-bottom: 5px; /* Увеличенный отступ снизу для мобильных */
+  }
+  section.bug-report-marquee .marquee-content span {
+    margin-right: 20px;
+    color: #00ff00; /* Зелёный цвет для текста без ссылок */
+  }
+  section.bug-report-marquee .marquee-content a {
+    margin-right: 20px;
+    color: #FFDB70 !important; /* Жёлтый цвет для ссылок */
+  }
+  section.bug-report-marquee + section.skill {
+    margin-top: 5px; /* Увеличенный отступ для мобильных */
+  }
+}
