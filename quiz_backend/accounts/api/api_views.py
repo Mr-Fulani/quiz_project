@@ -88,35 +88,47 @@ class RegisterView(generics.CreateAPIView):
         if not serializer.is_valid():
             # Для обычных форм возвращаем редирект с ошибками
             if request.content_type == 'application/x-www-form-urlencoded':
+                from django.utils.translation import gettext as _
+                from urllib.parse import quote
+                from django.utils.translation import get_language
+                
                 errors = serializer.errors
                 error_messages = []
-                
-                # Словарь для перевода ошибок
-                error_translations = {
-                    'A user with that username already exists.': 'Пользователь с таким именем уже существует. Выберите другое имя.',
-                    'This field is required.': 'Это поле обязательно для заполнения.',
-                    'Enter a valid email address.': 'Введите корректный email адрес.',
-                    'This password is too short. It must contain at least 8 characters.': 'Пароль слишком короткий. Минимум 8 символов.',
-                    'This password is too common.': 'Пароль слишком простой. Выберите более сложный пароль.',
-                    'This password is entirely numeric.': 'Пароль не может состоять только из цифр.',
-                    'The two password fields didn\'t match.': 'Пароли не совпадают.',
-                    'Пароли не совпадают.': 'Пароли не совпадают.'
-                }
                 
                 for field, field_errors in errors.items():
                     if isinstance(field_errors, list):
                         for error in field_errors:
-                            # Переводим ошибку если есть перевод
-                            translated_error = error_translations.get(str(error), str(error))
+                            # Используем Django переводы
+                            error_str = str(error)
+                            if 'already exists' in error_str:
+                                translated_error = _('A user with that username already exists.')
+                            elif 'required' in error_str.lower():
+                                translated_error = _('This field is required.')
+                            elif 'valid email' in error_str.lower():
+                                translated_error = _('Enter a valid email address.')
+                            elif 'too short' in error_str.lower():
+                                translated_error = _('This password is too short. It must contain at least 8 characters.')
+                            elif 'too common' in error_str.lower():
+                                translated_error = _('This password is too common.')
+                            elif 'entirely numeric' in error_str.lower():
+                                translated_error = _('This password is entirely numeric.')
+                            elif 'didn\'t match' in error_str.lower() or 'не совпадают' in error_str:
+                                translated_error = _('The two password fields didn\'t match.')
+                            else:
+                                translated_error = error_str  # Fallback к оригинальному тексту
                             error_messages.append(translated_error)
                     else:
-                        translated_error = error_translations.get(str(field_errors), str(field_errors))
+                        error_str = str(field_errors)
+                        if 'already exists' in error_str:
+                            translated_error = _('A user with that username already exists.')
+                        elif 'required' in error_str.lower():
+                            translated_error = _('This field is required.')
+                        else:
+                            translated_error = error_str
                         error_messages.append(translated_error)
                 
                 # Объединяем все сообщения об ошибках в одно с разделителем
                 combined_error = ' | '.join(error_messages)
-                from urllib.parse import quote
-                from django.utils.translation import get_language
                 error_param = quote(combined_error)
                 lang_code = get_language() or 'ru'
                 return HttpResponseRedirect(f'/{lang_code}/?open_register=true&error={error_param}')

@@ -1981,3 +1981,228 @@ msgstr "ДОНАТОВ"
 
 msgid "AMOUNT"
 msgstr "СУММА"
+
+# Registration error messages
+msgid "A user with that username already exists."
+msgstr "Пользователь с таким именем уже существует. Выберите другое имя."
+
+msgid "This field is required."
+msgstr "Это поле обязательно для заполнения."
+
+msgid "Enter a valid email address."
+msgstr "Введите корректный email адрес."
+
+msgid "This password is too short. It must contain at least 8 characters."
+msgstr "Пароль слишком короткий. Минимум 8 символов."
+
+msgid "This password is too common."
+msgstr "Пароль слишком простой. Выберите более сложный пароль."
+
+msgid "This password is entirely numeric."
+msgstr "Пароль не может состоять только из цифр."
+
+msgid "The two password fields didn't match."
+msgstr "Пароли не совпадают."
+
+# Password reset page translations
+msgid "Reset Password"
+msgstr "Сброс пароля"
+
+msgid "Reset Your Password"
+msgstr "Сброс вашего пароля"
+
+msgid "Enter your email address and we'll send you a link to reset your password."
+msgstr "Введите ваш email адрес и мы отправим вам ссылку для сброса пароля."
+
+msgid "Enter your email address"
+msgstr "Введите ваш email адрес"
+
+msgid "Send Reset Link"
+msgstr "Отправить ссылку для сброса"
+
+msgid "Back to Login"
+msgstr "Вернуться к входу"
+
+msgid "Password Reset Sent"
+msgstr "Письмо для сброса пароля отправлено"
+
+msgid "Email Sent Successfully!"
+msgstr "Письмо успешно отправлено!"
+
+msgid "We've sent you an email with instructions to reset your password."
+msgstr "Мы отправили вам письмо с инструкциями по сбросу пароля."
+
+msgid "Please check your inbox and follow the link in the email."
+msgstr "Пожалуйста, проверьте вашу почту и перейдите по ссылке в письме."
+
+msgid "What's Next?"
+msgstr "Что дальше?"
+
+msgid "Check your email inbox (it may take a few minutes)"
+msgstr "Проверьте вашу почту (это может занять несколько минут)"
+
+msgid "Click the reset link in the email"
+msgstr "Нажмите на ссылку сброса в письме"
+
+msgid "Create a new secure password"
+msgstr "Создайте новый безопасный пароль"
+
+msgid "Login with your new password"
+msgstr "Войдите с новым паролем"
+
+msgid "Don't see the email? Check your spam/junk folder. Add our domain to your safe sender list."
+msgstr "Не видите письмо? Проверьте папку спам. Добавьте наш домен в список безопасных отправителей."
+
+msgid "Back to Home"
+msgstr "На главную"
+
+msgid "Set New Password"
+msgstr "Установка нового пароля"
+
+msgid "Please enter your new password. Make sure it's secure and memorable."
+msgstr "Пожалуйста, введите новый пароль. Убедитесь, что он безопасный и запоминающийся."
+
+msgid "New Password"
+msgstr "Новый пароль"
+
+msgid "Confirm New Password"
+msgstr "Подтвердите новый пароль"
+
+msgid "Password Requirements:"
+msgstr "Требования к паролю:"
+
+msgid "At least 8 characters"
+msgstr "Минимум 8 символов"
+
+msgid "Passwords match"
+msgstr "Пароли совпадают"
+
+msgid "Contains letters and numbers"
+msgstr "Содержит буквы и цифры"
+
+msgid "Invalid Reset Link"
+msgstr "Недействительная ссылка сброса"
+
+msgid "This password reset link is invalid or has expired."
+msgstr "Эта ссылка для сброса пароля недействительна или истекла."
+
+msgid "Password reset links are only valid for 24 hours for security reasons."
+msgstr "Ссылки для сброса пароля действительны только 24 часа по соображениям безопасности."
+
+msgid "Request New Reset Link"
+msgstr "Запросить новую ссылку"
+
+msgid "Password Reset Complete"
+msgstr "Сброс пароля завершен"
+
+msgid "Password Reset Complete!"
+msgstr "Сброс пароля завершен!"
+
+msgid "Your password has been successfully updated!"
+msgstr "Ваш пароль был успешно обновлен!"
+
+msgid "You can now log in with your new password and access all features."
+msgstr "Теперь вы можете войти с новым паролем и получить доступ ко всем функциям."
+
+msgid "Secure Account"
+msgstr "Безопасный аккаунт"
+
+msgid "Your account is now secured with your new password"
+msgstr "Ваш аккаунт теперь защищен новым паролем"
+
+msgid "Full Access"
+msgstr "Полный доступ"
+
+msgid "Access all quizzes, leaderboards and premium features"
+msgstr "Доступ ко всем квизам, таблицам лидеров и премиум функциям"
+
+msgid "Login Now"
+msgstr "Войти сейчас"
+
+msgid "Go Home"
+msgstr "На главную"
+
+msgid "Security Tips"
+msgstr "Советы по безопасности"
+
+msgid "Keep your password secure and don't share it with anyone"
+msgstr "Держите пароль в безопасности и не делитесь им ни с кем"
+
+msgid "Use a unique password that you don't use on other sites"
+msgstr "Используйте уникальный пароль, который не используете на других сайтах"
+
+msgid "Consider using a password manager for better security"
+msgstr "Рассмотрите использование менеджера паролей для лучшей безопасности"
+
+msgid "Log out from shared or public computers"
+msgstr "Выходите из аккаунта на общих или публичных компьютерах"
+
+# Password reset email translations
+msgid "Password Reset"
+msgstr "Сброс пароля"
+
+msgid "Reset your Quiz Project password"
+msgstr "Сбросьте пароль Quiz Project"
+
+msgid "Quiz Project - Password Reset Request"
+msgstr "Quiz Project - Запрос на сброс пароля"
+
+msgid "Hello"
+msgstr "Привет"
+
+msgid "We received a request to reset your password for your Quiz Project account."
+msgstr "Мы получили запрос на сброс пароля для вашего аккаунта Quiz Project."
+
+msgid "If you made this request, click the button below to set a new password:"
+msgstr "Если вы делали этот запрос, нажмите кнопку ниже, чтобы установить новый пароль:"
+
+msgid "Reset My Password"
+msgstr "Сбросить мой пароль"
+
+msgid "Important Information"
+msgstr "Важная информация"
+
+msgid "This link is valid for 24 hours"
+msgstr "Эта ссылка действительна 24 часа"
+
+msgid "For security reasons, you can only use this link once"
+msgstr "По соображениям безопасности, вы можете использовать эту ссылку только один раз"
+
+msgid "If you don't reset your password within 24 hours, you'll need to request a new link"
+msgstr "Если вы не сбросите пароль в течение 24 часов, вам нужно будет запросить новую ссылку"
+
+msgid "Didn't request this?"
+msgstr "Не запрашивали это?"
+
+msgid "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed."
+msgstr "Если вы не запрашивали сброс пароля, можете спокойно проигнорировать это письмо. Ваш пароль не будет изменен."
+
+msgid "Quiz Project Team"
+msgstr "Команда Quiz Project"
+
+msgid "Making learning fun and accessible for everyone"
+msgstr "Делаем обучение веселым и доступным для всех"
+
+msgid "Contact Support"
+msgstr "Связаться с поддержкой"
+
+msgid "Visit Website"
+msgstr "Посетить сайт"
+
+msgid "Follow Us"
+msgstr "Подписаться на нас"
+
+msgid "This email was sent from Quiz Project. Please do not reply to this email."
+msgstr "Это письмо отправлено от Quiz Project. Пожалуйста, не отвечайте на это письмо."
+
+msgid "If the button above doesn't work, copy and paste this link into your browser:"
+msgstr "Если кнопка выше не работает, скопируйте и вставьте эту ссылку в ваш браузер:"
+
+msgid "Password Reset Request"
+msgstr "Запрос на сброс пароля"
+
+msgid "Questions?"
+msgstr "Вопросы?"
+
+msgid "FOLLOW US FOR UPDATES:"
+msgstr "СЛЕДИТЕ ЗА ОБНОВЛЕНИЯМИ:"

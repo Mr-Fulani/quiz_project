@@ -1672,3 +1672,228 @@ msgstr "Error processing payment: "
 
 msgid "payment_processing_error"
 msgstr "Payment processing error: "
+
+# Registration error messages
+msgid "A user with that username already exists."
+msgstr "A user with that username already exists."
+
+msgid "This field is required."
+msgstr "This field is required."
+
+msgid "Enter a valid email address."
+msgstr "Enter a valid email address."
+
+msgid "This password is too short. It must contain at least 8 characters."
+msgstr "This password is too short. It must contain at least 8 characters."
+
+msgid "This password is too common."
+msgstr "This password is too common."
+
+msgid "This password is entirely numeric."
+msgstr "This password is entirely numeric."
+
+msgid "The two password fields didn't match."
+msgstr "The two password fields didn't match."
+
+# Password reset page translations
+msgid "Reset Password"
+msgstr "Reset Password"
+
+msgid "Reset Your Password"
+msgstr "Reset Your Password"
+
+msgid "Enter your email address and we'll send you a link to reset your password."
+msgstr "Enter your email address and we'll send you a link to reset your password."
+
+msgid "Enter your email address"
+msgstr "Enter your email address"
+
+msgid "Send Reset Link"
+msgstr "Send Reset Link"
+
+msgid "Back to Login"
+msgstr "Back to Login"
+
+msgid "Password Reset Sent"
+msgstr "Password Reset Sent"
+
+msgid "Email Sent Successfully!"
+msgstr "Email Sent Successfully!"
+
+msgid "We've sent you an email with instructions to reset your password."
+msgstr "We've sent you an email with instructions to reset your password."
+
+msgid "Please check your inbox and follow the link in the email."
+msgstr "Please check your inbox and follow the link in the email."
+
+msgid "What's Next?"
+msgstr "What's Next?"
+
+msgid "Check your email inbox (it may take a few minutes)"
+msgstr "Check your email inbox (it may take a few minutes)"
+
+msgid "Click the reset link in the email"
+msgstr "Click the reset link in the email"
+
+msgid "Create a new secure password"
+msgstr "Create a new secure password"
+
+msgid "Login with your new password"
+msgstr "Login with your new password"
+
+msgid "Don't see the email? Check your spam/junk folder. Add our domain to your safe sender list."
+msgstr "Don't see the email? Check your spam/junk folder. Add our domain to your safe sender list."
+
+msgid "Back to Home"
+msgstr "Back to Home"
+
+msgid "Set New Password"
+msgstr "Set New Password"
+
+msgid "Please enter your new password. Make sure it's secure and memorable."
+msgstr "Please enter your new password. Make sure it's secure and memorable."
+
+msgid "New Password"
+msgstr "New Password"
+
+msgid "Confirm New Password"
+msgstr "Confirm New Password"
+
+msgid "Password Requirements:"
+msgstr "Password Requirements:"
+
+msgid "At least 8 characters"
+msgstr "At least 8 characters"
+
+msgid "Passwords match"
+msgstr "Passwords match"
+
+msgid "Contains letters and numbers"
+msgstr "Contains letters and numbers"
+
+msgid "Invalid Reset Link"
+msgstr "Invalid Reset Link"
+
+msgid "This password reset link is invalid or has expired."
+msgstr "This password reset link is invalid or has expired."
+
+msgid "Password reset links are only valid for 24 hours for security reasons."
+msgstr "Password reset links are only valid for 24 hours for security reasons."
+
+msgid "Request New Reset Link"
+msgstr "Request New Reset Link"
+
+msgid "Password Reset Complete"
+msgstr "Password Reset Complete"
+
+msgid "Password Reset Complete!"
+msgstr "Password Reset Complete!"
+
+msgid "Your password has been successfully updated!"
+msgstr "Your password has been successfully updated!"
+
+msgid "You can now log in with your new password and access all features."
+msgstr "You can now log in with your new password and access all features."
+
+msgid "Secure Account"
+msgstr "Secure Account"
+
+msgid "Your account is now secured with your new password"
+msgstr "Your account is now secured with your new password"
+
+msgid "Full Access"
+msgstr "Full Access"
+
+msgid "Access all quizzes, leaderboards and premium features"
+msgstr "Access all quizzes, leaderboards and premium features"
+
+msgid "Login Now"
+msgstr "Login Now"
+
+msgid "Go Home"
+msgstr "Go Home"
+
+msgid "Security Tips"
+msgstr "Security Tips"
+
+msgid "Keep your password secure and don't share it with anyone"
+msgstr "Keep your password secure and don't share it with anyone"
+
+msgid "Use a unique password that you don't use on other sites"
+msgstr "Use a unique password that you don't use on other sites"
+
+msgid "Consider using a password manager for better security"
+msgstr "Consider using a password manager for better security"
+
+msgid "Log out from shared or public computers"
+msgstr "Log out from shared or public computers"
+
+# Password reset email translations
+msgid "Password Reset"
+msgstr "Password Reset"
+
+msgid "Reset your Quiz Project password"
+msgstr "Reset your Quiz Project password"
+
+msgid "Quiz Project - Password Reset Request"
+msgstr "Quiz Project - Password Reset Request"
+
+msgid "Hello"
+msgstr "Hello"
+
+msgid "We received a request to reset your password for your Quiz Project account."
+msgstr "We received a request to reset your password for your Quiz Project account."
+
+msgid "If you made this request, click the button below to set a new password:"
+msgstr "If you made this request, click the button below to set a new password:"
+
+msgid "Reset My Password"
+msgstr "Reset My Password"
+
+msgid "Important Information"
+msgstr "Important Information"
+
+msgid "This link is valid for 24 hours"
+msgstr "This link is valid for 24 hours"
+
+msgid "For security reasons, you can only use this link once"
+msgstr "For security reasons, you can only use this link once"
+
+msgid "If you don't reset your password within 24 hours, you'll need to request a new link"
+msgstr "If you don't reset your password within 24 hours, you'll need to request a new link"
+
+msgid "Didn't request this?"
+msgstr "Didn't request this?"
+
+msgid "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed."
+msgstr "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed."
+
+msgid "Quiz Project Team"
+msgstr "Quiz Project Team"
+
+msgid "Making learning fun and accessible for everyone"
+msgstr "Making learning fun and accessible for everyone"
+
+msgid "Contact Support"
+msgstr "Contact Support"
+
+msgid "Visit Website"
+msgstr "Visit Website"
+
+msgid "Follow Us"
+msgstr "Follow Us"
+
+msgid "This email was sent from Quiz Project. Please do not reply to this email."
+msgstr "This email was sent from Quiz Project. Please do not reply to this email."
+
+msgid "If the button above doesn't work, copy and paste this link into your browser:"
+msgstr "If the button above doesn't work, copy and paste this link into your browser:"
+
+msgid "Password Reset Request"
+msgstr "Password Reset Request"
+
+msgid "Questions?"
+msgstr "Questions?"
+
+msgid "FOLLOW US FOR UPDATES:"
+msgstr "FOLLOW US FOR UPDATES:"
