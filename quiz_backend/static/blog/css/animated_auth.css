@@ -1,0 +1,255 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&display=swap');
+
+/* Модальные окна аутентификации */
+.auth-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.square {
+    position: relative;
+    width: 500px;
+    height: 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.square i {
+    position: absolute;
+    inset: 0;
+    border: 2px solid #fff;
+    transition: 0.5s;
+}
+
+.square i:nth-child(1) {
+    border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
+    animation: animate 6s linear infinite;
+}
+
+.square i:nth-child(2) {
+    border-radius: 41% 44% 56% 59%/38% 62% 63% 37%;
+    animation: animate 4s linear infinite;
+}
+
+.square i:nth-child(3) {
+    border-radius: 41% 44% 56% 59%/38% 62% 63% 37%;
+    animation: animate2 10s linear infinite;
+}
+
+.square:hover i {
+    border: 6px solid var(--clr);
+    filter: drop-shadow(0 0 20px var(--clr));
+}
+
+@keyframes animate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes animate2 {
+    0% {
+        transform: rotate(360deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+.login {
+    position: relative;
+    width: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #fff;
+}
+
+.login h2 {
+    font-size: 2em;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.login .inputBx {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;  /* Добавлен отступ между полями ввода */
+}
+
+.login .inputBx input {
+    position: relative;
+    width: 100%;
+    padding: 12px 20px;
+    background: transparent;
+    border: 2px solid #fff;
+    border-radius: 40px;
+    font-size: 1.2em;
+    color: #fff;
+    box-shadow: none;
+    outline: none;
+}
+
+.login .inputBx input[type="submit"] {
+    width: 100%;
+    background: #0078ff;
+    background: linear-gradient(45deg, #ff357a, #fff172);
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;  /* Добавлен отступ перед кнопкой */
+}
+
+.login .inputBx input::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.login .links {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    margin-top: 10px;  /* Добавлен отступ перед ссылками */
+}
+
+.login .links a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.login .links a:hover {
+    text-decoration: underline;
+}
+
+
+
+
+
+
+/* Добавить в конец файла */
+
+.password-group {
+    position: relative;
+}
+
+/* Обновите существующие стили для password-toggle и добавьте новые */
+
+.password-toggle {
+    padding: 0;
+    display: grid;
+    place-items: center;
+    height: 35px;
+    width: 35px;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    color: #00ff0a; /* Изменили цвет на яркий зеленый */
+    position: absolute;
+    right: 10px;
+    z-index: 2;
+    top: 50%;
+    cursor: pointer;
+    translate: 0 -50%;
+    outline: 0;
+    transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: #ff0057; /* Красный при наведении */
+}
+
+.password-toggle svg {
+    width: 75%;
+    height: 75%;
+    filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5)); /* Добавляем свечение */
+}
+
+/* Стили для глаза */
+.eye circle:first-of-type {
+    fill: currentColor; /* Основной цвет глаза */
+}
+
+.eye circle:nth-of-type(2) {
+    fill: #000; /* Зрачок всегда черный */
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
+}
+
+/* Стили для век */
+.lid--upper, .lid--lower {
+    stroke: currentColor;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5));
+}
+
+/* Добавляем анимацию свечения */
+@keyframes glow {
+    0% { filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5)); }
+    50% { filter: drop-shadow(0 0 4px rgba(0, 255, 10, 0.7)); }
+    100% { filter: drop-shadow(0 0 2px rgba(0, 255, 10, 0.5)); }
+}
+
+.password-toggle svg {
+    animation: glow 2s infinite;
+}
+
+/* Обновляем переменные в :root */
+:root {
+    --glint: #fff;
+    --eye-color: #00ff0a;
+    --eye-hover: #ff0057;
+}
+
+@media(prefers-color-scheme: dark) {
+    :root {
+        --glint: #000;
+        --eye-color: #00ff0a;
+        --eye-hover: #ff0057;
+    }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Добавить в :root если отсутствуют */
+:root {
+    --glint: white;
+}
+
+@media(prefers-color-scheme: dark) {
+    :root {
+        --glint: black;
+    }
+}
