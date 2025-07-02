@@ -1,10 +1,13 @@
 # accounts/models.py
+import logging
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.db.models import Q, Count
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class CustomUser(AbstractUser):
@@ -79,32 +82,55 @@ class CustomUser(AbstractUser):
         from tasks.models import TaskStatistics
         stats = TaskStatistics.objects.filter(user=self).aggregate(
             solved_tasks=Count('id', filter=Q(successful=True)),
-            rating=Count('id')
+            total_attempts=Count('id')
         )
         return {
             'solved_tasks': stats['solved_tasks'],
-            'rating': stats['rating']
+            'rating': self.calculate_rating(),  # Теперь возвращаем как есть
+            'total_attempts': stats['total_attempts']
         }
 
-    def calculate_rating(self):
-        """Расчёт рейтинга на основе сложности решённых задач."""
-        from tasks.models import TaskStatistics
-        difficulty_stats = TaskStatistics.objects.filter(
-            user=self,
-            successful=True
-        ).values(
-            'task__difficulty'
-        ).annotate(
-            count=Count('id')
-        ).values('task__difficulty', 'count')
+    @property
+    def statistics(self):
+        """Свойство для доступа к статистике."""
+        return self.get_statistics()
 
-        rating = 0
-        multipliers = {'easy': 1, 'medium': 2, 'hard': 3}
-        for stat in difficulty_stats:
-            difficulty = stat['task__difficulty']
-            count = stat['count']
-            rating += count * multipliers.get(difficulty, 1)
-        return rating
+    def invalidate_statistics_cache(self):
+        """Очищает кэш статистики пользователя."""
+        from django.core.cache import cache
+        cache_key = f'user_stats_{self.id}'
+        cache.delete(cache_key)
+        logger.info(f"=== DEBUG: Statistics cache invalidated for user {self.username}")
+
+    @staticmethod
+    def get_rating_annotation():
+        """Возвращает аннотацию для подсчета рейтинга пользователя.
+        Используется как в топ-пользователях, так и в индивидуальной статистике."""
+        from django.db.models import Sum, Case, When, Value, IntegerField
+        
+        return Sum(
+            Case(
+                When(statistics__successful=True, then=Case(
+                    When(statistics__task__difficulty='easy', then=Value(10)),
+                    When(statistics__task__difficulty='medium', then=Value(25)),
+                    When(statistics__task__difficulty='hard', then=Value(50)),
+                    default=Value(10),
+                    output_field=IntegerField(),
+                )),
+                default=0,
+                output_field=IntegerField(),
+            )
+        )
+
+    def calculate_rating(self):
+        """Расчёт рейтинга на основе сложности решённых задач. 
+        Использует ту же логику, что и для топ-пользователей."""
+        rating_data = self.__class__.objects.filter(id=self.id).annotate(
+            total_score=self.get_rating_annotation()
+        ).first()
+        
+        # Возвращаем базовый рейтинг (без умножения на 100)
+        return (rating_data.total_score or 0) if rating_data else 0
 
     @property
     def get_avatar_url(self):
