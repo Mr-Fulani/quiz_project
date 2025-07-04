@@ -12,6 +12,13 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.auth-modal.active {
+    display: flex;
+    opacity: 1;
 }
 
 .square {
@@ -252,4 +259,32 @@
     :root {
         --glint: black;
     }
+}
+
+/* Стили для сообщений об ошибках */
+.error-message {
+    background: rgba(255, 0, 87, 0.15);
+    border: 2px solid #ff0057;
+    border-radius: 10px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(255, 0, 87, 0.3);
+    animation: errorPulse 2s infinite;
+}
+
+.error-message p {
+    margin: 8px 0;
+    font-size: 0.95em;
+    color: #ff0057;
+    text-shadow: 0 0 5px rgba(255, 0, 87, 0.5);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+@keyframes errorPulse {
+    0% { box-shadow: 0 0 10px rgba(255, 0, 87, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(255, 0, 87, 0.5); }
+    100% { box-shadow: 0 0 10px rgba(255, 0, 87, 0.3); }
 }
