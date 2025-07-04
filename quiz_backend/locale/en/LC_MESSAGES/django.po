@@ -1897,3 +1897,67 @@ msgstr "Questions?"
 
 msgid "FOLLOW US FOR UPDATES:"
 msgstr "FOLLOW US FOR UPDATES:"
+
+# Additional password reset translations
+msgid "Password Reset Email Sent"
+msgstr "Password Reset Email Sent"
+
+msgid "Email Sent!"
+msgstr "Email Sent!"
+
+msgid "We've emailed you instructions for setting your password, if an account exists with the email you entered. You should receive them shortly."
+msgstr "We've emailed you instructions for setting your password, if an account exists with the email you entered. You should receive them shortly."
+
+msgid "Important:"
+msgstr "Important:"
+
+msgid "If you don't receive an email, please make sure you've entered the address you registered with, and check your spam folder."
+msgstr "If you don't receive an email, please make sure you've entered the address you registered with, and check your spam folder."
+
+msgid "Forgotten your password? Enter your email address below, and we'll email instructions for setting a new one."
+msgstr "Forgotten your password? Enter your email address below, and we'll email instructions for setting a new one."
+
+msgid "Email address:"
+msgstr "Email address:"
+
+msgid "Please enter your new password twice so we can verify you typed it in correctly."
+msgstr "Please enter your new password twice so we can verify you typed it in correctly."
+
+msgid "New password:"
+msgstr "New password:"
+
+msgid "Enter new password"
+msgstr "Enter new password"
+
+msgid "Confirm password:"
+msgstr "Confirm password:"
+
+msgid "Confirm new password"
+msgstr "Confirm new password"
+
+msgid "Contains uppercase letter"
+msgstr "Contains uppercase letter"
+
+msgid "Contains lowercase letter"
+msgstr "Contains lowercase letter"
+
+msgid "Contains number"
+msgstr "Contains number"
+
+msgid "Contains special character"
+msgstr "Contains special character"
+
+msgid "Change Password"
+msgstr "Change Password"
+
+msgid "Your password has been set. You may go ahead and log in now."
+msgstr "Your password has been set. You may go ahead and log in now."
+
+msgid "Success!"
+msgstr "Success!"
+
+msgid "Your new password has been saved successfully. You can now use it to log into your account."
+msgstr "Your new password has been saved successfully. You can now use it to log into your account."
+
+msgid "Log In Now"
+msgstr "Log In Now"
