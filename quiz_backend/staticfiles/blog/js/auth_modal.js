@@ -48,13 +48,13 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('open_login')) {
-        loginModal.style.display = 'flex';
+        loginModal.classList.add('active');
     }
     if (urlParams.has('open_register')) {
-        registerModal.style.display = 'flex';
+        registerModal.classList.add('active');
     }
     if (urlParams.has('open_forgot')) {
-        forgotModal.style.display = 'flex';
+        forgotModal.classList.add('active');
     }
 
     /**
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loginLink) {
         loginLink.addEventListener('click', function(e) {
             e.preventDefault();
-            loginModal.style.display = 'flex';
+            loginModal.classList.add('active');
         });
     }
 
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sidebarLoginLink) {
         sidebarLoginLink.addEventListener('click', function(e) {
             e.preventDefault();
-            loginModal.style.display = 'flex';
+            loginModal.classList.add('active');
         });
     }
 
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loginForm.appendChild(nextInput);
                 }
             }
-            loginModal.style.display = 'flex';
+            loginModal.classList.add('active');
             console.log("Login modal opened, return URL:", returnUrl);
         }
     });
@@ -133,9 +133,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeBtns = document.querySelectorAll('.close-btn');
     closeBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            loginModal.style.display = 'none';
-            registerModal.style.display = 'none';
-            forgotModal.style.display = 'none';
+            loginModal.classList.remove('active');
+            registerModal.classList.remove('active');
+            forgotModal.classList.remove('active');
         });
     });
 
@@ -144,13 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     window.addEventListener('click', function(e) {
         if (e.target === loginModal) {
-            loginModal.style.display = 'none';
+            loginModal.classList.remove('active');
         }
         if (e.target === registerModal) {
-            registerModal.style.display = 'none';
+            registerModal.classList.remove('active');
         }
         if (e.target === forgotModal) {
-            forgotModal.style.display = 'none';
+            forgotModal.classList.remove('active');
         }
     });
 
@@ -166,8 +166,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toRegisterLink) {
         toRegisterLink.addEventListener('click', function(e) {
             e.preventDefault();
-            loginModal.style.display = 'none';
-            registerModal.style.display = 'flex';
+            loginModal.classList.remove('active');
+            registerModal.classList.add('active');
             const loginForm = loginModal.querySelector('form');
             const registerForm = registerModal.querySelector('form');
             if (loginForm && registerForm) {
@@ -191,8 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toLoginLink) {
         toLoginLink.addEventListener('click', function(e) {
             e.preventDefault();
-            registerModal.style.display = 'none';
-            loginModal.style.display = 'flex';
+            registerModal.classList.remove('active');
+            loginModal.classList.add('active');
             const registerForm = registerModal.querySelector('form');
             const loginForm = loginModal.querySelector('form');
             if (registerForm && loginForm) {
@@ -216,8 +216,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toForgotLink) {
         toForgotLink.addEventListener('click', function(e) {
             e.preventDefault();
-            loginModal.style.display = 'none';
-            forgotModal.style.display = 'flex';
+            loginModal.classList.remove('active');
+            forgotModal.classList.add('active');
         });
     }
 
@@ -227,8 +227,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (backToLoginLink) {
         backToLoginLink.addEventListener('click', function(e) {
             e.preventDefault();
-            forgotModal.style.display = 'none';
-            loginModal.style.display = 'flex';
+            forgotModal.classList.remove('active');
+            loginModal.classList.add('active');
         });
     }
 
@@ -237,9 +237,9 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            loginModal.style.display = 'none';
-            registerModal.style.display = 'none';
-            forgotModal.style.display = 'none';
+            loginModal.classList.remove('active');
+            registerModal.classList.remove('active');
+            forgotModal.classList.remove('active');
         }
     });
 });
