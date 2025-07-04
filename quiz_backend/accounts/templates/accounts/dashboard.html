@@ -259,7 +259,7 @@
         <h1 class="h2 article-title">{% trans "Profile" %}</h1>
     </header>
     <section class="alert">
-        <p>{% trans "You must" %} <a href="#" class="open-login-btn" data-login-url="{% url 'login' %}">{% trans "Log in" %}</a> {% trans "view your profile information." %}</p>
+        <p>{% trans "You must" %} <a href="#" class="open-login-btn" data-login-url="{% url 'accounts:login' %}">{% trans "Log in" %}</a> {% trans "view your profile information." %}</p>
     </section>
 </article>
 {% endif %}

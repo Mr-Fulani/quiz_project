@@ -15,7 +15,7 @@ urlpatterns = [
     # Auth URLs that are hit by forms. They must point to the correct handlers.
     path('register/', api_views.RegisterView.as_view(), name='register'),
     path('login/', RedirectView.as_view(url='/?open_login=true'), name='login'), # This is for redirecting, not submitting.
-    path('accounts/login/', api_views.LoginView.as_view(), name='accounts_login'), # This is for the AJAX form submission.
+    path('login-ajax/', api_views.LoginView.as_view(), name='login_ajax'), # This is for the AJAX form submission.
 
     # Logout (template-based)
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
