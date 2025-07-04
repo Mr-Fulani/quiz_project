@@ -109,9 +109,10 @@ class Command(BaseCommand):
                 
                 # Проверяем, нужно ли обновлять
                 default_icon = '/static/blog/images/icons/default-icon.png'
+                skip_existing = options.get('skip-existing', False)
                 should_skip = (
                     (topic.icon == icon_path and not options['force']) or
-                    (options['skip-existing'] and topic.icon != default_icon)
+                    (skip_existing and topic.icon != default_icon)
                 )
                 
                 if should_skip:
