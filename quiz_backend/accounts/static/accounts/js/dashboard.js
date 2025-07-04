@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('Response data:', data);
                 if (response.ok && data.status === 'success') {
                     alert(messages.profile_updated || 'Профиль успешно обновлен!');
-                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/users/dashboard/';
+                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/accounts/dashboard/';
                     window.location.href = dashboardUrl;
                 } else {
                     alert(data.message || messages.profile_error || 'Ошибка при обновлении профиля.');
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function () {
     settingsToggles.forEach(toggle => {
         toggle.addEventListener('change', async function () {
             try {
-                const response = await fetch('/users/settings/update/', {
+                const response = await fetch('/accounts/settings/update/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

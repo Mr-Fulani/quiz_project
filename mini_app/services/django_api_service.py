@@ -134,7 +134,7 @@ class DjangoAPIService:
     async def update_user_profile(self, telegram_id: int, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Обновление профиля пользователя"""
         try:
-            data = await self._make_request("PATCH", f"/users/{telegram_id}/", json=profile_data)
+            data = await self._make_request("PATCH", f"/api/accounts/profile/by-telegram/{telegram_id}/update/", json=profile_data)
             return data
         except Exception as e:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")

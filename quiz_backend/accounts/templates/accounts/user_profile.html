@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<article class="profile active" data-page="profile" data-login-url="{% url 'login' %}">
+<article class="profile active" data-page="profile" data-login-url="{% url 'accounts:login' %}">
     <header>
         <h1 class="h2 article-title">{{ profile_user.username }}</h1>
     </header>
