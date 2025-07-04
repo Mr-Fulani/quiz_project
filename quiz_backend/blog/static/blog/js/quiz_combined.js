@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     async function checkUserAuth() {
         try {
-            const response = await fetch('/api/check-auth/', {
+            const response = await fetch(window.location.origin + '/api/check-auth/', {
                 method: 'GET',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
