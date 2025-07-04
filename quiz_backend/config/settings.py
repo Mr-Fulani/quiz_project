@@ -289,8 +289,7 @@ LOCALE_PATHS = [
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    # Только папки приложений, без дублей
-    os.path.join(BASE_DIR, 'blog', 'static'),
+    # Только общие файлы, папки приложений обрабатываются автоматически
     os.path.join(BASE_DIR, 'static'),  # Общие файлы
 ]
 STATIC_ROOT = os.path.join(BASE_DIR.parent, 'staticfiles')
