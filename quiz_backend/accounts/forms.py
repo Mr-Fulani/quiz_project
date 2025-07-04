@@ -4,16 +4,6 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
 from .models import CustomUser
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.conf import settings
-from .utils import send_password_reset_email
-from django.contrib.auth import get_user_model
-from django.urls import reverse
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.sites.shortcuts import get_current_site
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -139,39 +129,4 @@ class PersonalInfoForm(forms.ModelForm):
 
 class CustomPasswordResetForm(PasswordResetForm):
     """Кастомная форма для сброса пароля с поддержкой HTML email"""
-
-    def save(self, domain_override=None,
-             subject_template_name=None, email_template_name=None,
-             use_https=False, token_generator=default_token_generator,
-             from_email=None, request=None, html_email_template_name=None,
-             extra_email_context=None):
-        """
-        Генерирует ссылку и отправляет письмо через нашу кастомную утилиту.
-        """
-        email = self.cleaned_data["email"]
-        
-        # Django 5+ использует get_users, старые версии - нет. 
-        # Добавим проверку для совместимости.
-        if hasattr(self, 'get_users'):
-            users = self.get_users(email)
-        else:
-            # Ручной поиск для старых версий Django
-            User = get_user_model()
-            users = User.objects.filter(email__iexact=email, is_active=True)
-
-        for user in users:
-            if not domain_override:
-                current_site = get_current_site(request)
-                site_name = current_site.name
-                domain = current_site.domain
-            else:
-                site_name = domain = domain_override
-            
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = token_generator.make_token(user)
-            protocol = 'https' if use_https else 'http'
-            
-            reset_url = f"{protocol}://{domain}{reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})}"
-            
-            # Вызываем нашу утилиту для отправки красивого письма
-            send_password_reset_email(user, reset_url)
+    pass

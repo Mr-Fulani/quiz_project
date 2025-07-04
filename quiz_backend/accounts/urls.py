@@ -2,7 +2,12 @@ from django.urls import path
 from django.views.generic import RedirectView
 from . import views
 from .api import api_views
-from .views import dashboard_view, profile_redirect_view, profile_view, update_settings, update_personal_info, CustomPasswordResetView, CustomPasswordResetConfirmView, CustomPasswordResetDoneView, CustomPasswordResetCompleteView
+from .views import (
+    dashboard_view, profile_redirect_view, profile_view, update_settings,
+    update_personal_info, custom_password_reset_view,
+    CustomPasswordResetConfirmView, CustomPasswordResetDoneView,
+    CustomPasswordResetCompleteView
+)
 
 app_name = 'accounts'
 
@@ -30,8 +35,8 @@ urlpatterns = [
     path('dashboard/update-personal-info/', update_personal_info, name='update_personal_info'),
 
     # Кастомные password reset URLs
-    path('password_reset/', CustomPasswordResetView.as_view(), name='password_reset'),
+    path('password_reset/', custom_password_reset_view, name='password_reset'),
     path('password_reset/done/', CustomPasswordResetDoneView.as_view(), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-    path('reset/done/', CustomPasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    path('password-reset-confirm/<uidb64>/<token>/', CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('password-reset-complete/', CustomPasswordResetCompleteView.as_view(), name='password_reset_complete'),
 ]

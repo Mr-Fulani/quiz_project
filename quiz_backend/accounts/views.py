@@ -5,7 +5,7 @@ import os
 from blog.models import Message
 from django import forms
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView, PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView
@@ -17,9 +17,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, ListView, TemplateView
 from tasks.models import TaskStatistics
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from .utils import send_password_reset_email
 
 from .forms import PersonalInfoForm, CustomPasswordResetForm
 from .models import CustomUser
@@ -432,20 +436,39 @@ def update_settings(request):
         return JsonResponse({'status': 'error', 'message': 'Ошибка при сохранении'}, status=400)
 
 
-class CustomPasswordResetView(PasswordResetView):
-    """Кастомный view для сброса пароля с использованием нашей формы"""
-    template_name = 'registration/password_reset_form.html'
-    email_template_name = 'registration/password_reset_email.txt'
-    html_email_template_name = 'registration/password_reset_email.html'
-    subject_template_name = 'registration/password_reset_subject.txt'
-    form_class = CustomPasswordResetForm
-    success_url = reverse_lazy('password_reset_done')
+def custom_password_reset_view(request):
+    """
+    Полностью кастомное представление для сброса пароля.
+    Напрямую вызывает нашу утилиту отправки email.
+    """
+    if request.method == 'POST':
+        form = CustomPasswordResetForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            try:
+                user = CustomUser.objects.get(email=email)
+            except CustomUser.DoesNotExist:
+                user = None
+
+            if user:
+                # Генерация токена и uid
+                token = default_token_generator.make_token(user)
+                uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+
+                # Отправка письма
+                send_password_reset_email(request, user, uidb64, token)
+
+            return redirect('accounts:password_reset_done')
+    else:
+        form = CustomPasswordResetForm()
+
+    return render(request, 'registration/password_reset_form.html', {'form': form})
 
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     """Кастомный view для подтверждения сброса пароля"""
     template_name = 'registration/password_reset_confirm.html'
-    success_url = reverse_lazy('password_reset_complete')
+    success_url = reverse_lazy('accounts:password_reset_complete')
 
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):
