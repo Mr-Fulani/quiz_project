@@ -75,11 +75,9 @@ urlpatterns = [
     path('', include('blog.urls')),
     #   -> Основные URL-ы приложения blog (home, about, contact, etc.)
 
-    path('accounts/', include('django.contrib.auth.urls')),
-    #   -> Стандартные пути аутентификации (login, logout, password_change, etc.)
-
-    path('users/', include('accounts.urls')),
-    #   -> Подключение URL-ов из приложения accounts (регистрация, профили и т.д.)
+    path('accounts/', include('accounts.urls')),
+    #   -> Подключение НАШИХ URL-ов из accounts.urls в первую очередь
+    #   -> Это включает кастомную регистрацию, профили и сброс пароля
 
     path('donation/', include('donation.urls')),
     #   -> Подключение URL-ов из приложения donation (страница пожертвований)

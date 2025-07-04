@@ -269,11 +269,11 @@
                 </div>
                 <div class="error-message" style="color: red;"></div>
                 <div class="inputBx">
-                    <input type="submit" value="Sign in">
+                    <input type="submit" value="Login">
                 </div>
                 <div class="links">
-                    <a href="#" id="to-forgot">Forgot Password</a>
-                    <a href="#" id="to-register">Sign up</a>
+                    <a href="#" id="to-forgot">{% trans "Forgot Password?" %}</a>
+                    <a href="#" id="to-register">{% trans "Signup" %}</a>
                 </div>
             </form>
         </div>
@@ -323,18 +323,19 @@
         <i style="--clr:#ff0057;"></i>
         <i style="--clr:#fffd44;"></i>
         <div class="login forgot">
-            <span class="close-btn">×</span>
-            <h2>Reset Password</h2>
-            <form method="post" action="{% url 'password_reset' %}">
+            <span class="close-btn">&times;</span>
+            <h2>{% trans "Forgot Password?" %}</h2>
+            <p>{% trans "Enter your email address below and we'll send you a link to reset your password." %}</p>
+            <form method="post" action="{% url 'accounts:password_reset' %}">
                 {% csrf_token %}
                 <div class="inputBx">
-                    <input type="email" name="email" placeholder="Enter your email" required>
+                    <input type="email" name="email" required placeholder="{% trans 'Enter your email' %}">
                 </div>
                 <div class="inputBx">
-                    <input type="submit" value="Send Reset Link">
+                    <input type="submit" value="{% trans 'Send Reset Link' %}">
                 </div>
                 <div class="links">
-                    <a href="#" id="back-to-login">Back to Login</a>
+                    <a href="#" id="back-to-login">{% trans "Back to Login" %}</a>
                 </div>
             </form>
         </div>
