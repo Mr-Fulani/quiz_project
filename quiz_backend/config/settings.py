@@ -292,7 +292,7 @@ STATICFILES_DIRS = [
     # Только общие файлы, папки приложений обрабатываются автоматически
     os.path.join(BASE_DIR, 'static'),  # Общие файлы
 ]
-STATIC_ROOT = os.path.join(BASE_DIR.parent, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 if not DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
