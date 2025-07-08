@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log("=== SETTING PROFILE LINK ===");
                 if (username) {
                     if (isAuthenticated) {
-                        const profileUrl = `/accounts/user/${encodeURIComponent(username)}/`;
+                        const profileUrl = window.userProfileUrlTemplate.replace('__USERNAME__', encodeURIComponent(username));
                         modalProfileLink.href = profileUrl;
                         modalProfileLink.className = 'modal-profile-btn';
                         modalProfileLink.textContent = window.testimonialsTranslations.viewProfile;
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         modalProfileLink.href = '#';
                         modalProfileLink.className = 'open-login-modal';
                         modalProfileLink.textContent = window.testimonialsTranslations.loginToViewProfile;
-                        modalProfileLink.dataset.returnUrl = `/accounts/user/${encodeURIComponent(username)}/`;
+                        modalProfileLink.dataset.returnUrl = window.userProfileUrlTemplate.replace('__USERNAME__', encodeURIComponent(username));
                         delete modalProfileLink.dataset.username;
                         console.log("✓ User not authenticated, login modal required");
                     }
