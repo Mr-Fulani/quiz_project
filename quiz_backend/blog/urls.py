@@ -89,6 +89,7 @@ urlpatterns = [
 
 
     path('contact/submit/', contact_form_submit, name='contact_form_submit'),
-    path('api/check-auth/', check_auth, name='check_auth'),
+    # Перенесено в blog/api/api_urls.py
+    # path('api/check-auth/', check_auth, name='check_auth'),
 
 ]
