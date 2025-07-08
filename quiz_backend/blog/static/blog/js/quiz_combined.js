@@ -670,7 +670,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 loginModal.style.display = 'flex';
             } else {
-                console.error('Login modal not found');
+                console.log('Login modal not found - user may need to login through header link');
+                // Перенаправляем на страницу логина
+                window.location.href = window.location.origin + '/accounts/login/?next=' + encodeURIComponent(window.location.href);
             }
             return;
         }
