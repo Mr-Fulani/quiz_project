@@ -266,6 +266,7 @@
 <script src="{% static 'blog/js/video_control.js' %}"></script>
 <script>
     window.defaultAvatarUrl = '{% static "blog/images/avatar/default_avatar.png" %}';
+    window.userProfileUrlTemplate = "{% url 'accounts:user_profile' username='__USERNAME__' %}";
 </script>
 <script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}

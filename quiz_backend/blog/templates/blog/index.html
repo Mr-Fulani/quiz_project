@@ -261,6 +261,7 @@
 
 <!-- Set up localization strings for testimonials.js -->
 <script>
+window.userProfileUrlTemplate = "{% url 'accounts:user_profile' username='__USERNAME__' %}";
 window.testimonialsTranslations = {
     'viewProfile': '{% trans "View Profile" %}',
     'loginToViewProfile': '{% trans "Login to view profile" %}',
