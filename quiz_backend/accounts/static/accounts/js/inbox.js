@@ -91,7 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
             chatWindow.style.display = 'flex';
         }
 
-        fetch(`/messages/conversation/${username}/`, {
+        const url = window.conversationUrlTemplate.replace('__USERNAME__', username);
+
+        fetch(url, {
             headers: {
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
                 'X-Requested-With': 'XMLHttpRequest'

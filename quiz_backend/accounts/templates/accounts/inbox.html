@@ -84,6 +84,7 @@
 
 {% block scripts %}
 <script>
+    window.conversationUrlTemplate = "{% url 'blog:get_conversation' recipient_username='__USERNAME__' %}";
     var messages = {
         error_loading_conversation: "{% trans 'Error loading conversation.' %}",
         error_sending_message: "{% trans 'Error sending message.' %}",
