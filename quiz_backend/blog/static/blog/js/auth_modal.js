@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const registerModal = document.getElementById('register-modal');
     const forgotModal = document.getElementById('forgot-modal');
 
+    // Проверяем существование модальных окон (для авторизованных пользователей они могут отсутствовать)
+    if (!loginModal) {
+        console.log('Login modal not found - user may be authenticated');
+        return;
+    }
+
     // Отправка формы логина через AJAX
     const loginForm = loginModal.querySelector('.login-form');
     if (loginForm) {
