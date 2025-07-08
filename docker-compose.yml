@@ -66,8 +66,7 @@ services:
     # Команда теперь в entrypoint.sh
     volumes:
       - ./quiz_backend:/app
-      - ./quiz_backend/static:/app/static
-      - ./quiz_backend/staticfiles:/app/staticfiles
+      - static_volume:/app/staticfiles
       - ./media:/app/media
       - ./quiz_backend/templates:/app/templates
     ports:
@@ -108,7 +107,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./quiz_backend/staticfiles:/app/staticfiles
+      - static_volume:/app/staticfiles
       - ./media:/app/media
       - ./certbot/www:/var/www/certbot/
       - ./certbot/conf/:/etc/letsencrypt/
@@ -137,3 +136,4 @@ networks:
 
 volumes:
   postgres_data:
+  static_volume:
