@@ -739,4 +739,4 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('DOMContentLoaded', setupAnswerHandlers);
     document.addEventListener('page:loaded', setupAnswerHandlers);
     document.addEventListener('turbolinks:load', setupAnswerHandlers);
-});
+});// TEMPORARY COMMENT TO FORCE UPDATE
