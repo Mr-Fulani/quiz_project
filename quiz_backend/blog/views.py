@@ -1295,7 +1295,6 @@ def custom_404(request, exception=None):
 
 
 
-@login_required
 def statistics_view(request):
     """
     Отображает статистику по квизам.
