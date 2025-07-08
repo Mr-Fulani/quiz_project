@@ -47,9 +47,23 @@ USE_L10N = False
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
 else:
-    ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
-    if not ALLOWED_HOSTS:
-        logger.warning("ALLOWED_HOSTS environment variable is not set for production.")
+    # Хосты для продакшена - твои домены + localhost для curl
+    env_hosts = os.getenv("ALLOWED_HOSTS", "")
+    if env_hosts:
+        ALLOWED_HOSTS = [h.strip() for h in env_hosts.split(",") if h.strip()]
+        # Добавляем localhost для API тестирования
+        if 'localhost' not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append('localhost')
+        logger.info(f"ALLOWED_HOSTS from env: {ALLOWED_HOSTS}")
+    else:
+        # Фоллбэк только с твоими хостами
+        ALLOWED_HOSTS = [
+            'quiz-code.com',
+            'www.quiz-code.com', 
+            'mini.quiz-code.com',
+            'localhost'
+        ]
+        logger.warning(f"ALLOWED_HOSTS env var not found, using fallback: {ALLOWED_HOSTS}")
 
 # Добавляем хост ngrok для локальной разработки и тестирования
 NGROK_HOST = os.getenv('NGROK_HOST')
