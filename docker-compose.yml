@@ -65,10 +65,8 @@ services:
       - DB_PORT=${DB_PORT}
     # Команда теперь в entrypoint.sh
     volumes:
-      - ./quiz_backend:/app
       - static_volume:/app/staticfiles
       - ./media:/app/media
-      - ./quiz_backend/templates:/app/templates
     ports:
       - "8001:8000"
     depends_on:
