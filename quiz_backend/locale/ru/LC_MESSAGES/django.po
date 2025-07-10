@@ -1127,62 +1127,52 @@ msgid "50%% popularity"
 msgstr "50%% популярности"
 
 #: blog/templates/blog/index.html:266
-#, fuzzy
-#| msgid "Login to track progress"
 msgid "Login to view profile"
-msgstr "Войдите, чтобы отслеживать прогресс"
+msgstr "Войдите, чтобы посмотреть профиль"
 
 #: blog/templates/blog/index.html:267
-#, fuzzy
-#| msgid "No media available"
 msgid "Profile unavailable"
-msgstr "Биография недоступна"
+msgstr "Профиль недоступен"
 
 #: blog/templates/blog/index.html:268
-#, fuzzy
-#| msgid "Modal windows"
 msgid "Modal closed"
-msgstr "Модальные окна"
+msgstr "Модальное окно закрыто"
 
 #: blog/templates/blog/index.html:269
-#, fuzzy
-#| msgid "Modal windows"
 msgid "Modal opened"
-msgstr "Модальные окна"
+msgstr "Модальное окно открыто"
 
 #: blog/templates/blog/index.html:270
 msgid "User not authenticated, preventing modal open"
-msgstr ""
+msgstr "Пользователь не аутентифицирован, предотвращение открытия модального окна"
 
 #: blog/templates/blog/index.html:271
 msgid "Add testimonial modal opened"
-msgstr ""
+msgstr "Модальное окно добавления отзыва открыто"
 
 #: blog/templates/blog/index.html:272
 msgid "Add testimonial button not found"
-msgstr ""
+msgstr "Кнопка добавления отзыва не найдена"
 
 #: blog/templates/blog/index.html:273
 msgid "Add testimonial modal not found"
-msgstr ""
+msgstr "Модальное окно добавления отзыва не найдено"
 
 #: blog/templates/blog/index.html:274
 msgid "Modal not found for closing"
-msgstr ""
+msgstr "Модальное окно не найдено для закрытия"
 
 #: blog/templates/blog/index.html:275
 msgid "Thank you! Your testimonial has been successfully added."
-msgstr ""
+msgstr "Спасибо! Ваш отзыв был успешно добавлен."
 
 #: blog/templates/blog/index.html:276
-#, fuzzy
-#| msgid "An error occurred while resetting statistics."
 msgid "An error occurred while submitting the testimonial. Please try again."
-msgstr "Произошла ошибка при сбросе статистики."
+msgstr "Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте еще раз."
 
 #: blog/templates/blog/index.html:277
 msgid "Add testimonial button clicked, isAuthenticated:"
-msgstr ""
+msgstr "Кнопка добавления отзыва нажата, аутентифицирован:"
 
 #: blog/templates/blog/index.html:350
 msgid "Jan"
