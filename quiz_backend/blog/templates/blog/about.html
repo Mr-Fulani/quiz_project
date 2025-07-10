@@ -268,5 +268,25 @@
     window.defaultAvatarUrl = '{% static "blog/images/avatar/default_avatar.png" %}';
     window.userProfileUrlTemplate = "{% url 'accounts:user_profile' username='__USERNAME__' %}";
 </script>
+
+<!-- Set up localization strings for testimonials.js -->
+<script>
+window.testimonialsTranslations = {
+    'viewProfile': '{% trans "View Profile" %}',
+    'loginToViewProfile': '{% trans "Login to view profile" %}',
+    'profileUnavailable': '{% trans "Profile unavailable" %}',
+    'modalClosed': '{% trans "Modal closed" %}',
+    'modalOpened': '{% trans "Modal opened" %}',
+    'userNotAuthenticated': '{% trans "User not authenticated, preventing modal open" %}',
+    'addTestimonialModalOpened': '{% trans "Add testimonial modal opened" %}',
+    'addTestimonialButtonNotFound': '{% trans "Add testimonial button not found" %}',
+    'addTestimonialModalNotFound': '{% trans "Add testimonial modal not found" %}',
+    'modalNotFoundForClosing': '{% trans "Modal not found for closing" %}',
+    'thankYouTestimonialAdded': '{% trans "Thank you! Your testimonial has been successfully added." %}',
+    'errorSubmittingTestimonial': '{% trans "An error occurred while submitting the testimonial. Please try again." %}',
+    'addTestimonialButtonClicked': '{% trans "Add testimonial button clicked, isAuthenticated:" %}'
+};
+</script>
+
 <script src="{% static 'js/testimonials.js' %}"></script>
 {% endblock %}
