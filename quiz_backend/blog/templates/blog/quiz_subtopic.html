@@ -56,8 +56,7 @@
             <div class="reset-buttons">
                 <form method="post" action="{% url 'blog:reset_subtopic_stats' subtopic.id %}" class="reset-form">
                     {% csrf_token %}
-                    <button type="submit" class="reset-button"
-                            onclick='return confirm("{% trans 'Are you sure you want to retake the test? Statistics for the subtopic' %} &quot;{{ subtopic.name|escapejs }}&quot; {% trans 'will be reset.' %}")'>
+                    <button type="submit" class="reset-button" data-subtopic-name="{{ subtopic.name|escapejs }}">
                         {% trans "Retake Test" %}
                     </button>
                 </form>
@@ -86,11 +85,14 @@
             </div>
         {% endif %}
     </section>
+
+
 </article>
 {% endblock %}
 
 {% block scripts %}
     <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
+    <script src="{% static 'blog/js/auth_modal.js' %}"></script>
     <script>
         /**
          * Checks if the device is mobile.
@@ -170,6 +172,19 @@
          * Updates the statistics reset form handler.
          */
         document.querySelectorAll('.reset-form').forEach(form => {
+            // Add confirmation dialog
+            const button = form.querySelector('.reset-button');
+            if (button) {
+                button.addEventListener('click', function(e) {
+                    const subtopicName = this.getAttribute('data-subtopic-name');
+                    const message = `{% trans 'Are you sure you want to retake the test? Statistics for the subtopic' %} "${subtopicName}" {% trans 'will be reset.' %}`;
+                    if (!confirm(message)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+            
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const url = this.action;

@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     nextInput.value = currentUrl;
                     loginForm.appendChild(nextInput);
                 }
-                loginModal.style.display = 'flex';
+                loginModal.classList.add('active');
             } else {
                 console.log('Login modal not found - user may need to login through header link');
                 // Перенаправляем на страницу логина

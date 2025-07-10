@@ -58,7 +58,7 @@ class LoginView(APIView):
             user = serializer.validated_data['user']
             login(request, user)
             print(f"User {user.username} logged in")
-            next_url = request.POST.get('next', '/')
+            next_url = request.POST.get('next', request.META.get('HTTP_REFERER', '/'))
             return Response({
                 'success': True,
                 'user': UserSerializer(user).data,
