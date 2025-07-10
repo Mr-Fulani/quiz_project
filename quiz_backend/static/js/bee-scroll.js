@@ -136,21 +136,31 @@ loader.load(
     bee = gltf.scene;
     scene.add(bee);
     
-    // Проверяем, изменился ли тип устройства и очищаем сохраненные данные если нужно
+    // Проверяем версию пчелы и очищаем старые данные
     const isMobile = window.innerWidth <= 580;
     const savedDeviceType = localStorage.getItem('beeDeviceType');
     const currentDeviceType = isMobile ? 'mobile' : 'desktop';
+    const savedVersion = localStorage.getItem('beeScaleVersion');
+    const currentVersion = 'v2.1'; // Новая версия для сброса размеров
     
     if (savedDeviceType && savedDeviceType !== currentDeviceType) {
       // Устройство изменилось, очищаем сохраненную позицию и масштаб
       localStorage.removeItem('beePosition');
       console.log("Device type changed from", savedDeviceType, "to", currentDeviceType, "- cleared saved data");
     }
+    
+    if (savedVersion !== currentVersion) {
+      // Версия изменилась, очищаем сохраненные данные для применения новых размеров
+      localStorage.removeItem('beePosition');
+      localStorage.setItem('beeScaleVersion', currentVersion);
+      console.log("Bee scale version updated to", currentVersion, "- cleared saved data");
+    }
+    
     localStorage.setItem('beeDeviceType', currentDeviceType);
     
     // Устанавливаем масштаб в зависимости от ширины экрана
     // Можно увеличить эти значения, если пчела все еще кажется маленькой
-    const scale = isMobile ? 0.4 : 0.3; // Увеличили размер на мобильных еще больше
+    const scale = isMobile ? 0.25 : 0.3; // Уменьшили размер пчелы на мобильных
     bee.scale.set(scale, scale, scale);
     console.log("✅ Bee scale set to:", scale, "isMobile:", isMobile);
     
