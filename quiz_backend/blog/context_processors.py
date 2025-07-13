@@ -614,7 +614,15 @@ def telegram_settings(request):
     """
     Добавляет настройки Telegram в контекст всех шаблонов.
     """
+    username = getattr(settings, 'TELEGRAM_BOT_USERNAME', '')
+    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
+    
+    # Отладочная информация в консоли Django
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Telegram settings: username='{username}', token='{token[:10] if token else 'None'}...'")
+    
     return {
-        'TELEGRAM_BOT_USERNAME': getattr(settings, 'TELEGRAM_BOT_USERNAME', ''),
-        'TELEGRAM_BOT_TOKEN': getattr(settings, 'TELEGRAM_BOT_TOKEN', ''),
+        'TELEGRAM_BOT_USERNAME': username,
+        'TELEGRAM_BOT_TOKEN': token,
     }
