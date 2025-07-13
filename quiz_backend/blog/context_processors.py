@@ -602,3 +602,19 @@ def dynamic_seo_context(request):
         logger.error(f"Error in dynamic_seo_context: {e}")
     
     return {'dynamic_seo': seo_data}
+
+"""
+Контекстные процессоры для приложения blog.
+"""
+
+from django.conf import settings
+
+
+def telegram_settings(request):
+    """
+    Добавляет настройки Telegram в контекст всех шаблонов.
+    """
+    return {
+        'TELEGRAM_BOT_USERNAME': getattr(settings, 'TELEGRAM_BOT_USERNAME', ''),
+        'TELEGRAM_BOT_TOKEN': getattr(settings, 'TELEGRAM_BOT_TOKEN', ''),
+    }

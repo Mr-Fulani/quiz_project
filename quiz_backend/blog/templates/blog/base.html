@@ -271,6 +271,65 @@
                 <div class="inputBx">
                     <input type="submit" value="Login">
                 </div>
+                
+                <!-- Разделитель -->
+                <div class="auth-divider">
+                    <span>{% trans "или" %}</span>
+                </div>
+                
+                <!-- Telegram Login Widget -->
+                <div class="inputBx" style="display: flex; justify-content: center; align-items: center;">
+                    <script async src="https://telegram.org/js/telegram-widget.js?7"
+                            data-telegram-login="{{ TELEGRAM_BOT_USERNAME }}"
+                            data-size="large"
+                            data-userpic="true"
+                            data-request-access="write"
+                            data-lang="ru"
+                            data-onauth="onTelegramAuth(user)">
+                    </script>
+                    
+                    <!-- Fallback кнопка для тестирования -->
+                    <button onclick="testTelegramAuth()" style="background: #0088cc; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">
+                        🔵 Войти через Telegram (тест)
+                    </button>
+                    <script>
+                    function testTelegramAuth() {
+                        console.log('Тестирование Telegram API...');
+                        // Тестовые данные пользователя
+                        const testUser = {
+                            id: 123456789,
+                            first_name: 'Test',
+                            last_name: 'User',
+                            username: 'testuser',
+                            photo_url: 'https://t.me/i/userpic/320/testuser.jpg',
+                            auth_date: Math.floor(Date.now() / 1000),
+                            hash: 'test_hash'
+                        };
+                        fetch('/api/social-auth/telegram/auth/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            },
+                            body: JSON.stringify(testUser)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Ответ сервера:', data);
+                            if (data.success) {
+                                alert('✅ API работает! ' + (data.message || ''));
+                            } else {
+                                alert('❌ Ошибка API: ' + (data.error || 'Неизвестная ошибка'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка при тестировании API:', error);
+                            alert('❌ Ошибка сети при тестировании API');
+                        });
+                    }
+                    </script>
+                </div>
+                
                 <div class="links">
                     <a href="#" id="to-forgot">{% trans "Forgot Password?" %}</a>
                     <a href="#" id="to-register">{% trans "Signup" %}</a>
@@ -350,6 +409,42 @@
 <script defer src="{% static 'blog/js/auth_modal.js' %}"></script>
 <!-- Password animation -->
 <script defer src="{% static 'blog/js/password-animation.js' %}"></script>
+<!-- Telegram Auth -->
+<!-- <script defer src="{% static 'social_auth/js/telegram-auth.js' %}"></script> -->
+
+<script>
+// Функция для обработки авторизации через Telegram
+function onTelegramAuth(user) {
+    console.log('Telegram авторизация:', user);
+    
+    // Отправляем данные на сервер
+    fetch('/api/social-auth/telegram/auth/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify(user)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Показываем уведомление об успехе
+            alert(data.message || 'Успешная авторизация через Telegram!');
+            
+            // Перезагружаем страницу
+            window.location.reload();
+        } else {
+            // Показываем ошибку
+            alert(data.error || 'Ошибка авторизации');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка при авторизации через Telegram:', error);
+        alert('Ошибка сети');
+    });
+}
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

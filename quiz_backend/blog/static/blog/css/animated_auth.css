@@ -288,3 +288,67 @@
     50% { box-shadow: 0 0 15px rgba(255, 0, 87, 0.5); }
     100% { box-shadow: 0 0 10px rgba(255, 0, 87, 0.3); }
 }
+
+
+
+
+
+
+
+
+/* Стили для разделителя в форме авторизации */
+.auth-divider {
+    position: relative;
+    text-align: center;
+    margin: 20px 0;
+    color: #fff;
+}
+
+.auth-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.auth-divider span {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 0 15px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Стили для Telegram Login Widget */
+#telegram-login-widget {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40px;
+}
+
+#telegram-login-widget iframe {
+    border-radius: 8px !important;
+    border: none !important;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .square {
+        width: 90%;
+        max-width: 400px;
+        height: auto;
+        min-height: 500px;
+    }
+    
+    .login {
+        width: 100%;
+        padding: 20px;
+    }
+    
+    .auth-divider {
+        margin: 15px 0;
+    }
+}
