@@ -279,6 +279,8 @@
                 
                 <!-- Telegram Login Widget -->
                 <div class="inputBx" style="display: flex; justify-content: center; align-items: center;">
+                    <!-- Debug info -->
+                    <script>console.log('TELEGRAM_BOT_USERNAME: "{{ TELEGRAM_BOT_USERNAME }}"');</script>
                     <script async src="https://telegram.org/js/telegram-widget.js?7"
                             data-telegram-login="{{ TELEGRAM_BOT_USERNAME }}"
                             data-size="large"
@@ -295,6 +297,14 @@
                     <script>
                     function testTelegramAuth() {
                         console.log('Тестирование Telegram API...');
+                        
+                        // Проверяем CSRF токен
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                        if (!csrfToken) {
+                            alert('❌ CSRF токен не найден на странице');
+                            return;
+                        }
+                        
                         // Тестовые данные пользователя
                         const testUser = {
                             id: 123456789,
@@ -305,15 +315,24 @@
                             auth_date: Math.floor(Date.now() / 1000),
                             hash: 'test_hash'
                         };
+                        
+                        console.log('Отправляем тестовые данные:', testUser);
+                        
                         fetch('/api/social-auth/telegram/auth/', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                                'X-CSRFToken': csrfToken.value,
                             },
                             body: JSON.stringify(testUser)
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            console.log('Статус ответа:', response.status);
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             console.log('Ответ сервера:', data);
                             if (data.success) {
@@ -324,7 +343,7 @@
                         })
                         .catch(error => {
                             console.error('Ошибка при тестировании API:', error);
-                            alert('❌ Ошибка сети при тестировании API');
+                            alert('❌ Ошибка сети при тестировании API: ' + error.message);
                         });
                     }
                     </script>
@@ -417,17 +436,31 @@
 function onTelegramAuth(user) {
     console.log('Telegram авторизация:', user);
     
+    // Проверяем CSRF токен
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        alert('❌ CSRF токен не найден на странице');
+        return;
+    }
+    
     // Отправляем данные на сервер
     fetch('/api/social-auth/telegram/auth/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-CSRFToken': csrfToken.value,
         },
         body: JSON.stringify(user)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Статус ответа:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Ответ сервера:', data);
         if (data.success) {
             // Показываем уведомление об успехе
             alert(data.message || 'Успешная авторизация через Telegram!');
@@ -441,7 +474,7 @@ function onTelegramAuth(user) {
     })
     .catch(error => {
         console.error('Ошибка при авторизации через Telegram:', error);
-        alert('Ошибка сети');
+        alert('Ошибка сети: ' + error.message);
     });
 }
 </script>
