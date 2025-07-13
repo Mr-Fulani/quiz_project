@@ -287,7 +287,9 @@
                             data-userpic="true"
                             data-request-access="write"
                             data-lang="ru"
-                            data-onauth="onTelegramAuth(user)">
+                            data-onauth="onTelegramAuth(user)"
+                            onload="console.log('Telegram widget loaded successfully')"
+                            onerror="console.error('Failed to load Telegram widget')">
                     </script>
                     
                     <!-- Fallback кнопка для тестирования -->
@@ -432,16 +434,22 @@
 <!-- <script defer src="{% static 'social_auth/js/telegram-auth.js' %}"></script> -->
 
 <script>
-// Функция для обработки авторизации через Telegram
-function onTelegramAuth(user) {
-    console.log('Telegram авторизация:', user);
+// Глобальная функция для отладки Telegram виджета
+window.onTelegramAuth = function(user) {
+    console.log('=== TELEGRAM AUTH CALLED ===');
+    console.log('User data:', user);
+    console.log('User type:', typeof user);
+    console.log('User keys:', Object.keys(user));
     
     // Проверяем CSRF токен
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
     if (!csrfToken) {
+        console.error('CSRF token not found');
         alert('❌ CSRF токен не найден на странице');
         return;
     }
+    
+    console.log('CSRF token found:', csrfToken.value.substring(0, 10) + '...');
     
     // Отправляем данные на сервер
     fetch('/api/social-auth/telegram/auth/', {
@@ -453,29 +461,34 @@ function onTelegramAuth(user) {
         body: JSON.stringify(user)
     })
     .then(response => {
-        console.log('Статус ответа:', response.status);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         return response.json();
     })
     .then(data => {
-        console.log('Ответ сервера:', data);
+        console.log('Server response:', data);
         if (data.success) {
-            // Показываем уведомление об успехе
+            console.log('✅ Auth successful, reloading page...');
             alert(data.message || 'Успешная авторизация через Telegram!');
-            
-            // Перезагружаем страницу
             window.location.reload();
         } else {
-            // Показываем ошибку
+            console.error('❌ Auth failed:', data.error);
             alert(data.error || 'Ошибка авторизации');
         }
     })
     .catch(error => {
-        console.error('Ошибка при авторизации через Telegram:', error);
+        console.error('❌ Network error:', error);
         alert('Ошибка сети: ' + error.message);
     });
+};
+
+// Функция для обработки авторизации через Telegram (дублирует глобальную)
+function onTelegramAuth(user) {
+    // Вызываем глобальную функцию
+    window.onTelegramAuth(user);
 }
 </script>
 
