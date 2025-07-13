@@ -925,6 +925,37 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         stats.selected_answer = selected_answer
         stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
 
+    # Обновляем статистику пользователя
+    try:
+        from django.db.models import Count, Q
+        user_stats = TaskStatistics.objects.filter(user=request.user).aggregate(
+            total_attempts=Count('id'),
+            successful_attempts=Count('id', filter=Q(successful=True))
+        )
+        
+        # Обновляем поля в модели пользователя
+        request.user.quizzes_completed = user_stats['successful_attempts']
+        request.user.average_score = round((user_stats['successful_attempts'] / user_stats['total_attempts'] * 100) if user_stats['total_attempts'] > 0 else 0, 1)
+        request.user.total_points = request.user.calculate_rating()
+        
+        # Получаем любимую категорию
+        favorite_topic = TaskStatistics.objects.filter(
+            user=request.user,
+            successful=True
+        ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
+        
+        if favorite_topic:
+            request.user.favorite_category = favorite_topic['task__topic__name']
+        
+        request.user.save(update_fields=['quizzes_completed', 'average_score', 'total_points', 'favorite_category'])
+        
+        # Очищаем кэш статистики
+        request.user.invalidate_statistics_cache()
+        
+        logger.info(f"User stats updated: quizzes={request.user.quizzes_completed}, avg_score={request.user.average_score}%, points={request.user.total_points}")
+    except Exception as e:
+        logger.error(f"Error updating user statistics: {e}")
+
     logger.info(f"Answer submitted for task_id={task_id}, user={request.user}, is_correct={is_correct}")
     return JsonResponse({
         'status': 'success',

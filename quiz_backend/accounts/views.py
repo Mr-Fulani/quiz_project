@@ -249,6 +249,14 @@ class UserProfileView(LoginRequiredMixin, DetailView):
     slug_field = 'username'
     slug_url_kwarg = 'username'
 
+    def get_queryset(self):
+        """Добавляем аннотации для статистики."""
+        from django.db.models import Count, Q
+        return CustomUser.objects.annotate(
+            tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
+            total_score=CustomUser.get_rating_annotation()
+        )
+
     def get_context_data(self, **kwargs):
         """
         Определяем, является ли текущий user владельцем профиля (is_owner).
@@ -268,8 +276,12 @@ class UserListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        """Фильтрация не-администраторов."""
-        return CustomUser.objects.exclude(is_staff=True).order_by('-date_joined')
+        """Фильтрация не-администраторов с аннотацией статистики."""
+        from django.db.models import Count, Q
+        return CustomUser.objects.exclude(is_staff=True).annotate(
+            tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
+            total_score=CustomUser.get_rating_annotation()
+        ).order_by('-date_joined')
 
 
 @login_required
@@ -277,7 +289,11 @@ def user_list(request):
     """
     Отображение списка активных пользователей (кроме текущего).
     """
-    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).order_by('-last_seen')
+    from django.db.models import Count, Q
+    users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).annotate(
+        tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
+        total_score=CustomUser.get_rating_annotation()
+    ).order_by('-last_seen')
     paginator = Paginator(users_list, 12)
     page = request.GET.get('page')
     users = paginator.get_page(page)
