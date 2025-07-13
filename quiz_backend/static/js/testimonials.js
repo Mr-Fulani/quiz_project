@@ -104,7 +104,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log("=== SETTING PROFILE LINK ===");
                 if (username) {
                     if (isAuthenticated) {
-                        const profileUrl = `/accounts/user/${encodeURIComponent(username)}/`;
+                        // Use the URL template from Django to ensure proper localization
+                        const userProfileUrlTemplate = window.userProfileUrlTemplate || '/accounts/user/__USERNAME__/';
+                        const profileUrl = userProfileUrlTemplate.replace('__USERNAME__', encodeURIComponent(username));
                         modalProfileLink.href = profileUrl;
                         modalProfileLink.className = 'modal-profile-btn';
                         modalProfileLink.textContent = window.testimonialsTranslations.viewProfile;
@@ -115,7 +117,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         modalProfileLink.href = '#';
                         modalProfileLink.className = 'open-login-modal';
                         modalProfileLink.textContent = window.testimonialsTranslations.loginToViewProfile;
-                        modalProfileLink.dataset.returnUrl = `/accounts/user/${encodeURIComponent(username)}/`;
+                        // Use the URL template from Django for return URL as well
+                        const userProfileUrlTemplate = window.userProfileUrlTemplate || '/accounts/user/__USERNAME__/';
+                        modalProfileLink.dataset.returnUrl = userProfileUrlTemplate.replace('__USERNAME__', encodeURIComponent(username));
                         delete modalProfileLink.dataset.username;
                         console.log("✓ User not authenticated, login modal required");
                     }
