@@ -58,6 +58,7 @@ urlpatterns = [
     path('api/', include('blog.api.api_urls')),  # Добавляем blog API
     path('api/accounts/', include('accounts.api.api_urls')),  # Добавляем accounts API
     path('api/webhooks/', include('webhooks.urls')),
+    path('api/social-auth/', include('social_auth.urls')),  # Добавляем social_auth API
     
     # Donation API endpoints (вне языковых паттернов)
     path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),
@@ -78,6 +79,9 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     #   -> Подключение НАШИХ URL-ов из accounts.urls в первую очередь
     #   -> Это включает кастомную регистрацию, профили и сброс пароля
+
+    path('social-auth/', include('social_auth.urls')),
+    #   -> Подключение URL-ов для социальной аутентификации
 
     path('donation/', include('donation.urls')),
     #   -> Подключение URL-ов из приложения donation (страница пожертвований)

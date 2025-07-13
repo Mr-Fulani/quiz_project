@@ -63,6 +63,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-QUIZ-CODE}
     # Команда теперь в entrypoint.sh
     volumes:
       - static_volume:/app/staticfiles

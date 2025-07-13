@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     # Ваши приложения
     'accounts',
     'donation',
+    'social_auth',
 
     # REST framework
     'rest_framework',
@@ -222,6 +223,7 @@ TEMPLATES = [
                 'blog.context_processors.seo_context',
                 'blog.context_processors.dynamic_seo_context',  # НОВЫЙ SEO контекст!
                 'blog.context_processors.analytics_context',
+                'blog.context_processors.telegram_settings',  # Telegram настройки
             ],
             # 'loaders': [
             #     'django.template.loaders.filesystem.Loader',
@@ -478,7 +480,7 @@ DEFAULT_OG_IMAGE_WIDTH = 1200
 DEFAULT_OG_IMAGE_HEIGHT = 630
 
 # Site Information
-SITE_NAME = 'QuizHub'
+SITE_NAME = 'QUIZ-CODE'
 SITE_DESCRIPTION = 'Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#'
 SITE_URL = 'https://quiz-code.com'
 
@@ -489,6 +491,15 @@ TWITTER_CREATOR = '@mr_fulani'
 # SEO Settings
 DEFAULT_META_DESCRIPTION = 'Master programming with interactive quizzes and tutorials. Learn Python, JavaScript, Go, Java, C# through practical coding challenges.'
 DEFAULT_META_KEYWORDS = 'programming quiz, coding challenges, Python tutorial, JavaScript learning, programming education'
+
+# Telegram Settings
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', 'QUIZ-CODE')
+TELEGRAM_WEBHOOK_SECRET = os.getenv('TELEGRAM_WEBHOOK_SECRET', '')
+
+# Social Auth Settings
+SOCIAL_AUTH_TELEGRAM_ENABLED = True
+SOCIAL_AUTH_TELEGRAM_BOT_NAME = os.getenv('TELEGRAM_BOT_USERNAME', 'QUIZ-CODE')
 
 
 
