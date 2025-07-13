@@ -50,6 +50,22 @@ def personal_info(request):
                         successful=True
                     ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
 
+                    # Используем данные из модели пользователя, если они есть, иначе рассчитываем
+                    if user.quizzes_completed > 0 and user.average_score > 0:
+                        # Используем сохраненные данные
+                        avg_score = user.average_score
+                        quizzes_count = user.quizzes_completed
+                        total_score = user.total_points
+                        favorite_category = user.favorite_category or _("Not determined")
+                    else:
+                        # Рассчитываем на лету
+                        successful_attempts = TaskStatistics.objects.filter(user=user, successful=True).count()
+                        total_attempts = TaskStatistics.objects.filter(user=user).count()
+                        avg_score = round((successful_attempts / total_attempts * 100) if total_attempts > 0 else 0, 1)
+                        quizzes_count = user.tasks_completed
+                        total_score = (user.total_score or 0)
+                        favorite_category = favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
+
                     avatar_url = user.get_avatar_url
                     user_data = {
                         'rank': i,
@@ -57,13 +73,14 @@ def personal_info(request):
                         'name': f"{user.first_name} {user.last_name}".strip() or user.username,
                         'display_name': f"{user.first_name} {user.last_name}".strip() or user.username,
                         'avatar': avatar_url,
-                        'quizzes_count': user.tasks_completed,
-                        'avg_score': 0,
-                        'total_score': (user.total_score or 0),
-                        'total_score_formatted': f"{(user.total_score or 0)} pts",
-                        'favorite_category': favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
+                        'quizzes_count': quizzes_count,
+                        'avg_score': avg_score,
+                        'total_score': total_score,
+                        'total_score_formatted': f"{total_score} pts",
+                        'favorite_category': favorite_category
                     }
                     top_users_data.append(user_data)
+                    logger.info(f"=== DEBUG: User {user.username} stats - tasks: {user.tasks_completed}, score: {user.total_score}, avg: {avg_score}%")
                 except Exception as e:
                     logger.error(f"Error processing user {user.username}: {e}")
                     continue

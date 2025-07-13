@@ -37,11 +37,11 @@
                 <div class="client-stats">
                     <div class="stat">
                         <ion-icon name="trophy-outline"></ion-icon>
-                        <span>{% trans "Points" %}: {{ user.total_points }}</span>
+                        <span>{% trans "Points" %}: {{ user.total_score|default:0 }}</span>
                     </div>
                     <div class="stat">
                         <ion-icon name="checkbox-outline"></ion-icon>
-                        <span>{% trans "Quizzes" %}: {{ user.quizzes_completed }}</span>
+                        <span>{% trans "Quizzes" %}: {{ user.tasks_completed|default:0 }}</span>
                     </div>
                 </div>
             </div>
