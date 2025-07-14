@@ -9,7 +9,7 @@ from .views import (
     MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
     quiz_difficulty, reset_subtopic_stats, check_auth
 )
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 
 
 
@@ -18,6 +18,11 @@ app_name = 'blog'
 
 def debug_view(request):
     return HttpResponse("Debug view is working!")
+
+
+def telegram_auth_debug_view(request):
+    """Диагностическая страница для отладки Telegram Login Widget"""
+    return render(request, 'blog/telegram_auth_debug.html')
 
 
 urlpatterns = [
@@ -46,6 +51,7 @@ urlpatterns = [
     #   -> Страница "Контакты"
 
     path('debug/', debug_view, name='debug_view'),
+    path('telegram-auth-debug/', telegram_auth_debug_view, name='telegram_auth_debug'),
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),

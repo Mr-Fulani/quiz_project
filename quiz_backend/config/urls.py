@@ -60,6 +60,9 @@ urlpatterns = [
     path('api/webhooks/', include('webhooks.urls')),
     path('api/social-auth/', include('social_auth.urls')),  # Добавляем social_auth API
     
+    # Debug endpoints (вне языковых паттернов)
+    path('debug/telegram-auth/', include('blog.urls')),
+    
     # Donation API endpoints (вне языковых паттернов)
     path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),
     path('donation/create-payment-method/', create_payment_method, name='create_payment_method'),
@@ -80,7 +83,7 @@ urlpatterns = [
     #   -> Подключение НАШИХ URL-ов из accounts.urls в первую очередь
     #   -> Это включает кастомную регистрацию, профили и сброс пароля
 
-    path('social-auth/', include('social_auth.urls')),
+    # path('social-auth/', include('social_auth.urls')),  # Убираем дублирование - уже подключено в API секции
     #   -> Подключение URL-ов для социальной аутентификации
 
     path('donation/', include('donation.urls')),

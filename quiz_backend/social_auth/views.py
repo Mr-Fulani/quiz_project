@@ -36,9 +36,12 @@ class TelegramAuthView(APIView):
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
+            logger.info(f"Получен запрос авторизации Telegram: {request.data}")
+            
             # Валидируем данные
             serializer = TelegramAuthSerializer(data=request.data)
             if not serializer.is_valid():
+                logger.error(f"Ошибка валидации: {serializer.errors}")
                 return Response({
                     'success': False,
                     'error': 'Неверные данные авторизации',
@@ -170,7 +173,7 @@ def enabled_providers(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def telegram_auth_redirect(request):
     """
     Обработчик для редиректа после авторизации через Telegram.
@@ -179,8 +182,19 @@ def telegram_auth_redirect(request):
     и перенаправления пользователя.
     """
     try:
-        # Обрабатываем авторизацию
-        result = TelegramAuthService.process_telegram_auth(request.POST, request)
+        logger.info(f"=== TELEGRAM REDIRECT CALLED ===")
+        logger.info(f"Method: {request.method}")
+        logger.info(f"URL: {request.build_absolute_uri()}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"GET params: {dict(request.GET)}")
+        logger.info(f"POST params: {dict(request.POST)}")
+        logger.info(f"User-Agent: {request.META.get('HTTP_USER_AGENT', 'Unknown')}")
+        logger.info(f"Referer: {request.META.get('HTTP_REFERER', 'Unknown')}")
+        
+        # Обрабатываем авторизацию (проверяем и POST и GET)
+        data = request.POST if request.method == 'POST' else request.GET
+        logger.info(f"Telegram redirect: method={request.method}, data={data}")
+        result = TelegramAuthService.process_telegram_auth(data, request)
         
         if not result or not result.get('success'):
             # При ошибке перенаправляем на страницу входа с ошибкой
