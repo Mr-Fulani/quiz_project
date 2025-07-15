@@ -40,7 +40,9 @@ class TelegramAuthView(APIView):
             
             # Валидируем данные
             serializer = TelegramAuthSerializer(data=request.data)
+            logger.info(f"Данные для валидации: {request.data}")
             if not serializer.is_valid():
+                logger.error(f"Ошибка валидации сериализатора: {serializer.errors}")
                 logger.error(f"Ошибка валидации: {serializer.errors}")
                 return Response({
                     'success': False,
@@ -48,11 +50,15 @@ class TelegramAuthView(APIView):
                     'details': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
+            
             # Обрабатываем авторизацию
             result = TelegramAuthService.process_telegram_auth(
                 serializer.validated_data, 
                 request
             )
+            
+            logger.info(f"Результат обработки авторизации: {result}")
             
             if not result or not result.get('success'):
                 return Response({
@@ -81,6 +87,10 @@ class TelegramAuthView(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
             
         except Exception as e:
+            logger.error(f"Детальная ошибка в TelegramAuthView: {e}")
+            logger.error(f"Тип ошибки: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             logger.error(f"Ошибка в TelegramAuthView: {e}")
             return Response({
                 'success': False,
