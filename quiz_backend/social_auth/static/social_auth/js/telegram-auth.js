@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('telegram-login-widget');
     if (container) {
         window.telegramAuth = new TelegramAuth({
-            botName: 'backend_hub_bot', // Имя вашего бота
+            botName: 'mr_proger_bot', // Имя вашего бота
             lang: document.documentElement.lang || 'ru'
         });
     }
