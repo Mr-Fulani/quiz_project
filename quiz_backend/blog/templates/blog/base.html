@@ -357,8 +357,8 @@
                             data-userpic="true"
                             data-request-access="write"
                             data-lang="ru"
-                                                data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"
-                    data-origin="https://quiz-code.com">
+                            data-onauth="handleTelegramAuth"
+                            data-origin="https://quiz-code.com">
                     </script>
                 </div>
                 
@@ -774,6 +774,15 @@
     // Глобальная функция для обработки авторизации через Telegram
     function handleTelegramAuth(user) {
         console.log('🔐 Telegram auth callback called:', user);
+        console.log('🔍 Тип user:', typeof user);
+        console.log('🔍 Содержимое user:', JSON.stringify(user, null, 2));
+        
+        // Проверяем, что user содержит необходимые данные
+        if (!user || !user.id) {
+            console.error('❌ Некорректные данные пользователя:', user);
+            alert('Ошибка: некорректные данные пользователя');
+            return;
+        }
         
         // Отправляем данные на сервер
         fetch('/api/social-auth/telegram/auth/', {
@@ -784,7 +793,10 @@
             },
             body: JSON.stringify(user)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 Статус ответа:', response.status);
+            return response.json();
+        })
         .then(data => {
             console.log('📥 Ответ сервера:', data);
             if (data.success) {
