@@ -67,6 +67,7 @@ services:
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-QUIZ-CODE}
     # Команда теперь в entrypoint.sh
     volumes:
+      - ./quiz_backend:/app
       - static_volume:/app/staticfiles
       - ./media:/app/media
     ports:
