@@ -246,52 +246,183 @@
         <div id="debug" class="debug"></div>
         
         <div class="solutions">
-            <h3>🛠️ Решения проблемы:</h3>
+            <h3>🛠️ Решения проблемы (из интернета):</h3>
             
             <div class="solution">
-                <h4>🔴 Найденная синтаксическая ошибка</h4>
+                <h4>🔴 РЕШЕНИЕ 1: Использование window.Telegram вместо TelegramLoginWidget</h4>
                 <div class="error-highlight">
-                    <p><strong>Проблема:</strong> В атрибуте <code>data-onauth</code> был указан вызов функции с параметром:</p>
-                    <pre>data-onauth="handleTelegramAuth(user)"</pre>
-                    <p><strong>Решение:</strong> Убрать параметр, оставив только имя функции:</p>
-                    <pre>data-onauth="handleTelegramAuth"</pre>
-                    <p><strong>Объяснение:</strong> Telegram Widget автоматически передает объект пользователя в callback-функцию как первый параметр.</p>
+                    <p><strong>Проблема:</strong> В новых версиях Telegram Widget API изменился. Объект <code>window.TelegramLoginWidget</code> больше не существует.</p>
+                    <p><strong>Решение:</strong> Использовать <code>window.Telegram</code>:</p>
+                    <pre>// Вместо этого:
+if (window.TelegramLoginWidget) {
+    window.TelegramLoginWidget.dataOnauth = handleTelegramAuth;
+}
+
+// Используйте это:
+if (window.Telegram) {
+    window.Telegram.LoginWidget.dataOnauth = handleTelegramAuth;
+}</pre>
                 </div>
             </div>
             
             <div class="solution">
-                <h4>1. Проверка настроек BotFather</h4>
-                <p>В BotFather выполните следующие команды:</p>
-                <pre>/setdomain
-                    mr_proger_bot
-quiz-code.com</pre>
-                <p><strong>⚠️ Важно:</strong> Домен должен быть указан без <code>https://</code> и без слеша в конце!</p>
-                <button class="test-btn warning" onclick="checkBotFatherSettings()">Проверить настройки</button>
+                <h4>🔴 РЕШЕНИЕ 2: Правильная инициализация виджета</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Виджет не инициализируется правильно.</p>
+                    <p><strong>Решение:</strong> Использовать правильную структуру:</p>
+                    <pre>&lt;script async src="https://telegram.org/js/telegram-widget.js?22"&gt;&lt;/script&gt;
+&lt;script&gt;
+    // Ждем загрузки виджета
+    window.addEventListener('load', function() {
+        // Создаем виджет программно
+        const widget = new window.Telegram.LoginWidget({
+            dataOnauth: function(user) {
+                console.log('Auth success:', user);
+                handleTelegramAuth(user);
+            }
+        });
+        
+        // Или устанавливаем глобальный обработчик
+        window.Telegram.LoginWidget.dataOnauth = handleTelegramAuth;
+    });
+&lt;/script&gt;</pre>
+                </div>
             </div>
             
             <div class="solution">
-                <h4>2. Использование auth-url вместо onauth</h4>
-                <p>Замените <code>data-onauth</code> на <code>data-auth-url</code>:</p>
-                <pre>data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"</pre>
-                <p>Это более надежный метод, который не зависит от Same-Origin Policy.</p>
-            </div>
-            
-            <div class="solution">
-                <h4>3. Настройка CORS на сервере</h4>
-                <p>Добавьте в Django settings:</p>
-                <pre>CORS_ALLOWED_ORIGINS = [
-    "https://oauth.telegram.org",
-    "https://telegram.org"
-]
+                <h4>🔴 РЕШЕНИЕ 3: Использование data-onauth без параметров</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Неправильный синтаксис в data-onauth.</p>
+                    <p><strong>Решение:</strong> Убрать все параметры из data-onauth:</p>
+                    <pre>// НЕПРАВИЛЬНО:
+data-onauth="handleTelegramAuth(user)"
 
-CORS_ALLOW_CREDENTIALS = True</pre>
+// ПРАВИЛЬНО:
+data-onauth="handleTelegramAuth"</pre>
+                </div>
             </div>
             
             <div class="solution">
-                <h4>4. Проверка SSL сертификата</h4>
-                <p>Убедитесь, что ваш ngrok домен использует действительный SSL-сертификат:</p>
-                <pre>ngrok http 8001 --domain=quiz-code.com</pre>
-                <p>Или используйте бесплатный домен ngrok с автоматическим SSL.</p>
+                <h4>🔴 РЕШЕНИЕ 4: Использование data-auth-url вместо data-onauth</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Callback функция не вызывается из-за CORS или других ограничений.</p>
+                    <p><strong>Решение:</strong> Использовать редирект вместо callback:</p>
+                    <pre>&lt;script async src="https://telegram.org/js/telegram-widget.js?22"
+        data-telegram-login="backend_hub_bot"
+        data-size="large"
+        data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"
+        data-origin="https://quiz-code.com"&gt;
+&lt;/script&gt;</pre>
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h4>🔴 РЕШЕНИЕ 5: Проверка версии виджета</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Устаревшая версия виджета.</p>
+                    <p><strong>Решение:</strong> Использовать последнюю версию:</p>
+                    <pre>// Обновите URL виджета:
+src="https://telegram.org/js/telegram-widget.js?22"
+
+// Или попробуйте без версии:
+src="https://telegram.org/js/telegram-widget.js"</pre>
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h4>🔴 РЕШЕНИЕ 6: Альтернативный способ - iframe с postMessage</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Все вышеперечисленные методы не работают.</p>
+                    <p><strong>Решение:</strong> Создать собственный iframe:</p>
+                    <pre>&lt;iframe src="https://oauth.telegram.org/auth?bot_id=YOUR_BOT_ID&amp;origin=https://quiz-code.com&amp;return_to=https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/iframe&gt;
+
+&lt;script&gt;
+window.addEventListener('message', function(event) {
+    if (event.origin === 'https://oauth.telegram.org') {
+        console.log('Telegram auth data:', event.data);
+        handleTelegramAuth(event.data);
+    }
+});
+&lt;/script&gt;</pre>
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h4>🔴 РЕШЕНИЕ 7: Проверка настроек BotFather</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Неправильные настройки в BotFather.</p>
+                    <p><strong>Решение:</strong> Выполните в BotFather:</p>
+                    <pre>/setdomain
+backend_hub_bot
+quiz-code.com
+
+/setjoingroups
+backend_hub_bot
+Enabled
+
+/setprivacy
+backend_hub_bot
+Disabled</pre>
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h4>🔴 РЕШЕНИЕ 8: Отладка через консоль браузера</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Нужно понять, что именно происходит.</p>
+                    <p><strong>Решение:</strong> Добавьте отладку:</p>
+                    <pre>&lt;script&gt;
+// Проверяем все возможные объекты
+console.log('window.Telegram:', window.Telegram);
+console.log('window.TelegramLoginWidget:', window.TelegramLoginWidget);
+console.log('window.TelegramAuth:', window.TelegramAuth);
+
+// Перехватываем все сообщения
+window.addEventListener('message', function(event) {
+    console.log('PostMessage from:', event.origin, event.data);
+});
+
+// Проверяем загрузку скрипта
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
+    setTimeout(function() {
+        console.log('After timeout - Telegram:', window.Telegram);
+    }, 2000);
+});
+&lt;/script&gt;</pre>
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h4>🔴 РЕШЕНИЕ 9: Использование Web App API вместо Login Widget</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Login Widget не работает в вашем случае.</p>
+                    <p><strong>Решение:</strong> Использовать Telegram Web App API:</p>
+                    <pre>&lt;script src="https://telegram.org/js/telegram-web-app.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+let tg = window.Telegram.WebApp;
+tg.ready();
+
+// Получаем данные пользователя
+const user = tg.initDataUnsafe.user;
+if (user) {
+    handleTelegramAuth(user);
+}
+&lt;/script&gt;</pre>
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h4>🔴 РЕШЕНИЕ 10: Проверка блокировки на уровне провайдера</h4>
+                <div class="error-highlight">
+                    <p><strong>Проблема:</strong> Telegram может быть заблокирован на уровне хостинга.</p>
+                    <p><strong>Решение:</strong> Проверьте доступность:</p>
+                    <pre># На сервере выполните:
+curl -I https://telegram.org/js/telegram-widget.js
+curl -I https://oauth.telegram.org
+
+# Если заблокировано, используйте прокси или VPN</pre>
+                </div>
             </div>
         </div>
     </div>
@@ -316,7 +447,12 @@ CORS_ALLOW_CREDENTIALS = True</pre>
         // Делаем функцию доступной глобально
         window.handleTelegramAuth = handleTelegramAuth;
         
-        // Принудительно устанавливаем функцию для виджета
+        // Принудительно устанавливаем функцию для виджета (новый API)
+        if (window.Telegram && window.Telegram.LoginWidget) {
+            window.Telegram.LoginWidget.dataOnauth = handleTelegramAuth;
+        }
+        
+        // Старый API (для совместимости)
         if (window.TelegramLoginWidget) {
             window.TelegramLoginWidget.dataOnauth = handleTelegramAuth;
         }
@@ -348,6 +484,13 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             
             // Принудительно устанавливаем обработчик для всех возможных событий
             setTimeout(function() {
+                // Новый API
+                if (window.Telegram && window.Telegram.LoginWidget) {
+                    window.Telegram.LoginWidget.dataOnauth = handleTelegramAuth;
+                    console.log('🔧 Обработчик установлен для Telegram.LoginWidget');
+                }
+                
+                // Старый API (для совместимости)
                 if (window.TelegramLoginWidget) {
                     window.TelegramLoginWidget.dataOnauth = handleTelegramAuth;
                     console.log('🔧 Обработчик установлен для TelegramLoginWidget');
@@ -558,7 +701,12 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             
             const checks = [
                 {
-                    name: 'Telegram Widget JS',
+                    name: 'Telegram Widget JS (новый API)',
+                    value: typeof window.Telegram !== 'undefined' && window.Telegram.LoginWidget ? 'Загружен' : 'Не загружен',
+                    status: typeof window.Telegram !== 'undefined' && window.Telegram.LoginWidget ? 'success' : 'error'
+                },
+                {
+                    name: 'Telegram Widget JS (старый API)',
                     value: typeof window.TelegramLoginWidget !== 'undefined' ? 'Загружен' : 'Не загружен',
                     status: typeof window.TelegramLoginWidget !== 'undefined' ? 'success' : 'error'
                 },

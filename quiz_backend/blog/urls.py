@@ -25,6 +25,11 @@ def telegram_auth_debug_view(request):
     return render(request, 'blog/telegram_auth_debug.html')
 
 
+def telegram_auth_alternative_view(request):
+    """Альтернативные методы авторизации через Telegram"""
+    return render(request, 'blog/telegram_auth_alternative.html')
+
+
 urlpatterns = [
     path('', HomePageView.as_view(), name='home'),
     #   -> Главная страница, класс HomePageView (TemplateView).
@@ -52,6 +57,7 @@ urlpatterns = [
 
     path('debug/', debug_view, name='debug_view'),
     path('telegram-auth-debug/', telegram_auth_debug_view, name='telegram_auth_debug'),
+    path('telegram-auth-alternative/', telegram_auth_alternative_view, name='telegram_auth_alternative'),
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),
