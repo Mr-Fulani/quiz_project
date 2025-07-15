@@ -205,8 +205,8 @@
                         data-userpic="true"
                         data-request-access="write"
                         data-lang="ru"
-                        data-auth-url="https://113467cd13d4.ngrok-free.app/api/social-auth/telegram/redirect/"
-                        data-origin="https://113467cd13d4.ngrok-free.app">
+                        data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"
+                        data-origin="https://quiz-code.com">
                 </script>
             </div>
         </div>
@@ -264,7 +264,7 @@
                 <p>В BotFather выполните следующие команды:</p>
                 <pre>/setdomain
 backend_hub_bot
-113467cd13d4.ngrok-free.app</pre>
+quiz-code.com</pre>
                 <p><strong>⚠️ Важно:</strong> Домен должен быть указан без <code>https://</code> и без слеша в конце!</p>
                 <button class="test-btn warning" onclick="checkBotFatherSettings()">Проверить настройки</button>
             </div>
@@ -272,7 +272,7 @@ backend_hub_bot
             <div class="solution">
                 <h4>2. Использование auth-url вместо onauth</h4>
                 <p>Замените <code>data-onauth</code> на <code>data-auth-url</code>:</p>
-                <pre>data-auth-url="https://113467cd13d4.ngrok-free.app/api/social-auth/telegram/redirect/"</pre>
+                <pre>data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"</pre>
                 <p>Это более надежный метод, который не зависит от Same-Origin Policy.</p>
             </div>
             
@@ -290,7 +290,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             <div class="solution">
                 <h4>4. Проверка SSL сертификата</h4>
                 <p>Убедитесь, что ваш ngrok домен использует действительный SSL-сертификат:</p>
-                <pre>ngrok http 8001 --domain=113467cd13d4.ngrok-free.app</pre>
+                <pre>ngrok http 8001 --domain=quiz-code.com</pre>
                 <p>Или используйте бесплатный домен ngrok с автоматическим SSL.</p>
             </div>
         </div>
@@ -569,7 +569,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
                 },
                 {
                     name: 'Домен в виджете',
-                    value: '113467cd13d4.ngrok-free.app',
+                    value: 'quiz-code.com',
                     status: 'info'
                 },
                 {
@@ -639,7 +639,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
                 username: 'testuser',
                 photo_url: 'https://via.placeholder.com/150',
                 auth_date: Math.floor(Date.now() / 1000),
-                hash: 'test_hash_12345'
+                hash: 'test_hash'
             };
             
             handleTelegramAuth(testUser);
@@ -653,10 +653,10 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             const instructions = '1. Откройте @BotFather в Telegram\n' +
                                '2. Отправьте команду: /setdomain\n' +
                                '3. Выберите бота: backend_hub_bot\n' +
-                               '4. Введите домен: 113467cd13d4.ngrok-free.app\n' +
+                               '4. Введите домен: quiz-code.com\n' +
                                '5. Убедитесь, что домен без https:// и без слеша в конце\n\n' +
-                               'Правильный формат: 113467cd13d4.ngrok-free.app\n' +
-                               'Неправильный формат: https://113467cd13d4.ngrok-free.app/';
+                               'Правильный формат: quiz-code.com\n' +
+                               'Неправильный формат: https://quiz-code.com/';
             
             addDebugInfo(instructions);
         }
@@ -672,7 +672,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             const callbackWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handleTelegramAuth"&gt;&lt;/script&gt;';
             
             // Вариант 2: Redirect
-            const redirectWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://113467cd13d4.ngrok-free.app/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
+            const redirectWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
             
             // Вариант 3: PostMessage
             const postMessageWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handlePostMessageAuth"&gt;&lt;/script&gt;';
@@ -691,7 +691,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
                     code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handleTelegramAuth"&gt;&lt;/script&gt;';
                     break;
                 case 'redirect':
-                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://113467cd13d4.ngrok-free.app/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
+                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
                     break;
                 case 'postmessage':
                     code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handlePostMessageAuth"&gt;&lt;/script&gt;';

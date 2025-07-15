@@ -52,10 +52,9 @@ class TelegramAuthService:
             secret = hashlib.sha256(bot_token.encode()).digest()
             
             # Собираем данные для проверки
-            check_string = '\n'.join([
-                f"{k}={v}" for k, v in sorted(data.items()) 
-                if k != 'hash'
-            ])
+            allowed_keys = ['id', 'first_name', 'last_name', 'username', 'photo_url', 'auth_date']
+            check_data = {k: data[k] for k in allowed_keys if k in data}
+            check_string = '\n'.join([f"{k}={check_data[k]}" for k in sorted(check_data)])
             
             logger.info(f"Check string: {check_string}")
             
