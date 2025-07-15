@@ -99,7 +99,7 @@ class TelegramAuthService:
                 }
             
             # Проверяем время авторизации (не старше 24 часов)
-            auth_date = data.get('auth_date', 0)
+            auth_date = int(data.get('auth_date', 0))
             if time.time() - auth_date > 86400:  # 24 часа
                 logger.warning("Устаревшая авторизация Telegram")
                 return {
