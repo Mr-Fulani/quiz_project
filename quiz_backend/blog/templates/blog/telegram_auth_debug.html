@@ -200,7 +200,7 @@
             </div>
             <div id="telegram-widget">
                 <script async src="https://telegram.org/js/telegram-widget.js?22"
-                        data-telegram-login="backend_hub_bot"
+                        data-telegram-login="mr_proger_bot"
                         data-size="large"
                         data-userpic="true"
                         data-request-access="write"
@@ -263,7 +263,7 @@
                 <h4>1. Проверка настроек BotFather</h4>
                 <p>В BotFather выполните следующие команды:</p>
                 <pre>/setdomain
-backend_hub_bot
+                    mr_proger_bot
 quiz-code.com</pre>
                 <p><strong>⚠️ Важно:</strong> Домен должен быть указан без <code>https://</code> и без слеша в конце!</p>
                 <button class="test-btn warning" onclick="checkBotFatherSettings()">Проверить настройки</button>
@@ -564,7 +564,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
                 },
                 {
                     name: 'Имя бота',
-                    value: 'backend_hub_bot',
+                    value: 'mr_proger_bot',
                     status: 'info'
                 },
                 {
@@ -652,7 +652,7 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             
             const instructions = '1. Откройте @BotFather в Telegram\n' +
                                '2. Отправьте команду: /setdomain\n' +
-                               '3. Выберите бота: backend_hub_bot\n' +
+                               '3. Выберите бота: mr_proger_bot\n' +
                                '4. Введите домен: quiz-code.com\n' +
                                '5. Убедитесь, что домен без https:// и без слеша в конце\n\n' +
                                'Правильный формат: quiz-code.com\n' +
@@ -669,13 +669,13 @@ CORS_ALLOW_CREDENTIALS = True</pre>
         // Инициализация виджетов
         function initWidgetVariants() {
             // Вариант 1: Callback
-            const callbackWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handleTelegramAuth"&gt;&lt;/script&gt;';
+            const callbackWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="mr_proger_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handleTelegramAuth"&gt;&lt;/script&gt;';
             
             // Вариант 2: Redirect
-            const redirectWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
+            const redirectWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="mr_proger_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
             
             // Вариант 3: PostMessage
-            const postMessageWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handlePostMessageAuth"&gt;&lt;/script&gt;';
+            const postMessageWidget = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="mr_proger_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handlePostMessageAuth"&gt;&lt;/script&gt;';
             
             document.getElementById('widget-callback').innerHTML = '<pre>' + callbackWidget + '</pre>';
             document.getElementById('widget-redirect').innerHTML = '<pre>' + redirectWidget + '</pre>';
@@ -688,13 +688,13 @@ CORS_ALLOW_CREDENTIALS = True</pre>
             
             switch(type) {
                 case 'callback':
-                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handleTelegramAuth"&gt;&lt;/script&gt;';
+                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="mr_proger_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handleTelegramAuth"&gt;&lt;/script&gt;';
                     break;
                 case 'redirect':
-                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
+                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="mr_proger_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-auth-url="https://quiz-code.com/api/social-auth/telegram/redirect/"&gt;&lt;/script&gt;';
                     break;
                 case 'postmessage':
-                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="backend_hub_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handlePostMessageAuth"&gt;&lt;/script&gt;';
+                    code = '&lt;script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="mr_proger_bot" data-size="large" data-userpic="true" data-request-access="write" data-lang="ru" data-onauth="handlePostMessageAuth"&gt;&lt;/script&gt;';
                     break;
             }
             
