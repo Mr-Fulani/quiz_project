@@ -61,7 +61,8 @@ else:
             'quiz-code.com',
             'www.quiz-code.com', 
             'mini.quiz-code.com',
-            'localhost'
+            'localhost',
+            '45.14.247.175'  # IP-адрес сервера
         ]
         logger.warning(f"ALLOWED_HOSTS env var not found, using fallback: {ALLOWED_HOSTS}")
 
