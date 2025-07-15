@@ -58,17 +58,24 @@ class TelegramAuth {
         // Очищаем контейнер
         container.innerHTML = '';
         
-        // Создаем виджет
-        window.TelegramLoginWidget.dataOnauth = (user) => {
-            this.handleAuth(user);
-        };
+        // Создаем виджет (новый API)
+        if (window.Telegram && window.Telegram.LoginWidget) {
+            window.Telegram.LoginWidget.dataOnauth = (user) => {
+                this.handleAuth(user);
+            };
+        } else if (window.TelegramLoginWidget) {
+            // Старый API (для совместимости)
+            window.TelegramLoginWidget.dataOnauth = (user) => {
+                this.handleAuth(user);
+            };
+        }
         
         // Добавляем виджет в контейнер
         const widget = document.createElement('div');
         widget.className = 'telegram-login-widget';
         widget.setAttribute('data-telegram-login', this.options.botName);
         widget.setAttribute('data-size', 'large');
-        widget.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnauth(user)');
+        widget.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnauth');
         widget.setAttribute('data-request-access', this.options.requestAccess);
         widget.setAttribute('data-lang', this.options.lang);
         widget.setAttribute('data-use-pic', this.options.usePic);
@@ -76,8 +83,11 @@ class TelegramAuth {
         
         container.appendChild(widget);
         
-        // Перезагружаем виджет
-        if (window.TelegramLoginWidget && window.TelegramLoginWidget.reload) {
+        // Перезагружаем виджет (новый API)
+        if (window.Telegram && window.Telegram.LoginWidget && window.Telegram.LoginWidget.reload) {
+            window.Telegram.LoginWidget.reload();
+        } else if (window.TelegramLoginWidget && window.TelegramLoginWidget.reload) {
+            // Старый API (для совместимости)
             window.TelegramLoginWidget.reload();
         }
     }
