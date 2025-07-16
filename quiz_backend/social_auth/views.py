@@ -21,6 +21,27 @@ from .models import SocialAccount, SocialAuthSettings
 
 logger = logging.getLogger(__name__)
 
+# Тестовый endpoint для проверки доступности API
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_api_access(request):
+    """
+    Простой тестовый endpoint для проверки доступности API
+    """
+    logger.info(f"=== TEST API ACCESS CALLED ===")
+    logger.info(f"Method: {request.method}")
+    logger.info(f"URL: {request.build_absolute_uri()}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    logger.info(f"GET params: {dict(request.GET)}")
+    
+    return Response({
+        'success': True,
+        'message': 'API доступен!',
+        'url': request.build_absolute_uri(),
+        'method': request.method,
+        'headers': dict(request.headers)
+    })
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TelegramAuthView(APIView):

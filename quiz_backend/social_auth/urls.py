@@ -4,6 +4,9 @@ from . import views
 app_name = 'social_auth'
 
 urlpatterns = [
+    # Тестовый endpoint для проверки доступности API
+    path('test/', views.test_api_access, name='test_api_access'),
+    
     # API endpoints для социальной аутентификации
     path('telegram/auth/', views.TelegramAuthView.as_view(), name='telegram_auth_api'),
     path('accounts/', views.user_social_accounts, name='user_social_accounts'),
