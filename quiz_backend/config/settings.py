@@ -353,7 +353,11 @@ else:
     # Для продакшена лучше указать конкретные доверенные источники
     CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    CORS_ALLOWED_ORIGINS = [
+        'https://oauth.telegram.org',
+        'https://telegram.org',
+        'https://core.telegram.org'
+    ] + [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     CORS_ALLOW_CREDENTIALS = True # или False, в зависимости от ваших нужд
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 2592000  # 30 дней
