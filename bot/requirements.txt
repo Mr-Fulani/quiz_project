@@ -70,3 +70,4 @@ django-debug-toolbar==4.4.6
 django-silk==5.2.0
 stripe==10.12.0
 telegram-webapp-auth
+duckduckgo_search==8.1.1

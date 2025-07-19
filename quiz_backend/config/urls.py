@@ -81,7 +81,7 @@ urlpatterns = [
     path('api/social-auth/', include('social_auth.urls')),  # Добавляем social_auth API
     
     # Debug endpoints (вне языковых паттернов)
-    path('debug/telegram-auth/', include('blog.urls')),
+    # path('debug/telegram-auth/', include('blog.urls')), # Убираем дублирующее подключение
     
     # Telegram Auth - прямой путь к TelegramAuthView
     path('auth/telegram/', TelegramAuthView.as_view(), name='telegram_auth_direct'),
