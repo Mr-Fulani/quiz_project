@@ -2,7 +2,7 @@ import os
 from django import forms
 from django.contrib import admin
 from django.conf import settings
-from .models import Topic
+from .models import Topic, Subtopic
 
 class TopicAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -31,10 +31,20 @@ class TopicAdminForm(forms.ModelForm):
             help_text='Выберите иконку для темы'
         )
 
+@admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
+    """
+    Админка для управления темами
+    """
     form = TopicAdminForm
-    list_display = ['name', 'icon_preview', 'description']
-    search_fields = ['name', 'description']
+    list_display = ('id', 'name', 'icon_preview', 'description', 'get_subtopics_count')
+    search_fields = ('name', 'description')
+    ordering = ('name',)
+
+    def get_subtopics_count(self, obj):
+        """Получить количество подтем"""
+        return obj.subtopics.count()
+    get_subtopics_count.short_description = 'Количество подтем'
     
     def icon_preview(self, obj):
         if obj.icon:
@@ -43,4 +53,18 @@ class TopicAdmin(admin.ModelAdmin):
     icon_preview.short_description = 'Иконка'
     icon_preview.allow_tags = True
 
-admin.site.register(Topic, TopicAdmin)
+@admin.register(Subtopic)
+class SubtopicAdmin(admin.ModelAdmin):
+    """
+    Админка для управления подтемами
+    """
+    list_display = ('id', 'name', 'topic', 'get_tasks_count')
+    list_filter = ('topic',)
+    search_fields = ('name', 'topic__name')
+    raw_id_fields = ('topic',)
+    ordering = ('topic', 'name')
+
+    def get_tasks_count(self, obj):
+        """Получить количество задач в подтеме"""
+        return obj.tasks.count()
+    get_tasks_count.short_description = 'Количество задач'
