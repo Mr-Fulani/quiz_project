@@ -20,21 +20,6 @@ def debug_view(request):
     return HttpResponse("Debug view is working!")
 
 
-def telegram_auth_debug_view(request):
-    """Диагностическая страница для отладки Telegram Login Widget"""
-    return render(request, 'blog/telegram_auth_debug.html')
-
-
-def telegram_auth_alternative_view(request):
-    """Альтернативные методы авторизации через Telegram"""
-    return render(request, 'blog/telegram_auth_alternative.html')
-
-
-def telegram_widget_view(request):
-    """Страница только для Telegram виджета"""
-    return render(request, 'blog/telegram_widget.html')
-
-
 urlpatterns = [
     path('', HomePageView.as_view(), name='home'),
     #   -> Главная страница, класс HomePageView (TemplateView).
@@ -61,9 +46,6 @@ urlpatterns = [
     #   -> Страница "Контакты"
 
     path('debug/', debug_view, name='debug_view'),
-    path('telegram-auth-debug/', telegram_auth_debug_view, name='telegram_auth_debug'),
-    path('telegram-auth-alternative/', telegram_auth_alternative_view, name='telegram_auth_alternative'),
-    path('telegram-widget/', telegram_widget_view, name='telegram_widget'),
     path('quizes/', QuizesView.as_view(), name='quizes'),
     path('quiz/<str:quiz_type>/', QuizDetailView.as_view(), name='quiz_detail'),
     path('quiz/<str:quiz_type>/<slug:subtopic>/<int:task_id>/submit/', submit_task_answer, name='submit_task_answer'),
