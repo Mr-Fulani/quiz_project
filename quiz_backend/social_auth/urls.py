@@ -11,6 +11,5 @@ urlpatterns = [
     path('providers/', views.enabled_providers, name='enabled_providers'),
     path('status/', views.social_auth_status, name='social_auth_status'),
     
-    # Обработчик редиректа для Telegram Login Widget
-    path('telegram/redirect/', views.telegram_auth_redirect, name='telegram_auth_redirect'),
+
 ]

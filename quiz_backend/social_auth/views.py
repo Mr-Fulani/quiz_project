@@ -328,52 +328,7 @@ def enabled_providers(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@require_http_methods(["GET", "POST"])
-def telegram_auth_redirect(request):
-    """
-    Обработчик для редиректа после авторизации через Telegram.
-    
-    Используется для обработки данных от Telegram Login Widget
-    и перенаправления пользователя.
-    """
-    try:
-        logger.info(f"=== TELEGRAM REDIRECT CALLED ===")
-        logger.info(f"Method: {request.method}")
-        logger.info(f"URL: {request.build_absolute_uri()}")
-        logger.info(f"Headers: {dict(request.headers)}")
-        logger.info(f"GET params: {dict(request.GET)}")
-        logger.info(f"POST params: {dict(request.POST)}")
-        logger.info(f"User-Agent: {request.META.get('HTTP_USER_AGENT', 'Unknown')}")
-        logger.info(f"Referer: {request.META.get('HTTP_REFERER', 'Unknown')}")
-        
-        # Обрабатываем авторизацию (проверяем и POST и GET)
-        data = request.POST if request.method == 'POST' else request.GET
-        logger.info(f"Telegram redirect: method={request.method}, data={data}")
-        result = TelegramAuthService.process_telegram_auth(data, request)
-        
-        if not result or not result.get('success'):
-            # При ошибке перенаправляем на страницу входа с ошибкой
-            error_message = result.get('error', 'Ошибка авторизации') if result else 'Ошибка авторизации'
-            return redirect(f'/?open_login=true&error={error_message}')
-        
-        # Авторизуем пользователя
-        user = result['user']
-        login(request, user)
-        
-        # Перенаправляем на нужную страницу
-        next_url = request.POST.get('next') or request.GET.get('next') or '/'
-        
-        # Добавляем параметр успешной авторизации
-        if '?' in next_url:
-            next_url += '&telegram_auth_success=true'
-        else:
-            next_url += '?telegram_auth_success=true'
-        
-        return redirect(next_url)
-        
-    except Exception as e:
-        logger.error(f"Ошибка в telegram_auth_redirect: {e}")
-        return redirect('/?open_login=true&error=Внутренняя ошибка сервера')
+
 
 
 @api_view(['GET'])

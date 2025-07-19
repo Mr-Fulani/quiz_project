@@ -21,22 +21,7 @@ from social_auth.views import TelegramAuthView
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
 
 
-def telegram_test_ping_view(request):
-    """Тестовый endpoint для проверки доступности"""
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.error(f"=== TELEGRAM PING TEST ===")
-    logger.error(f"Method: {request.method}")
-    logger.error(f"Headers: {dict(request.META)}")
-    logger.error(f"Body: {request.body}")
-    
-    from django.http import JsonResponse
-    return JsonResponse({
-        'status': 'ok',
-        'message': 'Server accessible',
-        'method': request.method
-    })
+
 
 # Настройки Swagger
 schema_view = get_schema_view(
@@ -85,7 +70,6 @@ urlpatterns = [
     
     # Telegram Auth - прямой путь к TelegramAuthView
     path('auth/telegram/', TelegramAuthView.as_view(), name='telegram_auth_direct'),
-    path('telegram/ping/', telegram_test_ping_view, name='telegram_ping'),
     
     # Donation API endpoints (вне языковых паттернов)
     path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),
