@@ -304,5 +304,32 @@ class FeedbackMessage(Base):
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     is_processed = Column(Boolean, default=False)
 
+    # Связь с ответами
+    replies = relationship('FeedbackReply', back_populates='feedback', cascade='all, delete-orphan')
+
     def __repr__(self):
         return f"<FeedbackMessage(user_id={self.user_id}, username={self.username}, message={self.message[:20]})>"
+
+
+class FeedbackReply(Base):
+    """
+    Модель для хранения ответов администраторов на сообщения поддержки.
+    """
+    __tablename__ = 'feedback_replies'
+
+    id = Column(Integer, primary_key=True)
+    feedback_id = Column(Integer, ForeignKey('feedback_messages.id'), nullable=False)
+    admin_id = Column(Integer, nullable=True)  # ForeignKey к Django User (может быть null)
+    admin_telegram_id = Column(BigInteger, nullable=False)
+    admin_username = Column(String, nullable=True)
+    reply_text = Column(String, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    is_sent_to_user = Column(Boolean, default=False)
+    sent_at = Column(DateTime, nullable=True)
+    send_error = Column(String, nullable=True)
+
+    # Связь с сообщением
+    feedback = relationship('FeedbackMessage', back_populates='replies')
+
+    def __repr__(self):
+        return f"<FeedbackReply(feedback_id={self.feedback_id}, admin_telegram_id={self.admin_telegram_id}, reply_text={self.reply_text[:20]})>"

@@ -122,7 +122,7 @@ async def process_add_admin_password(message: Message, state: FSMContext, db_ses
 @router.message(AddAdminStates.waiting_for_user_id, F.content_type == ContentType.TEXT)
 async def process_add_admin_user_id(message: Message, state: FSMContext, db_session: AsyncSession, bot: Bot):
     """
-    Проверяет Telegram ID и запрашивает группы.
+    Проверяет Telegram ID и запрашивает username (опционально).
 
     Args:
         message: Сообщение пользователя.
@@ -149,37 +149,113 @@ async def process_add_admin_user_id(message: Message, state: FSMContext, db_sess
         await state.clear()
         return
 
-    try:
-        user = await bot.get_chat(new_admin_id)
-        new_username = user.username.lstrip("@") if user.username else None
-        new_language = user.language_code if hasattr(user, "language_code") else None
-    except Exception as e:
-        await message.reply("❌ Пользователь не найден.", reply_markup=get_start_reply_keyboard())
-        logger.error(f"Ошибка получения чата {new_admin_id}: {e}")
-        await state.clear()
-        return
+    # Сохраняем ID нового админа
+    await state.update_data(new_admin_id=new_admin_id)
+    
+    # Запрашиваем username (опционально)
+    await message.reply(
+        escape_markdown("📝 Введите username нового админа (без @) или отправьте '-' если username нет:"),
+        parse_mode="MarkdownV2",
+        reply_markup=ForceReply(selective=True)
+    )
+    
+    logger.debug(f"Запрошен username для админа {new_admin_id}")
+    await state.set_state(AddAdminStates.waiting_for_username)
 
-    await state.update_data(new_admin_id=new_admin_id, new_username=new_username, new_language=new_language)
 
-    # Получаем группы, где юзер не админ
-    groups = await get_available_groups(db_session, new_admin_id)
 
-    if not groups:
+
+
+
+@router.message(AddAdminStates.waiting_for_username, F.content_type == ContentType.TEXT)
+async def process_add_admin_username(message: Message, state: FSMContext, db_session: AsyncSession, bot: Bot):
+    """
+    Обрабатывает ввод username и сохраняет админа в базу данных.
+    
+    Args:
+        message: Сообщение пользователя.
+        state: Контекст FSM.
+        db_session: Асинхронная сессия SQLAlchemy.
+        bot: Экземпляр Aiogram Bot.
+    """
+    username = message.from_user.username or "None"
+    data = await state.get_data()
+    new_admin_id = data.get("new_admin_id")
+    
+    if not new_admin_id:
         await message.reply(
-            "🚫 Нет доступных групп, админ будет создан без привязки.",
+            escape_markdown("❌ Ошибка: ID админа не найден. Начните заново."),
+            parse_mode="MarkdownV2",
             reply_markup=get_start_reply_keyboard()
         )
-        logger.debug("Нет доступных групп")
-        await state.update_data(selected_groups=[])
-        await confirm_admin_creation(message, state, bot, db_session, message.message_id)
+        await state.clear()
         return
-
-    keyboard = await create_groups_keyboard(groups, "group_", include_select_all=False)
-    groups_message = await message.reply("📋 Выберите группы/каналы для админа:", reply_markup=keyboard)
-    await state.update_data(groups_message_id=groups_message.message_id)
-    logger.debug("Показаны группы для выбора")
-    await state.set_state(AddAdminStates.waiting_for_groups)
-
+    
+    # Обрабатываем username
+    input_username = message.text.strip()
+    if input_username == "-" or input_username.lower() == "нет":
+        new_username = None
+        username_display = f"ID: {new_admin_id}"
+    else:
+        # Убираем @ если есть
+        new_username = input_username.lstrip("@")
+        username_display = f"@{new_username} (ID: {new_admin_id})"
+    
+    try:
+        # Создаем нового админа
+        new_admin = TelegramAdmin(
+            telegram_id=new_admin_id,
+            username=new_username,
+            language=None,  # Пока не получаем язык
+            is_active=True
+        )
+        
+        db_session.add(new_admin)
+        await db_session.commit()
+        
+        # Формируем сообщение об успехе
+        if new_username:
+            success_text = escape_markdown(f"✅ Админ добавлен: @{new_username} (ID: {new_admin_id})")
+        else:
+            success_text = escape_markdown(f"✅ Админ добавлен: ID {new_admin_id}")
+        
+        await message.reply(
+            success_text,
+            parse_mode="MarkdownV2",
+            reply_markup=get_start_reply_keyboard()
+        )
+        
+        logger.info(f"Админ {username_display} добавлен в базу данных")
+        
+        # Отправляем уведомление новому админу
+        try:
+            notification_text = escape_markdown("🎉 Вас добавили в админы бота!")
+            await bot.send_message(
+                chat_id=new_admin_id,
+                text=notification_text,
+                parse_mode="MarkdownV2"
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось отправить уведомление админу {new_admin_id}: {e}")
+        
+    except IntegrityError:
+        await db_session.rollback()
+        await message.reply(
+            escape_markdown("❌ Ошибка: этот пользователь уже является админом."),
+            parse_mode="MarkdownV2",
+            reply_markup=get_start_reply_keyboard()
+        )
+        logger.warning(f"Попытка добавить уже существующего админа {new_admin_id}")
+    except Exception as e:
+        await db_session.rollback()
+        await message.reply(
+            escape_markdown("❌ Ошибка при добавлении админа. Попробуйте снова."),
+            parse_mode="MarkdownV2",
+            reply_markup=get_start_reply_keyboard()
+        )
+        logger.error(f"Ошибка добавления админа {new_admin_id}: {e}")
+    
+    await state.clear()
 
 
 
@@ -253,13 +329,16 @@ async def confirm_admin_creation(message: Message, state: FSMContext, bot: Bot, 
     # Формируем ссылки на группы
     group_names = ", ".join([format_group_link(group) for group in selected_groups]) if selected_groups else escape_markdown("без групп")
 
-    # Экранируем username и добавляем @ в тексте
-    escaped_username = escape_markdown(new_username or "Без username")
+    # Формируем текст с username или ID
+    if new_username:
+        username_text = escape_markdown("Username: @") + f"[{escape_markdown(new_username)}](https://t.me/{new_username})"
+    else:
+        username_text = escape_markdown("Username: Без username")
 
     text = (
         escape_markdown("Создать админа? 🤔\n") +
         escape_markdown(f"ID: {new_admin_id}\n") +
-        escape_markdown("Username: @") + f"[{escaped_username}](https://t.me/{new_username if new_username else new_admin_id})" +
+        username_text +
         escape_markdown("\nГруппы: ") + group_names
     )
 
@@ -355,9 +434,15 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
                     logger.error(f"Ошибка отправки приглашения админу {new_admin_id}: {e}")
                     continue
 
+                # Формируем текст с username или ID
+                if new_username:
+                    user_display = escape_markdown(f"@") + escape_markdown(new_username)
+                else:
+                    user_display = escape_markdown(str(new_admin_id))
+                
                 warning_text = (
-                    escape_markdown(f"⚠️ Пользователь @") +
-                    escape_markdown(new_username or str(new_admin_id)) +
+                    escape_markdown(f"⚠️ Пользователь ") +
+                    user_display +
                     escape_markdown(f" не в группе ") +
                     f"[{escaped_group_name}](https://t.me/{group.username.lstrip('@') if group.username else group.group_id})" +
                     escape_markdown(". Отправлена пригласительная ссылка.")
@@ -448,9 +533,15 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
             successful_groups.append(group)
 
             # Уведомления
+            # Формируем текст с username или ID
+            if new_username:
+                user_display = escape_markdown(f"@") + escape_markdown(new_username)
+            else:
+                user_display = escape_markdown(str(new_admin_id))
+            
             success_text = (
-                escape_markdown(f"✅ Пользователь @") +
-                escape_markdown(new_username or str(new_admin_id)) +
+                escape_markdown(f"✅ Пользователь ") +
+                user_display +
                 escape_markdown(f" назначен админом в ") +
                 f"[{escaped_group_name}](https://t.me/{group.username.lstrip('@') if group.username else group.group_id})" +
                 escape_markdown(".")
@@ -503,7 +594,13 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
     # Проверяем, были ли успешные группы
     if not successful_groups:
         logger.warning(f"Админ {new_admin_id} не добавлен: нет успешных групп")
-        message_text = escape_markdown(f"❌ Пользователь @{new_username or new_admin_id} не добавлен: не подписан ни на одну группу.")
+        # Формируем текст с username или ID
+        if new_username:
+            user_display = escape_markdown(f"@") + escape_markdown(new_username)
+        else:
+            user_display = escape_markdown(str(new_admin_id))
+        
+        message_text = escape_markdown(f"❌ Пользователь ") + user_display + escape_markdown(f" не добавлен: не подписан ни на одну группу.")
         logger.debug(f"Отправка сообщения: {message_text}")
         await call.message.answer(
             text=message_text,
@@ -640,10 +737,15 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
     # Формирование итогового сообщения
     group_names = ", ".join(
         [format_group_link(group) for group in successful_groups])
-    escaped_username = escape_markdown(new_username or "Без username")
+    
+    # Формируем текст с username или ID
+    if new_username:
+        username_text = escape_markdown("🎉 Админ добавлен: @") + f"[{escape_markdown(new_username)}](https://t.me/{new_username})"
+    else:
+        username_text = escape_markdown("🎉 Админ добавлен: ") + escape_markdown(str(new_admin_id))
+    
     summary_text = (
-        escape_markdown(f"🎉 Админ добавлен: @") +
-        f"[{escaped_username}](https://t.me/{new_username if new_username else new_admin_id})" +
+        username_text +
         escape_markdown(f" (ID: {new_admin_id})") +
         escape_markdown(", группы: ") + (group_names or escape_markdown("нет групп"))
     )
@@ -690,7 +792,7 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
         except Exception as e:
             logger.error(f"Ошибка уведомления админа {new_admin_id}: {e}")
 
-    logger.info(f"Админ @{new_username} (ID: {new_admin_id}) добавлен с группами: {group_names or 'нет групп'}")
+    logger.info(f"Админ {new_username or new_admin_id} (ID: {new_admin_id}) добавлен с группами: {group_names or 'нет групп'}")
     await state.clear()
 
 
@@ -883,6 +985,7 @@ async def process_remove_admin_groups(call: CallbackQuery, state: FSMContext, db
 
         # Подтверждение выбора
         group_names = ", ".join([format_group_link(group) for group in selected_groups])
+        escaped_username = escape_markdown(admin_username or str(admin_id))
         text = (
             f"{escape_markdown('Снять права и удалить админа')} @{escape_markdown(admin_username or str(admin_id))}?\n"
             f"{escape_markdown('Группы:')} {group_names}"

@@ -12,6 +12,7 @@ class AddAdminStates(StatesGroup):
     waiting_for_admin_data = State
     waiting_for_password = State()
     waiting_for_user_id = State()
+    waiting_for_username = State()
 
 class AdminStates(StatesGroup):
     waiting_for_set_fallback_language = State()
