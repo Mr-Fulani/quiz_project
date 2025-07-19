@@ -8,6 +8,7 @@ from django.contrib.staticfiles.views import serve
 from django.shortcuts import render
 from django.urls import path, include, re_path
 from django.views.static import serve as static_serve
+from django.views.decorators.csrf import csrf_exempt
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
@@ -15,8 +16,27 @@ from django.views.generic.base import RedirectView
 
 from blog.api.api_views import tinymce_image_upload
 from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook
+from social_auth.views import TelegramAuthView
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
+
+
+def telegram_test_ping_view(request):
+    """Тестовый endpoint для проверки доступности"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.error(f"=== TELEGRAM PING TEST ===")
+    logger.error(f"Method: {request.method}")
+    logger.error(f"Headers: {dict(request.META)}")
+    logger.error(f"Body: {request.body}")
+    
+    from django.http import JsonResponse
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Server accessible',
+        'method': request.method
+    })
 
 # Настройки Swagger
 schema_view = get_schema_view(
@@ -62,6 +82,10 @@ urlpatterns = [
     
     # Debug endpoints (вне языковых паттернов)
     path('debug/telegram-auth/', include('blog.urls')),
+    
+    # Telegram Auth - прямой путь к TelegramAuthView
+    path('auth/telegram/', TelegramAuthView.as_view(), name='telegram_auth_direct'),
+    path('telegram/ping/', telegram_test_ping_view, name='telegram_ping'),
     
     # Donation API endpoints (вне языковых паттернов)
     path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),

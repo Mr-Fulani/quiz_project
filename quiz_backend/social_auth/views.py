@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils.translation import gettext as _
+from django.conf import settings
 
 from .serializers import (
     TelegramAuthSerializer, SocialAccountSerializer, 
@@ -27,16 +28,121 @@ class TelegramAuthView(APIView):
     """
     View для авторизации через Telegram.
     
-    Обрабатывает данные от Telegram Login Widget.
+    Обрабатывает данные от Telegram Login Widget или мок в режиме разработки.
     """
     permission_classes = [AllowAny]
     
+    def dispatch(self, request, *args, **kwargs):
+        """Отлавливаем все запросы"""
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Обрабатывает GET запрос с данными от Telegram Login Widget (redirect метод).
+        В режиме разработки может обрабатывать мок данные.
+        """
+        try:
+            logger.info(f"Telegram auth GET request: {dict(request.GET)}")
+            
+            # Проверяем запросы мока на продакшене
+            if (request.GET.get('mock') == 'true' or request.GET.get('mock_auth') == 'true'):
+                if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
+                    # На продакшене мок недоступен
+                    logger.warning("Попытка доступа к мок авторизации на продакшене")
+                    return redirect('/?open_login=true&error=Мок авторизация недоступна на продакшене')
+            
+            # Проверяем режим мока (только для разработки)
+            if getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
+                # Если это запрос на мок страницу
+                if request.GET.get('mock') == 'true':
+                    return self._handle_mock_page(request)
+                
+                # Если это запрос с мок данными
+                if request.GET.get('mock_auth') == 'true':
+                    return self._handle_mock_auth(request)
+            
+            # Для GET запроса данные приходят в query параметрах
+            data = dict(request.GET)
+            
+            logger.info(f"Processing auth data: {data}")
+            
+            # Обрабатываем авторизацию
+            result = TelegramAuthService.process_telegram_auth(data, request)
+            
+            if not result or not result.get('success'):
+                error_message = result.get('error', 'Ошибка авторизации') if result else 'Ошибка авторизации'
+                return redirect(f'/?open_login=true&error={error_message}')
+            
+            # Авторизуем пользователя
+            user = result['user']
+            login(request, user)
+            
+            # Перенаправляем на главную с успешной авторизацией
+            return redirect('/?telegram_auth_success=true')
+            
+        except Exception as e:
+            logger.error(f"Ошибка в GET TelegramAuthView: {e}")
+            return redirect('/?open_login=true&error=Внутренняя ошибка сервера')
+
+    def _handle_mock_page(self, request):
+        """Отображает страницу мока для разработки"""
+        from django.shortcuts import render
+        return render(request, 'blog/telegram_mock.html')
+    
+    def _handle_mock_auth(self, request):
+        """Обрабатывает мок авторизацию"""
+        try:
+            import time
+            # Создаем мок данные пользователя
+            mock_data = {
+                'id': request.GET.get('user_id', '975113235'),
+                'first_name': request.GET.get('first_name', 'TestUser'),
+                'last_name': request.GET.get('last_name', 'Developer'),
+                'username': request.GET.get('username', 'testdev'),
+                'photo_url': 'https://via.placeholder.com/150',
+                'auth_date': str(int(time.time())),  # Текущее время
+                'hash': 'mock_hash_for_development'
+            }
+            
+            logger.error(f"Mock auth data: {mock_data}")
+            
+            # Обрабатываем мок авторизацию
+            result = TelegramAuthService.process_telegram_auth(mock_data, request)
+            
+            if not result or not result.get('success'):
+                return redirect('/?open_login=true&error=Ошибка мок авторизации')
+            
+            # Авторизуем пользователя
+            user = result['user']
+            login(request, user)
+            
+            # Перенаправляем на главную с успешной авторизацией
+            return redirect('/?telegram_auth_success=true&mock=true')
+            
+        except Exception as e:
+            logger.error(f"Ошибка в мок авторизации: {e}")
+            return redirect('/?open_login=true&error=Ошибка мок авторизации')
+
     def post(self, request, *args, **kwargs):
         """
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
             logger.info(f"Получен запрос авторизации Telegram: {request.data}")
+            
+            # Проверяем мок запросы на продакшене
+            if request.data.get('mock') == 'true':
+                if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
+                    logger.warning("Попытка POST мок авторизации на продакшене")
+                    return Response({
+                        'success': False,
+                        'error': 'Мок авторизация недоступна на продакшене'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Проверяем режим мока (только для разработки)
+            if (getattr(settings, 'MOCK_TELEGRAM_AUTH', False) and 
+                request.data.get('mock') == 'true'):
+                return self._handle_mock_post(request)
             
             # Валидируем данные
             serializer = TelegramAuthSerializer(data=request.data)
@@ -95,6 +201,45 @@ class TelegramAuthView(APIView):
             return Response({
                 'success': False,
                 'error': 'Внутренняя ошибка сервера'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _handle_mock_post(self, request):
+        """Обрабатывает POST мок авторизацию"""
+        try:
+            import time
+            mock_data = {
+                'id': request.data.get('user_id', '975113235'),
+                'first_name': request.data.get('first_name', 'TestUser'),
+                'last_name': request.data.get('last_name', 'Developer'), 
+                'username': request.data.get('username', 'testdev'),
+                'photo_url': 'https://via.placeholder.com/150',
+                'auth_date': str(int(time.time())),  # Текущее время
+                'hash': 'mock_hash_for_development'
+            }
+            
+            result = TelegramAuthService.process_telegram_auth(mock_data, request)
+            
+            if not result or not result.get('success'):
+                return Response({
+                    'success': False,
+                    'error': 'Ошибка мок авторизации'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = result['user']
+            login(request, user)
+            
+            return Response({
+                'success': True,
+                'mock': True,
+                'user': UserSocialAccountsSerializer(user).data,
+                'message': 'Мок авторизация успешна!'
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка в POST мок авторизации: {e}")
+            return Response({
+                'success': False,
+                'error': 'Ошибка мок авторизации'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

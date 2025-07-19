@@ -44,6 +44,9 @@ if not DEBUG and not SECRET_KEY:
 # Отключаем проверку хостов для разработки
 USE_L10N = False
 
+# Мок для Telegram авторизации в режиме разработки
+MOCK_TELEGRAM_AUTH = DEBUG
+
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
 else:
@@ -59,7 +62,7 @@ else:
         # Фоллбэк только с твоими хостами
         ALLOWED_HOSTS = [
             'quiz-code.com',
-            'www.quiz-code.com', 
+            'www.quiz-code.com',
             'mini.quiz-code.com',
             'localhost',
             '45.14.247.175'  # IP-адрес сервера
@@ -173,6 +176,7 @@ LOGGING = {
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'config.middleware.RequestLoggingMiddleware',  # Добавляем логирование
     'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -371,6 +375,8 @@ else:
 # Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)
 CSRF_EXEMPT_PATHS = [
     '/api/',
+    '/auth/telegram/',
+    '/telegram/',
 ]
 
 CSRF_COOKIE_HTTPONLY = False
