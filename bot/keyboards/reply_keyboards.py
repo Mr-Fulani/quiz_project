@@ -8,12 +8,28 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 def get_start_reply_keyboard() -> ReplyKeyboardMarkup:
     """
-    Создает reply-клавиатуру с кнопкой "Меню".
+    Создает reply-клавиатуру для обычных пользователей.
+    """
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🆘 Поддержка-Support")]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False  # Клавиатура остаётся открытой
+    )
+    return keyboard
+
+
+
+
+def get_admin_start_reply_keyboard() -> ReplyKeyboardMarkup:
+    """
+    Создает reply-клавиатуру для администраторов.
     """
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Меню Администратора")],
-            [KeyboardButton(text="Написать Администратору")]
+            [KeyboardButton(text="🆘 Поддержка-Support")]
         ],
         resize_keyboard=True,
         one_time_keyboard=False  # Клавиатура остаётся открытой

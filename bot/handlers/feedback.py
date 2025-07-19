@@ -8,8 +8,9 @@ from aiogram import types, Router
 from aiogram.filters import StateFilter, BaseFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from sqlalchemy import select
-from bot.database.models import FeedbackMessage
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from bot.database.models import FeedbackMessage, FeedbackReply
 from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
 from bot.keyboards.quiz_keyboards import get_feedback_keyboard
 from bot.states.admin_states import FeedbackStates
@@ -20,10 +21,12 @@ router = Router(name="feedback_router")
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-# Обработчик кнопки "Написать Администратору"
-@router.message(lambda message: message.text and message.text.lower() == "написать администратору")
+# Обработчик кнопки "🆘 Поддержка-Support"
+@router.message(lambda message: message.text and message.text.lower() == "🆘 поддержка-support")
 async def handle_write_to_admin(message: types.Message):
     await message.answer("Ваше сообщение для администратора. Напишите текст, и он будет передан.")
+
+
 
 # Фильтр для сообщений пользователей
 class UserMessageFilter(BaseFilter):
@@ -31,7 +34,7 @@ class UserMessageFilter(BaseFilter):
         current_state = await state.get_state()
         return (
             message.text
-            and message.text.lower() != "написать администратору"
+            and message.text.lower() != "🆘 поддержка-support"
             and current_state != FeedbackStates.awaiting_reply
         )
 
@@ -66,10 +69,15 @@ async def show_unprocessed_feedback(callback_query: types.CallbackQuery):
         return
 
     for feedback in feedbacks:
+        # Подсчитываем количество ответов в рамках той же сессии
+        replies_count = await session.scalar(
+            select(func.count(FeedbackReply.id)).where(FeedbackReply.feedback_id == feedback.id)
+        )
         feedback_text = (
             f"ID: {feedback.id}\n"
             f"Пользователь: @{feedback.username or 'Неизвестно'} (ID: {feedback.user_id})\n"
-            f"Сообщение: {feedback.message}"
+            f"Сообщение: {feedback.message}\n"
+            f"Ответов: {replies_count}"
         )
         await callback_query.message.answer(feedback_text, reply_markup=get_feedback_keyboard(feedback.id))
 
@@ -113,12 +121,29 @@ async def handle_feedback_reply(message: types.Message, state: FSMContext):
             return
 
         try:
+            # Создаем запись ответа в базе данных
+            feedback_reply = FeedbackReply(
+                feedback_id=feedback_id,
+                admin_telegram_id=message.from_user.id,
+                admin_username=message.from_user.username,
+                reply_text=message.text,
+                is_sent_to_user=False,
+                sent_at=datetime.utcnow()  # Устанавливаем время отправки сразу
+            )
+            session.add(feedback_reply)
+            
             # Отправляем сообщение пользователю
             await message.bot.send_message(
                 chat_id=user_id,
                 text=f"Ответ от администратора:\n\nВаше сообщение: {feedback.message}\n\nОтвет: {message.text}"
             )
+            
+            # Отмечаем ответ как отправленный
+            feedback_reply.is_sent_to_user = True
+            
+            # Отмечаем сообщение как обработанное
             feedback.is_processed = True
+            
             await session.commit()
 
             # Подтверждение администратору
@@ -179,3 +204,4 @@ async def delete_feedback(callback_query: types.CallbackQuery):
 
     await callback_query.answer("Сообщение удалено.", show_alert=True)
     await callback_query.message.delete()
+
