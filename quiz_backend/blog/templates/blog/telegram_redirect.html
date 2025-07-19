@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Telegram Auth Handler</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        .widget-container { 
+            border: 2px dashed #ccc; 
+            padding: 20px; 
+            margin: 20px 0; 
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Telegram Auth Handler</h1>
+    <p><strong>Этот URL:</strong> <code>/auth/telegram/</code></p>
+    <p>Здесь обрабатываются запросы от Telegram</p>
+    
+    <div id="logs"></div>
+    
+    <div class="widget-container">
+        <h2>🔄 Test Widget (правильный return_to):</h2>
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+                data-telegram-login="quiz_login_test_bot"
+                data-size="large"
+                data-userpic="true"
+                data-request-access="write"
+                data-lang="ru"
+                data-onauth="onTelegramAuth(user)">
+        </script>
+        <p><small>Этот виджет будет использовать <code>/auth/telegram/</code> как return_to</small></p>
+    </div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            document.getElementById('logs').appendChild(div);
+            console.log(message);
+        }
+        
+        // Callback функция для виджета
+        function onTelegramAuth(user) {
+            log('🚀 Данные получены от виджета!', 'success');
+            log(`User data: ${JSON.stringify(user)}`, 'success');
+            
+            // Отправляем данные на текущий URL для обработки
+            const params = new URLSearchParams(user);
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+        
+        // Проверяем URL параметры при загрузке
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('id')) {
+            log('✅ Получены параметры авторизации!', 'success');
+            
+            // Показываем все параметры
+            const authData = {};
+            for (const [key, value] of urlParams.entries()) {
+                authData[key] = value;
+            }
+            log(`Параметры: ${JSON.stringify(authData)}`, 'success');
+            
+            // В реальной ситуации здесь уже должен сработать Django view
+            log('Django TelegramAuthView должен обработать эти параметры', 'success');
+        } else {
+            log('Параметры авторизации отсутствуют - показываем виджет для тестирования');
+        }
+        
+        // Проверяем виджет
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const iframe = document.querySelector('iframe');
+                if (iframe) {
+                    log(`🎯 Iframe: ${iframe.src}`, 'success');
+                    
+                    const url = new URL(iframe.src);
+                    const returnTo = url.searchParams.get('return_to');
+                    if (returnTo?.includes('/auth/telegram/')) {
+                        log('✅ Return URL правильный!', 'success');
+                    } else {
+                        log(`❌ Return URL неправильный: ${returnTo}`, 'error');
+                    }
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html> 

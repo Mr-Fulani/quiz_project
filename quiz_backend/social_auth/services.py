@@ -33,10 +33,11 @@ class TelegramAuthService:
             bool: True если подпись верна, False иначе
         """
         try:
-            # В режиме разработки пропускаем проверку подписи для тестовых данных
+            # В режиме разработки пропускаем проверку подписи для мок данных
             logger.info(f"Проверяем хеш: {data.get('hash')}")
-            if data.get('hash') == 'test_hash':
-                logger.info("Пропускаем проверку подписи для тестовых данных в режиме разработки")
+            if (getattr(settings, 'MOCK_TELEGRAM_AUTH', False) and 
+                data.get('hash') in ['test_hash', 'mock_hash_for_development']):
+                logger.info("Пропускаем проверку подписи для мок данных в режиме разработки")
                 return True
             
             # Получаем токен бота из настроек
@@ -45,8 +46,9 @@ class TelegramAuthService:
                 logger.error("TELEGRAM_BOT_TOKEN не настроен")
                 return False
             
-            logger.info(f"Проверяем подпись Telegram. Данные: {data}")
-            logger.info(f"Bot token: {bot_token[:10]}...")
+            logger.error(f"=== ПРОВЕРКА ПОДПИСИ TELEGRAM ===")
+            logger.error(f"Данные: {data}")
+            logger.error(f"Bot token: {bot_token[:10]}...")
             
             # Создаем секрет для проверки подписи
             secret = hashlib.sha256(bot_token.encode()).digest()
@@ -56,7 +58,7 @@ class TelegramAuthService:
             check_data = {k: data[k] for k in allowed_keys if k in data}
             check_string = '\n'.join([f"{k}={check_data[k]}" for k in sorted(check_data)])
             
-            logger.info(f"Check string: {check_string}")
+            logger.error(f"Check string: {check_string}")
             
             # Вычисляем хеш
             computed_hash = hmac.new(
@@ -66,8 +68,8 @@ class TelegramAuthService:
             ).hexdigest()
             
             received_hash = data.get('hash', '')
-            logger.info(f"Computed hash: {computed_hash}")
-            logger.info(f"Received hash: {received_hash}")
+            logger.error(f"Computed hash: {computed_hash}")
+            logger.error(f"Received hash: {received_hash}")
             logger.info(f"Hashes match: {computed_hash == received_hash}")
             
             # Сравниваем с полученным хешем
@@ -90,6 +92,9 @@ class TelegramAuthService:
             Dict с результатом авторизации или None при ошибке
         """
         try:
+            logger.error(f"=== PROCESS_TELEGRAM_AUTH ВЫЗВАН ===")
+            logger.error(f"Данные: {data}")
+            
             # Проверяем подпись
             if not TelegramAuthService.verify_telegram_auth(data):
                 logger.warning("Неверная подпись Telegram")
@@ -99,12 +104,20 @@ class TelegramAuthService:
                 }
             
             # Проверяем время авторизации (не старше 24 часов)
-            auth_date = int(data.get('auth_date', 0))
-            if time.time() - auth_date > 86400:  # 24 часа
-                logger.warning("Устаревшая авторизация Telegram")
+            auth_date = data.get('auth_date')
+            if auth_date:
+                auth_date = int(auth_date)
+                if time.time() - auth_date > 86400:  # 24 часа
+                    logger.warning("Устаревшая авторизация Telegram")
+                    return {
+                        'success': False,
+                        'error': 'Устаревшая авторизация'
+                    }
+            else:
+                logger.warning("Отсутствует auth_date в данных Telegram")
                 return {
                     'success': False,
-                    'error': 'Устаревшая авторизация'
+                    'error': 'Некорректные данные авторизации'
                 }
             
             telegram_id = str(data.get('id'))

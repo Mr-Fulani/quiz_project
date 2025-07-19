@@ -351,14 +351,14 @@
                 
                 <!-- Telegram Login Widget -->
                 <div class="inputBx" style="display: flex; justify-content: center; align-items: center;">
+                    <!-- Telegram Login Widget с redirect методом на auth endpoint -->
                     <script async src="https://telegram.org/js/telegram-widget.js?22"
                             data-telegram-login="{{ TELEGRAM_BOT_USERNAME }}"
                             data-size="large"
                             data-userpic="true"
                             data-request-access="write"
                             data-lang="ru"
-                            data-onauth="handleTelegramAuth"
-                            data-origin="https://quiz-code.com">
+                            data-auth-url="https://8f6bc5f0af42.ngrok-free.app/api/social-auth/telegram/auth/">
                     </script>
                 </div>
                 
@@ -771,11 +771,27 @@
 
 <!-- Telegram Auth Handler -->
 <script>
+    // Отладка Telegram виджета
+    console.log('🔧 Telegram auth handler initialized');
+    
+    // Проверяем iframe от Telegram через 3 секунды
+    setTimeout(() => {
+        const iframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
+        if (iframe) {
+            console.log('✅ Telegram widget loaded successfully');
+        } else {
+            console.log('❌ Telegram widget not loaded - check BotFather domain settings');
+            console.log('📋 Current domain:', window.location.hostname);
+        }
+    }, 3000);
+    
     // Глобальная функция для обработки авторизации через Telegram
     function handleTelegramAuth(user) {
+        console.log('🚨 ВНИМАНИЕ! Telegram callback вызван!');
         console.log('🔐 Telegram auth callback called:', user);
         console.log('🔍 Тип user:', typeof user);
         console.log('🔍 Содержимое user:', JSON.stringify(user, null, 2));
+        alert('✅ Telegram callback вызван! Проверьте консоль.');
         
         // Проверяем, что user содержит необходимые данные
         if (!user || !user.id) {
@@ -829,6 +845,33 @@
             hash: 'test_hash'
         };
         handleTelegramAuth(testUser);
+    };
+    
+    // Функция для проверки состояния виджета
+    window.checkTelegramWidget = function() {
+        console.log('=== TELEGRAM WIDGET DEBUG ===');
+        const widget = document.querySelector('[data-telegram-login]');
+        const iframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
+        const script = document.querySelector('[src*="telegram-widget.js"]');
+        
+        console.log('📊 Widget status:');
+        console.log('  Script loaded:', !!script);
+        console.log('  Widget element:', !!widget);
+        console.log('  Iframe created:', !!iframe);
+        console.log('  window.Telegram:', typeof window.Telegram);
+        console.log('  handleTelegramAuth:', typeof window.handleTelegramAuth);
+        
+        if (widget && !iframe) {
+            console.log('⚠️ Виджет есть, но iframe не создался - возможно проблема с ботом в BotFather');
+        }
+        
+        return {
+            script: !!script,
+            widget: !!widget,
+            iframe: !!iframe,
+            telegram: typeof window.Telegram,
+            handler: typeof window.handleTelegramAuth
+        };
     };
     
     // Дополнительная отладка для виджета

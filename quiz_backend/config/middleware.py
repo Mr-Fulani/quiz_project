@@ -1,3 +1,4 @@
+import logging
 from django.utils.deprecation import MiddlewareMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
@@ -5,21 +6,38 @@ from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseBadRequest
 
 
+logger = logging.getLogger(__name__)
+
+
+class RequestLoggingMiddleware(MiddlewareMixin):
+    """Middleware для логирования Telegram запросов"""
+    
+    def process_request(self, request):
+        # Логируем только важные Telegram запросы
+        if '/auth/telegram' in request.path and request.GET:
+            logger.info(f"Telegram auth request: {request.method} {request.path}")
+            logger.info(f"GET params: {dict(request.GET)}")
+        return None
+
+
 class DisableCSRFForAPI(MiddlewareMixin):
     """
-    Middleware для отключения CSRF проверки для API endpoints
-    И разрешения всех хостов для API запросов
+    Middleware для отключения CSRF проверки для API endpoints И Telegram auth
     """
     def process_request(self, request):
-        # Разрешаем любые хосты для API endpoints
-        if request.path.startswith('/api/'):
+        # Разрешаем любые хосты для API endpoints И Telegram auth
+        if (request.path.startswith('/api/') or 
+            request.path.startswith('/auth/telegram') or 
+            '/telegram/' in request.path):
             # Временно "обманываем" CommonMiddleware
             request.META['HTTP_HOST'] = 'localhost'
         return None
     
     def process_view(self, request, view_func, view_args, view_kwargs):
-        # Отключаем CSRF для всех API endpoints
-        if request.path.startswith('/api/'):
+        # Отключаем CSRF для всех API endpoints И Telegram auth
+        if (request.path.startswith('/api/') or 
+            request.path.startswith('/auth/telegram') or 
+            '/telegram/' in request.path):
             setattr(view_func, 'csrf_exempt', True)
         return None 
 
