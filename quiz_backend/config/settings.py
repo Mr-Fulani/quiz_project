@@ -48,7 +48,7 @@ USE_L10N = False
 MOCK_TELEGRAM_AUTH = DEBUG
 
 if DEBUG:
-    ALLOWED_HOSTS = ["*"]
+    ALLOWED_HOSTS = ["*", "quiz_backend", "quiz_backend:8000"]
 else:
     # Хосты для продакшена - твои домены + localhost для curl
     env_hosts = os.getenv("ALLOWED_HOSTS", "")
@@ -57,6 +57,11 @@ else:
         # Добавляем localhost для API тестирования
         if 'localhost' not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append('localhost')
+        # Добавляем внутренние хосты контейнеров
+        if 'quiz_backend' not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append('quiz_backend')
+        if 'quiz_backend:8000' not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append('quiz_backend:8000')
         logger.info(f"ALLOWED_HOSTS from env: {ALLOWED_HOSTS}")
     else:
         # Фоллбэк только с твоими хостами
@@ -65,7 +70,9 @@ else:
             'www.quiz-code.com',
             'mini.quiz-code.com',
             'localhost',
-            '45.14.247.175'  # IP-адрес сервера
+            '45.14.247.175',  # IP-адрес сервера
+            'quiz_backend',   # Внутренний хост контейнера
+            'quiz_backend:8000'  # Внутренний хост контейнера с портом
         ]
         logger.warning(f"ALLOWED_HOSTS env var not found, using fallback: {ALLOWED_HOSTS}")
 

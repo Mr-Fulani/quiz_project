@@ -29,8 +29,12 @@ class DisableCSRFForAPI(MiddlewareMixin):
         if (request.path.startswith('/api/') or 
             request.path.startswith('/auth/telegram') or 
             '/telegram/' in request.path):
-            # Временно "обманываем" CommonMiddleware
-            request.META['HTTP_HOST'] = 'localhost'
+            # Для внутренних запросов от контейнеров устанавливаем валидный хост
+            if request.META.get('HTTP_HOST') in ['quiz_backend:8000', 'quiz_backend']:
+                request.META['HTTP_HOST'] = 'localhost'
+                # Также устанавливаем заголовки для корректной работы с прокси
+                request.META['HTTP_X_FORWARDED_HOST'] = 'localhost'
+                request.META['HTTP_X_FORWARDED_PROTO'] = 'http'
         return None
     
     def process_view(self, request, view_func, view_args, view_kwargs):
