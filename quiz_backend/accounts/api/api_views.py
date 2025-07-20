@@ -15,7 +15,7 @@ from django.http import HttpResponseRedirect
 from django.db import transaction, IntegrityError
 import logging
 
-from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser
+from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser, MiniAppUser
 from ..serializers import (
     UserSerializer,
     LoginSerializer,
@@ -23,7 +23,10 @@ from ..serializers import (
     SubscriptionSerializer,
     AdminSerializer,
     ProfileSerializer,
-    SocialLinksSerializer
+    SocialLinksSerializer,
+    MiniAppUserSerializer,
+    MiniAppUserCreateSerializer,
+    MiniAppUserUpdateSerializer
 )
 
 User = get_user_model()
@@ -444,4 +447,161 @@ class CustomObtainAuthToken(ObtainAuthToken):
             'token': token.key,
             'user_id': user.pk,
             'username': user.username
-        }) 
+        })
+
+
+class MiniAppUserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления пользователями Mini App.
+    
+    Предоставляет полный CRUD для пользователей Mini App.
+    """
+    queryset = MiniAppUser.objects.all()
+    permission_classes = [permissions.AllowAny]  # Разрешаем доступ для Mini App
+    
+    def get_serializer_class(self):
+        """
+        Выбирает подходящий сериализатор в зависимости от действия.
+        """
+        if self.action == 'create':
+            return MiniAppUserCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return MiniAppUserUpdateSerializer
+        return MiniAppUserSerializer
+    
+    def get_object(self):
+        """
+        Получает объект по telegram_id вместо pk.
+        """
+        telegram_id = self.kwargs.get('pk')
+        if telegram_id and telegram_id.isdigit():
+            # Если передан числовой ID, ищем по telegram_id
+            obj = get_object_or_404(MiniAppUser, telegram_id=telegram_id)
+        else:
+            # Иначе используем стандартный поиск по pk
+            obj = super().get_object()
+        return obj
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """
+        Получает информацию о текущем пользователе Mini App.
+        Требует telegram_id в query параметрах.
+        """
+        telegram_id = request.query_params.get('telegram_id')
+        if not telegram_id:
+            return Response(
+                {'error': 'telegram_id required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except MiniAppUser.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=False, methods=['post'])
+    def update_last_seen(self, request):
+        """
+        Обновляет время последнего визита пользователя.
+        """
+        telegram_id = request.data.get('telegram_id')
+        if not telegram_id:
+            return Response(
+                {'error': 'telegram_id required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            user.update_last_seen()
+            return Response({'success': True})
+        except MiniAppUser.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=False, methods=['post'])
+    def link_users(self, request):
+        """
+        Связывает MiniAppUser с существующими пользователями.
+        """
+        telegram_id = request.data.get('telegram_id')
+        if not telegram_id:
+            return Response(
+                {'error': 'telegram_id required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Пытаемся связать с существующими пользователями
+            linked_count = 0
+            
+            # Связываем с TelegramUser
+            telegram_user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
+            if telegram_user and not user.telegram_user:
+                user.link_to_telegram_user(telegram_user)
+                linked_count += 1
+            
+            # Связываем с TelegramAdmin
+            telegram_admin = TelegramAdmin.objects.filter(telegram_id=telegram_id).first()
+            if telegram_admin and not user.telegram_admin:
+                user.link_to_telegram_admin(telegram_admin)
+                linked_count += 1
+            
+            # Связываем с DjangoAdmin (по username)
+            if user.username:
+                django_admin = DjangoAdmin.objects.filter(username=user.username).first()
+                if django_admin and not user.django_admin:
+                    user.link_to_django_admin(django_admin)
+                    linked_count += 1
+            
+            return Response({
+                'success': True,
+                'linked_count': linked_count,
+                'user': self.get_serializer(user).data
+            })
+            
+        except MiniAppUser.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):
+    """
+    API для получения и обновления пользователя Mini App по telegram_id.
+    """
+    queryset = MiniAppUser.objects.all()
+    serializer_class = MiniAppUserSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'telegram_id'
+    
+    def get_object(self):
+        """
+        Получает объект по telegram_id.
+        """
+        telegram_id = self.kwargs.get('telegram_id')
+        return get_object_or_404(MiniAppUser, telegram_id=telegram_id)
+    
+    def get_serializer_class(self):
+        """
+        Выбирает сериализатор в зависимости от метода.
+        """
+        if self.request.method in ['PUT', 'PATCH']:
+            return MiniAppUserUpdateSerializer
+        return MiniAppUserSerializer 

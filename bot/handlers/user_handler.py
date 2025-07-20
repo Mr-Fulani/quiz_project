@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone  # Исправленный импорт
 from sqlalchemy import select
 
-from bot.database.models import UserChannelSubscription, TelegramUser, TelegramGroup
+from bot.database.models import UserChannelSubscription, TelegramUser, TelegramGroup, TelegramAdmin
 
 logger = logging.getLogger(__name__)
 router = Router(name="user_router")
@@ -34,8 +34,18 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
         logger.debug("Игнорирование бота или отсутствующего пользователя.")
         return
 
-    # Получаем пользователя из базы данных или создаем нового
-    user_obj = await get_or_create_user(db_session, user)
+    # Проверяем, является ли пользователь админом
+    admin_obj = await get_admin(db_session, user.id)
+    
+    if admin_obj:
+        # Пользователь является админом - создаем TelegramUser для админа
+        user_obj = await get_or_create_user_for_admin(db_session, admin_obj)
+        logger.debug(f"Обработка подписки админа {user.id} (@{user.username or 'None'})")
+    else:
+        # Обычный пользователь - создаем TelegramUser
+        user_obj = await get_or_create_user(db_session, user)
+        logger.debug(f"Обработка подписки пользователя {user.id} (@{user.username or 'None'})")
+    
     if not user_obj:
         logger.error(f"Не удалось получить или создать пользователя с ID {user.id}")
         return
@@ -160,3 +170,77 @@ async def get_group(db_session: AsyncSession, chat: types.Chat) -> TelegramGroup
     else:
         logger.debug(f"Группа с ID {chat.id} не найдена.")
     return group_obj
+
+
+async def get_admin(db_session: AsyncSession, telegram_id: int):
+    """
+    Проверяет, является ли пользователь админом.
+    
+    Args:
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для взаимодействия с базой данных.
+        telegram_id (int): Telegram ID пользователя.
+        
+    Returns:
+        TelegramAdmin | None: Объект админа из базы данных или None, если пользователь не админ.
+    """
+    try:
+        result = await db_session.execute(
+            select(TelegramAdmin).where(TelegramAdmin.telegram_id == telegram_id)
+        )
+        admin_obj = result.scalar_one_or_none()
+        
+        if admin_obj:
+            logger.debug(f"Пользователь {telegram_id} является админом")
+        else:
+            logger.debug(f"Пользователь {telegram_id} не является админом")
+            
+        return admin_obj
+    except Exception as e:
+        logger.error(f"Ошибка при проверке админа {telegram_id}: {e}")
+        return None
+
+
+async def get_or_create_user_for_admin(db_session: AsyncSession, admin: TelegramAdmin) -> TelegramUser | None:
+    """
+    Получает или создает TelegramUser для админа.
+    Используется когда админ подписывается на канал/группу.
+    
+    Args:
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy для взаимодействия с базой данных.
+        admin (TelegramAdmin): Объект админа.
+        
+    Returns:
+        TelegramUser | None: Объект пользователя из базы данных или None в случае ошибки.
+    """
+    try:
+        # Проверяем, существует ли уже TelegramUser для этого админа
+        result = await db_session.execute(
+            select(TelegramUser).where(TelegramUser.telegram_id == admin.telegram_id)
+        )
+        user_obj = result.scalar_one_or_none()
+
+        if not user_obj:
+            # Создаем TelegramUser для админа
+            created_at = datetime.now(timezone.utc)
+            user_obj = TelegramUser(
+                telegram_id=admin.telegram_id,
+                username=admin.username,
+                first_name=None,  # У админов может не быть этих полей
+                last_name=None,
+                subscription_status="active",
+                created_at=created_at,
+                language=admin.language or "ru",
+                is_premium=False,
+                linked_user_id=None
+            )
+            db_session.add(user_obj)
+            await db_session.commit()
+            logger.info(f"Создан TelegramUser для админа {admin.telegram_id} (@{admin.username or 'None'})")
+        else:
+            logger.debug(f"TelegramUser для админа {admin.telegram_id} уже существует")
+            
+        return user_obj
+    except Exception as e:
+        logger.error(f"Ошибка при создании TelegramUser для админа {admin.telegram_id}: {e}")
+        await db_session.rollback()
+        return None

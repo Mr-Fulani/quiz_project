@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription
+from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser
 
 
 class TelegramAdminGroupInline(admin.TabularInline):
@@ -157,9 +157,63 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     unsubscribe.short_description = "Деактивировать подписку"
 
 
+class MiniAppUserAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для MiniAppUser.
+    """
+    list_display = ['telegram_id', 'username', 'full_name', 'language', 'is_admin', 'admin_type', 'created_at', 'last_seen']
+    search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
+    list_filter = ['language', 'created_at', 'last_seen']
+    readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name']
+    raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin']
+    actions = ['update_last_seen', 'link_to_existing_users']
+
+    def update_last_seen(self, request, queryset):
+        """
+        Обновляет время последнего визита для выбранных пользователей.
+        """
+        for user in queryset:
+            user.update_last_seen()
+        self.message_user(request, f"Время последнего визита обновлено для {queryset.count()} пользователей.")
+    update_last_seen.short_description = "Обновить время последнего визита"
+
+    def link_to_existing_users(self, request, queryset):
+        """
+        Автоматически связывает MiniAppUser с существующими пользователями.
+        """
+        linked_count = 0
+        for mini_app_user in queryset:
+            try:
+                # Пытаемся связать с TelegramUser
+                telegram_user = TelegramUser.objects.filter(telegram_id=mini_app_user.telegram_id).first()
+                if telegram_user and not mini_app_user.telegram_user:
+                    mini_app_user.link_to_telegram_user(telegram_user)
+                    linked_count += 1
+                
+                # Пытаемся связать с TelegramAdmin
+                telegram_admin = TelegramAdmin.objects.filter(telegram_id=mini_app_user.telegram_id).first()
+                if telegram_admin and not mini_app_user.telegram_admin:
+                    mini_app_user.link_to_telegram_admin(telegram_admin)
+                    linked_count += 1
+                
+                # Пытаемся связать с DjangoAdmin (по username)
+                if mini_app_user.username:
+                    django_admin = DjangoAdmin.objects.filter(username=mini_app_user.username).first()
+                    if django_admin and not mini_app_user.django_admin:
+                        mini_app_user.link_to_django_admin(django_admin)
+                        linked_count += 1
+                        
+            except Exception as e:
+                self.message_user(request, f"Ошибка при связывании пользователя {mini_app_user.telegram_id}: {e}", level='ERROR')
+        
+        self.message_user(request, f"Связано {linked_count} пользователей.")
+    link_to_existing_users.short_description = "Связать с существующими пользователями"
+
+
 # Регистрация моделей
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(TelegramUser, TelegramUserAdmin)
 admin.site.register(TelegramAdmin, TelegramAdminAdmin)
 admin.site.register(DjangoAdmin, DjangoAdminAdmin)
 admin.site.register(UserChannelSubscription, UserChannelSubscriptionAdmin)
+admin.site.register(MiniAppUser, MiniAppUserAdmin)

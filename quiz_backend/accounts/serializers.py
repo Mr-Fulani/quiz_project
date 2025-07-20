@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db.models import Count, Q
-from .models import CustomUser, UserChannelSubscription, TelegramAdmin, DjangoAdmin
+from .models import CustomUser, UserChannelSubscription, TelegramAdmin, DjangoAdmin, MiniAppUser, TelegramUser
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -263,4 +263,108 @@ class AdminSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if isinstance(instance, TelegramAdmin):
             data['telegram_id'] = instance.telegram_id
-        return data 
+        return data
+
+
+class MiniAppUserSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для пользователей Mini App.
+    
+    Предоставляет полную информацию о пользователе Mini App,
+    включая связи с другими типами пользователей и статус админа.
+    """
+    full_name = serializers.CharField(read_only=True)
+    is_admin = serializers.BooleanField(read_only=True)
+    admin_type = serializers.CharField(read_only=True)
+    
+    # Связи с другими типами пользователей
+    telegram_user_id = serializers.IntegerField(source='telegram_user.telegram_id', read_only=True)
+    telegram_admin_id = serializers.IntegerField(source='telegram_admin.telegram_id', read_only=True)
+    django_admin_username = serializers.CharField(source='django_admin.username', read_only=True)
+    
+    class Meta:
+        model = MiniAppUser
+        fields = (
+            'id', 'telegram_id', 'username', 'first_name', 'last_name',
+            'full_name', 'language', 'created_at', 'last_seen',
+            'is_admin', 'admin_type',
+            'telegram_user_id', 'telegram_admin_id', 'django_admin_username'
+        )
+        read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type')
+
+
+class MiniAppUserCreateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для создания пользователя Mini App.
+    
+    Используется при первом входе пользователя в Mini App.
+    Автоматически связывает с существующими пользователями.
+    """
+    
+    class Meta:
+        model = MiniAppUser
+        fields = ('telegram_id', 'username', 'first_name', 'last_name', 'language')
+    
+    def create(self, validated_data):
+        """
+        Создает пользователя Mini App и автоматически связывает с существующими пользователями.
+        """
+        # Создаем пользователя
+        mini_app_user = MiniAppUser.objects.create(**validated_data)
+        
+        # Автоматически связываем с существующими пользователями
+        try:
+            # Связываем с TelegramUser
+            telegram_user = TelegramUser.objects.filter(
+                telegram_id=mini_app_user.telegram_id
+            ).first()
+            if telegram_user:
+                mini_app_user.link_to_telegram_user(telegram_user)
+            
+            # Связываем с TelegramAdmin
+            telegram_admin = TelegramAdmin.objects.filter(
+                telegram_id=mini_app_user.telegram_id
+            ).first()
+            if telegram_admin:
+                mini_app_user.link_to_telegram_admin(telegram_admin)
+            
+            # Связываем с DjangoAdmin (по username)
+            if mini_app_user.username:
+                django_admin = DjangoAdmin.objects.filter(
+                    username=mini_app_user.username
+                ).first()
+                if django_admin:
+                    mini_app_user.link_to_django_admin(django_admin)
+                    
+        except Exception as e:
+            # Логируем ошибку, но не прерываем создание пользователя
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Ошибка при автоматическом связывании MiniAppUser {mini_app_user.telegram_id}: {e}")
+        
+        return mini_app_user
+
+
+class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для обновления пользователя Mini App.
+    
+    Позволяет обновлять основные данные пользователя.
+    """
+    
+    class Meta:
+        model = MiniAppUser
+        fields = ('username', 'first_name', 'last_name', 'language')
+    
+    def update(self, instance, validated_data):
+        """
+        Обновляет данные пользователя и время последнего визита.
+        """
+        # Обновляем данные
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Обновляем время последнего визита
+        instance.update_last_seen()
+        
+        return instance 

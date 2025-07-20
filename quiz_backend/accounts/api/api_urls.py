@@ -30,4 +30,26 @@ urlpatterns = [
 
     # Статистика
     path('stats/', api_views.UserStatsView.as_view(), name='user-stats'),
+    
+    # Mini App пользователи
+    path('miniapp-users/', api_views.MiniAppUserViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='miniapp-user-list'),
+    path('miniapp-users/me/', api_views.MiniAppUserViewSet.as_view({
+        'get': 'me'
+    }), name='miniapp-user-me'),
+    path('miniapp-users/update-last-seen/', api_views.MiniAppUserViewSet.as_view({
+        'post': 'update_last_seen'
+    }), name='miniapp-user-update-last-seen'),
+    path('miniapp-users/link-users/', api_views.MiniAppUserViewSet.as_view({
+        'post': 'link_users'
+    }), name='miniapp-user-link-users'),
+    path('miniapp-users/<int:pk>/', api_views.MiniAppUserViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy'
+    }), name='miniapp-user-detail'),
+    path('miniapp-users/by-telegram/<int:telegram_id>/', api_views.MiniAppUserByTelegramIDView.as_view(), name='miniapp-user-by-telegram'),
 ] 
