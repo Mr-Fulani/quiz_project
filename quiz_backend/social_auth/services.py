@@ -156,6 +156,14 @@ class TelegramAuthService:
                         last_name=data.get('last_name'),
                         avatar_url=data.get('photo_url')
                     )
+                    
+                    # Автоматически связываем с существующими пользователями
+                    try:
+                        linked_count = social_account.auto_link_existing_users()
+                        if linked_count > 0:
+                            logger.info(f"Автоматически связано {linked_count} пользователей для telegram_id={telegram_id}")
+                    except Exception as e:
+                        logger.warning(f"Ошибка при автоматическом связывании для telegram_id={telegram_id}: {e}")
                 
                 # Создаем сессию
                 session = SocialLoginSession.objects.create(

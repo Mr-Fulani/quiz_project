@@ -2,6 +2,32 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser
 
+# Импортируем миксин для сводной информации
+try:
+    from .admin_overview import UserOverviewMixin
+except ImportError:
+    # Если файл не найден, создаем пустой миксин
+    class UserOverviewMixin:
+        pass
+
+
+class SocialAccountInline(admin.TabularInline):
+    """
+    Inline-форма для отображения социальных аккаунтов пользователя.
+    """
+    from social_auth.models import SocialAccount
+    
+    model = SocialAccount
+    extra = 0
+    verbose_name = "Социальный аккаунт"
+    verbose_name_plural = "Социальные аккаунты"
+    readonly_fields = ['provider', 'provider_user_id', 'is_active', 'created_at', 'last_login_at']
+    fields = ['provider', 'provider_user_id', 'username', 'is_active', 'created_at']
+    
+    def has_add_permission(self, request, obj=None):
+        """Запрещаем создание социальных аккаунтов вручную."""
+        return False
+
 
 class TelegramAdminGroupInline(admin.TabularInline):
     """
@@ -71,14 +97,22 @@ class DjangoAdminAdmin(admin.ModelAdmin):
     remove_staff.short_description = "Убрать права персонала"
 
 
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     """
-    Админ-панель для CustomUser с действием для создания DjangoAdmin.
+    Админ-панель для CustomUser с интеграцией социальных аккаунтов и действием для создания DjangoAdmin.
     """
     model = CustomUser
-    list_display = ['username', 'email', 'is_active', 'is_staff', 'telegram_id', 'subscription_status', 'created_at']
+    list_display = [
+        'username', 'email', 'is_active', 'is_staff', 'telegram_id', 
+        'subscription_status', 'social_accounts_display', 'created_at'
+    ]
     search_fields = ['username', 'email', 'telegram_id']
-    list_filter = ['is_active', 'is_staff', 'subscription_status', 'language']
+    list_filter = [
+        'is_active', 'is_staff', 'subscription_status', 'language',
+        'social_accounts__provider', 'social_accounts__is_active'
+    ]
+    inlines = [SocialAccountInline]
+    
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Персональная информация', {'fields': ('email', 'telegram_id', 'avatar', 'bio', 'location', 'birth_date', 'website')}),
@@ -94,7 +128,40 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'email', 'telegram_id', 'password1', 'password2', 'is_active', 'is_staff'),
         }),
     )
-    actions = ['make_django_admin']
+    actions = ['make_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
+    
+    def social_accounts_display(self, obj):
+        """
+        Отображает социальные аккаунты пользователя.
+        """
+        accounts = obj.social_accounts.filter(is_active=True)
+        if not accounts:
+            return '-'
+        
+        providers = [account.provider for account in accounts]
+        if len(providers) > 2:
+            return f"{', '.join(providers[:2])} +{len(providers)-2}"
+        return ', '.join(providers)
+    social_accounts_display.short_description = 'Социальные аккаунты'
+    
+    def link_social_accounts(self, request, queryset):
+        """
+        Связывает социальные аккаунты пользователей с существующими системами.
+        """
+        linked_count = 0
+        for user in queryset:
+            for social_account in user.social_accounts.filter(is_active=True):
+                try:
+                    linked_count += social_account.auto_link_existing_users()
+                except Exception as e:
+                    self.message_user(
+                        request, 
+                        f"Ошибка при связывании аккаунта {social_account.provider_user_id}: {e}", 
+                        level='ERROR'
+                    )
+        
+        self.message_user(request, f"Связано {linked_count} социальных аккаунтов.")
+    link_social_accounts.short_description = "Связать социальные аккаунты"
 
     def make_django_admin(self, request, queryset):
         """

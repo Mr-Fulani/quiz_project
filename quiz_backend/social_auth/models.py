@@ -10,6 +10,21 @@ class SocialAccount(models.Model):
     
     Связывает внешние социальные аккаунты с пользователями Django.
     Поддерживает различные провайдеры: Telegram, GitHub, Google, VK и др.
+    
+    Интеграция с другими системами:
+    - Связь с TelegramUser (пользователи бота)
+    - Связь с MiniAppUser (пользователи Mini App)
+    - Связь с TelegramAdmin (админы бота)
+    - Связь с DjangoAdmin (админы Django)
+    """
+
+
+class SocialAccount(models.Model):
+    """
+    Модель для хранения социальных аккаунтов пользователей.
+    
+    Связывает внешние социальные аккаунты с пользователями Django.
+    Поддерживает различные провайдеры: Telegram, GitHub, Google, VK и др.
     """
     PROVIDER_CHOICES = [
         ('telegram', 'Telegram'),
@@ -95,6 +110,44 @@ class SocialAccount(models.Model):
         null=True,
         verbose_name=_('Последний вход')
     )
+    
+    # Связи с другими системами пользователей
+    telegram_user = models.OneToOneField(
+        'accounts.TelegramUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_account',
+        verbose_name=_('Пользователь бота'),
+        help_text=_('Связь с пользователем Telegram бота, если он также использует бота')
+    )
+    mini_app_user = models.OneToOneField(
+        'accounts.MiniAppUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_account',
+        verbose_name=_('Mini App пользователь'),
+        help_text=_('Связь с пользователем Mini App, если он также использует Mini App')
+    )
+    telegram_admin = models.OneToOneField(
+        'accounts.TelegramAdmin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_account',
+        verbose_name=_('Админ бота'),
+        help_text=_('Связь с админом Telegram бота, если он также является админом')
+    )
+    django_admin = models.OneToOneField(
+        'accounts.DjangoAdmin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_account',
+        verbose_name=_('Django админ'),
+        help_text=_('Связь с Django админом, если он также управляет сайтом')
+    )
 
     class Meta:
         db_table = 'social_accounts'
@@ -131,6 +184,155 @@ class SocialAccount(models.Model):
         elif self.username:
             return self.username
         return str(self.provider_user_id)
+
+    @property
+    def is_admin(self):
+        """
+        Проверяет, является ли пользователь админом в любой из систем.
+        
+        Returns:
+            bool: True если пользователь является админом
+        """
+        return bool(self.telegram_admin or self.django_admin)
+
+    @property
+    def admin_type(self):
+        """
+        Возвращает тип админа пользователя.
+        
+        Returns:
+            str: Тип админа или None
+        """
+        if self.telegram_admin and self.django_admin:
+            return "Telegram + Django Admin"
+        elif self.telegram_admin:
+            return "Telegram Admin"
+        elif self.django_admin:
+            return "Django Admin"
+        else:
+            return None
+
+    @property
+    def auth_methods(self):
+        """
+        Возвращает список методов авторизации пользователя.
+        
+        Returns:
+            list: Список методов авторизации
+        """
+        methods = [self.provider]
+        if self.telegram_user:
+            methods.append('bot')
+        if self.mini_app_user:
+            methods.append('mini_app')
+        return methods
+
+    def link_to_telegram_user(self, telegram_user):
+        """
+        Связывает SocialAccount с TelegramUser.
+        
+        Args:
+            telegram_user: Объект TelegramUser для связи
+        """
+        if telegram_user.telegram_id != int(self.provider_user_id):
+            raise ValueError("Telegram ID не совпадает")
+        
+        self.telegram_user = telegram_user
+        self.save(update_fields=['telegram_user'])
+
+    def link_to_mini_app_user(self, mini_app_user):
+        """
+        Связывает SocialAccount с MiniAppUser.
+        
+        Args:
+            mini_app_user: Объект MiniAppUser для связи
+        """
+        if mini_app_user.telegram_id != int(self.provider_user_id):
+            raise ValueError("Telegram ID не совпадает")
+        
+        self.mini_app_user = mini_app_user
+        self.save(update_fields=['mini_app_user'])
+
+    def link_to_telegram_admin(self, telegram_admin):
+        """
+        Связывает SocialAccount с TelegramAdmin.
+        
+        Args:
+            telegram_admin: Объект TelegramAdmin для связи
+        """
+        if telegram_admin.telegram_id != int(self.provider_user_id):
+            raise ValueError("Telegram ID не совпадает")
+        
+        self.telegram_admin = telegram_admin
+        self.save(update_fields=['telegram_admin'])
+
+    def link_to_django_admin(self, django_admin):
+        """
+        Связывает SocialAccount с DjangoAdmin.
+        
+        Args:
+            django_admin: Объект DjangoAdmin для связи
+        """
+        # Для DjangoAdmin нет telegram_id, поэтому проверяем username
+        if django_admin.username != self.username:
+            raise ValueError("Username не совпадает")
+        
+        self.django_admin = django_admin
+        self.save(update_fields=['django_admin'])
+
+    def auto_link_existing_users(self):
+        """
+        Автоматически связывает SocialAccount с существующими пользователями.
+        
+        Returns:
+            int: Количество созданных связей
+        """
+        linked_count = 0
+        
+        try:
+            # Связываем с TelegramUser
+            from accounts.models import TelegramUser
+            telegram_user = TelegramUser.objects.filter(
+                telegram_id=int(self.provider_user_id)
+            ).first()
+            if telegram_user and not self.telegram_user:
+                self.link_to_telegram_user(telegram_user)
+                linked_count += 1
+            
+            # Связываем с MiniAppUser
+            from accounts.models import MiniAppUser
+            mini_app_user = MiniAppUser.objects.filter(
+                telegram_id=int(self.provider_user_id)
+            ).first()
+            if mini_app_user and not self.mini_app_user:
+                self.link_to_mini_app_user(mini_app_user)
+                linked_count += 1
+            
+            # Связываем с TelegramAdmin
+            from accounts.models import TelegramAdmin
+            telegram_admin = TelegramAdmin.objects.filter(
+                telegram_id=int(self.provider_user_id)
+            ).first()
+            if telegram_admin and not self.telegram_admin:
+                self.link_to_telegram_admin(telegram_admin)
+                linked_count += 1
+            
+            # Связываем с DjangoAdmin (по username)
+            if self.username:
+                from accounts.models import DjangoAdmin
+                django_admin = DjangoAdmin.objects.filter(
+                    username=self.username
+                ).first()
+                if django_admin and not self.django_admin:
+                    self.link_to_django_admin(django_admin)
+                    linked_count += 1
+                    
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Ошибка при автоматическом связывании SocialAccount {self.provider_user_id}: {e}")
+        
+        return linked_count
 
 
 class SocialLoginSession(models.Model):
