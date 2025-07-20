@@ -15,6 +15,7 @@ router = Router()
 
 @router.chat_member()
 async def handle_member_update(event: types.ChatMemberUpdated, db_session: AsyncSession):
+    logger.info("=== ОБРАБОТЧИК ChatMemberUpdated ЗАПУЩЕН ===")
     """
     Обрабатывает изменения статуса пользователя в канале или группе.
     Обновляет записи в таблице user_channel_subscriptions, фиксируя статус подписки пользователя.
@@ -77,7 +78,94 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     )
     sub_obj = subscription.scalar_one_or_none()
 
-    if new_status == "member":
+    logger.info(f"=== ПРОВЕРКА УСЛОВИЙ ===")
+    logger.info(f"new_status: '{new_status}', old_status: '{old_status}'")
+    
+    if new_status == "member" and old_status == "administrator":
+        # Админ стал обычным участником - удаляем права админа из Django
+        logger.info(f"=== УДАЛЕНИЕ ПРАВ АДМИНА ===")
+        logger.info(f"Админ {user_obj.id} стал обычным участником канала {channel_obj.group_id}")
+        
+        try:
+            logger.info("Начинаем удаление прав админа через Django ORM...")
+            import asyncio
+            
+            def remove_admin_rights_in_django():
+                logger.info("Функция remove_admin_rights_in_django вызвана")
+                import os
+                import sys
+                import django
+                
+                # Настройка Django
+                os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'quiz_backend.settings')
+                sys.path.append('/quiz_project')
+                django.setup()
+                logger.info("Django настроен")
+                
+                from accounts.models import TelegramAdmin
+                from platforms.models import TelegramGroup
+                
+                try:
+                    # Получаем админа
+                    admin = TelegramAdmin.objects.get(telegram_id=user_obj.telegram_id)
+                    logger.info(f"Найден админ в Django: {admin.username} (Telegram ID: {user_obj.telegram_id})")
+                    
+                    # Получаем группу
+                    group = TelegramGroup.objects.get(group_id=channel_obj.group_id)
+                    logger.info(f"Найдена группа: {group.group_name}")
+                    
+                    # Проверяем все группы админа
+                    admin_groups = admin.groups.all()
+                    logger.info(f"Группы админа {admin.username}: {[g.group_name for g in admin_groups]}")
+                    logger.info(f"Ищем группу: {group.group_name} (ID: {group.group_id})")
+                    
+                    # Удаляем связь админа с группой
+                    if group in admin_groups:
+                        admin.groups.remove(group)
+                        logger.info(f"Удалена связь админа {admin.username} с группой {group.group_name}")
+                        
+                        # Если у админа больше нет групп, можно удалить его полностью
+                        if admin.groups.count() == 0:
+                            admin.delete()
+                            logger.info(f"Админ {admin.username} удален полностью, так как у него больше нет групп")
+                        return True
+                    else:
+                        logger.warning(f"Связь админа {admin.username} с группой {group.group_name} не найдена")
+                        logger.warning(f"Группы админа: {[g.group_name for g in admin_groups]}")
+                        logger.warning(f"Искомая группа: {group.group_name}")
+                        
+                        # Если у админа нет связей с группами, удаляем его полностью
+                        if admin_groups.count() == 0:
+                            admin.delete()
+                            logger.info(f"Админ {admin.username} удален полностью, так как у него нет связей с группами")
+                            return True
+                        
+                        # Если связь не найдена, но админ все еще есть в Django, 
+                        # значит права были удалены через Django админку, но не из Telegram
+                        # В этом случае удаляем админа полностью, так как он больше не админ в Telegram
+                        logger.info(f"Админ {admin.username} больше не является администратором в Telegram, удаляем из Django")
+                        admin.delete()
+                        return True
+                        
+                except TelegramAdmin.DoesNotExist:
+                    logger.warning(f"Админ с Telegram ID {user_obj.telegram_id} не найден в Django")
+                    return False
+                except TelegramGroup.DoesNotExist:
+                    logger.warning(f"Группа с ID {channel_obj.group_id} не найдена в Django")
+                    return False
+            
+            # Выполняем синхронную функцию в отдельном потоке
+            logger.info("Запускаем remove_admin_rights_in_django в отдельном потоке...")
+            loop = asyncio.get_event_loop()
+            rights_removed = await loop.run_in_executor(None, remove_admin_rights_in_django)
+            logger.info(f"Результат удаления прав админа: {rights_removed}")
+            
+        except Exception as e:
+            logger.error(f"Ошибка удаления прав админа через Django: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+    
+    elif new_status == "member":
         # Пользователь подписался на канал/группу
         if not sub_obj:
             # Если записи о подписке нет, создаем ее
@@ -167,6 +255,8 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
             logger.error(f"Ошибка создания админа через Django: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
+    
+
 
     # Сохраняем изменения в базе данных
     try:
