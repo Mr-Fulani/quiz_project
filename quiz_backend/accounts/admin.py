@@ -531,7 +531,7 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         'subscribed_at', 'unsubscribed_at', 'user_admin_status', 
         'channel_admin_status', 'user_links'
     ]
-    actions = ['remove_from_channel', 'ban_from_channel', 'unban_from_channel', 'sync_from_bot']
+    actions = ['remove_from_channel', 'ban_from_channel', 'unban_from_channel', 'sync_from_bot', 'promote_to_admin']
     
     def delete_queryset(self, request, queryset):
         """
@@ -779,6 +779,91 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         service.close()
         self.message_user(request, f"Разбанено {total_unbanned} подписчиков в каналах.")
     unban_from_channel.short_description = "✅ Разбанить в каналах"
+
+    def promote_to_admin(self, request, queryset):
+        """
+        Назначает пользователей администраторами в их каналах.
+        """
+        from accounts.telegram_admin_service import TelegramAdminService, run_async_function
+        from accounts.models import TelegramAdmin, TelegramAdminGroup
+        from platforms.models import TelegramGroup
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        total_promoted = 0
+        
+        for subscription in queryset:
+            user = subscription.telegram_user
+            channel = subscription.channel
+            
+            # Проверяем, не является ли пользователь уже админом этого канала
+            existing_admin = TelegramAdmin.objects.filter(
+                telegram_id=user.telegram_id,
+                groups__group_id=channel.group_id
+            ).first()
+            
+            if existing_admin:
+                self.message_user(
+                    request, 
+                    f"⚠️ Пользователь {user.username or user.telegram_id} уже является админом канала {channel.group_name}", 
+                    level='WARNING'
+                )
+                continue
+            
+            service = TelegramAdminService()
+            try:
+                # Назначаем админом в Telegram
+                success, message = run_async_function(
+                    service.promote_user_to_admin,
+                    channel.group_id,
+                    user.telegram_id
+                )
+                
+                if success:
+                    # Создаем или получаем запись TelegramAdmin
+                    admin, created = TelegramAdmin.objects.get_or_create(
+                        telegram_id=user.telegram_id,
+                        defaults={
+                            'username': user.username,
+                            'language': user.language,
+                            'is_active': True
+                        }
+                    )
+                    
+                    # Если запись уже существовала, обновляем данные
+                    if not created:
+                        admin.username = user.username
+                        admin.language = user.language
+                        admin.save()
+                    
+                    # Связываем админа с каналом
+                    admin_group, created = TelegramAdminGroup.objects.get_or_create(
+                        telegram_admin=admin,
+                        telegram_group=channel
+                    )
+                    
+                    total_promoted += 1
+                    
+                    self.message_user(
+                        request, 
+                        f"✅ {message}", 
+                        level='SUCCESS'
+                    )
+                else:
+                    self.message_user(
+                        request, 
+                        f"❌ {message}", 
+                        level='ERROR'
+                    )
+                    
+            finally:
+                service.close()
+        
+        self.message_user(
+            request, 
+            f"Назначено {total_promoted} администраторов из {queryset.count()} подписок"
+        )
+    promote_to_admin.short_description = "👑 Назначить админом"
 
 
 class MiniAppUserAdmin(admin.ModelAdmin):
