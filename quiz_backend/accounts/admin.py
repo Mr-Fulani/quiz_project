@@ -516,7 +516,7 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     """
     list_display = [
         'telegram_user', 'channel', 'subscription_status', 
-        'subscribed_at', 'user_admin_status', 'channel_admin_status'
+        'subscribed_at', 'banned_status', 'user_admin_status', 'channel_admin_status'
     ]
     search_fields = [
         'telegram_user__username', 'telegram_user__first_name', 'telegram_user__last_name',
@@ -528,8 +528,8 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     ]
     raw_id_fields = ['telegram_user', 'channel']
     readonly_fields = [
-        'subscribed_at', 'unsubscribed_at', 'user_admin_status', 
-        'channel_admin_status', 'user_links'
+        'subscribed_at', 'unsubscribed_at', 'banned_at', 'banned_until',
+        'user_admin_status', 'channel_admin_status', 'user_links', 'banned_status'
     ]
     actions = ['remove_from_channel', 'ban_from_channel', 'unban_from_channel', 'sync_from_bot', 'promote_to_admin']
     
@@ -637,6 +637,31 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         return mark_safe(' | '.join(links))
     user_links.short_description = 'Ссылки на пользователя'
 
+    def banned_status(self, obj):
+        """
+        Показывает статус блокировки пользователя.
+        """
+        from django.utils.safestring import mark_safe
+        from django.utils import timezone
+        
+        if obj.subscription_status == 'banned':
+            if obj.banned_until:
+                now = timezone.now()
+                if obj.banned_until > now:
+                    # Еще заблокирован
+                    remaining = obj.banned_until - now
+                    hours = int(remaining.total_seconds() // 3600)
+                    minutes = int((remaining.total_seconds() % 3600) // 60)
+                    return mark_safe(f'<span style="color: red;">🚫 Заблокирован ({hours}ч {minutes}м)</span>')
+                else:
+                    # Время блокировки истекло
+                    return mark_safe('<span style="color: orange;">⚠️ Блокировка истекла</span>')
+            else:
+                return mark_safe('<span style="color: red;">🚫 Заблокирован</span>')
+        else:
+            return mark_safe('<span style="color: green;">✅ Активен</span>')
+    banned_status.short_description = 'Статус блокировки'
+
     def remove_from_channel(self, request, queryset):
         """
         Удаляет пользователей из каналов (кикает).
@@ -734,8 +759,11 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
 
     def ban_from_channel(self, request, queryset):
         """
-        Банит подписчиков в их каналах.
+        Отмечает подписчиков как заблокированных в базе данных.
         """
+        from django.utils import timezone
+        from datetime import datetime, timedelta
+        
         service = TelegramAdminService()
         total_banned = 0
         
@@ -747,18 +775,24 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
                     subscription.telegram_user.telegram_id
                 )
                 if success:
+                    # Обновляем статус в базе данных
+                    subscription.subscription_status = 'banned'
+                    subscription.banned_at = timezone.now()
+                    subscription.banned_until = timezone.now() + timedelta(hours=24)
+                    subscription.save()
+                    
                     total_banned += 1
                     self.message_user(request, message, level='SUCCESS')
                 else:
                     self.message_user(request, message, level='ERROR')
         
         service.close()
-        self.message_user(request, f"Забанено {total_banned} подписчиков в каналах.")
-    ban_from_channel.short_description = "🚫 Забанить в каналах"
+        self.message_user(request, f"Заблокировано {total_banned} подписчиков в каналах.")
+    ban_from_channel.short_description = "🚫 Заблокировать в системе (24 часа)"
 
     def unban_from_channel(self, request, queryset):
         """
-        Разбанивает подписчиков в их каналах.
+        Отмечает подписчиков как разблокированных в базе данных.
         """
         service = TelegramAdminService()
         total_unbanned = 0
@@ -771,14 +805,20 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
                     subscription.telegram_user.telegram_id
                 )
                 if success:
+                    # Обновляем статус в базе данных
+                    subscription.subscription_status = 'active'
+                    subscription.banned_at = None
+                    subscription.banned_until = None
+                    subscription.save()
+                    
                     total_unbanned += 1
                     self.message_user(request, message, level='SUCCESS')
                 else:
                     self.message_user(request, message, level='ERROR')
         
         service.close()
-        self.message_user(request, f"Разбанено {total_unbanned} подписчиков в каналах.")
-    unban_from_channel.short_description = "✅ Разбанить в каналах"
+        self.message_user(request, f"Разблокировано {total_unbanned} подписчиков в каналах.")
+    unban_from_channel.short_description = "✅ Разблокировать в системе"
 
     def promote_to_admin(self, request, queryset):
         """
