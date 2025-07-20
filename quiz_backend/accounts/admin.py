@@ -55,7 +55,8 @@ class TelegramAdminAdmin(admin.ModelAdmin):
     actions = [
         'make_active', 'make_inactive', 
         'remove_admin_rights_from_all_channels', 'remove_admin_rights_from_selected_channels',
-        'delete_admin_completely', 'ban_from_all_channels', 'unban_from_all_channels',
+        'delete_admin_completely', 'remove_user_from_all_channels', 'remove_user_from_selected_channels',
+        'ban_from_all_channels', 'unban_from_all_channels',
         'check_bot_permissions'
     ]
 
@@ -165,6 +166,51 @@ class TelegramAdminAdmin(admin.ModelAdmin):
             f"Полностью удалено {admin_count} администраторов: права убраны из Telegram, записи удалены из базы данных."
         )
     delete_admin_completely.short_description = "🗑️ Полностью удалить админа (Telegram + БД)"
+
+    def remove_user_from_all_channels(self, request, queryset):
+        """
+        Полностью удаляет админов из всех их каналов (кикает).
+        """
+        total_removed = 0
+        
+        for admin in queryset:
+            channel_ids = [group.group_id for group in admin.groups.all()]
+            if channel_ids:
+                service = TelegramAdminService()
+                try:
+                    success_count, messages = run_async_function(
+                        service.remove_user_from_all_channels,
+                        admin.telegram_id,
+                        channel_ids
+                    )
+                    total_removed += success_count
+                    
+                    # Показываем сообщения
+                    for message in messages:
+                        if "успешно" in message:
+                            self.message_user(request, message, level='SUCCESS')
+                        else:
+                            self.message_user(request, message, level='ERROR')
+                finally:
+                    service.close()
+        
+        # Удаляем связи из базы данных
+        for admin in queryset:
+            admin.groups.clear()
+        
+        self.message_user(
+            request, 
+            f"Удалено {total_removed} пользователей из каналов. Связи в базе данных очищены."
+        )
+    remove_user_from_all_channels.short_description = "🚫 Удалить из всех каналов (кик)"
+
+    def remove_user_from_selected_channels(self, request, queryset):
+        """
+        Удаляет админов из выбранных каналов.
+        """
+        # Здесь можно добавить форму для выбора каналов
+        self.message_user(request, "Функция в разработке. Используйте 'Удалить из всех каналов'.")
+    remove_user_from_selected_channels.short_description = "🚫 Удалить из выбранных каналов"
 
     def ban_from_all_channels(self, request, queryset):
         """
@@ -360,7 +406,7 @@ class TelegramUserAdmin(admin.ModelAdmin):
     list_display = ['telegram_id', 'username', 'first_name', 'last_name', 'subscription_status', 'language', 'is_premium', 'created_at']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
     list_filter = ['subscription_status', 'language', 'is_premium', 'created_at']
-    actions = ['make_premium', 'remove_premium']
+    actions = ['make_premium', 'remove_premium', 'remove_user_from_all_channels']
 
     def make_premium(self, request, queryset):
         """
@@ -375,6 +421,44 @@ class TelegramUserAdmin(admin.ModelAdmin):
         """
         queryset.update(is_premium=False)
     remove_premium.short_description = "Убрать премиум-статус"
+
+    def remove_user_from_all_channels(self, request, queryset):
+        """
+        Полностью удаляет пользователей из всех их каналов (кикает).
+        """
+        from accounts.telegram_admin_service import TelegramAdminService, run_async_function
+        total_removed = 0
+
+        for user in queryset:
+            # Получаем все каналы, где пользователь состоит
+            channel_ids = [sub.channel.group_id for sub in user.channel_subscriptions.all()]
+            if channel_ids:
+                service = TelegramAdminService()
+                try:
+                    success_count, messages = run_async_function(
+                        service.remove_user_from_all_channels,
+                        user.telegram_id,
+                        channel_ids
+                    )
+                    total_removed += success_count
+                    for message in messages:
+                        if "успешно" in message:
+                            self.message_user(request, message, level='SUCCESS')
+                        else:
+                            self.message_user(request, message, level='ERROR')
+                finally:
+                    service.close()
+        
+        # Удаляем связи из базы данных и самого пользователя
+        for user in queryset:
+            user.channel_subscriptions.all().delete()
+            user.delete()  # Полностью удаляем пользователя из базы данных
+        
+        self.message_user(
+            request,
+            f"Удалено {total_removed} пользователей из каналов. Связи в базе данных очищены."
+        )
+    remove_user_from_all_channels.short_description = "🚫 Удалить из всех каналов (кик)"
 
 
 class UserChannelSubscriptionAdmin(admin.ModelAdmin):
