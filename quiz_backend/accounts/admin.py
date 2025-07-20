@@ -41,15 +41,23 @@ class TelegramAdminGroupInline(admin.TabularInline):
     raw_id_fields = ['telegram_group']
 
 
+from .telegram_admin_service import TelegramAdminService, run_async_function
+
+
 class TelegramAdminAdmin(admin.ModelAdmin):
     """
-    Админ-панель для TelegramAdmin.
+    Админ-панель для TelegramAdmin с интеграцией Telegram Bot API.
     """
     list_display = ['telegram_id', 'username', 'language', 'is_active', 'photo', 'group_count']
     search_fields = ['telegram_id', 'username']
     list_filter = ['is_active', 'language']
     inlines = [TelegramAdminGroupInline]
-    actions = ['make_active', 'make_inactive']
+    actions = [
+        'make_active', 'make_inactive', 
+        'remove_admin_rights_from_all_channels', 'remove_admin_rights_from_selected_channels',
+        'delete_admin_completely', 'ban_from_all_channels', 'unban_from_all_channels',
+        'check_bot_permissions'
+    ]
 
     def group_count(self, obj):
         """
@@ -58,11 +66,14 @@ class TelegramAdminAdmin(admin.ModelAdmin):
         return obj.groups.count()
     group_count.short_description = 'Группы'
 
+
+
     def make_active(self, request, queryset):
         """
         Активировать админов.
         """
         queryset.update(is_active=True)
+        self.message_user(request, f"Активировано {queryset.count()} админов.")
     make_active.short_description = "Активировать админов"
 
     def make_inactive(self, request, queryset):
@@ -70,7 +81,167 @@ class TelegramAdminAdmin(admin.ModelAdmin):
         Деактивировать админов.
         """
         queryset.update(is_active=False)
+        self.message_user(request, f"Деактивировано {queryset.count()} админов.")
     make_inactive.short_description = "Деактивировать админов"
+
+    def remove_admin_rights_from_all_channels(self, request, queryset):
+        """
+        Удаляет права администратора из всех каналов, но оставляет админа в таблице.
+        """
+        total_removed = 0
+        
+        for admin in queryset:
+            channel_ids = [group.group_id for group in admin.groups.all()]
+            if channel_ids:
+                service = TelegramAdminService()
+                try:
+                    success_count, messages = run_async_function(
+                        service.remove_admin_from_all_channels,
+                        admin.telegram_id,
+                        channel_ids
+                    )
+                    total_removed += success_count
+                    
+                    # Показываем сообщения
+                    for message in messages:
+                        if "успешно" in message:
+                            self.message_user(request, message, level='SUCCESS')
+                        else:
+                            self.message_user(request, message, level='ERROR')
+                finally:
+                    service.close()
+        
+        # Удаляем связи из базы данных
+        for admin in queryset:
+            admin.groups.clear()
+        
+        self.message_user(
+            request, 
+            f"Удалены права администратора у {total_removed} пользователей из каналов. Связи в базе данных очищены."
+        )
+    remove_admin_rights_from_all_channels.short_description = "👤 Убрать права админа из всех каналов"
+
+    def remove_admin_rights_from_selected_channels(self, request, queryset):
+        """
+        Удаляет права администратора из выбранных каналов.
+        """
+        # Здесь можно добавить форму для выбора каналов
+        self.message_user(request, "Функция в разработке. Используйте 'Убрать права админа из всех каналов'.")
+    remove_admin_rights_from_selected_channels.short_description = "👤 Убрать права админа из выбранных каналов"
+
+    def delete_admin_completely(self, request, queryset):
+        """
+        Полностью удаляет админов: убирает права из Telegram + удаляет из таблицы админов.
+        """
+        total_removed = 0
+        
+        for admin in queryset:
+            channel_ids = [group.group_id for group in admin.groups.all()]
+            if channel_ids:
+                service = TelegramAdminService()
+                try:
+                    success_count, messages = run_async_function(
+                        service.remove_admin_from_all_channels,
+                        admin.telegram_id,
+                        channel_ids
+                    )
+                    total_removed += success_count
+                    
+                    # Показываем сообщения
+                    for message in messages:
+                        if "успешно" in message:
+                            self.message_user(request, message, level='SUCCESS')
+                        else:
+                            self.message_user(request, message, level='ERROR')
+                finally:
+                    service.close()
+        
+        # Полностью удаляем админов из базы данных
+        admin_count = queryset.count()
+        queryset.delete()
+        
+        self.message_user(
+            request, 
+            f"Полностью удалено {admin_count} администраторов: права убраны из Telegram, записи удалены из базы данных."
+        )
+    delete_admin_completely.short_description = "🗑️ Полностью удалить админа (Telegram + БД)"
+
+    def ban_from_all_channels(self, request, queryset):
+        """
+        Банит админов во всех их каналах.
+        """
+        service = TelegramAdminService()
+        total_banned = 0
+        
+        for admin in queryset:
+            channel_ids = [group.group_id for group in admin.groups.all()]
+            for chat_id in channel_ids:
+                success, message = run_async_function(
+                    service.ban_user_from_channel,
+                    chat_id,
+                    admin.telegram_id
+                )
+                if success:
+                    total_banned += 1
+                    self.message_user(request, message, level='SUCCESS')
+                else:
+                    self.message_user(request, message, level='ERROR')
+        
+        service.close()
+        self.message_user(request, f"Забанено {total_banned} пользователей в каналах.")
+    ban_from_all_channels.short_description = "🚫 Забанить во всех каналах"
+
+    def unban_from_all_channels(self, request, queryset):
+        """
+        Разбанивает админов во всех их каналах.
+        """
+        service = TelegramAdminService()
+        total_unbanned = 0
+        
+        for admin in queryset:
+            channel_ids = [group.group_id for group in admin.groups.all()]
+            for chat_id in channel_ids:
+                success, message = run_async_function(
+                    service.unban_user_from_channel,
+                    chat_id,
+                    admin.telegram_id
+                )
+                if success:
+                    total_unbanned += 1
+                    self.message_user(request, message, level='SUCCESS')
+                else:
+                    self.message_user(request, message, level='ERROR')
+        
+        service.close()
+        self.message_user(request, f"Разбанено {total_unbanned} пользователей в каналах.")
+    unban_from_all_channels.short_description = "✅ Разбанить во всех каналах"
+
+    def check_bot_permissions(self, request, queryset):
+        """
+        Проверяет права бота в каналах админов.
+        """
+        service = TelegramAdminService()
+        checked_channels = set()
+        
+        for admin in queryset:
+            for group in admin.groups.all():
+                if group.group_id not in checked_channels:
+                    try:
+                        has_permissions, message = run_async_function(
+                            service.check_bot_permissions,
+                            group.group_id
+                        )
+                        if has_permissions:
+                            self.message_user(request, f"✅ {group.group_name}: {message}", level='SUCCESS')
+                        else:
+                            self.message_user(request, f"❌ {group.group_name}: {message}", level='ERROR')
+                        checked_channels.add(group.group_id)
+                    except Exception as e:
+                        self.message_user(request, f"❌ {group.group_name}: Ошибка проверки прав: {e}", level='ERROR')
+        
+        service.close()
+        self.message_user(request, f"Проверено {len(checked_channels)} каналов.")
+    check_bot_permissions.short_description = "🔍 Проверить права бота в каналах"
 
 
 class DjangoAdminAdmin(admin.ModelAdmin):
@@ -227,7 +398,7 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         'subscribed_at', 'unsubscribed_at', 'user_admin_status', 
         'channel_admin_status', 'user_links'
     ]
-    actions = ['subscribe', 'unsubscribe', 'sync_from_bot']
+    actions = ['subscribe', 'unsubscribe', 'sync_from_bot', 'ban_from_channel', 'unban_from_channel']
     
     fieldsets = (
         ('Основная информация', {
@@ -344,6 +515,54 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         # Здесь можно добавить логику синхронизации
         self.message_user(request, "Функция синхронизации будет реализована позже.")
     sync_from_bot.short_description = "Синхронизировать из бота"
+
+    def ban_from_channel(self, request, queryset):
+        """
+        Банит подписчиков в их каналах.
+        """
+        service = TelegramAdminService()
+        total_banned = 0
+        
+        for subscription in queryset:
+            if subscription.channel and subscription.telegram_user:
+                success, message = run_async_function(
+                    service.ban_user_from_channel,
+                    subscription.channel.group_id,
+                    subscription.telegram_user.telegram_id
+                )
+                if success:
+                    total_banned += 1
+                    self.message_user(request, message, level='SUCCESS')
+                else:
+                    self.message_user(request, message, level='ERROR')
+        
+        service.close()
+        self.message_user(request, f"Забанено {total_banned} подписчиков в каналах.")
+    ban_from_channel.short_description = "🚫 Забанить в каналах"
+
+    def unban_from_channel(self, request, queryset):
+        """
+        Разбанивает подписчиков в их каналах.
+        """
+        service = TelegramAdminService()
+        total_unbanned = 0
+        
+        for subscription in queryset:
+            if subscription.channel and subscription.telegram_user:
+                success, message = run_async_function(
+                    service.unban_user_from_channel,
+                    subscription.channel.group_id,
+                    subscription.telegram_user.telegram_id
+                )
+                if success:
+                    total_unbanned += 1
+                    self.message_user(request, message, level='SUCCESS')
+                else:
+                    self.message_user(request, message, level='ERROR')
+        
+        service.close()
+        self.message_user(request, f"Разбанено {total_unbanned} подписчиков в каналах.")
+    unban_from_channel.short_description = "✅ Разбанить в каналах"
 
 
 class MiniAppUserAdmin(admin.ModelAdmin):
