@@ -327,6 +327,7 @@ class UserChannelSubscription(models.Model):
     STATUS_CHOICES = [
         ('active', 'Активна'),
         ('inactive', 'Неактивна'),
+        ('banned', 'Заблокирована'),
     ]
 
     id = models.AutoField(primary_key=True)
@@ -358,6 +359,16 @@ class UserChannelSubscription(models.Model):
     unsubscribed_at = models.DateTimeField(
         null=True,
         verbose_name="Дата отписки"
+    )
+    banned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата блокировки"
+    )
+    banned_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата разблокировки"
     )
 
     class Meta:
