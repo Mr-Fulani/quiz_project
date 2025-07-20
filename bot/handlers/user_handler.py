@@ -5,6 +5,7 @@ from datetime import datetime, timezone  # Исправленный импорт
 from sqlalchemy import select
 
 from bot.database.models import UserChannelSubscription, TelegramUser, TelegramGroup, TelegramAdmin
+from bot.django_sync import link_admin_to_group
 
 logger = logging.getLogger(__name__)
 router = Router(name="user_router")
@@ -59,7 +60,7 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     # Обновляем запись о подписке пользователя на канал/группу
     subscription = await db_session.execute(
         select(UserChannelSubscription)
-        .where(UserChannelSubscription.telegram_user_id == user_obj.id)  # Исправлено user_id -> telegram_user_id
+        .where(UserChannelSubscription.telegram_user_id == user_obj.id)  # Используем внутренний ID
         .where(UserChannelSubscription.channel_id == channel_obj.group_id)
     )
     sub_obj = subscription.scalar_one_or_none()
@@ -69,7 +70,7 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
         if not sub_obj:
             # Если записи о подписке нет, создаем ее
             sub_obj = UserChannelSubscription(
-                telegram_user_id=user_obj.id,  # Исправлено user_id -> telegram_user_id
+                telegram_user_id=user_obj.id,  # Используем внутренний ID
                 channel_id=channel_obj.group_id,
                 subscription_status="active",
                 subscribed_at=datetime.now(timezone.utc)
@@ -96,6 +97,14 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     try:
         await db_session.commit()
         logger.debug("Изменения в подписках успешно сохранены.")
+        
+        # Если пользователь является админом, создаем связь с группой в Django
+        if admin_obj and new_status == "member":
+            try:
+                link_admin_to_group(user_obj.telegram_id, channel_obj.group_id)
+            except Exception as e:
+                logger.warning(f"Ошибка создания связи админа с группой: {e}")
+            
     except Exception as e:
         await db_session.rollback()
         logger.error(f"Ошибка при сохранении изменений в подписках: {e}")
@@ -138,6 +147,8 @@ async def get_or_create_user(db_session: AsyncSession, from_user: types.User) ->
             db_session.add(user_obj)
             await db_session.commit()
             logger.info(f"Создан новый пользователь: Telegram ID={from_user.id}, Username=@{from_user.username or 'None'}")
+            
+
         else:
             logger.debug(f"Пользователь найден: Telegram ID={from_user.id}, Username=@{from_user.username or 'None'}")
         return user_obj
