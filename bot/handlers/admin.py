@@ -633,13 +633,11 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
             db_session.add(new_admin)
             await db_session.flush()  # Получить ID без коммита
 
-            # Найти TelegramUser
-            telegram_user = (await db_session.execute(
-                select(TelegramUser).where(TelegramUser.telegram_id == new_admin_id)
-            )).scalar_one_or_none()
-            logger.debug(f"TelegramUser для ID {new_admin_id}: {telegram_user or 'не найден'}")
+            # Примечание: TelegramUser для админа будет создан автоматически
+            # при первом событии подписки на канал/группу через user_handler.py
+            logger.debug(f"Админ {new_admin_id} добавлен. TelegramUser будет создан при подписке на канал")
 
-            # Привязка групп и обновление подписок
+            # Привязка групп (без создания подписок)
             for group, escaped_group_name in admin_results:
                 try:
                     # Проверяем, существует ли группа в базе
@@ -671,33 +669,8 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
                             logger.error(f"Ошибка SQL при привязке группы {group.group_id}: {sql_e}")
                             continue
 
-                    # Обновление или создание подписки
-                    if telegram_user:
-                        try:
-                            existing_subscription = (await db_session.execute(
-                                select(UserChannelSubscription).where(
-                                    UserChannelSubscription.telegram_user_id == telegram_user.id,
-                                    UserChannelSubscription.channel_id == group.group_id
-                                )
-                            )).scalar_one_or_none()
-
-                            if existing_subscription:
-                                existing_subscription.subscription_status = 'active'
-                                existing_subscription.subscribed_at = timezone.now()
-                                existing_subscription.unsubscribed_at = None
-                                logger.info(f"Обновлена подписка для {new_admin_id} на группу {group.group_id}")
-                            else:
-                                subscription = UserChannelSubscription(
-                                    telegram_user_id=telegram_user.id,
-                                    channel_id=group.group_id,
-                                    subscription_status='active',
-                                    subscribed_at=timezone.now()
-                                )
-                                db_session.add(subscription)
-                                logger.info(f"Создана подписка для {new_admin_id} на группу {group.group_id}")
-                        except Exception as e:
-                            logger.error(f"Ошибка создания/обновления подписки для {new_admin_id} на группу {group.group_id}: {e}")
-                            continue
+                    # Примечание: Подписки будут создаваться автоматически
+                    # при реальных событиях подписки через user_handler.py
 
                 except Exception as e:
                     logger.error(f"Общая ошибка привязки группы {group.group_id} к админу {new_admin_id}: {e}")

@@ -389,3 +389,194 @@ class UserChannelSubscription(models.Model):
         self.unsubscribed_at = timezone.now()
         self.save()
 
+
+class MiniAppUser(models.Model):
+    """
+    Модель пользователя Telegram Mini App.
+    
+    Хранит данные о пользователях, которые используют Mini App для прохождения квизов,
+    просмотра профиля и статистики. Может быть связан с другими типами пользователей
+    (TelegramUser, TelegramAdmin, DjangoAdmin) если один человек использует разные части системы.
+    
+    Особенности:
+    - Уникальный telegram_id для каждого пользователя Mini App
+    - Связи с другими таблицами пользователей (опциональные)
+    - Отслеживание активности в Mini App
+    """
+    telegram_id = models.BigIntegerField(
+        unique=True, 
+        db_index=True, 
+        verbose_name="Telegram ID"
+    )
+    username = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="@username"
+    )
+    first_name = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Имя"
+    )
+    last_name = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Фамилия"
+    )
+    language = models.CharField(
+        max_length=10, 
+        default='ru', 
+        verbose_name="Язык"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Дата создания"
+    )
+    last_seen = models.DateTimeField(
+        auto_now=True, 
+        verbose_name="Последний визит"
+    )
+    
+    # Связи с другими типами пользователей (опциональные)
+    telegram_user = models.OneToOneField(
+        'TelegramUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mini_app_user',
+        verbose_name="Пользователь бота",
+        help_text="Связь с пользователем Telegram бота, если он также использует бота"
+    )
+    telegram_admin = models.OneToOneField(
+        'TelegramAdmin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mini_app_user',
+        verbose_name="Админ бота",
+        help_text="Связь с админом Telegram бота, если он также является админом"
+    )
+    django_admin = models.OneToOneField(
+        'DjangoAdmin',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mini_app_user',
+        verbose_name="Django админ",
+        help_text="Связь с Django админом, если он также управляет сайтом"
+    )
+
+    class Meta:
+        db_table = 'mini_app_users'
+        verbose_name = 'Mini App Пользователь'
+        verbose_name_plural = 'Mini App Пользователи'
+        indexes = [
+            models.Index(fields=['telegram_id']),
+            models.Index(fields=['username']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['last_seen']),
+        ]
+
+    def __str__(self):
+        """
+        Строковое представление объекта MiniAppUser.
+        
+        Returns:
+            str: Username или Telegram ID пользователя
+        """
+        return self.username or f"MiniAppUser {self.telegram_id}"
+
+    @property
+    def full_name(self):
+        """
+        Полное имя пользователя.
+        
+        Returns:
+            str: Полное имя или username, или Telegram ID
+        """
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.first_name:
+            return self.first_name
+        elif self.username:
+            return f"@{self.username}"
+        else:
+            return f"User {self.telegram_id}"
+
+    @property
+    def is_admin(self):
+        """
+        Проверяет, является ли пользователь админом в любой из систем.
+        
+        Returns:
+            bool: True если пользователь является админом
+        """
+        return bool(self.telegram_admin or self.django_admin)
+
+    @property
+    def admin_type(self):
+        """
+        Возвращает тип админа пользователя.
+        
+        Returns:
+            str: Тип админа или None
+        """
+        if self.telegram_admin and self.django_admin:
+            return "Telegram + Django Admin"
+        elif self.telegram_admin:
+            return "Telegram Admin"
+        elif self.django_admin:
+            return "Django Admin"
+        else:
+            return None
+
+    def update_last_seen(self):
+        """
+        Обновляет время последнего визита пользователя.
+        """
+        self.last_seen = timezone.now()
+        self.save(update_fields=['last_seen'])
+
+    def link_to_telegram_user(self, telegram_user):
+        """
+        Связывает MiniAppUser с TelegramUser.
+        
+        Args:
+            telegram_user (TelegramUser): Объект TelegramUser для связи
+        """
+        if telegram_user.telegram_id != self.telegram_id:
+            raise ValueError("Telegram ID не совпадает")
+        
+        self.telegram_user = telegram_user
+        self.save(update_fields=['telegram_user'])
+
+    def link_to_telegram_admin(self, telegram_admin):
+        """
+        Связывает MiniAppUser с TelegramAdmin.
+        
+        Args:
+            telegram_admin (TelegramAdmin): Объект TelegramAdmin для связи
+        """
+        if telegram_admin.telegram_id != self.telegram_id:
+            raise ValueError("Telegram ID не совпадает")
+        
+        self.telegram_admin = telegram_admin
+        self.save(update_fields=['telegram_admin'])
+
+    def link_to_django_admin(self, django_admin):
+        """
+        Связывает MiniAppUser с DjangoAdmin.
+        
+        Args:
+            django_admin (DjangoAdmin): Объект DjangoAdmin для связи
+        """
+        # Для DjangoAdmin нет telegram_id, поэтому проверяем username
+        if django_admin.username != self.username:
+            raise ValueError("Username не совпадает")
+        
+        self.django_admin = django_admin
+        self.save(update_fields=['django_admin'])
+
