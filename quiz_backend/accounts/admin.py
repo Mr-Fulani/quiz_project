@@ -842,6 +842,48 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
                         telegram_group=channel
                     )
                     
+                    # Отправляем сообщение пользователю
+                    channel_name = channel.group_name or f"канал {channel.group_id}"
+                    
+                    # Формируем ссылку на канал
+                    if channel.username:
+                        channel_link = f"https://t.me/{channel.username}"
+                        channel_display = f"<a href='{channel_link}'>{channel_name}</a>"
+                    else:
+                        # Если нет username, используем просто название
+                        channel_display = f"<b>{channel_name}</b>"
+                    
+                    notification_message = f"""
+🎉 <b>Поздравляем!</b>
+
+Вас назначили администратором в канале {channel_display}
+
+Теперь у вас есть права на:
+• Управление сообщениями
+• Удаление сообщений
+• Приглашение пользователей
+• Ограничение участников
+• Закрепление сообщений
+
+Спасибо за вашу помощь в модерации! 🙏
+                    """.strip()
+                    
+                    # Создаем новый сервис для отправки сообщения
+                    message_service = TelegramAdminService()
+                    try:
+                        message_sent, message_result = run_async_function(
+                            message_service.send_message_to_user,
+                            user.telegram_id,
+                            notification_message
+                        )
+                        
+                        if message_sent:
+                            logger.info(f"Уведомление отправлено пользователю {user.telegram_id}")
+                        else:
+                            logger.warning(f"Не удалось отправить уведомление пользователю {user.telegram_id}: {message_result}")
+                    finally:
+                        message_service.close()
+                    
                     total_promoted += 1
                     
                     self.message_user(
