@@ -207,21 +207,143 @@ class TelegramUserAdmin(admin.ModelAdmin):
 
 
 class UserChannelSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ['telegram_user', 'channel', 'subscription_status', 'subscribed_at']
-    search_fields = ['telegram_user__username', 'channel__group_name', 'channel__group_id']
-    list_filter = ['subscription_status', 'subscribed_at']
+    """
+    Админ-панель для подписок пользователей на каналы.
+    """
+    list_display = [
+        'telegram_user', 'channel', 'subscription_status', 
+        'subscribed_at', 'user_admin_status', 'channel_admin_status'
+    ]
+    search_fields = [
+        'telegram_user__username', 'telegram_user__first_name', 'telegram_user__last_name',
+        'channel__group_name', 'channel__group_id'
+    ]
+    list_filter = [
+        'subscription_status', 'subscribed_at', 'unsubscribed_at',
+        'telegram_user__is_premium'
+    ]
     raw_id_fields = ['telegram_user', 'channel']
-    actions = ['subscribe', 'unsubscribe']
+    readonly_fields = [
+        'subscribed_at', 'unsubscribed_at', 'user_admin_status', 
+        'channel_admin_status', 'user_links'
+    ]
+    actions = ['subscribe', 'unsubscribe', 'sync_from_bot']
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('telegram_user', 'channel', 'subscription_status')
+        }),
+        ('Даты', {
+            'fields': ('subscribed_at', 'unsubscribed_at'),
+            'classes': ('collapse',)
+        }),
+        ('Дополнительная информация', {
+            'fields': ('user_admin_status', 'channel_admin_status', 'user_links'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def user_admin_status(self, obj):
+        """
+        Отображает статус админа пользователя.
+        """
+        if obj.telegram_user:
+            # Проверяем, является ли пользователь админом этого канала
+            from accounts.models import TelegramAdmin
+            admin = TelegramAdmin.objects.filter(
+                telegram_id=obj.telegram_user.telegram_id,
+                groups__group_id=obj.channel.group_id
+            ).first()
+            if admin:
+                return "✅ Админ канала"
+            
+            # Проверяем, является ли пользователь Django админом
+            from accounts.models import DjangoAdmin
+            django_admin = DjangoAdmin.objects.filter(
+                username=obj.telegram_user.username
+            ).first()
+            if django_admin:
+                return "✅ Django админ"
+        
+        return "❌ Не админ"
+    user_admin_status.short_description = 'Статус админа'
+
+    def channel_admin_status(self, obj):
+        """
+        Отображает информацию о канале и его админах.
+        """
+        if obj.channel:
+            # Подсчитываем количество админов канала
+            from accounts.models import TelegramAdmin
+            admin_count = TelegramAdmin.objects.filter(
+                groups__group_id=obj.channel.group_id
+            ).count()
+            return f"👥 {admin_count} админов"
+        return "-"
+    channel_admin_status.short_description = 'Админы канала'
+
+    def user_links(self, obj):
+        """
+        Отображает ссылки на связанные записи пользователя.
+        """
+        links = []
+        
+        if obj.telegram_user:
+            # Ссылка на TelegramUser
+            from django.urls import reverse
+            url = reverse('admin:accounts_telegramuser_change', args=[obj.telegram_user.id])
+            links.append(f'<a href="{url}">Telegram User</a>')
+            
+            # Ссылка на TelegramAdmin если есть
+            from accounts.models import TelegramAdmin
+            admin = TelegramAdmin.objects.filter(
+                telegram_id=obj.telegram_user.telegram_id
+            ).first()
+            if admin:
+                url = reverse('admin:accounts_telegramadmin_change', args=[admin.id])
+                links.append(f'<a href="{url}">Telegram Admin</a>')
+            
+            # Ссылка на DjangoAdmin если есть
+            from accounts.models import DjangoAdmin
+            django_admin = DjangoAdmin.objects.filter(
+                username=obj.telegram_user.username
+            ).first()
+            if django_admin:
+                url = reverse('admin:accounts_djangoadmin_change', args=[django_admin.id])
+                links.append(f'<a href="{url}">Django Admin</a>')
+        
+        if not links:
+            return '-'
+        
+        from django.utils.safestring import mark_safe
+        return mark_safe(' | '.join(links))
+    user_links.short_description = 'Ссылки на пользователя'
 
     def subscribe(self, request, queryset):
+        """
+        Активирует выбранные подписки.
+        """
         for subscription in queryset:
             subscription.subscribe()
+        self.message_user(request, f'{queryset.count()} подписок активировано.')
     subscribe.short_description = "Активировать подписку"
 
     def unsubscribe(self, request, queryset):
+        """
+        Деактивирует выбранные подписки.
+        """
         for subscription in queryset:
             subscription.unsubscribe()
+        self.message_user(request, f'{queryset.count()} подписок деактивировано.')
     unsubscribe.short_description = "Деактивировать подписку"
+
+    def sync_from_bot(self, request, queryset):
+        """
+        Синхронизирует подписки из SQLAlchemy базы данных бота.
+        """
+        # Здесь можно добавить логику синхронизации
+        self.message_user(request, "Функция синхронизации будет реализована позже.")
+    sync_from_bot.short_description = "Синхронизировать из бота"
 
 
 class MiniAppUserAdmin(admin.ModelAdmin):
