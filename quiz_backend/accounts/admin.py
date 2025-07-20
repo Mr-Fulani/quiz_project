@@ -1,3 +1,4 @@
+import sys
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser
@@ -406,21 +407,52 @@ class TelegramUserAdmin(admin.ModelAdmin):
     list_display = ['telegram_id', 'username', 'first_name', 'last_name', 'subscription_status', 'language', 'is_premium', 'created_at']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
     list_filter = ['subscription_status', 'language', 'is_premium', 'created_at']
-    actions = ['make_premium', 'remove_premium', 'remove_user_from_all_channels']
+    actions = ['remove_user_from_all_channels', 'sync_with_telegram']
 
-    def make_premium(self, request, queryset):
+    def sync_with_telegram(self, request, queryset):
         """
-        Дать премиум-статус.
+        Синхронизирует данные пользователей с Telegram.
         """
-        queryset.update(is_premium=True)
-    make_premium.short_description = "Дать премиум-статус"
-
-    def remove_premium(self, request, queryset):
-        """
-        Убрать премиум-статус.
-        """
-        queryset.update(is_premium=False)
-    remove_premium.short_description = "Убрать премиум-статус"
+        from accounts.telegram_admin_service import TelegramAdminService, run_async_function
+        service = TelegramAdminService()
+        synced_count = 0
+        
+        try:
+            for user in queryset:
+                try:
+                    # Получаем актуальные данные пользователя из Telegram
+                    user_info = run_async_function(
+                        service.bot.get_chat,
+                        user.telegram_id
+                    )
+                    
+                    # Обновляем данные пользователя
+                    user.username = user_info.username
+                    user.first_name = user_info.first_name
+                    user.last_name = user_info.last_name
+                    user.is_premium = getattr(user_info, 'is_premium', False)
+                    user.save()
+                    
+                    synced_count += 1
+                    self.message_user(
+                        request, 
+                        f"✅ Синхронизирован пользователь {user.username or user.telegram_id}", 
+                        level='SUCCESS'
+                    )
+                except Exception as e:
+                    self.message_user(
+                        request, 
+                        f"❌ Ошибка синхронизации пользователя {user.telegram_id}: {e}", 
+                        level='ERROR'
+                    )
+        finally:
+            service.close()
+        
+        self.message_user(
+            request, 
+            f"Синхронизировано {synced_count} пользователей из {queryset.count()}"
+        )
+    sync_with_telegram.short_description = "🔄 Синхронизировать с Telegram"
 
     def remove_user_from_all_channels(self, request, queryset):
         """
@@ -482,7 +514,21 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         'subscribed_at', 'unsubscribed_at', 'user_admin_status', 
         'channel_admin_status', 'user_links'
     ]
-    actions = ['subscribe', 'unsubscribe', 'sync_from_bot', 'ban_from_channel', 'unban_from_channel']
+    actions = ['remove_from_channel', 'ban_from_channel', 'unban_from_channel', 'sync_from_bot']
+    
+    def delete_queryset(self, request, queryset):
+        """
+        Переопределяем стандартное удаление, чтобы использовать нашу логику.
+        """
+        print(f"=== DEBUG: delete_queryset вызван для {queryset.count()} объектов ===", file=sys.stderr)
+        self.remove_from_channel(request, queryset)
+    
+    def delete_model(self, request, obj):
+        """
+        Переопределяем удаление одного объекта.
+        """
+        print(f"=== DEBUG: delete_model вызван для объекта {obj.id} ===", file=sys.stderr)
+        self.remove_from_channel(request, [obj])
     
     fieldsets = (
         ('Основная информация', {
@@ -574,23 +620,92 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
         return mark_safe(' | '.join(links))
     user_links.short_description = 'Ссылки на пользователя'
 
-    def subscribe(self, request, queryset):
+    def remove_from_channel(self, request, queryset):
         """
-        Активирует выбранные подписки.
+        Удаляет пользователей из каналов (кикает).
         """
-        for subscription in queryset:
-            subscription.subscribe()
-        self.message_user(request, f'{queryset.count()} подписок активировано.')
-    subscribe.short_description = "Активировать подписку"
-
-    def unsubscribe(self, request, queryset):
-        """
-        Деактивирует выбранные подписки.
-        """
-        for subscription in queryset:
-            subscription.unsubscribe()
-        self.message_user(request, f'{queryset.count()} подписок деактивировано.')
-    unsubscribe.short_description = "Деактивировать подписку"
+        from accounts.telegram_admin_service import TelegramAdminService, run_async_function
+        import logging
+        import sys
+        import asyncio
+        
+        # Настраиваем логирование для отладки
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+        
+        # Выводим в консоль для отладки
+        print(f"=== DEBUG: Начинаем массовое удаление {queryset.count()} подписок ===", file=sys.stderr)
+        logger.info(f"Начинаем массовое удаление {queryset.count()} подписок")
+        
+        removed_count = 0
+        
+        try:
+            for subscription in queryset:
+                try:
+                    print(f"=== DEBUG: Обрабатываем подписку {subscription.id} ===", file=sys.stderr)
+                    logger.info(f"Обрабатываем подписку {subscription.id}: пользователь {subscription.telegram_user.telegram_id} в канале {subscription.channel.group_id}")
+                    
+                    # Проверяем, что у нас есть все необходимые данные
+                    if not subscription.channel or not subscription.telegram_user:
+                        error_msg = f"❌ Отсутствуют данные для подписки {subscription.id}"
+                        print(f"=== DEBUG: {error_msg} ===", file=sys.stderr)
+                        logger.error(error_msg)
+                        self.message_user(request, error_msg, level='ERROR')
+                        continue
+                    
+                    # Создаем новый сервис для каждой операции
+                    service = TelegramAdminService()
+                    try:
+                        # Удаляем пользователя из канала
+                        print(f"=== DEBUG: Вызываем remove_user_from_channel для пользователя {subscription.telegram_user.telegram_id} в канале {subscription.channel.group_id} ===", file=sys.stderr)
+                        logger.info(f"Вызываем remove_user_from_channel для пользователя {subscription.telegram_user.telegram_id} в канале {subscription.channel.group_id}")
+                        success, message = run_async_function(
+                            service.remove_user_from_channel,
+                            subscription.channel.group_id,
+                            subscription.telegram_user.telegram_id
+                        )
+                        
+                        print(f"=== DEBUG: Результат удаления: success={success}, message={message} ===", file=sys.stderr)
+                        logger.info(f"Результат удаления: success={success}, message={message}")
+                        
+                        if success:
+                            removed_count += 1
+                            subscription.delete()  # Удаляем подписку из базы данных
+                            print(f"=== DEBUG: Подписка {subscription.id} удалена из базы данных ===", file=sys.stderr)
+                            logger.info(f"Подписка {subscription.id} удалена из базы данных")
+                            self.message_user(
+                                request, 
+                                f"✅ {message}", 
+                                level='SUCCESS'
+                            )
+                        else:
+                            print(f"=== DEBUG: Не удалось удалить пользователя: {message} ===", file=sys.stderr)
+                            logger.error(f"Не удалось удалить пользователя: {message}")
+                            self.message_user(
+                                request, 
+                                f"❌ {message}", 
+                                level='ERROR'
+                            )
+                    finally:
+                        service.close()
+                        
+                except Exception as e:
+                    error_msg = f"❌ Ошибка удаления пользователя {subscription.telegram_user.telegram_id} из канала {subscription.channel.group_id}: {e}"
+                    print(f"=== DEBUG: {error_msg} ===", file=sys.stderr)
+                    logger.error(error_msg, exc_info=True)
+                    self.message_user(request, error_msg, level='ERROR')
+        except Exception as e:
+            print(f"=== DEBUG: Общая ошибка: {e} ===", file=sys.stderr)
+            logger.error(f"Общая ошибка: {e}", exc_info=True)
+        
+        print(f"=== DEBUG: Завершено массовое удаление. Удалено {removed_count} из {queryset.count()} ===", file=sys.stderr)
+        logger.info(f"Завершено массовое удаление. Удалено {removed_count} из {queryset.count()}")
+        
+        self.message_user(
+            request, 
+            f"Удалено {removed_count} пользователей из каналов из {queryset.count()}"
+        )
+    remove_from_channel.short_description = "🚫 Удалить из канала"
 
     def sync_from_bot(self, request, queryset):
         """
