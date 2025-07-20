@@ -28,7 +28,7 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     user = event.from_user
 
     # Логируем информацию об обновлении статуса
-    logger.info(f"ChatMemberUpdated: chat_id={chat.id}, user_id={user.id}, {old_status} -> {new_status}")
+    logger.info(f"ChatMemberUpdated: chat_id={chat.id}, chat_title='{chat.title}', user_id={user.id}, username='{user.username}', {old_status} -> {new_status}")
 
     # Игнорируем ботов и отсутствующих пользователей
     if not user or user.is_bot:
@@ -97,6 +97,8 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     try:
         await db_session.commit()
         logger.debug("Изменения в подписках успешно сохранены.")
+        
+
         
         # Если пользователь является админом, создаем связь с группой в Django
         if admin_obj and new_status == "member":
