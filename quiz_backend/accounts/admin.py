@@ -408,6 +408,24 @@ class TelegramUserAdmin(admin.ModelAdmin):
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
     list_filter = ['subscription_status', 'language', 'is_premium', 'created_at']
     actions = ['remove_user_from_all_channels', 'sync_with_telegram']
+    
+    def delete_queryset(self, request, queryset):
+        """
+        Переопределяем стандартное удаление, чтобы использовать нашу логику.
+        """
+        print(f"=== DEBUG: delete_queryset вызван для {queryset.count()} TelegramUser объектов ===", file=sys.stderr)
+        self.remove_user_from_all_channels(request, queryset)
+        # После удаления из Telegram, удаляем из базы данных
+        super().delete_queryset(request, queryset)
+    
+    def delete_model(self, request, obj):
+        """
+        Переопределяем удаление одного объекта.
+        """
+        print(f"=== DEBUG: delete_model вызван для TelegramUser объекта {obj.id} ===", file=sys.stderr)
+        self.remove_user_from_all_channels(request, [obj])
+        # После удаления из Telegram, удаляем из базы данных
+        super().delete_model(request, obj)
 
     def sync_with_telegram(self, request, queryset):
         """
@@ -481,10 +499,9 @@ class TelegramUserAdmin(admin.ModelAdmin):
                 finally:
                     service.close()
         
-        # Удаляем связи из базы данных и самого пользователя
+        # Удаляем только связи из базы данных (самого пользователя удалит delete_queryset)
         for user in queryset:
             user.channel_subscriptions.all().delete()
-            user.delete()  # Полностью удаляем пользователя из базы данных
         
         self.message_user(
             request,
