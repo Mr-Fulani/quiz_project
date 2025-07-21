@@ -1,7 +1,10 @@
 import sys
+import logging
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser
+
+logger = logging.getLogger(__name__)
 
 # Импортируем миксин для сводной информации
 try:
@@ -98,7 +101,10 @@ class TelegramAdminAdmin(admin.ModelAdmin):
         for i, admin in enumerate(queryset, 1):
             self.message_user(request, f"📋 Обрабатываем администратора {i}/{total_admins}: {admin.username or admin.telegram_id}")
             
-            channel_ids = [group.group_id for group in admin.groups.all()]
+            # Получаем все каналы админа
+            admin_groups = list(admin.groups.all())
+            channel_ids = [group.group_id for group in admin_groups]
+            
             if not channel_ids:
                 self.message_user(request, f"⚠️ Администратор {admin.username or admin.telegram_id} не имеет связанных каналов", level='WARNING')
                 continue
@@ -113,15 +119,119 @@ class TelegramAdminAdmin(admin.ModelAdmin):
                 total_removed += success_count
                 
                 # Показываем детальные сообщения
+                successful_channels = []
+                failed_channels = []
+                
                 for message in messages:
                     if "✅" in message or "🎉" in message:
                         self.message_user(request, message, level='SUCCESS')
+                        # Извлекаем ID канала из успешного сообщения
+                        if "Канал " in message and ":" in message:
+                            try:
+                                channel_id_str = message.split("Канал ")[1].split(":")[0].strip()
+                                successful_channels.append(int(channel_id_str))
+                            except (ValueError, IndexError):
+                                pass
                     elif "⚠️" in message:
                         self.message_user(request, message, level='WARNING')
                     elif "❌" in message:
                         self.message_user(request, message, level='ERROR')
+                        # Извлекаем ID канала из неуспешного сообщения
+                        if "Канал " in message and ":" in message:
+                            try:
+                                channel_id_str = message.split("Канал ")[1].split(":")[0].strip()
+                                failed_channels.append(int(channel_id_str))
+                            except (ValueError, IndexError):
+                                pass
                     else:
                         self.message_user(request, message)
+                
+                # Удаляем связи только для успешно удаленных каналов
+                if successful_channels:
+                    removed_relations = 0
+                    for group in admin_groups:
+                        if group.group_id in successful_channels:
+                            # Удаляем связь только для успешно удаленного канала
+                            TelegramAdminGroup.objects.filter(
+                                telegram_admin=admin,
+                                telegram_group=group
+                            ).delete()
+                            removed_relations += 1
+                    
+                    self.message_user(
+                        request, 
+                        f"🗑️ Удалено {removed_relations} связей из базы данных для успешно удаленных каналов",
+                        level='SUCCESS'
+                    )
+                
+                # Показываем информацию о неудаленных каналах
+                if failed_channels:
+                    failed_group_names = []
+                    for group in admin_groups:
+                        if group.group_id in failed_channels:
+                            failed_group_names.append(group.group_name or f"канал {group.group_id}")
+                    
+                    if failed_group_names:
+                        self.message_user(
+                            request,
+                            f"⚠️ Связи сохранены для каналов, где удаление не удалось: {', '.join(failed_group_names)}",
+                            level='WARNING'
+                        )
+                        
+                # Отправляем уведомление пользователю только о успешно удаленных каналах
+                if successful_channels:
+                    try:
+                        # Получаем информацию только об успешно удаленных каналах
+                        channel_names = []
+                        for group in admin_groups:
+                            if group.group_id in successful_channels:
+                                if group.group_name:
+                                    if group.username:
+                                        channel_link = f"https://t.me/{group.username}"
+                                        channel_names.append(f"<a href='{channel_link}'>{group.group_name}</a>")
+                                    else:
+                                        channel_names.append(f"<b>{group.group_name}</b>")
+                                else:
+                                    channel_names.append(f"<b>канал {group.group_id}</b>")
+                        
+                        if channel_names:
+                            channels_list = "\n".join([f"• {name}" for name in channel_names])
+                            
+                            notification_message = f"""
+📢 <b>Уведомление</b>
+
+Ваши права администратора были отозваны в следующих каналах:
+
+{channels_list}
+
+Вы больше не можете:
+• Управлять сообщениями
+• Удалять сообщения
+• Приглашать пользователей
+• Ограничивать участников
+• Закреплять сообщения
+
+Если у вас есть вопросы, обратитесь к владельцам каналов.
+                            """.strip()
+                            
+                            # Отправляем уведомление
+                            message_service = TelegramAdminService()
+                            try:
+                                message_sent, message_result = run_async_function(
+                                    message_service.send_message_to_user,
+                                    admin.telegram_id,
+                                    notification_message
+                                )
+                                
+                                if message_sent:
+                                    logger.info(f"Уведомление об удалении прав отправлено администратору {admin.telegram_id}")
+                                else:
+                                    logger.warning(f"Не удалось отправить уведомление администратору {admin.telegram_id}: {message_result}")
+                            finally:
+                                message_service.close()
+                                
+                    except Exception as e:
+                        logger.warning(f"Ошибка при отправке уведомления администратору {admin.telegram_id}: {e}")
                         
             except Exception as e:
                 error_msg = f"❌ Ошибка при обработке администратора {admin.username or admin.telegram_id}: {str(e)}"
@@ -129,15 +239,11 @@ class TelegramAdminAdmin(admin.ModelAdmin):
             finally:
                 service.close()
         
-        # Удаляем связи из базы данных
-        for admin in queryset:
-            admin.groups.clear()
-        
         # Итоговое сообщение
         if total_removed > 0:
             self.message_user(
                 request, 
-                f"✅ Завершено! Удалены права администратора у {total_removed} пользователей из каналов. Связи в базе данных очищены.",
+                f"✅ Завершено! Удалены права администратора у {total_removed} пользователей из каналов. Связи в базе данных удалены только для успешно обработанных каналов.",
                 level='SUCCESS'
             )
         else:
@@ -186,6 +292,58 @@ class TelegramAdminAdmin(admin.ModelAdmin):
                         self.message_user(request, message, level='ERROR')
                     else:
                         self.message_user(request, message)
+                        
+                # Отправляем уведомление пользователю о полном удалении
+                if success_count > 0:
+                    try:
+                        # Получаем информацию о каналах для уведомления
+                        channel_names = []
+                        for group in admin.groups.all():
+                            if group.group_name:
+                                if group.username:
+                                    channel_link = f"https://t.me/{group.username}"
+                                    channel_names.append(f"<a href='{channel_link}'>{group.group_name}</a>")
+                                else:
+                                    channel_names.append(f"<b>{group.group_name}</b>")
+                            else:
+                                channel_names.append(f"<b>канал {group.group_id}</b>")
+                        
+                        if channel_names:
+                            channels_list = "\n".join([f"• {name}" for name in channel_names])
+                            
+                            notification_message = f"""
+🚫 <b>Важные изменения</b>
+
+Вы были полностью удалены из следующих каналов:
+
+{channels_list}
+
+Это означает, что:
+• Ваши права администратора отозваны
+• Вы удалены из каналов
+• Ваша запись администратора удалена из системы
+
+Если это произошло по ошибке, обратитесь к владельцам каналов.
+                            """.strip()
+                            
+                            # Отправляем уведомление
+                            message_service = TelegramAdminService()
+                            try:
+                                message_sent, message_result = run_async_function(
+                                    message_service.send_message_to_user,
+                                    admin.telegram_id,
+                                    notification_message
+                                )
+                                
+                                if message_sent:
+                                    logger.info(f"Уведомление о полном удалении отправлено администратору {admin.telegram_id}")
+                                else:
+                                    logger.warning(f"Не удалось отправить уведомление администратору {admin.telegram_id}: {message_result}")
+                            finally:
+                                message_service.close()
+                                
+                    except Exception as e:
+                        logger.warning(f"Ошибка при отправке уведомления администратору {admin.telegram_id}: {e}")
                         
             except Exception as e:
                 error_msg = f"❌ Ошибка при обработке администратора {admin.username or admin.telegram_id}: {str(e)}"
