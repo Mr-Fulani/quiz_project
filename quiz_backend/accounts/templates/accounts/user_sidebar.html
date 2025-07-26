@@ -1,4 +1,4 @@
-{% load static i18n %}
+{% load static i18n admin_tags %}
 {% if debug %}
 <div style="display:none">
     User: {{ user }}
@@ -25,7 +25,10 @@
       </figure>
 
       <div class="info-content">
-        <h2 class="name">{{ user.username }}</h2>
+        <h2 class="name">
+          {{ user.username }}
+          {% admin_badge_small user %}
+        </h2>
         <p class="title">{{ user.bio|truncatechars:30 }}</p>
       </div>
 

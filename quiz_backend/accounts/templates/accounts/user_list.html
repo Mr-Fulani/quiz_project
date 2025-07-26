@@ -1,5 +1,9 @@
 {% extends "blog/base.html" %}
-{% load static i18n %}
+{% load static i18n admin_tags %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'accounts/css/admin_badges.css' %}">
+{% endblock %}
 
 {% block content %}
 <article class="clients active" data-page="clients">
@@ -20,7 +24,10 @@
 
             <div class="client-info">
                 <h3 class="client-name">
-                    <a href="{% url 'accounts:user_profile' username=user.username %}">{{ user.username }}</a>
+                    <a href="{% url 'accounts:user_profile' username=user.username %}">
+                        {{ user.username }}
+                        {% admin_badge_small user %}
+                    </a>
                 </h3>
 
                 {% if user.location %}

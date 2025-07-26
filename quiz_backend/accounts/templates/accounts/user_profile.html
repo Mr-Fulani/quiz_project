@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static i18n humanize %}
+{% load static i18n humanize admin_tags %}
 
 {% block sidebar %}
     {% include 'accounts/user_sidebar.html' %}
@@ -29,7 +29,10 @@
 
             <div class="profile-details">
                 <div class="profile-header">
-                    <h3 class="profile-name">{{ profile_user.username }}</h3>
+                    <h3 class="profile-name">
+                        {{ profile_user.username }}
+                        {% admin_badge_small profile_user %}
+                    </h3>
                     <span class="member-since">{% trans "Member since" %} {{ profile_user.date_joined|date:"F Y" }}</span>
                 </div>
 
@@ -67,4 +70,5 @@
 </article>
 
 <link rel="stylesheet" href="{% static 'accounts/css/user_profile.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/admin_badges.css' %}">
 {% endblock %}
