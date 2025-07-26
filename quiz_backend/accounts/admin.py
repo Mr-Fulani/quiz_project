@@ -404,12 +404,117 @@ class TelegramAdminAdmin(admin.ModelAdmin):
 
 class DjangoAdminAdmin(admin.ModelAdmin):
     """
-    Админ-панель для DjangoAdmin с расширенным управлением правами.
+    Админ-панель для DjangoAdmin: только просмотр основных статусов, без редактирования данных.
     """
-    list_display = ['username', 'email', 'is_django_admin', 'is_staff', 'is_superuser', 'is_active', 'last_login', 'custom_user_status']
-    search_fields = ['username', 'email', 'phone_number']
-    list_filter = ['is_django_admin', 'is_staff', 'is_superuser', 'is_active', 'language']
+    list_display = ['username', 'is_active', 'is_django_admin', 'last_login', 'custom_user_status']
+    search_fields = ['username']
+    list_filter = ['is_django_admin', 'is_active']
     actions = ['make_staff', 'remove_staff', 'make_superuser', 'remove_superuser', 'delete_django_admin', 'sync_with_custom_user']
+    readonly_fields = ['username', 'is_active', 'is_django_admin', 'last_login', 'custom_user_status', 'user_groups', 'individual_permissions', 'group_permissions']
+    fieldsets = (
+        (None, {'fields': ('username',)}),
+        ('Статус', {'fields': ('is_active', 'is_django_admin', 'last_login', 'custom_user_status')}),
+        ('Группы пользователя', {'fields': ('user_groups',)}),
+        ('Индивидуальные права', {'fields': ('individual_permissions',), 'classes': ('collapse',)}),
+        ('Права через группы', {'fields': ('group_permissions',), 'classes': ('collapse',)}),
+    )
+
+    def user_groups(self, obj):
+        """
+        Отображает группы, в которых состоит пользователь.
+        """
+        try:
+            custom_user = CustomUser.objects.get(username=obj.username)
+            groups = custom_user.groups.all()
+            if groups:
+                return ', '.join([group.name for group in groups])
+            else:
+                return 'Не состоит ни в одной группе'
+        except CustomUser.DoesNotExist:
+            return 'Пользователь не найден'
+    user_groups.short_description = 'Группы пользователя'
+
+    def individual_permissions(self, obj):
+        """
+        Отображает индивидуальные права пользователя с группировкой по приложениям.
+        """
+        try:
+            custom_user = CustomUser.objects.get(username=obj.username)
+            permissions = custom_user.user_permissions.all()
+            
+            if not permissions:
+                return 'Нет индивидуальных прав'
+            
+            # Группируем разрешения по приложениям
+            app_permissions = {}
+            for perm in permissions:
+                app_name = perm.content_type.app_label
+                if app_name not in app_permissions:
+                    app_permissions[app_name] = []
+                app_permissions[app_name].append(perm)
+            
+            # Формируем красивый вывод
+            result = []
+            for app_name, perms in sorted(app_permissions.items()):
+                app_display = self._get_app_display_name(app_name)
+                result.append(f"<strong>{app_display}:</strong>")
+                
+                for perm in sorted(perms, key=lambda x: x.codename):
+                    action = self._get_action_display_name(perm.codename)
+                    model_name = self._get_model_display_name(perm.content_type.model)
+                    result.append(f"  • {action} {model_name}")
+                
+                result.append("")  # Пустая строка между приложениями
+            
+            from django.utils.safestring import mark_safe
+            return mark_safe("<br>".join(result))
+            
+        except CustomUser.DoesNotExist:
+            return 'Пользователь не найден'
+    individual_permissions.short_description = 'Индивидуальные права'
+
+    def group_permissions(self, obj):
+        """
+        Отображает права, полученные через группы, с группировкой по приложениям.
+        """
+        try:
+            custom_user = CustomUser.objects.get(username=obj.username)
+            group_permissions = set()
+            
+            for group in custom_user.groups.all():
+                for perm in group.permissions.all():
+                    group_permissions.add(perm)
+            
+            if not group_permissions:
+                return 'Нет прав через группы'
+            
+            # Группируем разрешения по приложениям
+            app_permissions = {}
+            for perm in group_permissions:
+                app_name = perm.content_type.app_label
+                if app_name not in app_permissions:
+                    app_permissions[app_name] = []
+                app_permissions[app_name].append(perm)
+            
+            # Формируем красивый вывод
+            result = []
+            for app_name, perms in sorted(app_permissions.items()):
+                app_display = self._get_app_display_name(app_name)
+                result.append(f"<strong>{app_display}:</strong>")
+                
+                for perm in sorted(perms, key=lambda x: x.codename):
+                    action = self._get_action_display_name(perm.codename)
+                    model_name = self._get_model_display_name(perm.content_type.model)
+                    result.append(f"  • {action} {model_name}")
+                
+                result.append("")  # Пустая строка между приложениями
+            
+            from django.utils.safestring import mark_safe
+            return mark_safe("<br>".join(result))
+            
+        except CustomUser.DoesNotExist:
+            return 'Пользователь не найден'
+    group_permissions.short_description = 'Права через группы'
 
     def custom_user_status(self, obj):
         """
@@ -663,6 +768,72 @@ class DjangoAdminAdmin(admin.ModelAdmin):
                 level='SUCCESS'
             )
     sync_with_custom_user.short_description = "Синхронизировать с CustomUser"
+
+    def _get_app_display_name(self, app_name):
+        """
+        Возвращает красивое название приложения.
+        """
+        app_names = {
+            'auth': '🔐 Аутентификация',
+            'accounts': '👥 Пользователи',
+            'blog': '📝 Блог',
+            'feedback': '💬 Обратная связь',
+            'donation': '💰 Пожертвования',
+            'platforms': '📱 Платформы',
+            'tasks': '📋 Задачи',
+            'topics': '🏷️ Темы',
+            'webhooks': '🔗 Вебхуки',
+            'social_auth': '🔗 Социальная аутентификация',
+            'contenttypes': '📄 Типы содержимого',
+            'sessions': '🕐 Сессии',
+            'sites': '🌐 Сайты',
+            'admin': '⚙️ Администрирование',
+            'silk': '🔍 Профилирование',
+        }
+        return app_names.get(app_name, f"📦 {app_name.title()}")
+
+    def _get_action_display_name(self, codename):
+        """
+        Возвращает красивое название действия.
+        """
+        action_names = {
+            'add': 'Создавать',
+            'change': 'Редактировать',
+            'delete': 'Удалять',
+            'view': 'Просматривать',
+        }
+        return action_names.get(codename, codename)
+
+    def _get_model_display_name(self, model_name):
+        """
+        Возвращает красивое название модели.
+        """
+        model_names = {
+            'customuser': 'пользователей',
+            'telegramuser': 'Telegram пользователей',
+            'telegramadmin': 'Telegram администраторов',
+            'djangoadmin': 'Django администраторов',
+            'miniappuser': 'Mini App пользователей',
+            'post': 'посты',
+            'category': 'категории',
+            'testimonial': 'отзывы',
+            'project': 'проекты',
+            'feedbackmessage': 'сообщения',
+            'feedbackreply': 'ответы',
+            'donation': 'пожертвования',
+            'telegramgroup': 'Telegram группы',
+            'task': 'задачи',
+            'topic': 'темы',
+            'webhook': 'вебхуки',
+            'socialaccount': 'социальные аккаунты',
+            'group': 'группы',
+            'permission': 'разрешения',
+            'contenttype': 'типы содержимого',
+            'session': 'сессии',
+            'site': 'сайты',
+            'logentry': 'записи журнала',
+        }
+        return model_names.get(model_name, model_name)
 
 
 class CustomUserAdmin(UserOverviewMixin, UserAdmin):
