@@ -49,16 +49,12 @@ class CustomUser(AbstractUser):
 
     groups = models.ManyToManyField(
         Group,
-        related_name='customuser_set',
-        related_query_name="user",
         blank=True,
         help_text="Группы, к которым принадлежит пользователь.",
         verbose_name="Группы"
     )
     user_permissions = models.ManyToManyField(
         Permission,
-        related_name='customuser_permissions',
-        related_query_name="user",
         blank=True,
         help_text="Индивидуальные разрешения пользователя.",
         verbose_name="Разрешения"
