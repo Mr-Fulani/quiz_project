@@ -1,0 +1,251 @@
+/* Стили для бейджей администраторов */
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.admin-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Tooltip для бейджа */
+.admin-badge::before {
+    content: "Admin";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    margin-bottom: 8px;
+}
+
+/* Разные тексты для разных типов администраторов */
+.admin-badge-superuser::before {
+    content: "Super Admin";
+}
+
+.admin-badge-staff::before {
+    content: "Admin";
+}
+
+.admin-badge::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    margin-bottom: 3px;
+}
+
+.admin-badge:hover::before,
+.admin-badge:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.admin-badge ion-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+}
+
+/* Цвета для разных типов администраторов */
+.admin-badge-superuser {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #1a1a1a;
+    border: 1px solid #ffb300;
+}
+
+.admin-badge-superuser:hover {
+    background: linear-gradient(135deg, #ffed4e, #ffd700);
+    box-shadow: 0 2px 12px rgba(255, 215, 0, 0.4);
+}
+
+.admin-badge-staff {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
+    border: 1px solid #2563eb;
+}
+
+.admin-badge-staff:hover {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Анимация для привлечения внимания */
+.admin-badge-pulse {
+    animation: admin-badge-pulse 2s infinite;
+}
+
+@keyframes admin-badge-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    }
+}
+
+/* Стили для имени пользователя с бейджем */
+.user-name-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .admin-badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        margin-left: 4px;
+    }
+    
+    .admin-badge ion-icon {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
+    }
+    
+    .user-name-with-badge {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+/* Стили для карточек пользователей с бейджами */
+.client-card .admin-badge,
+.profile-info .admin-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+/* Стили для сайдбара */
+.sidebar-info .admin-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 10;
+}
+
+/* Стили для заголовка профиля */
+.article-title .admin-badge {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* Стили для навигации профиля */
+.profile-tabs {
+    position: relative;
+    z-index: 5;
+}
+
+.profile-tabs .admin-badge {
+    position: absolute;
+    top: -5px;
+    right: 10px;
+    z-index: 15;
+}
+
+/* Специальные стили для user_profile.html */
+.profile-name .admin-badge {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-left: 8px;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Убираем абсолютное позиционирование для бейджей в профиле */
+.profile-info .admin-badge,
+.profile-details .admin-badge {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* Стили для списка пользователей */
+.clients-list .client-card {
+    position: relative;
+}
+
+.clients-list .admin-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+}
+
+/* Стили для информации о статусе администратора */
+.admin-status-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--eerie-black-2);
+    border-radius: 12px;
+    border-left: 4px solid #3b82f6;
+}
+
+.admin-status-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--light-gray-70);
+    font-weight: 500;
+}
+
+/* Маленький бейдж */
+.admin-badge-small {
+    padding: 2px 6px;
+    font-size: 0.65rem;
+}
+
+.admin-badge-small ion-icon {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
+} 
