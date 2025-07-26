@@ -9,6 +9,10 @@ Meta tags for SEO, using post's meta description and keywords.
 <meta name="keywords" content="{{ post.meta_keywords }}">
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accounts/css/admin_badges.css' %}">
+{% endblock %}
+
 {% block sidebar %}
 {% include "accounts/user_sidebar.html" %}
 {% endblock %}
