@@ -165,10 +165,11 @@ class CustomUser(AbstractUser):
         Returns:
             str: Тип админа или None
         """
+        from django.utils.translation import gettext as _
         if self.is_superuser:
-            return "Суперпользователь"
+            return _("Super Admin")
         elif self.is_staff:
-            return "Django Администратор"
+            return _("Django Admin")
         else:
             return None
 
