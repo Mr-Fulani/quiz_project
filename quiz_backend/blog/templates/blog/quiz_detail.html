@@ -8,6 +8,10 @@ Includes the user sidebar for authenticated users.
 {% include 'accounts/user_sidebar.html' %}
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accounts/css/admin_badges.css' %}">
+{% endblock %}
+
 {% block content %}
 <article class="quiz-detail active" data-page="quiz-detail">
     <header>
