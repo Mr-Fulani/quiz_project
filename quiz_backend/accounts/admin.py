@@ -404,26 +404,265 @@ class TelegramAdminAdmin(admin.ModelAdmin):
 
 class DjangoAdminAdmin(admin.ModelAdmin):
     """
-    Админ-панель для DjangoAdmin.
+    Админ-панель для DjangoAdmin с расширенным управлением правами.
     """
-    list_display = ['username', 'email', 'is_django_admin', 'is_staff', 'is_active', 'last_login']
+    list_display = ['username', 'email', 'is_django_admin', 'is_staff', 'is_superuser', 'is_active', 'last_login', 'custom_user_status']
     search_fields = ['username', 'email', 'phone_number']
-    list_filter = ['is_django_admin', 'is_staff', 'is_active']
-    actions = ['make_staff', 'remove_staff']
+    list_filter = ['is_django_admin', 'is_staff', 'is_superuser', 'is_active', 'language']
+    actions = ['make_staff', 'remove_staff', 'make_superuser', 'remove_superuser', 'delete_django_admin', 'sync_with_custom_user']
+
+    def custom_user_status(self, obj):
+        """
+        Отображает статус связанного CustomUser.
+        """
+        from django.utils.safestring import mark_safe
+        
+        try:
+            custom_user = CustomUser.objects.get(username=obj.username)
+            if custom_user.is_staff or custom_user.is_superuser:
+                return mark_safe('<span style="color: green;">✅ Права есть</span>')
+            else:
+                return mark_safe('<span style="color: red;">❌ Без прав</span>')
+        except CustomUser.DoesNotExist:
+            return mark_safe('<span style="color: orange;">⚠️ Пользователь не найден</span>')
+    custom_user_status.short_description = 'Статус CustomUser'
 
     def make_staff(self, request, queryset):
         """
         Дать права персонала.
         """
-        queryset.update(is_staff=True)
+        updated_count = 0
+        for admin in queryset:
+            try:
+                custom_user = CustomUser.objects.get(username=admin.username)
+                if not custom_user.is_staff:
+                    custom_user.is_staff = True
+                    custom_user.save()  # Сигнал обновит DjangoAdmin
+                    updated_count += 1
+                    self.message_user(
+                        request, 
+                        f"✅ Пользователь {admin.username} получил права staff.",
+                        level='SUCCESS'
+                    )
+                else:
+                    self.message_user(
+                        request, 
+                        f"ℹ️ Пользователь {admin.username} уже имеет права staff.",
+                        level='INFO'
+                    )
+            except CustomUser.DoesNotExist:
+                self.message_user(
+                    request, 
+                    f"❌ Пользователь {admin.username} не найден в CustomUser.",
+                    level='ERROR'
+                )
+        
+        if updated_count > 0:
+            self.message_user(
+                request, 
+                f"🎉 {updated_count} пользователей получили права staff.",
+                level='SUCCESS'
+            )
     make_staff.short_description = "Сделать персоналом"
 
     def remove_staff(self, request, queryset):
         """
         Убрать права персонала.
         """
-        queryset.update(is_staff=False)
+        updated_count = 0
+        for admin in queryset:
+            try:
+                custom_user = CustomUser.objects.get(username=admin.username)
+                if custom_user.is_staff:
+                    custom_user.is_staff = False
+                    custom_user.save()  # Сигнал удалит из DjangoAdmin
+                    updated_count += 1
+                    self.message_user(
+                        request, 
+                        f"✅ Пользователь {admin.username} потерял права staff.",
+                        level='SUCCESS'
+                    )
+                else:
+                    self.message_user(
+                        request, 
+                        f"ℹ️ Пользователь {admin.username} уже не имеет прав staff.",
+                        level='INFO'
+                    )
+            except CustomUser.DoesNotExist:
+                self.message_user(
+                    request, 
+                    f"❌ Пользователь {admin.username} не найден в CustomUser.",
+                    level='ERROR'
+                )
+        
+        if updated_count > 0:
+            self.message_user(
+                request, 
+                f"🗑️ {updated_count} пользователей потеряли права staff.",
+                level='SUCCESS'
+            )
     remove_staff.short_description = "Убрать права персонала"
+
+    def make_superuser(self, request, queryset):
+        """
+        Дать права суперпользователя.
+        """
+        updated_count = 0
+        for admin in queryset:
+            try:
+                custom_user = CustomUser.objects.get(username=admin.username)
+                if not custom_user.is_superuser:
+                    custom_user.is_superuser = True
+                    custom_user.is_staff = True  # Суперпользователь должен быть staff
+                    custom_user.save()  # Сигнал обновит DjangoAdmin
+                    updated_count += 1
+                    self.message_user(
+                        request, 
+                        f"✅ Пользователь {admin.username} получил права суперпользователя.",
+                        level='SUCCESS'
+                    )
+                else:
+                    self.message_user(
+                        request, 
+                        f"ℹ️ Пользователь {admin.username} уже является суперпользователем.",
+                        level='INFO'
+                    )
+            except CustomUser.DoesNotExist:
+                self.message_user(
+                    request, 
+                    f"❌ Пользователь {admin.username} не найден в CustomUser.",
+                    level='ERROR'
+                )
+        
+        if updated_count > 0:
+            self.message_user(
+                request, 
+                f"🎉 {updated_count} пользователей получили права суперпользователя.",
+                level='SUCCESS'
+            )
+    make_superuser.short_description = "Сделать суперпользователем"
+
+    def remove_superuser(self, request, queryset):
+        """
+        Убрать права суперпользователя.
+        """
+        updated_count = 0
+        for admin in queryset:
+            try:
+                custom_user = CustomUser.objects.get(username=admin.username)
+                if custom_user.is_superuser:
+                    custom_user.is_superuser = False
+                    # Если нет других прав staff, убираем и их
+                    if not custom_user.is_staff:
+                        custom_user.is_staff = False
+                    custom_user.save()  # Сигнал обновит/удалит DjangoAdmin
+                    updated_count += 1
+                    self.message_user(
+                        request, 
+                        f"✅ Пользователь {admin.username} потерял права суперпользователя.",
+                        level='SUCCESS'
+                    )
+                else:
+                    self.message_user(
+                        request, 
+                        f"ℹ️ Пользователь {admin.username} уже не является суперпользователем.",
+                        level='INFO'
+                    )
+            except CustomUser.DoesNotExist:
+                self.message_user(
+                    request, 
+                    f"❌ Пользователь {admin.username} не найден в CustomUser.",
+                    level='ERROR'
+                )
+        
+        if updated_count > 0:
+            self.message_user(
+                request, 
+                f"🗑️ {updated_count} пользователей потеряли права суперпользователя.",
+                level='SUCCESS'
+            )
+    remove_superuser.short_description = "Убрать права суперпользователя"
+
+    def delete_django_admin(self, request, queryset):
+        """
+        Удаляет выбранных Django администраторов.
+        Пользователи остаются в CustomUser, но теряют права администратора.
+        """
+        deleted_count = 0
+        for admin in queryset:
+            try:
+                custom_user = CustomUser.objects.get(username=admin.username)
+                # Убираем права администратора
+                custom_user.is_staff = False
+                custom_user.is_superuser = False
+                custom_user.save()  # Сигнал удалит из DjangoAdmin
+                
+                # Дополнительно удаляем запись DjangoAdmin
+                admin.delete()
+                deleted_count += 1
+                self.message_user(
+                    request, 
+                    f"✅ Django администратор {admin.username} удален. Пользователь остался в системе.",
+                    level='SUCCESS'
+                )
+            except CustomUser.DoesNotExist:
+                # Если CustomUser не найден, просто удаляем DjangoAdmin
+                admin.delete()
+                deleted_count += 1
+                self.message_user(
+                    request, 
+                    f"✅ Django администратор {admin.username} удален (CustomUser не найден).",
+                    level='SUCCESS'
+                )
+        
+        if deleted_count > 0:
+            self.message_user(
+                request, 
+                f"🗑️ {deleted_count} Django администраторов удалено.",
+                level='SUCCESS'
+            )
+    delete_django_admin.short_description = "Удалить Django администратора"
+
+    def sync_with_custom_user(self, request, queryset):
+        """
+        Синхронизирует данные DjangoAdmin с CustomUser.
+        """
+        synced_count = 0
+        for admin in queryset:
+            try:
+                custom_user = CustomUser.objects.get(username=admin.username)
+                # Обновляем данные DjangoAdmin из CustomUser
+                admin.email = custom_user.email
+                admin.password = custom_user.password
+                admin.is_staff = custom_user.is_staff
+                admin.is_superuser = custom_user.is_superuser
+                admin.is_active = custom_user.is_active
+                admin.language = custom_user.language or 'ru'
+                admin.first_name = custom_user.first_name
+                admin.last_name = custom_user.last_name
+                admin.last_login = custom_user.last_login
+                admin.save()
+                
+                synced_count += 1
+                self.message_user(
+                    request, 
+                    f"✅ Данные {admin.username} синхронизированы с CustomUser.",
+                    level='SUCCESS'
+                )
+            except CustomUser.DoesNotExist:
+                self.message_user(
+                    request, 
+                    f"❌ Пользователь {admin.username} не найден в CustomUser.",
+                    level='ERROR'
+                )
+        
+        if synced_count > 0:
+            self.message_user(
+                request, 
+                f"🔄 {synced_count} записей синхронизировано с CustomUser.",
+                level='SUCCESS'
+            )
+    sync_with_custom_user.short_description = "Синхронизировать с CustomUser"
 
 
 class CustomUserAdmin(UserOverviewMixin, UserAdmin):
@@ -433,7 +672,7 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     model = CustomUser
     list_display = [
         'username', 'email', 'is_active', 'is_staff', 'telegram_id', 
-        'subscription_status', 'social_accounts_display', 'created_at'
+        'subscription_status', 'django_admin_status', 'social_accounts_display', 'created_at'
     ]
     search_fields = ['username', 'email', 'telegram_id']
     list_filter = [
@@ -457,7 +696,30 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
             'fields': ('username', 'email', 'telegram_id', 'password1', 'password2', 'is_active', 'is_staff'),
         }),
     )
-    actions = ['make_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
+    actions = ['make_django_admin', 'remove_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
+    
+    def django_admin_status(self, obj):
+        """
+        Отображает статус Django администратора.
+        """
+        from django.utils.safestring import mark_safe
+        
+        # Проверяем, есть ли запись в DjangoAdmin
+        django_admin = DjangoAdmin.objects.filter(username=obj.username).first()
+        
+        if obj.is_staff or obj.is_superuser:
+            if django_admin and django_admin.is_active:
+                return mark_safe('<span style="color: green;">✅ Django Админ</span>')
+            elif django_admin and not django_admin.is_active:
+                return mark_safe('<span style="color: orange;">⚠️ Django Админ (неактивен)</span>')
+            else:
+                return mark_safe('<span style="color: blue;">🔧 Права есть, но не в DjangoAdmin</span>')
+        else:
+            if django_admin:
+                return mark_safe('<span style="color: red;">❌ Django Админ (без прав)</span>')
+            else:
+                return mark_safe('<span style="color: gray;">👤 Обычный пользователь</span>')
+    django_admin_status.short_description = 'Django Админ'
     
     def social_accounts_display(self, obj):
         """
@@ -495,20 +757,74 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     def make_django_admin(self, request, queryset):
         """
         Создаёт DjangoAdmin из выбранных CustomUser.
+        Теперь работает через сигналы - просто выставляет права.
         """
+        updated_count = 0
         for user in queryset:
-            if not DjangoAdmin.objects.filter(username=user.username).exists():
-                DjangoAdmin.objects.create(
-                    username=user.username,
-                    email=user.email,
-                    password=user.password,
-                    is_django_admin=True,
-                    is_staff=True,
-                    language=user.language or 'ru',
-                    phone_number=None
+            if not user.is_staff:
+                user.is_staff = True
+                user.save()  # Сигнал автоматически создаст DjangoAdmin
+                updated_count += 1
+                self.message_user(
+                    request, 
+                    f"✅ Пользователь {user.username} получил права staff. DjangoAdmin создан автоматически.",
+                    level='SUCCESS'
                 )
-        self.message_user(request, f"Выбранные пользователи добавлены как DjangoAdmin.")
+            else:
+                self.message_user(
+                    request, 
+                    f"ℹ️ Пользователь {user.username} уже имеет права staff.",
+                    level='INFO'
+                )
+        
+        if updated_count > 0:
+            self.message_user(
+                request, 
+                f"🎉 {updated_count} пользователей получили права Django администратора.",
+                level='SUCCESS'
+            )
     make_django_admin.short_description = "Сделать Django-админом"
+
+    def remove_django_admin(self, request, queryset):
+        """
+        Убирает права Django администратора у выбранных пользователей.
+        Удаляет из таблицы DjangoAdmin и обновляет статус в CustomUser.
+        """
+        removed_count = 0
+        for user in queryset:
+            if user.is_staff or user.is_superuser:
+                # Убираем права
+                user.is_staff = False
+                user.is_superuser = False
+                user.save()  # Сигнал автоматически удалит из DjangoAdmin
+                
+                # Дополнительно удаляем из DjangoAdmin если запись существует
+                try:
+                    django_admin = DjangoAdmin.objects.get(username=user.username)
+                    django_admin.delete()
+                    self.message_user(
+                        request, 
+                        f"✅ Пользователь {user.username} удален из Django администраторов.",
+                        level='SUCCESS'
+                    )
+                except DjangoAdmin.DoesNotExist:
+                    pass
+                
+                removed_count += 1
+            else:
+                self.message_user(
+                    request, 
+                    f"ℹ️ Пользователь {user.username} не является Django администратором.",
+                    level='INFO'
+                )
+        
+        if removed_count > 0:
+            self.message_user(
+                request, 
+                f"🗑️ {removed_count} пользователей удалены из Django администраторов.",
+                level='SUCCESS'
+            )
+    remove_django_admin.short_description = "Убрать права Django-админа"
 
 
 class TelegramUserAdmin(admin.ModelAdmin):
