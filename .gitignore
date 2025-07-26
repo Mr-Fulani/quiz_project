@@ -26,3 +26,7 @@ tasks.json
 *.json
 
 /staticfiles
+
+# Migrations
+*/migrations/*.py
+!*/migrations/__init__.py
