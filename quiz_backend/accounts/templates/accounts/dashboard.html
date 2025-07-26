@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static i18n form_tags %}
+{% load static i18n form_tags admin_tags %}
 
 {% block sidebar %}
 {% include 'accounts/user_sidebar.html' %}
@@ -7,6 +7,7 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'accounts/css/admin_badges.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -79,6 +80,13 @@
                     </div>
 
                     <div class="profile-info">
+                        {% if user.is_admin %}
+                        <div class="admin-status-info">
+                            {% admin_badge user %}
+                            <p class="admin-status-text">{{ user.admin_type }}</p>
+                        </div>
+                        {% endif %}
+                        
                         <form id="personal-info-form" class="form" method="post" enctype="multipart/form-data" action="{% url 'accounts:update_personal_info' %}">
                             {% csrf_token %}
                             <input type="hidden" name="personal_info" value="true">

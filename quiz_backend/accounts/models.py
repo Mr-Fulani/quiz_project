@@ -137,13 +137,68 @@ class CustomUser(AbstractUser):
 
     @property
     def is_online(self):
-        """Проверяет, онлайн ли пользователь (активен в последние 5 минут)."""
+        """Проверяет, онлайн ли пользователь (последний визит в течение 5 минут)."""
+        if not self.last_seen:
+            return False
         return timezone.now() - self.last_seen < timedelta(minutes=5)
 
     @property
     def member_since(self):
-        """Возвращает дату регистрации."""
-        return self.date_joined
+        """Возвращает дату регистрации пользователя."""
+        return self.date_joined.strftime('%B %Y')
+
+    @property
+    def is_admin(self):
+        """
+        Проверяет, является ли пользователь администратором в любой из систем.
+        
+        Returns:
+            bool: True если пользователь является админом
+        """
+        return self.is_staff or self.is_superuser
+
+    @property
+    def admin_type(self):
+        """
+        Возвращает тип администратора пользователя.
+        
+        Returns:
+            str: Тип админа или None
+        """
+        if self.is_superuser:
+            return "Суперпользователь"
+        elif self.is_staff:
+            return "Django Администратор"
+        else:
+            return None
+
+    @property
+    def admin_badge_icon(self):
+        """
+        Возвращает иконку для бейджа администратора.
+        
+        Returns:
+            str: Название иконки или None
+        """
+        if self.is_superuser:
+            return "shield-checkmark"  # Иконка для суперпользователя
+        elif self.is_staff:
+            return "shield"  # Иконка для обычного администратора
+        return None
+
+    @property
+    def admin_badge_color(self):
+        """
+        Возвращает цвет для бейджа администратора.
+        
+        Returns:
+            str: CSS класс цвета или None
+        """
+        if self.is_superuser:
+            return "admin-badge-superuser"  # Золотой цвет для суперпользователя
+        elif self.is_staff:
+            return "admin-badge-staff"  # Синий цвет для администратора
+        return None
 
     @property
     def favorite_topics(self):

@@ -1,6 +1,6 @@
 {# accounts/profile.html #}
 {% extends "blog/base.html" %}
-{% load static i18n form_tags %}
+{% load static i18n form_tags admin_tags %}
 
 {% block sidebar %}
 {% include 'accounts/sidebar.html' %}
@@ -8,6 +8,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/admin_badges.css' %}">
 <style>
     /* Анимация затухания */
     .fade-out {
@@ -36,7 +37,10 @@
 {% block content %}
 <article class="profile active" data-page="profile">
     <header>
-        <h1 class="h2 article-title">{{ profile_user.username }}</h1>
+        <h1 class="h2 article-title">
+            {{ profile_user.username }}
+            {% admin_badge_small profile_user %}
+        </h1>
     </header>
 
     <section class="profile-content">
