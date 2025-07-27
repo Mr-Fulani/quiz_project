@@ -845,6 +845,7 @@ class PostShare(models.Model):
         verbose_name="Пост"
     )
     shared_url = models.URLField(
+        max_length=500,
         blank=True,
         verbose_name="URL репоста",
         help_text="Ссылка на репост в социальной сети"
@@ -889,6 +890,7 @@ class ProjectShare(models.Model):
         verbose_name="Проект"
     )
     shared_url = models.URLField(
+        max_length=500,
         blank=True,
         verbose_name="URL репоста",
         help_text="Ссылка на репост в социальной сети"
