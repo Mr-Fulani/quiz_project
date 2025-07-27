@@ -8,13 +8,13 @@
 
 {% block og_title %}{{ project.title }} - Portfolio{% endblock %}
 {% block og_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
-{% block og_image %}{% if project.get_og_image_url %}{{ request.build_absolute_uri:project.get_og_image_url }}{% endif %}{% endblock %}
+{% block og_image %}{% if project.get_og_image_url %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endblock %}
 {% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
 {% block og_type %}article{% endblock %}
 
 {% block twitter_title %}{{ project.title }} - Portfolio{% endblock %}
 {% block twitter_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
-{% block twitter_image %}{{ request.build_absolute_uri:project.get_og_image_url }}{% endblock %}
+{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endblock %}
 
 {% block extra_head %}
 <!-- Project specific meta -->
@@ -31,7 +31,7 @@
   "@type": "CreativeWork",
   "name": "{{ project.title|escapejs }}",
   "description": "{{ project.description|striptags|escapejs|truncatechars:200 }}",
-  "image": "{{ request.build_absolute_uri:project.get_og_image_url }}",
+  "image": "{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}",
   "author": {
     "@type": "Organization",
     "name": "QuizHub"
