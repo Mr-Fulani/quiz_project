@@ -2260,3 +2260,10 @@ msgstr "Ваш новый пароль был успешно сохранен. �
 
 msgid "Log In Now"
 msgstr "Войти сейчас"
+
+# Admin type translations
+msgid "Super Admin"
+msgstr "Суперпользователь"
+
+msgid "Django Admin"
+msgstr "Django Администратор"

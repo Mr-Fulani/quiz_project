@@ -1961,3 +1961,10 @@ msgstr "Your new password has been saved successfully. You can now use it to log
 
 msgid "Log In Now"
 msgstr "Log In Now"
+
+# Admin type translations
+msgid "Super Admin"
+msgstr "Super Admin"
+
+msgid "Django Admin"
+msgstr "Django Admin"

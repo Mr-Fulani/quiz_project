@@ -105,15 +105,106 @@ class PostViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def increment_views(self, request, slug=None):
         """
-        Увеличивает счётчик просмотров поста.
+        Увеличивает счётчик просмотров поста (только уникальные).
 
         Метод доступен по POST-запросу на /posts/<slug>/increment_views/.
         Возвращает обновлённое количество просмотров в JSON.
         """
+        from .models import PostView
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        
         post = self.get_object()
-        post.views_count += 1
-        post.save()
+        
+        # Получаем IP адрес
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        user = request.user if request.user.is_authenticated else None
+        
+        # Проверяем, был ли просмотр в последние 24 часа
+        yesterday = timezone.now() - timedelta(hours=24)
+        
+        existing_view = None
+        if user:
+            existing_view = PostView.objects.filter(
+                post=post,
+                user=user,
+                created_at__gte=yesterday
+            ).first()
+        else:
+            existing_view = PostView.objects.filter(
+                post=post,
+                ip_address=ip,
+                created_at__gte=yesterday
+            ).first()
+        
+        if not existing_view:
+            # Создаем новый просмотр
+            PostView.objects.create(
+                post=post,
+                user=user,
+                ip_address=ip,
+                user_agent=user_agent
+            )
+            
+            # Увеличиваем счетчик
+            post.views_count += 1
+            post.save()
+        
         return Response({'views_count': post.views_count})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def toggle_like(self, request, slug=None):
+        """
+        Переключает лайк для поста.
+
+        Если пользователь уже лайкнул пост, убирает лайк.
+        Если не лайкнул, добавляет лайк.
+        """
+        from .models import PostLike
+        post = self.get_object()
+        like, created = PostLike.objects.get_or_create(
+            user=request.user,
+            post=post
+        )
+        
+        if not created:
+            like.delete()
+            liked = False
+        else:
+            liked = True
+            
+        return Response({
+            'liked': liked,
+            'likes_count': post.get_likes_count()
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def share(self, request, slug=None):
+        """
+        Создает репост поста.
+        """
+        from .models import PostShare
+        post = self.get_object()
+        platform = request.data.get('platform', 'other')
+        shared_url = request.data.get('shared_url', '')
+        
+        share, created = PostShare.objects.get_or_create(
+            user=request.user,
+            post=post,
+            platform=platform,
+            defaults={'shared_url': shared_url}
+        )
+        
+        return Response({
+            'shared': True,
+            'shares_count': post.get_shares_count()
+        })
 
     def perform_create(self, serializer):
         """
@@ -152,6 +243,110 @@ class ProjectViewSet(viewsets.ModelViewSet):
         featured_projects = Project.objects.filter(featured=True)
         serializer = self.get_serializer(featured_projects, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def increment_views(self, request, slug=None):
+        """
+        Увеличивает счётчик просмотров проекта (только уникальные).
+
+        Метод доступен по POST-запросу на /projects/<slug>/increment_views/.
+        Возвращает обновлённое количество просмотров в JSON.
+        """
+        from .models import ProjectView
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        
+        project = self.get_object()
+        
+        # Получаем IP адрес
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        user = request.user if request.user.is_authenticated else None
+        
+        # Проверяем, был ли просмотр в последние 24 часа
+        yesterday = timezone.now() - timedelta(hours=24)
+        
+        existing_view = None
+        if user:
+            existing_view = ProjectView.objects.filter(
+                project=project,
+                user=user,
+                created_at__gte=yesterday
+            ).first()
+        else:
+            existing_view = ProjectView.objects.filter(
+                project=project,
+                ip_address=ip,
+                created_at__gte=yesterday
+            ).first()
+        
+        if not existing_view:
+            # Создаем новый просмотр
+            ProjectView.objects.create(
+                project=project,
+                user=user,
+                ip_address=ip,
+                user_agent=user_agent
+            )
+            
+            # Увеличиваем счетчик
+            project.views_count += 1
+            project.save()
+        
+        return Response({'views_count': project.views_count})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def toggle_like(self, request, slug=None):
+        """
+        Переключает лайк для проекта.
+
+        Если пользователь уже лайкнул проект, убирает лайк.
+        Если не лайкнул, добавляет лайк.
+        """
+        from .models import ProjectLike
+        project = self.get_object()
+        like, created = ProjectLike.objects.get_or_create(
+            user=request.user,
+            project=project
+        )
+        
+        if not created:
+            like.delete()
+            liked = False
+        else:
+            liked = True
+            
+        return Response({
+            'liked': liked,
+            'likes_count': project.get_likes_count()
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def share(self, request, slug=None):
+        """
+        Создает репост проекта.
+        """
+        from .models import ProjectShare
+        project = self.get_object()
+        platform = request.data.get('platform', 'other')
+        shared_url = request.data.get('shared_url', '')
+        
+        share, created = ProjectShare.objects.get_or_create(
+            user=request.user,
+            project=project,
+            platform=platform,
+            defaults={'shared_url': shared_url}
+        )
+        
+        return Response({
+            'shared': True,
+            'shares_count': project.get_shares_count()
+        })
 
 
 class HomePageView(BreadcrumbsMixin, TemplateView):

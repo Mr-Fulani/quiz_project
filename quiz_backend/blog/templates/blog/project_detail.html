@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static youtube_tags blog_tags i18n %}
+{% load static youtube_tags blog_tags interaction_tags i18n %}
 
 {% block extra_head %}
 {% comment %}
@@ -7,6 +7,10 @@ Meta tags for SEO, using project's meta description and keywords.
 {% endcomment %}
 <meta name="description" content="{{ project.meta_description }}">
 <meta name="keywords" content="{{ project.meta_keywords }}">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/interactions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -118,6 +122,36 @@ All static text is localized using {% trans %} for English msgid and translation
         </div>
     </section>
 
+    <!-- Панель взаимодействий -->
+    <div class="interactions-bar" data-slug="{{ project.slug }}">
+        <button class="interaction-btn like-btn" 
+                data-content-type="project" 
+                data-slug="{{ project.slug }}"
+                {% if user.is_authenticated and project|is_liked_by_user:user %}
+                data-liked="true"
+                {% endif %}>
+            <i class="{% if user.is_authenticated and project|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
+            <span class="like-count">{{ project|get_likes_count }}</span>
+            <span class="sr-only">{% trans "Лайкнуть" %}</span>
+        </button>
+
+        <button class="interaction-btn share-btn" 
+                data-content-type="project" 
+                data-slug="{{ project.slug }}"
+                data-title="{{ project.title }}"
+                data-url="{{ request.build_absolute_uri }}">
+            <i class="fas fa-share share-icon"></i>
+            <span class="share-count">{{ project|get_shares_count }}</span>
+            <span class="sr-only">{% trans "Поделиться" %}</span>
+        </button>
+
+        <div class="views-count">
+            <i class="fas fa-eye"></i>
+            <span>{{ project.views_count }}</span>
+            <span class="sr-only">{% trans "просмотров" %}</span>
+        </div>
+    </div>
+
     <!-- Swiper JS -->
     <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
@@ -166,5 +200,8 @@ All static text is localized using {% trans %} for English msgid and translation
             console.log('Swiper инициализирован (project)');
         });
     </script>
+
+    <!-- JavaScript для взаимодействий -->
+    <script src="{% static 'js/interactions.js' %}"></script>
 </article>
 {% endblock %}
