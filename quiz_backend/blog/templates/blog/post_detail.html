@@ -16,6 +16,16 @@
 {% block twitter_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
 {% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_og_image_url }}{% endblock %}
 
+<!-- VK specific meta tags -->
+<meta property="vk:title" content="{{ post.title }}">
+<meta property="vk:description" content="{{ post.excerpt|striptags|truncatechars:160 }}">
+<meta property="vk:image" content="{{ request.scheme }}://{{ request.get_host }}{{ post.get_og_image_url }}">
+
+<!-- Additional meta for better social sharing -->
+<meta name="description" content="{{ post.excerpt|striptags|truncatechars:160 }}">
+<meta property="og:site_name" content="QuizHub">
+<meta name="twitter:card" content="summary_large_image">
+
 {% block extra_head %}
 <!-- Article specific meta -->
 <meta property="article:author" content="QuizHub">
