@@ -8,7 +8,7 @@
 
 {% block og_title %}{{ project.title }} - Portfolio{% endblock %}
 {% block og_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
-{% block og_image %}{{ request.build_absolute_uri }}{{ project.get_og_image_url }}{% endblock %}
+{% block og_image %}{% if project.get_og_image_url %}{{ request.build_absolute_uri:project.get_og_image_url }}{% endif %}{% endblock %}
 {% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
 {% block og_type %}article{% endblock %}
 

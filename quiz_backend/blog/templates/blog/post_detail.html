@@ -8,7 +8,7 @@
 
 {% block og_title %}{{ post.title }}{% endblock %}
 {% block og_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
-{% block og_image %}{{ request.build_absolute_uri }}{{ post.get_og_image_url }}{% endblock %}
+{% block og_image %}{% if post.get_og_image_url %}{{ request.build_absolute_uri:post.get_og_image_url }}{% endif %}{% endblock %}
 {% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
 {% block og_type %}article{% endblock %}
 
