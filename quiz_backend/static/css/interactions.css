@@ -467,6 +467,10 @@
     .users-tooltip.below::before {
         border-bottom-color: #1e1e1e;
     }
+    
+    .user-avatar-item:hover {
+        box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+    }
 }
 
 
@@ -543,6 +547,13 @@
 .user-avatar-item {
     position: relative;
     cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 50%;
+}
+
+.user-avatar-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar {

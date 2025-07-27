@@ -10,7 +10,30 @@ class ContentInteractions {
         this.currentTooltip = null;
         this.tooltipTimeout = null;
         this.isMouseOverTooltip = false;
+        this.translations = this.initTranslations();
         this.init();
+    }
+
+    initTranslations() {
+        // Получаем язык из HTML lang атрибута или используем русский по умолчанию
+        const lang = document.documentElement.lang || 'ru';
+        
+        const translations = {
+            'ru': {
+                'liked_by': 'Лайкнули',
+                'shared_by': 'Поделились',
+                'and_more': 'и еще',
+                'view_profile': 'Перейти к профилю'
+            },
+            'en': {
+                'liked_by': 'Liked by',
+                'shared_by': 'Shared by', 
+                'and_more': 'and',
+                'view_profile': 'View profile'
+            }
+        };
+        
+        return translations[lang] || translations['ru'];
     }
 
     init() {
@@ -67,6 +90,31 @@ class ContentInteractions {
             const btn = e.target.closest('.like-btn, .share-btn');
             if (btn) {
                 this.scheduleTooltipHide(500); // Задержка 500ms перед скрытием
+            }
+        }, true);
+
+        // Поддержка мобильных устройств (touch события)
+        document.addEventListener('touchstart', (e) => {
+            const likeBtn = e.target.closest('.like-btn');
+            const shareBtn = e.target.closest('.share-btn');
+            
+            if (likeBtn) {
+                const count = likeBtn.querySelector('.like-count');
+                if (count && parseInt(count.textContent) > 0) {
+                    this.scheduleTooltipShow(likeBtn, 'likes', 100); // Быстрее на мобильных
+                }
+            } else if (shareBtn) {
+                const count = shareBtn.querySelector('.share-count');
+                if (count && parseInt(count.textContent) > 0) {
+                    this.scheduleTooltipShow(shareBtn, 'shares', 100); // Быстрее на мобильных
+                }
+            }
+        }, true);
+
+        // Скрытие тултипа при touch вне его области
+        document.addEventListener('touchstart', (e) => {
+            if (this.currentTooltip && !e.target.closest('.users-tooltip') && !e.target.closest('.like-btn, .share-btn')) {
+                this.hideUsersTooltip();
             }
         }, true);
     }
@@ -432,15 +480,16 @@ class ContentInteractions {
         tooltip.className = 'users-tooltip';
         tooltip.id = 'users-tooltip';
 
-        const title = type === 'likes' ? 'Лайкнули' : 'Поделились';
+        const title = type === 'likes' ? this.translations.liked_by : this.translations.shared_by;
         
         let content = `<div class="tooltip-header">${title}</div>`;
         content += '<div class="users-grid">';
 
         data.users.forEach(user => {
+            const profileUrl = this.getUserProfileUrl(user.username);
             content += `
-                <div class="user-avatar-item" title="${user.full_name}">
-                    <img src="${user.avatar}" alt="${user.full_name}" class="user-avatar">
+                <div class="user-avatar-item" data-username="${user.username}" title="${user.full_name} - ${this.translations.view_profile}">
+                    <img src="${user.avatar}" alt="${user.full_name}" class="user-avatar" data-profile-url="${profileUrl}">
                     ${type === 'shares' ? `<span class="platform-badge">${this.getPlatformIcon(user.platform)}</span>` : ''}
                 </div>
             `;
@@ -449,7 +498,8 @@ class ContentInteractions {
         content += '</div>';
 
         if (data.total_count > data.users.length) {
-            content += `<div class="tooltip-footer">и еще ${data.total_count - data.users.length}</div>`;
+            const moreCount = data.total_count - data.users.length;
+            content += `<div class="tooltip-footer">${this.translations.and_more} ${moreCount}</div>`;
         }
 
         tooltip.innerHTML = content;
@@ -463,6 +513,16 @@ class ContentInteractions {
         tooltip.addEventListener('mouseleave', () => {
             this.isMouseOverTooltip = false;
             this.scheduleTooltipHide(200); // Быстро скрываем после ухода с тултипа
+        });
+
+        // Добавляем обработчики кликов по аватаркам
+        tooltip.addEventListener('click', (e) => {
+            const avatarItem = e.target.closest('.user-avatar-item');
+            if (avatarItem) {
+                const username = avatarItem.dataset.username;
+                const profileUrl = this.getUserProfileUrl(username);
+                window.location.href = profileUrl; // Переходим в той же вкладке
+            }
         });
 
         // Позиционирование
@@ -577,6 +637,11 @@ class ContentInteractions {
             clearTimeout(this.tooltipTimeout);
             this.tooltipTimeout = null;
         }
+    }
+
+    getUserProfileUrl(username) {
+        // Генерируем URL профиля пользователя
+        return `/accounts/user/${username}/`;
     }
 
 }
