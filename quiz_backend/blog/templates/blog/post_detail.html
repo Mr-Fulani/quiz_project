@@ -1,12 +1,59 @@
 {% extends "blog/base.html" %}
 {% load static youtube_tags blog_tags interaction_tags i18n %}
 
+{% block title %}{{ post.title }} - QuizHub{% endblock %}
+
+{% block meta_description %}{{ post.meta_description|default:post.excerpt|striptags|truncatechars:160 }}{% endblock %}
+{% block meta_keywords %}{{ post.meta_keywords|default:post.category.name }}{% endblock %}
+
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block og_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
+{% block og_image %}{{ request.build_absolute_uri }}{{ post.get_og_image_url }}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block twitter_title %}{{ post.title }}{% endblock %}
+{% block twitter_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
+{% block twitter_image %}{{ request.build_absolute_uri }}{{ post.get_og_image_url }}{% endblock %}
+
 {% block extra_head %}
-{% comment %}
-Meta tags for SEO, using post's meta description and keywords.
-{% endcomment %}
-<meta name="description" content="{{ post.meta_description }}">
-<meta name="keywords" content="{{ post.meta_keywords }}">
+<!-- Article specific meta -->
+<meta property="article:author" content="QuizHub">
+<meta property="article:published_time" content="{{ post.published_at|date:'c' }}">
+<meta property="article:modified_time" content="{{ post.updated_at|date:'c' }}">
+<meta property="article:section" content="{{ post.category.name }}">
+<meta property="article:tag" content="{{ post.category.name }}">
+
+<!-- Structured Data for Posts -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ post.title|escapejs }}",
+  "description": "{{ post.excerpt|striptags|escapejs|truncatechars:200 }}",
+  "image": "{{ request.build_absolute_uri }}{{ post.get_og_image_url }}",
+  "author": {
+    "@type": "Organization",
+    "name": "QuizHub"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "QuizHub",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ request.build_absolute_uri }}{% load static %}{% static 'blog/images/logo.png' %}"
+    }
+  },
+  "datePublished": "{{ post.published_at|date:'c' }}",
+  "dateModified": "{{ post.updated_at|date:'c' }}",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ request.build_absolute_uri }}"
+  },
+  "articleSection": "{{ post.category.name }}",
+  "keywords": "{{ post.meta_keywords|default:post.category.name }}"
+}
+</script>
 {% endblock %}
 
 {% block extra_css %}

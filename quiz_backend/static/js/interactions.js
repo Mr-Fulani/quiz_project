@@ -314,8 +314,11 @@ class ContentInteractions {
     }
 
     generateShareUrl(platform, title, url) {
+        // Генерируем специальный share URL для лучших превью
+        const shareUrl = this.getShareUrl(url);
+        
         const text = encodeURIComponent(title);
-        const encodedUrl = encodeURIComponent(url);
+        const encodedUrl = encodeURIComponent(shareUrl);
         
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
@@ -328,7 +331,17 @@ class ContentInteractions {
             whatsapp: `https://wa.me/?text=${text}%20${encodedUrl}`
         };
         
-        return shareUrls[platform] || url;
+        return shareUrls[platform] || shareUrl;
+    }
+
+    getShareUrl(originalUrl) {
+        // Преобразуем обычный URL в share URL для лучших превью
+        if (originalUrl.includes('/post/')) {
+            return originalUrl.replace('/post/', '/share/post/');
+        } else if (originalUrl.includes('/project/')) {
+            return originalUrl.replace('/project/', '/share/project/');
+        }
+        return originalUrl;
     }
 
     openShareWindow(platform, title, url) {

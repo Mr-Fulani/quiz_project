@@ -126,6 +126,37 @@ class Post(models.Model):
             return self.shares.filter(user=user).exists()
         return False
 
+    def get_og_image_url(self):
+        """Возвращает URL для Open Graph изображения (генерирует если нужно)."""
+        from .utils import save_og_image
+        import os
+        from django.conf import settings
+        
+        # Проверяем есть ли у поста своя картинка
+        main_image = self.get_main_image()
+        if main_image and main_image.photo:
+            return main_image.photo.url
+            
+        # Проверяем есть ли уже сгенерированная OG картинка
+        og_filename = f'og_post_{self.slug}.jpg'
+        og_path = os.path.join(settings.MEDIA_ROOT, 'og_images', og_filename)
+        
+        if os.path.exists(og_path):
+            return f'{settings.MEDIA_URL}og_images/{og_filename}'
+        
+        # Генерируем новую OG картинку
+        try:
+            og_url = save_og_image(
+                title=self.title,
+                category=self.category.name if self.category else 'Blog',
+                slug=self.slug,
+                content_type='post'
+            )
+            return og_url
+        except Exception as e:
+            print(f"Ошибка генерации OG изображения для поста {self.slug}: {e}")
+            return f'{settings.STATIC_URL}blog/images/default-og-image.jpeg'
+
 
 class PostImage(models.Model):
     """Модель медиафайлов для постов блога."""
@@ -292,6 +323,37 @@ class Project(models.Model):
         if user.is_authenticated:
             return self.shares.filter(user=user).exists()
         return False
+
+    def get_og_image_url(self):
+        """Возвращает URL для Open Graph изображения (генерирует если нужно)."""
+        from .utils import save_og_image
+        import os
+        from django.conf import settings
+        
+        # Проверяем есть ли у проекта своя картинка
+        main_image = self.get_main_image()
+        if main_image and main_image.photo:
+            return main_image.photo.url
+            
+        # Проверяем есть ли уже сгенерированная OG картинка
+        og_filename = f'og_project_{self.slug}.jpg'
+        og_path = os.path.join(settings.MEDIA_ROOT, 'og_images', og_filename)
+        
+        if os.path.exists(og_path):
+            return f'{settings.MEDIA_URL}og_images/{og_filename}'
+        
+        # Генерируем новую OG картинку
+        try:
+            og_url = save_og_image(
+                title=self.title,
+                category='Portfolio',
+                slug=self.slug,
+                content_type='project'
+            )
+            return og_url
+        except Exception as e:
+            print(f"Ошибка генерации OG изображения для проекта {self.slug}: {e}")
+            return f'{settings.STATIC_URL}blog/images/default-og-image.jpeg'
 
 
 class ProjectImage(models.Model):

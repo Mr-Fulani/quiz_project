@@ -1,12 +1,54 @@
 {% extends "blog/base.html" %}
 {% load static youtube_tags blog_tags interaction_tags i18n %}
 
+{% block title %}{{ project.title }} - QuizHub Portfolio{% endblock %}
+
+{% block meta_description %}{{ project.meta_description|default:project.description|striptags|truncatechars:160 }}{% endblock %}
+{% block meta_keywords %}{{ project.meta_keywords|default:project.technologies }}{% endblock %}
+
+{% block og_title %}{{ project.title }} - Portfolio{% endblock %}
+{% block og_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
+{% block og_image %}{{ request.build_absolute_uri }}{{ project.get_og_image_url }}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block twitter_title %}{{ project.title }} - Portfolio{% endblock %}
+{% block twitter_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
+{% block twitter_image %}{{ request.build_absolute_uri }}{{ project.get_og_image_url }}{% endblock %}
+
 {% block extra_head %}
-{% comment %}
-Meta tags for SEO, using project's meta description and keywords.
-{% endcomment %}
-<meta name="description" content="{{ project.meta_description }}">
-<meta name="keywords" content="{{ project.meta_keywords }}">
+<!-- Project specific meta -->
+<meta property="article:author" content="QuizHub">
+<meta property="article:published_time" content="{{ project.created_at|date:'c' }}">
+<meta property="article:modified_time" content="{{ project.updated_at|date:'c' }}">
+<meta property="article:section" content="Portfolio">
+<meta property="article:tag" content="{{ project.technologies }}">
+
+<!-- Structured Data for Projects -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CreativeWork",
+  "name": "{{ project.title|escapejs }}",
+  "description": "{{ project.description|striptags|escapejs|truncatechars:200 }}",
+  "image": "{{ request.build_absolute_uri }}{{ project.get_og_image_url }}",
+  "author": {
+    "@type": "Organization",
+    "name": "QuizHub"
+  },
+  "creator": {
+    "@type": "Organization",
+    "name": "QuizHub"
+  },
+  "dateCreated": "{{ project.created_at|date:'c' }}",
+  "dateModified": "{{ project.updated_at|date:'c' }}",
+  "url": "{{ request.build_absolute_uri }}",
+  "keywords": "{{ project.technologies }}",
+  {% if project.github_link %}"codeRepository": "{{ project.github_link }}",{% endif %}
+  {% if project.demo_link %}"workExample": "{{ project.demo_link }}",{% endif %}
+  "genre": "Portfolio Project"
+}
+</script>
 {% endblock %}
 
 {% block extra_css %}

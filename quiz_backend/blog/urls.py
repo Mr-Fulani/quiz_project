@@ -30,6 +30,10 @@ urlpatterns = [
     path('project/<slug:slug>/', ProjectDetailView.as_view(), name='project_detail'),
     #   -> Отображение одного проекта (DetailView)
 
+    # Share URLs для красивых превью
+    path('share/post/<slug:slug>/', PostDetailView.as_view(), {'is_share': True}, name='share_post'),
+    path('share/project/<slug:slug>/', ProjectDetailView.as_view(), {'is_share': True}, name='share_project'),
+
     path('resume/', ResumeView.as_view(), name='resume'),
     #   -> Страница резюме
 
