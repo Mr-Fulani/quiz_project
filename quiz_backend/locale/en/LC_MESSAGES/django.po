@@ -49,6 +49,33 @@ msgstr "Security"
 msgid "Username"
 msgstr "Username"
 
+#: blog/templates/blog/post_detail.html:120
+#: blog/templates/blog/project_detail.html:120
+msgid "Лайкнуть"
+msgstr "Like"
+
+#: blog/templates/blog/post_detail.html:132
+#: blog/templates/blog/project_detail.html:132
+msgid "Поделиться"
+msgstr "Share"
+
+#: blog/templates/blog/post_detail.html:141
+#: blog/templates/blog/project_detail.html:141  
+msgid "просмотров"
+msgstr "views"
+
+#: static/js/interactions.js:tooltip_likes
+msgid "Liked by"
+msgstr "Liked by"
+
+#: static/js/interactions.js:tooltip_shares
+msgid "Shared by"
+msgstr "Shared by"
+
+#: static/js/interactions.js:tooltip_more
+msgid "and %d more"
+msgstr "and %d more"
+
 #: accounts/templates/accounts/dashboard.html:73
 #: templates/admin/blog/message/change_form.html:47
 msgid "Email"

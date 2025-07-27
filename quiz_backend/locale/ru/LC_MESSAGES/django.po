@@ -48,6 +48,33 @@ msgstr "Безопасность"
 #: accounts/templates/accounts/dashboard.html:70
 #: accounts/templates/accounts/login.html:14
 #, fuzzy
+
+#: blog/templates/blog/post_detail.html:120
+#: blog/templates/blog/project_detail.html:120
+msgid "Лайкнуть"
+msgstr "Лайкнуть"
+
+#: blog/templates/blog/post_detail.html:132
+#: blog/templates/blog/project_detail.html:132
+msgid "Поделиться"
+msgstr "Поделиться"
+
+#: blog/templates/blog/post_detail.html:141
+#: blog/templates/blog/project_detail.html:141  
+msgid "просмотров"
+msgstr "просмотров"
+
+#: static/js/interactions.js:tooltip_likes
+msgid "Liked by"
+msgstr "Лайкнули"
+
+#: static/js/interactions.js:tooltip_shares
+msgid "Shared by"
+msgstr "Поделились"
+
+#: static/js/interactions.js:tooltip_more
+msgid "and %d more"
+msgstr "и еще %d"
 #| msgid "Users"
 msgid "Username"
 msgstr "Имя пользователя"
