@@ -322,11 +322,11 @@ class ContentInteractions {
         
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodedUrl}&title=${text}&description=${text}&noparse=1`,
+            vk: `https://vk.com/share.php?url=${encodedUrl}&title=${text}`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
-            instagram: shareUrl, // Copy URL для Instagram
-            tiktok: shareUrl, // Copy URL для TikTok  
+            instagram: `https://www.instagram.com/`,
+            tiktok: `https://www.tiktok.com/`,  
             pinterest: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${text}`,
             whatsapp: `https://wa.me/?text=${text}%0A${encodedUrl}`
         };
@@ -336,6 +336,10 @@ class ContentInteractions {
 
     getShareUrl(originalUrl) {
         // Преобразуем обычный URL в share URL для лучших превью
+        // Избегаем двойного преобразования
+        if (originalUrl.includes('/share/')) {
+            return originalUrl; // Уже share URL
+        }
         if (originalUrl.includes('/post/')) {
             return originalUrl.replace('/post/', '/share/post/');
         } else if (originalUrl.includes('/project/')) {
@@ -346,15 +350,6 @@ class ContentInteractions {
 
     openShareWindow(platform, title, url) {
         const shareUrl = this.generateShareUrl(platform, title, url);
-        
-        // Для Instagram и TikTok копируем URL вместо открытия окна
-        if (platform === 'instagram' || platform === 'tiktok') {
-            this.copyToClipboard(shareUrl);
-            const platformName = platform === 'instagram' ? 'Instagram' : 'TikTok';
-            this.showSuccess(`Ссылка скопирована! Вставьте её в ${platformName}`);
-            return;
-        }
-        
         window.open(shareUrl, '_blank', 'width=600,height=400');
     }
 
