@@ -106,6 +106,26 @@ class Post(models.Model):
         """Возвращает абсолютный URL поста."""
         return reverse('blog:post_detail', kwargs={'slug': self.slug})
 
+    def get_likes_count(self):
+        """Возвращает количество лайков поста."""
+        return self.likes.count()
+
+    def get_shares_count(self):
+        """Возвращает количество репостов поста."""
+        return self.shares.count()
+
+    def is_liked_by_user(self, user):
+        """Проверяет, лайкнул ли пользователь этот пост."""
+        if user.is_authenticated:
+            return self.likes.filter(user=user).exists()
+        return False
+
+    def is_shared_by_user(self, user):
+        """Проверяет, поделился ли пользователь этим постом."""
+        if user.is_authenticated:
+            return self.shares.filter(user=user).exists()
+        return False
+
 
 class PostImage(models.Model):
     """Модель медиафайлов для постов блога."""
@@ -225,6 +245,10 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
     meta_description = models.CharField(max_length=160, blank=True, verbose_name="Мета-описание")
     meta_keywords = models.CharField(max_length=255, blank=True, verbose_name="Мета-ключевые слова")
+    views_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Количество просмотров"
+    )
 
     class Meta:
         verbose_name = "Проект"
@@ -248,6 +272,26 @@ class Project(models.Model):
     def get_absolute_url(self):
         """Возвращает абсолютный URL проекта."""
         return reverse('blog:project_detail', kwargs={'slug': self.slug})
+
+    def get_likes_count(self):
+        """Возвращает количество лайков проекта."""
+        return self.likes.count()
+
+    def get_shares_count(self):
+        """Возвращает количество репостов проекта."""
+        return self.shares.count()
+
+    def is_liked_by_user(self, user):
+        """Проверяет, лайкнул ли пользователь этот проект."""
+        if user.is_authenticated:
+            return self.likes.filter(user=user).exists()
+        return False
+
+    def is_shared_by_user(self, user):
+        """Проверяет, поделился ли пользователь этим проектом."""
+        if user.is_authenticated:
+            return self.shares.filter(user=user).exists()
+        return False
 
 
 class ProjectImage(models.Model):
@@ -675,3 +719,202 @@ class MarqueeText(models.Model):
             self.text = self.text_en
 
         super().save(*args, **kwargs)
+
+
+class PostLike(models.Model):
+    """Модель лайков для постов."""
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь"
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="likes",
+        verbose_name="Пост"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        unique_together = ('user', 'post')
+        verbose_name = "Лайк поста"
+        verbose_name_plural = "Лайки постов"
+
+    def __str__(self):
+        return f"{self.user.username} лайкнул {self.post.title}"
+
+
+class ProjectLike(models.Model):
+    """Модель лайков для проектов."""
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь"
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="likes",
+        verbose_name="Проект"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        unique_together = ('user', 'project')
+        verbose_name = "Лайк проекта"
+        verbose_name_plural = "Лайки проектов"
+
+    def __str__(self):
+        return f"{self.user.username} лайкнул {self.project.title}"
+
+
+class PostShare(models.Model):
+    """Модель репостов для постов."""
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь"
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="shares",
+        verbose_name="Пост"
+    )
+    shared_url = models.URLField(
+        blank=True,
+        verbose_name="URL репоста",
+        help_text="Ссылка на репост в социальной сети"
+    )
+    platform = models.CharField(
+        max_length=50,
+        choices=[
+            ('telegram', 'Telegram'),
+            ('vk', 'VKontakte'),
+            ('facebook', 'Facebook'),
+            ('twitter', 'Twitter'),
+            ('whatsapp', 'WhatsApp'),
+            ('instagram', 'Instagram'),
+            ('tiktok', 'TikTok'),
+            ('pinterest', 'Pinterest'),
+            ('other', 'Другое'),
+        ],
+        default='other',
+        verbose_name="Платформа"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        verbose_name = "Репост поста"
+        verbose_name_plural = "Репосты постов"
+
+    def __str__(self):
+        return f"{self.user.username} поделился {self.post.title} в {self.platform}"
+
+
+class ProjectShare(models.Model):
+    """Модель репостов для проектов."""
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь"
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="shares",
+        verbose_name="Проект"
+    )
+    shared_url = models.URLField(
+        blank=True,
+        verbose_name="URL репоста",
+        help_text="Ссылка на репост в социальной сети"
+    )
+    platform = models.CharField(
+        max_length=50,
+        choices=[
+            ('telegram', 'Telegram'),
+            ('vk', 'VKontakte'),
+            ('facebook', 'Facebook'),
+            ('twitter', 'Twitter'),
+            ('whatsapp', 'WhatsApp'),
+            ('instagram', 'Instagram'),
+            ('tiktok', 'TikTok'),
+            ('pinterest', 'Pinterest'),
+            ('other', 'Другое'),
+        ],
+        default='other',
+        verbose_name="Платформа"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        verbose_name = "Репост проекта"
+        verbose_name_plural = "Репосты проектов"
+
+    def __str__(self):
+        return f"{self.user.username} поделился {self.project.title} в {self.platform}"
+
+
+class PostView(models.Model):
+    """Модель для отслеживания уникальных просмотров постов."""
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="unique_views",
+        verbose_name="Пост"
+    )
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Пользователь"
+    )
+    ip_address = models.GenericIPAddressField(verbose_name="IP адрес")
+    user_agent = models.TextField(blank=True, verbose_name="User Agent")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата просмотра")
+
+    class Meta:
+        verbose_name = "Просмотр поста"
+        verbose_name_plural = "Просмотры постов"
+        # Уникальность: один просмотр в день для пользователя или IP
+        indexes = [
+            models.Index(fields=['post', 'user', 'created_at']),
+            models.Index(fields=['post', 'ip_address', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"Просмотр {self.post.title} от {self.user or self.ip_address}"
+
+
+class ProjectView(models.Model):
+    """Модель для отслеживания уникальных просмотров проектов."""
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="unique_views",
+        verbose_name="Проект"
+    )
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Пользователь"
+    )
+    ip_address = models.GenericIPAddressField(verbose_name="IP адрес")
+    user_agent = models.TextField(blank=True, verbose_name="User Agent")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата просмотра")
+
+    class Meta:
+        verbose_name = "Просмотр проекта"
+        verbose_name_plural = "Просмотры проектов"
+        indexes = [
+            models.Index(fields=['project', 'user', 'created_at']),
+            models.Index(fields=['project', 'ip_address', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"Просмотр {self.project.title} от {self.user or self.ip_address}"

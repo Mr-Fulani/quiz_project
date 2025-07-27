@@ -14,7 +14,8 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
-    MessageAttachment, MarqueeText, CustomURLValidator
+    MessageAttachment, MarqueeText, CustomURLValidator, PostLike, ProjectLike, PostShare, ProjectShare, \
+    PostView, ProjectView
 import logging
 
 logger = logging.getLogger(__name__)
@@ -971,6 +972,78 @@ class MarqueeTextAdmin(admin.ModelAdmin):
         """
         logger.info(f"Admin save_model called for: {obj}")
         super().save_model(request, obj, form, change)
+
+
+@admin.register(PostLike)
+class PostLikeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'post', 'created_at')
+    list_filter = ('created_at', 'post__category')
+    search_fields = ('user__username', 'post__title')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'post')
+
+
+@admin.register(ProjectLike)
+class ProjectLikeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'project', 'created_at')
+    list_filter = ('created_at', 'project__category')
+    search_fields = ('user__username', 'project__title')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'project')
+
+
+@admin.register(PostShare)
+class PostShareAdmin(admin.ModelAdmin):
+    list_display = ('user', 'post', 'platform', 'created_at')
+    list_filter = ('platform', 'created_at', 'post__category')
+    search_fields = ('user__username', 'post__title', 'shared_url')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'post')
+
+
+@admin.register(ProjectShare)
+class ProjectShareAdmin(admin.ModelAdmin):
+    list_display = ('user', 'project', 'platform', 'created_at')
+    list_filter = ('platform', 'created_at', 'project__category')
+    search_fields = ('user__username', 'project__title', 'shared_url')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'project')
+
+
+@admin.register(PostView)
+class PostViewAdmin(admin.ModelAdmin):
+    list_display = ('post', 'user', 'ip_address', 'created_at')
+    list_filter = ('created_at', 'post__category')
+    search_fields = ('post__title', 'user__username', 'ip_address')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'post')
+
+
+@admin.register(ProjectView)
+class ProjectViewAdmin(admin.ModelAdmin):
+    list_display = ('project', 'user', 'ip_address', 'created_at')
+    list_filter = ('created_at', 'project__category')
+    search_fields = ('project__title', 'user__username', 'ip_address')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'project')
 
 
 
