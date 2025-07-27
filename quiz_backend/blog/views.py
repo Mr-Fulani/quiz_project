@@ -534,12 +534,7 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
         context['meta_keywords'] = post.meta_keywords or (post.category.name if post.category else post.title)
         context['og_title'] = post.title
         context['og_description'] = context['meta_description']
-        first_image = post.images.first()
-        context['og_image'] = (
-            first_image.photo.url
-            if first_image and first_image.photo
-            else '/static/blog/images/default-og-image.jpeg'
-        )
+        context['og_image'] = post.get_og_image_url()
         context['og_url'] = self.request.build_absolute_uri()
         context['canonical_url'] = context['og_url']
         context['hreflang_url'] = context['og_url']
@@ -586,11 +581,7 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
         context['meta_keywords'] = project.meta_keywords if project.meta_keywords else project.title
         context['og_title'] = project.title
         context['og_description'] = context['meta_description']
-        context['og_image'] = (
-            project.images.first().photo.url
-            if project.images.exists() and project.images.first().photo
-            else '/static/blog/images/default-og-image.jpeg'
-        )
+        context['og_image'] = project.get_og_image_url()
         context['og_url'] = self.request.build_absolute_uri()
         context['canonical_url'] = context['og_url']
         context['hreflang_url'] = context['og_url']
