@@ -239,7 +239,7 @@ def update_personal_info(request):
     })
 
 
-class UserProfileView(LoginRequiredMixin, DetailView):
+class UserProfileView(DetailView):
     """
     DetailView для профиля пользователя (CustomUser).
     """
@@ -262,7 +262,11 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         Определяем, является ли текущий user владельцем профиля (is_owner).
         """
         context = super().get_context_data(**kwargs)
-        context['is_owner'] = self.object == self.request.user
+        # Проверяем авторизован ли пользователь перед сравнением
+        context['is_owner'] = (
+            self.request.user.is_authenticated and 
+            self.object == self.request.user
+        )
         return context
 
 
