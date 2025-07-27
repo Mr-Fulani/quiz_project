@@ -14,7 +14,7 @@
 
 {% block twitter_title %}{{ post.title }}{% endblock %}
 {% block twitter_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
-{% block twitter_image %}{{ request.build_absolute_uri }}{{ post.get_og_image_url }}{% endblock %}
+{% block twitter_image %}{{ request.build_absolute_uri:post.get_og_image_url }}{% endblock %}
 
 {% block extra_head %}
 <!-- Article specific meta -->
@@ -31,7 +31,7 @@
   "@type": "BlogPosting",
   "headline": "{{ post.title|escapejs }}",
   "description": "{{ post.excerpt|striptags|escapejs|truncatechars:200 }}",
-  "image": "{{ request.build_absolute_uri }}{{ post.get_og_image_url }}",
+  "image": "{{ request.build_absolute_uri:post.get_og_image_url }}",
   "author": {
     "@type": "Organization",
     "name": "QuizHub"

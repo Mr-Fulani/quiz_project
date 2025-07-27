@@ -653,8 +653,17 @@ class ContentInteractions {
     }
 
     getUserProfileUrl(username) {
-        // Генерируем URL профиля пользователя
-        return `/accounts/user/${username}/`;
+        // Генерируем URL профиля пользователя с учетом языкового префикса
+        const currentPath = window.location.pathname;
+        let languagePrefix = '';
+        
+        // Проверяем, есть ли языковой префикс в текущем URL
+        const pathParts = currentPath.split('/').filter(part => part);
+        if (pathParts.length > 0 && (pathParts[0] === 'ru' || pathParts[0] === 'en')) {
+            languagePrefix = `/${pathParts[0]}`;
+        }
+        
+        return `${languagePrefix}/accounts/user/${username}/`;
     }
 
 }
