@@ -7,6 +7,9 @@ class ContentInteractions {
     constructor() {
         this.baseUrl = '/api';
         this.csrfToken = this.getCsrfToken();
+        this.currentTooltip = null;
+        this.tooltipTimeout = null;
+        this.isMouseOverTooltip = false;
         this.init();
     }
 
@@ -41,6 +44,31 @@ class ContentInteractions {
                 this.showShareModal(btn);
             }
         });
+
+        // Тултипы для лайков и репостов с улучшенной логикой
+        document.addEventListener('mouseenter', (e) => {
+            const likeBtn = e.target.closest('.like-btn');
+            const shareBtn = e.target.closest('.share-btn');
+            
+            if (likeBtn) {
+                const count = likeBtn.querySelector('.like-count');
+                if (count && parseInt(count.textContent) > 0) {
+                    this.scheduleTooltipShow(likeBtn, 'likes', 300); // Задержка 300ms
+                }
+            } else if (shareBtn) {
+                const count = shareBtn.querySelector('.share-count');
+                if (count && parseInt(count.textContent) > 0) {
+                    this.scheduleTooltipShow(shareBtn, 'shares', 300); // Задержка 300ms
+                }
+            }
+        }, true);
+
+        document.addEventListener('mouseleave', (e) => {
+            const btn = e.target.closest('.like-btn, .share-btn');
+            if (btn) {
+                this.scheduleTooltipHide(500); // Задержка 500ms перед скрытием
+            }
+        }, true);
     }
 
     async toggleLike(button) {
@@ -367,6 +395,190 @@ class ContentInteractions {
             }, 300);
         }, 3000);
     }
+
+    async showUsersTooltip(button, type) {
+        // Удаляем существующий тултип
+        this.hideUsersTooltip();
+
+        const contentType = button.dataset.contentType;
+        const slug = button.dataset.slug;
+        
+        const url = `${this.baseUrl}/${contentType}s/${slug}/${type}_users/`;
+
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            
+            if (data.users.length === 0) {
+                return;
+            }
+
+            this.createUsersTooltip(button, data, type);
+
+        } catch (error) {
+            console.error('Ошибка при загрузке пользователей:', error);
+        }
+    }
+
+    createUsersTooltip(button, data, type) {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'users-tooltip';
+        tooltip.id = 'users-tooltip';
+
+        const title = type === 'likes' ? 'Лайкнули' : 'Поделились';
+        
+        let content = `<div class="tooltip-header">${title}</div>`;
+        content += '<div class="users-grid">';
+
+        data.users.forEach(user => {
+            content += `
+                <div class="user-avatar-item" title="${user.full_name}">
+                    <img src="${user.avatar}" alt="${user.full_name}" class="user-avatar">
+                    ${type === 'shares' ? `<span class="platform-badge">${this.getPlatformIcon(user.platform)}</span>` : ''}
+                </div>
+            `;
+        });
+
+        content += '</div>';
+
+        if (data.total_count > data.users.length) {
+            content += `<div class="tooltip-footer">и еще ${data.total_count - data.users.length}</div>`;
+        }
+
+        tooltip.innerHTML = content;
+
+        // Добавляем обработчики событий мыши для тултипа
+        tooltip.addEventListener('mouseenter', () => {
+            this.isMouseOverTooltip = true;
+            this.clearTooltipTimeouts(); // Отменяем скрытие
+        });
+
+        tooltip.addEventListener('mouseleave', () => {
+            this.isMouseOverTooltip = false;
+            this.scheduleTooltipHide(200); // Быстро скрываем после ухода с тултипа
+        });
+
+        // Позиционирование
+        document.body.appendChild(tooltip);
+        this.currentTooltip = tooltip;
+        
+        this.positionTooltip(tooltip, button);
+
+        // Плавная анимация появления
+        requestAnimationFrame(() => {
+            tooltip.classList.add('show');
+        });
+    }
+
+    positionTooltip(tooltip, button) {
+        const buttonRect = button.getBoundingClientRect();
+        
+        // Сначала показываем тултип чтобы получить его размеры
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.opacity = '1';
+        
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let top = buttonRect.top - tooltipRect.height - 10;
+        let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+
+        // Проверяем, помещается ли тултип сверху
+        if (top < 10) {
+            top = buttonRect.bottom + 10;
+            tooltip.classList.add('below');
+        }
+
+        // Проверяем границы экрана
+        if (left < 10) {
+            left = 10;
+        } else if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
+        }
+
+        // Используем fixed позиционирование
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+        
+        // Возвращаем в исходное состояние для анимации
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'visible';
+    }
+
+    hideUsersTooltip() {
+        this.clearTooltipTimeouts();
+        
+        if (this.currentTooltip) {
+            this.currentTooltip.classList.remove('show');
+            
+            // Плавно удаляем тултип после анимации
+            setTimeout(() => {
+                if (this.currentTooltip && this.currentTooltip.parentNode) {
+                    this.currentTooltip.parentNode.removeChild(this.currentTooltip);
+                }
+                this.currentTooltip = null;
+                this.isMouseOverTooltip = false;
+            }, 300); // Совпадает с CSS transition
+        }
+    }
+
+    getPlatformIcon(platform) {
+        const icons = {
+            telegram: '📱',
+            vk: '🌐',
+            facebook: '📘',
+            twitter: '🐦',
+            instagram: '📷',
+            tiktok: '🎵',
+            pinterest: '📌',
+            whatsapp: '💬',
+            other: '🔗'
+        };
+        return icons[platform] || icons.other;
+    }
+
+    scheduleTooltipShow(button, type, delay = 300) {
+        // Отменяем любые существующие таймауты
+        this.clearTooltipTimeouts();
+        
+        // Если тултип уже показан, не показываем новый
+        if (this.currentTooltip) {
+            return;
+        }
+        
+        this.tooltipTimeout = setTimeout(() => {
+            this.showUsersTooltip(button, type);
+        }, delay);
+    }
+
+    scheduleTooltipHide(delay = 500) {
+        // Отменяем показ если он еще не произошел
+        if (this.tooltipTimeout) {
+            clearTimeout(this.tooltipTimeout);
+            this.tooltipTimeout = null;
+        }
+        
+        // Планируем скрытие с задержкой
+        this.tooltipTimeout = setTimeout(() => {
+            if (!this.isMouseOverTooltip) {
+                this.hideUsersTooltip();
+            }
+        }, delay);
+    }
+
+    clearTooltipTimeouts() {
+        if (this.tooltipTimeout) {
+            clearTimeout(this.tooltipTimeout);
+            this.tooltipTimeout = null;
+        }
+    }
+
 }
 
 // Инициализация при загрузке страницы

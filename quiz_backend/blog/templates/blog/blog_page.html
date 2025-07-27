@@ -1,10 +1,12 @@
 {% extends "blog/base.html" %}
 {% load static %}
 {% load blog_tags %}
+{% load interaction_tags %}
 {% load i18n %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'blog/css/resources.css' %}">
+<link rel="stylesheet" href="{% static 'css/interactions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -67,6 +69,36 @@
                         </p>
                     </div>
                 </a>
+                
+                <!-- Панель взаимодействий -->
+                <div class="interactions-bar compact" data-slug="{{ post.slug }}">
+                    <button class="interaction-btn like-btn" 
+                            data-content-type="post" 
+                            data-slug="{{ post.slug }}"
+                            {% if user.is_authenticated and post|is_liked_by_user:user %}
+                            data-liked="true"
+                            {% endif %}>
+                        <i class="{% if user.is_authenticated and post|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
+                        <span class="like-count">{{ post|get_likes_count }}</span>
+                        <span class="sr-only">{% trans "Лайкнуть" %}</span>
+                    </button>
+
+                    <button class="interaction-btn share-btn" 
+                            data-content-type="post" 
+                            data-slug="{{ post.slug }}"
+                            data-title="{{ post.title }}"
+                            data-url="{% url 'blog:post_detail' post.slug %}">
+                        <i class="fas fa-share share-icon"></i>
+                        <span class="share-count">{{ post|get_shares_count }}</span>
+                        <span class="sr-only">{% trans "Поделиться" %}</span>
+                    </button>
+
+                    <div class="views-count">
+                        <i class="fas fa-eye"></i>
+                        <span>{{ post.views_count }}</span>
+                        <span class="sr-only">{% trans "просмотров" %}</span>
+                    </div>
+                </div>
             </li>
             {% endfor %}
             <div class="no-content-message">
@@ -99,4 +131,5 @@
 
 {% block scripts %}
 <script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
+<script src="{% static 'js/interactions.js' %}"></script>
 {% endblock %}

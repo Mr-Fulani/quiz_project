@@ -206,6 +206,51 @@ class PostViewSet(viewsets.ModelViewSet):
             'shares_count': post.get_shares_count()
         })
 
+    @action(detail=True, methods=['get'])
+    def likes_users(self, request, slug=None):
+        """
+        Возвращает список пользователей, которые лайкнули пост.
+        """
+        post = self.get_object()
+        likes = post.likes.select_related('user').order_by('-created_at')[:10]  # Последние 10 лайков
+        
+        users_data = []
+        for like in likes:
+            users_data.append({
+                'username': like.user.username,
+                'full_name': f"{like.user.first_name} {like.user.last_name}".strip() or like.user.username,
+                'avatar': like.user.avatar.url if like.user.avatar else '/static/blog/images/avatar/default_avatar.png',
+                'created_at': like.created_at.isoformat()
+            })
+        
+        return Response({
+            'users': users_data,
+            'total_count': post.get_likes_count()
+        })
+
+    @action(detail=True, methods=['get'])
+    def shares_users(self, request, slug=None):
+        """
+        Возвращает список пользователей, которые поделились постом.
+        """
+        post = self.get_object()
+        shares = post.shares.select_related('user').order_by('-created_at')[:10]  # Последние 10 репостов
+        
+        users_data = []
+        for share in shares:
+            users_data.append({
+                'username': share.user.username,
+                'full_name': f"{share.user.first_name} {share.user.last_name}".strip() or share.user.username,
+                'avatar': share.user.avatar.url if share.user.avatar else '/static/blog/images/avatar/default_avatar.png',
+                'platform': share.platform,
+                'created_at': share.created_at.isoformat()
+            })
+        
+        return Response({
+            'users': users_data,
+            'total_count': post.get_shares_count()
+        })
+
     def perform_create(self, serializer):
         """
         Устанавливает дату публикации при создании поста.
@@ -346,6 +391,51 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response({
             'shared': True,
             'shares_count': project.get_shares_count()
+        })
+
+    @action(detail=True, methods=['get'])
+    def likes_users(self, request, slug=None):
+        """
+        Возвращает список пользователей, которые лайкнули проект.
+        """
+        project = self.get_object()
+        likes = project.likes.select_related('user').order_by('-created_at')[:10]  # Последние 10 лайков
+        
+        users_data = []
+        for like in likes:
+            users_data.append({
+                'username': like.user.username,
+                'full_name': f"{like.user.first_name} {like.user.last_name}".strip() or like.user.username,
+                'avatar': like.user.avatar.url if like.user.avatar else '/static/blog/images/avatar/default_avatar.png',
+                'created_at': like.created_at.isoformat()
+            })
+        
+        return Response({
+            'users': users_data,
+            'total_count': project.get_likes_count()
+        })
+
+    @action(detail=True, methods=['get'])
+    def shares_users(self, request, slug=None):
+        """
+        Возвращает список пользователей, которые поделились проектом.
+        """
+        project = self.get_object()
+        shares = project.shares.select_related('user').order_by('-created_at')[:10]  # Последние 10 репостов
+        
+        users_data = []
+        for share in shares:
+            users_data.append({
+                'username': share.user.username,
+                'full_name': f"{share.user.first_name} {share.user.last_name}".strip() or share.user.username,
+                'avatar': share.user.avatar.url if share.user.avatar else '/static/blog/images/avatar/default_avatar.png',
+                'platform': share.platform,
+                'created_at': share.created_at.isoformat()
+            })
+        
+        return Response({
+            'users': users_data,
+            'total_count': project.get_shares_count()
         })
 
 
