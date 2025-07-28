@@ -80,6 +80,9 @@ urlpatterns = [
     # Редирект с корневого URL на язык по умолчанию
     path('', RedirectView.as_view(pattern_name='blog:home', permanent=False), name='root-redirect'),
     
+    # Редирект для VK sharing - URL без языкового префикса
+    path('post/<slug:slug>/', RedirectView.as_view(url='/ru/post/%(slug)s/', permanent=False), name='post_no_lang'),
+    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=False), name='project_no_lang'),    
 
 
 ] + i18n_patterns(
