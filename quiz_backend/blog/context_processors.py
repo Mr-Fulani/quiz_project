@@ -505,7 +505,7 @@ def dynamic_seo_context(request):
                             # VK Meta Tags
                             'vk_title': post.title,
                             'vk_description': meta_description[:160],
-                            'vk_image': f"https://quiz-code.com{og_image}" if og_image.startswith('/') else og_image,
+                            'vk_image': f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image,
                         })
                         
                         # JSON-LD для статьи
@@ -576,7 +576,7 @@ def dynamic_seo_context(request):
                             # VK Meta Tags
                             'vk_title': project.title,
                             'vk_description': meta_description[:160],
-                            'vk_image': f"https://quiz-code.com{og_image}" if og_image.startswith('/') else og_image,
+                            'vk_image': f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image,
                         })
                         
                         # JSON-LD для проекта

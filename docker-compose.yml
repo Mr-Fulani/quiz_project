@@ -65,6 +65,7 @@ services:
       - DB_PORT=${DB_PORT}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - NGROK_HOST=${NGROK_HOST}
     # Команда теперь в entrypoint.sh
     volumes:
       - ./quiz_backend:/app

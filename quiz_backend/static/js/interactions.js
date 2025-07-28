@@ -369,12 +369,6 @@ class ContentInteractions {
             // Собираем новый URL с абсолютным путем
             urlObj.pathname = path;
             
-            // Для VK используем продакшен домен вместо локального
-            if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
-                urlObj.hostname = 'quiz-code.com';
-                urlObj.protocol = 'https:';
-            }
-            
             return urlObj.toString();
         } catch (error) {
             console.error('Ошибка при создании share URL:', error, 'originalUrl:', originalUrl);
