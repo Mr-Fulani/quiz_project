@@ -20,6 +20,14 @@ class DjangoAPIService:
         """Базовый метод для выполнения HTTP запросов"""
         url = f'{self.base_url}{endpoint}'
         
+        # Добавляем заголовок Host для внутренних запросов между контейнерами
+        if headers is None:
+            headers = {}
+        
+        # Если запрос идет к quiz_backend:8000, добавляем правильный Host заголовок
+        if 'quiz_backend:8000' in self.base_url:
+            headers['Host'] = 'quiz-code.com'
+        
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
                 response = await client.request(method, url, headers=headers, **kwargs)
