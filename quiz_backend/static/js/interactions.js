@@ -333,9 +333,11 @@ class ContentInteractions {
         const text = encodeURIComponent(title);
         const encodedUrl = encodeURIComponent(shareUrl);
         
+        console.log('Generating share URL:', { platform, title, url, shareUrl, text, encodedUrl });
+        
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodedUrl}&title=${text}`,
+            vk: `https://vk.com/share.php?url=${encodedUrl}`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
             instagram: `https://www.instagram.com/`,
@@ -344,7 +346,9 @@ class ContentInteractions {
             whatsapp: `https://wa.me/?text=${text}%0A${encodedUrl}`
         };
         
-        return shareUrls[platform] || shareUrl;
+        const result = shareUrls[platform] || shareUrl;
+        console.log('Generated share URL:', result);
+        return result;
     }
 
     getShareUrl(originalUrl) {
@@ -379,6 +383,7 @@ class ContentInteractions {
 
     openShareWindow(platform, title, url) {
         const shareUrl = this.generateShareUrl(platform, title, url);
+        console.log('Opening share window:', { platform, title, url, shareUrl });
         window.open(shareUrl, '_blank', 'width=600,height=400');
     }
 
