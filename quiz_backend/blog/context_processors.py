@@ -456,12 +456,12 @@ def dynamic_seo_context(request):
     seo_data = {}
     path = request.path
     host = request.get_host()
-    
+
     # ДОБАВЛЕНО: Отладочная информация
     logger.info(f"=== DEBUG: dynamic_seo_context called for path: {path}, host: {host}")
-    
+
     scheme = 'https' if request.is_secure() else 'http'
-    
+
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
     if host == 'mini.quiz-code.com':
         base_url = f"{scheme}://quiz-code.com"  # canonical на основной домен
@@ -469,14 +469,15 @@ def dynamic_seo_context(request):
     else:
         base_url = f"{scheme}://{host}"
         is_mini_app = False
-    
+
     # ДОБАВЛЕНО: Отладочная информация
     logger.info(f"=== DEBUG: base_url: {base_url}, is_mini_app: {is_mini_app}")
-    
+
     try:
         # SEO для постов блога
         if '/post/' in path or path.endswith('/post/'):
             from blog.models import Post
+            from django.db import connection, transaction
             slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
             
             # ДОБАВЛЕНО: Отладочная информация
@@ -484,27 +485,46 @@ def dynamic_seo_context(request):
             
             if slug:
                 try:
-                    post = Post.objects.filter(slug=slug, published=True).select_related('category').prefetch_related('images').first()
+                    # ДОБАВЛЕНО: Принудительно обновляем кеш базы данных и транзакцию
+                    connection.close()
+                    logger.info(f"=== DEBUG: Database connection closed and reopened")
                     
-                    # ДОБАВЛЕНО: Отладочная информация
-                    if post:
-                        logger.info(f"=== DEBUG: Found post: {post.title}")
-                    else:
-                        logger.warning(f"=== DEBUG: Post not found for slug: {slug}")
+                    # ДОБАВЛЕНО: Проверяем все посты с этим slug в новой транзакции
+                    with transaction.atomic():
+                        all_posts_with_slug = Post.objects.filter(slug=slug)
+                        logger.info(f"=== DEBUG: Found {all_posts_with_slug.count()} posts with slug '{slug}'")
+                        
+                        for post in all_posts_with_slug:
+                            logger.info(f"=== DEBUG: Post ID: {post.id}, Title: '{post.title}', Published: {post.published}")
+                        
+                        # Теперь ищем только опубликованные
+                        post = Post.objects.filter(slug=slug, published=True).select_related('category').prefetch_related('images').first()
+                        
+                        # ДОБАВЛЕНО: Отладочная информация
+                        if post:
+                            logger.info(f"=== DEBUG: Found published post: {post.title} (ID: {post.id})")
+                        else:
+                            logger.warning(f"=== DEBUG: No published post found for slug: {slug}")
+                            # ДОБАВЛЕНО: Проверяем, есть ли вообще посты с этим slug
+                            any_post = Post.objects.filter(slug=slug).first()
+                            if any_post:
+                                logger.warning(f"=== DEBUG: Post exists but not published: ID={any_post.id}, Title='{any_post.title}', Published={any_post.published}")
+                            else:
+                                logger.error(f"=== DEBUG: No post found at all for slug: {slug}")
                     
                     if post:
                         # Используем custom meta fields или генерируем автоматически
                         meta_description = post.meta_description or (post.excerpt[:160] if post.excerpt else f"Read {post.title} - {post.content[:100]}...")
                         meta_keywords = post.meta_keywords or f"{post.title}, {post.category.name}, blog, programming, quiz"
-                        
+
                         main_image = post.get_main_image()
                         og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
-                        
+
                         # ДОБАВЛЕНО: Отладочная информация для VK
                         vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
                         logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
                         logger.info(f"=== DEBUG: PUBLIC_URL setting: {getattr(settings, 'PUBLIC_URL', 'NOT_SET')}")
-                        
+
                         seo_data.update({
                             'meta_title': f"{post.title} | Quiz Project Blog",
                             'meta_description': meta_description[:160],
@@ -527,33 +547,28 @@ def dynamic_seo_context(request):
                             'vk_description': meta_description[:160],
                             'vk_image': vk_image_url,
                         })
-                        
+
                         # ДОБАВЛЕНО: Отладочная информация
                         logger.info(f"=== DEBUG: SEO data updated for post: {post.title}")
                         logger.info(f"=== DEBUG: vk_title: {post.title}")
                         logger.info(f"=== DEBUG: vk_description: {meta_description[:160]}")
                         logger.info(f"=== DEBUG: vk_image: {vk_image_url}")
-                        
+
                         # JSON-LD для статьи
                         article_data = {
                             "@context": "https://schema.org",
-                            "@type": "BlogPosting",
+                            "@type": "Article",
                             "headline": post.title,
                             "description": meta_description[:160],
                             "image": request.build_absolute_uri(og_image),
+                            "url": base_url + post.get_absolute_url(),
                             "author": {
                                 "@type": "Person",
-                                "name": "Anvar Sh.",
-                                "url": request.build_absolute_uri('/'),
-                                "sameAs": [
-                                    "https://www.youtube.com/@Mr_Fulani",
-                                    "https://t.me/Mr_Fulani"
-                                ]
+                                "name": "Anvar Sh."
                             },
                             "publisher": {
                                 "@type": "Organization",
                                 "name": "Quiz Project",
-                                "url": request.build_absolute_uri('/'),
                                 "logo": {
                                     "@type": "ImageObject",
                                     "url": request.build_absolute_uri('/static/blog/images/logo.png')
@@ -564,14 +579,15 @@ def dynamic_seo_context(request):
                             "mainEntityOfPage": {
                                 "@type": "WebPage",
                                 "@id": base_url + post.get_absolute_url()
-                            },
-                            "articleSection": post.category.name,
-                            "wordCount": len(post.content.split()) if post.content else 0,
+                            }
                         }
+
                         seo_data['article_json_ld'] = json.dumps(article_data, ensure_ascii=False, indent=2)
                         
                 except Exception as e:
                     logger.error(f"Error processing post SEO for {slug}: {e}")
+                    import traceback
+                    logger.error(f"=== DEBUG: Full traceback: {traceback.format_exc()}")
         
         # SEO для проектов портфолио
         elif '/project/' in path:
@@ -594,14 +610,14 @@ def dynamic_seo_context(request):
                     if project:
                         meta_description = project.meta_description or f"{project.title} - {project.description[:100]}..."
                         meta_keywords = project.meta_keywords or f"{project.title}, {project.technologies}, portfolio, project, web development"
-                        
+
                         main_image = project.get_main_image()
                         og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
-                        
+
                         # ДОБАВЛЕНО: Отладочная информация для VK
                         vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
                         logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
-                        
+
                         seo_data.update({
                             'meta_title': f"{project.title} | Portfolio - Quiz Project",
                             'meta_description': meta_description[:160],
@@ -619,10 +635,10 @@ def dynamic_seo_context(request):
                             'vk_description': meta_description[:160],
                             'vk_image': vk_image_url,
                         })
-                        
+
                         # ДОБАВЛЕНО: Отладочная информация
                         logger.info(f"=== DEBUG: SEO data updated for project: {project.title}")
-                        
+
                         # JSON-LD для проекта
                         project_data = {
                             "@context": "https://schema.org",
@@ -630,37 +646,35 @@ def dynamic_seo_context(request):
                             "name": project.title,
                             "description": meta_description[:160],
                             "image": request.build_absolute_uri(og_image),
+                            "url": base_url + project.get_absolute_url(),
                             "author": {
                                 "@type": "Person",
-                                "name": "Anvar Sh.",
-                                "url": request.build_absolute_uri('/')
+                                "name": "Anvar Sh."
                             },
                             "dateCreated": project.created_at.isoformat(),
                             "dateModified": project.updated_at.isoformat(),
-                            "url": base_url + project.get_absolute_url(),
-                            "keywords": project.technologies,
-                            "genre": "Web Development Project"
+                            "mainEntityOfPage": {
+                                "@type": "WebPage",
+                                "@id": base_url + project.get_absolute_url()
+                            }
                         }
-                        
-                        if project.github_link:
-                            project_data["codeRepository"] = project.github_link
-                        if project.demo_link:
-                            project_data["workExample"] = project.demo_link
-                            
+
                         seo_data['project_json_ld'] = json.dumps(project_data, ensure_ascii=False, indent=2)
-                        
+
                 except Exception as e:
                     logger.error(f"Error processing project SEO for {slug}: {e}")
         else:
             # ДОБАВЛЕНО: Отладочная информация
             logger.info(f"=== DEBUG: Path {path} does not match post or project patterns")
-                    
+
     except Exception as e:
         logger.error(f"Error in dynamic_seo_context: {e}")
-    
+        import traceback
+        logger.error(f"=== DEBUG: Full traceback: {traceback.format_exc()}")
+
     # ДОБАВЛЕНО: Отладочная информация
     logger.info(f"=== DEBUG: Final SEO data keys: {list(seo_data.keys())}")
-    
+
     return {'dynamic_seo': seo_data}
 
 """
