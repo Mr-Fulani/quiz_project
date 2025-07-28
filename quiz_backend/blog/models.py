@@ -836,6 +836,8 @@ class PostShare(models.Model):
     user = models.ForeignKey(
         'accounts.CustomUser',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         verbose_name="Пользователь"
     )
     post = models.ForeignKey(
@@ -881,6 +883,8 @@ class ProjectShare(models.Model):
     user = models.ForeignKey(
         'accounts.CustomUser',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         verbose_name="Пользователь"
     )
     project = models.ForeignKey(

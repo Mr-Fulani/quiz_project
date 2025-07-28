@@ -70,6 +70,8 @@ class ContentInteractions {
 
         // Тултипы для лайков и репостов с улучшенной логикой
         document.addEventListener('mouseenter', (e) => {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            
             const likeBtn = e.target.closest('.like-btn');
             const shareBtn = e.target.closest('.share-btn');
             
@@ -87,6 +89,8 @@ class ContentInteractions {
         }, true);
 
         document.addEventListener('mouseleave', (e) => {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            
             const btn = e.target.closest('.like-btn, .share-btn');
             if (btn) {
                 this.scheduleTooltipHide(500); // Задержка 500ms перед скрытием
@@ -95,6 +99,8 @@ class ContentInteractions {
 
         // Поддержка мобильных устройств (touch события)
         document.addEventListener('touchstart', (e) => {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            
             const likeBtn = e.target.closest('.like-btn');
             const shareBtn = e.target.closest('.share-btn');
             
@@ -113,6 +119,8 @@ class ContentInteractions {
 
         // Скрытие тултипа при touch вне его области
         document.addEventListener('touchstart', (e) => {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            
             if (this.currentTooltip && !e.target.closest('.users-tooltip') && !e.target.closest('.like-btn, .share-btn')) {
                 this.hideUsersTooltip();
             }
@@ -197,7 +205,12 @@ class ContentInteractions {
         const contentType = button.dataset.contentType;
         const slug = button.dataset.slug;
         const title = button.dataset.title;
-        const url = button.dataset.url;
+        let url = button.dataset.url;
+
+        // Убеждаемся, что URL абсолютный
+        if (url && !url.startsWith('http')) {
+            url = window.location.origin + url;
+        }
 
         const modal = this.createShareModal(contentType, slug, title, url);
         document.body.appendChild(modal);
@@ -341,20 +354,26 @@ class ContentInteractions {
             return originalUrl; // Уже share URL
         }
         
-        // Получаем базовый URL без параметров
-        const urlObj = new URL(originalUrl);
-        let path = urlObj.pathname;
-        
-        // Преобразуем путь для share URL
-        if (path.includes('/post/')) {
-            path = path.replace('/post/', '/share/post/');
-        } else if (path.includes('/project/')) {
-            path = path.replace('/project/', '/share/project/');
+        try {
+            // Получаем базовый URL без параметров
+            const urlObj = new URL(originalUrl);
+            let path = urlObj.pathname;
+            
+            // Преобразуем путь для share URL
+            if (path.includes('/post/')) {
+                path = path.replace('/post/', '/share/post/');
+            } else if (path.includes('/project/')) {
+                path = path.replace('/project/', '/share/project/');
+            }
+            
+            // Собираем новый URL с абсолютным путем
+            urlObj.pathname = path;
+            return urlObj.toString();
+        } catch (error) {
+            console.error('Ошибка при создании share URL:', error, 'originalUrl:', originalUrl);
+            // Возвращаем оригинальный URL если не удалось создать share URL
+            return originalUrl;
         }
-        
-        // Собираем новый URL с абсолютным путем
-        urlObj.pathname = path;
-        return urlObj.toString();
     }
 
     openShareWindow(platform, title, url) {

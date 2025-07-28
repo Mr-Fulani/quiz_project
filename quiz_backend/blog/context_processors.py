@@ -457,6 +457,8 @@ def dynamic_seo_context(request):
     path = request.path
     host = request.get_host()
     
+
+    
     scheme = 'https' if request.is_secure() else 'http'
     
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
@@ -469,7 +471,7 @@ def dynamic_seo_context(request):
     
     try:
         # SEO для постов блога
-        if '/post/' in path:
+        if '/post/' in path or path.endswith('/post/'):
             from blog.models import Post
             slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
             if slug:
@@ -500,6 +502,10 @@ def dynamic_seo_context(request):
                             'article_tag': meta_keywords.split(', ') if meta_keywords else [post.category.name],
                             'is_mini_app': is_mini_app,  # ДОБАВЛЕНО: флаг для mini app
                             'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',  # ДОБАВЛЕНО: robots для mini app
+                            # VK Meta Tags
+                            'vk_title': post.title,
+                            'vk_description': meta_description[:160],
+                            'vk_image': request.build_absolute_uri(og_image),
                         })
                         
                         # JSON-LD для статьи
@@ -567,6 +573,10 @@ def dynamic_seo_context(request):
                             'og_type': 'website',
                             'is_mini_app': is_mini_app,  # ДОБАВЛЕНО: флаг для mini app
                             'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',  # ДОБАВЛЕНО: robots для mini app
+                            # VK Meta Tags
+                            'vk_title': project.title,
+                            'vk_description': meta_description[:160],
+                            'vk_image': request.build_absolute_uri(og_image),
                         })
                         
                         # JSON-LD для проекта
