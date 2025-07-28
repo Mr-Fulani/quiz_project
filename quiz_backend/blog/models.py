@@ -134,8 +134,16 @@ class Post(models.Model):
         
         # Проверяем есть ли у поста своя картинка
         main_image = self.get_main_image()
-        if main_image and main_image.photo:
+        
+        # Если главное изображение есть и это не дефолтное изображение
+        if main_image and main_image.photo and 'default-og-image' not in str(main_image.photo):
             return main_image.photo.url
+        
+        # Если главное изображение дефолтное или его нет, ищем первое реальное изображение
+        real_images = self.images.filter(photo__isnull=False).exclude(photo__icontains='default-og-image')
+        if real_images.exists():
+            first_real_image = real_images.first()
+            return first_real_image.photo.url
             
         # Проверяем есть ли уже сгенерированная OG картинка
         og_filename = f'og_post_{self.slug}.jpg'
