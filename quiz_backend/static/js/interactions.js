@@ -335,16 +335,23 @@ class ContentInteractions {
         
         console.log('Generating share URL:', { platform, title, url, shareUrl, text, encodedUrl });
         
-        // Для VK используем production домен вместо ngrok
-        let vkUrl = shareUrl; // Используем shareUrl вместо url
+        // Для VK используем production домен вместо ngrok и убираем языковые префиксы
+        let vkUrl = shareUrl;
         if (shareUrl.includes('ngrok-free.app') || shareUrl.includes('localhost')) {
             // Заменяем ngrok/localhost на production домен для VK
             vkUrl = shareUrl.replace(/https?:\/\/[^\/]+/, 'https://quiz-code.com');
         }
         
+        // Для VK убираем языковые префиксы и используем URL без /share/
+        if (platform === 'vk') {
+            vkUrl = vkUrl.replace('/ru/', '/').replace('/en/', '/');
+            // Убираем /share/ из URL для VK, так как наш редирект ведет на обычные посты
+            vkUrl = vkUrl.replace('/share/post/', '/post/').replace('/share/project/', '/project/');
+        }
+        
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodeURIComponent(vkUrl.replace('/ru/', '/').replace('/en/', '/'))}`, // Убираем языковой префикс для VK
+            vk: `https://vk.com/share.php?url=${encodeURIComponent(vkUrl)}`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
             instagram: `https://www.instagram.com/`,
