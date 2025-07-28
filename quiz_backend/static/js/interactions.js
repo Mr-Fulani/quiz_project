@@ -317,8 +317,9 @@ class ContentInteractions {
             // Обновляем счетчик репостов
             this.updateShareCount(slug, data.shares_count);
             
-            // Открываем окно для репоста
-            this.openShareWindow(platform, title, url);
+            // Открываем окно для репоста с правильным URL
+            const shareUrl = this.getShareUrl(url);
+            this.openShareWindow(platform, title, shareUrl);
 
         } catch (error) {
             console.error('Ошибка при репосте:', error);
