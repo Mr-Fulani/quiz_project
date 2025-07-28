@@ -457,7 +457,8 @@ def dynamic_seo_context(request):
     path = request.path
     host = request.get_host()
     
-
+    # ДОБАВЛЕНО: Отладочная информация
+    logger.info(f"=== DEBUG: dynamic_seo_context called for path: {path}, host: {host}")
     
     scheme = 'https' if request.is_secure() else 'http'
     
@@ -469,14 +470,28 @@ def dynamic_seo_context(request):
         base_url = f"{scheme}://{host}"
         is_mini_app = False
     
+    # ДОБАВЛЕНО: Отладочная информация
+    logger.info(f"=== DEBUG: base_url: {base_url}, is_mini_app: {is_mini_app}")
+    
     try:
         # SEO для постов блога
         if '/post/' in path or path.endswith('/post/'):
             from blog.models import Post
             slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            
+            # ДОБАВЛЕНО: Отладочная информация
+            logger.info(f"=== DEBUG: Processing post with slug: {slug}")
+            
             if slug:
                 try:
                     post = Post.objects.filter(slug=slug, published=True).select_related('category').prefetch_related('images').first()
+                    
+                    # ДОБАВЛЕНО: Отладочная информация
+                    if post:
+                        logger.info(f"=== DEBUG: Found post: {post.title}")
+                    else:
+                        logger.warning(f"=== DEBUG: Post not found for slug: {slug}")
+                    
                     if post:
                         # Используем custom meta fields или генерируем автоматически
                         meta_description = post.meta_description or (post.excerpt[:160] if post.excerpt else f"Read {post.title} - {post.content[:100]}...")
@@ -484,6 +499,11 @@ def dynamic_seo_context(request):
                         
                         main_image = post.get_main_image()
                         og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        
+                        # ДОБАВЛЕНО: Отладочная информация для VK
+                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
+                        logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
+                        logger.info(f"=== DEBUG: PUBLIC_URL setting: {getattr(settings, 'PUBLIC_URL', 'NOT_SET')}")
                         
                         seo_data.update({
                             'meta_title': f"{post.title} | Quiz Project Blog",
@@ -505,8 +525,14 @@ def dynamic_seo_context(request):
                             # VK Meta Tags
                             'vk_title': post.title,
                             'vk_description': meta_description[:160],
-                            'vk_image': f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image,
+                            'vk_image': vk_image_url,
                         })
+                        
+                        # ДОБАВЛЕНО: Отладочная информация
+                        logger.info(f"=== DEBUG: SEO data updated for post: {post.title}")
+                        logger.info(f"=== DEBUG: vk_title: {post.title}")
+                        logger.info(f"=== DEBUG: vk_description: {meta_description[:160]}")
+                        logger.info(f"=== DEBUG: vk_image: {vk_image_url}")
                         
                         # JSON-LD для статьи
                         article_data = {
@@ -551,15 +577,30 @@ def dynamic_seo_context(request):
         elif '/project/' in path:
             from blog.models import Project
             slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            
+            # ДОБАВЛЕНО: Отладочная информация
+            logger.info(f"=== DEBUG: Processing project with slug: {slug}")
+            
             if slug:
                 try:
                     project = Project.objects.filter(slug=slug).select_related('category').prefetch_related('images').first()
+                    
+                    # ДОБАВЛЕНО: Отладочная информация
+                    if project:
+                        logger.info(f"=== DEBUG: Found project: {project.title}")
+                    else:
+                        logger.warning(f"=== DEBUG: Project not found for slug: {slug}")
+                    
                     if project:
                         meta_description = project.meta_description or f"{project.title} - {project.description[:100]}..."
                         meta_keywords = project.meta_keywords or f"{project.title}, {project.technologies}, portfolio, project, web development"
                         
                         main_image = project.get_main_image()
                         og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        
+                        # ДОБАВЛЕНО: Отладочная информация для VK
+                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
+                        logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
                         
                         seo_data.update({
                             'meta_title': f"{project.title} | Portfolio - Quiz Project",
@@ -576,8 +617,11 @@ def dynamic_seo_context(request):
                             # VK Meta Tags
                             'vk_title': project.title,
                             'vk_description': meta_description[:160],
-                            'vk_image': f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image,
+                            'vk_image': vk_image_url,
                         })
+                        
+                        # ДОБАВЛЕНО: Отладочная информация
+                        logger.info(f"=== DEBUG: SEO data updated for project: {project.title}")
                         
                         # JSON-LD для проекта
                         project_data = {
@@ -607,9 +651,15 @@ def dynamic_seo_context(request):
                         
                 except Exception as e:
                     logger.error(f"Error processing project SEO for {slug}: {e}")
+        else:
+            # ДОБАВЛЕНО: Отладочная информация
+            logger.info(f"=== DEBUG: Path {path} does not match post or project patterns")
                     
     except Exception as e:
         logger.error(f"Error in dynamic_seo_context: {e}")
+    
+    # ДОБАВЛЕНО: Отладочная информация
+    logger.info(f"=== DEBUG: Final SEO data keys: {list(seo_data.keys())}")
     
     return {'dynamic_seo': seo_data}
 
