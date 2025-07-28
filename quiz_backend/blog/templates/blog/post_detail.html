@@ -6,28 +6,10 @@
 {% block meta_description %}{{ post.meta_description|default:post.excerpt|striptags|truncatechars:160 }}{% endblock %}
 {% block meta_keywords %}{{ post.meta_keywords|default:post.category.name }}{% endblock %}
 
-{% block og_title %}{{ post.title }}{% endblock %}
-{% block og_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
-{% block og_image %}{% if post.get_og_image_url %}{% if post.get_og_image_url|slice:":4" == "http" %}{{ post.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_og_image_url }}{% endif %}{% endif %}{% endblock %}
-{% block og_url %}{{ og_url }}{% endblock %}
-{% block og_type %}article{% endblock %}
-
-{% block twitter_title %}{{ post.title }}{% endblock %}
-{% block twitter_description %}{{ post.excerpt|striptags|truncatechars:200 }}{% endblock %}
-{% block twitter_image %}{% if post.get_og_image_url %}{% if post.get_og_image_url|slice:":4" == "http" %}{{ post.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_og_image_url }}{% endif %}{% endif %}{% endblock %}
-
-<!-- VK specific meta tags -->
+<!-- VK Meta Tags -->
 <meta property="vk:title" content="{{ post.title }}">
 <meta property="vk:description" content="{{ post.excerpt|striptags|truncatechars:160 }}">
 <meta property="vk:image" content="{% if post.get_og_image_url %}{% if post.get_og_image_url|slice:":4" == "http" %}{{ post.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_og_image_url }}{% endif %}{% endif %}">
-
-<!-- Additional meta for better social sharing -->
-<meta name="description" content="{{ post.excerpt|striptags|truncatechars:160 }}">
-<meta property="og:site_name" content="QuizHub">
-<meta name="twitter:card" content="summary_large_image">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:type" content="image/jpeg">
 
 {% block extra_head %}
 <!-- Article specific meta -->

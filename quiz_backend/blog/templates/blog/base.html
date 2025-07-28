@@ -56,6 +56,15 @@
     <meta name="twitter:description" content="{% block twitter_description %}{{ dynamic_seo.twitter_description|default:twitter_description|truncatechars:200|default:'Master programming with interactive quizzes and tutorials.' }}{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ dynamic_seo.twitter_image|default:twitter_image|default:'/static/blog/images/default-og-image.jpeg' }}{% endblock %}">
     
+    <!-- VK Meta Tags -->
+    <meta property="vk:title" content="{{ dynamic_seo.vk_title|default:'QuizHub - Programming Quizzes' }}">
+    <meta property="vk:description" content="{{ dynamic_seo.vk_description|default:'Master programming with interactive quizzes and tutorials.' }}">
+    <meta property="vk:image" content="{{ dynamic_seo.vk_image|default:'/static/blog/images/default-og-image.jpeg' }}">
+    
+
+    
+
+    
     <!-- Mobile and App Meta Tags -->
     <meta name="theme-color" content="#1a1a2e">
     <meta name="msapplication-TileColor" content="#1a1a2e">
