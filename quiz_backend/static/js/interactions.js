@@ -338,7 +338,7 @@ class ContentInteractions {
         
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodedUrl}`,
+            vk: `https://vk.com/share.php?url=${encodeURIComponent(url)}`, // Используем оригинальный URL для VK
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
             instagram: `https://www.instagram.com/`,
