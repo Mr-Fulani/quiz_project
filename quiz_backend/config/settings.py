@@ -82,6 +82,15 @@ NGROK_HOST = os.getenv('NGROK_HOST')
 if NGROK_HOST:
     ALLOWED_HOSTS.append(NGROK_HOST)
 
+# Публичный URL для социальных сетей (для локальной разработки)
+PUBLIC_URL = os.getenv('PUBLIC_URL')
+if not PUBLIC_URL and DEBUG:
+    # В режиме разработки используем ngrok или localhost
+    PUBLIC_URL = f"https://{NGROK_HOST}" if NGROK_HOST else "http://localhost:8001"
+elif not PUBLIC_URL:
+    # В продакшене используем основной домен
+    PUBLIC_URL = "https://quiz-code.com"
+
 # Настройки для работы за прокси-сервером (Nginx)
 CSRF_TRUSTED_ORIGINS = [
     'https://quiz-code.com',
