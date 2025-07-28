@@ -8,23 +8,26 @@
 
 {% block og_title %}{{ project.title }} - Portfolio{% endblock %}
 {% block og_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
-{% block og_image %}{% if project.get_og_image_url %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endblock %}
-{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+{% block og_image %}{% if project.get_og_image_url %}{% if project.get_og_image_url|slice:":4" == "http" %}{{ project.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endif %}{% endblock %}
+{% block og_url %}{{ og_url }}{% endblock %}
 {% block og_type %}article{% endblock %}
 
 {% block twitter_title %}{{ project.title }} - Portfolio{% endblock %}
 {% block twitter_description %}{{ project.description|striptags|truncatechars:200 }}{% endblock %}
-{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endblock %}
+{% block twitter_image %}{% if project.get_og_image_url %}{% if project.get_og_image_url|slice:":4" == "http" %}{{ project.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endif %}{% endblock %}
 
 <!-- VK specific meta tags -->
 <meta property="vk:title" content="{{ project.title }}">
 <meta property="vk:description" content="{{ project.description|striptags|truncatechars:160 }}">
-<meta property="vk:image" content="{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}">
+<meta property="vk:image" content="{% if project.get_og_image_url %}{% if project.get_og_image_url|slice:":4" == "http" %}{{ project.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endif %}">
 
 <!-- Additional meta for better social sharing -->
 <meta name="description" content="{{ project.description|striptags|truncatechars:160 }}">
 <meta property="og:site_name" content="QuizHub">
 <meta name="twitter:card" content="summary_large_image">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
 
 {% block extra_head %}
 <!-- Project specific meta -->
@@ -41,7 +44,7 @@
   "@type": "CreativeWork",
   "name": "{{ project.title|escapejs }}",
   "description": "{{ project.description|striptags|escapejs|truncatechars:200 }}",
-  "image": "{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}",
+  "image": "{% if project.get_og_image_url %}{% if project.get_og_image_url|slice:":4" == "http" %}{{ project.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endif %}",
   "author": {
     "@type": "Organization",
     "name": "QuizHub"
@@ -52,7 +55,7 @@
   },
   "dateCreated": "{{ project.created_at|date:'c' }}",
   "dateModified": "{{ project.updated_at|date:'c' }}",
-  "url": "{{ request.build_absolute_uri }}",
+  "url": "{{ og_url }}",
   "keywords": "{{ project.technologies }}",
   {% if project.github_link %}"codeRepository": "{{ project.github_link }}",{% endif %}
   {% if project.demo_link %}"workExample": "{{ project.demo_link }}",{% endif %}
