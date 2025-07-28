@@ -318,8 +318,7 @@ class ContentInteractions {
             this.updateShareCount(slug, data.shares_count);
             
             // Открываем окно для репоста с правильным URL
-            const shareUrl = this.getShareUrl(url);
-            this.openShareWindow(platform, title, shareUrl);
+            this.openShareWindow(platform, title, url);
 
         } catch (error) {
             console.error('Ошибка при репосте:', error);
@@ -337,10 +336,10 @@ class ContentInteractions {
         console.log('Generating share URL:', { platform, title, url, shareUrl, text, encodedUrl });
         
         // Для VK используем production домен вместо ngrok
-        let vkUrl = url;
-        if (url.includes('ngrok-free.app') || url.includes('localhost')) {
+        let vkUrl = shareUrl; // Используем shareUrl вместо url
+        if (shareUrl.includes('ngrok-free.app') || shareUrl.includes('localhost')) {
             // Заменяем ngrok/localhost на production домен для VK
-            vkUrl = url.replace(/https?:\/\/[^\/]+/, 'https://quiz-code.com');
+            vkUrl = shareUrl.replace(/https?:\/\/[^\/]+/, 'https://quiz-code.com');
         }
         
         const shareUrls = {
