@@ -517,8 +517,24 @@ def dynamic_seo_context(request):
                         meta_description = post.meta_description or (post.excerpt[:160] if post.excerpt else f"Read {post.title} - {post.content[:100]}...")
                         meta_keywords = post.meta_keywords or f"{post.title}, {post.category.name}, blog, programming, quiz"
 
+                        # ДОБАВЛЕНО: Отладочная информация для изображений
                         main_image = post.get_main_image()
-                        og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        logger.info(f"=== DEBUG: Main image: {main_image}")
+                        if main_image:
+                            logger.info(f"=== DEBUG: Main image photo: {main_image.photo}")
+                            logger.info(f"=== DEBUG: Main image photo URL: {main_image.photo.url if main_image.photo else 'None'}")
+                        else:
+                            logger.info(f"=== DEBUG: No main image found")
+                        
+                        # ДОБАВЛЕНО: Проверяем все изображения поста
+                        all_images = post.images.all()
+                        logger.info(f"=== DEBUG: Total images for post: {all_images.count()}")
+                        for i, img in enumerate(all_images):
+                            logger.info(f"=== DEBUG: Image {i+1}: photo={img.photo}, gif={img.gif}, video={img.video}, is_main={img.is_main}")
+                        
+                        # ДОБАВЛЕНО: Используем метод get_og_image_url() из модели
+                        og_image = post.get_og_image_url()
+                        logger.info(f"=== DEBUG: OG image from get_og_image_url(): {og_image}")
 
                         # ДОБАВЛЕНО: Отладочная информация для VK
                         vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
