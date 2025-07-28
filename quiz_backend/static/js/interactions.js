@@ -336,9 +336,16 @@ class ContentInteractions {
         
         console.log('Generating share URL:', { platform, title, url, shareUrl, text, encodedUrl });
         
+        // Для VK используем production домен вместо ngrok
+        let vkUrl = url;
+        if (url.includes('ngrok-free.app') || url.includes('localhost')) {
+            // Заменяем ngrok/localhost на production домен для VK
+            vkUrl = url.replace(/https?:\/\/[^\/]+/, 'https://quiz-code.com');
+        }
+        
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodeURIComponent(url.replace('/ru/', '/').replace('/en/', '/'))}`, // Убираем языковой префикс для VK
+            vk: `https://vk.com/share.php?url=${encodeURIComponent(vkUrl.replace('/ru/', '/').replace('/en/', '/'))}`, // Убираем языковой префикс для VK
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
             instagram: `https://www.instagram.com/`,
