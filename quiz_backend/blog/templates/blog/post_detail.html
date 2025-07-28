@@ -6,12 +6,13 @@
 {% block meta_description %}{{ post.meta_description|default:post.excerpt|striptags|truncatechars:160 }}{% endblock %}
 {% block meta_keywords %}{{ post.meta_keywords|default:post.category.name }}{% endblock %}
 
+{% block extra_head %}
 <!-- VK Meta Tags -->
 <meta property="vk:title" content="{{ post.title }}">
 <meta property="vk:description" content="{{ post.excerpt|striptags|truncatechars:160 }}">
 <meta property="vk:image" content="{% if post.get_og_image_url %}{% if post.get_og_image_url|slice:":4" == "http" %}{{ post.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_og_image_url }}{% endif %}{% endif %}">
 
-{% block extra_head %}
+<!-- Article specific meta -->
 <!-- Article specific meta -->
 <meta property="article:author" content="QuizHub">
 <meta property="article:published_time" content="{{ post.published_at|date:'c' }}">
@@ -225,6 +226,6 @@ All static text is localized using {% trans %} for English msgid and translation
     </script>
 
             <!-- JavaScript для взаимодействий -->
-        <script src="{% static 'js/interactions.js' %}?v=2.2"></script>
+        <script src="{% static 'js/interactions.js' %}?v=2.1"></script>
 </article>
 {% endblock %}
