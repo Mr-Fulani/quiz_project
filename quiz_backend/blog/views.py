@@ -529,15 +529,25 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
             published=True,
             category=post.category
         ).exclude(id=post.id)[:3]
+        
+        # Определяем правильный URL для share
+        current_url = self.request.build_absolute_uri()
+        if '/share/' in current_url:
+            # Если это share URL, используем его как есть
+            share_url = current_url
+        else:
+            # Если это обычный URL, преобразуем в share URL
+            share_url = current_url.replace('/post/', '/share/post/')
+        
         context['meta_title'] = post.title
         context['meta_description'] = post.meta_description or post.excerpt[:160] or post.content[:160]
         context['meta_keywords'] = post.meta_keywords or (post.category.name if post.category else post.title)
         context['og_title'] = post.title
         context['og_description'] = context['meta_description']
         context['og_image'] = post.get_og_image_url()
-        context['og_url'] = self.request.build_absolute_uri()
-        context['canonical_url'] = context['og_url']
-        context['hreflang_url'] = context['og_url']
+        context['og_url'] = share_url
+        context['canonical_url'] = current_url  # Канонический URL остается обычным
+        context['hreflang_url'] = current_url
         context['related_posts'] = related_posts
         context['page_videos'] = PageVideo.objects.filter(page='post_detail')
         return context
@@ -576,15 +586,25 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
             featured=True,
             category=project.category
         ).exclude(id=project.id)[:3]
+        
+        # Определяем правильный URL для share
+        current_url = self.request.build_absolute_uri()
+        if '/share/' in current_url:
+            # Если это share URL, используем его как есть
+            share_url = current_url
+        else:
+            # Если это обычный URL, преобразуем в share URL
+            share_url = current_url.replace('/project/', '/share/project/')
+        
         context['meta_title'] = project.title
         context['meta_description'] = project.description[:160] if project.description else project.title[:160]
         context['meta_keywords'] = project.meta_keywords if project.meta_keywords else project.title
         context['og_title'] = project.title
         context['og_description'] = context['meta_description']
         context['og_image'] = project.get_og_image_url()
-        context['og_url'] = self.request.build_absolute_uri()
-        context['canonical_url'] = context['og_url']
-        context['hreflang_url'] = context['og_url']
+        context['og_url'] = share_url
+        context['canonical_url'] = current_url  # Канонический URL остается обычным
+        context['hreflang_url'] = current_url
         context['related_projects'] = related_projects
         context['page_videos'] = PageVideo.objects.filter(page='project_detail')
         return context

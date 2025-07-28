@@ -340,12 +340,21 @@ class ContentInteractions {
         if (originalUrl.includes('/share/')) {
             return originalUrl; // Уже share URL
         }
-        if (originalUrl.includes('/post/')) {
-            return originalUrl.replace('/post/', '/share/post/');
-        } else if (originalUrl.includes('/project/')) {
-            return originalUrl.replace('/project/', '/share/project/');
+        
+        // Получаем базовый URL без параметров
+        const urlObj = new URL(originalUrl);
+        let path = urlObj.pathname;
+        
+        // Преобразуем путь для share URL
+        if (path.includes('/post/')) {
+            path = path.replace('/post/', '/share/post/');
+        } else if (path.includes('/project/')) {
+            path = path.replace('/project/', '/share/project/');
         }
-        return originalUrl;
+        
+        // Собираем новый URL с абсолютным путем
+        urlObj.pathname = path;
+        return urlObj.toString();
     }
 
     openShareWindow(platform, title, url) {
