@@ -82,7 +82,9 @@ urlpatterns = [
     
     # Редирект для VK sharing - URL без языкового префикса
     path('post/<slug:slug>/', RedirectView.as_view(url='/ru/post/%(slug)s/', permanent=False), name='post_no_lang'),
-    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=False), name='project_no_lang'),    
+    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=False), name='project_no_lang'),
+    path('share/post/<slug:slug>/', RedirectView.as_view(url='/ru/share/post/%(slug)s/', permanent=False), name='share_post_no_lang'),
+    path('share/project/<slug:slug>/', RedirectView.as_view(url='/ru/share/project/%(slug)s/', permanent=False), name='share_project_no_lang'),    
 
 
 ] + i18n_patterns(
