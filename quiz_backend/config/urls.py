@@ -80,9 +80,7 @@ urlpatterns = [
     # Редирект с корневого URL на язык по умолчанию
     path('', RedirectView.as_view(pattern_name='blog:home', permanent=False), name='root-redirect'),
     
-    # URL без языкового префикса для социальных сетей (VK, Facebook, etc.)
-    path('post/<slug:slug>/', include('blog.urls', namespace='blog_no_lang')),
-    path('project/<slug:slug>/', include('blog.urls', namespace='blog_no_lang')),
+
 
 ] + i18n_patterns(
     # path('admin/', admin.site.urls), -> Перенесено выше
