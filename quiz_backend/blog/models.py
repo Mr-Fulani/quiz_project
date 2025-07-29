@@ -97,10 +97,25 @@ class Post(models.Model):
         super().save(*args, **kwargs)
 
     def get_main_image(self):
+        """Возвращает главное изображение поста."""
+        # Сначала ищем изображение с is_main=True
         main_image = self.images.filter(is_main=True).first()
-        if not main_image:
-            main_image = self.images.first()
-        return main_image
+        
+        if main_image:
+            return main_image
+        
+        # Если нет главного, ищем первое НЕ дефолтное изображение
+        real_image = self.images.filter(
+            photo__isnull=False
+        ).exclude(
+            photo__icontains='default-og-image'
+        ).first()
+        
+        if real_image:
+            return real_image
+        
+        # Только если нет реальных изображений, возвращаем первое
+        return self.images.first()
 
     def get_absolute_url(self):
         """Возвращает абсолютный URL поста."""
@@ -130,19 +145,29 @@ class Post(models.Model):
         """Возвращает URL для Open Graph изображения (генерирует если нужно)."""
         from .utils import save_og_image
         import os
+        import logging
         from django.conf import settings
+        
+        logger = logging.getLogger(__name__)
         
         # Проверяем есть ли у поста своя картинка
         main_image = self.get_main_image()
         
+        # Логирование для отладки
+        logger.info(f"Post {self.slug}: main_image={main_image}, main_image_photo={main_image.photo if main_image else 'None'}")
+        
         # Если главное изображение есть и это не дефолтное изображение
         if main_image and main_image.photo and 'default-og-image' not in str(main_image.photo):
+            logger.info(f"Post {self.slug}: Using main image: {main_image.photo.url}")
             return main_image.photo.url
         
         # Если главное изображение дефолтное или его нет, ищем первое реальное изображение
         real_images = self.images.filter(photo__isnull=False).exclude(photo__icontains='default-og-image')
+        logger.info(f"Post {self.slug}: real_images_count={real_images.count()}")
+        
         if real_images.exists():
             first_real_image = real_images.first()
+            logger.info(f"Post {self.slug}: Using first real image: {first_real_image.photo.url}")
             return first_real_image.photo.url
             
         # Проверяем есть ли уже сгенерированная OG картинка
@@ -150,10 +175,12 @@ class Post(models.Model):
         og_path = os.path.join(settings.MEDIA_ROOT, 'og_images', og_filename)
         
         if os.path.exists(og_path):
+            logger.info(f"Post {self.slug}: Using existing OG image: {og_filename}")
             return f'{settings.MEDIA_URL}og_images/{og_filename}'
         
         # Генерируем новую OG картинку
         try:
+            logger.info(f"Post {self.slug}: Generating new OG image")
             og_url = save_og_image(
                 title=self.title,
                 category=self.category.name if self.category else 'Blog',
@@ -162,7 +189,7 @@ class Post(models.Model):
             )
             return og_url
         except Exception as e:
-            print(f"Ошибка генерации OG изображения для поста {self.slug}: {e}")
+            logger.error(f"Ошибка генерации OG изображения для поста {self.slug}: {e}")
             return f'{settings.STATIC_URL}blog/images/default-og-image.jpeg'
 
 
@@ -303,10 +330,25 @@ class Project(models.Model):
         super().save(*args, **kwargs)
 
     def get_main_image(self):
+        """Возвращает главное изображение проекта."""
+        # Сначала ищем изображение с is_main=True
         main_image = self.images.filter(is_main=True).first()
-        if not main_image:
-            main_image = self.images.first()
-        return main_image
+        
+        if main_image:
+            return main_image
+        
+        # Если нет главного, ищем первое НЕ дефолтное изображение
+        real_image = self.images.filter(
+            photo__isnull=False
+        ).exclude(
+            photo__icontains='default-og-image'
+        ).first()
+        
+        if real_image:
+            return real_image
+        
+        # Только если нет реальных изображений, возвращаем первое
+        return self.images.first()
 
     def get_absolute_url(self):
         """Возвращает абсолютный URL проекта."""
@@ -336,11 +378,19 @@ class Project(models.Model):
         """Возвращает URL для Open Graph изображения (генерирует если нужно)."""
         from .utils import save_og_image
         import os
+        import logging
         from django.conf import settings
+        
+        logger = logging.getLogger(__name__)
         
         # Проверяем есть ли у проекта своя картинка
         main_image = self.get_main_image()
+        
+        # Логирование для отладки
+        logger.info(f"Project {self.slug}: main_image={main_image}, main_image_photo={main_image.photo if main_image else 'None'}")
+        
         if main_image and main_image.photo:
+            logger.info(f"Project {self.slug}: Using main image: {main_image.photo.url}")
             return main_image.photo.url
             
         # Проверяем есть ли уже сгенерированная OG картинка
@@ -348,10 +398,12 @@ class Project(models.Model):
         og_path = os.path.join(settings.MEDIA_ROOT, 'og_images', og_filename)
         
         if os.path.exists(og_path):
+            logger.info(f"Project {self.slug}: Using existing OG image: {og_filename}")
             return f'{settings.MEDIA_URL}og_images/{og_filename}'
         
         # Генерируем новую OG картинку
         try:
+            logger.info(f"Project {self.slug}: Generating new OG image")
             og_url = save_og_image(
                 title=self.title,
                 category='Portfolio',
@@ -360,7 +412,7 @@ class Project(models.Model):
             )
             return og_url
         except Exception as e:
-            print(f"Ошибка генерации OG изображения для проекта {self.slug}: {e}")
+            logger.error(f"Ошибка генерации OG изображения для проекта {self.slug}: {e}")
             return f'{settings.STATIC_URL}blog/images/default-og-image.jpeg'
 
 
