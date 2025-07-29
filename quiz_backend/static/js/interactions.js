@@ -23,13 +23,25 @@ class ContentInteractions {
                 'liked_by': 'Лайкнули',
                 'shared_by': 'Поделились',
                 'and_more': 'и еще',
-                'view_profile': 'Перейти к профилю'
+                'view_profile': 'Перейти к профилю',
+                'share_title': 'Поделиться',
+                'login_required_likes': 'Войдите в систему, чтобы ставить лайки.',
+                'login_required_shares': 'Войдите в систему, чтобы делиться контентом.',
+                'like_error': 'Не удалось поставить лайк. Попробуйте снова.',
+                'share_error': 'Не удалось поделиться. Попробуйте снова.',
+                'link_copied': 'Ссылка скопирована!'
             },
             'en': {
                 'liked_by': 'Liked by',
                 'shared_by': 'Shared by', 
                 'and_more': 'and',
-                'view_profile': 'View profile'
+                'view_profile': 'View profile',
+                'share_title': 'Share',
+                'login_required_likes': 'Please log in to like content.',
+                'login_required_shares': 'Please log in to share content.',
+                'like_error': 'Failed to like. Please try again.',
+                'share_error': 'Failed to share. Please try again.',
+                'link_copied': 'Link copied!'
             }
         };
         
@@ -135,7 +147,7 @@ class ContentInteractions {
 
         // Проверяем авторизацию
         if (!await this.isUserAuthenticated()) {
-            this.showAuthModal();
+            this.showAuthModal('likes');
             return;
         }
 
@@ -165,7 +177,7 @@ class ContentInteractions {
 
         } catch (error) {
             console.error('Ошибка при лайке:', error);
-            this.showError('Не удалось поставить лайк. Попробуйте снова.');
+            this.showError(this.translations.like_error);
         } finally {
             button.disabled = false;
         }
@@ -225,7 +237,7 @@ class ContentInteractions {
         modal.innerHTML = `
             <div class="share-modal-content">
                 <div class="share-modal-header">
-                    <h3>Поделиться</h3>
+                    <h3>${this.translations.share_title}</h3>
                     <button class="close-modal">&times;</button>
                 </div>
                 <div class="share-modal-body">
@@ -293,6 +305,12 @@ class ContentInteractions {
     }
 
     async shareContent(contentType, slug, platform, title, url) {
+        // Проверяем авторизацию для шаринга
+        if (!await this.isUserAuthenticated()) {
+            this.showAuthModal('shares');
+            return;
+        }
+
         try {
             // Отправляем запрос на бэкенд
             const response = await fetch(`${this.baseUrl}/${contentType}s/${slug}/share/`, {
@@ -322,7 +340,7 @@ class ContentInteractions {
 
         } catch (error) {
             console.error('Ошибка при репосте:', error);
-            this.showError('Не удалось поделиться. Попробуйте снова.');
+            this.showError(this.translations.share_error);
         }
     }
 
@@ -429,7 +447,7 @@ class ContentInteractions {
 
     copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
-            this.showSuccess('Ссылка скопирована!');
+            this.showSuccess(this.translations.link_copied);
         }).catch(() => {
             // Fallback для старых браузеров
             const input = document.createElement('input');
@@ -438,7 +456,7 @@ class ContentInteractions {
             input.select();
             document.execCommand('copy');
             document.body.removeChild(input);
-            this.showSuccess('Ссылка скопирована!');
+            this.showSuccess(this.translations.link_copied);
         });
     }
 
@@ -497,8 +515,11 @@ class ContentInteractions {
         }
     }
 
-    showAuthModal() {
-        this.showError('Войдите в систему, чтобы ставить лайки и делиться контентом.');
+    showAuthModal(type = 'likes') {
+        const message = type === 'shares' 
+            ? this.translations.login_required_shares 
+            : this.translations.login_required_likes;
+        this.showError(message);
     }
 
     showError(message) {
