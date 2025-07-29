@@ -356,6 +356,7 @@ class ContentInteractions {
         if (platform === 'vk') {
             // Для VK используем URL без языкового префикса
             shareUrl = this.getVkShareUrl(url);
+            console.log('VK share URL generated:', shareUrl);
         } else {
             shareUrl = this.getShareUrl(url);
         }
@@ -412,29 +413,17 @@ class ContentInteractions {
     }
 
     getVkShareUrl(originalUrl) {
-        // Специальный метод для VK - убираем языковой префикс
-        try {
-            const urlObj = new URL(originalUrl);
-            let path = urlObj.pathname;
-            
-            // Убираем языковой префикс для VK
-            path = path.replace(/^\/[a-z]{2}\//, '/');
-            
-            // Преобразуем путь для share URL
-            if (path.includes('/post/')) {
-                path = path.replace('/post/', '/share/post/');
-            } else if (path.includes('/project/')) {
-                path = path.replace('/project/', '/share/project/');
-            }
-            
-            // Собираем новый URL с абсолютным путем
-            urlObj.pathname = path;
-            
-            return urlObj.toString();
-        } catch (error) {
-            console.error('Ошибка при создании VK share URL:', error, 'originalUrl:', originalUrl);
-            return originalUrl;
+        // Для VK используем тот же метод, что и для других платформ
+        // VK API может работать с любыми URL-ами
+        let shareUrl = this.getShareUrl(originalUrl);
+        
+        // Убеждаемся, что URL использует HTTPS для VK
+        if (shareUrl.startsWith('http://')) {
+            shareUrl = shareUrl.replace('http://', 'https://');
         }
+        
+        console.log('VK share URL (with HTTPS):', shareUrl);
+        return shareUrl;
     }
 
     openShareWindow(platform, title, url) {
