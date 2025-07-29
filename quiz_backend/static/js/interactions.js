@@ -10,6 +10,7 @@ class ContentInteractions {
         this.currentTooltip = null;
         this.tooltipTimeout = null;
         this.isMouseOverTooltip = false;
+        this.usersCache = {}; // Кэш для пользователей
         this.translations = this.initTranslations();
         this.init();
     }
@@ -90,12 +91,12 @@ class ContentInteractions {
             if (likeBtn) {
                 const count = likeBtn.querySelector('.like-count');
                 if (count && parseInt(count.textContent) > 0) {
-                    this.scheduleTooltipShow(likeBtn, 'likes', 300); // Задержка 300ms
+                    this.scheduleTooltipShow(likeBtn, 'likes', 150); // Ускоренная задержка 150ms
                 }
             } else if (shareBtn) {
                 const count = shareBtn.querySelector('.share-count');
                 if (count && parseInt(count.textContent) > 0) {
-                    this.scheduleTooltipShow(shareBtn, 'shares', 300); // Задержка 300ms
+                    this.scheduleTooltipShow(shareBtn, 'shares', 150); // Ускоренная задержка 150ms
                 }
             }
         }, true);
@@ -105,7 +106,7 @@ class ContentInteractions {
             
             const btn = e.target.closest('.like-btn, .share-btn');
             if (btn) {
-                this.scheduleTooltipHide(500); // Задержка 500ms перед скрытием
+                this.scheduleTooltipHide(200); // Ускоренная задержка 200ms перед скрытием
             }
         }, true);
 
@@ -186,6 +187,7 @@ class ContentInteractions {
     updateLikeButton(button, isLiked, count) {
         const iconElement = button.querySelector('.like-icon');
         const countElement = button.querySelector('.like-count');
+        const slug = button.dataset.slug;
         
         if (isLiked) {
             button.classList.add('liked');
@@ -202,6 +204,9 @@ class ContentInteractions {
         if (countElement) {
             countElement.textContent = count;
         }
+        
+        // Очищаем кэш для этого поста
+        this.clearUsersCache(slug);
     }
 
     animateLike(iconElement, isLiked) {
@@ -443,6 +448,9 @@ class ContentInteractions {
         shareElements.forEach(el => {
             el.textContent = count;
         });
+        
+        // Очищаем кэш для этого поста
+        this.clearUsersCache(slug);
     }
 
     copyToClipboard(text) {
@@ -556,6 +564,14 @@ class ContentInteractions {
         const contentType = button.dataset.contentType;
         const slug = button.dataset.slug;
         
+        // Проверяем кэш
+        const cacheKey = `${contentType}_${slug}_${type}_users`;
+        if (this.usersCache && this.usersCache[cacheKey] && 
+            Date.now() - this.usersCache[cacheKey].timestamp < 30000) { // 30 секунд кэш
+            this.createUsersTooltip(button, this.usersCache[cacheKey].data, type);
+            return;
+        }
+
         const url = `${this.baseUrl}/${contentType}s/${slug}/${type}_users/`;
 
         try {
@@ -564,6 +580,7 @@ class ContentInteractions {
             });
             
             if (!response.ok) {
+                console.warn(`Failed to load ${type} users: ${response.status}`);
                 return;
             }
 
@@ -572,6 +589,13 @@ class ContentInteractions {
             if (data.users.length === 0) {
                 return;
             }
+
+            // Кэшируем результат
+            if (!this.usersCache) this.usersCache = {};
+            this.usersCache[cacheKey] = {
+                data: data,
+                timestamp: Date.now()
+            };
 
             this.createUsersTooltip(button, data, type);
 
@@ -617,7 +641,7 @@ class ContentInteractions {
 
         tooltip.addEventListener('mouseleave', () => {
             this.isMouseOverTooltip = false;
-            this.scheduleTooltipHide(200); // Быстро скрываем после ухода с тултипа
+            this.scheduleTooltipHide(100); // Очень быстро скрываем после ухода с тултипа
         });
 
         // Добавляем обработчики кликов по аватаркам
@@ -689,7 +713,7 @@ class ContentInteractions {
                 }
                 this.currentTooltip = null;
                 this.isMouseOverTooltip = false;
-            }, 300); // Совпадает с CSS transition
+            }, 150); // Ускоренная анимация
         }
     }
 
@@ -741,6 +765,17 @@ class ContentInteractions {
         if (this.tooltipTimeout) {
             clearTimeout(this.tooltipTimeout);
             this.tooltipTimeout = null;
+        }
+    }
+
+    clearUsersCache(slug) {
+        // Очищаем кэш для конкретного поста/проекта
+        if (this.usersCache) {
+            Object.keys(this.usersCache).forEach(key => {
+                if (key.includes(slug)) {
+                    delete this.usersCache[key];
+                }
+            });
         }
     }
 

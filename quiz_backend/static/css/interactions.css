@@ -509,7 +509,7 @@
     max-width: 280px;
     opacity: 0;
     transform: translateY(10px) scale(0.95);
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: none;
     visibility: hidden;
 }
@@ -566,19 +566,19 @@
     object-fit: cover;
     opacity: 0;
     transform: scale(0.8);
-    animation: fadeInAvatar 0.5s ease forwards;
+    animation: fadeInAvatar 0.3s ease forwards;
 }
 
 .user-avatar:nth-child(1) { animation-delay: 0ms; }
-.user-avatar:nth-child(2) { animation-delay: 50ms; }
-.user-avatar:nth-child(3) { animation-delay: 100ms; }
-.user-avatar:nth-child(4) { animation-delay: 150ms; }
-.user-avatar:nth-child(5) { animation-delay: 200ms; }
-.user-avatar:nth-child(6) { animation-delay: 250ms; }
-.user-avatar:nth-child(7) { animation-delay: 300ms; }
-.user-avatar:nth-child(8) { animation-delay: 350ms; }
-.user-avatar:nth-child(9) { animation-delay: 400ms; }
-.user-avatar:nth-child(10) { animation-delay: 450ms; }
+.user-avatar:nth-child(2) { animation-delay: 30ms; }
+.user-avatar:nth-child(3) { animation-delay: 60ms; }
+.user-avatar:nth-child(4) { animation-delay: 90ms; }
+.user-avatar:nth-child(5) { animation-delay: 120ms; }
+.user-avatar:nth-child(6) { animation-delay: 150ms; }
+.user-avatar:nth-child(7) { animation-delay: 180ms; }
+.user-avatar:nth-child(8) { animation-delay: 210ms; }
+.user-avatar:nth-child(9) { animation-delay: 240ms; }
+.user-avatar:nth-child(10) { animation-delay: 270ms; }
 
 .user-avatar:hover {
     transform: scale(1.1);
