@@ -328,7 +328,14 @@ class ContentInteractions {
 
     generateShareUrl(platform, title, url) {
         // Генерируем специальный share URL для лучших превью
-        const shareUrl = this.getShareUrl(url);
+        let shareUrl;
+        
+        if (platform === 'vk') {
+            // Для VK используем URL без языкового префикса
+            shareUrl = this.getVkShareUrl(url);
+        } else {
+            shareUrl = this.getShareUrl(url);
+        }
         
         const text = encodeURIComponent(title);
         const encodedUrl = encodeURIComponent(shareUrl);
@@ -337,7 +344,7 @@ class ContentInteractions {
         
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodedUrl}`,
+            vk: `https://vk.com/share.php?url=${encodedUrl}&title=${text}`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
             instagram: `https://www.instagram.com/`,
@@ -377,6 +384,32 @@ class ContentInteractions {
         } catch (error) {
             console.error('Ошибка при создании share URL:', error, 'originalUrl:', originalUrl);
             // Возвращаем оригинальный URL если не удалось создать share URL
+            return originalUrl;
+        }
+    }
+
+    getVkShareUrl(originalUrl) {
+        // Специальный метод для VK - убираем языковой префикс
+        try {
+            const urlObj = new URL(originalUrl);
+            let path = urlObj.pathname;
+            
+            // Убираем языковой префикс для VK
+            path = path.replace(/^\/[a-z]{2}\//, '/');
+            
+            // Преобразуем путь для share URL
+            if (path.includes('/post/')) {
+                path = path.replace('/post/', '/share/post/');
+            } else if (path.includes('/project/')) {
+                path = path.replace('/project/', '/share/project/');
+            }
+            
+            // Собираем новый URL с абсолютным путем
+            urlObj.pathname = path;
+            
+            return urlObj.toString();
+        } catch (error) {
+            console.error('Ошибка при создании VK share URL:', error, 'originalUrl:', originalUrl);
             return originalUrl;
         }
     }
