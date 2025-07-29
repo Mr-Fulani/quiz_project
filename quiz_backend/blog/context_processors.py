@@ -3,6 +3,7 @@ import logging
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.html import strip_tags
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, Case, When, IntegerField, Value
@@ -514,7 +515,11 @@ def dynamic_seo_context(request):
                     
                     if post:
                         # Используем custom meta fields или генерируем автоматически
-                        meta_description = post.meta_description or (post.excerpt[:160] if post.excerpt else f"Read {post.title} - {post.content[:100]}...")
+                        # Очищаем HTML теги из контента для корректного отображения в превью
+                        clean_content = strip_tags(post.content) if post.content else ""
+                        clean_excerpt = strip_tags(post.excerpt) if post.excerpt else ""
+                        
+                        meta_description = post.meta_description or (clean_excerpt[:160] if clean_excerpt else f"Read {post.title} - {clean_content[:100]}...")
                         meta_keywords = post.meta_keywords or f"{post.title}, {post.category.name}, blog, programming, quiz"
 
                         # ДОБАВЛЕНО: Отладочная информация для изображений
@@ -643,7 +648,10 @@ def dynamic_seo_context(request):
                         logger.warning(f"=== DEBUG: Project not found for slug: {slug}")
                     
                     if project:
-                        meta_description = project.meta_description or f"{project.title} - {project.description[:100]}..."
+                        # Очищаем HTML теги из описания для корректного отображения в превью
+                        clean_description = strip_tags(project.description) if project.description else ""
+                        
+                        meta_description = project.meta_description or f"{project.title} - {clean_description[:100]}..."
                         meta_keywords = project.meta_keywords or f"{project.title}, {project.technologies}, portfolio, project, web development"
 
                         main_image = project.get_main_image()
