@@ -536,8 +536,15 @@ def dynamic_seo_context(request):
                         og_image = post.get_og_image_url()
                         logger.info(f"=== DEBUG: OG image from get_og_image_url(): {og_image}")
 
+                        # Добавляем версию к изображению для кэширования
+                        if og_image and not og_image.startswith('http'):
+                            # Для относительных URL добавляем версию
+                            og_image_with_version = f"{og_image}?v={int(post.updated_at.timestamp())}"
+                        else:
+                            og_image_with_version = og_image
+
                         # ДОБАВЛЕНО: Отладочная информация для VK
-                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
+                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
                         logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
                         logger.info(f"=== DEBUG: PUBLIC_URL setting: {getattr(settings, 'PUBLIC_URL', 'NOT_SET')}")
 
@@ -548,7 +555,7 @@ def dynamic_seo_context(request):
                             'canonical_url': base_url + post.get_absolute_url(),
                             'og_title': post.title,
                             'og_description': meta_description[:160],
-                            'og_image': request.build_absolute_uri(og_image),
+                            'og_image': request.build_absolute_uri(og_image_with_version),
                             'og_url': base_url + post.get_absolute_url(),
                             'og_type': 'article',
                             'article_author': 'Anvar Sh.',
@@ -562,6 +569,10 @@ def dynamic_seo_context(request):
                             'vk_title': post.title,
                             'vk_description': meta_description[:160],
                             'vk_image': vk_image_url,
+                            # Twitter Card Tags
+                            'twitter_title': post.title,
+                            'twitter_description': meta_description[:160],
+                            'twitter_image': request.build_absolute_uri(og_image_with_version),
                         })
 
                         # ДОБАВЛЕНО: Отладочная информация
@@ -630,8 +641,15 @@ def dynamic_seo_context(request):
                         main_image = project.get_main_image()
                         og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
 
+                        # Добавляем версию к изображению для кэширования
+                        if og_image and not og_image.startswith('http'):
+                            # Для относительных URL добавляем версию
+                            og_image_with_version = f"{og_image}?v={int(project.updated_at.timestamp())}"
+                        else:
+                            og_image_with_version = og_image
+
                         # ДОБАВЛЕНО: Отладочная информация для VK
-                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image}" if og_image.startswith('/') else og_image
+                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
                         logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
 
                         seo_data.update({
@@ -641,7 +659,7 @@ def dynamic_seo_context(request):
                             'canonical_url': base_url + project.get_absolute_url(),
                             'og_title': project.title,
                             'og_description': meta_description[:160],
-                            'og_image': request.build_absolute_uri(og_image),
+                            'og_image': request.build_absolute_uri(og_image_with_version),
                             'og_url': base_url + project.get_absolute_url(),
                             'og_type': 'website',
                             'is_mini_app': is_mini_app,  # ДОБАВЛЕНО: флаг для mini app
@@ -650,6 +668,10 @@ def dynamic_seo_context(request):
                             'vk_title': project.title,
                             'vk_description': meta_description[:160],
                             'vk_image': vk_image_url,
+                            # Twitter Card Tags
+                            'twitter_title': project.title,
+                            'twitter_description': meta_description[:160],
+                            'twitter_image': request.build_absolute_uri(og_image_with_version),
                         })
 
                         # ДОБАВЛЕНО: Отладочная информация

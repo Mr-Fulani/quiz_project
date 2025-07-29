@@ -6,11 +6,6 @@
 {% block meta_description %}{{ project.meta_description|default:project.description|striptags|truncatechars:160 }}{% endblock %}
 {% block meta_keywords %}{{ project.meta_keywords|default:project.technologies }}{% endblock %}
 
-<!-- VK Meta Tags -->
-<meta property="vk:title" content="{{ project.title }}">
-<meta property="vk:description" content="{{ project.description|striptags|truncatechars:160 }}">
-<meta property="vk:image" content="{% if project.get_og_image_url %}{% if project.get_og_image_url|slice:":4" == "http" %}{{ project.get_og_image_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ project.get_og_image_url }}{% endif %}{% endif %}">
-
 {% block extra_head %}
 <!-- Project specific meta -->
 <meta property="article:author" content="QuizHub">
