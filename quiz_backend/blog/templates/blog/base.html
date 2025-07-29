@@ -32,10 +32,13 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/jpeg">
+
     <meta property="og:url" content="{% block og_url %}{{ dynamic_seo.og_url|default:og_url }}{% endblock %}">
     <meta property="og:type" content="{% block og_type %}{{ dynamic_seo.og_type|default:'website' }}{% endblock %}">
     <meta property="og:site_name" content="{{ og_site_name|default:'QuizHub' }}">
     <meta property="og:locale" content="{{ og_locale|default:'en_US' }}">
+    
+
     
     <!-- Article specific OG tags (for blog posts) -->
     {% if dynamic_seo.article_author %}<meta property="article:author" content="{{ dynamic_seo.article_author }}">{% endif %}
@@ -55,11 +58,14 @@
     <meta name="twitter:title" content="{% block twitter_title %}{{ dynamic_seo.twitter_title|default:twitter_title|default:'QuizHub - Programming Quizzes' }}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{{ dynamic_seo.twitter_description|default:twitter_description|truncatechars:200|default:'Master programming with interactive quizzes and tutorials.' }}{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ dynamic_seo.twitter_image|default:twitter_image|default:'/static/blog/images/default-og-image.jpeg' }}{% endblock %}">
+
     
     <!-- VK Meta Tags -->
     <meta property="vk:title" content="{{ dynamic_seo.vk_title|default:'QuizHub - Programming Quizzes' }}">
     <meta property="vk:description" content="{{ dynamic_seo.vk_description|default:'Master programming with interactive quizzes and tutorials.' }}">
     <meta property="vk:image" content="{{ dynamic_seo.vk_image|default:'/static/blog/images/default-og-image.jpeg' }}">
+    
+
     
 
     

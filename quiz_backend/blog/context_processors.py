@@ -547,6 +547,14 @@ def dynamic_seo_context(request):
                         vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
                         logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
                         logger.info(f"=== DEBUG: PUBLIC_URL setting: {getattr(settings, 'PUBLIC_URL', 'NOT_SET')}")
+                        
+                        # ДОБАВЛЕНО: Кэш-бюстинг для всех платформ
+                        cache_buster = int(post.updated_at.timestamp())
+                        # Добавляем несколько параметров для лучшего кэш-бюстинга
+                        if '?' in og_image_with_version:
+                            og_image_with_cache = f"{og_image_with_version}&v={cache_buster}&cb={cache_buster}&t={cache_buster}"
+                        else:
+                            og_image_with_cache = f"{og_image_with_version}?v={cache_buster}&cb={cache_buster}&t={cache_buster}"
 
                         seo_data.update({
                             'meta_title': f"{post.title} | Quiz Project Blog",
@@ -555,7 +563,7 @@ def dynamic_seo_context(request):
                             'canonical_url': base_url + post.get_absolute_url(),
                             'og_title': post.title,
                             'og_description': meta_description[:160],
-                            'og_image': request.build_absolute_uri(og_image_with_version),
+                            'og_image': request.build_absolute_uri(og_image_with_cache),
                             'og_url': base_url + post.get_absolute_url(),
                             'og_type': 'article',
                             'article_author': 'Anvar Sh.',
@@ -572,7 +580,7 @@ def dynamic_seo_context(request):
                             # Twitter Card Tags
                             'twitter_title': post.title,
                             'twitter_description': meta_description[:160],
-                            'twitter_image': request.build_absolute_uri(og_image_with_version),
+                            'twitter_image': request.build_absolute_uri(og_image_with_cache),
                         })
 
                         # ДОБАВЛЕНО: Отладочная информация
