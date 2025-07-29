@@ -226,7 +226,8 @@ class PostViewSet(viewsets.ModelViewSet):
         Возвращает список пользователей, которые лайкнули пост.
         """
         post = self.get_object()
-        likes = post.likes.select_related('user').order_by('-created_at')[:10]  # Последние 10 лайков
+        # Ограничиваем до 3 последних лайков для быстрой загрузки
+        likes = post.likes.select_related('user').order_by('-created_at')[:3]
         
         users_data = []
         for like in likes:
@@ -248,14 +249,11 @@ class PostViewSet(viewsets.ModelViewSet):
         Возвращает список пользователей, которые поделились постом.
         """
         post = self.get_object()
-        shares = post.shares.select_related('user').order_by('-created_at')[:10]  # Последние 10 репостов
+        # Ограничиваем до 3 последних репостов для быстрой загрузки
+        shares = post.shares.select_related('user').filter(user__isnull=False).order_by('-created_at')[:3]
         
         users_data = []
         for share in shares:
-            # Пропускаем записи без пользователя (анонимные репосты)
-            if share.user is None:
-                continue
-                
             users_data.append({
                 'username': share.user.username,
                 'full_name': f"{share.user.first_name} {share.user.last_name}".strip() or share.user.username,
