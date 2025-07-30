@@ -52,4 +52,5 @@ urlpatterns = [
         'delete': 'destroy'
     }), name='miniapp-user-detail'),
     path('miniapp-users/by-telegram/<int:telegram_id>/', api_views.MiniAppUserByTelegramIDView.as_view(), name='miniapp-user-by-telegram'),
+    path('miniapp-users/profile/by-telegram/', api_views.MiniAppProfileByTelegramID.as_view(), name='miniapp-profile-by-telegram'),
 ] 

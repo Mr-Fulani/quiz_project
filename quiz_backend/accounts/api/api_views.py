@@ -363,13 +363,13 @@ class ProfileByTelegramID(APIView):
 
                 # Шаг 4: Обновляем или создаем запись в модели TelegramUser
                 TelegramUser.objects.update_or_create(
-                    user=user,
+                    linked_user=user,
                     telegram_id=telegram_id,
                     defaults={
                         'username': username,
                         'first_name': user_data.get('first_name'),
                         'last_name': user_data.get('last_name'),
-                        'language_code': user_data.get('language_code'),
+                        'language': user_data.get('language_code'),
                         'photo_url': user_data.get('photo_url')
                     }
                 )
@@ -604,4 +604,61 @@ class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):
         """
         if self.request.method in ['PUT', 'PATCH']:
             return MiniAppUserUpdateSerializer
-        return MiniAppUserSerializer 
+        return MiniAppUserSerializer
+
+
+class MiniAppProfileByTelegramID(APIView):
+    """
+    API для получения или создания профиля Mini App пользователя по telegram_id.
+    Принимает POST-запрос с данными пользователя.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        """
+        Ищет MiniAppUser по telegram_id. Если находит - возвращает его
+        профиль. Если нет - создает нового пользователя с данными из запроса.
+        """
+        user_data = request.data
+        telegram_id = user_data.get('telegram_id')
+        username = user_data.get('username')
+
+        if not telegram_id:
+            return Response(
+                {"error": "telegram_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            with transaction.atomic():
+                # Ищем пользователя по telegram_id
+                mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
+
+                if not mini_app_user:
+                    # Создаем нового MiniAppUser
+                    logger.info(f"Создаем нового MiniAppUser для telegram_id {telegram_id}.")
+                    try:
+                        mini_app_user = MiniAppUser.objects.create(
+                            telegram_id=telegram_id,
+                            username=username or f"user_{telegram_id}",
+                            first_name=user_data.get('first_name', ''),
+                            last_name=user_data.get('last_name', ''),
+                            language=user_data.get('language_code', 'ru'),
+                        )
+                    except IntegrityError:
+                        logger.warning(f"Имя пользователя '{username}' уже занято. Создаем уникальное имя.")
+                        unique_username = f"{username}_{telegram_id}"
+                        mini_app_user = MiniAppUser.objects.create(
+                            telegram_id=telegram_id,
+                            username=unique_username,
+                            first_name=user_data.get('first_name', ''),
+                            last_name=user_data.get('last_name', ''),
+                            language=user_data.get('language_code', 'ru'),
+                        )
+
+        except Exception as e:
+            logger.exception(f"Критическая ошибка при создании/обновлении MiniAppUser для telegram_id={telegram_id}: {e}")
+            return Response({"error": "An internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = MiniAppUserSerializer(mini_app_user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK) 

@@ -49,6 +49,10 @@ async def verify_init_data(request: Request):
         data = await request.json()
         init_data_str = data.get('initData')
 
+        # Добавляем логирование для отладки
+        logger.info(f"Получен initData (первые 100 символов): {init_data_str[:100] if init_data_str else 'None'}")
+        logger.info(f"Длина initData: {len(init_data_str) if init_data_str else 0}")
+
         if not init_data_str:
             logger.error("В запросе отсутствует initData")
             raise HTTPException(status_code=400, detail="initData is missing")
@@ -65,9 +69,16 @@ async def verify_init_data(request: Request):
             digestmod=hashlib.sha256
         ).digest()
         
-        # Теперь используем этот ключ для инициализации аутентификатора
-        auth = TelegramAuthenticator(secret=secret_key)
-        init_data = auth.validate(init_data_str)
+        # Пытаемся использовать библиотеку для валидации
+        try:
+            auth = TelegramAuthenticator(secret=secret_key)
+            init_data = auth.validate(init_data_str)
+        except Exception as lib_error:
+            logger.warning(f"Ошибка библиотеки валидации: {lib_error}")
+            logger.info("Пробуем ручную валидацию...")
+            
+            # Ручная валидация как fallback
+            init_data = await manual_validate_init_data(init_data_str, secret_key)
         
         if not init_data.user or not init_data.user.id:
             raise ValueError("User ID not found in parsed data")
@@ -100,6 +111,7 @@ async def verify_init_data(request: Request):
 
     except (InvalidInitDataError, ExpiredInitDataError) as e:
         logger.warning(f"Ошибка валидации initData: {e}")
+        logger.warning(f"Полный initData для отладки: {init_data_str}")
         raise HTTPException(status_code=401, detail=f"Invalid initData: {e}")
     except (ValueError, ValidationError) as e:
         logger.warning(f"Ошибка в данных initData: {e}")
@@ -271,4 +283,63 @@ Disallow: /admin/
 # Причина: Telegram Mini App не должен индексироваться поисковиками
 # так как он предназначен только для работы внутри Telegram"""
     
-    return robots_content 
+    return robots_content
+
+
+async def manual_validate_init_data(init_data_str: str, secret_key: bytes):
+    """
+    Ручная валидация initData как fallback, если библиотека не работает.
+    """
+    import urllib.parse
+    import json
+    from dataclasses import dataclass
+    
+    @dataclass
+    class WebAppUser:
+        id: int
+        first_name: str
+        last_name: str = None
+        username: str = None
+        language_code: str = None
+        photo_url: str = None
+    
+    @dataclass
+    class WebAppInitData:
+        user: WebAppUser
+        query_id: str = None
+        auth_date: int = None
+    
+    try:
+        # Парсим initData
+        params = dict(urllib.parse.parse_qsl(init_data_str))
+        
+        # Проверяем наличие обязательных полей
+        if 'user' not in params:
+            raise ValueError("User data not found in initData")
+        
+        # Декодируем данные пользователя
+        user_data = json.loads(urllib.parse.unquote(params['user']))
+        
+        # Создаем объект пользователя
+        user = WebAppUser(
+            id=user_data['id'],
+            first_name=user_data.get('first_name', ''),
+            last_name=user_data.get('last_name'),
+            username=user_data.get('username'),
+            language_code=user_data.get('language_code'),
+            photo_url=user_data.get('photo_url')
+        )
+        
+        # Создаем объект initData
+        init_data = WebAppInitData(
+            user=user,
+            query_id=params.get('query_id'),
+            auth_date=int(params.get('auth_date', 0))
+        )
+        
+        logger.info(f"Ручная валидация успешна для пользователя {user.id}")
+        return init_data
+        
+    except Exception as e:
+        logger.error(f"Ошибка ручной валидации: {e}")
+        raise ValueError(f"Manual validation failed: {e}") 

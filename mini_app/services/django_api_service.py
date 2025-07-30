@@ -98,7 +98,7 @@ class DjangoAPIService:
             # Сначала пытаемся получить профиль по GET запросу
             profile = await self._make_request(
                 'GET',
-                f'/api/accounts/profile/by-telegram/{telegram_id}/',
+                f'/api/accounts/miniapp-users/by-telegram/{telegram_id}/',
                 headers=headers
             )
             logger.info(f"Найден существующий профиль для telegram_id={telegram_id}")
@@ -109,7 +109,7 @@ class DjangoAPIService:
                 try:
                     new_profile = await self._make_request(
                         'POST',
-                        f'/api/accounts/profile/by-telegram/',
+                        f'/api/accounts/miniapp-users/profile/by-telegram/',
                         headers=headers,
                         json=self._prepare_user_data_for_post(user_data)
                     )
