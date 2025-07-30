@@ -368,7 +368,7 @@ class ContentInteractions {
         
         const shareUrls = {
             telegram: `https://t.me/share/url?url=${encodedUrl}&text=${text}`,
-            vk: `https://vk.com/share.php?url=${encodedUrl}&title=${text}`,
+            vk: `https://vk.com/widget_share.php?url=${encodedUrl}&title=${text}&description=${text}&noparse=true`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
             instagram: `https://www.instagram.com/`,
@@ -413,17 +413,38 @@ class ContentInteractions {
     }
 
     getVkShareUrl(originalUrl) {
-        // Для VK используем тот же метод, что и для других платформ
-        // VK API может работать с любыми URL-ами
-        let shareUrl = this.getShareUrl(originalUrl);
-        
-        // Убеждаемся, что URL использует HTTPS для VK
-        if (shareUrl.startsWith('http://')) {
-            shareUrl = shareUrl.replace('http://', 'https://');
+        // Для VK используем production URL (VK не может получить доступ к localhost)
+        try {
+            const urlObj = new URL(originalUrl);
+            let path = urlObj.pathname;
+            
+            // Сохраняем языковой префикс (/ru/, /en/ и т.д.)
+            // НЕ убираем его!
+            
+            // Убеждаемся, что есть /share/ в пути
+            if (!path.includes('/share/')) {
+                if (path.includes('/post/')) {
+                    path = path.replace('/post/', '/share/post/');
+                } else if (path.includes('/project/')) {
+                    path = path.replace('/project/', '/share/project/');
+                }
+            }
+            
+            // Заменяем домен на production
+            let vkUrl = originalUrl.replace(urlObj.hostname, 'quiz-code.com');
+            vkUrl = vkUrl.replace(urlObj.pathname, path);
+            
+            // Убеждаемся, что URL использует HTTPS
+            if (vkUrl.startsWith('http://')) {
+                vkUrl = vkUrl.replace('http://', 'https://');
+            }
+            
+            console.log('VK share URL (production):', vkUrl);
+            return vkUrl;
+        } catch (error) {
+            console.error('Ошибка при создании VK share URL:', error, 'originalUrl:', originalUrl);
+            return originalUrl;
         }
-        
-        console.log('VK share URL (with HTTPS):', shareUrl);
-        return shareUrl;
     }
 
     openShareWindow(platform, title, url) {
