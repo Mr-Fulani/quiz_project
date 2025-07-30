@@ -968,14 +968,22 @@ def quiz_difficulty(request, quiz_type, subtopic):
     """
     logger.info(f"quiz_difficulty: {quiz_type}/{subtopic}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
-    normalized_subtopic = subtopic.replace('-', '[ -/]')
-    subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
-    logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
+    
+    # Улучшенная логика поиска подтемы
+    # Сначала пробуем точное совпадение (игнорируя регистр)
     try:
-        subtopic_obj = Subtopic.objects.get(subtopic_query)
+        subtopic_obj = Subtopic.objects.get(topic=topic, name__iexact=subtopic)
     except Subtopic.DoesNotExist:
-        logger.error(f"Subtopic not found for query: {subtopic_query}")
-        raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
+        # Если не найдено, пробуем с более гибким regex
+        # Преобразуем generators-coroutines в generators.*coroutines (игнорируя регистр)
+        normalized_subtopic = subtopic.replace('-', '.*')
+        subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
+        logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
+        try:
+            subtopic_obj = Subtopic.objects.get(subtopic_query)
+        except Subtopic.DoesNotExist:
+            logger.error(f"Subtopic not found for query: {subtopic_query}")
+            raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
 
     preferred_language = get_language()  # Изменено: используем get_language()
 
@@ -1064,8 +1072,17 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     """
     logger.info(f"Starting quiz_subtopic: {quiz_type}/{subtopic}/{difficulty}")
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
-    normalized_subtopic = subtopic.replace('-', '[ -/]')
-    subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iregex=normalized_subtopic)
+    
+    # Улучшенная логика поиска подтемы
+    # Сначала пробуем точное совпадение (игнорируя регистр)
+    try:
+        subtopic_obj = Subtopic.objects.get(topic=topic, name__iexact=subtopic)
+    except Subtopic.DoesNotExist:
+        # Если не найдено, пробуем с более гибким regex
+        # Преобразуем generators-coroutines в generators.*coroutines (игнорируя регистр)
+        normalized_subtopic = subtopic.replace('-', '.*')
+        subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iregex=normalized_subtopic)
+    
     preferred_language = get_language()
 
     # Оптимизированный запрос задач
@@ -1207,8 +1224,16 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
-    cleaned_subtopic = subtopic.replace('-', ' ').replace('/', ' ')
-    subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
+    
+    # Улучшенная логика поиска подтемы
+    # Сначала пробуем точное совпадение (игнорируя регистр)
+    try:
+        subtopic_obj = Subtopic.objects.get(topic=topic, name__iexact=subtopic)
+    except Subtopic.DoesNotExist:
+        # Если не найдено, пробуем с более гибким regex
+        # Преобразуем generators-coroutines в generators.*coroutines (игнорируя регистр)
+        cleaned_subtopic = subtopic.replace('-', '.*')
+        subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iregex=cleaned_subtopic)
     task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
 
     preferred_language = request.user.language if request.user.is_authenticated else 'en'
