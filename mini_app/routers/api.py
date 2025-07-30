@@ -107,6 +107,10 @@ async def verify_init_data(request: Request):
             raise HTTPException(status_code=502, detail="Backend service failed to process profile.")
             
         logger.info(f"Профиль для telegram_id: {user_info['telegram_id']} успешно получен/создан.")
+        logger.info(f"Возвращаемые данные профиля: {profile_data}")
+        logger.info(f"Тип profile_data: {type(profile_data)}")
+        logger.info(f"Avatar в profile_data: {profile_data.get('avatar') if isinstance(profile_data, dict) else 'Not a dict'}")
+        logger.info(f"Тип avatar в profile_data: {type(profile_data.get('avatar')) if isinstance(profile_data, dict) else 'N/A'}")
         return JSONResponse(content=profile_data)
 
     except (InvalidInitDataError, ExpiredInitDataError) as e:
@@ -338,6 +342,8 @@ async def manual_validate_init_data(init_data_str: str, secret_key: bytes):
         )
         
         logger.info(f"Ручная валидация успешна для пользователя {user.id}")
+        logger.info(f"Photo URL из Telegram: {user.photo_url}")
+        logger.info(f"Все данные пользователя из Telegram: {user_data}")
         return init_data
         
     except Exception as e:

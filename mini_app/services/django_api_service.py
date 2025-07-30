@@ -71,7 +71,7 @@ class DjangoAPIService:
     
     def _prepare_user_data_for_post(self, user_data) -> dict:
         # Конвертируем объект WebAppUser в словарь для отправки в Django
-        return {
+        data = {
             'telegram_id': user_data.id,
             'username': user_data.username,
             'first_name': user_data.first_name,
@@ -79,6 +79,8 @@ class DjangoAPIService:
             'language_code': user_data.language_code,
             'photo_url': user_data.photo_url
         }
+        logger.info(f"Подготовленные данные для отправки в Django: {data}")
+        return data
 
     async def get_or_create_user_profile(
         self, user_data, host: str = None, scheme: str = None

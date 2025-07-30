@@ -286,7 +286,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
-            'full_name', 'language', 'created_at', 'last_seen',
+            'full_name', 'language', 'avatar', 'created_at', 'last_seen',
             'is_admin', 'admin_type',
             'telegram_user_id', 'telegram_admin_id', 'django_admin_username'
         )
@@ -303,7 +303,7 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MiniAppUser
-        fields = ('telegram_id', 'username', 'first_name', 'last_name', 'language')
+        fields = ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'avatar')
     
     def create(self, validated_data):
         """
@@ -354,7 +354,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MiniAppUser
-        fields = ('username', 'first_name', 'last_name', 'language')
+        fields = ('username', 'first_name', 'last_name', 'language', 'avatar')
     
     def update(self, instance, validated_data):
         """
