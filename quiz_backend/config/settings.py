@@ -380,7 +380,8 @@ else:
         'https://core.telegram.org'
     ] + [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
     CORS_ALLOW_CREDENTIALS = True # или False, в зависимости от ваших нужд
-    SECURE_SSL_REDIRECT = True
+    # Отключаем SSL редирект для внутренних запросов от mini-app
+    SECURE_SSL_REDIRECT = False  # Временно отключаем для решения проблемы с mini-app
     SECURE_HSTS_SECONDS = 2592000  # 30 дней
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
