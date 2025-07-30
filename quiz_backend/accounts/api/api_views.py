@@ -644,6 +644,7 @@ class MiniAppProfileByTelegramID(APIView):
                             first_name=user_data.get('first_name', ''),
                             last_name=user_data.get('last_name', ''),
                             language=user_data.get('language_code', 'ru'),
+                            avatar=user_data.get('photo_url', ''),  # Сохраняем photo_url из Telegram
                         )
                     except IntegrityError:
                         logger.warning(f"Имя пользователя '{username}' уже занято. Создаем уникальное имя.")
@@ -654,7 +655,15 @@ class MiniAppProfileByTelegramID(APIView):
                             first_name=user_data.get('first_name', ''),
                             last_name=user_data.get('last_name', ''),
                             language=user_data.get('language_code', 'ru'),
+                            avatar=user_data.get('photo_url', ''),  # Сохраняем photo_url из Telegram
                         )
+                else:
+                    # Обновляем существующего пользователя, если у него нет аватарки
+                    logger.info(f"Найден существующий MiniAppUser для telegram_id {telegram_id}.")
+                    if not mini_app_user.avatar and user_data.get('photo_url'):
+                        logger.info(f"Обновляем аватарку для существующего пользователя {telegram_id}.")
+                        mini_app_user.avatar = user_data.get('photo_url')
+                        mini_app_user.save()
 
         except Exception as e:
             logger.exception(f"Критическая ошибка при создании/обновлении MiniAppUser для telegram_id={telegram_id}: {e}")

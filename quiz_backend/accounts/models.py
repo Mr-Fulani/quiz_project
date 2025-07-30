@@ -494,6 +494,12 @@ class MiniAppUser(models.Model):
         default='ru', 
         verbose_name="Язык"
     )
+    avatar = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Аватар (URL фото из Telegram)"
+    )
     created_at = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="Дата создания"
