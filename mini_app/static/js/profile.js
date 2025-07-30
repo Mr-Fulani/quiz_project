@@ -35,21 +35,17 @@
     // --- Функции обновления UI ---
 
     function updateAvatar(avatarUrl) {
-        console.log("Обновление аватара с URL:", avatarUrl);
         const { avatar } = getDOMElements();
-        console.log("Найден элемент аватара:", avatar);
         if (avatar) {
             // Если avatarUrl не пришел или пустой, используем заглушку.
             // В противном случае, используем пришедший URL.
             const finalUrl = avatarUrl || '/static/images/default_avatar.png';
-            console.log("Устанавливаем аватар:", finalUrl);
             avatar.src = finalUrl;
             avatar.style.display = 'block';
             
             // Добавляем обработчик ошибок, чтобы в случае битой ссылки
             // также показать заглушку.
             avatar.onerror = () => {
-                console.warn(`Не удалось загрузить аватар по ссылке: ${avatarUrl}. Установлена заглушка.`);
                 avatar.src = '/static/images/default_avatar.png';
                 avatar.onerror = null; // Убираем обработчик, чтобы избежать бесконечного цикла
             };
@@ -109,30 +105,7 @@
                     return;
                 }
             
-                console.log("=== updateProfileDOM ===");
-                console.log("Полученные данные профиля:", userData);
-                console.log("Avatar URL:", userData.avatar);
-                console.log("Точное значение avatar:", JSON.stringify(userData.avatar));
-                console.log("Все поля userData:", JSON.stringify(userData, null, 2));
-                console.log("userData.hasOwnProperty('avatar'):", userData.hasOwnProperty('avatar'));
-                console.log("Object.keys(userData):", Object.keys(userData));
-                console.log("=== Конец updateProfileDOM ===");
-
-        // Временный блок для отладки
-        const debugInfo = document.createElement('div');
-        debugInfo.style.cssText = 'position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 9999; max-width: 300px;';
-        debugInfo.innerHTML = `
-            <strong>Отладка аватарки:</strong><br>
-            Avatar URL: ${userData.avatar || 'null'}<br>
-            Avatar тип: ${typeof userData.avatar}<br>
-            Avatar длина: ${userData.avatar ? userData.avatar.length : 0}<br>
-            Avatar JSON: ${JSON.stringify(userData.avatar)}<br>
-            Element found: ${elements.avatar ? 'Да' : 'Нет'}<br>
-            Все ключи: ${Object.keys(userData).join(', ')}<br>
-            Тип данных: ${typeof userData}<br>
-            Содержит avatar: ${'avatar' in userData ? 'Да' : 'Нет'}
-        `;
-        document.body.appendChild(debugInfo);
+                
 
         const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         elements.name.textContent = fullName || 'Пользователь';
@@ -178,7 +151,6 @@
 
     async function fetchProfileDataFromServer() {
         if (isLoading) {
-            console.log("Загрузка уже в процессе.");
             return;
         }
         isLoading = true;
@@ -186,19 +158,8 @@
 
         try {
             const tg = getTelegramWebApp();
-            console.log("Проверка Telegram WebApp:");
-            console.log("window.Telegram:", window.Telegram);
-            console.log("window.Telegram?.WebApp:", window.Telegram?.WebApp);
-            console.log("tg:", tg);
-            console.log("tg?.initData:", tg?.initData);
-            console.log("typeof tg:", typeof tg);
-            console.log("Все свойства tg:", Object.keys(tg || {}));
-            console.log("tg.initDataUnsafe:", tg?.initDataUnsafe);
-            console.log("tg.ready:", tg?.ready);
-            console.log("tg.version:", tg?.version);
             
             if (!tg || !tg.initData) {
-                console.warn("Телеграм не определен. Показываем заглушку профиля.");
                 // В браузере показываем заглушку профиля
                 const mockData = {
                     first_name: 'Тестовый',
@@ -229,13 +190,6 @@
             }
 
             const data = await response.json();
-            console.log("Сырой ответ от API:", data);
-            console.log("Тип данных:", typeof data);
-            console.log("Ключи в данных:", Object.keys(data));
-            console.log("Avatar в сырых данных:", data.avatar);
-            console.log("Тип avatar в сырых данных:", typeof data.avatar);
-            console.log("JSON.stringify(data):", JSON.stringify(data));
-            console.log("JSON.stringify(data.avatar):", JSON.stringify(data.avatar));
             updateProfileDOM(data);
 
         } catch (error) {
@@ -249,7 +203,6 @@
     // --- Глобальная функция инициализации ---
     // Эта функция будет вызываться из base.html при навигации
     window.initProfilePage = function() {
-        console.log("Инициализация страницы профиля...");
         tg = window.Telegram?.WebApp;
         if (tg) {
             tg.ready();
