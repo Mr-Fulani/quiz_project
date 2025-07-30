@@ -86,11 +86,12 @@ urlpatterns = [
     path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=False), name='project_no_lang'),    
 
 
+    # Кастомный переключатель языка (вне языковых паттернов для работы с любым языком)
+    path('set-language/', custom_set_language, name='custom_set_language'),
 ] + i18n_patterns(
     # path('admin/', admin.site.urls), -> Перенесено выше
     #   -> Админ-панель Django
 
-    path('set-language/', custom_set_language, name='custom_set_language'),  # Кастомный переключатель языка
     path('', include('blog.urls')),
     #   -> Основные URL-ы приложения blog (home, about, contact, etc.)
 

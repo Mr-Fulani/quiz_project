@@ -65,8 +65,21 @@ def custom_set_language(request):
         # Активируем язык для текущего запроса
         activate(language)
         
-        # Получаем текущий URL без языкового префикса
-        current_path = request.path
+        # Получаем referer (откуда пришел запрос) или используем текущий путь
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            # Извлекаем путь из referer
+            from urllib.parse import urlparse
+            parsed_url = urlparse(referer)
+            current_path = parsed_url.path
+        else:
+            # Если нет referer, используем текущий путь
+            current_path = request.path
+        
+        # Убираем /set-language/ из пути если он есть
+        if current_path.startswith('/set-language/'):
+            current_path = '/'
+        
         path_parts = current_path.split('/')
         
         # Убираем языковой префикс если он есть
