@@ -287,13 +287,13 @@
                         </div>
                         <div class="language-dropdown" id="language-dropdown">
                             <button type="button" class="language-option {% if LANGUAGE_CODE == 'en' %}active{% endif %}"
-                                    onclick="switchLanguage('en')">EN</button>
+                                    onclick="switchLanguage('en')" data-lang="en">EN</button>
                             <button type="button" class="language-option {% if LANGUAGE_CODE == 'ru' %}active{% endif %}"
-                                    onclick="switchLanguage('ru')">RU</button>
+                                    onclick="switchLanguage('ru')" data-lang="ru">RU</button>
                         </div>
 
                         <!-- Скрытая форма для отправки -->
-                        <form id="hidden-language-form" action="{% url 'set_language' %}" method="post" style="display: none;">
+                        <form id="hidden-language-form" action="{% url 'custom_set_language' %}" method="post" style="display: none;">
                             {% csrf_token %}
                             <input type="hidden" name="language" id="selected-language">
                         </form>
@@ -524,6 +524,18 @@
                 languageDropdown.classList.toggle('active');
             });
 
+            // Обработчик кликов на кнопки языка (fallback)
+            const languageButtons = document.querySelectorAll('.language-option');
+            languageButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const lang = this.getAttribute('data-lang');
+                    if (lang) {
+                        // Пытаемся использовать основную функцию
+                        switchLanguage(lang);
+                    }
+                });
+            });
+
             // Закрытие dropdown при клике вне области
             document.addEventListener('click', function(e) {
                 if (!languageSwitcherGlobe.contains(e.target)) {
@@ -582,6 +594,19 @@
             setTimeout(() => {
                 hiddenForm.submit();
             }, 150);
+        } else {
+            // Fallback: прямой переход по URL (работает в инкогнито)
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            
+            // Убираем языковой префикс если он есть
+            if (pathParts.length > 1 && (pathParts[1] === 'en' || pathParts[1] === 'ru')) {
+                pathParts.splice(1, 1); // Убираем языковой префикс
+            }
+            
+            // Собираем новый путь
+            const newPath = `/${lang}${pathParts.join('/')}`;
+            window.location.href = newPath;
         }
     }
 </script>
