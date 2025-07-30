@@ -35,7 +35,7 @@ class TelegramAdmin(Base):
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
     photo = Column(String(500), nullable=True)
-    language = Column(String(10), default='ru', nullable=True)
+    language = Column(String(10), default='en', nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
     # ManyToMany с TelegramGroup через промежуточную таблицу

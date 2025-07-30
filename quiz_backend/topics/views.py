@@ -126,7 +126,7 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
     def get_queryset(self):
         # Возвращаем только подтемы с задачами на русском языке (пока hardcode)
         # TODO: добавить поддержку динамического языка из запроса  
-        language = 'ru'
+        language = 'en'
         queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
         
         # Фильтруем только те подтемы, у которых есть опубликованные задачи с переводами на нужном языке

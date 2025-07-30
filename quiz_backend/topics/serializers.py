@@ -35,7 +35,7 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     def get_questions_count(self, obj):
         # Подсчитываем количество задач для подтемы с переводами на русском (пока hardcode)
         # TODO: добавить поддержку динамического языка из запроса
-        language = 'ru'
+        language = 'en'
         return obj.tasks.filter(
             published=True,
             translations__language=language

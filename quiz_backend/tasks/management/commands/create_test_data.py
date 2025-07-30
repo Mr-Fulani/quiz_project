@@ -78,7 +78,7 @@ class Command(BaseCommand):
             group_name='Website Platform',
             group_id=0,  # используем 0 как специальный ID для веб-платформы
             topic_id=0,  # или другое подходящее значение
-            language='ru',  # или другой язык по умолчанию
+            language='en',  # или другой язык по умолчанию
             location_type='web'
         )
         

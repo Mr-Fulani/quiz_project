@@ -742,7 +742,7 @@ class DjangoAdminAdmin(admin.ModelAdmin):
                 admin.is_staff = custom_user.is_staff
                 admin.is_superuser = custom_user.is_superuser
                 admin.is_active = custom_user.is_active
-                admin.language = custom_user.language or 'ru'
+                admin.language = custom_user.language or 'en'
                 admin.first_name = custom_user.first_name
                 admin.last_name = custom_user.last_name
                 admin.last_login = custom_user.last_login

@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`,
                     {
                         headers: {
-                            'Accept-Language': 'ru',
+                            'Accept-Language': 'en',
                             'User-Agent': 'YourApp'
                         }
                     }

@@ -356,7 +356,7 @@ class DjangoAdmin(AbstractUser):
     Хранит данные для управления сайтом через админ-панель.
     """
     phone_number = models.CharField(max_length=15, null=True, blank=True, verbose_name="Номер телефона")
-    language = models.CharField(max_length=10, default='ru', verbose_name="Язык")
+    language = models.CharField(max_length=10, default='en', verbose_name="Язык")
     is_django_admin = models.BooleanField(default=True, verbose_name="Django Admin")
 
     class Meta:
