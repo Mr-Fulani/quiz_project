@@ -153,8 +153,8 @@ def detect_user_language(donation):
             if domain in email_lower:
                 return 'ru'
     
-    # По умолчанию русский (поскольку это русскоязычный проект)
-    return 'ru'
+    # По умолчанию английский (основной язык сайта)
+    return 'en'
 
 
 def send_donation_thank_you_email(donation):

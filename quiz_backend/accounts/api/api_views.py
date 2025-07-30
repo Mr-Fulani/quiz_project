@@ -82,7 +82,7 @@ class RegisterView(generics.CreateAPIView):
     def get(self, request, *args, **kwargs):
         """Перенаправление на главную."""
         from django.utils.translation import get_language
-        lang_code = get_language() or 'ru'
+        lang_code = get_language() or 'en'
         return HttpResponseRedirect(f'/{lang_code}/?open_register=true')
 
     def create(self, request, *args, **kwargs):
@@ -133,7 +133,7 @@ class RegisterView(generics.CreateAPIView):
                 # Объединяем все сообщения об ошибках в одно с разделителем
                 combined_error = ' | '.join(error_messages)
                 error_param = quote(combined_error)
-                lang_code = get_language() or 'ru'
+                lang_code = get_language() or 'en'
                 return HttpResponseRedirect(f'/{lang_code}/?open_register=true&error={error_param}')
             
             # Для API запросов возвращаем JSON

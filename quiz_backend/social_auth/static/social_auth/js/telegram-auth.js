@@ -10,7 +10,7 @@ class TelegramAuth {
         this.options = {
             botName: options.botName || 'QuizHubBot',
             requestAccess: options.requestAccess || true,
-            lang: options.lang || 'ru',
+            lang: options.lang || 'en',
             usePic: options.usePic || true,
             cornerRadius: options.cornerRadius || 8,
             ...options
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (container) {
         window.telegramAuth = new TelegramAuth({
             botName: 'mr_proger_bot', // Имя вашего бота
-            lang: document.documentElement.lang || 'ru'
+            lang: document.documentElement.lang || 'en'
         });
     }
 });

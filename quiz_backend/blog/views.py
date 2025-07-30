@@ -1174,7 +1174,7 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
     subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iexact=cleaned_subtopic)
     task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
 
-    preferred_language = request.user.language if request.user.is_authenticated else 'ru'
+    preferred_language = request.user.language if request.user.is_authenticated else 'en'
     translation = (TaskTranslation.objects.filter(task=task, language=preferred_language).first() or
                    TaskTranslation.objects.filter(task=task).first())
 

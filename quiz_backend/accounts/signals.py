@@ -54,7 +54,7 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                 django_admin.is_staff = instance.is_staff
                 django_admin.is_superuser = instance.is_superuser
                 django_admin.is_active = instance.is_active
-                django_admin.language = instance.language or 'ru'
+                django_admin.language = instance.language or 'en'
                 django_admin.first_name = instance.first_name
                 django_admin.last_name = instance.last_name
                 django_admin.last_login = instance.last_login

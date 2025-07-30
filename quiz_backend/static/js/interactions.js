@@ -16,8 +16,8 @@ class ContentInteractions {
     }
 
     initTranslations() {
-        // Получаем язык из HTML lang атрибута или используем русский по умолчанию
-        const lang = document.documentElement.lang || 'ru';
+        // Получаем язык из HTML lang атрибута или используем английский по умолчанию
+        const lang = document.documentElement.lang || 'en';
         
         const translations = {
             'ru': {
@@ -46,7 +46,7 @@ class ContentInteractions {
             }
         };
         
-        return translations[lang] || translations['ru'];
+        return translations[lang] || translations['en'];
     }
 
     init() {

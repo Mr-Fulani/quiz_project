@@ -77,8 +77,8 @@ urlpatterns = [
     path('donation/confirm-payment/', confirm_payment, name='confirm_payment'),
     path('donation/stripe-webhook/', stripe_webhook, name='stripe_webhook'),
     
-    # Редирект с корневого URL на язык по умолчанию
-    path('', RedirectView.as_view(pattern_name='blog:home', permanent=False), name='root-redirect'),
+    # Редирект с корневого URL на английский язык (язык по умолчанию)
+    path('', RedirectView.as_view(url='/en/', permanent=False), name='root-redirect'),
     
     # Редирект для VK sharing - URL без языкового префикса
     path('post/<slug:slug>/', RedirectView.as_view(url='/ru/post/%(slug)s/', permanent=False), name='post_no_lang'),
