@@ -13,7 +13,7 @@
 #         [
 #             InlineKeyboardButton(
 #                 text="Открыть мини-приложение",
-#                 web_app=WebAppInfo(url="https://5655-185-241-101-35.ngrok-free.app")
+#                 web_app=WebAppInfo(url="https://quiz-code.com")
 #             )
 #         ]
 #     ]

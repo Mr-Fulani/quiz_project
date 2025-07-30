@@ -475,11 +475,18 @@ def dynamic_seo_context(request):
     logger.info(f"=== DEBUG: base_url: {base_url}, is_mini_app: {is_mini_app}")
 
     try:
-        # SEO для постов блога
-        if '/post/' in path or path.endswith('/post/'):
+        # SEO для постов блога (включая share URL)
+        if '/post/' in path or path.endswith('/post/') or '/share/post/' in path:
             from blog.models import Post
             from django.db import connection, transaction
-            slug = path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]
+            # Извлекаем slug из пути, учитывая share URL
+            path_parts = [part for part in path.split('/') if part]
+            if '/share/post/' in path:
+                # Для /ru/share/post/krutoj-promt-dlya-gpt/ берем последнюю часть
+                slug = path_parts[-1]
+            else:
+                # Для обычного /ru/post/krutoj-promt-dlya-gpt/ берем последнюю часть
+                slug = path_parts[-1]
             
             # ДОБАВЛЕНО: Отладочная информация
             logger.info(f"=== DEBUG: Processing post with slug: {slug}")
