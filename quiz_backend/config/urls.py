@@ -15,6 +15,7 @@ from rest_framework import permissions
 from django.views.generic.base import RedirectView
 
 from blog.api.api_views import tinymce_image_upload
+from blog.views import custom_set_language
 from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook
 from social_auth.views import TelegramAuthView
 
@@ -89,6 +90,7 @@ urlpatterns = [
     # path('admin/', admin.site.urls), -> Перенесено выше
     #   -> Админ-панель Django
 
+    path('set-language/', custom_set_language, name='custom_set_language'),  # Кастомный переключатель языка
     path('', include('blog.urls')),
     #   -> Основные URL-ы приложения blog (home, about, contact, etc.)
 

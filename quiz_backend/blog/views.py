@@ -21,12 +21,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 from django.db.models.functions import TruncDate
-from django.http import JsonResponse, FileResponse, Http404
+from django.http import JsonResponse, FileResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.utils.translation import gettext_lazy as _, get_language
+from django.utils.translation import gettext_lazy as _, get_language, activate
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic import TemplateView, DetailView, ListView
@@ -48,9 +48,46 @@ from .forms import (ContactForm, PostForm, ProjectForm, TestimonialForm,
                     TaskFilterForm)
 
 
-
 logger = logging.getLogger(__name__)
 
+
+def custom_set_language(request):
+    """
+    Кастомный view для переключения языка через URL-параметры.
+    Работает в режиме инкогнито, так как не зависит от куки.
+    """
+    if request.method == 'POST':
+        language = request.POST.get('language')
+    else:
+        language = request.GET.get('language')
+    
+    if language and language in [lang[0] for lang in settings.LANGUAGES]:
+        # Активируем язык для текущего запроса
+        activate(language)
+        
+        # Получаем текущий URL без языкового префикса
+        current_path = request.path
+        path_parts = current_path.split('/')
+        
+        # Убираем языковой префикс если он есть
+        if len(path_parts) > 1 and path_parts[1] in [lang[0] for lang in settings.LANGUAGES]:
+            path_parts = path_parts[2:]  # Убираем пустой элемент и языковой префикс
+        else:
+            path_parts = path_parts[1:]  # Убираем только пустой элемент
+        
+        # Собираем новый путь с новым языковым префиксом
+        new_path = f'/{language}/'
+        if path_parts:
+            new_path += '/'.join(path_parts)
+        
+        # Добавляем trailing slash если нужно
+        if current_path.endswith('/') and not new_path.endswith('/'):
+            new_path += '/'
+        
+        return HttpResponseRedirect(new_path)
+    
+    # Если язык не указан или неверный, редиректим на язык по умолчанию
+    return HttpResponseRedirect(f'/{settings.LANGUAGE_CODE}/')
 
 
 
