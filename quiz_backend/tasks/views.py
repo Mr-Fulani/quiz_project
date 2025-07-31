@@ -1,9 +1,12 @@
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
+from django.shortcuts import get_object_or_404
 
 from .models import Task, TaskStatistics
+from topics.models import Subtopic
 from .serializers import (
     TaskSerializer,
     TaskStatisticsSerializer,
@@ -117,3 +120,74 @@ class TopicTaskStatsView(generics.GenericAPIView):
             'average_time': 0.0,
             'total_points': 0
         })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def tasks_by_subtopic(request, subtopic_id):
+    """
+    Получение задач для подтемы с учетом языка
+    """
+    try:
+        subtopic = get_object_or_404(Subtopic, id=subtopic_id)
+        language = request.query_params.get('language', 'en')
+        
+        # Получаем задачи с переводами на нужном языке
+        tasks = Task.objects.filter(
+            subtopic=subtopic,
+            published=True,
+            translations__language=language
+        ).select_related('topic', 'subtopic').prefetch_related(
+            'translations'
+        )
+        
+        # Подготавливаем данные для мини-приложения
+        tasks_data = []
+        for task in tasks:
+            translation = task.translations.filter(language=language).first()
+            if translation:
+                # Перемешиваем варианты ответов
+                import random
+                import json
+                
+                try:
+                    answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
+                except (json.JSONDecodeError, TypeError):
+                    answers = []
+                
+                # Перемешиваем ответы
+                shuffled_answers = answers[:]
+                random.shuffle(shuffled_answers)
+                
+                # Добавляем опцию "Не знаю"
+                dont_know_options = {
+                    'ru': 'Я не знаю, но хочу узнать',
+                    'en': 'I don\'t know, but I want to learn'
+                }
+                dont_know_option = dont_know_options.get(language, dont_know_options['en'])
+                shuffled_answers.append(dont_know_option)
+                
+                task_data = {
+                    'id': task.id,
+                    'topic_id': task.topic.id,
+                    'subtopic_id': task.subtopic.id,
+                    'difficulty': task.difficulty,
+                    'image_url': task.image_url,
+                    'question': translation.question,
+                    'answers': shuffled_answers,
+                    'correct_answer': translation.correct_answer,
+                    'explanation': translation.explanation or '',
+                    'is_solved': False  # Для мини-приложения пока всегда False
+                }
+                tasks_data.append(task_data)
+        
+        return Response({
+            'results': tasks_data,
+            'count': len(tasks_data),
+            'subtopic_name': subtopic.name,
+            'topic_name': subtopic.topic.name
+        })
+        
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

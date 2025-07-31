@@ -28,6 +28,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - ADMIN_SECRET_PASSWORD=${ADMIN_SECRET_PASSWORD}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - WEBAPP_URL=${WEBAPP_URL}
       - PYTHONPATH=/quiz_project
       - LOGO_PATH=/quiz_project/bot/assets/logo.png
     volumes:
@@ -94,6 +95,7 @@ services:
       - APP_PORT=8080
       - DJANGO_API_TOKEN=${DJANGO_API_TOKEN}
       - DJANGO_API_BASE_URL=http://quiz_backend:8000
+      - WEBAPP_URL=${WEBAPP_URL}
       - PYTHONPATH=/mini_app
     volumes:
       - ./mini_app:/mini_app

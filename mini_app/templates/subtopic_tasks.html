@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}{{ subtopic.name }} - {{ translations.get('tasks', 'Задачи') }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/tasks.css">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header class="page-header">
+        <div class="back-button" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i>
+        </div>
+        <h1>{{ subtopic.name }}</h1>
+        <div class="topic-info">
+            <span class="topic-name">{{ subtopic.topic_name }}</span>
+        </div>
+    </header>
+
+    <div class="tasks-container">
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="task-item" data-task-id="{{ task.id }}">
+                <!-- Картинка задачи -->
+                {% if task.image_url %}
+                <div class="task-image">
+                    <img src="{{ task.image_url }}" alt="{{ translations.get('task_image', 'Изображение задачи') }}" loading="lazy">
+                </div>
+                {% endif %}
+
+                <!-- Вопрос -->
+                <div class="task-question">
+                    <h3>{{ task.question }}</h3>
+                </div>
+
+                <!-- Варианты ответов -->
+                <div class="task-answers">
+                    {% for answer in task.answers %}
+                    <button class="answer-option" 
+                            data-answer="{{ answer }}"
+                            data-correct="{% if answer == task.correct_answer %}true{% else %}false{% endif %}"
+                            onclick="selectAnswer(this, '{{ answer|escape }}', '{{ task.correct_answer|escape }}', '{{ task.explanation|escape }}')">
+                        {{ answer }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Объяснение (скрыто по умолчанию) -->
+                <div class="task-explanation" id="explanation-{{ task.id }}" style="display: none;">
+                    <div class="explanation-content">
+                        <h4>{{ translations.get('explanation', 'Объяснение') }}</h4>
+                        <p>{{ task.explanation }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-tasks">
+                <p>{{ translations.get('no_tasks_available', 'Задачи не найдены') }}</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Стили для задач */
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.back-button {
+    cursor: pointer;
+    padding: 10px;
+    margin-right: 15px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    transition: background 0.3s;
+}
+
+.back-button:hover {
+    background: #e0e0e0;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+    flex-grow: 1;
+}
+
+.topic-info {
+    text-align: right;
+}
+
+.topic-name {
+    font-size: 14px;
+    color: #666;
+    background: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 15px;
+}
+
+.task-item {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
+}
+
+.task-image {
+    margin-bottom: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.task-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.task-question h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    color: #333;
+    line-height: 1.5;
+}
+
+.task-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.answer-option {
+    padding: 15px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.answer-option:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.answer-option.selected {
+    border-color: #007bff;
+    background: #e3f2fd;
+}
+
+.answer-option.correct {
+    border-color: #28a745;
+    background: #d4edda;
+    color: #155724;
+}
+
+.answer-option.incorrect {
+    border-color: #dc3545;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.answer-option.disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.task-explanation {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #007bff;
+}
+
+.explanation-content h4 {
+    margin: 0 0 10px 0;
+    color: #007bff;
+    font-size: 16px;
+}
+
+.explanation-content p {
+    margin: 0;
+    color: #333;
+    line-height: 1.6;
+}
+
+.no-tasks {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .tasks-container {
+        padding: 15px;
+    }
+    
+    .task-item {
+        padding: 15px;
+    }
+    
+    .answer-option {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+    
+    .page-header h1 {
+        font-size: 20px;
+    }
+}
+</style>
+
+<script>
+function selectAnswer(button, selectedAnswer, correctAnswer, explanation) {
+    const taskItem = button.closest('.task-item');
+    const answers = taskItem.querySelectorAll('.answer-option');
+    
+    // Отключаем все кнопки
+    answers.forEach(btn => {
+        btn.classList.add('disabled');
+        btn.style.pointerEvents = 'none';
+    });
+    
+    // Отмечаем выбранный ответ
+    button.classList.add('selected');
+    
+    // Проверяем правильность
+    const isCorrect = selectedAnswer === correctAnswer;
+    
+    if (isCorrect) {
+        button.classList.add('correct');
+        showSuccessMessage();
+    } else {
+        button.classList.add('incorrect');
+        // Показываем правильный ответ
+        answers.forEach(btn => {
+            if (btn.dataset.correct === 'true') {
+                btn.classList.add('correct');
+            }
+        });
+    }
+    
+    // Показываем объяснение
+    const taskId = taskItem.dataset.taskId;
+    const explanationDiv = document.getElementById(`explanation-${taskId}`);
+    if (explanationDiv) {
+        explanationDiv.style.display = 'block';
+        explanationDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function showSuccessMessage() {
+    // Показываем уведомление
+    const toast = document.createElement('div');
+    toast.textContent = 'Правильно! Отличная работа!';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        background: #28a745;
+        max-width: 300px;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+function goBack() {
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        window.Telegram.WebApp.navigateTo('/');
+    } else {
+        window.history.back();
+    }
+}
+</script>
+{% endblock %} 

@@ -193,7 +193,7 @@ function initTopicCards() {
             <div class="card-overlay always-visible">
                 <h3>${title}</h3>
                 <div class="card-actions">
-                    <button class="btn-start" onclick="startTopic(event, ${card.getAttribute('data-topic-id')})">Начать</button>
+                    <button class="btn-start" onclick="handleStartTopic(event, ${card.getAttribute('data-topic-id')})">Начать</button>
                     <button class="btn-back" onclick="goBackFromCard(event)">Назад</button>
                 </div>
             </div>

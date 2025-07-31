@@ -187,6 +187,33 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
+@router.patch("/profile/{telegram_id}/update/")
+async def update_profile_json(telegram_id: int, request: Request):
+    """
+    Обновляет профиль пользователя в JSON формате.
+    """
+    logger.info(f"Updating profile JSON for telegram_id: {telegram_id}")
+    
+    try:
+        # Получаем JSON данные из запроса
+        profile_data = await request.json()
+        logger.info(f"Received profile data: {profile_data}")
+        
+        # Отправляем данные в Django API
+        updated_profile = await django_api_service.update_user_profile(telegram_id, profile_data)
+        
+        if updated_profile:
+            return JSONResponse(content=updated_profile)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update profile")
+            
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in request: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except Exception as e:
+        logger.error(f"Error updating profile: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
 # Вспомогательные функции для работы с Django API
 async def fetch_topics_from_django(search: str = None):
     """Получение списка тем из Django API"""
