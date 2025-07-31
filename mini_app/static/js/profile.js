@@ -157,9 +157,23 @@
         showLoader();
 
         try {
+            console.log('🔍 fetchProfileDataFromServer вызван');
+            console.log('window.currentUser:', window.currentUser);
+            console.log('window.isUserInitialized:', window.isUserInitialized);
+            
+            // Проверяем, есть ли уже инициализированные данные пользователя
+            if (window.currentUser && window.isUserInitialized) {
+                console.log('✅ Используем уже инициализированные данные пользователя');
+                updateProfileDOM(window.currentUser);
+                return;
+            }
+
             const tg = getTelegramWebApp();
+            console.log('🔍 Telegram WebApp:', tg);
+            console.log('🔍 initData:', tg?.initData);
             
             if (!tg || !tg.initData) {
+                console.log('⚠️ Нет initData, показываем тестового пользователя');
                 // В браузере показываем заглушку профиля
                 const mockData = {
                     first_name: 'Тестовый',

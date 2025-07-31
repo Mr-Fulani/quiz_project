@@ -136,15 +136,15 @@ async def setup_telegram_menu(bot: Bot):
     """
     await bot.set_my_commands([])
     
-    # Формируем корректный URL для главной страницы
-    main_url = f"{WEBAPP_URL}/"
+    # Формируем корректный URL для страницы профиля (чтобы initData передавался)
+    profile_url = f"{WEBAPP_URL}/profile"
     
-    logger.info(f"🔗 Настройка меню Telegram с URL: {main_url}")
+    logger.info(f"🔗 Настройка меню Telegram с URL: {profile_url}")
     
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
-            text="Открыть приложение", # Изменим текст для ясности
-            web_app=WebAppInfo(url=main_url)
+            text="Профиль", # Изменим текст для ясности
+            web_app=WebAppInfo(url=profile_url)
         )
     )
     
