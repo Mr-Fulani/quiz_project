@@ -33,9 +33,13 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         ]
 
     def get_questions_count(self, obj):
-        # Подсчитываем количество задач для подтемы с переводами на русском (пока hardcode)
-        # TODO: добавить поддержку динамического языка из запроса
-        language = 'en'
+        # Получаем язык из контекста запроса
+        request = self.context.get('request')
+        language = 'en'  # По умолчанию английский
+        
+        if request:
+            language = request.query_params.get('language', 'en')
+        
         return obj.tasks.filter(
             published=True,
             translations__language=language
@@ -102,10 +106,18 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
         return random.choice(difficulties)
     
     def get_questions_count(self, obj):
-        # Временно генерируем случайное количество вопросов
-        # TODO: подсчитывать реальное количество вопросов из связанных моделей
-        random.seed(obj.id * 2)  # Фиксированное количество для каждой темы
-        return random.randint(15, 35)
+        # Получаем язык из контекста запроса
+        request = self.context.get('request')
+        language = 'en'  # По умолчанию английский
+        
+        if request:
+            language = request.query_params.get('language', 'en')
+        
+        # Подсчитываем реальное количество задач с переводами на указанном языке
+        return obj.tasks.filter(
+            published=True,
+            translations__language=language
+        ).distinct().count()
     
     def get_image_url(self, obj):
         # Используем иконку темы или fallback на случайное изображение

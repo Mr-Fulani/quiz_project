@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ current_language or 'en' }}">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>{% block title %}Мое приложение{% endblock %}</title>
+    <title>{% block title %}{{ translations.get('home', 'Мое приложение') }}{% endblock %}</title>
 
     <!-- Подключение шрифтов -->
 <!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
 
     <!-- Подключаем стили -->
     <link rel="stylesheet" href="/static/css/styles.css">
+    
+    <!-- Дополнительные стили для страниц -->
+    {% block extra_css %}{% endblock %}
 
     <!-- Подключение Ionicons для иконок (если нужно для меню) -->
     <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
@@ -30,33 +33,33 @@
     <nav class="navigation">
         <ul>
             <li class="list {% if request.url.path == '/' or request.url.path.startswith('/topic/') %}active{% endif %}" data-href="/">
-                <a href="/">
+                <a href="/?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
-                    <span class="text">Главная</span>
+                    <span class="text">{{ translations.get('home', 'Главная') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}" data-href="/profile">
-                <a href="/profile">
+                <a href="/profile?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
-                    <span class="text">Профиль</span>
+                    <span class="text">{{ translations.get('profile', 'Профиль') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/achievements' %}active{% endif %}" data-href="/achievements">
-                <a href="/achievements">
+                <a href="/achievements?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
-                    <span class="text">Достижения</span>
+                    <span class="text">{{ translations.get('achievements', 'Достижения') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/statistics' %}active{% endif %}" data-href="/statistics">
-                <a href="/statistics">
+                <a href="/statistics?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
-                    <span class="text">Статистика</span>
+                    <span class="text">{{ translations.get('statistics', 'Статистика') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/settings' %}active{% endif %}" data-href="/settings">
-                <a href="/settings">
+                <a href="/settings?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
-                    <span class="text">Настройки</span>
+                    <span class="text">{{ translations.get('settings', 'Настройки') }}</span>
                 </a>
             </li>
             <div class="indicator"></div>
@@ -64,6 +67,72 @@
     </nav>
 
     <script>
+        // Глобальные переменные для локализации
+        window.currentLanguage = '{{ current_language or "en" }}';
+        window.translations = {{ translations | tojson }};
+        window.supportedLanguages = {{ supported_languages | tojson }};
+        
+        // Глобальные переменные для пользователя
+        window.currentUser = null;
+        window.isUserInitialized = false;
+        
+        // Инициализация пользователя при загрузке приложения
+        async function initializeUser() {
+            console.log('🚀 Initializing user...');
+            
+            // Проверяем, что мы в Telegram Web App
+            if (typeof window.Telegram === 'undefined' || !window.Telegram.WebApp) {
+                console.log('⚠️ Not in Telegram Web App, skipping user initialization');
+                return;
+            }
+            
+            try {
+                // Получаем initData от Telegram
+                const initData = window.Telegram.WebApp.initData;
+                console.log('📱 Got initData from Telegram:', initData ? 'present' : 'missing');
+                
+                if (!initData) {
+                    console.log('❌ No initData available');
+                    return;
+                }
+                
+                // Отправляем запрос на сервер для валидации и получения профиля
+                const response = await fetch('/api/verify-init-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ initData: initData })
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log('✅ User data received:', userData);
+                    
+                    // Сохраняем данные пользователя глобально
+                    window.currentUser = userData;
+                    window.isUserInitialized = true;
+                    
+                    // Вызываем callback если он установлен
+                    if (window.onUserInitialized) {
+                        window.onUserInitialized(userData);
+                    }
+                    
+                    // Обновляем профиль если мы на странице профиля
+                    if (window.location.pathname === '/profile' && window.initProfilePage) {
+                        console.log('🔄 Reinitializing profile page with user data');
+                        window.initProfilePage();
+                    }
+                    
+                } else {
+                    console.error('❌ Failed to verify initData:', response.status, response.statusText);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error initializing user:', error);
+            }
+        }
+        
         // Magic Navigation Menu Script с AJAX навигацией
         const list = document.querySelectorAll('.list');
         const contentContainer = document.querySelector('.content');
@@ -181,11 +250,20 @@
         // **Инициализация при первой загрузке**
         // Загружаем контент для текущей страницы при первом открытии
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOMContentLoaded - starting initialization');
+            
+            // Инициализируем пользователя
+            initializeUser();
+            
             // Проверяем, что это не результат нажатия "назад"
             if (performance.navigation.type !== performance.navigation.TYPE_BACK_FORWARD) {
                  loadPage(window.location.pathname);
             }
         });
+        
+        // Экспортируем функции глобально для использования в других скриптах
+        window.initializeUser = initializeUser;
+        window.loadPage = loadPage;
     </script>
 
     <!-- Подключаем скрипты -->

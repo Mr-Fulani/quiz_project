@@ -46,9 +46,9 @@ class DjangoAPIService:
                 logger.error(f"Тело ответа: {response.text}")
                 raise
     
-    async def get_topics(self, search: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Получение списка тем"""
-        params = {}
+    async def get_topics(self, search: Optional[str] = None, language: str = 'en') -> List[Dict[str, Any]]:
+        """Получение списка тем с учетом языка"""
+        params = {'language': language}
         if search:
             params['search'] = search
             
@@ -60,13 +60,23 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении тем: {e}")
             return []
     
-    async def get_subtopics(self, topic_id: int) -> List[Dict[str, Any]]:
-        """Получение подтем для конкретной темы"""
+    async def get_subtopics(self, topic_id: int, language: str = 'en') -> List[Dict[str, Any]]:
+        """Получение подтем для конкретной темы с учетом языка"""
         try:
-            data = await self._make_request("GET", f"/topics/{topic_id}/subtopics/")
-            return data.get('results', [])
+            data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params={'language': language})
+            # API возвращает список напрямую, а не объект с results
+            return data if isinstance(data, list) else []
         except Exception as e:
             logger.error(f"Ошибка при получении подтем для темы {topic_id}: {e}")
+            return []
+    
+    async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en') -> List[Dict[str, Any]]:
+        """Получение задач для подтемы с учетом языка"""
+        try:
+            data = await self._make_request("GET", f"/api/subtopic/{subtopic_id}/", params={'language': language})
+            return data.get('results', [])
+        except Exception as e:
+            logger.error(f"Ошибка при получении задач для подтемы {subtopic_id}: {e}")
             return []
     
     def _prepare_user_data_for_post(self, user_data) -> dict:

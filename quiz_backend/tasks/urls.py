@@ -9,6 +9,9 @@ urlpatterns = [
     path('<int:pk>/', views.TaskDetailView.as_view(), name='task-detail'),
     path('create/', views.TaskCreateView.as_view(), name='task-create'),
     
+    # Задачи по подтеме (для мини-приложения)
+    path('subtopic/<int:subtopic_id>/', views.tasks_by_subtopic, name='tasks-by-subtopic'),
+    
     # Статистика задач
     path('stats/', views.TaskStatsView.as_view(), name='task-stats'),
     path('stats/user/', views.UserTaskStatsView.as_view(), name='user-task-stats'),

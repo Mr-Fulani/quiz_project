@@ -1,37 +1,251 @@
 {% extends "base.html" %}
 
 {% block title %}
-Настройки
+{{ translations.get('settings_title', 'Настройки') }}
 {% endblock %}
 
 {% block content %}
-<div class="centered-text">
-    <h1>Настройки</h1>
-    <p>Здесь вы можете изменить настройки вашего профиля.</p>
-
-    <!-- Пример формы настроек -->
-    <form action="/settings/update/" method="post" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="first_name">Имя:</label>
-            <input type="text" id="first_name" name="first_name" value="">
+<div class="settings-container">
+    <h1>{{ translations.get('settings_title', 'Настройки') }}</h1>
+    
+    <!-- Настройки языка -->
+    <div class="settings-section">
+        <h2>{{ translations.get('language_settings', 'Язык') }}</h2>
+        <div class="language-selector">
+            {% for lang in supported_languages %}
+            <button 
+                class="language-btn {% if lang == current_language %}active{% endif %}" 
+                onclick="changeLanguage('{{ lang }}')"
+                data-lang="{{ lang }}"
+            >
+                {% if lang == 'en' %}🇺🇸 English{% endif %}
+                {% if lang == 'ru' %}🇷🇺 Русский{% endif %}
+            </button>
+            {% endfor %}
         </div>
-        <div class="form-group">
-            <label for="last_name">Фамилия:</label>
-            <input type="text" id="last_name" name="last_name" value="">
+    </div>
+    
+    <!-- Другие настройки -->
+    <div class="settings-section">
+        <h2>{{ translations.get('notifications', 'Уведомления') }}</h2>
+        <div class="setting-item">
+            <label class="switch">
+                <input type="checkbox" id="notifications-toggle" checked>
+                <span class="slider round"></span>
+            </label>
+            <span>{{ translations.get('notifications', 'Уведомления') }}</span>
         </div>
-        <div class="form-group">
-            <label for="username">Имя пользователя:</label>
-            <input type="text" id="username" name="username" value="" required>
+    </div>
+    
+    <div class="settings-section">
+        <h2>{{ translations.get('dark_mode', 'Темная тема') }}</h2>
+        <div class="setting-item">
+            <label class="switch">
+                <input type="checkbox" id="dark-mode-toggle">
+                <span class="slider round"></span>
+            </label>
+            <span>{{ translations.get('dark_mode', 'Темная тема') }}</span>
         </div>
-        <div class="form-group">
-            <label for="bio">О себе:</label>
-            <textarea id="bio" name="bio" rows="4"></textarea>
+    </div>
+    
+    <!-- Информация о приложении -->
+    <div class="settings-section">
+        <h2>{{ translations.get('about', 'О приложении') }}</h2>
+        <div class="app-info">
+            <p><strong>{{ translations.get('version', 'Версия') }}:</strong> 1.0.0</p>
+            <p>Quiz Mini App - {{ translations.get('about', 'О приложении') }}</p>
         </div>
-
-        <label for="avatar">Аватар:</label>
-        <input type="file" name="avatar" id="avatar" required>
-
-        <button type="submit">Сохранить изменения</button>
-    </form>
+    </div>
 </div>
+
+<style>
+.settings-container {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.settings-container h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.settings-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.settings-section h2 {
+    margin-bottom: 15px;
+    color: #555;
+    font-size: 18px;
+}
+
+.language-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.language-btn {
+    padding: 10px 20px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.language-btn:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.language-btn.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+/* Switch стили */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #007bff;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #007bff;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.app-info {
+    color: #666;
+    line-height: 1.6;
+}
+
+.app-info p {
+    margin: 5px 0;
+}
+</style>
+
+<script>
+// Проверяем, запущено ли приложение в Telegram Web App
+function isTelegramWebApp() {
+    return window.Telegram && window.Telegram.WebApp;
+}
+
+function changeLanguage(lang) {
+    console.log('Changing language to:', lang);
+    
+    // Обновляем активную кнопку
+    document.querySelectorAll('.language-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
+    
+    // Сохраняем язык в localStorage
+    localStorage.setItem('selectedLanguage', lang);
+    
+    // Если в Telegram Web App, используем Telegram API для навигации
+    if (isTelegramWebApp()) {
+        console.log('Using Telegram Web App navigation');
+        const newUrl = `/?lang=${lang}`;
+        window.Telegram.WebApp.navigateTo(newUrl);
+    } else {
+        // Для обычного браузера используем стандартную навигацию
+        console.log('Using standard browser navigation');
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('lang', lang);
+        window.location.href = currentUrl.toString();
+    }
+}
+
+// Инициализация переключателей
+document.addEventListener('DOMContentLoaded', function() {
+    // Загружаем сохраненные настройки
+    const notificationsEnabled = localStorage.getItem('notifications') !== 'false';
+    const darkModeEnabled = localStorage.getItem('darkMode') === 'true';
+    const savedLanguage = localStorage.getItem('selectedLanguage');
+    
+    document.getElementById('notifications-toggle').checked = notificationsEnabled;
+    document.getElementById('dark-mode-toggle').checked = darkModeEnabled;
+    
+    // Если есть сохраненный язык и он отличается от текущего, переключаем
+    if (savedLanguage && savedLanguage !== window.currentLanguage) {
+        changeLanguage(savedLanguage);
+    }
+    
+    // Обработчики событий для переключателей
+    document.getElementById('notifications-toggle').addEventListener('change', function(e) {
+        localStorage.setItem('notifications', e.target.checked);
+    });
+    
+    document.getElementById('dark-mode-toggle').addEventListener('change', function(e) {
+        localStorage.setItem('darkMode', e.target.checked);
+        // Здесь можно добавить логику переключения темной темы
+    });
+});
+</script>
 {% endblock %}

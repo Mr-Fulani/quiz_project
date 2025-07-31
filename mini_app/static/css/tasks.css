@@ -1,0 +1,186 @@
+/**
+ * Стили для страницы задач в mini-app
+ * 
+ * Этот файл содержит все стили для отображения задач с картинками,
+ * вариантами ответов, объяснениями и интерактивными элементами.
+ * 
+ * @author Mini App Team
+ * @version 1.0.0
+ */
+
+/* Основной контейнер для задач */
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Заголовок страницы */
+.page-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.back-button {
+    cursor: pointer;
+    padding: 10px;
+    margin-right: 15px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    transition: background 0.3s;
+}
+
+.back-button:hover {
+    background: #e0e0e0;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+    flex-grow: 1;
+}
+
+.topic-info {
+    text-align: right;
+}
+
+.topic-name {
+    font-size: 14px;
+    color: #666;
+    background: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 15px;
+}
+
+/* Контейнер отдельной задачи */
+.task-item {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
+}
+
+/* Контейнер изображения задачи */
+.task-image {
+    margin-bottom: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.task-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Контейнер вопроса */
+.task-question h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* Контейнер вариантов ответов */
+.task-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Стили для кнопок ответов */
+.answer-option {
+    padding: 15px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.answer-option:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.answer-option.selected {
+    border-color: #007bff;
+    background: #e3f2fd;
+}
+
+.answer-option.correct {
+    border-color: #28a745;
+    background: #d4edda;
+    color: #155724;
+}
+
+.answer-option.incorrect {
+    border-color: #dc3545;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.answer-option.disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Контейнер объяснения */
+.task-explanation {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #007bff;
+}
+
+.explanation-content h4 {
+    margin: 0 0 10px 0;
+    color: #007bff;
+    font-size: 16px;
+}
+
+.explanation-content p {
+    margin: 0;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Сообщение об отсутствии задач */
+.no-tasks {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .tasks-container {
+        padding: 15px;
+    }
+    
+    .task-item {
+        padding: 15px;
+    }
+    
+    .answer-option {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+    
+    .page-header h1 {
+        font-size: 20px;
+    }
+} 

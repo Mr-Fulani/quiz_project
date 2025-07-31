@@ -1,37 +1,203 @@
 {% extends "base.html" %}
 
 {% block title %}
-{{ topic.name }} - Тема опроса
+{{ topic.name }} - {{ translations.get('home', 'Главная') }}
 {% endblock %}
 
 {% block content %}
-<div class="topic-detail">
+<div class="topic-detail-container">
     <div class="topic-header">
         <h1>{{ topic.name }}</h1>
-        <p class="topic-description">{{ topic.description }}</p>
+        <p class="topic-description">{{ topic.description or 'Описание темы' }}</p>
     </div>
     
-    <div class="topic-content">
-        <div class="topic-buttons">
-            {% for subtopic in topic.subtopics %}
-            <button class="topic-btn subtopic-btn">
-                <span class="btn-icon">📚</span>
-                <span class="btn-text">{{ subtopic.name }}</span>
-                <span class="btn-count">{{ subtopic.questions_count }}</span>
-            </button>
-            {% endfor %}
+    <div class="subtopics-grid">
+        {% for subtopic in subtopics %}
+        <div class="subtopic-card" onclick="startSubtopic({{ subtopic.id }})">
+            <div class="subtopic-icon">📚</div>
+            <h3>{{ subtopic.name }}</h3>
+            <p class="subtopic-description">{{ subtopic.description or 'Описание подтемы' }}</p>
+            <div class="subtopic-stats">
+                <span class="questions-count">{{ subtopic.questions_count }} {{ translations.get('questions_count', 'вопросов') }}</span>
+            </div>
+            <button class="start-subtopic-btn">{{ translations.get('start_button', 'Начать') }}</button>
         </div>
+        {% endfor %}
     </div>
     
-    <div class="topic-actions">
-        <button class="btn btn-secondary" onclick="goBackToMain();">
-            Вернуться назад
-        </button>
+    {% if not subtopics %}
+    <div class="no-subtopics">
+        <div class="no-subtopics-icon">📝</div>
+        <h3>{{ translations.get('no_achievements', 'Пока нет подтем') }}</h3>
+        <p>{{ translations.get('keep_learning', 'Подтемы будут добавлены позже') }}</p>
     </div>
+    {% endif %}
 </div>
 
-{% endblock %}
+<style>
+.topic-detail-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
 
-{% block extra_js %}
-<script src="/static/js/topic-detail.js"></script>
+.topic-header {
+    text-align: center;
+    margin-bottom: 40px;
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.topic-header h1 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 28px;
+}
+
+.topic-description {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.subtopics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.subtopic-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.subtopic-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.subtopic-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.subtopic-card h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.subtopic-description {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.subtopic-stats {
+    margin-bottom: 20px;
+}
+
+.questions-count {
+    background: #f8f9fa;
+    color: #007bff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.start-subtopic-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    width: 100%;
+}
+
+.start-subtopic-btn:hover {
+    background: #0056b3;
+}
+
+.no-subtopics {
+    text-align: center;
+    background: white;
+    border-radius: 15px;
+    padding: 60px 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border: 2px dashed #ddd;
+}
+
+.no-subtopics-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.no-subtopics h3 {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.no-subtopics p {
+    color: #999;
+    font-size: 16px;
+    margin: 0;
+}
+</style>
+
+<script>
+function startSubtopic(subtopicId) {
+    console.log('Starting subtopic:', subtopicId);
+    
+    // Переходим на страницу с задачами подтемы
+    const currentLang = window.currentLanguage || 'en';
+    const url = `/subtopic/${subtopicId}?lang=${currentLang}`;
+    
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        window.Telegram.WebApp.navigateTo(url);
+    } else {
+        window.location.href = url;
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    if (type === 'success') notification.style.background = '#28a745';
+    else if (type === 'error') notification.style.background = '#dc3545';
+    else notification.style.background = '#007bff';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
 {% endblock %} 

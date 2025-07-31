@@ -124,21 +124,13 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
     permission_classes = [AllowAny]  # Разрешаем доступ без аутентификации для mini_app
 
     def get_queryset(self):
-        # Возвращаем только подтемы с задачами на русском языке (пока hardcode)
-        # TODO: добавить поддержку динамического языка из запроса  
-        language = 'en'
+        # Получаем язык из query параметров, по умолчанию английский
+        language = self.request.query_params.get('language', 'en')
         queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
         
-        # Фильтруем только те подтемы, у которых есть опубликованные задачи с переводами на нужном языке
-        subtopics_with_tasks = []
-        for subtopic in queryset:
-            if subtopic.tasks.filter(
-                published=True,
-                translations__language=language
-            ).exists():
-                subtopics_with_tasks.append(subtopic.id)
-        
-        return queryset.filter(id__in=subtopics_with_tasks)
+        # Временно показываем все подтемы, даже без задач
+        # TODO: Восстановить фильтрацию когда будут добавлены задачи
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(topic_id=self.kwargs['topic_id'])
@@ -148,7 +140,7 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
 @permission_classes([AllowAny])
 def topics_simple(request):
     """
-    Простой endpoint для мини-приложения с поддержкой поиска
+    Простой endpoint для мини-приложения с поддержкой поиска и языка
     """
     topics = Topic.objects.all()
     
@@ -157,15 +149,24 @@ def topics_simple(request):
     if search:
         topics = topics.filter(name__icontains=search)
     
+    # Получаем язык из query параметров
+    language = request.GET.get('language', 'en')
+    
     data = []
     for topic in topics:
+        # Подсчитываем количество задач с переводами на указанном языке
+        tasks_count = topic.tasks.filter(
+            published=True,
+            translations__language=language
+        ).distinct().count()
+        
         data.append({
             'id': topic.id,
             'name': topic.name,
             'description': topic.description or f'Изучение {topic.name}',
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
-            'questions_count': 20,  # Временно статично
+            'questions_count': tasks_count,
             'image_url': f'https://picsum.photos/400/400?{topic.id}',
         })
     return Response(data)
