@@ -9,7 +9,7 @@
 <!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
 
     <!-- Подключаем стили -->
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/styles.css?v=1.9">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
@@ -235,7 +235,7 @@
             if (url.startsWith('/topic/')) {
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
-                script.src = '/static/js/topic-detail.js';
+                script.src = '/static/js/topic-detail.js?v=1.2';
                 script.onload = function() {
                     console.log('✅ Topic detail script loaded via base template');
                 };
