@@ -12,7 +12,7 @@ router = Router(name="mini_app_router")
 @router.message(Command("profile"))
 async def handle_profile_command(message: types.Message):
     webapp_button = InlineKeyboardButton(
-        text="Открыть профиль",
+        text="Запустить приложение",
         web_app=WebAppInfo(url=f"{WEBAPP_URL}/")  # Уберем /profile/, так как у нас корневой маршрут
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[webapp_button]])
