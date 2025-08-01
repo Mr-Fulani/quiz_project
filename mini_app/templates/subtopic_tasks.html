@@ -40,7 +40,7 @@
                     <button class="answer-option" 
                             data-answer="{{ answer }}"
                             data-correct="{% if answer == task.correct_answer %}true{% else %}false{% endif %}"
-                            onclick="selectAnswer(this, '{{ answer|escape }}', '{{ task.correct_answer|escape }}', '{{ task.explanation|escape }}')">
+                            data-explanation="{{ task.explanation }}">
                         {{ answer }}
                     </button>
                     {% endfor %}

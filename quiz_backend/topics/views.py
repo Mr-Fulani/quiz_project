@@ -171,4 +171,66 @@ def topics_simple(request):
         })
     return Response(data)
 
+# Endpoint для деталей темы без аутентификации
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def topic_detail_simple(request, topic_id):
+    """
+    Детальная информация о теме для мини-приложения (без аутентификации)
+    """
+    try:
+        topic = Topic.objects.get(id=topic_id)
+        
+        # Получаем язык из query параметров
+        language = request.GET.get('language', 'en')
+        
+        # Подсчитываем количество задач с переводами на указанном языке
+        tasks_count = topic.tasks.filter(
+            published=True,
+            translations__language=language
+        ).distinct().count()
+        
+        data = {
+            'id': topic.id,
+            'name': topic.name,
+            'description': topic.description or f'Изучение {topic.name}',
+            'icon': topic.icon,
+            'difficulty': 'Средний',  # Временно статично
+            'questions_count': tasks_count,
+            'image_url': f'https://picsum.photos/400/400?{topic.id}',
+        }
+        return Response(data)
+    except Topic.DoesNotExist:
+        return Response({'error': 'Topic not found'}, status=404)
+
+# Endpoint для деталей подтемы без аутентификации
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def subtopic_detail_simple(request, subtopic_id):
+    """
+    Детальная информация о подтеме для мини-приложения (без аутентификации)
+    """
+    try:
+        subtopic = Subtopic.objects.get(id=subtopic_id)
+        
+        # Получаем язык из query параметров
+        language = request.GET.get('language', 'en')
+        
+        # Подсчитываем количество задач с переводами на указанном языке
+        tasks_count = subtopic.tasks.filter(
+            published=True,
+            translations__language=language
+        ).distinct().count()
+        
+        data = {
+            'id': subtopic.id,
+            'name': subtopic.name,
+            'description': subtopic.description or f'Подтема: {subtopic.name}',
+            'topic': subtopic.topic_id,
+            'questions_count': tasks_count,
+        }
+        return Response(data)
+    except Subtopic.DoesNotExist:
+        return Response({'error': 'Subtopic not found'}, status=404)
+
 

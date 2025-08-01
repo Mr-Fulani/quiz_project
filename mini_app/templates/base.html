@@ -28,7 +28,7 @@
     <!-- <script src="/static/js/platform-detector.js?v=1.0"></script> -->
     
                <!-- Сервис локализации -->
-           <script src="/static/js/localization.js?v=1.4"></script>
+           <script src="/static/js/localization.js?v=1.7"></script>
 </head>
 <body>
     <!-- Слой 1: Тёмный полупрозрачный фон -->
@@ -265,7 +265,7 @@
                 // Загружаем search.js
                 const searchScript = document.createElement('script');
                 searchScript.setAttribute('data-dynamic', 'true');
-                searchScript.src = '/static/js/search.js?v=1.5';
+                searchScript.src = '/static/js/search.js?v=1.6';
                 searchScript.onload = function() {
                     console.log('✅ Search script loaded via base template');
                 };
@@ -277,7 +277,7 @@
                 // Загружаем topic-cards.js
                 const topicCardsScript = document.createElement('script');
                 topicCardsScript.setAttribute('data-dynamic', 'true');
-                topicCardsScript.src = '/static/js/topic-cards.js?v=1.4';
+                topicCardsScript.src = '/static/js/topic-cards.js?v=1.5';
                 topicCardsScript.onload = function() {
                     console.log('✅ Topic cards script loaded via base template');
                     // Вызываем инициализацию карточек после загрузки скрипта
@@ -297,9 +297,21 @@
             } else if (url.startsWith('/topic/')) {
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
-                script.src = '/static/js/topic-detail.js?v=1.2';
+                script.src = '/static/js/topic-detail.js?v=1.6';
                 script.onload = function() {
                     console.log('✅ Topic detail script loaded via base template');
+                };
+                document.head.appendChild(script);
+            } else if (url.startsWith('/subtopic/') && url.includes('/tasks')) {
+                console.log('🎯 Subtopic tasks page detected, loading script...');
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '/static/js/tasks.js?v=1.4';
+                script.onload = function() {
+                    console.log('✅ Tasks script loaded via base template');
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load tasks.js');
                 };
                 document.head.appendChild(script);
             } else if (url.startsWith('/profile')) {

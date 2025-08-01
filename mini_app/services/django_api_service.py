@@ -70,6 +70,24 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении подтем для темы {topic_id}: {e}")
             return []
     
+    async def get_topic_detail(self, topic_id: int, language: str = 'en') -> Optional[Dict[str, Any]]:
+        """Получение детальной информации о теме с учетом языка"""
+        try:
+            data = await self._make_request("GET", f"/api/topics/{topic_id}/", params={'language': language})
+            return data
+        except Exception as e:
+            logger.error(f"Ошибка при получении деталей темы {topic_id}: {e}")
+            return None
+    
+    async def get_subtopic_detail(self, subtopic_id: int, language: str = 'en') -> Optional[Dict[str, Any]]:
+        """Получение детальной информации о подтеме с учетом языка"""
+        try:
+            data = await self._make_request("GET", f"/api/subtopic/{subtopic_id}/", params={'language': language})
+            return data
+        except Exception as e:
+            logger.error(f"Ошибка при получении деталей подтемы {subtopic_id}: {e}")
+            return None
+    
     async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en') -> List[Dict[str, Any]]:
         """Получение задач для подтемы с учетом языка"""
         try:

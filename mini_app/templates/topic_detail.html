@@ -13,7 +13,7 @@
     
     <div class="subtopics-grid">
         {% for subtopic in subtopics %}
-        <div class="subtopic-card" onclick="startSubtopic({{ subtopic.id }})">
+        <div class="subtopic-card" data-subtopic-id="{{ subtopic.id }}">
             <div class="subtopic-icon">📚</div>
             <h3>{{ subtopic.name }}</h3>
             <p class="subtopic-description">{{ subtopic.description or 'Описание подтемы' }}</p>
