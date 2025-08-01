@@ -81,13 +81,7 @@
     display: block;
 }
 
-/* Контейнер вопроса */
-.task-question h3 {
-    margin: 0 0 20px 0;
-    font-size: 18px;
-    color: #333;
-    line-height: 1.5;
-}
+
 
 /* Контейнер вариантов ответов */
 .task-answers {
