@@ -230,6 +230,22 @@ body {
     box-sizing: border-box;
 }
 
+/* Адаптивные отступы для overlay */
+@media (max-width: 480px) {
+    .selected-card-overlay {
+        padding-top: 40px;
+        padding-bottom: 80px;
+    }
+}
+
+@media (min-width: 1025px) {
+    .selected-card-overlay {
+        padding-top: 80px;
+        padding-bottom: 120px;
+        align-items: center; /* Центрируем на десктопе */
+    }
+}
+
 .selected-card-container {
     position: relative;
     width: 350px;
@@ -239,6 +255,29 @@ body {
     box-shadow: 0 25px 50px rgba(0, 255, 0, 0.4);
     transform: scale(0.8);
     transition: transform 0.3s ease;
+}
+
+/* Адаптивные размеры для выбранной карточки */
+@media (max-width: 480px) {
+    .selected-card-container {
+        width: 320px;
+        height: 550px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+    .selected-card-container {
+        width: 400px;
+        height: 650px;
+    }
+}
+
+@media (min-width: 1025px) {
+    .selected-card-container {
+        width: 450px;
+        height: 700px;
+        max-height: 80vh; /* Ограничиваем высоту на десктопе */
+    }
 }
 
 .selected-card-container .card-overlay {
