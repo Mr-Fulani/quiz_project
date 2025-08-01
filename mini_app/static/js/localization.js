@@ -3,6 +3,11 @@
  */
 class LocalizationService {
     constructor() {
+        console.log('🔧 LocalizationService constructor called');
+        console.log('🔧 window.currentLanguage:', window.currentLanguage);
+        console.log('🔧 window.translations:', window.translations);
+        console.log('🔧 window.supportedLanguages:', window.supportedLanguages);
+        
         this.currentLanguage = window.currentLanguage || 'en';
         this.translations = window.translations || {};
         this.supportedLanguages = window.supportedLanguages || ['en', 'ru'];
@@ -11,21 +16,24 @@ class LocalizationService {
         this.init();
     }
     
-    init() {
-        // Загружаем сохраненный язык из localStorage
-        const savedLanguage = localStorage.getItem('selectedLanguage');
-        if (savedLanguage && this.supportedLanguages.includes(savedLanguage)) {
-            this.currentLanguage = savedLanguage;
-        }
-        
-        // Обновляем глобальные переменные
-        window.currentLanguage = this.currentLanguage;
-        
-        // Принудительно обновляем интерфейс при инициализации
-        setTimeout(() => {
-            this.updateInterface();
-        }, 100);
-    }
+               init() {
+               console.log('🌐 LocalizationService initialized with language:', this.currentLanguage);
+               
+               // Загружаем сохраненный язык из localStorage
+               const savedLanguage = localStorage.getItem('selectedLanguage');
+               if (savedLanguage && this.supportedLanguages.includes(savedLanguage)) {
+                   this.currentLanguage = savedLanguage;
+                   console.log('🌐 Restored saved language:', savedLanguage);
+               }
+               
+               // Обновляем глобальные переменные
+               window.currentLanguage = this.currentLanguage;
+               
+               // Принудительно обновляем интерфейс при инициализации
+               setTimeout(() => {
+                   this.updateInterface();
+               }, 100);
+           }
     
     /**
      * Получает перевод по ключу
@@ -37,6 +45,7 @@ class LocalizationService {
         }
         
         // Если перевод не найден, возвращаем fallback или ключ
+        console.warn(`Translation not found for key: ${key}`);
         return fallback || key;
     }
     
@@ -50,6 +59,8 @@ class LocalizationService {
         }
         
         try {
+            console.log(`🔄 Changing language to: ${language}`);
+            
             // Отправляем запрос на сервер
             const response = await fetch('/api/change-language', {
                 method: 'POST',
@@ -80,6 +91,7 @@ class LocalizationService {
                 // Обновляем интерфейс
                 this.updateInterface();
                 
+                console.log(`✅ Language changed to: ${language}`);
                 return true;
             } else {
                 console.error('Failed to change language:', data.error);
@@ -96,10 +108,15 @@ class LocalizationService {
      * Обновляет интерфейс с новыми переводами
      */
     updateInterface() {
+        console.log('🎨 Updating interface with new translations');
+        console.log('🎨 Current language:', this.currentLanguage);
+        console.log('🎨 Available translations:', Object.keys(this.translations));
+        
         let updatedCount = 0;
         
         // Обновляем все элементы с data-translate атрибутом
         const translateElements = document.querySelectorAll('[data-translate]');
+        console.log('🎨 Found translate elements:', translateElements.length);
         translateElements.forEach(element => {
             const key = element.getAttribute('data-translate');
             const translation = this.getText(key);
@@ -111,6 +128,7 @@ class LocalizationService {
         
         // Обновляем placeholder'ы
         const placeholderElements = document.querySelectorAll('[data-translate-placeholder]');
+        console.log('🎨 Found placeholder elements:', placeholderElements.length);
         placeholderElements.forEach(element => {
             const key = element.getAttribute('data-translate-placeholder');
             const translation = this.getText(key);
@@ -122,6 +140,7 @@ class LocalizationService {
         
         // Обновляем title атрибуты
         const titleElements = document.querySelectorAll('[data-translate-title]');
+        console.log('🎨 Found title elements:', titleElements.length);
         titleElements.forEach(element => {
             const key = element.getAttribute('data-translate-title');
             const translation = this.getText(key);
@@ -133,6 +152,7 @@ class LocalizationService {
         
         // Обновляем alt атрибуты изображений
         const altElements = document.querySelectorAll('[data-translate-alt]');
+        console.log('🎨 Found alt elements:', altElements.length);
         altElements.forEach(element => {
             const key = element.getAttribute('data-translate-alt');
             const translation = this.getText(key);
@@ -153,8 +173,11 @@ class LocalizationService {
             window.onLanguageChanged(this.currentLanguage, this.translations);
         }
         
+        console.log(`✅ Interface updated: ${updatedCount} elements changed`);
+        
         // Если ничего не обновилось, возможно нужно принудительно обновить
         if (updatedCount === 0) {
+            console.log('⚠️ No elements were updated, forcing refresh...');
             setTimeout(() => {
                 this.updateInterface();
             }, 50);
@@ -184,7 +207,9 @@ class LocalizationService {
 }
 
 // Создаем глобальный экземпляр
+console.log('🚀 Creating global LocalizationService instance...');
 window.localizationService = new LocalizationService();
+console.log('✅ LocalizationService instance created:', window.localizationService);
 
 // Экспортируем для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {
