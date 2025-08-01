@@ -30,14 +30,10 @@ async function handleSearch(event) {
 
 async function searchTopics(query) {
     try {
-        console.log('🔍 Поиск тем с запросом:', query);
         const response = await fetch(`/api/topics?search=${encodeURIComponent(query)}`);
         const data = await response.json();
         
-        console.log('📡 Ответ от API поиска:', data);
-        
         if (response.ok) {
-            console.log('✅ Поиск успешен, обновляем галерею с', data.length, 'темами');
             updateGallery(data);
         } else {
             console.error('❌ Ошибка поиска:', data);
@@ -49,14 +45,10 @@ async function searchTopics(query) {
 
 async function loadTopics() {
     try {
-        console.log('📡 Загружаем все темы...');
         const response = await fetch('/api/topics');
         const data = await response.json();
         
-        console.log('📡 Ответ от API загрузки тем:', data);
-        
         if (response.ok) {
-            console.log('✅ Загрузка успешна, обновляем галерею с', data.length, 'темами');
             updateGallery(data);
         } else {
             console.error('❌ Ошибка загрузки тем:', data);
@@ -67,12 +59,10 @@ async function loadTopics() {
 }
 
 function updateGallery(topics) {
-    console.log('🎨 Обновляем галерею с темами:', topics);
-    
     // Сохраняем состояние поля поиска
-    const searchInput = document.getElementById('search-input');
-    const wasFocused = searchInput === document.activeElement;
-    const searchValue = searchInput ? searchInput.value : '';
+    const currentSearchInput = document.getElementById('search-input');
+    const wasFocused = currentSearchInput === document.activeElement;
+    const searchValue = currentSearchInput ? currentSearchInput.value : '';
     
     const container = document.querySelector('.gallery__container');
     
@@ -82,10 +72,8 @@ function updateGallery(topics) {
     }
     
     if (!topics || topics.length === 0) {
-        console.log('📭 Нет тем для отображения, показываем сообщение');
         container.innerHTML = '<div class="no-results">Темы не найдены</div>';
     } else {
-        console.log('🎨 Создаем HTML для', topics.length, 'тем');
         container.innerHTML = topics.map((topic, index) => `
             <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}">
                 <img src="${topic.image_url}" alt="${topic.name}">
@@ -100,62 +88,73 @@ function updateGallery(topics) {
                 </div>
             </span>
         `).join('');
+        
+        // Переинициализируем обработчики событий
+        initializeCardHandlers();
     }
     
-    console.log('🔄 Переинициализируем обработчики событий');
-    // Переинициализируем обработчики событий для новых карточек
-    initializeCardHandlers();
-    
     // Восстанавливаем состояние поля поиска
-    if (searchInput) {
-        searchInput.value = searchValue;
+    if (currentSearchInput) {
+        currentSearchInput.value = searchValue;
         if (wasFocused) {
-            // Небольшая задержка для восстановления фокуса
-            setTimeout(() => {
-                searchInput.focus();
-                // Устанавливаем курсор в конец текста
-                searchInput.setSelectionRange(searchValue.length, searchValue.length);
-            }, 10);
+            currentSearchInput.focus();
         }
     }
 }
 
 function initializeCardHandlers() {
-    // Переинициализируем галерею после обновления карточек
-    if (window.initTopicCards) {
-        window.initTopicCards();
-    }
+    // Инициализация обработчиков для карточек тем
+    const topicCards = document.querySelectorAll('.topic-card');
+    topicCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Игнорируем клики по кнопкам
+            if (e.target.tagName === 'BUTTON') {
+                return;
+            }
+            
+            const topicId = this.getAttribute('data-topic-id');
+            if (topicId) {
+                // Переходим на страницу темы
+                window.location.href = `/topic/${topicId}`;
+            }
+        });
+    });
 }
 
-// Обработчик для скрытия клавиатуры
 function hideKeyboard() {
+    // Скрываем клавиатуру на мобильных устройствах
     if (searchInput) {
         searchInput.blur();
     }
 }
 
-// Скрываем клавиатуру при клике вне поля поиска
-document.addEventListener('click', function(event) {
-    if (!event.target.closest('.search-container') && 
-        !event.target.closest('.topic-card') &&
-        !event.target.closest('.selected-card-overlay')) {
-        hideKeyboard();
-    }
-}, true); // Используем capture phase
-
-// Скрываем клавиатуру при скролле
-document.addEventListener('scroll', hideKeyboard);
-
-// Скрываем клавиатуру при нажатии Enter
-if (searchInput) {
-    searchInput.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            hideKeyboard();
-        }
-    });
-}
-
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+        searchInput.addEventListener('focus', function() {
+            // Показываем результаты поиска при фокусе
+            if (this.value.trim().length > 0) {
+                handleSearch({ target: this });
+            }
+        });
+    }
+    
+    // Инициализируем обработчики карточек
     initializeCardHandlers();
-}); 
+});
+
+// Также инициализируем, если DOM уже загружен
+if (document.readyState === 'loading') {
+    // DOM еще загружается, ждем события DOMContentLoaded
+} else {
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length > 0) {
+                handleSearch({ target: this });
+            }
+        });
+    }
+    initializeCardHandlers();
+} 
