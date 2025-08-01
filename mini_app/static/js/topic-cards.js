@@ -364,8 +364,13 @@ function initTopicCards() {
     };
     
     // Экспортируем функции глобально для экстренного доступа
-    window.selectCard = selectCard;
-    window.goBackFromCard = goBack;
+    window.handleStartTopic = function(event, topicId) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        navigateToTopic(topicId);
+    };
     
     // Объект для управления галереей
     window.galleryController = {

@@ -1798,14 +1798,8 @@ body.fullscreen-active .gallery__container {
 
 /* Стили для устройств с поддержкой hover */
 @media (hover: hover) {
-    /* Отключаем hover эффекты для карточек на десктопе */
+    /* Отключаем только визуальные hover эффекты для карточек на десктопе */
     .topic-card:hover {
-        transform: none;
-    }
-    
-    /* Отключаем hover эффекты для overlay */
-    .topic-card:hover .card-overlay {
-        opacity: 1;
         transform: none;
     }
 }

@@ -9,7 +9,7 @@
 <!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
 
     <!-- Подключаем стили -->
-    <link rel="stylesheet" href="/static/css/styles.css?v=2.6">
+    <link rel="stylesheet" href="/static/css/styles.css?v=2.8">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
@@ -248,7 +248,7 @@
                 // Загружаем topic-cards.js
                 const topicCardsScript = document.createElement('script');
                 topicCardsScript.setAttribute('data-dynamic', 'true');
-                topicCardsScript.src = '/static/js/topic-cards.js?v=1.3';
+                topicCardsScript.src = '/static/js/topic-cards.js?v=1.4';
                 topicCardsScript.onload = function() {
                     console.log('✅ Topic cards script loaded via base template');
                     // Вызываем инициализацию карточек после загрузки скрипта
