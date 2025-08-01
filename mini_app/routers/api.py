@@ -290,6 +290,31 @@ async def get_user_profile(request_data: UserProfileRequest):
 # Регистрация эндпоинта в роутере
 router.add_api_route("/profile", get_user_profile, methods=["POST"])
 
+class LanguageChangeRequest(BaseModel):
+    language: str
+
+@router.post("/change-language")
+async def change_language(request: LanguageChangeRequest):
+    """API endpoint для переключения языка"""
+    from services.localization import localization_service
+    
+    # Проверяем, поддерживается ли язык
+    if request.language not in localization_service.get_supported_languages():
+        return {"success": False, "error": "Unsupported language"}
+    
+    # Устанавливаем язык
+    localization_service.set_language(request.language)
+    
+    # Получаем обновленные переводы
+    translations = localization_service.get_all_texts()
+    
+    return {
+        "success": True,
+        "language": request.language,
+        "translations": translations,
+        "supported_languages": localization_service.get_supported_languages()
+    }
+
 @router.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():
     """

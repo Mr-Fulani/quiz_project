@@ -6,44 +6,44 @@
 
 {% block content %}
 <div class="statistics-container">
-    <h1>{{ translations.get('statistics_title', 'Статистика') }}</h1>
+    <h1 data-translate="statistics_title">{{ translations.get('statistics_title', 'Статистика') }}</h1>
     
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon">📊</div>
             <div class="stat-number">0</div>
-            <div class="stat-label">{{ translations.get('total_questions', 'Всего вопросов') }}</div>
+            <div class="stat-label" data-translate="total_questions">{{ translations.get('total_questions', 'Всего вопросов') }}</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-icon">✅</div>
             <div class="stat-number">0</div>
-            <div class="stat-label">{{ translations.get('correct_answers', 'Правильных ответов') }}</div>
+            <div class="stat-label" data-translate="correct_answers">{{ translations.get('correct_answers', 'Правильных ответов') }}</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-icon">🎯</div>
             <div class="stat-number">0%</div>
-            <div class="stat-label">{{ translations.get('accuracy', 'Точность') }}</div>
+            <div class="stat-label" data-translate="accuracy">{{ translations.get('accuracy', 'Точность') }}</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-icon">🔥</div>
             <div class="stat-number">0</div>
-            <div class="stat-label">{{ translations.get('streak', 'Текущая серия') }}</div>
+            <div class="stat-label" data-translate="streak">{{ translations.get('streak', 'Текущая серия') }}</div>
         </div>
         
         <div class="stat-card">
             <div class="stat-icon">🏆</div>
             <div class="stat-number">0</div>
-            <div class="stat-label">{{ translations.get('best_streak', 'Лучшая серия') }}</div>
+            <div class="stat-label" data-translate="best_streak">{{ translations.get('best_streak', 'Лучшая серия') }}</div>
         </div>
     </div>
     
     <div class="chart-container">
-        <h2>{{ translations.get('statistics_title', 'Статистика') }}</h2>
+        <h2 data-translate="statistics_title">{{ translations.get('statistics_title', 'Статистика') }}</h2>
         <div class="chart-placeholder">
-            <p>{{ translations.get('no_achievements', 'Пока нет данных для отображения') }}</p>
+            <p data-translate="no_statistics_data">{{ translations.get('no_statistics_data', 'Пока нет данных для отображения') }}</p>
         </div>
     </div>
 </div>
