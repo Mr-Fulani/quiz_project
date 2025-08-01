@@ -7,6 +7,10 @@ urlpatterns = [
     # Simple endpoint for mini-app (тестовый)
     path('simple/', views.topics_simple, name='topics-simple'),
     
+    # Simple endpoints for mini-app (без аутентификации)
+    path('topics/<int:topic_id>/', views.topic_detail_simple, name='topic-detail-simple'),
+    path('subtopics/<int:subtopic_id>/', views.subtopic_detail_simple, name='subtopic-detail-simple'),
+    
     # Topics for mini-app (открытый доступ)
     path('mini-app/', views.TopicMiniAppListView.as_view(), name='topic-mini-app-list'),
     

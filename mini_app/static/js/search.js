@@ -1,5 +1,8 @@
 // Поиск тем
-let searchTimeout;
+// Проверяем, не объявлена ли уже переменная
+if (typeof window.searchTimeout === 'undefined') {
+    window.searchTimeout = null;
+}
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 const gallery = document.getElementById('gallery');
@@ -8,10 +11,10 @@ async function handleSearch(event) {
     const query = event.target.value.trim();
     
     // Очищаем предыдущий таймаут
-    clearTimeout(searchTimeout);
+    clearTimeout(window.searchTimeout);
     
     // Устанавливаем новый таймаут для debounce
-    searchTimeout = setTimeout(async () => {
+    window.searchTimeout = setTimeout(async () => {
         if (query.length === 0) {
             // Если поиск пустой, загружаем все темы
             await loadTopics();
