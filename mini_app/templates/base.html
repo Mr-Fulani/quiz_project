@@ -9,7 +9,7 @@
 <!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
 
     <!-- Подключаем стили -->
-    <link rel="stylesheet" href="/static/css/styles.css?v=1.9">
+    <link rel="stylesheet" href="/static/css/styles.css?v=2.1">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
@@ -200,13 +200,7 @@
                                 }, 100);
                             }
 
-                            // ЕСЛИ ЗАГРУЖЕНА СТРАНИЦА ПРОФИЛЯ - ВЫЗЫВАЕМ ЕЕ ИНИЦИАЛИЗАЦИЮ
-                            if (url === '/profile' && typeof window.initProfilePage === 'function') {
-                                setTimeout(() => {
-                                    console.log('🚀 Calling initProfilePage for profile page.');
-                                    window.initProfilePage();
-                                }, 100);
-                            }
+                            // Инициализация профиля теперь происходит в loadPageSpecificScripts
                             
                             // Загружаем специфичные скрипты для страницы
                             loadPageSpecificScripts(url);
@@ -238,6 +232,27 @@
                 script.src = '/static/js/topic-detail.js?v=1.2';
                 script.onload = function() {
                     console.log('✅ Topic detail script loaded via base template');
+                };
+                document.head.appendChild(script);
+            } else if (url === '/profile') {
+                // Для профиля загружаем скрипт и инициализируем
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '/static/js/profile.js?v=1.7';
+                script.onload = function() {
+                    console.log('✅ Profile script loaded via base template');
+                    // Вызываем инициализацию профиля после загрузки скрипта
+                    setTimeout(() => {
+                        console.log('🚀 Calling initProfilePage after script load');
+                        if (typeof window.initProfilePage === 'function') {
+                            window.initProfilePage();
+                        } else {
+                            console.error('❌ initProfilePage function not found!');
+                        }
+                    }, 100);
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load profile.js');
                 };
                 document.head.appendChild(script);
             }

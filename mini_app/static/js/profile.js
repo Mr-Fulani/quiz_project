@@ -99,8 +99,11 @@
 
 
                 function updateProfileDOM(userData) {
+                console.log('🚀 updateProfileDOM вызван с данными:', userData);
                 const elements = getDOMElements();
+                console.log('🔍 DOM элементы:', elements);
                 if (!userData || !elements.profileContainer) {
+                    console.error('❌ Ошибка: нет данных или контейнера профиля');
                     showError("Не удалось загрузить данные профиля.");
                     return;
                 }
@@ -122,20 +125,27 @@
 
         hideLoader();
         elements.profileContainer.style.display = 'block';
+        console.log('✅ Профиль успешно обновлен и показан');
     }
 
 
     // --- Управление состоянием загрузки ---
 
     function showLoader() {
+        console.log('🔄 showLoader вызван');
         const elements = getDOMElements();
         if (elements.loader) elements.loader.style.display = 'flex';
         if (elements.profileContainer) elements.profileContainer.style.display = 'none';
+        // Устанавливаем флаг, что загрузка началась
+        window.profileLoading = true;
     }
 
     function hideLoader() {
+        console.log('🔄 hideLoader вызван');
         const elements = getDOMElements();
         if (elements.loader) elements.loader.style.display = 'none';
+        // Сбрасываем флаг загрузки
+        window.profileLoading = false;
     }
 
     function showError(message) {
@@ -150,9 +160,14 @@
     // --- Логика получения данных ---
 
     async function fetchProfileDataFromServer() {
-        if (isLoading) {
+        console.log('🔍 fetchProfileDataFromServer вызван, isLoading:', isLoading, 'window.profileLoading:', window.profileLoading);
+        
+        // Если уже идет загрузка или профиль уже загружен, не запускаем повторно
+        if (isLoading || window.profileLoading) {
+            console.log('⏸️ Загрузка уже идет, пропускаем');
             return;
         }
+        
         isLoading = true;
         showLoader();
 
@@ -161,11 +176,21 @@
             console.log('window.currentUser:', window.currentUser);
             console.log('window.isUserInitialized:', window.isUserInitialized);
             
-            // Проверяем, есть ли уже инициализированные данные пользователя
-            if (window.currentUser && window.isUserInitialized) {
-                console.log('✅ Используем уже инициализированные данные пользователя');
-                updateProfileDOM(window.currentUser);
-                return;
+            // Проверяем, есть ли уже инициализированные данные пользователя в localStorage
+            const savedUserData = localStorage.getItem('telegramUserData');
+            console.log('🔍 localStorage.getItem("telegramUserData"):', savedUserData);
+            if (savedUserData) {
+                try {
+                    const userData = JSON.parse(savedUserData);
+                    console.log('✅ Используем сохраненные данные пользователя из localStorage');
+                    updateProfileDOM(userData);
+                    return;
+                } catch (e) {
+                    console.log('❌ Ошибка при парсинге сохраненных данных:', e);
+                    localStorage.removeItem('telegramUserData');
+                }
+            } else {
+                console.log('❌ Нет сохраненных данных в localStorage');
             }
 
             const tg = getTelegramWebApp();
@@ -204,6 +229,10 @@
             }
 
             const data = await response.json();
+            
+            // Сохраняем данные пользователя в localStorage для повторного использования
+            localStorage.setItem('telegramUserData', JSON.stringify(data));
+            
             updateProfileDOM(data);
 
         } catch (error) {

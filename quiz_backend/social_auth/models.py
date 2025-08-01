@@ -10,21 +10,6 @@ class SocialAccount(models.Model):
     
     Связывает внешние социальные аккаунты с пользователями Django.
     Поддерживает различные провайдеры: Telegram, GitHub, Google, VK и др.
-    
-    Интеграция с другими системами:
-    - Связь с TelegramUser (пользователи бота)
-    - Связь с MiniAppUser (пользователи Mini App)
-    - Связь с TelegramAdmin (админы бота)
-    - Связь с DjangoAdmin (админы Django)
-    """
-
-
-class SocialAccount(models.Model):
-    """
-    Модель для хранения социальных аккаунтов пользователей.
-    
-    Связывает внешние социальные аккаунты с пользователями Django.
-    Поддерживает различные провайдеры: Telegram, GitHub, Google, VK и др.
     """
     PROVIDER_CHOICES = [
         ('telegram', 'Telegram'),
