@@ -13,6 +13,15 @@
     --clr: #151F28;
     --primary-font: 'Roboto', sans-serif; /* Основной шрифт */
     --secondary-font: 'MyCustomFont', sans-serif; /* Вторичный шрифт, если используется */
+    
+    /* Safe Area переменные для устройств с "чёлкой" */
+    --safe-area-top: 0px;
+    --safe-area-bottom: 0px;
+    --safe-area-left: 0px;
+    --safe-area-right: 0px;
+    
+    /* Переменная для корректной высоты на мобильных */
+    --vh: 1vh;
 }
 
 * {
@@ -416,10 +425,10 @@ body {
     color: #cccccc;
 }
 
-/* Показываем детали при hover только на десктопе */
+/* Отключаем hover эффекты на десктопе */
 @media (hover: hover) and (pointer: fine) {
     .topic-card:hover .card-overlay p {
-        opacity: 0.9 !important;
+        opacity: 1 !important;
     }
 }
 
@@ -520,14 +529,16 @@ body {
     opacity: 1;
 }
 
-/* Hover эффекты */
-.navigation ul li:hover a .icon {
-    transform: translateY(-28px);
-}
-
-.navigation ul li:hover a .text {
-    opacity: 1;
-    transform: translateY(5px);
+/* Hover эффекты только для тачскринов */
+@media (hover: none) {
+    .navigation ul li:hover a .icon {
+        transform: translateY(-28px);
+    }
+    
+    .navigation ul li:hover a .text {
+        opacity: 1;
+        transform: translateY(5px);
+    }
 }
 
 /* Индикатор (ползунок) */
@@ -1548,6 +1559,261 @@ body.fullscreen-active .gallery__container {
     .action-btn {
         padding: 15px;
         font-size: 15px;
+    }
+}
+
+/* ========= АДАПТИВНОСТЬ ДЛЯ РАЗНЫХ ПЛАТФОРМ ========= */
+
+/* Стили для Telegram WebApp */
+.telegram-webapp {
+    /* Специфичные стили для Telegram WebApp */
+}
+
+/* Стили для мобильной платформы */
+.mobile-platform {
+    /* Используем --vh для корректной высоты на мобильных */
+    min-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Стили для десктопной платформы */
+.desktop-platform {
+    /* Специфичные стили для десктопа */
+}
+
+/* Стили для браузерной платформы */
+.browser-platform {
+    /* Специфичные стили для браузера */
+}
+
+/* Стили когда нет initData (браузер) */
+.no-init-data {
+    /* Стили для случая без аутентификации */
+}
+
+/* Стили когда клавиатура открыта на мобильных */
+.keyboard-open {
+    /* Адаптация под открытую клавиатуру */
+}
+
+.keyboard-open .content {
+    padding-bottom: 20px; /* Уменьшаем нижний отступ */
+}
+
+.keyboard-open .navigation {
+    bottom: 10px; /* Поднимаем навигацию */
+}
+
+/* Адаптация поиска для разных платформ */
+.mobile-platform .search-container {
+    max-width: 280px;
+}
+
+.desktop-platform .search-container {
+    max-width: 350px;
+}
+
+.browser-platform .search-container {
+    max-width: 320px;
+}
+
+/* Адаптация галереи для разных платформ */
+@media (max-width: 480px) {
+    .gallery {
+        max-width: 180px;
+        height: 130px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+    .gallery {
+        max-width: 200px;
+        height: 150px;
+    }
+}
+
+@media (min-width: 1025px) {
+    .gallery {
+        max-width: 220px;
+        height: 170px;
+    }
+}
+
+/* Адаптация навигации для разных платформ */
+.mobile-platform .navigation {
+    width: 320px;
+    bottom: calc(10px + var(--safe-area-bottom));
+}
+
+.desktop-platform .navigation {
+    width: 400px;
+    bottom: 20px;
+}
+
+.browser-platform .navigation {
+    width: 350px;
+    bottom: 15px;
+}
+
+/* Адаптация карточек для разных платформ */
+@media (max-width: 480px) {
+    .topic-card {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+    .topic-card {
+        width: 180px;
+        height: 180px;
+    }
+}
+
+@media (min-width: 1025px) {
+    .topic-card {
+        width: 170px;
+        height: 170px;
+    }
+}
+
+/* Адаптация текста для разных платформ */
+.mobile-platform .card-overlay h3 {
+    font-size: 14px;
+}
+
+.desktop-platform .card-overlay h3 {
+    font-size: 16px;
+}
+
+.browser-platform .card-overlay h3 {
+    font-size: 16px;
+}
+
+/* Адаптация отступов между карточками */
+@media (max-width: 480px) {
+    .gallery__container span {
+        margin: 0 5px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+    .gallery__container span {
+        margin: 0 6px;
+    }
+}
+
+@media (min-width: 1025px) {
+    .gallery__container span {
+        margin: 0 8px;
+    }
+}
+
+/* Адаптация кнопок для разных платформ */
+.mobile-platform .card-actions button {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.desktop-platform .card-actions button {
+    padding: 8px 14px;
+    font-size: 14px;
+}
+
+.browser-platform .card-actions button {
+    padding: 7px 12px;
+    font-size: 13px;
+}
+
+/* Адаптация профиля для разных платформ */
+.mobile-platform .profile-container {
+    padding: 15px;
+    margin: 10px;
+}
+
+.desktop-platform .profile-container {
+    padding: 25px;
+    margin: 20px;
+}
+
+.browser-platform .profile-container {
+    padding: 20px;
+    margin: 15px;
+}
+
+/* Адаптация модальных окон для разных платформ */
+.mobile-platform .modal-content {
+    width: 90%;
+    max-width: 320px;
+    margin: 20px auto;
+}
+
+.desktop-platform .modal-content {
+    width: 80%;
+    max-width: 500px;
+    margin: 40px auto;
+}
+
+.browser-platform .modal-content {
+    width: 85%;
+    max-width: 400px;
+    margin: 30px auto;
+}
+
+/* Дополнительные медиа-запросы для экстремальных случаев */
+@media (max-width: 320px) {
+    .mobile-platform .gallery {
+        max-width: 140px;
+        height: 100px;
+    }
+    
+    .mobile-platform .topic-card {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .mobile-platform .navigation {
+        width: 280px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .desktop-platform .gallery {
+        max-width: 200px;
+        height: 150px;
+    }
+    
+    .desktop-platform .topic-card {
+        width: 170px;
+        height: 170px;
+    }
+}
+
+/* Стили для устройств с высоким DPI */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .topic-card img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Стили для устройств с поддержкой hover */
+@media (hover: hover) {
+    /* Отключаем hover эффекты для карточек на десктопе */
+    .topic-card:hover {
+        transform: none;
+    }
+    
+    /* Отключаем hover эффекты для overlay */
+    .topic-card:hover .card-overlay {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Стили для устройств без поддержки hover (тачскрины) */
+@media (hover: none) {
+    .topic-card:active {
+        transform: scale(0.95);
     }
 }
 
