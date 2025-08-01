@@ -228,11 +228,25 @@
             
             // Загружаем скрипты в зависимости от страницы
             if (url === '/' || url === '/index' || url.startsWith('/?') || url.startsWith('/index?')) {
-                console.log('🎯 Home page detected, loading topic cards script...');
-                const script = document.createElement('script');
-                script.setAttribute('data-dynamic', 'true');
-                script.src = '/static/js/topic-cards.js?v=1.3';
-                script.onload = function() {
+                console.log('🎯 Home page detected, loading scripts...');
+                
+                // Загружаем search.js
+                const searchScript = document.createElement('script');
+                searchScript.setAttribute('data-dynamic', 'true');
+                searchScript.src = '/static/js/search.js?v=1.5';
+                searchScript.onload = function() {
+                    console.log('✅ Search script loaded via base template');
+                };
+                searchScript.onerror = function() {
+                    console.error('❌ Failed to load search.js');
+                };
+                document.head.appendChild(searchScript);
+                
+                // Загружаем topic-cards.js
+                const topicCardsScript = document.createElement('script');
+                topicCardsScript.setAttribute('data-dynamic', 'true');
+                topicCardsScript.src = '/static/js/topic-cards.js?v=1.3';
+                topicCardsScript.onload = function() {
                     console.log('✅ Topic cards script loaded via base template');
                     // Вызываем инициализацию карточек после загрузки скрипта
                     setTimeout(() => {
@@ -244,10 +258,10 @@
                         }
                     }, 100);
                 };
-                script.onerror = function() {
+                topicCardsScript.onerror = function() {
                     console.error('❌ Failed to load topic-cards.js');
                 };
-                document.head.appendChild(script);
+                document.head.appendChild(topicCardsScript);
             } else if (url.startsWith('/topic/')) {
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');

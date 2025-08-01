@@ -27,59 +27,94 @@ async function handleSearch(event) {
 
 async function searchTopics(query) {
     try {
+        console.log('🔍 Поиск тем с запросом:', query);
         const response = await fetch(`/api/topics?search=${encodeURIComponent(query)}`);
         const data = await response.json();
         
+        console.log('📡 Ответ от API поиска:', data);
+        
         if (response.ok) {
-            updateGallery(data.topics);
+            console.log('✅ Поиск успешен, обновляем галерею с', data.length, 'темами');
+            updateGallery(data);
         } else {
-            console.error('Ошибка поиска:', data);
+            console.error('❌ Ошибка поиска:', data);
         }
     } catch (error) {
-        console.error('Ошибка при выполнении поиска:', error);
+        console.error('❌ Ошибка при выполнении поиска:', error);
     }
 }
 
 async function loadTopics() {
     try {
+        console.log('📡 Загружаем все темы...');
         const response = await fetch('/api/topics');
         const data = await response.json();
         
+        console.log('📡 Ответ от API загрузки тем:', data);
+        
         if (response.ok) {
-            updateGallery(data.topics);
+            console.log('✅ Загрузка успешна, обновляем галерею с', data.length, 'темами');
+            updateGallery(data);
         } else {
-            console.error('Ошибка загрузки тем:', data);
+            console.error('❌ Ошибка загрузки тем:', data);
         }
     } catch (error) {
-        console.error('Ошибка при загрузке тем:', error);
+        console.error('❌ Ошибка при загрузке тем:', error);
     }
 }
 
 function updateGallery(topics) {
+    console.log('🎨 Обновляем галерею с темами:', topics);
+    
+    // Сохраняем состояние поля поиска
+    const searchInput = document.getElementById('search-input');
+    const wasFocused = searchInput === document.activeElement;
+    const searchValue = searchInput ? searchInput.value : '';
+    
     const container = document.querySelector('.gallery__container');
     
-    if (!topics || topics.length === 0) {
-        container.innerHTML = '<div class="no-results">Темы не найдены</div>';
+    if (!container) {
+        console.error('❌ Контейнер галереи не найден!');
         return;
     }
     
-    container.innerHTML = topics.map((topic, index) => `
-        <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}">
-            <img src="${topic.image_url}" alt="${topic.name}">
-            <div class="card-overlay always-visible">
-                <h3>${topic.name}</h3>
-                <p class="difficulty">${topic.difficulty}</p>
-                <p class="questions">${topic.questions_count} вопросов</p>
-                <div class="card-actions">
-                    <button class="btn-start" onclick="startTopic(event, ${topic.id})">Начать</button>
-                    <button class="btn-back" onclick="goBack(event)">Назад</button>
+    if (!topics || topics.length === 0) {
+        console.log('📭 Нет тем для отображения, показываем сообщение');
+        container.innerHTML = '<div class="no-results">Темы не найдены</div>';
+    } else {
+        console.log('🎨 Создаем HTML для', topics.length, 'тем');
+        container.innerHTML = topics.map((topic, index) => `
+            <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}">
+                <img src="${topic.image_url}" alt="${topic.name}">
+                <div class="card-overlay always-visible">
+                    <h3>${topic.name}</h3>
+                    <p class="difficulty">${topic.difficulty}</p>
+                    <p class="questions">${topic.questions_count} вопросов</p>
+                    <div class="card-actions">
+                        <button class="btn-start" onclick="startTopic(event, ${topic.id})">Начать</button>
+                        <button class="btn-back" onclick="goBack(event)">Назад</button>
+                    </div>
                 </div>
-            </div>
-        </span>
-    `).join('');
+            </span>
+        `).join('');
+    }
     
+    console.log('🔄 Переинициализируем обработчики событий');
     // Переинициализируем обработчики событий для новых карточек
     initializeCardHandlers();
+    
+    // Восстанавливаем состояние поля поиска
+    if (searchInput) {
+        searchInput.value = searchValue;
+        if (wasFocused) {
+            // Небольшая задержка для восстановления фокуса
+            setTimeout(() => {
+                searchInput.focus();
+                // Устанавливаем курсор в конец текста
+                searchInput.setSelectionRange(searchValue.length, searchValue.length);
+            }, 10);
+        }
+    }
 }
 
 function initializeCardHandlers() {
