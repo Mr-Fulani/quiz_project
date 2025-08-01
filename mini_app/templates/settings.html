@@ -6,11 +6,11 @@
 
 {% block content %}
 <div class="settings-container">
-    <h1>{{ translations.get('settings_title', 'Настройки') }}</h1>
+    <h1 data-translate="settings_title">{{ translations.get('settings_title', 'Настройки') }}</h1>
     
     <!-- Настройки языка -->
     <div class="settings-section">
-        <h2>{{ translations.get('language_settings', 'Язык') }}</h2>
+        <h2 data-translate="language_settings">{{ translations.get('language_settings', 'Язык') }}</h2>
         <div class="language-selector">
             {% for lang in supported_languages %}
             <button 
@@ -27,33 +27,33 @@
     
     <!-- Другие настройки -->
     <div class="settings-section">
-        <h2>{{ translations.get('notifications', 'Уведомления') }}</h2>
+        <h2 data-translate="notifications">{{ translations.get('notifications', 'Уведомления') }}</h2>
         <div class="setting-item">
             <label class="switch">
                 <input type="checkbox" id="notifications-toggle" checked>
                 <span class="slider round"></span>
             </label>
-            <span>{{ translations.get('notifications', 'Уведомления') }}</span>
+            <span data-translate="notifications">{{ translations.get('notifications', 'Уведомления') }}</span>
         </div>
     </div>
     
     <div class="settings-section">
-        <h2>{{ translations.get('dark_mode', 'Темная тема') }}</h2>
+        <h2 data-translate="dark_mode">{{ translations.get('dark_mode', 'Темная тема') }}</h2>
         <div class="setting-item">
             <label class="switch">
                 <input type="checkbox" id="dark-mode-toggle">
                 <span class="slider round"></span>
             </label>
-            <span>{{ translations.get('dark_mode', 'Темная тема') }}</span>
+            <span data-translate="dark_mode">{{ translations.get('dark_mode', 'Темная тема') }}</span>
         </div>
     </div>
     
     <!-- Информация о приложении -->
     <div class="settings-section">
-        <h2>{{ translations.get('about', 'О приложении') }}</h2>
+        <h2 data-translate="about">{{ translations.get('about', 'О приложении') }}</h2>
         <div class="app-info">
-            <p><strong>{{ translations.get('version', 'Версия') }}:</strong> 1.0.0</p>
-            <p>Quiz Mini App - {{ translations.get('about', 'О приложении') }}</p>
+            <p><strong data-translate="version">{{ translations.get('version', 'Версия') }}</strong>: 1.0.0</p>
+            <p>Quiz Mini App - <span data-translate="about">{{ translations.get('about', 'О приложении') }}</span></p>
         </div>
     </div>
 </div>
@@ -196,34 +196,13 @@ function isTelegramWebApp() {
     return window.Telegram && window.Telegram.WebApp;
 }
 
-function changeLanguage(lang) {
-    console.log('Changing language to:', lang);
-    
-    // Обновляем активную кнопку
-    document.querySelectorAll('.language-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
-    
-    // Сохраняем язык в localStorage
-    localStorage.setItem('selectedLanguage', lang);
-    
-    // Если в Telegram Web App, используем Telegram API для навигации
-    if (isTelegramWebApp()) {
-        console.log('Using Telegram Web App navigation');
-        const newUrl = `/?lang=${lang}`;
-        window.Telegram.WebApp.navigateTo(newUrl);
-    } else {
-        // Для обычного браузера используем стандартную навигацию
-        console.log('Using standard browser navigation');
-        const currentUrl = new URL(window.location);
-        currentUrl.searchParams.set('lang', lang);
-        window.location.href = currentUrl.toString();
-    }
-}
+// Функция changeLanguage теперь определена глобально в base.html
 
 // Инициализация переключателей
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Settings page DOM loaded');
+    console.log('🔧 window.localizationService:', window.localizationService);
+    
     // Загружаем сохраненные настройки
     const notificationsEnabled = localStorage.getItem('notifications') !== 'false';
     const darkModeEnabled = localStorage.getItem('darkMode') === 'true';
@@ -234,7 +213,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Если есть сохраненный язык и он отличается от текущего, переключаем
     if (savedLanguage && savedLanguage !== window.currentLanguage) {
-        changeLanguage(savedLanguage);
+        console.log('Restoring saved language:', savedLanguage);
+        window.currentLanguage = savedLanguage;
+        // Обновляем активную кнопку без перезагрузки страницы
+        document.querySelectorAll('.language-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const activeBtn = document.querySelector(`[data-lang="${savedLanguage}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
     }
     
     // Обработчики событий для переключателей

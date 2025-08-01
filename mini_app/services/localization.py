@@ -74,6 +74,18 @@ class LocalizationService:
             "delete": "Delete",
             "edit": "Edit",
             "close": "Close",
+            
+            # Профиль - дополнительные
+            "points": "Points",
+            "rating": "Rating",
+            "quizzes": "Quizzes",
+            "success_rate": "Success Rate",
+            "progress_topics": "Topic Progress",
+            "no_progress_data": "No progress data available.",
+            "social_networks": "Social Networks",
+            "no_social_links": "Social networks not specified.",
+            "refresh_data": "Refresh Data",
+            "no_statistics_data": "No data available for display.",
         },
         "ru": {
             # Навигация
@@ -140,6 +152,18 @@ class LocalizationService:
             "delete": "Удалить",
             "edit": "Редактировать",
             "close": "Закрыть",
+            
+            # Профиль - дополнительные
+            "points": "Баллов",
+            "rating": "Рейтинг",
+            "quizzes": "Квизов",
+            "success_rate": "Успешность",
+            "progress_topics": "Прогресс по темам",
+            "no_progress_data": "Нет данных о прогрессе.",
+            "social_networks": "Социальные сети",
+            "no_social_links": "Социальные сети не указаны.",
+            "refresh_data": "Обновить данные",
+            "no_statistics_data": "Пока нет данных для отображения",
         }
     }
     

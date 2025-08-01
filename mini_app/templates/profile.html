@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-Профиль
+{{ translations.get('profile_title', 'Профиль') }}
 {% endblock %}
 
 {% block extra_css %}
@@ -10,7 +10,7 @@
 
 {% block content %}
 <div id="loader" class="loader-container">
-    <div class="loader-text">Загрузка профиля...</div>
+    <div class="loader-text" data-translate="loading">{{ translations.get('loading', 'Загрузка профиля...') }}</div>
 </div>
 <div id="profile-container" class="profile-container" style="display: none;">
     <div class="profile-header">
@@ -24,45 +24,45 @@
     <div class="profile-stats">
         <div class="stat-card">
             <div id="profile-points" class="stat-number">0</div>
-            <div class="stat-label">Баллов</div>
+            <div class="stat-label" data-translate="points">{{ translations.get('points', 'Баллов') }}</div>
         </div>
         <div class="stat-card">
             <div id="profile-rating" class="stat-number">0</div>
-            <div class="stat-label">Рейтинг</div>
+            <div class="stat-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}</div>
         </div>
         <div class="stat-card">
             <div id="profile-quizzes" class="stat-number">0</div>
-            <div class="stat-label">Квизов</div>
+            <div class="stat-label" data-translate="quizzes">{{ translations.get('quizzes', 'Квизов') }}</div>
         </div>
         <div class="stat-card">
             <div id="profile-success" class="stat-number">0%</div>
-            <div class="stat-label">Успешность</div>
+            <div class="stat-label" data-translate="success_rate">{{ translations.get('success_rate', 'Успешность') }}</div>
         </div>
     </div>
 
     <div class="progress-section">
-        <h2 class="progress-title">Прогресс по темам</h2>
+        <h2 class="progress-title" data-translate="progress_topics">{{ translations.get('progress_topics', 'Прогресс по темам') }}</h2>
         <div id="progress-container">
             <!-- Сюда будет добавляться прогресс -->
-            <p>Нет данных о прогрессе.</p>
+            <p data-translate="no_progress_data">{{ translations.get('no_progress_data', 'Нет данных о прогрессе.') }}</p>
         </div>
     </div>
 
     <div class="social-section">
-        <h2 class="progress-title">Социальные сети</h2>
+        <h2 class="progress-title" data-translate="social_networks">{{ translations.get('social_networks', 'Социальные сети') }}</h2>
         <div id="social-links-container">
             <!-- Сюда будут добавляться социальные ссылки -->
-            <p class="social-empty">Социальные сети не указаны.</p>
+            <p class="social-empty" data-translate="no_social_links">{{ translations.get('no_social_links', 'Социальные сети не указаны.') }}</p>
         </div>
     </div>
 
     <div class="profile-actions">
         <button id="edit-profile-btn" class="action-btn edit-btn">
-            <span>Редактировать профиль</span>
+            <span data-translate="edit_profile">{{ translations.get('edit_profile', 'Редактировать профиль') }}</span>
             <i class="fas fa-edit action-btn-icon"></i>
         </button>
         <button id="refresh-btn" class="action-btn refresh-btn">
-            <span>Обновить данные</span>
+            <span data-translate="refresh_data">{{ translations.get('refresh_data', 'Обновить данные') }}</span>
             <i class="fas fa-sync-alt action-btn-icon"></i>
         </button>
     </div>

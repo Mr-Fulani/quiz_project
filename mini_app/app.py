@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Импортируем наши роутеры
 from routers import api as api_router
 from routers import pages as pages_router
+from middleware.language_middleware import LanguageMiddleware
 
 # Создаём экземпляр FastAPI
 app = FastAPI(debug=True)
@@ -16,6 +17,9 @@ app = FastAPI(debug=True)
 # Настраиваем логирование
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Добавляем middleware для языка (должен быть первым)
+app.add_middleware(LanguageMiddleware)
 
 # Включаем CORS (разрешаем доступ с любых доменов)
 app.add_middleware(

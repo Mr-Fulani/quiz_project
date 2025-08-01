@@ -7,7 +7,7 @@
 {% block content %}
 <!-- Поиск -->
 <div class="search-container">
-    <input type="text" id="search-input" placeholder="{{ translations.get('search_placeholder', 'Поиск тем...') }}" onkeyup="handleSearch(event)">
+    <input type="text" id="search-input" data-translate-placeholder="search_placeholder" placeholder="{{ translations.get('search_placeholder', 'Поиск тем...') }}" onkeyup="handleSearch(event)">
     <div class="search-results" id="search-results"></div>
 </div>
 
@@ -21,10 +21,10 @@
             <div class="card-overlay always-visible">
                 <h3>{{ topic.name }}</h3>
                 <p class="difficulty">{{ topic.difficulty }}</p>
-                <p class="questions">{{ topic.questions_count }} {{ translations.get('questions_count', 'вопросов') }}</p>
+                <p class="questions">{{ topic.questions_count }} <span data-translate="questions_count">{{ translations.get('questions_count', 'вопросов') }}</span></p>
                 <div class="card-actions">
-                    <button class="btn-start" onclick="handleStartTopic(event, {{ topic.id }})">{{ translations.get('start_button', 'Начать') }}</button>
-                    <button class="btn-back" onclick="goBackFromCard(event)">{{ translations.get('back_button', 'Назад') }}</button>
+                    <button class="btn-start" onclick="handleStartTopic(event, {{ topic.id }})" data-translate="start_button">{{ translations.get('start_button', 'Начать') }}</button>
+                    <button class="btn-back" onclick="goBackFromCard(event)" data-translate="back_button">{{ translations.get('back_button', 'Назад') }}</button>
                 </div>
             </div>
         </span>

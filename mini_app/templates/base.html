@@ -9,16 +9,26 @@
 <!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
 
     <!-- Подключаем стили -->
-               <link rel="stylesheet" href="/static/css/styles.css?v=2.9">
+               <link rel="stylesheet" href="/static/css/styles.css?v=2.10">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
 
+    <!-- Глобальные переменные для локализации -->
+    <script>
+        window.currentLanguage = '{{ current_language or "en" }}';
+        window.translations = {{ translations | tojson }};
+        window.supportedLanguages = {{ supported_languages | tojson }};
+    </script>
+    
     <!-- Подключение Ionicons для иконок (если нужно для меню) -->
     <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     
     <!-- Platform Detector для адаптивности (временно отключен) -->
     <!-- <script src="/static/js/platform-detector.js?v=1.0"></script> -->
+    
+               <!-- Сервис локализации -->
+           <script src="/static/js/localization.js?v=1.4"></script>
 </head>
 <body>
     <!-- Слой 1: Тёмный полупрозрачный фон -->
@@ -30,7 +40,6 @@
         <!-- содержимое страницы -->
         {% endblock %}
     </div>
-    </button>
 
     <!-- Фиксированное нижнее меню -->
     <nav class="navigation">
@@ -38,31 +47,31 @@
             <li class="list {% if request.url.path == '/' or request.url.path.startswith('/topic/') %}active{% endif %}" data-href="/">
                 <a href="/?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
-                    <span class="text">{{ translations.get('home', 'Главная') }}</span>
+                    <span class="text" data-translate="home">{{ translations.get('home', 'Главная') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}" data-href="/profile">
                 <a href="/profile?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
-                    <span class="text">{{ translations.get('profile', 'Профиль') }}</span>
+                    <span class="text" data-translate="profile">{{ translations.get('profile', 'Профиль') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/achievements' %}active{% endif %}" data-href="/achievements">
                 <a href="/achievements?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
-                    <span class="text">{{ translations.get('achievements', 'Достижения') }}</span>
+                    <span class="text" data-translate="achievements">{{ translations.get('achievements', 'Достижения') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/statistics' %}active{% endif %}" data-href="/statistics">
                 <a href="/statistics?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
-                    <span class="text">{{ translations.get('statistics', 'Статистика') }}</span>
+                    <span class="text" data-translate="statistics">{{ translations.get('statistics', 'Статистика') }}</span>
                 </a>
             </li>
             <li class="list {% if request.url.path == '/settings' %}active{% endif %}" data-href="/settings">
                 <a href="/settings?lang={{ current_language or 'en' }}">
                     <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
-                    <span class="text">{{ translations.get('settings', 'Настройки') }}</span>
+                    <span class="text" data-translate="settings">{{ translations.get('settings', 'Настройки') }}</span>
                 </a>
             </li>
             <div class="indicator"></div>
@@ -70,10 +79,9 @@
     </nav>
 
     <script>
-        // Глобальные переменные для локализации
-        window.currentLanguage = '{{ current_language or "en" }}';
-        window.translations = {{ translations | tojson }};
-        window.supportedLanguages = {{ supported_languages | tojson }};
+        // Глобальные переменные для пользователя
+        window.currentUser = null;
+        window.isUserInitialized = false;
         
         // Глобальные переменные для пользователя
         window.currentUser = null;
@@ -161,16 +169,28 @@
             loadPage(href);
         }
         
-        async function loadPage(url) {
-            try {
-                // Показываем индикатор загрузки (опционально)
-                contentContainer.style.opacity = '0.7';
-                
-                const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
+        function loadPage(url) {
+            (async () => {
+                try {
+                    // Показываем индикатор загрузки (опционально)
+                    contentContainer.style.opacity = '0.7';
+                    
+                    // Добавляем параметр языка к URL если его нет
+                    const currentLang = window.currentLanguage || 'en';
+                    const urlObj = new URL(url, window.location.origin);
+                    
+                    // Всегда устанавливаем правильный язык в URL
+                    urlObj.searchParams.set('lang', currentLang);
+                    
+                    const finalUrl = urlObj.toString();
+                    
+                    console.log('🌐 Loading page with language:', currentLang, 'URL:', finalUrl);
+                    
+                    const response = await fetch(finalUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
                 
                 if (response.ok) {
                     const html = await response.text();
@@ -190,6 +210,14 @@
                             
                             contentContainer.innerHTML = newContent.innerHTML;
                             contentContainer.style.opacity = '1';
+                            
+                            // Обновляем глобальные переменные локализации из нового контента
+                            updateLocalizationFromPage().then(() => {
+                                // Обновляем интерфейс с новыми переводами
+                                if (window.localizationService) {
+                                    window.localizationService.updateInterface();
+                                }
+                            });
                             
                             // Обновляем URL в браузере
                             window.history.pushState({}, '', url);
@@ -218,6 +246,7 @@
                 // Fallback к обычному переходу
                 window.location.href = url;
             }
+        })();
         }
         
         // Функция для загрузки специфичных скриптов страницы
@@ -319,9 +348,119 @@
             }
         });
         
+        // Функция для обновления локализации из загруженной страницы
+        async function updateLocalizationFromPage() {
+            console.log('🔄 Updating localization from loaded page');
+            
+            // Получаем текущий язык
+            const currentLang = window.currentLanguage || 'en';
+            
+            // Запрашиваем актуальные переводы с сервера
+            try {
+                const response = await fetch('/api/change-language', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ language: currentLang })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Обновляем глобальные переменные
+                        window.currentLanguage = data.language;
+                        window.translations = data.translations;
+                        window.supportedLanguages = data.supported_languages;
+                        
+                        // Обновляем сервис локализации если он существует
+                        if (window.localizationService) {
+                            window.localizationService.currentLanguage = data.language;
+                            window.localizationService.translations = data.translations;
+                            window.localizationService.supportedLanguages = data.supported_languages;
+                            
+                            console.log('✅ Localization service updated with new data');
+                        }
+                        
+                        console.log('✅ Localization updated successfully');
+                        return true;
+                    } else {
+                        console.error('❌ Failed to update localization:', data.error);
+                        return false;
+                    }
+                } else {
+                    console.error('❌ Failed to fetch localization data');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error updating localization:', error);
+                return false;
+            }
+        }
+        
+        // Глобальная функция для переключения языка
+        async function changeLanguage(lang) {
+            console.log('🔄 Global changeLanguage called with:', lang);
+            
+            // Проверяем, что язык действительно изменился
+            if (window.currentLanguage === lang) {
+                console.log('⚠️ Language is already set to:', lang);
+                return;
+            }
+            
+            // Обновляем активную кнопку если мы на странице настроек
+            const activeBtn = document.querySelector(`[data-lang="${lang}"]`);
+            if (activeBtn) {
+                document.querySelectorAll('.language-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                activeBtn.classList.add('active');
+            }
+            
+            // Используем сервис локализации для переключения языка
+            if (window.localizationService) {
+                try {
+                    console.log('🔄 Using localization service...');
+                    const success = await window.localizationService.changeLanguage(lang);
+                    
+                    if (success) {
+                        console.log('✅ Language changed successfully via service');
+                        
+                        // Добавляем небольшую задержку для стабилизации
+                        setTimeout(() => {
+                            // Принудительно обновляем интерфейс еще раз
+                            if (window.localizationService) {
+                                window.localizationService.updateInterface();
+                            }
+                        }, 100);
+                        
+                    } else {
+                        console.error('❌ Failed to change language via service');
+                        // Fallback к перезагрузке страницы
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error('❌ Error in changeLanguage:', error);
+                    // Fallback к перезагрузке страницы
+                    window.location.reload();
+                }
+            } else {
+                console.log('⚠️ Localization service not available, using fallback');
+                // Fallback для старых версий
+                localStorage.setItem('selectedLanguage', lang);
+                window.currentLanguage = lang;
+                
+                // Принудительно перезагружаем страницу для надежности
+                window.location.reload();
+            }
+        }
+        
         // Экспортируем функции глобально для использования в других скриптах
         window.initializeUser = initializeUser;
         window.loadPage = loadPage;
+        window.updateLocalizationFromPage = updateLocalizationFromPage;
+        window.changeLanguage = changeLanguage;
     </script>
 
     <!-- Подключаем скрипты -->
