@@ -220,6 +220,7 @@
         // Функция для загрузки специфичных скриптов страницы
         function loadPageSpecificScripts(url) {
             console.log('📜 Loading page-specific scripts for:', url);
+            console.log('📜 URL starts with /profile:', url.startsWith('/profile'));
             
             // Удаляем все динамические скрипты
             const dynamicScripts = document.querySelectorAll('script[data-dynamic="true"]');
@@ -234,11 +235,12 @@
                     console.log('✅ Topic detail script loaded via base template');
                 };
                 document.head.appendChild(script);
-            } else if (url === '/profile') {
+            } else if (url.startsWith('/profile')) {
+                console.log('🎯 Profile page detected, loading script...');
                 // Для профиля загружаем скрипт и инициализируем
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
-                script.src = '/static/js/profile.js?v=1.7';
+                script.src = '/static/js/profile.js?v=2.3';
                 script.onload = function() {
                     console.log('✅ Profile script loaded via base template');
                     // Вызываем инициализацию профиля после загрузки скрипта
@@ -251,6 +253,8 @@
                         }
                     }, 100);
                 };
+                // Принудительно обновляем кэш
+                script.setAttribute('data-timestamp', Date.now());
                 script.onerror = function() {
                     console.error('❌ Failed to load profile.js');
                 };

@@ -15,7 +15,6 @@
     }
 
     // --- DOM Элементы ---
-    // Выносим получение элементов в одну функцию для централизации
     function getDOMElements() {
         return {
             loader: document.getElementById('loader'),
@@ -37,26 +36,21 @@
     function updateAvatar(avatarUrl) {
         const { avatar } = getDOMElements();
         if (avatar) {
-            // Если avatarUrl не пришел или пустой, используем заглушку.
-            // В противном случае, используем пришедший URL.
             const finalUrl = avatarUrl || '/static/images/default_avatar.png';
             avatar.src = finalUrl;
             avatar.style.display = 'block';
             
-            // Добавляем обработчик ошибок, чтобы в случае битой ссылки
-            // также показать заглушку.
             avatar.onerror = () => {
                 avatar.src = '/static/images/default_avatar.png';
-                avatar.onerror = null; // Убираем обработчик, чтобы избежать бесконечного цикла
+                avatar.onerror = null;
             };
         }
     }
 
     function updateSocialLinks(socialLinks, elements) {
-        elements.socials.innerHTML = ''; // Очищаем контейнер
+        elements.socials.innerHTML = '';
         if (socialLinks && socialLinks.length > 0) {
             socialLinks.forEach(link => {
-                // Предполагаем, что иконки - это FontAwesome или подобные классы
                 const iconClass = `fab fa-${link.name.toLowerCase()}`;
                 const socialItem = document.createElement('a');
                 socialItem.className = 'social-link-card';
@@ -97,18 +91,15 @@
         }
     }
 
-
-                function updateProfileDOM(userData) {
-                console.log('🚀 updateProfileDOM вызван с данными:', userData);
-                const elements = getDOMElements();
-                console.log('🔍 DOM элементы:', elements);
-                if (!userData || !elements.profileContainer) {
-                    console.error('❌ Ошибка: нет данных или контейнера профиля');
-                    showError("Не удалось загрузить данные профиля.");
-                    return;
-                }
-            
-                
+    function updateProfileDOM(userData) {
+        console.log('🚀 updateProfileDOM вызван с данными:', userData);
+        const elements = getDOMElements();
+        
+        if (!userData || !elements.profileContainer) {
+            console.error('❌ Ошибка: нет данных или контейнера профиля');
+            showError("Не удалось загрузить данные профиля.");
+            return;
+        }
 
         const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         elements.name.textContent = fullName || 'Пользователь';
@@ -128,7 +119,6 @@
         console.log('✅ Профиль успешно обновлен и показан');
     }
 
-
     // --- Управление состоянием загрузки ---
 
     function showLoader() {
@@ -136,16 +126,12 @@
         const elements = getDOMElements();
         if (elements.loader) elements.loader.style.display = 'flex';
         if (elements.profileContainer) elements.profileContainer.style.display = 'none';
-        // Устанавливаем флаг, что загрузка началась
-        window.profileLoading = true;
     }
 
     function hideLoader() {
         console.log('🔄 hideLoader вызван');
         const elements = getDOMElements();
         if (elements.loader) elements.loader.style.display = 'none';
-        // Сбрасываем флаг загрузки
-        window.profileLoading = false;
     }
 
     function showError(message) {
@@ -160,10 +146,9 @@
     // --- Логика получения данных ---
 
     async function fetchProfileDataFromServer() {
-        console.log('🔍 fetchProfileDataFromServer вызван, isLoading:', isLoading, 'window.profileLoading:', window.profileLoading);
+        console.log('🔍 fetchProfileDataFromServer вызван');
         
-        // Если уже идет загрузка или профиль уже загружен, не запускаем повторно
-        if (isLoading || window.profileLoading) {
+        if (isLoading) {
             console.log('⏸️ Загрузка уже идет, пропускаем');
             return;
         }
@@ -172,34 +157,14 @@
         showLoader();
 
         try {
-            console.log('🔍 fetchProfileDataFromServer вызван');
-            console.log('window.currentUser:', window.currentUser);
-            console.log('window.isUserInitialized:', window.isUserInitialized);
+            console.log('🔍 Начинаем загрузку профиля');
             
-            // Проверяем, есть ли уже инициализированные данные пользователя в localStorage
-            const savedUserData = localStorage.getItem('telegramUserData');
-            console.log('🔍 localStorage.getItem("telegramUserData"):', savedUserData);
-            if (savedUserData) {
-                try {
-                    const userData = JSON.parse(savedUserData);
-                    console.log('✅ Используем сохраненные данные пользователя из localStorage');
-                    updateProfileDOM(userData);
-                    return;
-                } catch (e) {
-                    console.log('❌ Ошибка при парсинге сохраненных данных:', e);
-                    localStorage.removeItem('telegramUserData');
-                }
-            } else {
-                console.log('❌ Нет сохраненных данных в localStorage');
-            }
-
             const tg = getTelegramWebApp();
             console.log('🔍 Telegram WebApp:', tg);
-            console.log('🔍 initData:', tg?.initData);
+            console.log('🔍 initData:', tg?.initData ? 'present' : 'missing');
             
             if (!tg || !tg.initData) {
-                console.log('⚠️ Нет initData, показываем тестового пользователя');
-                // В браузере показываем заглушку профиля
+                console.log('⚠️ Нет initData, показываем заглушку');
                 const mockData = {
                     first_name: 'Тестовый',
                     last_name: 'Пользователь',
@@ -217,26 +182,28 @@
             }
 
             // Основной рабочий процесс с initData
+            console.log('📡 Отправляем запрос к /api/verify-init-data');
             const response = await fetch('/api/verify-init-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData: tg.initData })
             });
 
+            console.log('📡 Получен ответ:', response.status, response.statusText);
+
             if (!response.ok) {
                 const errorBody = await response.text();
+                console.error('❌ Ошибка ответа:', response.status, errorBody);
                 throw new Error(`Ошибка ${response.status}: ${errorBody}`);
             }
 
             const data = await response.json();
-            
-            // Сохраняем данные пользователя в localStorage для повторного использования
-            localStorage.setItem('telegramUserData', JSON.stringify(data));
+            console.log('✅ Получены данные профиля:', data);
             
             updateProfileDOM(data);
 
         } catch (error) {
-            console.error('Ошибка при загрузке профиля:', error);
+            console.error('❌ Ошибка при загрузке профиля:', error);
             showError(`Не удалось загрузить профиль. ${error.message}`);
         } finally {
             isLoading = false;
@@ -244,21 +211,28 @@
     }
 
     // --- Глобальная функция инициализации ---
-    // Эта функция будет вызываться из base.html при навигации
     window.initProfilePage = function() {
-        tg = window.Telegram?.WebApp;
+        console.log('🚀 initProfilePage вызван');
+        
+        const tg = getTelegramWebApp();
         if (tg) {
             tg.ready();
             tg.expand();
         }
+        
         fetchProfileDataFromServer();
     };
 
     // --- Первичный запуск ---
-    // Вызываем при первой загрузке скрипта
+    console.log('📜 Profile script loaded, DOM ready state:', document.readyState);
+    
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', window.initProfilePage);
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📜 DOMContentLoaded event fired');
+            window.initProfilePage();
+        });
     } else {
+        console.log('📜 DOM already ready, calling initProfilePage immediately');
         window.initProfilePage();
     }
 
