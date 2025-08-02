@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{{ translations.get('home', 'Мое приложение') }}{% endblock %}</title>
 
     <!-- Подключение шрифтов -->
@@ -13,6 +14,9 @@
     
     <!-- Стили для функциональности "поделиться приложением" -->
     <link rel="stylesheet" href="/static/css/share-app.css?v=1.0">
+    
+    <!-- Стили для системы донатов -->
+    <link rel="stylesheet" href="/static/css/donation.css?v=1.0">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
@@ -29,6 +33,9 @@
     
     <!-- Библиотека для генерации QR-кодов -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+    
+    <!-- Stripe.js для обработки платежей -->
+    <script src="https://js.stripe.com/v3/"></script>
     
     <!-- Platform Detector для адаптивности (временно отключен) -->
     <!-- <script src="/static/js/platform-detector.js?v=1.0"></script> -->
@@ -487,6 +494,9 @@
     
     <!-- Скрипт для функциональности "поделиться приложением" -->
     <script src="/static/js/share-app.js?v=1.8"></script>
+    
+    <!-- Скрипт для системы донатов -->
+    <script src="/static/js/donation.js?v=2.0"></script>
     
     <script>
         // Управление индикатором навигации
