@@ -1,0 +1,440 @@
+/* Стили для функциональности "Поделиться приложением" */
+
+/* Кнопка "Поделиться приложением" */
+.share-app-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    margin: 10px 0;
+    width: 100%;
+    max-width: 300px;
+}
+
+.share-app-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.share-app-btn:active {
+    transform: translateY(0);
+}
+
+.share-app-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+/* Модальное окно */
+.share-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.share-modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+    overflow: hidden;
+}
+
+.share-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.share-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.share-modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.share-modal-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.share-modal-body {
+    padding: 30px 25px;
+    text-align: center;
+}
+
+/* Превью приложения */
+.app-preview {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.app-preview-image {
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.app-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.app-preview-info {
+    flex: 1;
+}
+
+.app-name {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.app-description {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.app-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.feature-tag {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* QR-код секция */
+.qr-section {
+    margin-bottom: 25px;
+}
+
+.qr-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #555;
+    font-weight: 500;
+}
+
+#qr-code-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+#qr-code-container img {
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.share-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.share-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.copy-link-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.copy-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.copy-link-btn:active {
+    transform: translateY(0);
+}
+
+.share-social-btn {
+    background: linear-gradient(135deg, #1da1f2 0%, #0d8bd9 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(29, 161, 242, 0.3);
+}
+
+.share-social-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(29, 161, 242, 0.4);
+}
+
+.share-social-btn:active {
+    transform: translateY(0);
+}
+
+/* Модальное окно соцсетей */
+.social-share-modal {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.social-share-content {
+    background: white;
+    border-radius: 20px;
+    padding: 0;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+    overflow: hidden;
+}
+
+.social-share-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #1da1f2 0%, #0d8bd9 100%);
+    color: white;
+}
+
+.social-share-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.social-share-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.social-share-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.social-share-buttons {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.social-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.social-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.telegram-btn {
+    background: linear-gradient(135deg, #0088cc 0%, #0077b3 100%);
+}
+
+.telegram-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 136, 204, 0.4);
+}
+
+.twitter-btn {
+    background: linear-gradient(135deg, #1da1f2 0%, #0d8bd9 100%);
+}
+
+.twitter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(29, 161, 242, 0.4);
+}
+
+.facebook-btn {
+    background: linear-gradient(135deg, #1877f2 0%, #166fe5 100%);
+}
+
+.facebook-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(24, 119, 242, 0.4);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+    .share-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .share-modal-header {
+        padding: 15px 20px;
+    }
+    
+    .share-modal-body {
+        padding: 20px;
+    }
+    
+    .share-app-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+    .share-modal-content {
+        background: #2d3748;
+        color: white;
+    }
+    
+    .share-modal-header {
+        background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    }
+    
+    #qr-code-container img {
+        background: white;
+    }
+}
+
+/* Состояние загрузки */
+.qr-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #666;
+}
+
+.qr-loading::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+} 

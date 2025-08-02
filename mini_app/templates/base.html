@@ -11,6 +11,9 @@
     <!-- Подключаем стили -->
                <link rel="stylesheet" href="/static/css/styles.css?v=2.18">
     
+    <!-- Стили для функциональности "поделиться приложением" -->
+    <link rel="stylesheet" href="/static/css/share-app.css?v=1.0">
+    
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
 
@@ -23,6 +26,9 @@
     
     <!-- Подключение Ionicons для иконок (если нужно для меню) -->
     <script src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    
+    <!-- Библиотека для генерации QR-кодов -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
     
     <!-- Platform Detector для адаптивности (временно отключен) -->
     <!-- <script src="/static/js/platform-detector.js?v=1.0"></script> -->
@@ -478,6 +484,9 @@
     <!-- Подключаем скрипты -->
     {% block extra_js %}
     {% endblock %}
+    
+    <!-- Скрипт для функциональности "поделиться приложением" -->
+    <script src="/static/js/share-app.js?v=1.8"></script>
     
     <script>
         // Управление индикатором навигации
