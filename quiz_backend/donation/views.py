@@ -48,12 +48,14 @@ def donation_page(request):
 @require_http_methods(["POST"])
 def create_payment_intent(request):
     """Создание Payment Intent для Stripe"""
+    logger.info(f"Create payment intent request received: {request.body}")
     try:
         data = json.loads(request.body)
         amount = data.get('amount')
         currency = data.get('currency', 'usd')
         email = data.get('email', '')
         name = data.get('name', '')
+        logger.info(f"Payment intent data: amount={amount}, currency={currency}, email={email}, name={name}")
         
         # Валидация данных
         if not amount or float(amount) < 1:
@@ -235,9 +237,11 @@ def create_payment_method(request):
 @require_http_methods(["POST"])
 def confirm_payment(request):
     """Подтверждение успешного платежа"""
+    logger.info(f"Confirm payment request received: {request.body}")
     try:
         data = json.loads(request.body)
         payment_intent_id = data.get('payment_intent_id')
+        logger.info(f"Payment intent ID: {payment_intent_id}")
         
         if not payment_intent_id:
             return JsonResponse({
@@ -413,4 +417,27 @@ def stripe_webhook(request):
     return JsonResponse({'status': 'success'})
 
 
+@require_http_methods(["GET"])
+def get_stripe_publishable_key(request):
+    """Получение публичного ключа Stripe для фронтенда"""
+    try:
+        publishable_key = settings.STRIPE_PUBLISHABLE_KEY
+        if not publishable_key or publishable_key.startswith('pk_test_51234'):
+            logger.warning("Stripe publishable key not configured properly")
+            return JsonResponse({
+                'success': False,
+                'message': 'Stripe not configured'
+            }, status=400)
+        
+        return JsonResponse({
+            'success': True,
+            'publishable_key': publishable_key
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting Stripe publishable key: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Error getting Stripe key'
+        }, status=500)
  

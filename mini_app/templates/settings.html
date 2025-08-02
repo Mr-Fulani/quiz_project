@@ -36,14 +36,71 @@
         </div>
     </div>
     
+    <!-- Система донатов -->
     <div class="settings-section">
-        <h2 data-translate="dark_mode">{{ translations.get('dark_mode', 'Темная тема') }}</h2>
-        <div class="setting-item">
-            <label class="switch">
-                <input type="checkbox" id="dark-mode-toggle">
-                <span class="slider round"></span>
-            </label>
-            <span data-translate="dark_mode">{{ translations.get('dark_mode', 'Темная тема') }}</span>
+        <h2 data-translate="support_project">{{ translations.get('support_project', 'Поддержать проект') }}</h2>
+        <div class="donation-container">
+            <p class="donation-description" data-translate="donation_description">
+                {{ translations.get('donation_description', 'Поддержите разработку этого образовательного приложения') }}
+            </p>
+            
+            <div class="donation-form">
+                <h3 data-translate="donation_amount">{{ translations.get('donation_amount', 'Сумма доната') }}</h3>
+                
+                <!-- Выбор суммы -->
+                <div class="amount-selector">
+                    <span class="amount-option" data-amount="1">$1</span>
+                    <span class="amount-option" data-amount="3">$3</span>
+                    <span class="amount-option selected" data-amount="5">$5</span>
+                    <span class="amount-option" data-amount="10">$10</span>
+                    <span class="amount-option" data-amount="25">$25</span>
+                    <span class="amount-option" data-amount="50">$50</span>
+                </div>
+                
+                <!-- Поле ввода суммы -->
+                <div class="amount-input-container">
+                    <input type="number" class="amount-input" min="1" step="0.01" 
+                           data-translate-placeholder="donation_amount_placeholder" 
+                           placeholder="{{ translations.get('donation_amount_placeholder', 'Введите сумму') }}">
+                </div>
+                
+                <!-- Выбор валюты -->
+                <div class="currency-selector">
+                    <span class="currency-option selected" data-currency="usd" data-translate="donation_currency_usd">
+                        {{ translations.get('donation_currency_usd', 'USD ($)') }}
+                    </span>
+                    <span class="currency-option" data-currency="eur" data-translate="donation_currency_eur">
+                        {{ translations.get('donation_currency_eur', 'EUR (€)') }}
+                    </span>
+                    <span class="currency-option" data-currency="rub" data-translate="donation_currency_rub">
+                        {{ translations.get('donation_currency_rub', 'RUB (₽)') }}
+                    </span>
+                </div>
+                
+                <!-- Поля ввода -->
+                <div class="input-group">
+                    <label data-translate="donation_name_placeholder">{{ translations.get('donation_name_placeholder', 'Ваше имя') }}</label>
+                    <input type="text" class="donation-name" required
+                           data-translate-placeholder="donation_name_placeholder" 
+                           placeholder="{{ translations.get('donation_name_placeholder', 'Ваше имя') }}">
+                </div>
+                
+                <div class="input-group">
+                    <label data-translate="donation_email_placeholder">{{ translations.get('donation_email_placeholder', 'Ваш email (необязательно)') }}</label>
+                    <input type="email" class="donation-email"
+                           data-translate-placeholder="donation_email_placeholder" 
+                           placeholder="{{ translations.get('donation_email_placeholder', 'Ваш email (необязательно)') }}">
+                </div>
+                
+                <!-- Кнопка доната -->
+                <button class="donate-btn" type="button">
+                    <span data-translate="donate_button">{{ translations.get('donate_button', 'Пожертвовать') }}</span>
+                </button>
+                
+                <p class="min-amount" data-translate="donation_min_amount">
+                    {{ translations.get('donation_min_amount', 'Минимальная сумма: $1') }}
+                </p>
+            </div>
         </div>
     </div>
     
@@ -228,11 +285,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Загружаем сохраненные настройки
     const notificationsEnabled = localStorage.getItem('notifications') !== 'false';
-    const darkModeEnabled = localStorage.getItem('darkMode') === 'true';
     const savedLanguage = localStorage.getItem('selectedLanguage');
     
-    document.getElementById('notifications-toggle').checked = notificationsEnabled;
-    document.getElementById('dark-mode-toggle').checked = darkModeEnabled;
+    let notificationsToggle = document.getElementById('notifications-toggle');
+    if (notificationsToggle) {
+        notificationsToggle.checked = notificationsEnabled;
+    }
     
     // Если есть сохраненный язык и он отличается от текущего, переключаем
     if (savedLanguage && savedLanguage !== window.currentLanguage) {
@@ -249,14 +307,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Обработчики событий для переключателей
-    document.getElementById('notifications-toggle').addEventListener('change', function(e) {
-        localStorage.setItem('notifications', e.target.checked);
-    });
-    
-    document.getElementById('dark-mode-toggle').addEventListener('change', function(e) {
-        localStorage.setItem('darkMode', e.target.checked);
-        // Здесь можно добавить логику переключения темной темы
-    });
+    if (notificationsToggle) {
+        notificationsToggle.addEventListener('change', function(e) {
+            localStorage.setItem('notifications', e.target.checked);
+        });
+    }
 });
 </script>
 {% endblock %}

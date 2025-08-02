@@ -16,7 +16,7 @@ from django.views.generic.base import RedirectView
 
 from blog.api.api_views import tinymce_image_upload
 from blog.views import custom_set_language
-from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook
+from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook, get_stripe_publishable_key
 from social_auth.views import TelegramAuthView
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
@@ -77,6 +77,7 @@ urlpatterns = [
     path('donation/create-payment-method/', create_payment_method, name='create_payment_method'),
     path('donation/confirm-payment/', confirm_payment, name='confirm_payment'),
     path('donation/stripe-webhook/', stripe_webhook, name='stripe_webhook'),
+    path('api/stripe-publishable-key/', get_stripe_publishable_key, name='get_stripe_publishable_key'),
     
     # Редирект с корневого URL на английский язык (язык по умолчанию)
     path('', RedirectView.as_view(url='/en/', permanent=False), name='root-redirect'),
