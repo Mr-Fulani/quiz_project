@@ -358,13 +358,15 @@ class ContentInteractions {
                 console.log('Guest user sharing - statistics not saved (login required for stats)');
             }
             
-            // Открываем окно для репоста независимо от авторизации
-            this.openShareWindow(platform, title, url);
+            // Генерируем правильный share URL и открываем окно для репоста
+            const finalShareUrl = this.generateShareUrl(platform, title, url);
+            this.openShareWindowDirect(finalShareUrl);
 
         } catch (error) {
             console.error('Ошибка при репосте:', error);
             // Даже при ошибке открываем окно шаринга
-            this.openShareWindow(platform, title, url);
+            const fallbackShareUrl = this.generateShareUrl(platform, title, url);
+            this.openShareWindowDirect(fallbackShareUrl);
         }
     }
 
@@ -467,8 +469,13 @@ class ContentInteractions {
     }
 
     openShareWindow(platform, title, url) {
+        // DEPRECATED: использовать openShareWindowDirect
         const shareUrl = this.generateShareUrl(platform, title, url);
-        console.log('Opening share window:', { platform, title, url, shareUrl });
+        this.openShareWindowDirect(shareUrl);
+    }
+
+    openShareWindowDirect(shareUrl) {
+        console.log('Opening share window with URL:', shareUrl);
         
         // Пытаемся открыть в новой вкладке
         try {
