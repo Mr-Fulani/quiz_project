@@ -9,7 +9,7 @@ import json
 import hmac
 import hashlib
 
-from fastapi import APIRouter, Request, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, Request, Response, UploadFile, File, HTTPException, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, ValidationError
 from telegram_webapp_auth.auth import TelegramAuthenticator
@@ -294,7 +294,7 @@ class LanguageChangeRequest(BaseModel):
     language: str
 
 @router.post("/change-language")
-async def change_language(request: LanguageChangeRequest):
+async def change_language(request: LanguageChangeRequest, response: Response):
     """API endpoint для переключения языка"""
     from services.localization import localization_service
     
@@ -305,8 +305,17 @@ async def change_language(request: LanguageChangeRequest):
     # Устанавливаем язык
     localization_service.set_language(request.language)
     
+    # Устанавливаем cookie для сохранения выбора
+    response.set_cookie(
+        key="selected_language", 
+        value=request.language,
+        max_age=365*24*60*60,  # 1 год
+        httponly=False,  # Разрешаем доступ из JavaScript
+        samesite="lax"
+    )
+    
     # Получаем обновленные переводы
-    translations = localization_service.get_all_texts()
+    translations = localization_service.get_all_texts(request.language)
     
     return {
         "success": True,

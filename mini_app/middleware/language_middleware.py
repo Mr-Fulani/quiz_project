@@ -55,4 +55,4 @@ class LanguageMiddleware(BaseHTTPMiddleware):
             return lang_cookie
         
         # 4. По умолчанию
-        return localization_service.get_language() 
+        return localization_service.default_language 
