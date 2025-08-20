@@ -1,4 +1,5 @@
 import logging
+import time
 
 from fastapi import APIRouter, Request, UploadFile, File, Query
 from fastapi.responses import HTMLResponse
@@ -36,7 +37,8 @@ async def index(
         "topics": topics,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "timestamp": int(time.time())  # Для обхода кэша
     })
 
 @router.get("/profile", response_class=HTMLResponse)
@@ -58,7 +60,8 @@ async def profile(
         "request": request,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "timestamp": int(time.time())  # Для обхода кэша
     })
 
 @router.get("/achievements", response_class=HTMLResponse)
@@ -124,7 +127,8 @@ async def settings(
         "request": request,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "timestamp": int(time.time())  # Для обхода кэша
     })
 
 @router.get("/topic/{topic_id}", response_class=HTMLResponse)
