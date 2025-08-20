@@ -327,11 +327,10 @@ async def change_language(request: LanguageChangeRequest, response: Response):
 @router.get("/stripe-publishable-key")
 async def get_stripe_publishable_key():
     """Получение публичного ключа Stripe через Django API"""
-    from services.django_api_service import DjangoAPIService
+    from services.django_api_service import django_api_service
     
     try:
-        django_service = DjangoAPIService()
-        result = await django_service._make_request("GET", "/api/stripe-publishable-key/")
+        result = await django_api_service._make_request("GET", "/api/stripe-publishable-key/")
         return result
     except Exception as e:
         logger.error(f"Error getting Stripe key: {e}")
