@@ -1,0 +1,110 @@
+# Docker Compose для локального тестирования продакшен настроек
+# Использование: docker-compose -f docker-compose.local-prod.yml up
+
+services:
+  database:
+    image: postgres:15
+    container_name: postgres_db_local_prod
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - quiz_network_local_prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  quiz_backend:
+    build:
+      context: ./quiz_backend
+      dockerfile: Dockerfile
+    container_name: quiz_backend_local_prod
+    env_file:
+      - .env
+    environment:
+      - DEBUG=False  # Важно: отключаем DEBUG для тестирования продакшен логики
+      - SECRET_KEY=${SECRET_KEY}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - SOCIAL_AUTH_GITHUB_KEY=${SOCIAL_AUTH_GITHUB_KEY}
+      - SOCIAL_AUTH_GITHUB_SECRET=${SOCIAL_AUTH_GITHUB_SECRET}
+      - DATABASE_ENGINE=${DATABASE_ENGINE}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - ALLOWED_HOSTS=quiz-code.localhost,mini.quiz-code.localhost,localhost,quiz_backend,quiz_backend:8000
+      - CSRF_TRUSTED_ORIGINS=http://quiz-code.localhost,http://mini.quiz-code.localhost,http://localhost:8080
+    volumes:
+      - ./quiz_backend:/app
+      - static_volume_local_prod:/app/staticfiles
+      - ./media:/app/media
+    ports:
+      - "8001:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - quiz_network_local_prod
+
+  mini_app:
+    container_name: mini_app_local_prod
+    build:
+      context: ./mini_app
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    networks:
+      - quiz_network_local_prod
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8080
+      - DJANGO_API_TOKEN=${DJANGO_API_TOKEN}
+      - DJANGO_API_BASE_URL=http://quiz_backend:8000
+      - WEBAPP_URL=${WEBAPP_URL}
+      - PYTHONPATH=/mini_app
+      - DEBUG=False  # Отключаем DEBUG для тестирования
+    volumes:
+      - ./mini_app:/mini_app
+      - ./mini_app/static:/mini_app/static
+    command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+    depends_on:
+      - quiz_backend
+
+  nginx:
+    build: ./nginx
+    container_name: nginx_local_prod
+    ports:
+      - "80:80"
+      - "8081:8080"
+    volumes:
+      - static_volume_local_prod:/app/staticfiles
+      - ./media:/app/media
+      - ./nginx/nginx-local-prod.conf:/etc/nginx/nginx.conf:ro  # Используем специальную конфигурацию
+    depends_on:
+      - quiz_backend
+      - mini_app
+    networks:
+      - quiz_network_local_prod
+    restart: unless-stopped
+
+networks:
+  quiz_network_local_prod:
+    driver: bridge
+
+volumes:
+  static_volume_local_prod:
