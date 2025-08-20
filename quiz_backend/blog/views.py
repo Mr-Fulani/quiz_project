@@ -234,36 +234,32 @@ class PostViewSet(viewsets.ModelViewSet):
             'likes_count': post.get_likes_count()
         })
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def share(self, request, slug=None):
         """
         Создает репост поста.
+        Требует авторизации для сохранения уникальной статистики с аватарами пользователей.
         """
         from .models import PostShare
         post = self.get_object()
         platform = request.data.get('platform', 'other')
         shared_url = request.data.get('shared_url', '')
         
-        # Если пользователь аутентифицирован, сохраняем его
-        user = request.user if request.user.is_authenticated else None
+        # Сохраняем репост только для авторизованных пользователей
+        user = request.user
         
-        # Для неаутентифицированных пользователей создаем запись без пользователя
-        if user:
-            share, created = PostShare.objects.get_or_create(
-                user=user,
-                post=post,
-                platform=platform,
-                defaults={'shared_url': shared_url}
-            )
-        else:
-            # Для неаутентифицированных пользователей просто увеличиваем счетчик
-            # или создаем запись без пользователя
-            share = PostShare.objects.create(
-                user=None,
-                post=post,
-                platform=platform,
-                shared_url=shared_url
-            )
+        # Создаем или получаем существующий репост (один репост на пользователя на платформе)
+        share, created = PostShare.objects.get_or_create(
+            user=user,
+            post=post,
+            platform=platform,
+            defaults={'shared_url': shared_url}
+        )
+        
+        # Если репост уже существует, обновляем URL
+        if not created and shared_url:
+            share.shared_url = shared_url
+            share.save()
         
         return Response({
             'shared': True,
@@ -437,36 +433,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'likes_count': project.get_likes_count()
         })
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def share(self, request, slug=None):
         """
         Создает репост проекта.
+        Требует авторизации для сохранения уникальной статистики с аватарами пользователей.
         """
         from .models import ProjectShare
         project = self.get_object()
         platform = request.data.get('platform', 'other')
         shared_url = request.data.get('shared_url', '')
         
-        # Если пользователь аутентифицирован, сохраняем его
-        user = request.user if request.user.is_authenticated else None
+        # Сохраняем репост только для авторизованных пользователей
+        user = request.user
         
-        # Для неаутентифицированных пользователей создаем запись без пользователя
-        if user:
-            share, created = ProjectShare.objects.get_or_create(
-                user=user,
-                project=project,
-                platform=platform,
-                defaults={'shared_url': shared_url}
-            )
-        else:
-            # Для неаутентифицированных пользователей просто увеличиваем счетчик
-            # или создаем запись без пользователя
-            share = ProjectShare.objects.create(
-                user=None,
-                project=project,
-                platform=platform,
-                shared_url=shared_url
-            )
+        # Создаем или получаем существующий репост (один репост на пользователя на платформе)
+        share, created = ProjectShare.objects.get_or_create(
+            user=user,
+            project=project,
+            platform=platform,
+            defaults={'shared_url': shared_url}
+        )
+        
+        # Если репост уже существует, обновляем URL
+        if not created and shared_url:
+            share.shared_url = shared_url
+            share.save()
         
         return Response({
             'shared': True,

@@ -76,8 +76,13 @@ class ContentInteractions {
         document.addEventListener('click', (e) => {
             if (e.target.matches('.share-btn, .share-btn *')) {
                 e.preventDefault();
+                e.stopPropagation(); // Предотвращаем всплытие события
                 const btn = e.target.closest('.share-btn');
-                this.showShareModal(btn);
+                if (btn && !btn.disabled) {
+                    btn.disabled = true; // Временно отключаем кнопку
+                    this.showShareModal(btn);
+                    setTimeout(() => btn.disabled = false, 1000); // Включаем через секунду
+                }
             }
         });
 
@@ -296,9 +301,13 @@ class ContentInteractions {
             
             if (e.target.matches('.share-platform-btn, .share-platform-btn *')) {
                 const btn = e.target.closest('.share-platform-btn');
-                const platform = btn.dataset.platform;
-                this.shareContent(contentType, slug, platform, title, url);
-                this.closeModal(modal);
+                if (btn && !btn.disabled) {
+                    btn.disabled = true; // Предотвращаем повторные клики
+                    const platform = btn.dataset.platform;
+                    console.log(`Sharing to ${platform}...`);
+                    this.shareContent(contentType, slug, platform, title, url);
+                    this.closeModal(modal);
+                }
             }
             
             if (e.target.matches('.copy-url-btn')) {
@@ -310,42 +319,52 @@ class ContentInteractions {
     }
 
     async shareContent(contentType, slug, platform, title, url) {
-        // Проверяем авторизацию для шаринга
-        if (!await this.isUserAuthenticated()) {
-            this.showAuthModal('shares');
-            return;
-        }
-
+        console.log(`Starting shareContent for ${platform} on ${contentType}:${slug}`);
+        
         try {
-            // Отправляем запрос на бэкенд
-            const response = await fetch(`${this.baseUrl}/${contentType}s/${slug}/share/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.csrfToken,
-                },
-                body: JSON.stringify({
-                    platform: platform,
-                    shared_url: this.generateShareUrl(platform, title, url)
-                }),
-                credentials: 'same-origin'
-            });
+            // Проверяем авторизацию - только авторизованные пользователи сохраняют статистику
+            const isAuthenticated = await this.isUserAuthenticated();
+            console.log(`User authenticated: ${isAuthenticated}`);
+            
+            if (isAuthenticated) {
+                // Отправляем запрос на бэкенд для сохранения статистики авторизованного пользователя
+                try {
+                    const response = await fetch(`${this.baseUrl}/${contentType}s/${slug}/share/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': this.csrfToken,
+                        },
+                        body: JSON.stringify({
+                            platform: platform,
+                            shared_url: this.generateShareUrl(platform, title, url)
+                        }),
+                        credentials: 'same-origin'
+                    });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Обновляем счетчик репостов для авторизованного пользователя
+                        this.updateShareCount(slug, data.shares_count);
+                        console.log('Share statistics saved for authenticated user');
+                    } else {
+                        console.warn('Failed to save share statistics:', response.status);
+                    }
+                } catch (statsError) {
+                    console.warn('Error saving share statistics:', statsError);
+                }
+            } else {
+                // Для неавторизованных пользователей просто логируем
+                console.log('Guest user sharing - statistics not saved (login required for stats)');
             }
-
-            const data = await response.json();
             
-            // Обновляем счетчик репостов
-            this.updateShareCount(slug, data.shares_count);
-            
-            // Открываем окно для репоста с правильным URL
+            // Открываем окно для репоста независимо от авторизации
             this.openShareWindow(platform, title, url);
 
         } catch (error) {
             console.error('Ошибка при репосте:', error);
-            this.showError(this.translations.share_error);
+            // Даже при ошибке открываем окно шаринга
+            this.openShareWindow(platform, title, url);
         }
     }
 
@@ -450,7 +469,35 @@ class ContentInteractions {
     openShareWindow(platform, title, url) {
         const shareUrl = this.generateShareUrl(platform, title, url);
         console.log('Opening share window:', { platform, title, url, shareUrl });
-        window.open(shareUrl, '_blank', 'width=600,height=400');
+        
+        // Пытаемся открыть в новой вкладке
+        try {
+            console.log('Attempting to open in new tab...');
+            const newTab = window.open(shareUrl, '_blank');
+            
+            // Проверяем, удалось ли открыть новую вкладку
+            if (!newTab) {
+                console.log('New tab blocked by browser, trying popup...');
+                // Если новая вкладка заблокирована, пытаемся popup
+                const newWindow = window.open(shareUrl, '_blank', 'width=600,height=400,scrollbars=yes,resizable=yes');
+                
+                if (!newWindow) {
+                    console.log('Popup also blocked, opening in current tab...');
+                    window.location.href = shareUrl;
+                } else {
+                    console.log('Popup opened successfully');
+                    newWindow.focus();
+                }
+            } else {
+                console.log('New tab opened successfully');
+                newTab.focus();
+            }
+            
+        } catch (error) {
+            console.error('Error opening share window:', error);
+            console.log('Fallback: opening in current tab...');
+            window.location.href = shareUrl;
+        }
     }
 
     updateShareCount(slug, count) {
