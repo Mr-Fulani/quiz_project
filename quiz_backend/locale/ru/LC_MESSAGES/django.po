@@ -410,8 +410,6 @@ msgid "Show Contacts"
 msgstr "Показать контакты"
 
 #: accounts/templates/accounts/sidebar.html:27
-#, fuzzy
-#| msgid "About me"
 msgid "About Me"
 msgstr "Обо мне"
 
@@ -793,10 +791,6 @@ msgstr "контакты, программист, сотрудничество"
 #: blog/views.py:1450
 msgid "Главная"
 msgstr "Главная"
-
-#: blog/templates/blog/about.html:11
-msgid "About me"
-msgstr "Обо мне"
 
 #: blog/templates/blog/about.html:50
 msgid "What I do"
@@ -1928,9 +1922,6 @@ msgstr "Ошибка обработки платежа: "
 # Donation admin translations
 msgid "Amount"
 msgstr "Сумма"
-
-msgid "Status"
-msgstr "Статус"
 
 msgid "Days ago"
 msgstr "Дней назад"
