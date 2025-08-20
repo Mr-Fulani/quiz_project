@@ -372,13 +372,40 @@ else:
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
     # Для продакшена лучше указать конкретные доверенные источники
-    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    CSRF_TRUSTED_ORIGINS = [
+        'https://quiz-code.com',
+        'https://www.quiz-code.com', 
+        'https://mini.quiz-code.com',
+        'https://quiz-format.com',
+        'https://www.quiz-format.com',
+        'https://mini.quiz-format.com',
+        'https://quiz-game.co',
+        'https://www.quiz-game.co',
+        'https://mini.quiz-game.co'
+    ]
+    # Добавляем дополнительные из env если есть
+    env_origins = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+    if env_origins:
+        CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in env_origins.split(',') if o.strip()])
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
         'https://oauth.telegram.org',
         'https://telegram.org',
-        'https://core.telegram.org'
-    ] + [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+        'https://core.telegram.org',
+        'https://quiz-code.com',
+        'https://www.quiz-code.com', 
+        'https://mini.quiz-code.com',
+        'https://quiz-format.com',
+        'https://www.quiz-format.com',
+        'https://mini.quiz-format.com',
+        'https://quiz-game.co',
+        'https://www.quiz-game.co',
+        'https://mini.quiz-game.co'
+    ]
+    # Добавляем дополнительные из env если есть
+    env_cors = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    if env_cors:
+        CORS_ALLOWED_ORIGINS.extend([o.strip() for o in env_cors.split(",") if o.strip()])
     CORS_ALLOW_CREDENTIALS = True # или False, в зависимости от ваших нужд
     # Отключаем SSL редирект для внутренних запросов от mini-app
     SECURE_SSL_REDIRECT = False  # Временно отключаем для решения проблемы с mini-app
