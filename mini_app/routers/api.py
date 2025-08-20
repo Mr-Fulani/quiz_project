@@ -324,6 +324,22 @@ async def change_language(request: LanguageChangeRequest, response: Response):
         "supported_languages": localization_service.get_supported_languages()
     }
 
+@router.get("/topics")
+async def get_topics(search: str = None, language: str = 'en'):
+    """Получение списка тем с поиском"""
+    from services.django_api_service import django_api_service
+    
+    try:
+        params = {'language': language}
+        if search:
+            params['search'] = search
+            
+        result = await django_api_service._make_request("GET", "/api/simple/", params=params)
+        return result if isinstance(result, list) else []
+    except Exception as e:
+        logger.error(f"Error getting topics: {e}")
+        return []
+
 @router.get("/stripe-publishable-key")
 async def get_stripe_publishable_key():
     """Получение публичного ключа Stripe через Django API"""

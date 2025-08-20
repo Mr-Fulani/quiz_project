@@ -15,7 +15,8 @@ class DonationService:
     """Сервис для работы с донатами"""
     
     def __init__(self):
-        self.api_service = DjangoAPIService()
+        from core.config import settings
+        self.api_service = DjangoAPIService(settings.DJANGO_API_BASE_URL)
         self.base_url = "/donation"
     
     async def create_payment_intent(
