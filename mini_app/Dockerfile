@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Создаём необходимые директории для статических файлов
-RUN mkdir -p static/css static/js static/images uploads
+RUN mkdir -p static/css static/js static/images uploads middleware utils
 
 # Копируем статические файлы
 COPY static/css/* static/css/
@@ -25,6 +25,8 @@ COPY templates/* templates/
 COPY routers/ routers/
 COPY services/ services/
 COPY core/ core/
+COPY middleware/ middleware/
+COPY utils/ utils/
 
 # Копируем основной файл приложения
 COPY app.py .
