@@ -33,8 +33,8 @@ class DonationSystem {
     
     async initStripe() {
         try {
-            // Получаем публичный ключ Stripe с сервера
-            const response = await fetch('/api/stripe-publishable-key/');
+            // Получаем публичный ключ Stripe с сервера через мини-апп API
+            const response = await fetch('/api/stripe-publishable-key');
             const data = await response.json();
             
             if (data.publishable_key) {
@@ -319,11 +319,10 @@ class DonationSystem {
                 email: document.querySelector('.donation-email').value.trim()
             };
             
-            const response = await fetch('/donation/create-payment-intent/', {
+            const response = await fetch('/api/create-payment-intent', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(formData)
             });
@@ -417,11 +416,10 @@ class DonationSystem {
             console.log('📡 Confirming payment with Django backend...');
             this.showStatus('processing', 'Сохранение данных платежа...');
             
-            const response = await fetch('/donation/confirm-payment/', {
+            const response = await fetch('/api/confirm-payment', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     payment_intent_id: paymentIntentId

@@ -47,7 +47,7 @@ class DonationService:
             }
             
             logger.info(f"Creating payment intent: {amount} {currency}")
-            response = await self.api_service.post(url, data)
+            response = await self.api_service._make_request("POST", url, json=data)
             
             if response.get('success'):
                 logger.info(f"Payment intent created successfully: {response.get('client_secret', '')[:20]}...")
@@ -86,7 +86,7 @@ class DonationService:
             }
             
             logger.info(f"Confirming payment: {payment_intent_id}")
-            response = await self.api_service.post(url, data)
+            response = await self.api_service._make_request("POST", url, json=data)
             
             if response.get('success'):
                 logger.info("Payment confirmed successfully")

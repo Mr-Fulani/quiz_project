@@ -324,6 +324,53 @@ async def change_language(request: LanguageChangeRequest, response: Response):
         "supported_languages": localization_service.get_supported_languages()
     }
 
+@router.get("/stripe-publishable-key")
+async def get_stripe_publishable_key():
+    """Получение публичного ключа Stripe через Django API"""
+    from services.django_api_service import DjangoAPIService
+    
+    try:
+        django_service = DjangoAPIService()
+        result = await django_service._make_request("GET", "/api/stripe-publishable-key/")
+        return result
+    except Exception as e:
+        logger.error(f"Error getting Stripe key: {e}")
+        return {"success": False, "message": "Error getting Stripe key"}
+
+@router.post("/create-payment-intent")
+async def create_payment_intent_proxy(request_data: dict):
+    """Создание Payment Intent через Django API"""
+    from services.donation_service import DonationService
+    
+    try:
+        donation_service = DonationService()
+        result = await donation_service.create_payment_intent(
+            amount=request_data.get('amount'),
+            currency=request_data.get('currency', 'usd'),
+            email=request_data.get('email', ''),
+            name=request_data.get('name', '')
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error creating payment intent: {e}")
+        return {"success": False, "message": "Error creating payment intent"}
+
+@router.post("/confirm-payment")
+async def confirm_payment_proxy(request_data: dict):
+    """Подтверждение платежа через Django API"""
+    from services.donation_service import DonationService
+    
+    try:
+        donation_service = DonationService()
+        result = await donation_service.confirm_payment(
+            payment_intent_id=request_data.get('payment_intent_id'),
+            payment_method_id=request_data.get('payment_method_id', '')
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error confirming payment: {e}")
+        return {"success": False, "message": "Error confirming payment"}
+
 @router.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt():
     """
