@@ -101,7 +101,7 @@
     </section>
 
     <section class="testimonials">
-        <h3 class="h3 testimonials-title">{% trans "Top Users" %}</h3>
+        <h3 class="h3 testimonials-title"> {% trans "Top Users" %} 🏆</h3>
         <ul class="testimonials-list has-scrollbar">
             {% for user in personal_info.top_users|slice:"3" %}
                 <li class="testimonials-item" data-username="{{ user.username|default:user.name }}">
@@ -110,15 +110,18 @@
                             <img src="{{ user.avatar }}" alt="{{ user.name }}" data-testimonials-avatar width="60">
                         </figure>
                         <div class="testimonials-content">
-                            <h4 class="h4 testimonials-item-title" data-testimonials-title>{{ user.name }}</h4>
+                            <h4 class="h4 testimonials-item-title" data-testimonials-title>
+                                {{ user.name }}
+                                {% if user.rank == 1 %}👑{% endif %}
+                            </h4>
                             <div class="user-stats">
-                                <span class="rank">{% trans "Rank" %}: #{{ user.rank }}</span>
-                                <span class="score">{% trans "Points" %}: {{ user.total_score|floatformat:0 }}</span>
+                                <span class="rank">📊 {% trans "Rank" %}: #{{ user.rank }}</span>
+                                <span class="score">⭐ {% trans "Points" %}: {{ user.total_score|floatformat:0 }}</span>
                             </div>
                             <div class="testimonials-text" data-testimonials-text>
-                                <p>{% trans "Quizzes Completed" %}: {{ user.quizzes_count }}</p>
-                                <p>{% trans "Average Score" %}: {{ user.avg_score }}%</p>
-                                <p>{% trans "Favorite Category" %}: {{ user.favorite_category|default:"Not specified" }}</p>
+                                <p>🎯 {% trans "Quizzes Completed" %}: {{ user.quizzes_count }}</p>
+                                <p>📈 {% trans "Average Score" %}: {{ user.avg_score }}%</p>
+                                <p>🎨 {% trans "Favorite Category" %}: {{ user.favorite_category|default:"Not specified" }}</p>
                             </div>
                         </div>
                     </div>
@@ -126,7 +129,7 @@
             {% empty %}
                 <li class="testimonials-item">
                     <div class="content-card">
-                        <p>{% trans "No user data available yet" %}</p>
+                        <p>😔 {% trans "No user data available yet" %}</p>
                     </div>
                 </li>
             {% endfor %}
