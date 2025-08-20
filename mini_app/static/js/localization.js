@@ -76,11 +76,15 @@ class LocalizationService {
                 // Сохраняем в localStorage
                 localStorage.setItem('selectedLanguage', language);
                 
+                // Устанавливаем cookie для сервера (cookie уже установлен сервером, но дублируем для надежности)
+                document.cookie = `selected_language=${language}; max-age=${365*24*60*60}; path=/; SameSite=Lax`;
+                
                 // Обновляем интерфейс
                 this.updateInterface();
                 
                 return true;
             } else {
+                console.error('Language change failed:', data.error || 'Unknown error');
                 return false;
             }
             

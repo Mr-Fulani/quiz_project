@@ -26,7 +26,8 @@ class DjangoAPIService:
         
         # Если запрос идет к quiz_backend:8000, добавляем правильный Host заголовок
         if 'quiz_backend:8000' in self.base_url:
-            headers['Host'] = 'quiz-code.com'
+            # В продакшене используем правильный хост для мини-аппа
+            headers['Host'] = 'mini.quiz-code.com'
         
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
