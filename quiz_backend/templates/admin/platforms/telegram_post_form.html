@@ -1,0 +1,358 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrahead %}{{ block.super }}
+<script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+{{ form.media }}
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+<style>
+    /* Основные стили */
+    .form-row {
+        margin-bottom: 25px;
+        position: relative;
+    }
+    
+    .form-row label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+    
+    .form-row input, .form-row textarea, .form-row select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+    
+    .form-row input:focus, .form-row textarea:focus, .form-row select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    .form-row textarea {
+        min-height: 120px;
+        resize: vertical;
+        font-family: inherit;
+    }
+    
+    .form-row .help {
+        font-size: 13px;
+        color: #7f8c8d;
+        margin-top: 6px;
+        line-height: 1.4;
+    }
+    
+    .form-row .errors {
+        color: #e74c3c;
+        font-size: 13px;
+        margin-top: 5px;
+        font-weight: 500;
+    }
+    
+    /* Секции */
+    .media-section, .buttons-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 25px;
+        border-radius: 12px;
+        margin: 25px 0;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .media-section h3, .buttons-section h3 {
+        margin: 0 0 20px 0;
+        color: #2c3e50;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+    
+    .media-section h3::before {
+        content: "📷";
+        margin-right: 10px;
+        font-size: 20px;
+    }
+    
+    .buttons-section h3::before {
+        content: "🔗";
+        margin-right: 10px;
+        font-size: 20px;
+    }
+    
+    /* Кнопки */
+    .submit-row {
+        text-align: right;
+        margin-top: 30px;
+        padding-top: 25px;
+        border-top: 2px solid #ecf0f1;
+    }
+    
+    .submit-row input[type="submit"] {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+    
+    .submit-row input[type="submit"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    }
+    
+    .submit-row .cancel-link {
+        background: #95a5a6;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 8px;
+        text-decoration: none;
+        margin-right: 15px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .submit-row .cancel-link:hover {
+        background: #7f8c8d;
+        transform: translateY(-1px);
+    }
+    
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .form-row input, .form-row textarea, .form-row select {
+            padding: 10px 12px;
+            font-size: 16px; /* Предотвращает зум на iOS */
+        }
+        
+        .media-section, .buttons-section {
+            padding: 20px 15px;
+            margin: 20px 0;
+        }
+        
+        .submit-row {
+            text-align: center;
+        }
+        
+        .submit-row input[type="submit"],
+        .submit-row .cancel-link {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .submit-row .cancel-link {
+            margin-right: 0;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .form-row {
+            margin-bottom: 20px;
+        }
+        
+        .media-section h3, .buttons-section h3 {
+            font-size: 16px;
+        }
+        
+        .form-row label {
+            font-size: 13px;
+        }
+    }
+    
+    /* Анимации */
+    .form-row {
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Улучшения для файловых полей */
+    .form-row input[type="file"] {
+        padding: 10px;
+        border: 2px dashed #bdc3c7;
+        background: #f8f9fa;
+        cursor: pointer;
+    }
+    
+    .form-row input[type="file"]:hover {
+        border-color: #3498db;
+        background: #ecf0f1;
+    }
+    
+    /* Стили для ошибок */
+    .errornote {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; {% trans 'Отправить пост в Telegram' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+            <div class="errornote">
+                {% blocktrans count counter=form.errors|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+            </div>
+        {% endif %}
+        
+        <fieldset class="module aligned">
+            <!-- Выбор канала -->
+            <div class="form-row">
+                {{ form.channel.label_tag }}
+                {{ form.channel }}
+                {% if form.channel.help_text %}
+                    <div class="help">{{ form.channel.help_text }}</div>
+                {% endif %}
+                {% if form.channel.errors %}
+                    <div class="errors">{{ form.channel.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Текст поста -->
+            <div class="form-row">
+                {{ form.text.label_tag }}
+                {{ form.text }}
+                {% if form.text.help_text %}
+                    <div class="help">{{ form.text.help_text }}</div>
+                {% endif %}
+                {% if form.text.errors %}
+                    <div class="errors">{{ form.text.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Медиафайлы -->
+            <div class="media-section">
+                <h3>{% trans 'Медиафайлы' %}</h3>
+                
+                <div class="form-row">
+                    {{ form.photo.label_tag }}
+                    {{ form.photo }}
+                    {% if form.photo.help_text %}
+                        <div class="help">{{ form.photo.help_text }}</div>
+                    {% endif %}
+                    {% if form.photo.errors %}
+                        <div class="errors">{{ form.photo.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.gif.label_tag }}
+                    {{ form.gif }}
+                    {% if form.gif.help_text %}
+                        <div class="help">{{ form.gif.help_text }}</div>
+                    {% endif %}
+                    {% if form.gif.errors %}
+                        <div class="errors">{{ form.gif.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.video.label_tag }}
+                    {{ form.video }}
+                    {% if form.video.help_text %}
+                        <div class="help">{{ form.video.help_text }}</div>
+                    {% endif %}
+                    {% if form.video.errors %}
+                        <div class="errors">{{ form.video.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Inline кнопки -->
+            <div class="buttons-section">
+                <h3>{% trans 'Inline кнопки' %}</h3>
+                
+                <div class="form-row">
+                    {{ form.button1_text.label_tag }}
+                    {{ form.button1_text }}
+                    {% if form.button1_text.help_text %}
+                        <div class="help">{{ form.button1_text.help_text }}</div>
+                    {% endif %}
+                    {% if form.button1_text.errors %}
+                        <div class="errors">{{ form.button1_text.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.button1_url.label_tag }}
+                    {{ form.button1_url }}
+                    {% if form.button1_url.help_text %}
+                        <div class="help">{{ form.button1_url.help_text }}</div>
+                    {% endif %}
+                    {% if form.button1_url.errors %}
+                        <div class="errors">{{ form.button1_url.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.button2_text.label_tag }}
+                    {{ form.button2_text }}
+                    {% if form.button2_text.help_text %}
+                        <div class="help">{{ form.button2_text.help_text }}</div>
+                    {% endif %}
+                    {% if form.button2_text.errors %}
+                        <div class="errors">{{ form.button2_text.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.button2_url.label_tag }}
+                    {{ form.button2_url }}
+                    {% if form.button2_url.help_text %}
+                        <div class="help">{{ form.button2_url.help_text }}</div>
+                    {% endif %}
+                    {% if form.button2_url.errors %}
+                        <div class="errors">{{ form.button2_url.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </fieldset>
+        
+        <div class="submit-row">
+            <input type="submit" value="{% trans 'Отправить пост' %}" class="default" />
+            <a href="{% url 'admin:platforms_telegramgroup_changelist' %}" class="button cancel-link">{% trans 'Отмена' %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

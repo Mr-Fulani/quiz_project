@@ -1,8 +1,18 @@
 from django.contrib import admin
 from django import forms
+from django.http import HttpResponseRedirect
+from django.urls import path
+from django.template.response import TemplateResponse
+from django.contrib import messages
+from django.utils.translation import gettext_lazy as _
 from .models import TelegramGroup
+from .services import send_telegram_post_sync
 from topics.models import Topic
 import re
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TelegramChannelAdminForm(forms.ModelForm):
@@ -130,6 +140,82 @@ class TelegramChannelAdmin(admin.ModelAdmin):
         css = {
             'all': ('admin/css/custom_admin.css',)
         }
+    
+    def get_urls(self):
+        """
+        Добавляем кастомные URL для отправки постов.
+        """
+        urls = super().get_urls()
+        custom_urls = [
+            path('send-post/', self.admin_site.admin_view(self.send_post_view), name='telegram_send_post'),
+        ]
+        return custom_urls + urls
+    
+    def send_post_view(self, request):
+        """
+        Представление для отправки поста.
+        """
+        if request.method == 'POST':
+            form = TelegramPostForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    # Получаем данные из формы
+                    channel = form.cleaned_data['channel']
+                    text = form.cleaned_data.get('text', '').strip()
+                    photo = form.cleaned_data.get('photo')
+                    gif = form.cleaned_data.get('gif')
+                    video = form.cleaned_data.get('video')
+                    
+                    # Подготавливаем кнопки
+                    buttons = []
+                    button1_text = form.cleaned_data.get('button1_text')
+                    button1_url = form.cleaned_data.get('button1_url')
+                    button2_text = form.cleaned_data.get('button2_text')
+                    button2_url = form.cleaned_data.get('button2_url')
+                    
+                    if button1_text and button1_url:
+                        buttons.append({'text': button1_text, 'url': button1_url})
+                    
+                    if button2_text and button2_url:
+                        buttons.append({'text': button2_text, 'url': button2_url})
+                    
+                    # Отправляем пост
+                    success = send_telegram_post_sync(
+                        channel=channel,
+                        text=text if text else None,
+                        photo=photo,
+                        gif=gif,
+                        video=video,
+                        buttons=buttons if buttons else None
+                    )
+                    
+                    if success:
+                        messages.success(request, _('Пост успешно отправлен в канал {}!').format(channel.group_name))
+                    else:
+                        messages.error(request, _('Ошибка при отправке поста в канал {}').format(channel.group_name))
+                    
+                    return HttpResponseRedirect('../')
+                    
+                except Exception as e:
+                    logger.error(f"Ошибка при отправке поста: {e}")
+                    messages.error(request, f'Ошибка при отправке поста: {str(e)}')
+        else:
+            form = TelegramPostForm()
+        
+        context = {
+            'title': _('Отправить пост в Telegram'),
+            'form': form,
+            'opts': self.model._meta,
+        }
+        return TemplateResponse(request, 'admin/platforms/telegram_post_form.html', context)
+    
+    def changelist_view(self, request, extra_context=None):
+        """
+        Добавляем кнопку для отправки поста в список каналов.
+        """
+        extra_context = extra_context or {}
+        extra_context['show_send_post_button'] = True
+        return super().changelist_view(request, extra_context)
 
     def get_topic_name(self, obj):
         """
@@ -158,3 +244,101 @@ class TelegramChannelAdmin(admin.ModelAdmin):
             )
         obj.topic_id = topic  # Присваиваем объект Topic, как ожидает ForeignKey
         super().save_model(request, obj, form, change)
+
+
+class TelegramPostForm(forms.Form):
+    """
+    Форма для создания и отправки поста в Telegram канал/группу.
+    """
+    channel = forms.ModelChoiceField(
+        queryset=TelegramGroup.objects.all(),
+        label=_('Канал/Группа'),
+        help_text=_('Выберите канал или группу для публикации')
+    )
+    
+    text = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 5, 'cols': 80}),
+        label=_('Текст поста'),
+        help_text=_('Введите текст поста. Поддерживается Markdown форматирование.')
+    )
+    
+    # Медиафайлы
+    photo = forms.ImageField(
+        required=False,
+        label=_('Фото'),
+        help_text=_('Загрузите изображение (JPG, PNG)')
+    )
+    
+    gif = forms.FileField(
+        required=False,
+        label=_('GIF'),
+        help_text=_('Загрузите анимированный GIF')
+    )
+    
+    video = forms.FileField(
+        required=False,
+        label=_('Видео'),
+        help_text=_('Загрузите видео (MP4)')
+    )
+    
+    # Inline кнопки
+    button1_text = forms.CharField(
+        max_length=64,
+        required=False,
+        label=_('Текст кнопки 1'),
+        help_text=_('Текст для первой inline кнопки')
+    )
+    
+    button1_url = forms.URLField(
+        required=False,
+        label=_('Ссылка кнопки 1'),
+        help_text=_('URL для первой кнопки (например: https://example.com или https://t.me/channel)')
+    )
+    
+    button2_text = forms.CharField(
+        max_length=64,
+        required=False,
+        label=_('Текст кнопки 2'),
+        help_text=_('Текст для второй inline кнопки')
+    )
+    
+    button2_url = forms.URLField(
+        required=False,
+        label=_('Ссылка кнопки 2'),
+        help_text=_('URL для второй кнопки')
+    )
+    
+    def clean(self):
+        """
+        Валидация формы: проверяем, что есть либо текст, либо медиа.
+        """
+        cleaned_data = super().clean()
+        text = cleaned_data.get('text')
+        photo = cleaned_data.get('photo')
+        gif = cleaned_data.get('gif')
+        video = cleaned_data.get('video')
+        
+        if not text and not photo and not gif and not video:
+            raise forms.ValidationError(_('Необходимо указать текст поста или загрузить медиафайл.'))
+        
+        # Проверяем, что если есть текст кнопки, то есть и URL
+        button1_text = cleaned_data.get('button1_text')
+        button1_url = cleaned_data.get('button1_url')
+        button2_text = cleaned_data.get('button2_text')
+        button2_url = cleaned_data.get('button2_url')
+        
+        if button1_text and not button1_url:
+            raise forms.ValidationError(_('Для кнопки 1 указан текст, но не указана ссылка.'))
+        
+        if button2_text and not button2_url:
+            raise forms.ValidationError(_('Для кнопки 2 указан текст, но не указана ссылка.'))
+        
+        if button1_url and not button1_text:
+            raise forms.ValidationError(_('Для кнопки 1 указана ссылка, но не указан текст.'))
+        
+        if button2_url and not button2_text:
+            raise forms.ValidationError(_('Для кнопки 2 указана ссылка, но не указан текст.'))
+        
+        return cleaned_data
+
+
