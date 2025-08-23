@@ -299,49 +299,49 @@ class TelegramPostForm(forms.Form):
     photo1 = forms.FileField(
         required=False,
         label=_('Фотография 1'),
-        help_text=_('Загрузите изображение (JPG, PNG)'),
+        help_text=_('Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'image/*'})
     )
     
     photo2 = forms.FileField(
         required=False,
         label=_('Фотография 2'),
-        help_text=_('Загрузите изображение (JPG, PNG)'),
+        help_text=_('Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'image/*'})
     )
     
     photo3 = forms.FileField(
         required=False,
         label=_('Фотография 3'),
-        help_text=_('Загрузите изображение (JPG, PNG)'),
+        help_text=_('Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'image/*'})
     )
     
     gif1 = forms.FileField(
         required=False,
         label=_('GIF анимация 1'),
-        help_text=_('Загрузите GIF анимацию'),
+        help_text=_('Загрузите GIF анимацию. Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': '.gif'})
     )
     
     gif2 = forms.FileField(
         required=False,
         label=_('GIF анимация 2'),
-        help_text=_('Загрузите GIF анимацию'),
+        help_text=_('Загрузите GIF анимацию. Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': '.gif'})
     )
     
     video1 = forms.FileField(
         required=False,
         label=_('Видео 1'),
-        help_text=_('Загрузите видео (MP4)'),
+        help_text=_('Загрузите видео (MP4). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'video/*'})
     )
     
     video2 = forms.FileField(
         required=False,
         label=_('Видео 2'),
-        help_text=_('Загрузите видео (MP4)'),
+        help_text=_('Загрузите видео (MP4). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'video/*'})
     )
     
@@ -388,16 +388,16 @@ class TelegramPostForm(forms.Form):
         video_fields = ['video1', 'video2']
         
         for field_name in photo_fields:
-            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 50 * 1024 * 1024:  # 50MB
-                raise forms.ValidationError(_(f'Размер фотографии {field_name} не должен превышать 50 МБ'))
+            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 20 * 1024 * 1024:  # 20MB
+                raise forms.ValidationError(_(f'Размер фотографии {field_name} не должен превышать 20 МБ'))
         
         for field_name in gif_fields:
-            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 50 * 1024 * 1024:  # 50MB
-                raise forms.ValidationError(_(f'Размер GIF {field_name} не должен превышать 50 МБ'))
+            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 20 * 1024 * 1024:  # 20MB
+                raise forms.ValidationError(_(f'Размер GIF {field_name} не должен превышать 20 МБ'))
         
         for field_name in video_fields:
-            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 100 * 1024 * 1024:  # 100MB
-                raise forms.ValidationError(_(f'Размер видео {field_name} не должен превышать 100 МБ'))
+            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 20 * 1024 * 1024:  # 20MB
+                raise forms.ValidationError(_(f'Размер видео {field_name} не должен превышать 20 МБ'))
         
         # Проверяем, что есть хотя бы текст или один медиафайл
         has_media = any(cleaned_data.get(field) for field in photo_fields + gif_fields + video_fields)
