@@ -31,9 +31,9 @@ class TelegramPostService:
         self,
         channel: TelegramGroup,
         text: Optional[str] = None,
-        photo: Optional[Any] = None,
-        gif: Optional[Any] = None,
-        video: Optional[Any] = None,
+        photos: Optional[Any] = None,
+        gifs: Optional[Any] = None,
+        videos: Optional[Any] = None,
         buttons: Optional[List[Dict[str, str]]] = None
     ) -> bool:
         """
@@ -57,12 +57,11 @@ class TelegramPostService:
                 reply_markup = self._create_inline_keyboard(buttons)
             
             # Определяем тип медиа и отправляем
-            if photo:
-                return await self._send_photo(channel, photo, text, reply_markup)
-            elif gif:
-                return await self._send_animation(channel, gif, text, reply_markup)
-            elif video:
-                return await self._send_video(channel, video, text, reply_markup)
+            logger.info(f"Отправка поста в канал {channel.group_name}")
+            logger.info(f"Photos: {photos}, Gifs: {gifs}, Videos: {videos}, Text: {text}")
+            
+            if photos or gifs or videos:
+                return await self._send_media_group(channel, photos, gifs, videos, text, reply_markup)
             elif text:
                 return await self._send_text(channel, text, reply_markup)
             else:
@@ -75,7 +74,7 @@ class TelegramPostService:
     
     def _create_inline_keyboard(self, buttons: List[Dict[str, str]]) -> InlineKeyboardMarkup:
         """
-        Создает inline клавиатуру из списка кнопок.
+        Создает inline клавиатуру из списка кнопок с красивым оформлением.
         
         Args:
             buttons (List[Dict]): Список кнопок [{'text': '...', 'url': '...'}]
@@ -84,17 +83,164 @@ class TelegramPostService:
             InlineKeyboardMarkup: Объект клавиатуры
         """
         keyboard = []
-        for button in buttons:
+        for i, button in enumerate(buttons):
             if button.get('text') and button.get('url'):
+                # Добавляем эмодзи к кнопкам для красоты
+                emoji = "🔗" if i == 0 else "⚡"
+                button_text = f"{emoji} {button['text']}"
+                
                 keyboard.append([
                     InlineKeyboardButton(
-                        text=button['text'],
+                        text=button_text,
                         url=button['url']
                     )
                 ])
         
         return InlineKeyboardMarkup(inline_keyboard=keyboard) if keyboard else None
     
+    async def _send_media_group(
+        self,
+        channel: TelegramGroup,
+        photos,
+        gifs,
+        videos,
+        text: Optional[str] = None,
+        reply_markup: Optional[InlineKeyboardMarkup] = None
+    ) -> bool:
+        """
+        Отправляет медиафайлы в канал (каждый тип отдельно).
+        """
+        try:
+            from aiogram.types import InputMediaPhoto, InputMediaAnimation, InputMediaVideo
+            
+            logger.info(f"Начинаем отправку медиа в канал {channel.group_name}")
+            logger.info(f"Photos count: {len(photos) if photos else 0}")
+            logger.info(f"Gifs count: {len(gifs) if gifs else 0}")
+            logger.info(f"Videos count: {len(videos) if videos else 0}")
+            
+            temp_files = []
+            text_sent = False
+            
+            # Отправляем фотографии как медиагруппу
+            if photos:
+                logger.info(f"Обрабатываем {len(photos)} фотографий")
+                photo_group = []
+                for i, photo in enumerate(photos):
+                    logger.info(f"Обрабатываем фото {i+1}: {photo.name}, размер: {photo.size}")
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                        for chunk in photo.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+                        temp_files.append(temp_file_path)
+                        logger.info(f"Создан временный файл: {temp_file_path}")
+                    
+                    # Медиа отправляем без текста
+                    photo_group.append(InputMediaPhoto(
+                        media=FSInputFile(path=temp_file_path)
+                    ))
+                
+                logger.info(f"Отправляем группу из {len(photo_group)} фотографий")
+                if photo_group:
+                    try:
+                        await self.bot.send_media_group(
+                            chat_id=channel.group_id,
+                            media=photo_group
+                        )
+                        logger.info("Медиагруппа успешно отправлена")
+                        text_sent = True
+                    except Exception as e:
+                        logger.error(f"Ошибка при отправке медиагруппы: {e}")
+                        raise
+            
+            # Отправляем GIF отдельно (не в медиагруппе)
+            if gifs:
+                for i, gif in enumerate(gifs):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as temp_file:
+                        for chunk in gif.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+                        temp_files.append(temp_file_path)
+                    
+                    await self.bot.send_animation(
+                        chat_id=channel.group_id,
+                        animation=FSInputFile(path=temp_file_path)
+                    )
+            
+            # Отправляем видео как медиагруппу
+            if videos:
+                video_group = []
+                for i, video in enumerate(videos):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+                        for chunk in video.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+                        temp_files.append(temp_file_path)
+                    
+                    # Создаем обложку для видео (первый кадр)
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as thumb_file:
+                        # Для простоты используем тот же файл как обложку
+                        # В реальности здесь должна быть генерация thumbnail
+                        thumb_file_path = temp_file_path
+                        temp_files.append(thumb_file_path)
+                    
+                    # Медиа отправляем без текста, но с обложкой
+                    video_group.append(InputMediaVideo(
+                        media=FSInputFile(path=temp_file_path),
+                        thumb=FSInputFile(path=thumb_file_path)
+                    ))
+                
+                if video_group:
+                    await self.bot.send_media_group(
+                        chat_id=channel.group_id,
+                        media=video_group
+                    )
+                    text_sent = True
+            
+            # Если есть кнопки, отправляем их отдельным сообщением
+            if reply_markup:
+                if text:
+                    # Отправляем текст с кнопками
+                    await self.bot.send_message(
+                        chat_id=channel.group_id,
+                        text=text,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
+                else:
+                    # Если нет текста, отправляем только кнопки с минимальным символом
+                    await self.bot.send_message(
+                        chat_id=channel.group_id,
+                        text="🔗",
+                        reply_markup=reply_markup
+                    )
+            elif text:
+                # Если есть текст, но нет кнопок
+                await self.bot.send_message(
+                    chat_id=channel.group_id,
+                    text=text,
+                    parse_mode="HTML"
+                )
+            
+            # Удаляем временные файлы
+            for temp_file_path in temp_files:
+                try:
+                    os.unlink(temp_file_path)
+                except:
+                    pass
+            
+            logger.info(f"Медиафайлы успешно отправлены в канал {channel.group_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Ошибка при отправке медиафайлов в канал {channel.group_name}: {e}")
+            # Удаляем временные файлы в случае ошибки
+            for temp_file_path in temp_files:
+                try:
+                    os.unlink(temp_file_path)
+                except:
+                    pass
+            return False
+
     async def _send_photo(
         self,
         channel: TelegramGroup,
@@ -254,9 +400,9 @@ def get_telegram_bot_token() -> str:
 async def send_telegram_post_async(
     channel: TelegramGroup,
     text: Optional[str] = None,
-    photo=None,
-    gif=None,
-    video=None,
+    photos=None,
+    gifs=None,
+    videos=None,
     buttons: Optional[List[Dict[str, str]]] = None
 ) -> bool:
     """
@@ -280,7 +426,7 @@ async def send_telegram_post_async(
     
     service = TelegramPostService(bot_token)
     try:
-        result = await service.send_post(channel, text, photo, gif, video, buttons)
+        result = await service.send_post(channel, text, photos, gifs, videos, buttons)
         return result
     finally:
         await service.close()
@@ -289,9 +435,9 @@ async def send_telegram_post_async(
 def send_telegram_post_sync(
     channel: TelegramGroup,
     text: Optional[str] = None,
-    photo=None,
-    gif=None,
-    video=None,
+    photos=None,
+    gifs=None,
+    videos=None,
     buttons: Optional[List[Dict[str, str]]] = None
 ) -> bool:
     """
@@ -312,7 +458,7 @@ def send_telegram_post_sync(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(
-            send_telegram_post_async(channel, text, photo, gif, video, buttons)
+            send_telegram_post_async(channel, text, photos, gifs, videos, buttons)
         )
         return result
     except Exception as e:

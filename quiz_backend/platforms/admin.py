@@ -160,11 +160,34 @@ class TelegramChannelAdmin(admin.ModelAdmin):
             if form.is_valid():
                 try:
                     # Получаем данные из формы
-                    channel = form.cleaned_data['channel']
+                    channels = form.cleaned_data['channels']
                     text = form.cleaned_data.get('text', '').strip()
-                    photo = form.cleaned_data.get('photo')
-                    gif = form.cleaned_data.get('gif')
-                    video = form.cleaned_data.get('video')
+                    
+                    # Собираем все файлы
+                    photos_list = []
+                    gifs_list = []
+                    videos_list = []
+                    
+                    # Фотографии
+                    for i in range(1, 4):
+                        photo = form.cleaned_data.get(f'photo{i}')
+                        if photo:
+                            photos_list.append(photo)
+                    
+                    # GIF
+                    for i in range(1, 3):
+                        gif = form.cleaned_data.get(f'gif{i}')
+                        if gif:
+                            gifs_list.append(gif)
+                    
+                    # Видео
+                    for i in range(1, 3):
+                        video = form.cleaned_data.get(f'video{i}')
+                        if video:
+                            videos_list.append(video)
+                            logger.info(f"Добавлено видео {i}: {video.name}")
+                    
+                    logger.info(f"Всего собрано: фото={len(photos_list)}, gif={len(gifs_list)}, видео={len(videos_list)}")
                     
                     # Подготавливаем кнопки
                     buttons = []
@@ -179,20 +202,29 @@ class TelegramChannelAdmin(admin.ModelAdmin):
                     if button2_text and button2_url:
                         buttons.append({'text': button2_text, 'url': button2_url})
                     
-                    # Отправляем пост
-                    success = send_telegram_post_sync(
-                        channel=channel,
-                        text=text if text else None,
-                        photo=photo,
-                        gif=gif,
-                        video=video,
-                        buttons=buttons if buttons else None
-                    )
+                    # Отправляем пост во все выбранные каналы
+                    success_count = 0
+                    total_channels = len(channels)
                     
-                    if success:
-                        messages.success(request, _('Пост успешно отправлен в канал {}!').format(channel.group_name))
+                    for channel in channels:
+                        success = send_telegram_post_sync(
+                            channel=channel,
+                            text=text if text else None,
+                            photos=photos_list,
+                            gifs=gifs_list,
+                            videos=videos_list,
+                            buttons=buttons if buttons else None
+                        )
+                        
+                        if success:
+                            success_count += 1
+                    
+                    if success_count == total_channels:
+                        messages.success(request, _('Пост успешно отправлен во все {} каналов!').format(total_channels))
+                    elif success_count > 0:
+                        messages.warning(request, _('Пост отправлен в {} из {} каналов.').format(success_count, total_channels))
                     else:
-                        messages.error(request, _('Ошибка при отправке поста в канал {}').format(channel.group_name))
+                        messages.error(request, _('Ошибка при отправке поста во все каналы.'))
                     
                     return HttpResponseRedirect('../')
                     
@@ -248,12 +280,13 @@ class TelegramChannelAdmin(admin.ModelAdmin):
 
 class TelegramPostForm(forms.Form):
     """
-    Форма для создания и отправки поста в Telegram канал/группу.
+    Форма для создания и отправки поста в Telegram каналы/группы.
     """
-    channel = forms.ModelChoiceField(
+    channels = forms.ModelMultipleChoiceField(
         queryset=TelegramGroup.objects.all(),
-        label=_('Канал/Группа'),
-        help_text=_('Выберите канал или группу для публикации')
+        label=_('Каналы/Группы'),
+        help_text=_('Выберите один или несколько каналов/групп для публикации (можно выбрать несколько, удерживая Ctrl)'),
+        widget=forms.SelectMultiple(attrs={'size': '8', 'class': 'channels-select'})
     )
     
     text = forms.CharField(
@@ -263,22 +296,53 @@ class TelegramPostForm(forms.Form):
     )
     
     # Медиафайлы
-    photo = forms.ImageField(
+    photo1 = forms.FileField(
         required=False,
-        label=_('Фото'),
-        help_text=_('Загрузите изображение (JPG, PNG)')
+        label=_('Фотография 1'),
+        help_text=_('Загрузите изображение (JPG, PNG)'),
+        widget=forms.FileInput(attrs={'accept': 'image/*'})
     )
     
-    gif = forms.FileField(
+    photo2 = forms.FileField(
         required=False,
-        label=_('GIF'),
-        help_text=_('Загрузите анимированный GIF')
+        label=_('Фотография 2'),
+        help_text=_('Загрузите изображение (JPG, PNG)'),
+        widget=forms.FileInput(attrs={'accept': 'image/*'})
     )
     
-    video = forms.FileField(
+    photo3 = forms.FileField(
         required=False,
-        label=_('Видео'),
-        help_text=_('Загрузите видео (MP4)')
+        label=_('Фотография 3'),
+        help_text=_('Загрузите изображение (JPG, PNG)'),
+        widget=forms.FileInput(attrs={'accept': 'image/*'})
+    )
+    
+    gif1 = forms.FileField(
+        required=False,
+        label=_('GIF анимация 1'),
+        help_text=_('Загрузите GIF анимацию'),
+        widget=forms.FileInput(attrs={'accept': '.gif'})
+    )
+    
+    gif2 = forms.FileField(
+        required=False,
+        label=_('GIF анимация 2'),
+        help_text=_('Загрузите GIF анимацию'),
+        widget=forms.FileInput(attrs={'accept': '.gif'})
+    )
+    
+    video1 = forms.FileField(
+        required=False,
+        label=_('Видео 1'),
+        help_text=_('Загрузите видео (MP4)'),
+        widget=forms.FileInput(attrs={'accept': 'video/*'})
+    )
+    
+    video2 = forms.FileField(
+        required=False,
+        label=_('Видео 2'),
+        help_text=_('Загрузите видео (MP4)'),
+        widget=forms.FileInput(attrs={'accept': 'video/*'})
     )
     
     # Inline кнопки
@@ -314,11 +378,30 @@ class TelegramPostForm(forms.Form):
         """
         cleaned_data = super().clean()
         text = cleaned_data.get('text')
-        photo = cleaned_data.get('photo')
-        gif = cleaned_data.get('gif')
-        video = cleaned_data.get('video')
+        photos = cleaned_data.get('photos')
+        gifs = cleaned_data.get('gifs')
+        videos = cleaned_data.get('videos')
         
-        if not text and not photo and not gif and not video:
+        # Проверяем размеры файлов
+        photo_fields = ['photo1', 'photo2', 'photo3']
+        gif_fields = ['gif1', 'gif2']
+        video_fields = ['video1', 'video2']
+        
+        for field_name in photo_fields:
+            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 50 * 1024 * 1024:  # 50MB
+                raise forms.ValidationError(_(f'Размер фотографии {field_name} не должен превышать 50 МБ'))
+        
+        for field_name in gif_fields:
+            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 50 * 1024 * 1024:  # 50MB
+                raise forms.ValidationError(_(f'Размер GIF {field_name} не должен превышать 50 МБ'))
+        
+        for field_name in video_fields:
+            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 100 * 1024 * 1024:  # 100MB
+                raise forms.ValidationError(_(f'Размер видео {field_name} не должен превышать 100 МБ'))
+        
+        # Проверяем, что есть хотя бы текст или один медиафайл
+        has_media = any(cleaned_data.get(field) for field in photo_fields + gif_fields + video_fields)
+        if not text and not has_media:
             raise forms.ValidationError(_('Необходимо указать текст поста или загрузить медиафайл.'))
         
         # Проверяем, что если есть текст кнопки, то есть и URL

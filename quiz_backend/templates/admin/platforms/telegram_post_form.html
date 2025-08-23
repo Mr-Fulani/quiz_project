@@ -204,6 +204,72 @@
         background: #ecf0f1;
     }
     
+    /* Стили для множественного выбора каналов */
+    .channels-select {
+        width: 100%;
+        min-height: 200px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .channels-select option {
+        padding: 8px 12px;
+        margin: 2px 0;
+        border-radius: 4px;
+        background: #f8f9fa;
+        border: 1px solid #e1e8ed;
+    }
+    
+    .channels-select option:checked {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+        font-weight: 600;
+    }
+    
+    .channels-select option:hover {
+        background: #ecf0f1;
+    }
+    
+    /* Стили для списка выбранных файлов */
+    .file-list {
+        margin-top: 10px;
+        padding: 12px;
+        background: #f8f9fa;
+        border: 1px solid #e1e8ed;
+        border-radius: 6px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .file-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #e1e8ed;
+        font-size: 13px;
+    }
+    
+    .file-item:last-child {
+        border-bottom: none;
+    }
+    
+    .file-name {
+        font-weight: 500;
+        color: #2c3e50;
+        flex: 1;
+    }
+    
+    .file-size {
+        color: #7f8c8d;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+    
     /* Стили для ошибок */
     .errornote {
         background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
@@ -237,15 +303,15 @@
         {% endif %}
         
         <fieldset class="module aligned">
-            <!-- Выбор канала -->
+            <!-- Выбор каналов -->
             <div class="form-row">
-                {{ form.channel.label_tag }}
-                {{ form.channel }}
-                {% if form.channel.help_text %}
-                    <div class="help">{{ form.channel.help_text }}</div>
+                {{ form.channels.label_tag }}
+                {{ form.channels }}
+                {% if form.channels.help_text %}
+                    <div class="help">{{ form.channels.help_text }}</div>
                 {% endif %}
-                {% if form.channel.errors %}
-                    <div class="errors">{{ form.channel.errors }}</div>
+                {% if form.channels.errors %}
+                    <div class="errors">{{ form.channels.errors }}</div>
                 {% endif %}
             </div>
             
@@ -265,36 +331,83 @@
             <div class="media-section">
                 <h3>{% trans 'Медиафайлы' %}</h3>
                 
+                <!-- Фотографии -->
                 <div class="form-row">
-                    {{ form.photo.label_tag }}
-                    {{ form.photo }}
-                    {% if form.photo.help_text %}
-                        <div class="help">{{ form.photo.help_text }}</div>
+                    {{ form.photo1.label_tag }}
+                    {{ form.photo1 }}
+                    {% if form.photo1.help_text %}
+                        <div class="help">{{ form.photo1.help_text }}</div>
                     {% endif %}
-                    {% if form.photo.errors %}
-                        <div class="errors">{{ form.photo.errors }}</div>
+                    {% if form.photo1.errors %}
+                        <div class="errors">{{ form.photo1.errors }}</div>
                     {% endif %}
                 </div>
                 
                 <div class="form-row">
-                    {{ form.gif.label_tag }}
-                    {{ form.gif }}
-                    {% if form.gif.help_text %}
-                        <div class="help">{{ form.gif.help_text }}</div>
+                    {{ form.photo2.label_tag }}
+                    {{ form.photo2 }}
+                    {% if form.photo2.help_text %}
+                        <div class="help">{{ form.photo2.help_text }}</div>
                     {% endif %}
-                    {% if form.gif.errors %}
-                        <div class="errors">{{ form.gif.errors }}</div>
+                    {% if form.photo2.errors %}
+                        <div class="errors">{{ form.photo2.errors }}</div>
                     {% endif %}
                 </div>
                 
                 <div class="form-row">
-                    {{ form.video.label_tag }}
-                    {{ form.video }}
-                    {% if form.video.help_text %}
-                        <div class="help">{{ form.video.help_text }}</div>
+                    {{ form.photo3.label_tag }}
+                    {{ form.photo3 }}
+                    {% if form.photo3.help_text %}
+                        <div class="help">{{ form.photo3.help_text }}</div>
                     {% endif %}
-                    {% if form.video.errors %}
-                        <div class="errors">{{ form.video.errors }}</div>
+                    {% if form.photo3.errors %}
+                        <div class="errors">{{ form.photo3.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- GIF -->
+                <div class="form-row">
+                    {{ form.gif1.label_tag }}
+                    {{ form.gif1 }}
+                    {% if form.gif1.help_text %}
+                        <div class="help">{{ form.gif1.help_text }}</div>
+                    {% endif %}
+                    {% if form.gif1.errors %}
+                        <div class="errors">{{ form.gif1.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.gif2.label_tag }}
+                    {{ form.gif2 }}
+                    {% if form.gif2.help_text %}
+                        <div class="help">{{ form.gif2.help_text }}</div>
+                    {% endif %}
+                    {% if form.gif2.errors %}
+                        <div class="errors">{{ form.gif2.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Видео -->
+                <div class="form-row">
+                    {{ form.video1.label_tag }}
+                    {{ form.video1 }}
+                    {% if form.video1.help_text %}
+                        <div class="help">{{ form.video1.help_text }}</div>
+                    {% endif %}
+                    {% if form.video1.errors %}
+                        <div class="errors">{{ form.video1.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    {{ form.video2.label_tag }}
+                    {{ form.video2 }}
+                    {% if form.video2.help_text %}
+                        <div class="help">{{ form.video2.help_text }}</div>
+                    {% endif %}
+                    {% if form.video2.errors %}
+                        <div class="errors">{{ form.video2.errors }}</div>
                     {% endif %}
                 </div>
             </div>
