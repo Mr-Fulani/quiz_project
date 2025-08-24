@@ -6,7 +6,8 @@
  * и объяснений.
  * 
  * @author Mini App Team
- * @version 1.0.0
+ * @version 2.0.0
+ * @updated 2025-08-24 - Fixed user initialization and telegram_id detection
  */
 
 console.log('🚀 tasks.js загружен');
@@ -137,15 +138,70 @@ class TaskManager {
      */
     async submitAnswerToServer(taskId, answer) {
         try {
-            // Получаем telegram_id из Telegram WebApp
+            // Получаем telegram_id из разных источников
             let telegramId = null;
-            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                telegramId = window.Telegram.WebApp.initDataUnsafe?.user?.id;
+            
+            console.log('🔍 Проверяем источники telegram_id:', {
+                hasCurrentUser: !!window.currentUser,
+                currentUserTelegramId: window.currentUser?.telegram_id,
+                hasTelegram: typeof window.Telegram !== 'undefined',
+                hasWebApp: typeof window.Telegram !== 'undefined' && window.Telegram.WebApp,
+                hasInitData: typeof window.Telegram !== 'undefined' && window.Telegram.WebApp ? !!window.Telegram.WebApp.initData : false,
+                initDataLength: typeof window.Telegram !== 'undefined' && window.Telegram.WebApp ? window.Telegram.WebApp.initData?.length : 0,
+                initDataUnsafe: typeof window.Telegram !== 'undefined' ? window.Telegram.WebApp?.initDataUnsafe : null,
+                user: typeof window.Telegram !== 'undefined' ? window.Telegram.WebApp?.initDataUnsafe?.user : null,
+                userId: typeof window.Telegram !== 'undefined' ? window.Telegram.WebApp?.initDataUnsafe?.user?.id : null,
+                isUserInitialized: window.isUserInitialized,
+                currentUserData: window.currentUser
+            });
+            
+            // Приоритет 1: Инициализированный пользователь через /api/verify-init-data
+            if (window.currentUser && window.currentUser.telegram_id) {
+                telegramId = window.currentUser.telegram_id;
+                console.log('✅ Получен telegram_id из window.currentUser (приоритет 1):', telegramId);
+            }
+            // Приоритет 2: Telegram WebApp напрямую
+            else if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+                telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+                console.log('✅ Получен telegram_id из Telegram WebApp (приоритет 2):', telegramId);
+            }
+            // Приоритет 3: Ждем инициализации пользователя (если мы в Telegram)
+            else if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                console.log('⏳ Пользователь не инициализирован, но есть initData. Попробуем инициализировать...');
+                
+                // Пытаемся инициализировать пользователя вручную
+                try {
+                    const response = await fetch('/api/verify-init-data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        window.currentUser = userData;
+                        window.isUserInitialized = true;
+                        telegramId = userData.telegram_id;
+                        console.log('✅ Пользователь инициализирован вручную, telegram_id:', telegramId);
+                    } else {
+                        console.error('❌ Ошибка инициализации пользователя:', response.status);
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка при инициализации пользователя:', error);
+                }
             }
             
+            // Fallback для браузера
             if (!telegramId) {
-                console.warn('Telegram ID не найден, пропускаем отправку на сервер');
-                return;
+                // Проверяем, что мы НЕ в Telegram (браузер)
+                if (typeof window.Telegram === 'undefined' || !window.Telegram.WebApp) {
+                    telegramId = 7827592658; // Fulani из базы данных
+                    console.warn('⚠️ Браузер: используем тестовый ID существующего пользователя:', telegramId);
+                } else {
+                    console.error('❌ В Telegram, но не удалось получить telegram_id');
+                    this.showToast('Ошибка: не удалось определить пользователя', 'error');
+                    return;
+                }
             }
             
             console.log('📤 Отправляем ответ на сервер:', { taskId, answer, telegramId });

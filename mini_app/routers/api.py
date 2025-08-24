@@ -483,13 +483,18 @@ async def submit_task_answer(task_id: int, request: Request):
     try:
         # Получаем данные из запроса
         data = await request.json()
+        logger.info(f"Received data: {data}")
         telegram_id = data.get('telegram_id')
         answer = data.get('answer')
         
+        logger.info(f"Extracted telegram_id: {telegram_id}, answer: {answer}")
+        
         if not telegram_id:
+            logger.error("telegram_id is missing")
             raise HTTPException(status_code=400, detail="telegram_id is required")
         
         if not answer:
+            logger.error("answer is missing")
             raise HTTPException(status_code=400, detail="answer is required")
         
         # Отправляем запрос в Django API
