@@ -44,7 +44,10 @@ async def verify_init_data(request: Request):
     Принимает initData от клиента, безопасно валидирует подпись
     и возвращает полные данные профиля из нашего бэкенда.
     """
-    logger.info(f"Начало обработки /verify-init-data")
+    logger.info(f"🚀 НАЧАЛО ОБРАБОТКИ /verify-init-data")
+    logger.info(f"🔍 User-Agent: {request.headers.get('user-agent', 'Unknown')}")
+    logger.info(f"🔍 X-Forwarded-For: {request.headers.get('x-forwarded-for', 'Unknown')}")
+    logger.info(f"🔍 Referer: {request.headers.get('referer', 'Unknown')}")
     try:
         data = await request.json()
         init_data_str = data.get('initData')
@@ -108,6 +111,7 @@ async def verify_init_data(request: Request):
             
         logger.info(f"Профиль для telegram_id: {user_info['telegram_id']} успешно получен/создан.")
         logger.info(f"Возвращаемые данные профиля: {profile_data}")
+        logger.info(f"🔍 ВОЗВРАЩАЕМЫЙ TELEGRAM_ID: {profile_data.get('telegram_id', 'NOT_FOUND')}")
         logger.info(f"Тип profile_data: {type(profile_data)}")
         logger.info(f"Avatar в profile_data: {profile_data.get('avatar') if isinstance(profile_data, dict) else 'Not a dict'}")
         logger.info(f"Тип avatar в profile_data: {type(profile_data.get('avatar')) if isinstance(profile_data, dict) else 'N/A'}")
@@ -479,6 +483,9 @@ async def submit_task_answer(task_id: int, request: Request):
     Отправляет ответ на задачу из мини-аппа в Django API.
     """
     logger.info(f"Submitting answer for task_id: {task_id}")
+    logger.info(f"User-Agent: {request.headers.get('user-agent', 'Unknown')}")
+    logger.info(f"X-Forwarded-For: {request.headers.get('x-forwarded-for', 'Unknown')}")
+    logger.info(f"Referer: {request.headers.get('referer', 'Unknown')}")
     
     try:
         # Получаем данные из запроса
