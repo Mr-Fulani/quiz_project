@@ -235,8 +235,9 @@ def submit_mini_app_task_answer(request, task_id):
         try:
             mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
         except MiniAppUser.DoesNotExist:
+            logger.error(f"MiniAppUser с telegram_id {telegram_id} не найден")
             return Response(
-                {'error': 'Mini App user not found'}, 
+                {'error': 'Mini App user not found. User must be initialized first.'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
         

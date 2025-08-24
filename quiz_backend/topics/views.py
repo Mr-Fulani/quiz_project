@@ -209,6 +209,7 @@ def topic_detail_simple(request, topic_id):
 def subtopic_detail_simple(request, subtopic_id):
     """
     Детальная информация о подтеме для мини-приложения (без аутентификации)
+    Включает задачи для подтемы
     """
     try:
         subtopic = Subtopic.objects.get(id=subtopic_id)
@@ -216,18 +217,80 @@ def subtopic_detail_simple(request, subtopic_id):
         # Получаем язык из query параметров
         language = request.GET.get('language', 'en')
         
-        # Подсчитываем количество задач с переводами на указанном языке
-        tasks_count = subtopic.tasks.filter(
+        # Получаем задачи с переводами на нужном языке
+        from tasks.models import Task, TaskTranslation
+        
+        tasks = Task.objects.filter(
+            subtopic=subtopic,
             published=True,
             translations__language=language
-        ).distinct().count()
+        ).select_related('topic', 'subtopic').prefetch_related(
+            'translations'
+        )
+        
+        # Подготавливаем данные задач для мини-приложения
+        tasks_data = []
+        for task in tasks:
+            translation = task.translations.filter(language=language).first()
+            if translation:
+                # Подготавливаем варианты ответов
+                answers = [translation.correct_answer]
+                if translation.answers:
+                    # Добавляем неправильные ответы из JSON поля
+                    import json
+                    wrong_answers = translation.answers
+                    if isinstance(wrong_answers, str):
+                        # Если answers это JSON строка, парсим её
+                        try:
+                            wrong_answers = json.loads(wrong_answers)
+                        except json.JSONDecodeError:
+                            wrong_answers = []
+                    if isinstance(wrong_answers, list):
+                        # Добавляем только неправильные ответы (исключаем правильный)
+                        for answer in wrong_answers:
+                            if answer != translation.correct_answer:
+                                answers.append(answer)
+                    elif isinstance(wrong_answers, dict):
+                        # Если answers это словарь, извлекаем значения
+                        for answer in wrong_answers.values():
+                            if answer != translation.correct_answer:
+                                answers.append(answer)
+                
+                # Перемешиваем варианты ответов
+                import random
+                random.shuffle(answers)
+                
+                # Добавляем опцию "Не знаю, но хочу узнать"
+                dont_know_options = {
+                    'ru': 'Я не знаю, но хочу узнать',
+                    'en': 'I don\'t know, but I want to learn'
+                }
+                dont_know_option = dont_know_options.get(language, dont_know_options['en'])
+                answers.append(dont_know_option)
+                
+                task_data = {
+                    'id': task.id,
+                    'topic_id': task.topic.id,
+                    'subtopic_id': task.subtopic.id,
+                    'difficulty': task.difficulty,
+                    'image_url': task.image_url,
+                    'question': translation.question,
+                    'answers': answers,
+                    'correct_answer': translation.correct_answer,
+                    'explanation': translation.explanation,
+                    'is_solved': False  # TODO: Добавить проверку решения пользователем
+                }
+                tasks_data.append(task_data)
         
         data = {
             'id': subtopic.id,
             'name': subtopic.name,
-            'description': subtopic.description or f'Подтема: {subtopic.name}',
+            'description': f'Подтема: {subtopic.name}',
             'topic': subtopic.topic_id,
-            'questions_count': tasks_count,
+            'questions_count': len(tasks_data),
+            'results': tasks_data,  # Добавляем задачи в поле results
+            'subtopic_name': subtopic.name,
+            'topic_name': subtopic.topic.name
         }
         return Response(data)
     except Subtopic.DoesNotExist:

@@ -229,68 +229,6 @@
 </style>
 
 <script>
-function selectAnswer(button, selectedAnswer, correctAnswer, explanation) {
-    const taskItem = button.closest('.task-item');
-    const answers = taskItem.querySelectorAll('.answer-option');
-    
-    // Отключаем все кнопки
-    answers.forEach(btn => {
-        btn.classList.add('disabled');
-        btn.style.pointerEvents = 'none';
-    });
-    
-    // Отмечаем выбранный ответ
-    button.classList.add('selected');
-    
-    // Проверяем правильность
-    const isCorrect = selectedAnswer === correctAnswer;
-    
-    if (isCorrect) {
-        button.classList.add('correct');
-        showSuccessMessage();
-    } else {
-        button.classList.add('incorrect');
-        // Показываем правильный ответ
-        answers.forEach(btn => {
-            if (btn.dataset.correct === 'true') {
-                btn.classList.add('correct');
-            }
-        });
-    }
-    
-    // Показываем объяснение
-    const taskId = taskItem.dataset.taskId;
-    const explanationDiv = document.getElementById(`explanation-${taskId}`);
-    if (explanationDiv) {
-        explanationDiv.style.display = 'block';
-        explanationDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-}
-
-function showSuccessMessage() {
-    // Показываем уведомление
-    const toast = document.createElement('div');
-    toast.textContent = 'Правильно! Отличная работа!';
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 600;
-        z-index: 1000;
-        background: #28a745;
-        max-width: 300px;
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
-
 function goBack() {
     if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
         window.Telegram.WebApp.navigateTo('/');

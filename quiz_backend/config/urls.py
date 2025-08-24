@@ -57,11 +57,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # API endpoints (вне языковых паттернов)
-    path('api/', include('topics.urls')),
     path('api/', include('platforms.urls')),
     path('api/', include('feedback.urls')),
     path('api/tasks/', include('tasks.urls')),  # Перемещаем tasks.urls в отдельный namespace
     path('api/', include('blog.api.api_urls')),  # Добавляем blog API
+    path('api/', include('topics.urls')),  # Перемещаем topics.urls после blog.api.api_urls
     path('api/accounts/', include('accounts.api.api_urls')),  # Добавляем accounts API
     path('api/webhooks/', include('webhooks.urls')),
     path('api/social-auth/', include('social_auth.urls')),  # Добавляем social_auth API
