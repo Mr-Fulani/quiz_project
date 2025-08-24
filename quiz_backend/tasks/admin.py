@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Task, TaskTranslation, TaskStatistics, TaskPoll
+from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics
 
 
 @admin.register(Task)
@@ -61,3 +61,58 @@ class TaskPollAdmin(admin.ModelAdmin):
         """Отображает первые 50 символов вопроса опроса."""
         return obj.poll_question[:50] + ('...' if len(obj.poll_question) > 50 else '')
     poll_question_preview.short_description = 'Вопрос опроса (превью)'
+
+
+@admin.register(MiniAppTaskStatistics)
+class MiniAppTaskStatisticsAdmin(admin.ModelAdmin):
+    """
+    Админка для статистики решения задач пользователями Mini App.
+    """
+    list_display = ('mini_app_user', 'task', 'attempts', 'successful', 'last_attempt_date', 'is_linked')
+    list_filter = ('successful', 'last_attempt_date', 'mini_app_user__language')
+    search_fields = ('mini_app_user__telegram_id', 'mini_app_user__username', 'task__id')
+    raw_id_fields = ('mini_app_user', 'task', 'linked_statistics')
+    date_hierarchy = 'last_attempt_date'
+    list_per_page = 20
+    readonly_fields = ('last_attempt_date', 'is_linked')
+
+    def is_linked(self, obj):
+        """Показывает, связана ли статистика с основной статистикой"""
+        return bool(obj.linked_statistics)
+    is_linked.boolean = True
+    is_linked.short_description = 'Связана с основной статистикой'
+
+    actions = ['merge_to_main_statistics']
+
+    def merge_to_main_statistics(self, request, queryset):
+        """
+        Объединяет выбранную статистику мини-аппа с основной статистикой.
+        """
+        merged_count = 0
+        errors = []
+
+        for mini_app_stats in queryset:
+            try:
+                # Проверяем, есть ли связанный CustomUser
+                mini_app_user = mini_app_stats.mini_app_user
+
+                # Ищем CustomUser по telegram_id
+                from accounts.models import CustomUser
+                try:
+                    custom_user = CustomUser.objects.get(telegram_id=mini_app_user.telegram_id)
+                    mini_app_stats.merge_to_main_statistics(custom_user)
+                    merged_count += 1
+                except CustomUser.DoesNotExist:
+                    errors.append(f"Пользователь с telegram_id {mini_app_user.telegram_id} не найден в CustomUser")
+
+            except Exception as e:
+                errors.append(f"Ошибка при объединении статистики {mini_app_stats.id}: {e}")
+
+        if merged_count > 0:
+            self.message_user(request, f"Успешно объединено {merged_count} записей статистики.")
+
+        if errors:
+            for error in errors:
+                self.message_user(request, error, level='ERROR')
+
+    merge_to_main_statistics.short_description = "Объединить с основной статистикой"

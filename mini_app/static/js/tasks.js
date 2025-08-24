@@ -96,8 +96,9 @@ class TaskManager {
         const selectedAnswer = option.dataset.answer;
         const isCorrect = option.dataset.correct === 'true';
         const explanation = option.dataset.explanation;
+        const taskId = taskItem.dataset.taskId;
         
-        console.log('Task ID:', taskItem.dataset.taskId, 'Answer:', selectedAnswer, 'Correct:', isCorrect);
+        console.log('Task ID:', taskId, 'Answer:', selectedAnswer, 'Correct:', isCorrect);
         
         // Проверяем, не решена ли уже задача
         if (taskItem.dataset.solved === 'true') {
@@ -114,6 +115,9 @@ class TaskManager {
         this.markSelectedAnswer(option, isCorrect);
         taskItem.dataset.solved = 'true';
         
+        // Отправляем ответ на сервер
+        await this.submitAnswerToServer(taskId, selectedAnswer);
+        
         // Показываем правильный ответ, если выбран неправильный
         if (!isCorrect) {
             this.showCorrectAnswer(taskItem);
@@ -124,6 +128,66 @@ class TaskManager {
         
         // Показываем уведомление
         this.showNotification(isCorrect, isDontKnow);
+    }
+
+    /**
+     * Отправляет ответ на сервер
+     * @param {number} taskId - ID задачи
+     * @param {string} answer - Выбранный ответ
+     */
+    async submitAnswerToServer(taskId, answer) {
+        try {
+            // Получаем telegram_id из Telegram WebApp
+            let telegramId = null;
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                telegramId = window.Telegram.WebApp.initDataUnsafe?.user?.id;
+            }
+            
+            if (!telegramId) {
+                console.warn('Telegram ID не найден, пропускаем отправку на сервер');
+                return;
+            }
+            
+            console.log('📤 Отправляем ответ на сервер:', { taskId, answer, telegramId });
+            
+            const response = await fetch(`/api/tasks/${taskId}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    telegram_id: telegramId,
+                    answer: answer
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Ответ успешно отправлен:', result);
+                
+                // Обновляем статистику на странице, если нужно
+                if (result.total_attempts) {
+                    this.updateTaskStatistics(taskId, result);
+                }
+            } else {
+                console.error('❌ Ошибка при отправке ответа:', response.status, response.statusText);
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Детали ошибки:', errorData);
+            }
+        } catch (error) {
+            console.error('❌ Ошибка при отправке ответа на сервер:', error);
+        }
+    }
+
+    /**
+     * Обновляет статистику задачи на странице
+     * @param {number} taskId - ID задачи
+     * @param {Object} result - Результат от сервера
+     */
+    updateTaskStatistics(taskId, result) {
+        // Здесь можно обновить отображение статистики на странице
+        // Например, показать количество попыток, процент успешности и т.д.
+        console.log('📊 Обновляем статистику для задачи', taskId, result);
     }
 
     /**

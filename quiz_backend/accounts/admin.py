@@ -1555,7 +1555,7 @@ class MiniAppUserAdmin(admin.ModelAdmin):
     list_filter = ['language', 'created_at', 'last_seen']
     readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name']
     raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin']
-    actions = ['update_last_seen', 'link_to_existing_users']
+    actions = ['update_last_seen', 'link_to_existing_users', 'merge_statistics_with_custom_user']
 
     def update_last_seen(self, request, queryset):
         """
@@ -1597,6 +1597,37 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         
         self.message_user(request, f"Связано {linked_count} пользователей.")
     link_to_existing_users.short_description = "Связать с существующими пользователями"
+
+    def merge_statistics_with_custom_user(self, request, queryset):
+        """
+        Объединяет статистику мини-аппа с основной статистикой CustomUser.
+        """
+        merged_count = 0
+        errors = []
+        
+        for mini_app_user in queryset:
+            try:
+                # Ищем CustomUser по telegram_id
+                custom_user = CustomUser.objects.filter(telegram_id=mini_app_user.telegram_id).first()
+                
+                if custom_user:
+                    stats_merged = mini_app_user.merge_statistics_with_custom_user(custom_user)
+                    merged_count += stats_merged
+                    self.message_user(request, f"Объединено {stats_merged} записей статистики для пользователя {mini_app_user.telegram_id}")
+                else:
+                    errors.append(f"CustomUser с telegram_id {mini_app_user.telegram_id} не найден")
+                    
+            except Exception as e:
+                errors.append(f"Ошибка при объединении статистики для {mini_app_user.telegram_id}: {e}")
+        
+        if merged_count > 0:
+            self.message_user(request, f"Всего объединено {merged_count} записей статистики.")
+        
+        if errors:
+            for error in errors:
+                self.message_user(request, error, level='ERROR')
+    
+    merge_statistics_with_custom_user.short_description = "Объединить статистику с CustomUser"
 
 
 # Регистрация моделей

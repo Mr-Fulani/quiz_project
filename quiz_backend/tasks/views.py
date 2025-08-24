@@ -191,3 +191,132 @@ def tasks_by_subtopic(request, subtopic_id):
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+import logging
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Task, TaskTranslation, MiniAppTaskStatistics
+from accounts.models import MiniAppUser
+
+logger = logging.getLogger(__name__)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def submit_mini_app_task_answer(request, task_id):
+    """
+    API эндпоинт для отправки ответов на задачи из мини-аппа.
+    
+    Принимает telegram_id и ответ, сохраняет статистику в MiniAppTaskStatistics.
+    """
+    
+    try:
+        # Получаем данные из запроса
+        telegram_id = request.data.get('telegram_id')
+        selected_answer = request.data.get('answer')
+        
+        if not telegram_id:
+            return Response(
+                {'error': 'telegram_id is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not selected_answer:
+            return Response(
+                {'error': 'answer is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Получаем задачу
+        task = get_object_or_404(Task, id=task_id, published=True)
+        
+        # Получаем пользователя мини-аппа
+        try:
+            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
+        except MiniAppUser.DoesNotExist:
+            return Response(
+                {'error': 'Mini App user not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Получаем перевод задачи
+        language = mini_app_user.language or 'en'
+        translation = (TaskTranslation.objects.filter(task=task, language=language).first() or
+                      TaskTranslation.objects.filter(task=task).first())
+        
+        if not translation:
+            return Response(
+                {'error': 'No translation available for this task'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Проверяем правильность ответа
+        is_correct = selected_answer == translation.correct_answer
+        
+        # Сохраняем статистику
+        stats, created = MiniAppTaskStatistics.objects.get_or_create(
+            mini_app_user=mini_app_user,
+            task=task,
+            defaults={
+                'attempts': 1,
+                'successful': is_correct,
+                'selected_answer': selected_answer
+            }
+        )
+        
+        if not created:
+            # Если статистика уже существует, обновляем её
+            stats.attempts += 1
+            stats.successful = is_correct
+            stats.selected_answer = selected_answer
+            stats.save()
+        
+        # Обновляем время последнего визита пользователя
+        mini_app_user.update_last_seen()
+        
+        # Формируем результаты для отображения статистики
+        total_votes = task.statistics.count() + task.mini_app_statistics.count() + 1
+        
+        # Получаем варианты ответов
+        if isinstance(translation.answers, str):
+            import json
+            answers = json.loads(translation.answers)
+        else:
+            answers = translation.answers
+        
+        results = []
+        for answer in answers:
+            # Подсчитываем голоса из основной статистики
+            main_votes = task.statistics.filter(selected_answer=answer).count()
+            # Подсчитываем голоса из статистики мини-аппа
+            mini_app_votes = task.mini_app_statistics.filter(selected_answer=answer).count()
+            total_answer_votes = main_votes + mini_app_votes
+            
+            # Если это выбранный ответ, добавляем 1
+            if answer == selected_answer:
+                total_answer_votes += 1
+            
+            percentage = (total_answer_votes / total_votes * 100) if total_votes > 0 else 0
+            results.append({
+                'text': answer,
+                'is_correct': answer == translation.correct_answer,
+                'percentage': round(percentage, 1)
+            })
+        
+        return Response({
+            'status': 'success',
+            'is_correct': is_correct,
+            'selected_answer': selected_answer,
+            'results': results,
+            'explanation': translation.explanation or 'No explanation available.',
+            'total_attempts': stats.attempts,
+            'successful_attempts': 1 if is_correct else 0
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in submit_mini_app_task_answer: {e}")
+        return Response(
+            {'error': 'Internal server error'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
