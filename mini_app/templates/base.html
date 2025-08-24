@@ -138,10 +138,15 @@
                 if (response.ok) {
                     const userData = await response.json();
                     console.log('✅ User data received:', userData);
+                    console.log('🔍 User data telegram_id:', userData.telegram_id);
                     
                     // Сохраняем данные пользователя глобально
                     window.currentUser = userData;
                     window.isUserInitialized = true;
+                    
+                    console.log('✅ window.currentUser установлен:', window.currentUser);
+                    console.log('✅ window.isUserInitialized установлен:', window.isUserInitialized);
+                    console.log('✅ window.currentUser.telegram_id:', window.currentUser.telegram_id);
                     
                     // Вызываем callback если он установлен
                     if (window.onUserInitialized) {
@@ -323,11 +328,28 @@
                 document.head.appendChild(script);
             } else if (url.startsWith('/subtopic/') && url.includes('/tasks')) {
                 console.log('🎯 Subtopic tasks page detected, loading script...');
+                
+                // Принудительно инициализируем пользователя для страниц задач
+                console.log('🔧 Принудительная инициализация пользователя для страницы задач...');
+                if (typeof window.initializeUser === 'function') {
+                    window.initializeUser();
+                } else {
+                    console.error('❌ initializeUser не найден!');
+                }
+                
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
                 script.src = '/static/js/tasks.js?v=2.0&t=' + Date.now();
                 script.onload = function() {
                     console.log('✅ Tasks script loaded via base template');
+                    
+                    // Дополнительно инициализируем пользователя после загрузки скрипта
+                    setTimeout(() => {
+                        console.log('🔧 Дополнительная инициализация пользователя после загрузки tasks.js...');
+                        if (typeof window.initializeUser === 'function') {
+                            window.initializeUser();
+                        }
+                    }, 500);
                 };
                 script.onerror = function() {
                     console.error('❌ Failed to load tasks.js');
@@ -506,6 +528,14 @@
             console.log('📜 DOM уже загружен, инициализируем пользователя сразу...');
             initializeUser();
         }
+        
+        // Принудительно инициализируем пользователя через 1 секунду (fallback)
+        setTimeout(function() {
+            console.log('⏰ Fallback: Принудительная инициализация пользователя через 1 секунду...');
+            if (typeof window.initializeUser === 'function') {
+                window.initializeUser();
+            }
+        }, 1000);
     </script>
 
     <!-- Подключаем скрипты -->
