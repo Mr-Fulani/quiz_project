@@ -17,6 +17,9 @@ urlpatterns = [
     path('stats/user/', views.UserTaskStatsView.as_view(), name='user-task-stats'),
     path('stats/topic/<int:topic_id>/', views.TopicTaskStatsView.as_view(), name='topic-task-stats'),
     
+    # API для мини-аппа (более специфичные URL'ы должны быть выше)
+    path('<int:task_id>/submit-mini-app/', views.submit_mini_app_task_answer, name='submit-mini-app-task'),
+    
     # Управление задачами
     path('<int:pk>/submit/', views.TaskSubmitView.as_view(), name='task-submit'),
     path('<int:pk>/skip/', views.TaskSkipView.as_view(), name='task-skip'),

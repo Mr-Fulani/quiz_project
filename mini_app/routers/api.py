@@ -472,3 +472,45 @@ async def manual_validate_init_data(init_data_str: str, secret_key: bytes):
     except Exception as e:
         logger.error(f"Ошибка ручной валидации: {e}")
         raise ValueError(f"Manual validation failed: {e}") 
+
+@router.post("/tasks/{task_id}/submit")
+async def submit_task_answer(task_id: int, request: Request):
+    """
+    Отправляет ответ на задачу из мини-аппа в Django API.
+    """
+    logger.info(f"Submitting answer for task_id: {task_id}")
+    
+    try:
+        # Получаем данные из запроса
+        data = await request.json()
+        telegram_id = data.get('telegram_id')
+        answer = data.get('answer')
+        
+        if not telegram_id:
+            raise HTTPException(status_code=400, detail="telegram_id is required")
+        
+        if not answer:
+            raise HTTPException(status_code=400, detail="answer is required")
+        
+        # Отправляем запрос в Django API
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/{task_id}/submit-mini-app/"
+        payload = {
+            'telegram_id': telegram_id,
+            'answer': answer
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(django_url, json=payload, timeout=10.0)
+        
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"Error from Django API: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except httpx.RequestError as e:
+        logger.error(f"Request error while contacting Django API: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to backend service.")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.") 

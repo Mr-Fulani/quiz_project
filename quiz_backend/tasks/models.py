@@ -446,6 +446,101 @@ class TaskStatistics(models.Model):
             self.user.invalidate_statistics_cache()
 
 
+class MiniAppTaskStatistics(models.Model):
+    """
+    Статистика решения задач пользователями Mini App.
+    
+    Отдельная модель для хранения статистики из мини-аппа,
+    которая может быть связана с основной статистикой при объединении пользователей.
+    """
+    class Meta:
+        db_table = 'mini_app_task_statistics'
+        verbose_name = 'Статистика Mini App'
+        verbose_name_plural = 'Статистика Mini App'
+        indexes = [
+            models.Index(fields=['last_attempt_date']),
+        ]
+        unique_together = ('mini_app_user', 'task')
+
+    id = models.AutoField(primary_key=True)
+    mini_app_user = models.ForeignKey(
+        'accounts.MiniAppUser',
+        on_delete=models.CASCADE,
+        related_name='task_statistics',
+        help_text='Пользователь Mini App'
+    )
+    task = models.ForeignKey(
+        'tasks.Task',
+        on_delete=models.CASCADE,
+        related_name='mini_app_statistics',
+        help_text='Задача'
+    )
+    attempts = models.IntegerField(
+        default=0,
+        help_text='Количество попыток'
+    )
+    successful = models.BooleanField(
+        default=False,
+        help_text='Успешно ли решена задача'
+    )
+    last_attempt_date = models.DateTimeField(
+        auto_now=True,
+        help_text='Дата последней попытки'
+    )
+    selected_answer = models.CharField(max_length=255, blank=True, null=True)
+    
+    # Связь с основной статистикой (если пользователь объединен)
+    linked_statistics = models.OneToOneField(
+        'TaskStatistics',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mini_app_statistics_link',
+        help_text='Связь с основной статистикой после объединения пользователей'
+    )
+
+    def __str__(self):
+        return f"Mini App Статистика: Задача {self.task_id}, Пользователь {self.mini_app_user.telegram_id}"
+
+    def merge_to_main_statistics(self, custom_user):
+        """
+        Объединяет статистику мини-аппа с основной статистикой пользователя.
+        
+        Args:
+            custom_user: Объект CustomUser для объединения
+        """
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Получаем или создаем основную статистику
+            main_stats, created = TaskStatistics.objects.get_or_create(
+                user=custom_user,
+                task=self.task,
+                defaults={
+                    'attempts': self.attempts,
+                    'successful': self.successful,
+                    'selected_answer': self.selected_answer
+                }
+            )
+            
+            if not created:
+                # Если статистика уже существует, объединяем данные
+                main_stats.attempts += self.attempts
+                # Если в мини-аппе задача была решена успешно, отмечаем как успешную
+                if self.successful:
+                    main_stats.successful = True
+                # Обновляем последнюю попытку, если она новее
+                if self.last_attempt_date > main_stats.last_attempt_date:
+                    main_stats.last_attempt_date = self.last_attempt_date
+                main_stats.save()
+            
+            # Связываем статистики
+            self.linked_statistics = main_stats
+            self.save()
+            
+            return main_stats
+
+
 class TaskPoll(models.Model):
     class Meta:
         db_table = 'task_polls'

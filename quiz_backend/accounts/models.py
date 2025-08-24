@@ -649,3 +649,64 @@ class MiniAppUser(models.Model):
         self.django_admin = django_admin
         self.save(update_fields=['django_admin'])
 
+    def merge_statistics_with_custom_user(self, custom_user):
+        """
+        Объединяет статистику мини-аппа с основной статистикой пользователя.
+        
+        Args:
+            custom_user (CustomUser): Объект CustomUser для объединения
+        """
+        from tasks.models import MiniAppTaskStatistics
+        
+        # Получаем всю статистику мини-аппа для этого пользователя
+        mini_app_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=self)
+        
+        merged_count = 0
+        for mini_app_stat in mini_app_stats:
+            try:
+                mini_app_stat.merge_to_main_statistics(custom_user)
+                merged_count += 1
+            except Exception as e:
+                logger.error(f"Ошибка при объединении статистики {mini_app_stat.id}: {e}")
+        
+        logger.info(f"Объединено {merged_count} записей статистики для пользователя {self.telegram_id}")
+        return merged_count
+
+    def get_combined_statistics(self):
+        """
+        Возвращает объединенную статистику пользователя (мини-апп + основной сайт).
+        
+        Returns:
+            dict: Объединенная статистика
+        """
+        from tasks.models import TaskStatistics, MiniAppTaskStatistics
+        from django.db.models import Count, Q
+        
+        # Статистика с основного сайта
+        main_stats = TaskStatistics.objects.filter(user__telegram_id=self.telegram_id).aggregate(
+            main_total_attempts=Count('id'),
+            main_successful_attempts=Count('id', filter=Q(successful=True))
+        )
+        
+        # Статистика из мини-аппа
+        mini_app_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=self).aggregate(
+            mini_app_total_attempts=Count('id'),
+            mini_app_successful_attempts=Count('id', filter=Q(successful=True))
+        )
+        
+        # Объединяем статистику
+        total_attempts = (main_stats['main_total_attempts'] or 0) + (mini_app_stats['mini_app_total_attempts'] or 0)
+        total_successful = (main_stats['main_successful_attempts'] or 0) + (mini_app_stats['mini_app_successful_attempts'] or 0)
+        
+        success_rate = (total_successful / total_attempts * 100) if total_attempts > 0 else 0
+        
+        return {
+            'total_attempts': total_attempts,
+            'successful_attempts': total_successful,
+            'success_rate': round(success_rate, 1),
+            'main_site_attempts': main_stats['main_total_attempts'] or 0,
+            'mini_app_attempts': mini_app_stats['mini_app_total_attempts'] or 0,
+            'main_site_successful': main_stats['main_successful_attempts'] or 0,
+            'mini_app_successful': mini_app_stats['mini_app_successful_attempts'] or 0
+        }
+
