@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from services.django_api_service import django_api_service
 from services.localization import localization_service
+from utils.cache_buster import get_js_url, get_css_url # Импортируем get_js_url и get_css_url
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,15 @@ async def index(
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
-        "timestamp": int(time.time())  # Для обхода кэша
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
+        "search_js_url": get_js_url('search.js'),
+        "topic_cards_js_url": get_js_url('topic-cards.js'),
     })
 
 @router.get("/profile", response_class=HTMLResponse)
@@ -61,7 +70,14 @@ async def profile(
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
-        "timestamp": int(time.time())  # Для обхода кэша
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
+        "profile_js_url": get_js_url('profile.js'),
     })
 
 @router.get("/achievements", response_class=HTMLResponse)
@@ -83,7 +99,14 @@ async def achievements(
         "request": request,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
     })
 
 @router.get("/statistics", response_class=HTMLResponse)
@@ -105,7 +128,14 @@ async def statistics(
         "request": request,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
     })
 
 @router.get("/settings", response_class=HTMLResponse)
@@ -128,7 +158,13 @@ async def settings(
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
-        "timestamp": int(time.time())  # Для обхода кэша
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
     })
 
 @router.get("/topic/{topic_id}", response_class=HTMLResponse)
@@ -161,7 +197,15 @@ async def topic_detail(
         "topics": topics,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
+        "topic_detail_js_url": get_js_url('topic-detail.js'),
     })
 
 @router.get("/subtopic/{subtopic_id}/tasks", response_class=HTMLResponse)
@@ -198,7 +242,14 @@ async def subtopic_tasks(
         "tasks": tasks,
         "translations": translations,
         "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages()
+        "supported_languages": localization_service.get_supported_languages(),
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
     })
 
 # Загрузка аватара останется здесь, так как она связана со страницей профиля
