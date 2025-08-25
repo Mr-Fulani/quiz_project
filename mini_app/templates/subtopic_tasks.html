@@ -227,30 +227,4 @@
     }
 }
 </style>
-
-<script>
-function goBack() {
-    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-        window.Telegram.WebApp.navigateTo('/');
-    } else {
-        window.history.back();
-    }
-}
-
-// Принудительная инициализация пользователя для страницы задач
-console.log('🔧 Принудительная инициализация пользователя в шаблоне subtopic_tasks.html...');
-if (typeof window.initializeUser === 'function') {
-    window.initializeUser();
-    
-    // Ждем инициализации и проверяем результат
-    setTimeout(() => {
-        console.log('⏰ Проверка после инициализации в шаблоне:');
-        console.log('window.currentUser:', window.currentUser);
-        console.log('window.isUserInitialized:', window.isUserInitialized);
-        console.log('window.currentUser?.telegram_id:', window.currentUser?.telegram_id);
-    }, 1000);
-} else {
-    console.error('❌ initializeUser не найден в шаблоне!');
-}
-</script>
 {% endblock %} 

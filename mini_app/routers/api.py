@@ -477,15 +477,18 @@ async def manual_validate_init_data(init_data_str: str, secret_key: bytes):
         logger.error(f"Ошибка ручной валидации: {e}")
         raise ValueError(f"Manual validation failed: {e}") 
 
-@router.post("/tasks/{task_id}/submit")
+@router.post("/tasks/{task_id}/submit-mini-app")
 async def submit_task_answer(task_id: int, request: Request):
     """
     Отправляет ответ на задачу из мини-аппа в Django API.
     """
-    logger.info(f"Submitting answer for task_id: {task_id}")
-    logger.info(f"User-Agent: {request.headers.get('user-agent', 'Unknown')}")
-    logger.info(f"X-Forwarded-For: {request.headers.get('x-forwarded-for', 'Unknown')}")
-    logger.info(f"Referer: {request.headers.get('referer', 'Unknown')}")
+    logger.info(f"🎯 ПОЛУЧЕН ЗАПРОС НА ОТПРАВКУ ОТВЕТА для task_id: {task_id}")
+    logger.info(f"🎯 URL: {request.url}")
+    logger.info(f"🎯 Method: {request.method}")
+    logger.info(f"🎯 Headers: {dict(request.headers)}")
+    logger.info(f"🎯 User-Agent: {request.headers.get('user-agent', 'Unknown')}")
+    logger.info(f"🎯 X-Forwarded-For: {request.headers.get('x-forwarded-for', 'Unknown')}")
+    logger.info(f"🎯 Referer: {request.headers.get('referer', 'Unknown')}")
     
     try:
         # Получаем данные из запроса
@@ -496,9 +499,30 @@ async def submit_task_answer(task_id: int, request: Request):
         
         logger.info(f"Extracted telegram_id: {telegram_id}, answer: {answer}")
         
+        # Проверяем, есть ли initData в теле запроса
+        init_data_from_body = data.get('initData')
+        if init_data_from_body:
+            logger.info(f"🔍 Найден initData в теле запроса: {init_data_from_body[:100]}...")
+        else:
+            logger.info(f"🔍 initData не найден в теле запроса")
+        
+        # Проверяем, что у нас есть правильный telegram_id
         if not telegram_id:
-            logger.error("telegram_id is missing")
-            raise HTTPException(status_code=400, detail="telegram_id is required")
+            # Попробуем получить telegram_id из initData в теле запроса
+            if init_data_from_body:
+                logger.info(f"🔍 Попытка получить telegram_id из initData в теле запроса")
+                try:
+                    # Валидируем initData и получаем правильный telegram_id
+                    validated_data = authenticator.validate(init_data_from_body)
+                    telegram_id = validated_data.user.id
+                    logger.info(f"✅ Получен telegram_id из initData: {telegram_id}")
+                except Exception as validation_error:
+                    logger.error(f"❌ Ошибка валидации initData: {validation_error}")
+            
+            # Если все еще нет telegram_id, возвращаем ошибку
+            if not telegram_id:
+                logger.error("telegram_id is missing")
+                raise HTTPException(status_code=400, detail="telegram_id is required")
         
         if not answer:
             logger.error("answer is missing")

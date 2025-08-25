@@ -210,19 +210,23 @@ def submit_mini_app_task_answer(request, task_id):
     
     Принимает telegram_id и ответ, сохраняет статистику в MiniAppTaskStatistics.
     """
-    
+    logger.info(f"submit_mini_app_task_answer: Начало обработки для task_id={task_id}")
+
     try:
         # Получаем данные из запроса
         telegram_id = request.data.get('telegram_id')
         selected_answer = request.data.get('answer')
+        logger.info(f"submit_mini_app_task_answer: Получены данные: telegram_id={telegram_id}, selected_answer={selected_answer}")
         
         if not telegram_id:
+            logger.warning("submit_mini_app_task_answer: telegram_id отсутствует в запросе.")
             return Response(
                 {'error': 'telegram_id is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         if not selected_answer:
+            logger.warning("submit_mini_app_task_answer: answer отсутствует в запросе.")
             return Response(
                 {'error': 'answer is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -230,12 +234,14 @@ def submit_mini_app_task_answer(request, task_id):
         
         # Получаем задачу
         task = get_object_or_404(Task, id=task_id, published=True)
+        logger.info(f"submit_mini_app_task_answer: Задача (ID: {task.id}) найдена.")
         
         # Получаем пользователя мини-аппа
         try:
             mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            logger.info(f"submit_mini_app_task_answer: MiniAppUser (ID: {mini_app_user.id}, telegram_id: {telegram_id}) найден.")
         except MiniAppUser.DoesNotExist:
-            logger.error(f"MiniAppUser с telegram_id {telegram_id} не найден")
+            logger.error(f"submit_mini_app_task_answer: MiniAppUser с telegram_id {telegram_id} не найден. Профиль пользователя мини-аппа должен быть инициализирован.")
             return Response(
                 {'error': 'Mini App user not found. User must be initialized first.'}, 
                 status=status.HTTP_404_NOT_FOUND
@@ -247,13 +253,16 @@ def submit_mini_app_task_answer(request, task_id):
                       TaskTranslation.objects.filter(task=task).first())
         
         if not translation:
+            logger.warning(f"submit_mini_app_task_answer: Перевод для задачи {task.id} (язык: {language}) не найден.")
             return Response(
                 {'error': 'No translation available for this task'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+        logger.info(f"submit_mini_app_task_answer: Перевод задачи найден (язык: {translation.language}).")
         
         # Проверяем правильность ответа
         is_correct = selected_answer == translation.correct_answer
+        logger.info(f"submit_mini_app_task_answer: Selected answer: '{selected_answer}', Correct answer: '{translation.correct_answer}', Is correct: {is_correct}")
         
         # Сохраняем статистику
         stats, created = MiniAppTaskStatistics.objects.get_or_create(
@@ -266,15 +275,19 @@ def submit_mini_app_task_answer(request, task_id):
             }
         )
         
-        if not created:
+        if created:
+            logger.info(f"submit_mini_app_task_answer: Создана новая запись MiniAppTaskStatistics (ID: {stats.id}) для пользователя {telegram_id}, задачи {task_id}. Попыток: {stats.attempts}, Успешно: {stats.successful}")
+        else:
             # Если статистика уже существует, обновляем её
             stats.attempts += 1
-            stats.successful = is_correct
+            stats.successful = is_correct # Обновляем успешность последней попытки
             stats.selected_answer = selected_answer
             stats.save()
+            logger.info(f"submit_mini_app_task_answer: Обновлена запись MiniAppTaskStatistics (ID: {stats.id}) для пользователя {telegram_id}, задачи {task_id}. Попыток: {stats.attempts}, Успешно: {stats.successful}")
         
         # Обновляем время последнего визита пользователя
         mini_app_user.update_last_seen()
+        logger.info(f"submit_mini_app_task_answer: Обновлено время последнего визита для MiniAppUser {telegram_id}.")
         
         # Формируем результаты для отображения статистики
         total_votes = task.statistics.count() + task.mini_app_statistics.count() + 1
@@ -315,8 +328,14 @@ def submit_mini_app_task_answer(request, task_id):
             'successful_attempts': 1 if is_correct else 0
         })
         
+    except Task.DoesNotExist:
+        logger.error(f"submit_mini_app_task_answer: Задача с ID {task_id} не найдена или не опубликована.")
+        return Response(
+            {'error': 'Task not found or not published'},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
-        logger.error(f"Error in submit_mini_app_task_answer: {e}")
+        logger.exception(f"submit_mini_app_task_answer: Неожиданная ошибка при отправке ответа на задачу {task_id} для пользователя {telegram_id}: {e}")
         return Response(
             {'error': 'Internal server error'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
