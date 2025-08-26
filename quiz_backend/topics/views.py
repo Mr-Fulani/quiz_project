@@ -6,6 +6,9 @@ from .serializers import TopicSerializer, SubtopicSerializer, TopicMiniAppSerial
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from django.db import models
+from django.db.models import Count
+from tasks.models import TaskTranslation
 
 # Create your views here.
 
@@ -128,8 +131,14 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
         language = self.request.query_params.get('language', 'en')
         queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
         
-        # Временно показываем все подтемы, даже без задач
-        # TODO: Восстановить фильтрацию когда будут добавлены задачи
+        # Аннотируем количество задач для каждой подтемы и фильтруем подтемы, у которых есть задачи
+        queryset = queryset.annotate(
+            tasks_count=Count(
+                'tasks__translations',
+                filter=models.Q(tasks__published=True, tasks__translations__language=language)
+            )
+        ).filter(tasks_count__gt=0) # Фильтруем только те подтемы, у которых есть задачи
+
         return queryset
 
     def perform_create(self, serializer):
@@ -152,21 +161,23 @@ def topics_simple(request):
     # Получаем язык из query параметров
     language = request.GET.get('language', 'en')
     
+    # Аннотируем количество задач для каждой темы и фильтруем темы, у которых есть задачи
+    topics = topics.annotate(
+        tasks_count=Count(
+            'tasks__translations',
+            filter=models.Q(tasks__published=True, tasks__translations__language=language)
+        )
+    ).filter(tasks_count__gt=0) # Фильтруем только те темы, у которых есть задачи
+    
     data = []
     for topic in topics:
-        # Подсчитываем количество задач с переводами на указанном языке
-        tasks_count = topic.tasks.filter(
-            published=True,
-            translations__language=language
-        ).distinct().count()
-        
         data.append({
             'id': topic.id,
             'name': topic.name,
             'description': topic.description or f'Изучение {topic.name}',
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
-            'questions_count': tasks_count,
+            'questions_count': topic.tasks_count, # Используем аннотированное количество
             'image_url': f'https://picsum.photos/400/400?{topic.id}',
         })
     return Response(data)
