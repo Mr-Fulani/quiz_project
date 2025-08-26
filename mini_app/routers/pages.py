@@ -27,8 +27,13 @@ async def index(
     current_language = localization_service.get_language()
     logger.info(f"Rendering index page with language: {current_language}")
     
-    # Получаем темы с учетом языка
-    topics = await django_api_service.get_topics(search=search, language=current_language)
+    # Получаем telegram_id из заголовков запроса, если доступен
+    telegram_id = request.headers.get('X-Telegram-User-Id')
+    if telegram_id: # Преобразуем в int, если ID есть
+        telegram_id = int(telegram_id)
+    
+    # Получаем темы с учетом языка и telegram_id для прогресса, фильтруем только темы с задачами
+    topics = await django_api_service.get_topics(search=search, language=current_language, telegram_id=telegram_id, has_tasks=True)
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
@@ -182,7 +187,7 @@ async def topic_detail(
     
     # Получаем данные темы
     topic_data = await django_api_service.get_topic_detail(topic_id=topic_id, language=current_language)
-    subtopics = await django_api_service.get_subtopics(topic_id=topic_id, language=current_language)
+    subtopics = await django_api_service.get_subtopics(topic_id=topic_id, language=current_language, has_tasks=True)
     
     # Получаем список всех тем для навигации
     topics = await django_api_service.get_topics(language=current_language)
