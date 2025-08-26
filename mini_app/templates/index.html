@@ -32,11 +32,36 @@
     </div>
 </div>
 
+<!-- Детальный список тем -->
+<div class="topic-list-container">
+    {% for topic in topics %}
+    <div class="topic-item" onclick="handleStartTopic(event, {{ topic.id }})">
+        <div class="topic-info">
+            <h3>{{ topic.name }}</h3>
+            <p class="topic-questions">{{ topic.questions_count }} <span data-translate="questions_count">{{ translations.get('questions_count', 'вопросов') }}</span></p>
+            {% set completed_tasks_count = topic.get('completed_tasks_count', 0) %}
+            {% if completed_tasks_count is not none and topic.questions_count > 0 %}
+                {% set progress_percentage = (completed_tasks_count / topic.questions_count * 100) | int %}
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ progress_percentage }}%;"></div>
+                    <span class="progress-text">{{ progress_percentage }}% <span data-translate="completed">{{ translations.get('completed', 'завершено') }}</span> ({{ completed_tasks_count }}/{{ topic.questions_count }})</span>
+                </div>
+            {% elif topic.questions_count == 0 %}
+                <p class="no-tasks" data-translate="no_tasks_in_topic">{{ translations.get('no_tasks_in_topic', 'Нет задач в теме') }}</p>
+            {% else %}
+                <p class="progress-text" data-translate="not_started">{{ translations.get('not_started', 'Не начато') }}</p>
+            {% endif %}
+        </div>
+        <button class="btn-start" onclick="handleStartTopic(event, {{ topic.id }})" data-translate="start_button">{{ translations.get('start_button', 'Начать') }}</button>
+    </div>
+    {% endfor %}
+</div>
+
 
 
 <!-- Подключаем скрипты -->
-<script src="/static/js/topic-cards.js?v=1.4"></script>
-        <script src="/static/js/search.js?v=1.6"></script>
+<script src="{{ get_js_url("topic-cards.js") }}"></script>
+<script src="{{ get_js_url("search.js") }}"></script>
 
 <script>
 // Глобальная функция для обработки клика на кнопку "Начать"

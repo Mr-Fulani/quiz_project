@@ -47,11 +47,15 @@ class DjangoAPIService:
                 logger.error(f"Тело ответа: {response.text}")
                 raise
     
-    async def get_topics(self, search: Optional[str] = None, language: str = 'en') -> List[Dict[str, Any]]:
-        """Получение списка тем с учетом языка"""
+    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None) -> List[Dict[str, Any]]:
+        """Получение списка тем с учетом языка, прогресса пользователя и наличия задач"""
         params = {'language': language}
         if search:
             params['search'] = search
+        if telegram_id:
+            params['telegram_id'] = telegram_id
+        if has_tasks is not None:
+            params['has_tasks'] = 'true' if has_tasks else 'false'
             
         try:
             data = await self._make_request("GET", "/api/simple/", params=params)
@@ -61,10 +65,13 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении тем: {e}")
             return []
     
-    async def get_subtopics(self, topic_id: int, language: str = 'en') -> List[Dict[str, Any]]:
-        """Получение подтем для конкретной темы с учетом языка"""
+    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None) -> List[Dict[str, Any]]:
+        """Получение подтем для конкретной темы с учетом языка и наличия задач"""
+        params = {'language': language}
+        if has_tasks is not None:
+            params['has_tasks'] = 'true' if has_tasks else 'false'
         try:
-            data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params={'language': language})
+            data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params=params)
             # API возвращает список напрямую, а не объект с results
             return data if isinstance(data, list) else []
         except Exception as e:
