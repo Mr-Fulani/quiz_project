@@ -388,7 +388,7 @@
                 // Для профиля загружаем скрипт и инициализируем
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
-                script.src = '{{ profile_js_url }}';
+                script.src = '{{ get_js_url("profile.js") }}';
                 script.onload = function() {
                     console.log('✅ Profile script loaded via base template');
                     // Вызываем инициализацию профиля после загрузки скрипта
