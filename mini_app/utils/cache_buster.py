@@ -73,7 +73,7 @@ STATIC_VERSIONS = {
     'share-app.js': '1.8',
     'profile.js': '1.6',
     'search.js': '1.6',
-    'tasks.js': '3.7',
+    'tasks.js': '3.9',
     'topic-cards.js': '1.4',
     'topic-detail.js': '1.6',
 }

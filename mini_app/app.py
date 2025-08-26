@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import api as api_router
 from routers import pages as pages_router
 from middleware.language_middleware import LanguageMiddleware
+from utils.cache_buster import get_js_url, get_css_url # Импортируем get_js_url и get_css_url
 
 # Создаём экземпляр FastAPI
 app = FastAPI(debug=True)
@@ -34,6 +35,9 @@ app.add_middleware(
 app.include_router(pages_router.router)
 app.include_router(api_router.router)
 
+# Делаем функции get_js_url и get_css_url доступными в шаблонах Jinja2
+pages_router.templates.env.globals['get_js_url'] = get_js_url
+pages_router.templates.env.globals['get_css_url'] = get_css_url
 
 # Монтируем папку static как /static
 current_dir = os.path.dirname(__file__)
