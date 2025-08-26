@@ -71,7 +71,7 @@ STATIC_VERSIONS = {
     'donation.js': '2.1',
     'localization.js': '1.9',
     'share-app.js': '1.8',
-    'profile.js': '1.6',
+    'profile.js': '1.7',
     'search.js': '1.6',
     'tasks.js': '3.9',
     'topic-cards.js': '1.4',
