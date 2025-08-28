@@ -31,8 +31,17 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-
-
+async def get_group_by_topic_and_language(db_session, topic_id: int, language: str):
+    """
+    Получает группу по топику и языку.
+    """
+    result = await db_session.execute(
+        select(TelegramGroup).where(
+            TelegramGroup.topic_id == topic_id,
+            TelegramGroup.language == language
+        )
+    )
+    return result.scalar_one_or_none()
 
 
 async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bot: Bot, user_chat_id: int) -> bool:
@@ -57,8 +66,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             .options(
                 joinedload(Task.translations),
                 joinedload(Task.topic),
-                joinedload(Task.subtopic),
-                joinedload(Task.group)  # Добавлено для получения group_name
+                joinedload(Task.subtopic)
             )
             .where(Task.id == task_id)
         )
@@ -94,8 +102,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             .options(
                 joinedload(Task.translations),
                 joinedload(Task.topic),
-                joinedload(Task.subtopic),
-                joinedload(Task.group)
+                joinedload(Task.subtopic)
             )
             .where(Task.translation_group_id == task.translation_group_id)
         )
@@ -144,12 +151,15 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             for translation in task_in_group.translations:
                 total_translations += 1
                 try:
+                    # Получаем группу по топику и языку
+                    group = await get_group_by_topic_and_language(db_session, task_in_group.topic_id, translation.language)
+                    
                     # Логирование начала публикации
                     publication_start_msg = log_publication_start(
                         task_id=task_in_group.id,
                         translation_id=translation.id,
                         language=translation.language,
-                        target=f"канал '{task_in_group.group.group_name}'"
+                        target=f"канал '{group.group_name if group else 'Неизвестно'}'"
                     )
                     await message.answer(publication_start_msg)
 
@@ -164,9 +174,6 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     )
 
                     uploaded_images.append(image_message["photo"])
-
-                    # Поиск группы для публикации (уже загружена через joinedload)
-                    group = task_in_group.group
 
                     if not group:
                         failed_count += 1
@@ -714,8 +721,7 @@ async def publish_task_by_translation_group(
                 .options(
                     joinedload(Task.translations),
                     joinedload(Task.topic),
-                    joinedload(Task.subtopic),
-                    joinedload(Task.group)
+                    joinedload(Task.subtopic)
                 )
                 .where(
                     Task.topic_id == topic.id,
@@ -755,8 +761,7 @@ async def publish_task_by_translation_group(
                 .options(
                     joinedload(Task.translations),
                     joinedload(Task.topic),
-                    joinedload(Task.subtopic),
-                    joinedload(Task.group)
+                    joinedload(Task.subtopic)
                 )
                 .where(Task.translation_group_id == task.translation_group_id)
             )
@@ -793,7 +798,10 @@ async def publish_task_by_translation_group(
 
                 for translation in task_in_group.translations:
                     try:
-                        target = f"канал '{task_in_group.group.group_name if task_in_group.group else 'Неизвестно'}'"
+                        # Получаем группу по топику и языку
+                        group = await get_group_by_topic_and_language(db_session, task_in_group.topic_id, translation.language)
+                        
+                        target = f"канал '{group.group_name if group else 'Неизвестно'}'"
                         start_msg = (
                             f"🔄 Публикация задачи ID `{task_in_group.id}` (перевод ID `{translation.id}`) "
                             f"на языке `{translation.language}` в топике '{task_in_group.topic.name}' в {target}"
@@ -809,8 +817,6 @@ async def publish_task_by_translation_group(
                             default_link_service=default_link_service,
                             user_chat_id=admin_chat_id
                         )
-
-                        group = task_in_group.group
                         if not group:
                             error_msg = f"🚫 Группа не найдена для задачи {task_in_group.id} (перевод {translation.id}, язык {translation.language})"
                             logger.error(f"❌ {error_msg}")
