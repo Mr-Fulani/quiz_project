@@ -1889,6 +1889,18 @@ body.fullscreen-active .gallery__container {
     text-align: left; /* фикс: всегда выравниваем контент блока слева */
 }
 
+/* Принудительно сбрасываем любые правые выравнивания, которые могли попасть из динамики */
+.topic-item *,
+.topic-item .topic-info *,
+.topic-item .progress-text {
+    text-align: left !important;
+}
+
+/* Защита от наследованных flex-правил: не даём последним дочерним элементам растягивать контент вправо */
+.topic-item > *:last-child {
+    margin-left: 0 !important;
+}
+
 .topic-info h3 {
     font-size: 18px;
     color: var(--active-color);
