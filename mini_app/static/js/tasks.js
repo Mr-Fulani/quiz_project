@@ -104,6 +104,64 @@ class TaskManager {
             
             console.log(`✅ Обработчик установлен для ответа: "${newOption.textContent.trim()}"`);
         });
+        
+        // Добавляем логику для уже решенных задач после установки всех обработчиков
+        document.querySelectorAll('.task-item').forEach(taskItem => {
+            if (taskItem.dataset.solved === 'true') {
+                const taskId = taskItem.dataset.taskId;
+                const explanationElement = document.getElementById(`explanation-${taskId}`);
+                
+                this.disableAllAnswers(taskItem);
+                
+                // Если задача решена, сразу показываем объяснение, если оно есть
+                if (explanationElement) {
+                    this.showExplanation(taskItem);
+                }
+                
+                // Отмечаем правильный ответ, если задача уже решена
+                const answerOptions = taskItem.querySelectorAll('.answer-option');
+                answerOptions.forEach(option => {
+                    if (option.dataset.correct === 'true') {
+                        option.classList.add('correct');
+                    }
+                });
+                console.log(`✅ Задача ${taskId} уже решена. Ответы заблокированы и объяснение показано.`);
+            }
+        });
+
+        // Если сервер не проставил data-solved, проверим через API и заблокируем
+        this.ensureSolvedStateFromServer();
+    }
+
+    async ensureSolvedStateFromServer() {
+        try {
+            const root = document.getElementById('tasks-root');
+            if (!root) return;
+            const subtopicId = root.dataset.subtopicId;
+            const language = root.dataset.language || 'en';
+            const telegramId = await this.getTelegramId();
+            if (!subtopicId || !telegramId) return;
+
+            const url = `/api/topic/${encodeURIComponent(subtopicId)}?lang=${encodeURIComponent(language)}&telegram_id=${encodeURIComponent(telegramId)}`;
+            // В нашем роутинге /topic/{topic_id} отдаёт HTML, поэтому используем прямой Django endpoint
+            const response = await fetch(`/api/subtopics/${encodeURIComponent(subtopicId)}/?language=${encodeURIComponent(language)}&telegram_id=${encodeURIComponent(telegramId)}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const results = data.results || [];
+            const solvedIds = new Set(results.filter(t => t.is_solved).map(t => String(t.id)));
+
+            document.querySelectorAll('.task-item').forEach(taskItem => {
+                const taskId = taskItem.dataset.taskId;
+                if (solvedIds.has(String(taskId))) {
+                    taskItem.dataset.solved = 'true';
+                    this.disableAllAnswers(taskItem);
+                    this.showCorrectAnswer(taskItem);
+                    this.showExplanation(taskItem);
+                }
+            });
+        } catch (e) {
+            console.warn('ensureSolvedStateFromServer failed:', e);
+        }
     }
 
     /**
@@ -260,9 +318,9 @@ class TaskManager {
         try {
             // Отправляем ответ на сервер
             console.log('📤 Начинаем отправку ответа на сервер...');
-            const success = await this.submitAnswerToServer(taskId, selectedAnswer);
+            const submitResult = await this.submitAnswerToServer(taskId, selectedAnswer);
             
-            if (success) {
+            if (submitResult.success) {
                 console.log('✅ Ответ успешно отправлен');
         
         // Показываем правильный ответ, если выбран неправильный
@@ -277,10 +335,20 @@ class TaskManager {
         this.showNotification(isCorrect, isDontKnow);
             } else {
                 console.error('❌ Не удалось отправить ответ');
-                // Откатываем изменения интерфейса
-                this.enableAllAnswers(taskItem);
-                taskItem.dataset.solved = 'false';
-                option.classList.remove('selected', 'correct', 'incorrect');
+                // Если сервер сказал, что ответ уже отправлен ранее — блокируем и показываем объяснение
+                if (submitResult.status === 409) {
+                    console.log('ℹ️ Ответ уже был отправлен ранее. Блокируем повторные клики.');
+                    taskItem.dataset.solved = 'true';
+                    // Подсветим правильный ответ и объяснение
+                    this.showCorrectAnswer(taskItem);
+                    this.showExplanation(taskItem);
+                    this.showToast('Вы уже отвечали на этот вопрос', 'info');
+                } else {
+                    // Иначе откатываем изменения интерфейса
+                    this.enableAllAnswers(taskItem);
+                    taskItem.dataset.solved = 'false';
+                    option.classList.remove('selected', 'correct', 'incorrect');
+                }
             }
         } catch (error) {
             console.error('❌ Критическая ошибка при обработке ответа:', error);
@@ -373,7 +441,7 @@ class TaskManager {
                     this.updateTaskStatistics(taskId, result);
                 }
                 
-                return true;
+                return { success: true, status: response.status, result };
             } else {
                 console.error('❌ Ошибка HTTP:', response.status, response.statusText);
                 
@@ -388,13 +456,18 @@ class TaskManager {
                     console.error('❌ Не удалось прочитать тело ошибки:', e);
                 }
                 
-                this.showToast(errorMessage, 'error');
-                return false;
+                // Для 409 (повторная отправка) показываем информационное сообщение
+                if (response.status === 409) {
+                    this.showToast('Вы уже отвечали на этот вопрос', 'info');
+                } else {
+                    this.showToast(errorMessage, 'error');
+                }
+                return { success: false, status: response.status, error: errorMessage };
             }
         } catch (error) {
             console.error('❌ Критическая ошибка при отправке:', error);
             this.showToast('Ошибка сети. Проверьте подключение.', 'error');
-            return false;
+            return { success: false, status: 0, error: 'network' };
         } finally {
             console.log('🏁 === КОНЕЦ ОТПРАВКИ НА СЕРВЕР ===');
         }

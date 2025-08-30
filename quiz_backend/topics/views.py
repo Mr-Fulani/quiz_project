@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db import models
 from django.db.models import Count
-from tasks.models import TaskTranslation
+from tasks.models import TaskTranslation, MiniAppTaskStatistics
 
 # Create your views here.
 
@@ -160,6 +160,7 @@ def topics_simple(request):
     
     # Получаем язык из query параметров
     language = request.GET.get('language', 'en')
+    telegram_id = request.GET.get('telegram_id', None)
     
     # Аннотируем количество задач для каждой темы и фильтруем темы, у которых есть задачи
     topics = topics.annotate(
@@ -169,9 +170,21 @@ def topics_simple(request):
         )
     ).filter(tasks_count__gt=0) # Фильтруем только те темы, у которых есть задачи
     
+    # Если передан telegram_id, аннотируем количество задач с попытками пользователя (любая попытка)
+    if telegram_id:
+        topics = topics.annotate(
+            completed_tasks_count=Count(
+                'tasks',
+                filter=models.Q(
+                    tasks__mini_app_statistics__mini_app_user__telegram_id=telegram_id
+                ),
+                distinct=True
+            )
+        )
+    
     data = []
     for topic in topics:
-        data.append({
+        topic_data = {
             'id': topic.id,
             'name': topic.name,
             'description': topic.description or f'Изучение {topic.name}',
@@ -179,7 +192,10 @@ def topics_simple(request):
             'difficulty': 'Средний',  # Временно статично
             'questions_count': topic.tasks_count, # Используем аннотированное количество
             'image_url': f'https://picsum.photos/400/400?{topic.id}',
-        })
+        }
+        if telegram_id:
+            topic_data['completed_tasks_count'] = topic.completed_tasks_count
+        data.append(topic_data)
     return Response(data)
 
 # Endpoint для деталей темы без аутентификации
@@ -194,12 +210,22 @@ def topic_detail_simple(request, topic_id):
         
         # Получаем язык из query параметров
         language = request.GET.get('language', 'en')
+        telegram_id = request.GET.get('telegram_id', None)
         
         # Подсчитываем количество задач с переводами на указанном языке
         tasks_count = topic.tasks.filter(
             published=True,
             translations__language=language
         ).distinct().count()
+        
+        completed_tasks_count = 0
+        if telegram_id:
+            # Считаем любые попытки пользователя по задачам темы
+            from tasks.models import MiniAppTaskStatistics
+            completed_tasks_count = MiniAppTaskStatistics.objects.filter(
+                mini_app_user__telegram_id=telegram_id,
+                task__topic=topic
+            ).values('task').distinct().count()
         
         data = {
             'id': topic.id,
@@ -209,6 +235,7 @@ def topic_detail_simple(request, topic_id):
             'difficulty': 'Средний',  # Временно статично
             'questions_count': tasks_count,
             'image_url': f'https://picsum.photos/400/400?{topic.id}',
+            'completed_tasks_count': completed_tasks_count
         }
         return Response(data)
     except Topic.DoesNotExist:
@@ -227,6 +254,7 @@ def subtopic_detail_simple(request, subtopic_id):
         
         # Получаем язык из query параметров
         language = request.GET.get('language', 'en')
+        telegram_id = request.GET.get('telegram_id', None)
         
         # Получаем задачи с переводами на нужном языке
         from tasks.models import Task, TaskTranslation
@@ -238,6 +266,14 @@ def subtopic_detail_simple(request, subtopic_id):
         ).select_related('topic', 'subtopic').prefetch_related(
             'translations'
         )
+        
+        # Подсчитываем количество задач с попытками для текущей подтемы
+        completed_tasks_count = 0
+        if telegram_id:
+            completed_tasks_count = MiniAppTaskStatistics.objects.filter(
+                mini_app_user__telegram_id=telegram_id,
+                task__subtopic=subtopic
+            ).values('task').distinct().count()
         
         # Подготавливаем данные задач для мини-приложения
         tasks_data = []
@@ -279,6 +315,15 @@ def subtopic_detail_simple(request, subtopic_id):
                 dont_know_option = dont_know_options.get(language, dont_know_options['en'])
                 answers.append(dont_know_option)
                 
+                # Отмечаем как решенную для мини-аппа при ЛЮБОЙ попытке пользователя
+                # (одноразовая попытка — повторные клики должны быть заблокированы)
+                is_solved = False
+                if telegram_id:
+                    is_solved = MiniAppTaskStatistics.objects.filter(
+                        mini_app_user__telegram_id=telegram_id,
+                        task=task
+                    ).exists()
+                
                 task_data = {
                     'id': task.id,
                     'topic_id': task.topic.id,
@@ -289,7 +334,7 @@ def subtopic_detail_simple(request, subtopic_id):
                     'answers': answers,
                     'correct_answer': translation.correct_answer,
                     'explanation': translation.explanation,
-                    'is_solved': False  # TODO: Добавить проверку решения пользователем
+                    'is_solved': is_solved
                 }
                 tasks_data.append(task_data)
         
@@ -301,7 +346,8 @@ def subtopic_detail_simple(request, subtopic_id):
             'questions_count': len(tasks_data),
             'results': tasks_data,  # Добавляем задачи в поле results
             'subtopic_name': subtopic.name,
-            'topic_name': subtopic.topic.name
+            'topic_name': subtopic.topic.name,
+            'completed_tasks_count': completed_tasks_count # Добавляем для подтемы
         }
         return Response(data)
     except Subtopic.DoesNotExist:

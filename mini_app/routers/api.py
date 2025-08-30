@@ -115,7 +115,21 @@ async def verify_init_data(request: Request):
         logger.info(f"Тип profile_data: {type(profile_data)}")
         logger.info(f"Avatar в profile_data: {profile_data.get('avatar') if isinstance(profile_data, dict) else 'Not a dict'}")
         logger.info(f"Тип avatar в profile_data: {type(profile_data.get('avatar')) if isinstance(profile_data, dict) else 'N/A'}")
-        return JSONResponse(content=profile_data)
+        # Устанавливаем cookie с telegram_id, чтобы страницы могли рендерить прогресс сервер-сайд
+        resp = JSONResponse(content=profile_data)
+        try:
+            tg_id_value = str(profile_data.get('telegram_id') or user_info['telegram_id'])
+            resp.set_cookie(
+                key="telegram_id",
+                value=tg_id_value,
+                max_age=365*24*60*60,
+                httponly=False,
+                samesite="lax"
+            )
+            logger.info(f"Cookie telegram_id set: {tg_id_value}")
+        except Exception as cookie_err:
+            logger.warning(f"Failed to set telegram_id cookie: {cookie_err}")
+        return resp
 
     except (InvalidInitDataError, ExpiredInitDataError) as e:
         logger.warning(f"Ошибка валидации initData: {e}")
@@ -157,15 +171,25 @@ async def get_profile_by_telegram_id(telegram_id: int):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
-@router.get("/topics")
-async def get_topics(search: str = None):
-    topics = await fetch_topics_from_django(search)
-    return topics
+# Удален старый handler /topics без telegram_id, используем расширенную версию ниже
 
 @router.get("/topic/{topic_id}")
 async def get_topic(topic_id: int):
     subtopics = await fetch_subtopics_from_django(topic_id)
     return {"subtopics": subtopics}
+
+@router.get("/subtopics/{subtopic_id}")
+async def get_subtopic_with_user(subtopic_id: int, language: str = 'en', telegram_id: int | None = None):
+    """Проксирование деталей подтемы (с задачами) с передачей telegram_id для отметки решённых задач."""
+    try:
+        params = {'language': language}
+        if telegram_id:
+            params['telegram_id'] = telegram_id
+        result = await django_api_service._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params)
+        return result
+    except Exception as e:
+        logger.error(f"Error getting subtopic {subtopic_id}: {e}")
+        raise HTTPException(status_code=502, detail="Failed to fetch subtopic from backend")
     
 @router.post("/profile/{telegram_id}/update/")
 async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
@@ -329,16 +353,20 @@ async def change_language(request: LanguageChangeRequest, response: Response):
     }
 
 @router.get("/topics")
-async def get_topics(search: str = None, language: str = 'en'):
-    """Получение списка тем с поиском"""
+async def get_topics(search: str = None, language: str = 'en', telegram_id: int | None = None):
+    """Получение списка тем с поиском и прогрессом пользователя (telegram_id)"""
     from services.django_api_service import django_api_service
     
     try:
+        logger.info(f"/api/topics called: search={search}, language={language}, telegram_id={telegram_id}")
         params = {'language': language}
         if search:
             params['search'] = search
+        if telegram_id:
+            params['telegram_id'] = telegram_id
             
         result = await django_api_service._make_request("GET", "/api/simple/", params=params)
+        logger.info(f"/api/topics returned {len(result) if isinstance(result, list) else 'non-list'} items")
         return result if isinstance(result, list) else []
     except Exception as e:
         logger.error(f"Error getting topics: {e}")
@@ -542,11 +570,15 @@ async def submit_task_answer(task_id: int, request: Request):
             return JSONResponse(content=response.json())
         else:
             logger.error(f"Error from Django API: {response.status_code} - {response.text}")
+            # Пробрасываем статус-код Django дальше (например, 409 для повторной попытки)
             raise HTTPException(status_code=response.status_code, detail=response.text)
             
     except httpx.RequestError as e:
         logger.error(f"Request error while contacting Django API: {e}")
         raise HTTPException(status_code=500, detail="Could not connect to backend service.")
+    except HTTPException as e:
+        # Не перехватываем HTTPException и не превращаем его в 500
+        raise e
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
-        raise HTTPException(status_code=500, detail="An internal server error occurred.") 
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
