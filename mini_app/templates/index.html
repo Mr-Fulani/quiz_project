@@ -43,7 +43,7 @@
             {% if completed_tasks_count is not none and topic.questions_count > 0 %}
                 {% set progress_percentage = (completed_tasks_count / topic.questions_count * 100) | int %}
                 <div class="progress-bar-container">
-                    <div class="progress-bar" style="width: {{ progress_percentage }}%;"></div>
+                    <div class="progress-bar" style="width: {{ progress_percentage }}%; transform: translateX(0);"></div>
                     <span class="progress-text">{{ progress_percentage }}% <span data-translate="completed">{{ translations.get('completed', 'завершено') }}</span> ({{ completed_tasks_count }}/{{ topic.questions_count }})</span>
                 </div>
             {% elif topic.questions_count == 0 %}
@@ -52,7 +52,6 @@
                 <p class="progress-text" data-translate="not_started">{{ translations.get('not_started', 'Не начато') }}</p>
             {% endif %}
         </div>
-        <button class="btn-start" onclick="handleStartTopic(event, {{ topic.id }})" data-translate="start_button">{{ translations.get('start_button', 'Начать') }}</button>
     </div>
     {% endfor %}
 </div>
