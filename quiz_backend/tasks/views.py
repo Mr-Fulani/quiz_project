@@ -247,6 +247,19 @@ def submit_mini_app_task_answer(request, task_id):
                 status=status.HTTP_404_NOT_FOUND
             )
         
+        # Блокируем повторную отправку ответа: если есть запись статистики — возвращаем ошибку
+        from .models import MiniAppTaskStatistics as _MiniAppTaskStatistics
+        already_answered = _MiniAppTaskStatistics.objects.filter(
+            mini_app_user=mini_app_user,
+            task=task
+        ).exists()
+        if already_answered:
+            logger.info(f"submit_mini_app_task_answer: Пользователь {telegram_id} уже отправлял ответ на задачу {task_id}. Блокируем повторную попытку.")
+            return Response(
+                {'error': 'You have already answered this task'},
+                status=status.HTTP_409_CONFLICT
+            )
+
         # Получаем перевод задачи
         language = mini_app_user.language or 'en'
         translation = (TaskTranslation.objects.filter(task=task, language=language).first() or
@@ -264,26 +277,15 @@ def submit_mini_app_task_answer(request, task_id):
         is_correct = selected_answer == translation.correct_answer
         logger.info(f"submit_mini_app_task_answer: Selected answer: '{selected_answer}', Correct answer: '{translation.correct_answer}', Is correct: {is_correct}")
         
-        # Сохраняем статистику
-        stats, created = MiniAppTaskStatistics.objects.get_or_create(
+        # Сохраняем статистику (создаем новую запись; повторные попытки заблокированы выше)
+        stats = MiniAppTaskStatistics.objects.create(
             mini_app_user=mini_app_user,
             task=task,
-            defaults={
-                'attempts': 1,
-                'successful': is_correct,
-                'selected_answer': selected_answer
-            }
+            attempts=1,
+            successful=is_correct,
+            selected_answer=selected_answer
         )
-        
-        if created:
-            logger.info(f"submit_mini_app_task_answer: Создана новая запись MiniAppTaskStatistics (ID: {stats.id}) для пользователя {telegram_id}, задачи {task_id}. Попыток: {stats.attempts}, Успешно: {stats.successful}")
-        else:
-            # Если статистика уже существует, обновляем её
-            stats.attempts += 1
-            stats.successful = is_correct # Обновляем успешность последней попытки
-            stats.selected_answer = selected_answer
-            stats.save()
-            logger.info(f"submit_mini_app_task_answer: Обновлена запись MiniAppTaskStatistics (ID: {stats.id}) для пользователя {telegram_id}, задачи {task_id}. Попыток: {stats.attempts}, Успешно: {stats.successful}")
+        logger.info(f"submit_mini_app_task_answer: Создана запись MiniAppTaskStatistics (ID: {stats.id}) для пользователя {telegram_id}, задачи {task_id}. Попыток: {stats.attempts}, Успешно: {stats.successful}")
         
         # Обновляем время последнего визита пользователя
         mini_app_user.update_last_seen()

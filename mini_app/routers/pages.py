@@ -27,9 +27,11 @@ async def index(
     current_language = localization_service.get_language()
     logger.info(f"Rendering index page with language: {current_language}")
     
-    # Получаем telegram_id из заголовков запроса, если доступен
+    # Получаем telegram_id из заголовков/куки, если доступен
     telegram_id = request.headers.get('X-Telegram-User-Id')
-    if telegram_id: # Преобразуем в int, если ID есть
+    if not telegram_id:
+        telegram_id = request.cookies.get('telegram_id')
+    if telegram_id:
         telegram_id = int(telegram_id)
     
     # Получаем темы с учетом языка и telegram_id для прогресса, фильтруем только темы с задачами
@@ -226,11 +228,18 @@ async def subtopic_tasks(
     current_language = localization_service.get_language()
     logger.info(f"Rendering subtopic tasks page for subtopic_id: {subtopic_id} with language: {current_language}")
     
+    # Получаем telegram_id из заголовков/куки, если доступен
+    telegram_id = request.headers.get('X-Telegram-User-Id')
+    if not telegram_id:
+        telegram_id = request.cookies.get('telegram_id')
+    if telegram_id:
+        telegram_id = int(telegram_id)
+    
     # Получаем данные подтемы
     subtopic_data = await django_api_service.get_subtopic_detail(subtopic_id=subtopic_id, language=current_language)
     
     # Получаем задачи для подтемы
-    tasks = await django_api_service.get_tasks_for_subtopic(subtopic_id=subtopic_id, language=current_language)
+    tasks = await django_api_service.get_tasks_for_subtopic(subtopic_id=subtopic_id, language=current_language, telegram_id=telegram_id)
     
     # Получаем данные родительской темы
     topic_data = None

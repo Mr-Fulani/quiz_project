@@ -16,7 +16,7 @@
     <div class="gallery__container">
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
-        <span style="--i:{{ loop.index0 }};" class="topic-card" data-topic-id="{{ topic.id }}">
+        <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}">
             <img src="{{ topic.image_url }}" alt="{{ topic.name }}">
             <div class="card-overlay always-visible">
                 <h3>{{ topic.name }}</h3>
@@ -35,7 +35,7 @@
 <!-- Детальный список тем -->
 <div class="topic-list-container">
     {% for topic in topics %}
-    <div class="topic-item" onclick="handleStartTopic(event, {{ topic.id }})">
+    <div class="topic-item" data-topic-id="{{ topic.id }}" onclick="handleStartTopic(event, {{ topic.id }})">
         <div class="topic-info">
             <h3>{{ topic.name }}</h3>
             <p class="topic-questions">{{ topic.questions_count }} <span data-translate="questions_count">{{ translations.get('questions_count', 'вопросов') }}</span></p>
@@ -60,10 +60,92 @@
 
 
 <!-- Подключаем скрипты -->
-<script src="{{ get_js_url("topic-cards.js") }}"></script>
-<script src="{{ get_js_url("search.js") }}"></script>
+<script src='{{ get_js_url("topic-cards.js") }}'></script>
+<script src='{{ get_js_url("search.js") }}'></script>
 
 <script>
+// Инициализация визуальной прогресс-линии из data-атрибутов, если есть
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        document.querySelectorAll('.topic-list-container .progress-bar-container').forEach(container => {
+            const total = parseInt(container.getAttribute('data-total') || '0', 10);
+            const completed = parseInt(container.getAttribute('data-completed') || '0', 10);
+            const percent = total > 0 ? Math.floor((completed / total) * 100) : 0;
+            const bar = container.querySelector('.progress-bar');
+            const text = container.querySelector('.progress-text');
+            if (bar) bar.style.width = `${percent}%`;
+            if (text) text.innerHTML = `${percent}% <span data-translate="completed">{{ translations.get('completed', 'завершено') }}</span> (${completed}/${total})`;
+        });
+    } catch (e) {
+        console.warn('Init progress render failed:', e);
+    }
+});
+
+// После загрузки страницы запрашиваем прогресс по темам с использованием telegram_id
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const isTelegram = typeof window.Telegram !== 'undefined' && window.Telegram.WebApp;
+        let telegramId = isTelegram && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user ? window.Telegram.WebApp.initDataUnsafe.user.id : null;
+        const lang = window.currentLanguage || '{{ current_language }}' || 'en';
+
+        // Пытаемся получить telegram_id через verify-init-data, если он недоступен напрямую
+        if (isTelegram && !telegramId && window.Telegram.WebApp.initData) {
+            try {
+                const verifyResp = await fetch('/api/verify-init-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
+                });
+                if (verifyResp.ok) {
+                    const data = await verifyResp.json();
+                    telegramId = data.telegram_id || null;
+                }
+            } catch (e) {
+                console.warn('verify-init-data failed:', e);
+            }
+        }
+
+        if (!telegramId) return;
+
+        const resp = await fetch(`/api/topics?language=${encodeURIComponent(lang)}&telegram_id=${encodeURIComponent(telegramId)}`);
+        if (!resp.ok) return;
+        const topics = await resp.json();
+
+        // Индексируем по id
+        const byId = new Map();
+        topics.forEach(t => byId.set(String(t.id), t));
+
+        // Обновляем блоки прогресса в детальном списке
+        document.querySelectorAll('.topic-list-container .topic-item').forEach(item => {
+            const topicId = item.getAttribute('data-topic-id');
+            const info = byId.get(String(topicId));
+            if (!info) return;
+            const total = info.questions_count || 0;
+            const completed = info.completed_tasks_count || 0;
+            const percent = total > 0 ? Math.floor((completed / total) * 100) : 0;
+
+            let container = item.querySelector('.progress-bar-container');
+            if (!container) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'progress-bar-container';
+                wrapper.innerHTML = `
+                    <div class="progress-bar" style="width: ${percent}%;"></div>
+                    <span class="progress-text">${percent}% <span data-translate="completed">{{ translations.get('completed', 'завершено') }}</span> (${completed}/${total})</span>
+                `;
+                const topicInfo = item.querySelector('.topic-info');
+                topicInfo && topicInfo.appendChild(wrapper);
+            } else {
+                const bar = container.querySelector('.progress-bar');
+                const text = container.querySelector('.progress-text');
+                if (bar) bar.style.width = `${percent}%`;
+                if (text) text.innerHTML = `${percent}% <span data-translate="completed">{{ translations.get('completed', 'завершено') }}</span> (${completed}/${total})`;
+            }
+        });
+    } catch (e) {
+        console.warn('Не удалось обновить прогресс тем:', e);
+    }
+});
+
 // Глобальная функция для обработки клика на кнопку "Начать"
 function handleStartTopic(event, topicId) {
     console.log('🚀 handleStartTopic called with topicId:', topicId);
