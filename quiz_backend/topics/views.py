@@ -131,13 +131,17 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
         language = self.request.query_params.get('language', 'en')
         queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
         
-        # Аннотируем количество задач для каждой подтемы и фильтруем подтемы, у которых есть задачи
+        # Аннотируем количество задач (distinct по задачам) на активном языке и фильтруем только те, где >0
         queryset = queryset.annotate(
             tasks_count=Count(
-                'tasks__translations',
-                filter=models.Q(tasks__published=True, tasks__translations__language=language)
+                'tasks',
+                filter=models.Q(
+                    tasks__published=True,
+                    tasks__translations__language=language
+                ),
+                distinct=True
             )
-        ).filter(tasks_count__gt=0) # Фильтруем только те подтемы, у которых есть задачи
+        ).filter(tasks_count__gt=0)
 
         return queryset
 
@@ -162,13 +166,17 @@ def topics_simple(request):
     language = request.GET.get('language', 'en')
     telegram_id = request.GET.get('telegram_id', None)
     
-    # Аннотируем количество задач для каждой темы и фильтруем темы, у которых есть задачи
+    # Аннотируем количество задач (distinct по задачам) на активном языке и оставляем только темы, где >0
     topics = topics.annotate(
         tasks_count=Count(
-            'tasks__translations',
-            filter=models.Q(tasks__published=True, tasks__translations__language=language)
+            'tasks',
+            filter=models.Q(
+                tasks__published=True,
+                tasks__translations__language=language
+            ),
+            distinct=True
         )
-    ).filter(tasks_count__gt=0) # Фильтруем только те темы, у которых есть задачи
+    ).filter(tasks_count__gt=0)
     
     # Если передан telegram_id, аннотируем количество задач с попытками пользователя (любая попытка)
     if telegram_id:
@@ -212,11 +220,11 @@ def topic_detail_simple(request, topic_id):
         language = request.GET.get('language', 'en')
         telegram_id = request.GET.get('telegram_id', None)
         
-        # Подсчитываем количество задач с переводами на указанном языке
+        # Подсчитываем количество задач на активном языке (distinct по задачам)
         tasks_count = topic.tasks.filter(
             published=True,
             translations__language=language
-        ).distinct().count()
+        ).values('id').distinct().count()
         
         completed_tasks_count = 0
         if telegram_id:
