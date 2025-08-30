@@ -70,7 +70,7 @@ body {
     position: relative;
     width: 100%;
     max-width: 300px;
-    margin: 0 auto 20px;
+    margin: 20px auto 24px; /* опустили поле поиска чуть ниже */
     z-index: 10;
 }
 
@@ -1009,11 +1009,9 @@ body {
     color: var(--active-color);
 }
 
-.card-overlay p {
-    font-size: 12px;
-    margin: 2px 0;
-    opacity: 0.9;
-}
+.card-overlay p { display: none; }
+.card-overlay .difficulty { display: none; }
+.card-overlay .questions { display: none; }
 
 .card-overlay .difficulty {
     color: #ffcc00;
