@@ -194,17 +194,11 @@ function initTopicCards() {
         const img = card.querySelector('img');
         const title = card.querySelector('.card-overlay h3').textContent;
         const topicId = card.getAttribute('data-topic-id');
-        const questionsText = card.querySelector('.card-overlay .questions')?.textContent || '';
-        const progressInfo = computeTopicProgressFromList(topicId);
         
         container.innerHTML = `
             <img src="${img.src}" alt="${img.alt}" style="width: 100%; height: 100%; object-fit: cover;">
             <div class="card-overlay always-visible">
                 <h3>${title}</h3>
-                <div class="progress-bar-container" style="margin: 8px 0;">
-                    <div class="progress-bar" style="width: ${progressInfo.percentage || 0}%;"></div>
-                    <span class="progress-text">${progressInfo.percentage || 0}% завершено (${progressInfo.completed || 0}/${progressInfo.total || 0})</span>
-                </div>
                 <div class="card-actions">
                     <button class="btn-start" onclick="handleStartTopic(event, ${topicId})">Начать</button>
                     <button class="btn-back" onclick="goBackFromCard(event)">Назад</button>
@@ -220,39 +214,7 @@ function initTopicCards() {
         console.log('Card selected successfully');
     }
 
-    // Читает прогресс из списка тем внизу страницы (детальный список), чтобы синхронизировать с галереей
-    function computeTopicProgressFromList(topicId) {
-        try {
-            const listItem = document.querySelector(`.topic-list-container .topic-item[data-topic-id="${topicId}"]`);
-            const totalEl = listItem?.querySelector('.topic-questions');
-            const progressText = listItem?.querySelector('.progress-text');
-            const progressBar = listItem?.querySelector('.progress-bar');
-
-            let total = 0;
-            let completed = 0;
-            let percentage = 0;
-
-            if (progressText && progressBar) {
-                // Пример текста: "45% завершено (9/20)" — достанем (9/20)
-                const match = progressText.textContent.match(/\((\d+)\/(\d+)\)/);
-                if (match) {
-                    completed = parseInt(match[1], 10);
-                    total = parseInt(match[2], 10);
-                    percentage = total > 0 ? Math.floor((completed / total) * 100) : 0;
-                }
-            } else if (totalEl) {
-                // Фолбэк: достаем только total из текста вида "20 вопросов"
-                const numMatch = totalEl.textContent.match(/(\d+)/);
-                total = numMatch ? parseInt(numMatch[1], 10) : 0;
-                percentage = 0; completed = 0;
-            }
-
-            return { total, completed, percentage };
-        } catch (e) {
-            console.warn('Failed to compute progress from list:', e);
-            return { total: 0, completed: 0, percentage: 0 };
-        }
-    }
+    // Убрали прогресс из overlay карточки по требованию
     
     function goBack() {
         console.log('Going back from selected card');
