@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Topic, Subtopic
+from tasks.models import MiniAppTaskStatistics, Task
 import random
 
 class SubtopicSerializer(serializers.ModelSerializer):
@@ -21,6 +22,8 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     questions_count = serializers.SerializerMethodField()
     topic_id = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
+    difficulty_counts = serializers.SerializerMethodField()
+    solved_counts = serializers.SerializerMethodField()
 
     class Meta:
         model = Subtopic
@@ -29,7 +32,9 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
             'name',
             'description',
             'questions_count',
-            'topic_id'
+            'topic_id',
+            'difficulty_counts',
+            'solved_counts'
         ]
 
     def get_questions_count(self, obj):
@@ -50,6 +55,43 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     
     def get_description(self, obj):
         return f'Подтема: {obj.name}'
+
+    def get_difficulty_counts(self, obj):
+        """Возвращает количество задач по уровням сложности на активном языке."""
+        request = self.context.get('request')
+        language = 'en'
+        if request:
+            language = request.query_params.get('language', 'en')
+        qs = obj.tasks.filter(published=True, translations__language=language)
+        return {
+            'easy': qs.filter(difficulty='easy').values('id').distinct().count(),
+            'medium': qs.filter(difficulty='medium').values('id').distinct().count(),
+            'hard': qs.filter(difficulty='hard').values('id').distinct().count(),
+        }
+
+    def get_solved_counts(self, obj):
+        """Количество решённых (имеющих запись статистики mini_app) задач по уровням сложности для конкретного пользователя Telegram."""
+        request = self.context.get('request')
+        language = 'en'
+        telegram_id = None
+        if request:
+            language = request.query_params.get('language', 'en')
+            telegram_id = request.query_params.get('telegram_id')
+        if not telegram_id:
+            return {'easy': 0, 'medium': 0, 'hard': 0}
+
+        base_qs = Task.objects.filter(
+            subtopic=obj,
+            published=True,
+            translations__language=language,
+            mini_app_statistics__mini_app_user__telegram_id=telegram_id
+        ).values('id', 'difficulty').distinct()
+
+        # Подсчёт по уровням
+        easy = base_qs.filter(difficulty='easy').count()
+        medium = base_qs.filter(difficulty='medium').count()
+        hard = base_qs.filter(difficulty='hard').count()
+        return {'easy': easy, 'medium': medium, 'hard': hard}
 
 class TopicSerializer(serializers.ModelSerializer):
     """

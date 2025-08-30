@@ -94,11 +94,77 @@
            <script src="{{ localization_js_url }}"></script>
 </head>
 <body>
+    <div id="notification-container"></div>
+    
     <script>
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notification-container');
+            if (!container) {
+                console.error('Notification container not found.');
+                // Fallback to alert if container is missing
+                alert(message);
+                return;
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            
+            // Применяем стили напрямую, чтобы избежать проблем с CSP или загрузкой стилей
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px; /* Показываем снизу */
+                left: 50%;
+                transform: translateX(-50%) translateY(100px); /* Сначала скрываем снизу */
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                font-size: 14px;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+
+            if (type === 'success') {
+                notification.style.backgroundColor = '#10b981'; // Tailwind green-500
+            } else if (type === 'error') {
+                notification.style.backgroundColor = '#ef4444'; // Tailwind red-500
+            } else {
+                notification.style.backgroundColor = '#3b82f6'; // Tailwind blue-500
+            }
+
+            container.appendChild(notification);
+
+            // Анимируем появление
+            requestAnimationFrame(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(-50%) translateY(0)';
+            });
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(-50%) translateY(20px)'; // Скрываем вниз
+                notification.addEventListener('transitionend', () => notification.remove(), {once: true});
+            }, 3000);
+        }
+        window.showNotification = showNotification; // Делаем функцию глобальной
+
         // Глобальные переменные для пользователя
         window.currentUser = null;
         window.isUserInitialized = false;
-        
+
+        // Обновляем прогресс при возврате со страницы задач (из bfcache)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+
         // Перемещаем объявление contentContainer в глобальную область видимости
         let contentContainer = document.querySelector('.content'); 
 

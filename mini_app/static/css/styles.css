@@ -70,7 +70,7 @@ body {
     position: relative;
     width: 100%;
     max-width: 300px;
-    margin: 20px auto 24px; /* опустили поле поиска чуть ниже */
+    margin: 30px auto 28px; /* опустили поле поиска чуть ниже */
     z-index: 10;
 }
 
