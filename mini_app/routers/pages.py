@@ -189,7 +189,11 @@ async def topic_detail(
     
     # Получаем данные темы
     topic_data = await django_api_service.get_topic_detail(topic_id=topic_id, language=current_language)
-    subtopics = await django_api_service.get_subtopics(topic_id=topic_id, language=current_language, has_tasks=True)
+    # Передаем telegram_id, чтобы сериализатор вернул solved_counts для прогресса
+    telegram_id = request.headers.get('X-Telegram-User-Id') or request.cookies.get('telegram_id')
+    if telegram_id:
+        telegram_id = int(telegram_id)
+    subtopics = await django_api_service.get_subtopics(topic_id=topic_id, language=current_language, has_tasks=True, telegram_id=telegram_id)
     
     # Получаем список всех тем для навигации
     topics = await django_api_service.get_topics(language=current_language)
@@ -219,8 +223,13 @@ async def topic_detail(
 async def subtopic_tasks(
     request: Request,
     subtopic_id: int,
-    lang: str = Query(default=None, description="Language code")
+    lang: str = Query(default=None, description="Language code"),
+    level: str = Query(default=None, description="Difficulty filter: easy|medium|hard")
 ):
+    logger.info(f"subtopic_tasks: Получен запрос для subtopic_id={subtopic_id}, lang={lang}, level={level}")
+    logger.info(f"subtopic_tasks: request.query_params = {request.query_params}")
+    logger.info(f"subtopic_tasks: request.cookies = {dict(request.cookies)}")
+    
     # Язык уже установлен middleware, но можно переопределить через query параметр
     if lang:
         localization_service.set_language(lang)
@@ -234,12 +243,28 @@ async def subtopic_tasks(
         telegram_id = request.cookies.get('telegram_id')
     if telegram_id:
         telegram_id = int(telegram_id)
+    logger.info(f"subtopic_tasks: Определен telegram_id={telegram_id}")
     
     # Получаем данные подтемы
     subtopic_data = await django_api_service.get_subtopic_detail(subtopic_id=subtopic_id, language=current_language)
     
     # Получаем задачи для подтемы
     tasks = await django_api_service.get_tasks_for_subtopic(subtopic_id=subtopic_id, language=current_language, telegram_id=telegram_id)
+    # Нормализуем уровень
+    level_normalized = (level or '').strip().lower()
+    # Если уровень не передан в query (или некорректен), пытаемся взять из cookie (на случай потери query-параметров)
+    if level_normalized not in {"easy", "medium", "hard", "all"}:
+        logger.info(f"subtopic_tasks: level_normalized не найден в query ({level}), ищем в cookie...")
+        cookie_level = request.cookies.get(f"level_filter_{subtopic_id}")
+        if cookie_level:
+            level_normalized = cookie_level.strip().lower()
+            logger.info(f"subtopic_tasks: Найден level_normalized из cookie: {level_normalized}")
+    # Фильтруем по уровню сложности, если указан допустимый уровень
+    if level_normalized in {"easy", "medium", "hard"}:
+        logger.info(f"subtopic_tasks: Фильтруем задачи по уровню: {level_normalized}")
+        tasks = [t for t in tasks if (t.get('difficulty') or '').lower() == level_normalized]
+    else:
+        logger.info(f"subtopic_tasks: Фильтрация по уровню не применена, level_normalized: {level_normalized}")
     
     # Получаем данные родительской темы
     topic_data = None
@@ -249,7 +274,7 @@ async def subtopic_tasks(
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
     
-    return templates.TemplateResponse("subtopic_tasks.html", {
+    response = templates.TemplateResponse("subtopic_tasks.html", {
         "request": request,
         "subtopic": subtopic_data,
         "topic": topic_data,
@@ -265,6 +290,9 @@ async def subtopic_tasks(
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
     })
+    # Сбрасываем временную cookie уровня, чтобы не влияла на последующие переходы
+    response.set_cookie(key=f"level_filter_{subtopic_id}", value="", max_age=0, path="/")
+    return response
 
 # Загрузка аватара останется здесь, так как она связана со страницей профиля
 @router.post("/profile/{telegram_id}/update/", response_class=HTMLResponse)

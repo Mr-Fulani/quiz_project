@@ -65,11 +65,13 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении тем: {e}")
             return []
     
-    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None) -> List[Dict[str, Any]]:
+    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """Получение подтем для конкретной темы с учетом языка и наличия задач"""
         params = {'language': language}
         if has_tasks is not None:
             params['has_tasks'] = 'true' if has_tasks else 'false'
+        if telegram_id:
+            params['telegram_id'] = telegram_id
         try:
             data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params=params)
             # API возвращает список напрямую, а не объект с results

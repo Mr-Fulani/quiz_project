@@ -6,21 +6,53 @@
 
 {% block content %}
 <div class="topic-detail-container">
-    <div class="topic-header">
-        <h1>{{ topic.name }}</h1>
-        <p class="topic-description">{{ topic.description or 'Описание темы' }}</p>
-    </div>
+    <!-- Убрали верхнюю карточку с заголовком и описанием темы как избыточную -->
     
     <div class="subtopics-grid">
         {% for subtopic in subtopics %}
         <div class="subtopic-card" data-subtopic-id="{{ subtopic.id }}">
-            <div class="subtopic-icon">📚</div>
             <h3>{{ subtopic.name }}</h3>
-            <p class="subtopic-description">{{ subtopic.description or 'Описание подтемы' }}</p>
-            <div class="subtopic-stats">
-                <span class="questions-count">{{ subtopic.questions_count }} {{ translations.get('questions_count', 'вопросов') }}</span>
+            
+            <div class="difficulty-bars">
+                {% set total_q = subtopic.questions_count if subtopic.questions_count > 0 else 1 %}
+                {% set se = subtopic.solved_counts.easy %}
+                {% set sm = subtopic.solved_counts.medium %}
+                {% set sh = subtopic.solved_counts.hard %}
+
+                {% set te = subtopic.difficulty_counts.easy if subtopic.difficulty_counts.easy > 0 else 1 %}
+                {% set tm = subtopic.difficulty_counts.medium if subtopic.difficulty_counts.medium > 0 else 1 %}
+                {% set th = subtopic.difficulty_counts.hard if subtopic.difficulty_counts.hard > 0 else 1 %}
+
+                <div class="diff-row">
+                    <span class="diff-label">Easy</span>
+                    <div class="diff-bar{% if subtopic.difficulty_counts.easy == 0 %} disabled{% endif %}" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'easy', {{ subtopic.difficulty_counts.easy }})">
+                        <div class="diff-fill"></div>
+                        <div class="diff-solved easy" style="width: {{ (se / te * 100) | int }}%"></div>
+                    </div>
+                </div>
+                <div class="diff-row">
+                    <span class="diff-label">Medium</span>
+                    <div class="diff-bar{% if subtopic.difficulty_counts.medium == 0 %} disabled{% endif %}" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'medium', {{ subtopic.difficulty_counts.medium }})">
+                        <div class="diff-fill"></div>
+                        <div class="diff-solved medium" style="width: {{ (sm / tm * 100) | int }}%"></div>
+                    </div>
+                </div>
+                <div class="diff-row">
+                    <span class="diff-label">Hard</span>
+                    <div class="diff-bar{% if subtopic.difficulty_counts.hard == 0 %} disabled{% endif %}" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'hard', {{ subtopic.difficulty_counts.hard }})">
+                        <div class="diff-fill"></div>
+                        <div class="diff-solved hard" style="width: {{ (sh / th * 100) | int }}%"></div>
+                    </div>
+                </div>
+                <div class="diff-row">
+                    <span class="diff-label">All</span>
+                    <div class="diff-bar" onclick="return openSubtopicLevel(this, {{ subtopic.id }}, 'all', {{ subtopic.questions_count }})">
+                        <div class="diff-fill"></div>
+                        <div class="diff-solved all" style="width: 100%"></div>
+                        <div class="diff-text">{{ se+sm+sh }}/{{ subtopic.questions_count }}</div>
+                    </div>
+                </div>
             </div>
-            <button class="start-subtopic-btn">{{ translations.get('start_button', 'Начать') }}</button>
         </div>
         {% endfor %}
     </div>
@@ -74,20 +106,17 @@
     border-radius: 15px;
     padding: 25px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: all 0.3s ease;
+    transition: box-shadow 0.2s ease;
     text-align: center;
+    /* Делаем некликабельной всю карточку, кроме специально разрешенных элементов */
+    pointer-events: none;
 }
 
 .subtopic-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
 }
 
-.subtopic-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
+/* Убрали иконку подтемы */
 
 .subtopic-card h3 {
     color: #333;
@@ -95,12 +124,7 @@
     font-size: 20px;
 }
 
-.subtopic-description {
-    color: #666;
-    font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: 20px;
-}
+/* Убрали описание подтемы */
 
 .subtopic-stats {
     margin-bottom: 20px;
@@ -115,21 +139,26 @@
     font-weight: 600;
 }
 
-.start-subtopic-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    width: 100%;
-}
+/* Убрана кнопка запуска — кликабельна вся карточка */
 
-.start-subtopic-btn:hover {
-    background: #0056b3;
-}
+/* Полосы сложности */
+.difficulty-bars { margin-top: 14px; display: grid; gap: 12px; }
+.diff-row { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 10px; }
+.diff-label { font-size: 13px; color: #374151; text-align: left; font-weight: 600; }
+.diff-bar { position: relative; height: 16px; background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%); border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow .18s ease, transform .08s ease, filter .18s ease; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.subtopic-card .diff-bar { pointer-events: auto; }
+.diff-bar:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); filter: brightness(1.02); }
+.diff-bar:active { transform: scale(0.985); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+.diff-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 10px; width: 100%; background: #e5e7eb; }
+.diff-solved { position: absolute; left: 0; top: 0; height: 100%; border-radius: 10px; transition: width .25s ease; }
+.diff-solved.easy { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.diff-solved.medium { background: linear-gradient(90deg, #d97706, #f59e0b); }
+.diff-solved.hard { background: linear-gradient(90deg, #dc2626, #ef4444); }
+.diff-solved.all { background: linear-gradient(90deg, #2563eb, #3b82f6); }
+.diff-bar.disabled { opacity: .5; cursor: not-allowed; }
+.diff-bar.disabled:hover, .diff-bar.disabled:active { box-shadow: none; transform: none; }
+.diff-count { font-size: 12px; color: #333; min-width: 18px; text-align: right; }
+.diff-text { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #ffffff; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 
 .no-subtopics {
     text-align: center;
@@ -173,31 +202,6 @@ function startSubtopic(subtopicId) {
     }
 }
 
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 600;
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
-    
-    if (type === 'success') notification.style.background = '#28a745';
-    else if (type === 'error') notification.style.background = '#dc3545';
-    else notification.style.background = '#007bff';
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
+// Функция openSubtopicLevel определена в topic-detail.js
 </script>
 {% endblock %} 
