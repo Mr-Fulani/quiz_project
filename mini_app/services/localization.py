@@ -107,6 +107,7 @@ class LocalizationService:
             "delete": "Delete",
             "edit": "Edit",
             "close": "Close",
+            "no_tasks_for_level": "No tasks for selected level",
             
             # Профиль - дополнительные
             "points": "Points",
@@ -218,6 +219,7 @@ class LocalizationService:
             "delete": "Удалить",
             "edit": "Редактировать",
             "close": "Закрыть",
+            "no_tasks_for_level": "Нет задач выбранного уровня",
             
             # Профиль - дополнительные
             "points": "Баллов",
