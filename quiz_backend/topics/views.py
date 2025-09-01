@@ -9,6 +9,9 @@ from rest_framework.response import Response
 from django.db import models
 from django.db.models import Count
 from tasks.models import TaskTranslation, MiniAppTaskStatistics
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -145,6 +148,12 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
 
         return queryset
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        telegram_id = self.request.query_params.get('telegram_id', None)
+        context['telegram_id'] = telegram_id
+        return context
+
     def perform_create(self, serializer):
         serializer.save(topic_id=self.kwargs['topic_id'])
 
@@ -255,7 +264,7 @@ def topic_detail_simple(request, topic_id):
 def subtopic_detail_simple(request, subtopic_id):
     """
     Детальная информация о подтеме для мини-приложения (без аутентификации)
-    Включает задачи для подтемы
+    Включает задачи для подтемы, с возможностью фильтрации по уровню сложности.
     """
     try:
         subtopic = Subtopic.objects.get(id=subtopic_id)
@@ -263,7 +272,10 @@ def subtopic_detail_simple(request, subtopic_id):
         # Получаем язык из query параметров
         language = request.GET.get('language', 'en')
         telegram_id = request.GET.get('telegram_id', None)
+        level = request.GET.get('level', None) # Получаем параметр уровня сложности
         
+        logger.info(f"subtopic_detail_simple: Получен запрос для subtopic_id={subtopic_id}, lang={language}, level={level}")
+
         # Получаем задачи с переводами на нужном языке
         from tasks.models import Task, TaskTranslation
         
@@ -271,7 +283,21 @@ def subtopic_detail_simple(request, subtopic_id):
             subtopic=subtopic,
             published=True,
             translations__language=language
-        ).select_related('topic', 'subtopic').prefetch_related(
+        )
+        logger.info(f"subtopic_detail_simple: Задач до фильтрации по сложности: {tasks.count()}")
+
+        # Применяем фильтр по уровню сложности, если он указан
+        if level in ['easy', 'medium', 'hard']:
+            tasks = tasks.filter(difficulty__iexact=level)
+            logger.info(f"subtopic_detail_simple: Задач после фильтрации по сложности ('{level}'): {tasks.count()}")
+            for task in tasks:
+                logger.info(f"  - Task ID: {task.id}, Difficulty: {task.difficulty}")
+        elif level == 'all':
+            logger.info(f"subtopic_detail_simple: Уровень \'all\' указан, фильтрация по сложности не применяется.")
+        else:
+            logger.info(f"subtopic_detail_simple: Уровень сложности не указан или некорректен ({level}), фильтрация не применяется.")
+
+        tasks = tasks.select_related('topic', 'subtopic').prefetch_related(
             'translations'
         )
         

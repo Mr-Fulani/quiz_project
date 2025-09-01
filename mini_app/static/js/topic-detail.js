@@ -132,7 +132,8 @@ window.openSubtopicLevel = function(el, subtopicId, level, levelCount) {
     if (level !== 'all' && (!levelCount || Number(levelCount) === 0)) {
         console.log(`❌ Блокируем переход - нет задач для уровня ${level}`);
         if (typeof window.showNotification === 'function') {
-            window.showNotification('Нет задач выбранного уровня', 'error');
+            // Передаем ключ перевода и fallback сообщение
+            window.showNotification('no_tasks_for_level', 'error', el, 'Нет задач выбранного уровня');
         } else {
             alert('Нет задач выбранного уровня');
         }

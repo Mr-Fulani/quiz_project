@@ -248,23 +248,25 @@ async def subtopic_tasks(
     # Получаем данные подтемы
     subtopic_data = await django_api_service.get_subtopic_detail(subtopic_id=subtopic_id, language=current_language)
     
-    # Получаем задачи для подтемы
-    tasks = await django_api_service.get_tasks_for_subtopic(subtopic_id=subtopic_id, language=current_language, telegram_id=telegram_id)
-    # Нормализуем уровень
+    # Нормализуем уровень из query-параметра или cookie
     level_normalized = (level or '').strip().lower()
-    # Если уровень не передан в query (или некорректен), пытаемся взять из cookie (на случай потери query-параметров)
     if level_normalized not in {"easy", "medium", "hard", "all"}:
         logger.info(f"subtopic_tasks: level_normalized не найден в query ({level}), ищем в cookie...")
         cookie_level = request.cookies.get(f"level_filter_{subtopic_id}")
         if cookie_level:
             level_normalized = cookie_level.strip().lower()
             logger.info(f"subtopic_tasks: Найден level_normalized из cookie: {level_normalized}")
-    # Фильтруем по уровню сложности, если указан допустимый уровень
-    if level_normalized in {"easy", "medium", "hard"}:
-        logger.info(f"subtopic_tasks: Фильтруем задачи по уровню: {level_normalized}")
-        tasks = [t for t in tasks if (t.get('difficulty') or '').lower() == level_normalized]
-    else:
-        logger.info(f"subtopic_tasks: Фильтрация по уровню не применена, level_normalized: {level_normalized}")
+
+    # Получаем задачи для подтемы, передавая уровень сложности в сервис Django API
+    tasks = await django_api_service.get_tasks_for_subtopic(subtopic_id=subtopic_id, language=current_language, telegram_id=telegram_id, level=level_normalized)
+    logger.info(f"subtopic_tasks: Получено {len(tasks)} задач после фильтрации Django API")
+
+    # Локальная фильтрация больше не нужна, так как Django API должен возвращать уже отфильтрованные задачи
+    # if level_normalized in {"easy", "medium", "hard"}:
+    #     logger.info(f"subtopic_tasks: Фильтруем задачи по уровню: {level_normalized}")
+    #     tasks = [t for t in tasks if (t.get('difficulty') or '').lower() == level_normalized]
+    # else:
+    #     logger.info(f"subtopic_tasks: Фильтрация по уровню не применена, level_normalized: {level_normalized}")
     
     # Получаем данные родительской темы
     topic_data = None
@@ -291,7 +293,6 @@ async def subtopic_tasks(
         "donation_css_url": get_css_url('donation.css'),
     })
     # Сбрасываем временную cookie уровня, чтобы не влияла на последующие переходы
-    response.set_cookie(key=f"level_filter_{subtopic_id}", value="", max_age=0, path="/")
     return response
 
 # Загрузка аватара останется здесь, так как она связана со страницей профиля

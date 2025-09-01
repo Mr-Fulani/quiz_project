@@ -97,38 +97,62 @@
     <div id="notification-container"></div>
     
     <script>
-        function showNotification(message, type = 'info') {
+        function showNotification(messageKey, type = 'info', targetElement = null, fallbackMessage = '') {
             const container = document.getElementById('notification-container');
             if (!container) {
                 console.error('Notification container not found.');
                 // Fallback to alert if container is missing
-                alert(message);
+                alert(fallbackMessage || messageKey);
                 return;
             }
+            
+            const message = window.localizationService ? window.localizationService.getText(messageKey, fallbackMessage || messageKey) : (fallbackMessage || messageKey);
 
             const notification = document.createElement('div');
             notification.className = `notification notification-${type}`;
             notification.textContent = message;
             
-            // Применяем стили напрямую, чтобы избежать проблем с CSP или загрузкой стилей
-            notification.style.cssText = `
+            let notificationStyles = `
                 position: fixed;
-                bottom: 20px; /* Показываем снизу */
-                left: 50%;
-                transform: translateX(-50%) translateY(100px); /* Сначала скрываем снизу */
                 padding: 12px 20px;
-                border-radius: 8px;
+                background-color: #333;
                 color: white;
-                font-weight: 600;
-                font-size: 14px;
-                z-index: 1000;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
                 opacity: 0;
                 transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 600;
+                font-size: 14px;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                white-space: nowrap; /* Предотвращаем перенос текста */
+                max-width: 90vw; /* Ограничиваем ширину для мобильных устройств */
+                text-overflow: ellipsis; /* Добавляем многоточие */
+                overflow: hidden; /* Скрываем переполнение */
             `;
+
+            if (targetElement) {
+                const rect = targetElement.getBoundingClientRect();
+                // Позиционируем уведомление над элементом
+                // Центрируем по горизонтали относительно элемента
+                // Позиционируем над элементом с небольшим отступом
+                notificationStyles += `
+                    left: ${rect.left + rect.width / 2}px;
+                    bottom: ${window.innerHeight - rect.top + 10}px; /* 10px отступ от верха элемента */
+                    transform: translateX(-50%) translateY(100px); /* Для анимации появления */
+                `;
+            } else {
+                // По умолчанию - внизу по центру, как было
+                notificationStyles += `
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(100px); /* Сначала скрываем снизу */
+                `;
+            }
+            
+            notification.style.cssText = notificationStyles;
 
             if (type === 'success') {
                 notification.style.backgroundColor = '#10b981'; // Tailwind green-500
@@ -143,12 +167,12 @@
             // Анимируем появление
             requestAnimationFrame(() => {
                 notification.style.opacity = '1';
-                notification.style.transform = 'translateX(-50%) translateY(0)';
+                notification.style.transform = targetElement ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(0)';
             });
 
             setTimeout(() => {
                 notification.style.opacity = '0';
-                notification.style.transform = 'translateX(-50%) translateY(20px)'; // Скрываем вниз
+                notification.style.transform = targetElement ? 'translateX(-50%) translateY(20px)' : 'translateX(-50%) translateY(20px)'; // Скрываем вниз
                 notification.addEventListener('transitionend', () => notification.remove(), {once: true});
             }, 3000);
         }
@@ -205,6 +229,8 @@
                         themeParams: {},
                         colorScheme: 'light',
                     };
+                    // Устанавливаем cookie telegram_id для тестового режима
+                    document.cookie = `telegram_id=123456789; path=/; max-age=${365*24*60*60}; SameSite=Lax`;
                     console.log('✅ Mock Telegram WebApp инициализирован.');
                 } else {
                     return; // В продакшене без Telegram WebApp ничего не делаем
