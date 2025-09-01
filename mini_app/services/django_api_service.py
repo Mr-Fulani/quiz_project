@@ -98,12 +98,14 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении деталей подтемы {subtopic_id}: {e}")
             return None
     
-    async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en', telegram_id: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Получение задач для подтемы с учетом языка"""
+    async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en', telegram_id: Optional[int] = None, level: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Получение задач для подтемы с учетом языка и уровня сложности"""
         try:
             params = {'language': language}
             if telegram_id:
                 params['telegram_id'] = telegram_id
+            if level: # Изменено: теперь передаем 'level', даже если он 'all'
+                params['level'] = level
             data = await self._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params)
             return data.get('results', [])
         except Exception as e:
