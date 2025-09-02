@@ -8,7 +8,7 @@
 {% block content %}
 <div class="container" id="tasks-root" data-subtopic-id="{{ subtopic.id }}" data-topic-id="{{ topic.id if topic else '' }}" data-language="{{ current_language }}">
     <header class="page-header">
-        <div class="back-button" onclick="goBack()">
+        <div class="back-button" onclick="goBackFromTasks()">
             <i class="fas fa-arrow-left"></i>
             <span>{{ translations.get('back_button', 'Назад') }}</span>
         </div>
