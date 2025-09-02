@@ -69,9 +69,9 @@ function initTopicCards() {
                 searchInput.blur();
             }
             
-            if (e.target === selectedCardOverlay) {
-                goBack();
-            }
+                    if (e.target === selectedCardOverlay) {
+            goBackFromCard();
+        }
         });
         
         document.body.appendChild(selectedCardOverlay);
@@ -81,7 +81,7 @@ function initTopicCards() {
     // Добавляем клавиатурное управление только для Escape
     document.addEventListener('keydown', function(e) {
         if (selectedCard && e.key === 'Escape') {
-            goBack();
+            goBackFromCard();
         }
     });
 
@@ -216,7 +216,7 @@ function initTopicCards() {
 
     // Убрали прогресс из overlay карточки по требованию
     
-    function goBack() {
+    function goBackFromCard() {
         console.log('Going back from selected card');
         
         // Скрываем overlay
@@ -360,10 +360,10 @@ function initTopicCards() {
     window.goBackFromCard = function(event) {
         if (event) {
             event.preventDefault();
-            event.stopPropagation();
-        }
-        goBack();
-    };
+                    event.stopPropagation();
+    }
+    goBackFromCard();
+};
     window.startTopic = function(event, topicId) {
         if (event) {
             event.preventDefault();
@@ -384,7 +384,7 @@ function initTopicCards() {
     // Объект для управления галереей
     window.galleryController = {
         selectCard,
-        goBack,
+        goBackFromCard,
         pauseGallery,
         resumeGallery,
         navigateToTopic,
@@ -546,6 +546,7 @@ console.log('✅ Emergency global click handler added');
 
 // Экспортируем функцию глобально для доступа из других скриптов
 window.initTopicCards = initTopicCards;
+window.goBackFromCard = goBackFromCard;
 
 // Инициализируем при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
