@@ -4,6 +4,10 @@
 {{ translations.get('settings_title', 'Настройки') }}
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/settings.css">
+{% endblock %}
+
 {% block content %}
 <div class="settings-container">
     
@@ -126,149 +130,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.settings-container {
-    padding: 20px;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.settings-container h1 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #333;
-}
-
-.settings-section {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.settings-section h2 {
-    margin-bottom: 15px;
-    color: #555;
-    font-size: 18px;
-}
-
-.language-selector {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.language-btn {
-    padding: 10px 20px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-}
-
-.language-btn:hover {
-    border-color: #007bff;
-    background: #f8f9fa;
-}
-
-.language-btn.active {
-    border-color: #007bff;
-    background: #007bff;
-    color: white;
-}
-
-.setting-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.setting-item:last-child {
-    border-bottom: none;
-}
-
-/* Switch стили */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-}
-
-input:checked + .slider {
-    background-color: #007bff;
-}
-
-input:focus + .slider {
-    box-shadow: 0 0 1px #007bff;
-}
-
-input:checked + .slider:before {
-    transform: translateX(26px);
-}
-
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
-.app-info {
-    color: #666;
-    line-height: 1.6;
-}
-
-.app-info p {
-    margin: 5px 0;
-}
-
-.share-app-container {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.share-app-description {
-    font-size: 12px;
-    color: #888;
-    margin-top: 8px;
-}
-</style>
 
 <script>
 // Проверяем, запущено ли приложение в Telegram Web App
