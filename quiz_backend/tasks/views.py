@@ -242,6 +242,14 @@ def submit_mini_app_task_answer(request, task_id):
             logger.info(f"submit_mini_app_task_answer: MiniAppUser (ID: {mini_app_user.id}, telegram_id: {telegram_id}) найден.")
         except MiniAppUser.DoesNotExist:
             logger.error(f"submit_mini_app_task_answer: MiniAppUser с telegram_id {telegram_id} не найден. Профиль пользователя мини-аппа должен быть инициализирован.")
+            
+            # Добавляем дополнительное логирование для отладки
+            logger.error(f"submit_mini_app_task_answer: Проверяем, есть ли пользователи в базе данных...")
+            all_users = MiniAppUser.objects.all()
+            logger.error(f"submit_mini_app_task_answer: Всего пользователей в MiniAppUser: {all_users.count()}")
+            for user in all_users[:5]:  # Логируем первые 5 пользователей
+                logger.error(f"submit_mini_app_task_answer: Пользователь ID={user.id}, telegram_id={user.telegram_id}, username={user.username}")
+            
             return Response(
                 {'error': 'Mini App user not found. User must be initialized first.'}, 
                 status=status.HTTP_404_NOT_FOUND
