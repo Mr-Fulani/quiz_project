@@ -4,6 +4,9 @@
 {{ topic.name }} - {{ translations.get('home', 'Главная') }}
 {% endblock %}
 
+{% block extra_css %}
+{% endblock %}
+
 {% block content %}
 <div class="topic-detail-container">
     <!-- Убрали верхнюю карточку с заголовком и описанием темы как избыточную -->
@@ -68,127 +71,6 @@
     </div>
     {% endif %}
 </div>
-
-<style>
-.topic-detail-container {
-    padding: 20px;
-    max-width: 1000px;
-    margin: 0 auto;
-}
-
-.topic-header {
-    text-align: center;
-    margin-bottom: 40px;
-    background: white;
-    border-radius: 15px;
-    padding: 30px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.topic-header h1 {
-    color: #333;
-    margin-bottom: 15px;
-    font-size: 28px;
-}
-
-.topic-description {
-    color: #666;
-    font-size: 16px;
-    line-height: 1.6;
-    margin: 0;
-}
-
-.subtopics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.subtopic-card {
-    background: white;
-    border-radius: 15px;
-    padding: 30px; /* Увеличил отступ */
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    transition: box-shadow 0.2s ease;
-    text-align: center;
-    /* Делаем некликабельной всю карточку, кроме специально разрешенных элементов */
-    pointer-events: none;
-}
-
-.subtopic-card:hover {
-    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-}
-
-/* Убрали иконку подтемы */
-
-.subtopic-card h3 {
-    color: #333;
-    margin-bottom: 10px;
-    font-size: 20px;
-}
-
-/* Убрали описание подтемы */
-
-.subtopic-stats {
-    margin-bottom: 20px;
-}
-
-.questions-count {
-    background: #f8f9fa;
-    color: #007bff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-/* Убрана кнопка запуска — кликабельна вся карточка */
-
-/* Полосы сложности */
-.difficulty-bars { margin-top: 20px; display: grid; gap: 14px; } /* Увеличил margin-top и gap */
-.diff-row { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 12px; } /* Увеличил gap */
-.diff-label { font-size: 14px; color: #374151; text-align: left; font-weight: 600; } /* Увеличил font-size */
-.diff-bar { position: relative; height: 24px; background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%); border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; cursor: pointer; transition: box-shadow .18s ease, transform .08s ease, filter .18s ease; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; } /* Увеличил height и border-radius */
-.subtopic-card .diff-bar { pointer-events: auto; }
-.diff-bar:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); filter: brightness(1.02); }
-.diff-bar:active { transform: scale(0.985); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
-.diff-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 12px; width: 100%; background: #e5e7eb; } /* Изменил border-radius */
-.diff-solved { position: absolute; left: 0; top: 0; height: 100%; border-radius: 12px; transition: width .25s ease; } /* Изменил border-radius */
-.diff-solved.easy { background: linear-gradient(90deg, #16a34a, #22c55e); }
-.diff-solved.medium { background: linear-gradient(90deg, #d97706, #f59e0b); }
-.diff-solved.hard { background: linear-gradient(90deg, #dc2626, #ef4444); }
-.diff-solved.all { background: linear-gradient(90deg, #2563eb, #3b82f6); }
-.diff-bar.disabled { opacity: .5; cursor: not-allowed; }
-.diff-bar.disabled:hover, .diff-bar.disabled:active { box-shadow: none; transform: none; }
-.diff-count { font-size: 12px; color: #333; min-width: 18px; text-align: right; }
-.diff-text { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #ffffff; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.25); } /* Увеличил font-size и right */
-
-.no-subtopics {
-    text-align: center;
-    background: white;
-    border-radius: 15px;
-    padding: 60px 30px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    border: 2px dashed #ddd;
-}
-
-.no-subtopics-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-}
-
-.no-subtopics h3 {
-    color: #666;
-    margin-bottom: 10px;
-    font-size: 20px;
-}
-
-.no-subtopics p {
-    color: #999;
-    font-size: 16px;
-    margin: 0;
-}
-</style>
 
 <script>
 function startSubtopic(subtopicId) {

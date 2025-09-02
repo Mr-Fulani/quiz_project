@@ -1,0 +1,266 @@
+/**
+ * Стили для страницы подтем в mini-app
+ * 
+ * Этот файл содержит все стили для отображения подтем с уровнями сложности
+ * и прогресс-барами в матричной теме.
+ * 
+ * @author Mini App Team
+ * @version 1.0.0
+ */
+
+/* CSS переменные для единообразия с главной страницей */
+:root {
+    --base-bg: #151F28;
+    --matrix-color: #00ff00;
+    --active-color: #29fd53;
+}
+
+/* Основной контейнер */
+.topic-detail-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Заголовок темы */
+.topic-header {
+    text-align: center;
+    margin-bottom: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.topic-header h1 {
+    color: var(--active-color);
+    margin-bottom: 15px;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.topic-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Сетка подтем */
+.subtopics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Карточка подтемы */
+.subtopic-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    text-align: center;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.subtopic-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 25px rgba(0, 255, 0, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.subtopic-card h3 {
+    color: var(--active-color);
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Статистика подтемы */
+.subtopic-stats {
+    margin-bottom: 20px;
+}
+
+.questions-count {
+    background: rgba(0, 255, 0, 0.1);
+    color: var(--active-color);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+/* Полосы сложности */
+.difficulty-bars {
+    margin-top: 20px;
+    display: grid;
+    gap: 14px;
+}
+
+.diff-row {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    align-items: center;
+    gap: 12px;
+}
+
+.diff-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: left;
+    font-weight: 600;
+}
+
+.diff-bar {
+    position: relative;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    backdrop-filter: blur(10px);
+}
+
+.subtopic-card .diff-bar {
+    pointer-events: auto;
+}
+
+.diff-bar:hover {
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    border-color: var(--active-color);
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.diff-bar:active {
+    transform: scale(0.985);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+}
+
+.diff-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 12px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.diff-solved {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.25s ease;
+}
+
+.diff-solved.easy {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+}
+
+.diff-solved.medium {
+    background: linear-gradient(90deg, #d97706, #f59e0b);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.diff-solved.hard {
+    background: linear-gradient(90deg, #dc2626, #ef4444);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.diff-solved.all {
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.diff-bar.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.diff-bar.disabled:hover,
+.diff-bar.disabled:active {
+    box-shadow: none;
+    transform: none;
+    border-color: rgba(0, 255, 0, 0.4);
+}
+
+.diff-text {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Сообщение об отсутствии подтем */
+.no-subtopics {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px dashed rgba(0, 255, 0, 0.4);
+    border-radius: 15px;
+    padding: 60px 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.no-subtopics-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.no-subtopics h3 {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.no-subtopics p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .topic-detail-container {
+        padding: 15px;
+    }
+    
+    .subtopics-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .subtopic-card {
+        padding: 20px;
+    }
+    
+    .topic-header {
+        padding: 20px;
+    }
+    
+    .topic-header h1 {
+        font-size: 24px;
+    }
+}
