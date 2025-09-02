@@ -4,6 +4,10 @@
 {{ translations.get('statistics_title', 'Статистика') }}
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/statistics.css">
+{% endblock %}
+
 {% block content %}
 <div class="statistics-container">
     <h1 data-translate="statistics_title">{{ translations.get('statistics_title', 'Статистика') }}</h1>
@@ -47,82 +51,4 @@
         </div>
     </div>
 </div>
-
-<style>
-.statistics-container {
-    padding: 20px;
-    max-width: 1000px;
-    margin: 0 auto;
-}
-
-.statistics-container h1 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #333;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 40px;
-}
-
-.stat-card {
-    background: white;
-    border-radius: 15px;
-    padding: 30px 20px;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.stat-icon {
-    font-size: 32px;
-    margin-bottom: 15px;
-}
-
-.stat-number {
-    font-size: 36px;
-    font-weight: bold;
-    color: #007bff;
-    margin-bottom: 10px;
-}
-
-.stat-label {
-    color: #666;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.chart-container {
-    background: white;
-    border-radius: 15px;
-    padding: 30px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.chart-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-}
-
-.chart-placeholder {
-    text-align: center;
-    padding: 40px;
-    color: #999;
-    border: 2px dashed #ddd;
-    border-radius: 10px;
-}
-
-.chart-placeholder p {
-    font-size: 16px;
-    margin: 0;
-}
-</style>
 {% endblock %}
