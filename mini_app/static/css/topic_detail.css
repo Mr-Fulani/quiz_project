@@ -94,9 +94,9 @@
 
 /* Сетка подтем */
 .subtopics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+    gap: 20px !important;
 }
 
 /* Карточка подтемы */
@@ -284,15 +284,22 @@
     margin: 0;
 }
 
-/* Адаптивность для мобильных устройств */
+/* Адаптивность для разных размеров экрана */
+@media (max-width: 1200px) {
+    .subtopics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+        gap: 18px !important;
+    }
+}
+
 @media (max-width: 768px) {
     .topic-detail-container {
         padding: 15px;
     }
     
     .subtopics-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+        gap: 15px !important;
     }
     
     .subtopic-card {
@@ -305,5 +312,16 @@
     
     .topic-header h1 {
         font-size: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .subtopics-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    .subtopic-card {
+        padding: 15px;
     }
 }
