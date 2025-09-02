@@ -68,9 +68,10 @@
     <!-- Стили для системы донатов -->
     <link rel="stylesheet" href="{{ donation_css_url }}">
     
-    <!-- Стили для страниц подтем и задач (всегда доступны) -->
+    <!-- Стили для страниц подтем, задач и настроек (всегда доступны) -->
     <link rel="stylesheet" href="/static/css/topic_detail.css">
     <link rel="stylesheet" href="/static/css/tasks.css">
+    <link rel="stylesheet" href="/static/css/settings.css">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
@@ -522,6 +523,19 @@
                 
                 script.onerror = function() {
                     console.error('❌ Failed to load profile.js');
+                };
+                document.head.appendChild(script);
+            } else if (url === '/settings') {
+                console.log('🎯 Settings page detected, loading script...');
+                // Для настроек загружаем скрипт
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '{{ get_js_url("settings.js") }}';
+                script.onload = function() {
+                    console.log('✅ Settings script loaded via base template');
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load settings.js');
                 };
                 document.head.appendChild(script);
             }
