@@ -118,6 +118,29 @@
     padding: 20px 25px;
     text-align: center;
     color: rgba(255, 255, 255, 0.9);
+    max-height: calc(80vh - 80px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 0, 0.3) rgba(0, 0, 0, 0.3);
+}
+
+/* Стилизация скроллбара для WebKit браузеров */
+.share-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.share-modal-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+.share-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 0, 0.3);
+    border-radius: 3px;
+}
+
+.share-modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 0, 0.5);
 }
 
 /* Превью приложения */
@@ -297,6 +320,7 @@
     padding: 0;
     width: 90%;
     max-width: 400px;
+    max-height: 80vh;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
     animation: slideIn 0.3s ease;
     overflow: hidden;
@@ -348,6 +372,29 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: calc(80vh - 80px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 0, 0.3) rgba(0, 0, 0, 0.3);
+}
+
+/* Стилизация скроллбара для WebKit браузеров */
+.social-share-buttons::-webkit-scrollbar {
+    width: 6px;
+}
+
+.social-share-buttons::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+.social-share-buttons::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 0, 0.3);
+    border-radius: 3px;
+}
+
+.social-share-buttons::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 0, 0.5);
 }
 
 .social-btn {
