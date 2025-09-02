@@ -266,11 +266,17 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
             }
             
-            // Fallback для тестирования в браузере
-            console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Используем fallback telegram_id для браузера');
-            const testTelegramId = 123456789; // Тестовый ID для браузера
-            console.log('✅ Установлен тестовый telegram_id:', testTelegramId);
-            return testTelegramId.toString();
+            // Fallback для тестирования в браузере (только в режиме разработки)
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Используем fallback telegram_id для браузера (только localhost)');
+                const testTelegramId = 975113235; // Реальный ID пользователя для тестирования
+                console.log('✅ Установлен тестовый telegram_id:', testTelegramId);
+                return testTelegramId.toString();
+            } else {
+                console.error('❌ Не удалось получить telegram_id в продакшене');
+                console.error('❌ Проверьте, что мини-апп запущен из Telegram');
+                return null;
+            }
         }
 
         /**
@@ -339,35 +345,32 @@ if (window.TaskManagerAlreadyLoaded) {
                 console.log('📤 Начинаем отправку ответа на сервер...');
                 const submitResult = await this.submitAnswerToServer(taskId, selectedAnswer);
                 
-                if (submitResult.success) {
+                if (submitResult && submitResult.success) {
                     console.log('✅ Ответ успешно отправлен');
-            
-            // Показываем правильный ответ, если выбран неправильный
-            if (!isCorrect) {
-                this.showCorrectAnswer(taskItem);
-            }
-            
-            // Показываем объяснение
-            this.showExplanation(taskItem);
-            
-            // Показываем уведомление
-            this.showNotification(isCorrect, isDontKnow);
+                    
+                    // Показываем правильный ответ, если выбран неправильный
+                    if (!isCorrect) {
+                        this.showCorrectAnswer(taskItem);
+                    }
+                    
+                    // Показываем объяснение
+                    this.showExplanation(taskItem);
+                    
+                    // Показываем уведомление
+                    this.showNotification(isCorrect, isDontKnow);
+                } else if (submitResult && submitResult.status === 409) {
+                    console.log('ℹ️ Ответ уже был отправлен ранее. Блокируем повторные клики.');
+                    taskItem.dataset.solved = 'true';
+                    // Подсветим правильный ответ и объяснение
+                    this.showCorrectAnswer(taskItem);
+                    this.showExplanation(taskItem);
+                    this.showToast('Вы уже отвечали на этот вопрос', 'info');
                 } else {
                     console.error('❌ Не удалось отправить ответ');
-                    // Если сервер сказал, что ответ уже отправлен ранее — блокируем и показываем объяснение
-                    if (submitResult.status === 409) {
-                        console.log('ℹ️ Ответ уже был отправлен ранее. Блокируем повторные клики.');
-                        taskItem.dataset.solved = 'true';
-                        // Подсветим правильный ответ и объяснение
-                        this.showCorrectAnswer(taskItem);
-                        this.showExplanation(taskItem);
-                        this.showToast('Вы уже отвечали на этот вопрос', 'info');
-                    } else {
-                        // Иначе откатываем изменения интерфейса
-                        this.enableAllAnswers(taskItem);
-                        taskItem.dataset.solved = 'false';
-                        option.classList.remove('selected', 'correct', 'incorrect');
-                    }
+                    // Откатываем изменения интерфейса
+                    this.enableAllAnswers(taskItem);
+                    taskItem.dataset.solved = 'false';
+                    option.classList.remove('selected', 'correct', 'incorrect');
                 }
             } catch (error) {
                 console.error('❌ Критическая ошибка при обработке ответа:', error);
@@ -398,8 +401,8 @@ if (window.TaskManagerAlreadyLoaded) {
                 
                 if (!telegramId) {
                     console.error('❌ Не удалось получить telegram_id');
-                        this.showToast('Ошибка: не удалось определить пользователя', 'error');
-                    return false;
+                    this.showToast('Ошибка: не удалось определить пользователя', 'error');
+                    return { success: false, error: 'telegram_id_not_found' };
                 }
                 
                 console.log('✅ Используем telegram_id:', telegramId);

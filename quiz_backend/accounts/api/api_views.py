@@ -622,6 +622,9 @@ class MiniAppProfileByTelegramID(APIView):
         user_data = request.data
         telegram_id = user_data.get('telegram_id')
         username = user_data.get('username')
+        
+        logger.info(f"🔍 MiniAppProfileByTelegramID: Получены данные: {user_data}")
+        logger.info(f"🔍 MiniAppProfileByTelegramID: telegram_id={telegram_id}, username={username}")
 
         if not telegram_id:
             return Response(
@@ -646,6 +649,7 @@ class MiniAppProfileByTelegramID(APIView):
                             language=user_data.get('language_code', 'ru'),
                             avatar=user_data.get('photo_url', ''),  # Сохраняем photo_url из Telegram
                         )
+                        logger.info(f"✅ Успешно создан MiniAppUser: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
                     except IntegrityError:
                         logger.warning(f"Имя пользователя '{username}' уже занято. Создаем уникальное имя.")
                         unique_username = f"{username}_{telegram_id}"
@@ -657,6 +661,7 @@ class MiniAppProfileByTelegramID(APIView):
                             language=user_data.get('language_code', 'ru'),
                             avatar=user_data.get('photo_url', ''),  # Сохраняем photo_url из Telegram
                         )
+                        logger.info(f"✅ Успешно создан MiniAppUser с уникальным именем: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
                 else:
                     # Обновляем существующего пользователя, если у него нет аватарки
                     logger.info(f"Найден существующий MiniAppUser для telegram_id {telegram_id}.")
