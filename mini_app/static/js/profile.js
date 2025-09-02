@@ -22,11 +22,6 @@
             name: document.getElementById('profile-name'),
             username: document.getElementById('profile-username'),
             avatar: document.getElementById('profile-avatar'),
-            points: document.getElementById('profile-points'),
-            rating: document.getElementById('profile-rating'),
-            quizzes: document.getElementById('profile-quizzes'),
-            success: document.getElementById('profile-success'),
-            progress: document.getElementById('progress-container'),
             socials: document.getElementById('social-links-container'),
         };
     }
@@ -69,27 +64,6 @@
             elements.socials.innerHTML = '<p class="social-empty">Социальные сети не указаны.</p>';
         }
     }
-    
-    function updateProgress(progressData, elements) {
-        elements.progress.innerHTML = '';
-        if (progressData && progressData.length > 0) {
-            progressData.forEach(item => {
-                const progressItem = document.createElement('div');
-                progressItem.className = 'progress-item';
-                progressItem.innerHTML = `
-                    <div class="progress-info">
-                        <span class="progress-topic">${item.topic_name}</span>
-                        <span class="progress-details">${item.completed_quizzes} / ${item.total_quizzes}</span>
-                    </div>
-                    <div class="progress-bar-background">
-                        <div class="progress-bar-fill" style="width: ${item.progress_percentage}%;"></div>
-                    </div>`;
-                elements.progress.appendChild(progressItem);
-            });
-        } else {
-            elements.progress.innerHTML = '<p>Нет данных о прогрессе.</p>';
-        }
-    }
 
     function updateProfileDOM(userData) {
         console.log('🚀 updateProfileDOM вызван с данными:', userData);
@@ -107,12 +81,6 @@
         
         updateAvatar(userData.avatar);
         updateSocialLinks(userData.social_links, elements);
-        updateProgress(userData.progress, elements);
-
-        elements.points.textContent = userData.points || 0;
-        elements.rating.textContent = userData.rating || 0;
-        elements.quizzes.textContent = userData.quizzes_completed || 0;
-        elements.success.textContent = `${(userData.success_rate || 0).toFixed(1)}%`;
 
         hideLoader();
         elements.profileContainer.style.display = 'block';
