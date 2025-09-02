@@ -15,6 +15,49 @@
     --active-color: #29fd53;
 }
 
+/* Кнопка "Назад" */
+.back-button-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 255, 0, 0.1);
+    color: var(--active-color);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    border-radius: 25px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    text-decoration: none;
+}
+
+.back-button:hover {
+    background: rgba(0, 255, 0, 0.2);
+    border-color: rgba(0, 255, 0, 0.6);
+    transform: translateX(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+}
+
+.back-button:active {
+    transform: translateX(0);
+}
+
+.back-button i {
+    font-size: 18px;
+}
+
+.back-button span {
+    font-weight: 500;
+}
+
 /* Основной контейнер */
 .topic-detail-container {
     padding: 20px;

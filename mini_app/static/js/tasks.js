@@ -702,12 +702,136 @@ class TaskManager {
      */
     goBack() {
         console.log('🔙 Переход назад...');
+        
+        // Получаем текущий URL для определения логики возврата
+        const currentUrl = window.location.pathname;
+        console.log('🔍 Текущий URL:', currentUrl);
+        
+        // Если мы на странице задач подтемы, возвращаемся на страницу подтем
+        if (currentUrl.includes('/subtopic/') && currentUrl.includes('/tasks')) {
+            this.goBackToSubtopic();
+            return;
+        }
+        
+        // Для других случаев используем стандартную логику
         if (typeof window.Telegram !== 'undefined' && 
             window.Telegram.WebApp && 
             typeof window.Telegram.WebApp.close === 'function') {
             window.Telegram.WebApp.close();
         } else {
             window.history.back();
+        }
+    }
+    
+    /**
+     * Возврат на страницу подтем
+     */
+    goBackToSubtopic() {
+        console.log('🔙 Возврат на страницу подтем...');
+        
+        // Получаем ID темы из data-атрибута контейнера
+        const tasksRoot = document.getElementById('tasks-root');
+        if (!tasksRoot) {
+            console.error('❌ Контейнер tasks-root не найден');
+            window.history.back();
+            return;
+        }
+        
+        const topicId = tasksRoot.dataset.topicId;
+        if (!topicId) {
+            console.error('❌ ID темы не найден в data-атрибутах');
+            // Fallback: используем ID подтемы
+            const subtopicId = tasksRoot.dataset.subtopicId;
+            if (subtopicId) {
+                console.log('🔍 Используем fallback: ID подтемы для возврата:', subtopicId);
+                const currentLang = window.currentLanguage || 'en';
+                const backUrl = `/topic/${subtopicId}?lang=${currentLang}`;
+                this.navigateToSubtopic(backUrl);
+                return;
+            }
+            window.history.back();
+            return;
+        }
+        
+        console.log('🔍 ID темы для возврата:', topicId);
+        
+        // Формируем URL для возврата на страницу подтем
+        const currentLang = window.currentLanguage || 'en';
+        const backUrl = `/topic/${topicId}?lang=${currentLang}`;
+        
+        console.log('🔙 Переходим на:', backUrl);
+        
+        // Используем AJAX навигацию для возврата
+        this.navigateToSubtopic(backUrl);
+    }
+    
+    /**
+     * AJAX навигация на страницу подтем
+     */
+    async navigateToSubtopic(url) {
+        try {
+            console.log('📡 Загружаем страницу подтем через AJAX...');
+            
+            const contentContainer = document.querySelector('.content');
+            if (!contentContainer) {
+                console.log('❌ Content container не найден, используем browser navigation');
+                window.location.href = url;
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            contentContainer.style.opacity = '0.7';
+            
+            const response = await fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.ok) {
+                const html = await response.text();
+                
+                // Парсим HTML и извлекаем контент
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.querySelector('.content');
+                
+                if (newContent) {
+                    // Плавно заменяем контент
+                    setTimeout(() => {
+                        contentContainer.innerHTML = newContent.innerHTML;
+                        contentContainer.style.opacity = '1';
+                        
+                        // Обновляем URL в браузере
+                        window.history.pushState({}, '', url);
+                        
+                        // Обновляем активную навигацию (главная страница)
+                        const navItems = document.querySelectorAll('.navigation .list');
+                        navItems.forEach(item => {
+                            item.classList.remove('active');
+                            if (item.getAttribute('data-href') === '/') {
+                                item.classList.add('active');
+                            }
+                        });
+                        
+                        // Загружаем скрипт для страницы подтем
+                        if (window.loadPageSpecificScripts) {
+                            window.loadPageSpecificScripts(url);
+                        }
+                        
+                        console.log('✅ Успешно вернулись на страницу подтем');
+                    }, 200);
+                } else {
+                    console.log('❌ Новый контент не найден, используем browser navigation');
+                    window.location.href = url;
+                }
+            } else {
+                console.log('❌ AJAX запрос не удался, используем browser navigation');
+                window.location.href = url;
+            }
+        } catch (error) {
+            console.error('❌ Ошибка при AJAX навигации:', error);
+            window.location.href = url;
         }
     }
 }

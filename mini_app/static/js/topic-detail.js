@@ -4,11 +4,31 @@ console.log('Current page:', window.location.pathname);
 // Инициализация обработчиков кликов для подтем
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 topic-detail: bars-only navigation; card clicks disabled');
+    
+    // Добавляем обработчик для кнопки "Назад"
+    const backButton = document.querySelector('.back-button');
+    if (backButton) {
+        backButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            goBackToMain();
+        });
+        console.log('✅ Обработчик кнопки "Назад" добавлен');
+    }
 });
 
 // Также инициализируем сразу, если DOM уже загружен
 if (document.readyState !== 'loading') {
     console.log('📄 DOM уже загружен');
+    
+    // Добавляем обработчик для кнопки "Назад" если DOM уже загружен
+    const backButton = document.querySelector('.back-button');
+    if (backButton) {
+        backButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            goBackToMain();
+        });
+        console.log('✅ Обработчик кнопки "Назад" добавлен (DOM уже загружен)');
+    }
 }
 
 function setupSubtopicHandlers() { /* intentionally disabled: cards are not clickable */ }
@@ -16,6 +36,13 @@ function setupSubtopicHandlers() { /* intentionally disabled: cards are not clic
 function goBackToMain() {
     console.log('🔙 goBackToMain() function called!');
     console.log('Current URL:', window.location.href);
+    
+    // Проверяем, есть ли предыдущая страница в истории
+    if (document.referrer && document.referrer.includes(window.location.origin)) {
+        console.log('🔍 Есть предыдущая страница в истории, используем browser back');
+        window.history.back();
+        return;
+    }
     
     // Используем AJAX навигацию для возврата на главную
     const loadMainPage = async () => {

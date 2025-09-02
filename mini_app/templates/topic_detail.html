@@ -9,7 +9,13 @@
 
 {% block content %}
 <div class="topic-detail-container">
-    <!-- Убрали верхнюю карточку с заголовком и описанием темы как избыточную -->
+    <!-- Кнопка "Назад" для возврата на главную страницу -->
+    <div class="back-button-container">
+        <button class="back-button" onclick="goBackToMain()">
+            <i class="fas fa-arrow-left"></i>
+            <span>{{ translations.get('back_button', 'Назад') }}</span>
+        </button>
+    </div>
     
     <div class="subtopics-grid">
         {% for subtopic in subtopics %}
