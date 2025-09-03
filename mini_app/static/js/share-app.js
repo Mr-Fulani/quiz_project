@@ -1,13 +1,16 @@
 /**
  * Функциональность "Поделиться приложением"
  * Включает генерацию QR-кода и копирование ссылки
+ * Ссылка ведет на Telegram бота @mr_proger_bot
  */
 
 class ShareApp {
     constructor() {
-        this.appUrl = window.location.origin;
+        // Используем ссылку на Telegram бота вместо браузерной версии
+        this.appUrl = 'https://t.me/mr_proger_bot';
         this.qrCodeContainer = null;
         this.modal = null;
+        this.socialModal = null; // Модальное окно с соцсетями
         this.init();
     }
 
@@ -85,12 +88,21 @@ class ShareApp {
             console.warn('⚠️ ShareApp: Share button not found!');
         }
 
-        // Добавляем обработчик для обновления переводов при переключении языка
+        // Добавляем обработчик для обновления переводов и закрытия модального окна при переключении языка
         if (window.onLanguageChanged) {
             const originalHandler = window.onLanguageChanged;
             window.onLanguageChanged = (language, translations) => {
                 console.log('🔄 ShareApp: Language changed, updating translations');
+                
+                // Закрываем модальное окно при изменении языка
+                if (this.modal && this.modal.style.display === 'flex') {
+                    console.log('🔄 ShareApp: Language changed, closing modal');
+                    this.closeModal();
+                }
+                
+                // Обновляем переводы
                 this.refreshTranslations();
+                
                 // Вызываем оригинальный обработчик, если он есть
                 if (originalHandler) {
                     originalHandler(language, translations);
@@ -99,9 +111,20 @@ class ShareApp {
         } else {
             window.onLanguageChanged = (language, translations) => {
                 console.log('🔄 ShareApp: Language changed, updating translations');
+                
+                // Закрываем модальное окно при изменении языка
+                if (this.modal && this.modal.style.display === 'flex') {
+                    console.log('🔄 ShareApp: Language changed, closing modal');
+                    this.closeModal();
+                }
+                
+                // Обновляем переводы
                 this.refreshTranslations();
             };
         }
+
+        // Добавляем глобальные обработчики для автоматического закрытия модального окна
+        this.addGlobalEventListeners();
     }
 
     async showQRCode() {
@@ -110,6 +133,9 @@ class ShareApp {
             // Показываем модальное окно
             this.modal.style.display = 'flex';
             console.log('✅ ShareApp: Modal displayed');
+            
+            // Добавляем обработчики для модального окна
+            this.addModalEventListeners();
             
             // Генерируем QR-код
             await this.generateQRCode();
@@ -217,7 +243,7 @@ class ShareApp {
     }
 
     shareToSocial() {
-        const shareText = '🎓 Quiz Mini App - Образовательное приложение с квизами! Изучайте различные темы, проходите тесты и получайте достижения. Попробуйте прямо сейчас!';
+        const shareText = '🎓 Quiz Mini App - Telegram бот для изучения различных тем через квизы! Проходите тесты и получайте достижения. Попробуйте прямо сейчас!';
         const shareUrl = this.appUrl;
         
         // Проверяем поддержку Web Share API
@@ -237,17 +263,17 @@ class ShareApp {
 
     fallbackShare() {
         // Fallback для браузеров без Web Share API
-        const shareText = encodeURIComponent('🎓 Quiz Mini App - Образовательное приложение с квизами!');
+        const shareText = encodeURIComponent('🎓 Quiz Mini App - Telegram бот для изучения различных тем через квизы!');
         const shareUrl = encodeURIComponent(this.appUrl);
         
         // Создаем модальное окно с кнопками соцсетей
-        const socialModal = document.createElement('div');
-        socialModal.className = 'social-share-modal';
-        socialModal.innerHTML = `
+        this.socialModal = document.createElement('div');
+        this.socialModal.className = 'social-share-modal';
+        this.socialModal.innerHTML = `
             <div class="social-share-content">
                 <div class="social-share-header">
                     <h4>Поделиться в социальных сетях</h4>
-                    <button class="social-share-close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
+                    <button class="social-share-close" onclick="shareApp.closeSocialModal()">&times;</button>
                 </div>
                 <div class="social-share-buttons">
                     <a href="https://t.me/share/url?url=${shareUrl}&text=${shareText}" target="_blank" class="social-btn telegram-btn">
@@ -271,11 +297,313 @@ class ShareApp {
                 </div>
             </div>
         `;
-        document.body.appendChild(socialModal);
+        
+        // Добавляем модальное окно в DOM
+        document.body.appendChild(this.socialModal);
+        
+        // Добавляем обработчики для модального окна с соцсетями
+        this.addSocialModalEventListeners();
     }
 
     closeModal() {
         this.modal.style.display = 'none';
+        // Удаляем обработчики модального окна при закрытии
+        this.removeModalEventListeners();
+    }
+
+    /**
+     * Закрывает модальное окно с соцсетями
+     */
+    closeSocialModal() {
+        if (this.socialModal) {
+            this.socialModal.remove();
+            this.socialModal = null;
+            // Удаляем обработчики модального окна с соцсетями
+            this.removeSocialModalEventListeners();
+        }
+    }
+
+    /**
+     * Добавляет глобальные обработчики событий для автоматического закрытия модального окна
+     * Включает: переключение вкладок, навигацию, изменение URL, AJAX навигацию
+     */
+    addGlobalEventListeners() {
+        // Обработчик для переключения вкладок
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (this.modal && this.modal.style.display === 'flex') {
+                    console.log('🔄 ShareApp: Tab switched, closing modal');
+                    this.closeModal();
+                }
+                if (this.socialModal) {
+                    console.log('🔄 ShareApp: Tab switched, closing social modal');
+                    this.closeSocialModal();
+                }
+            }
+        });
+
+        // Обработчик для изменения URL (навигация)
+        window.addEventListener('popstate', () => {
+            if (this.modal && this.modal.style.display === 'flex') {
+                console.log('🔄 ShareApp: Navigation occurred, closing modal');
+                this.closeModal();
+            }
+            if (this.socialModal) {
+                console.log('🔄 ShareApp: Navigation occurred, closing social modal');
+                this.closeSocialModal();
+            }
+        });
+
+        // Перехватываем pushState для AJAX навигации
+        this.interceptPushState();
+
+        // Обработчик для изменения хэша URL
+        window.addEventListener('hashchange', () => {
+            if (this.modal && this.modal.style.display === 'flex') {
+                console.log('🔄 ShareApp: Hash changed, closing modal');
+                this.closeModal();
+            }
+            if (this.socialModal) {
+                console.log('🔄 ShareApp: Hash changed, closing social modal');
+                this.closeSocialModal();
+            }
+        });
+
+        // Обработчик для кликов по навигационным элементам
+        this.addNavigationEventListeners();
+
+        // Обработчик для отслеживания изменений контента (AJAX навигация)
+        this.addContentChangeListener();
+
+        console.log('✅ ShareApp: Global event listeners added');
+    }
+
+    /**
+     * Добавляет обработчики событий для модального окна с соцсетями
+     */
+    addSocialModalEventListeners() {
+        // Обработчик клика вне модального окна с соцсетями
+        const handleOutsideClick = (event) => {
+            if (this.socialModal && !this.socialModal.contains(event.target) && !event.target.closest('.share-social-btn')) {
+                console.log('🔄 ShareApp: Click outside social modal, closing');
+                this.closeSocialModal();
+            }
+        };
+
+        // Обработчик нажатия клавиши Escape для модального окна с соцсетями
+        const handleEscapeKey = (event) => {
+            if (event.key === 'Escape' && this.socialModal) {
+                console.log('🔄 ShareApp: Escape key pressed, closing social modal');
+                this.closeSocialModal();
+            }
+        };
+
+        // Добавляем обработчики
+        document.addEventListener('click', handleOutsideClick);
+        document.addEventListener('keydown', handleEscapeKey);
+
+        // Сохраняем ссылки на обработчики для последующего удаления
+        this.socialModalEventListeners = {
+            outsideClick: handleOutsideClick,
+            escapeKey: handleEscapeKey
+        };
+
+        console.log('✅ ShareApp: Social modal event listeners added');
+    }
+
+    /**
+     * Удаляет обработчики событий модального окна с соцсетями
+     */
+    removeSocialModalEventListeners() {
+        if (this.socialModalEventListeners) {
+            document.removeEventListener('click', this.socialModalEventListeners.outsideClick);
+            document.removeEventListener('keydown', this.socialModalEventListeners.escapeKey);
+            this.socialModalEventListeners = null;
+            console.log('✅ ShareApp: Social modal event listeners removed');
+        }
+    }
+
+    /**
+     * Добавляет обработчики событий для навигационных элементов
+     */
+    addNavigationEventListeners() {
+        // Обработчик для кликов по навигационным ссылкам
+        const handleNavigationClick = (event) => {
+            // Проверяем, является ли кликнутый элемент навигационной ссылкой
+            const isNavigationLink = event.target.closest('.navigation a') || 
+                                   event.target.closest('.navigation .list') ||
+                                   event.target.closest('.navigation ul li');
+            
+            if (isNavigationLink) {
+                if (this.modal && this.modal.style.display === 'flex') {
+                    console.log('🔄 ShareApp: Navigation link clicked, closing modal');
+                    this.closeModal();
+                }
+                if (this.socialModal) {
+                    console.log('🔄 ShareApp: Navigation link clicked, closing social modal');
+                    this.closeSocialModal();
+                }
+            }
+        };
+
+        // Добавляем обработчик для кликов по навигации
+        document.addEventListener('click', handleNavigationClick);
+
+        // Сохраняем ссылку на обработчик для последующего удаления
+        this.navigationEventListener = handleNavigationClick;
+
+        console.log('✅ ShareApp: Navigation event listeners added');
+    }
+
+    /**
+     * Добавляет обработчик для отслеживания изменений контента (AJAX навигация)
+     */
+    addContentChangeListener() {
+        // Создаем наблюдатель за изменениями в DOM
+        this.contentObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                // Проверяем, изменился ли контент страницы
+                if (mutation.type === 'childList' && 
+                    mutation.target.classList && 
+                    mutation.target.classList.contains('content')) {
+                    
+                    if (this.modal && this.modal.style.display === 'flex') {
+                        console.log('🔄 ShareApp: Content changed, closing modal');
+                        this.closeModal();
+                    }
+                    if (this.socialModal) {
+                        console.log('🔄 ShareApp: Content changed, closing social modal');
+                        this.closeSocialModal();
+                    }
+                }
+            });
+        });
+
+        // Начинаем наблюдение за контейнером контента
+        const contentContainer = document.querySelector('.content');
+        if (contentContainer) {
+            this.contentObserver.observe(contentContainer, {
+                childList: true,
+                subtree: true
+            });
+            console.log('✅ ShareApp: Content change observer started');
+        } else {
+            console.log('⚠️ ShareApp: Content container not found for observer');
+        }
+    }
+
+    /**
+     * Перехватывает pushState для отслеживания AJAX навигации
+     */
+    interceptPushState() {
+        // Сохраняем оригинальный pushState
+        this.originalPushState = window.history.pushState;
+        
+        // Переопределяем pushState
+        window.history.pushState = (...args) => {
+            // Вызываем оригинальный метод
+            const result = this.originalPushState.apply(window.history, args);
+            
+            // Закрываем модальное окно при изменении URL
+            if (this.modal && this.modal.style.display === 'flex') {
+                console.log('🔄 ShareApp: pushState called, closing modal');
+                this.closeModal();
+            }
+            
+            // Закрываем модальное окно с соцсетями при изменении URL
+            if (this.socialModal) {
+                console.log('🔄 ShareApp: pushState called, closing social modal');
+                this.closeSocialModal();
+            }
+            
+            return result;
+        };
+
+        console.log('✅ ShareApp: pushState intercepted');
+    }
+
+    /**
+     * Добавляет обработчики событий для модального окна
+     */
+    addModalEventListeners() {
+        // Обработчик клика вне модального окна
+        const handleOutsideClick = (event) => {
+            if (this.modal && !this.modal.contains(event.target) && !event.target.closest('.share-app-btn')) {
+                console.log('🔄 ShareApp: Click outside modal, closing');
+                this.closeModal();
+            }
+        };
+
+        // Обработчик нажатия клавиши Escape
+        const handleEscapeKey = (event) => {
+            if (event.key === 'Escape' && this.modal && this.modal.style.display === 'flex') {
+                console.log('🔄 ShareApp: Escape key pressed, closing modal');
+                this.closeModal();
+            }
+        };
+
+        // Добавляем обработчики
+        document.addEventListener('click', handleOutsideClick);
+        document.addEventListener('keydown', handleEscapeKey);
+
+        // Сохраняем ссылки на обработчики для последующего удаления
+        this.modalEventListeners = {
+            outsideClick: handleOutsideClick,
+            escapeKey: handleEscapeKey
+        };
+
+        console.log('✅ ShareApp: Modal event listeners added');
+    }
+
+    /**
+     * Удаляет обработчики событий модального окна
+     */
+    removeModalEventListeners() {
+        if (this.modalEventListeners) {
+            document.removeEventListener('click', this.modalEventListeners.outsideClick);
+            document.removeEventListener('keydown', this.modalEventListeners.escapeKey);
+            this.modalEventListeners = null;
+            console.log('✅ ShareApp: Modal event listeners removed');
+        }
+    }
+
+    /**
+     * Уничтожает объект и очищает все обработчики событий
+     */
+    destroy() {
+        // Удаляем обработчики модального окна
+        this.removeModalEventListeners();
+
+        // Удаляем обработчик навигации
+        if (this.navigationEventListener) {
+            document.removeEventListener('click', this.navigationEventListener);
+            this.navigationEventListener = null;
+        }
+
+        // Останавливаем наблюдатель за изменениями контента
+        if (this.contentObserver) {
+            this.contentObserver.disconnect();
+            this.contentObserver = null;
+        }
+
+        // Восстанавливаем оригинальный pushState
+        if (this.originalPushState) {
+            window.history.pushState = this.originalPushState;
+            this.originalPushState = null;
+        }
+
+        // Удаляем модальное окно из DOM
+        if (this.modal && this.modal.parentNode) {
+            this.modal.parentNode.removeChild(this.modal);
+        }
+
+        // Удаляем модальное окно с соцсетями
+        if (this.socialModal) {
+            this.socialModal.remove();
+            this.socialModal = null;
+        }
+
+        console.log('✅ ShareApp: Destroyed and cleaned up all event listeners');
     }
 
     updateTranslations() {
