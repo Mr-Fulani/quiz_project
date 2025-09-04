@@ -145,11 +145,22 @@ class ProfileSerializer(serializers.ModelSerializer):
             ]
     
     def get_avatar(self, obj):
+        # obj is CustomUser instance
+        # Сначала пытаемся получить аватар из MiniAppUser, если он связан
+        mini_app_profile = getattr(obj, 'mini_app_profile', None)
+        if mini_app_profile and mini_app_profile.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(mini_app_profile.avatar.url)
+            return mini_app_profile.avatar.url
+        
+        # Если MiniAppUser не связан или у него нет аватара, используем аватар из CustomUser
         if obj.avatar:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
+        
         return None
     
     def get_social_links(self, obj):
@@ -276,6 +287,8 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     is_admin = serializers.BooleanField(read_only=True)
     admin_type = serializers.CharField(read_only=True)
+    avatar = serializers.SerializerMethodField() # Добавляем это поле
+    social_links = serializers.SerializerMethodField() # Добавляем это поле
     
     # Связи с другими типами пользователей
     telegram_user_id = serializers.IntegerField(source='telegram_user.telegram_id', read_only=True)
@@ -288,9 +301,67 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
             'full_name', 'language', 'avatar', 'created_at', 'last_seen',
             'is_admin', 'admin_type',
-            'telegram_user_id', 'telegram_admin_id', 'django_admin_username'
+            'telegram_user_id', 'telegram_admin_id', 'django_admin_username',
+            'social_links' # Добавляем social_links
         )
-        read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type')
+        read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type', 'avatar', 'social_links')
+    
+    def get_avatar(self, obj):
+        """Возвращает относительный путь к аватару пользователя."""
+        if obj.avatar:
+            return obj.avatar.url
+        return None
+    
+    def get_social_links(self, obj):
+        """Возвращает социальные ссылки пользователя Mini App, если есть связанный CustomUser."""
+        social_links_data = []
+        
+        if obj.linked_custom_user:
+            user = obj.linked_custom_user
+            if user.website:
+                social_links_data.append({
+                    "name": "Веб-сайт",
+                    "url": user.website,
+                    "icon": "🌐"
+                })
+            if user.telegram:
+                social_links_data.append({
+                    "name": "Telegram",
+                    "url": f"https://t.me/{user.telegram}" if not user.telegram.startswith('http') else user.telegram,
+                    "icon": "📱"
+                })
+            if user.github:
+                social_links_data.append({
+                    "name": "GitHub",
+                    "url": user.github,
+                    "icon": "💻"
+                })
+            if user.linkedin:
+                social_links_data.append({
+                    "name": "LinkedIn",
+                    "url": user.linkedin,
+                    "icon": "💼"
+                })
+            if user.instagram:
+                social_links_data.append({
+                    "name": "Instagram",
+                    "url": user.instagram,
+                    "icon": "📷"
+                })
+            if user.facebook:
+                social_links_data.append({
+                    "name": "Facebook",
+                    "url": user.facebook,
+                    "icon": "👥"
+                })
+            if user.youtube:
+                social_links_data.append({
+                    "name": "YouTube",
+                    "url": user.youtube,
+                    "icon": "📺"
+                })
+        
+        return social_links_data
 
 
 class MiniAppUserCreateSerializer(serializers.ModelSerializer):
@@ -335,6 +406,21 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
                 ).first()
                 if django_admin:
                     mini_app_user.link_to_django_admin(django_admin)
+            
+            # Связываем с CustomUser (основным пользователем сайта) по telegram_id
+            custom_user = CustomUser.objects.filter(
+                telegram_id=mini_app_user.telegram_id
+            ).first()
+            if custom_user:
+                mini_app_user.linked_custom_user = custom_user
+                mini_app_user.save(update_fields=['linked_custom_user'])
+            elif mini_app_user.username: # Если CustomUser не найден по telegram_id, пробуем по username
+                 custom_user = CustomUser.objects.filter(
+                    username=mini_app_user.username
+                ).first()
+                 if custom_user:
+                    mini_app_user.linked_custom_user = custom_user
+                    mini_app_user.save(update_fields=['linked_custom_user'])
                     
         except Exception as e:
             # Логируем ошибку, но не прерываем создание пользователя
@@ -363,6 +449,9 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
         # Обновляем данные
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        
+        # Сохраняем изменения
+        instance.save()
         
         # Обновляем время последнего визита
         instance.update_last_seen()

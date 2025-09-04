@@ -6,12 +6,37 @@
 
 // Обертка для инкапсуляции логики и предотвращения засорения глобальной области
 (function(window) {
+    console.log('🚀 Profile.js загружен!');
+    
     // Переменные состояния модуля
     let isLoading = false;
     
     // Функция для получения актуального состояния Telegram WebApp
     function getTelegramWebApp() {
         return window.Telegram?.WebApp;
+    }
+
+    // Простая функция для показа уведомлений
+    function showNotification(key, type, element, message) {
+        console.log(`📢 Notification [${type}]: ${message}`);
+        // Показываем уведомление через Telegram WebApp, если доступно
+        const tg = getTelegramWebApp();
+        if (tg && tg.showAlert) {
+            try {
+                tg.showAlert(message);
+            } catch (e) {
+                console.warn('Telegram showAlert failed:', e);
+                alert(message);
+            }
+        } else {
+            // Fallback к обычному alert
+            alert(message);
+        }
+    }
+
+    // Простая заглушка для translations.get
+    function getTranslation(key, fallback) {
+        return fallback || key;
     }
 
     // --- DOM Элементы ---
@@ -23,6 +48,20 @@
             username: document.getElementById('profile-username'),
             avatar: document.getElementById('profile-avatar'),
             socials: document.getElementById('social-links-container'),
+            editProfileBtn: document.getElementById('edit-profile-btn'),
+            editModal: document.getElementById('edit-modal'),
+            closeModalBtn: document.querySelector('#edit-modal .close'),
+            cancelEditBtn: document.querySelector('#edit-modal .btn-cancel'),
+            editProfileForm: document.getElementById('edit-profile-form'),
+            avatarInput: document.getElementById('avatar-input'),
+            avatarPreview: document.getElementById('avatar-preview'),
+            websiteInput: document.getElementById('website-input'),
+            telegramInput: document.getElementById('telegram-input'),
+            githubInput: document.getElementById('github-input'),
+            linkedinInput: document.getElementById('linkedin-input'),
+            instagramInput: document.getElementById('instagram-input'),
+            facebookInput: document.getElementById('facebook-input'),
+            youtubeInput: document.getElementById('youtube-input'),
         };
     }
 
@@ -31,11 +70,28 @@
     function updateAvatar(avatarUrl) {
         const { avatar } = getDOMElements();
         if (avatar) {
-            const finalUrl = avatarUrl || '/static/images/default_avatar.png';
+            let finalUrl = '/static/images/default_avatar.png';
+            
+            if (avatarUrl) {
+                // Если URL содержит полный путь с доменом, извлекаем только путь к файлу
+                if (avatarUrl.startsWith('http')) {
+                    try {
+                        const url = new URL(avatarUrl);
+                        finalUrl = url.pathname;
+                    } catch (e) {
+                        console.warn('Ошибка парсинга URL аватара:', e);
+                        finalUrl = avatarUrl;
+                    }
+                } else {
+                    finalUrl = avatarUrl;
+                }
+            }
+            
             avatar.src = finalUrl;
             avatar.style.display = 'block';
             
             avatar.onerror = () => {
+                console.warn('Ошибка загрузки аватара:', finalUrl);
                 avatar.src = '/static/images/default_avatar.png';
                 avatar.onerror = null;
             };
@@ -74,6 +130,12 @@
             showError("Не удалось загрузить данные профиля.");
             return;
         }
+        
+        // Сохраняем Telegram ID в глобальной переменной для использования в формах
+        if (userData.telegram_id) {
+            window.telegramUserId = userData.telegram_id;
+            console.log('💾 Telegram ID сохранен при загрузке:', userData.telegram_id);
+        }
 
         const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         elements.name.textContent = fullName || 'Пользователь';
@@ -81,6 +143,15 @@
         
         updateAvatar(userData.avatar);
         updateSocialLinks(userData.social_links, elements);
+
+        // Заполняем поля модального окна при загрузке профиля
+        elements.websiteInput.value = userData.social_links.find(link => link.name === 'Веб-сайт')?.url || '';
+        elements.telegramInput.value = userData.social_links.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
+        elements.githubInput.value = userData.social_links.find(link => link.name === 'GitHub')?.url || '';
+        elements.linkedinInput.value = userData.social_links.find(link => link.name === 'LinkedIn')?.url || '';
+        elements.instagramInput.value = userData.social_links.find(link => link.name === 'Instagram')?.url || '';
+        elements.facebookInput.value = userData.social_links.find(link => link.name === 'Facebook')?.url || '';
+        elements.youtubeInput.value = userData.social_links.find(link => link.name === 'YouTube')?.url || '';
 
         hideLoader();
         elements.profileContainer.style.display = 'block';
@@ -189,6 +260,138 @@
         }
         
         fetchProfileDataFromServer();
+
+        // Инициализация обработчиков модального окна
+        const elements = getDOMElements();
+        if (elements.editProfileBtn) {
+            elements.editProfileBtn.onclick = () => {
+                elements.editModal.style.display = 'block';
+                // Заполняем поля формы текущими данными профиля
+                const currentUser = window.currentUser; // Глобальная переменная из base.html
+                if (currentUser) {
+                    const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim();
+                    // elements.name.textContent = fullName || 'Пользователь'; // Это не input, а h1
+                    // elements.username.textContent = currentUser.username ? `@${currentUser.username}` : translations.get('hidden', 'скрыт');
+                    // Здесь нужно заполнить поля ввода, а не текстовые элементы
+                    elements.editProfileForm.querySelector('input[name="first_name"]').value = currentUser.first_name || '';
+                    elements.editProfileForm.querySelector('input[name="last_name"]').value = currentUser.last_name || '';
+                    elements.editProfileForm.querySelector('input[name="username"]').value = currentUser.username || '';
+                    
+                    // Также заполняем поля социальных сетей
+                    elements.websiteInput.value = currentUser.social_links.find(link => link.name === 'Веб-сайт')?.url || '';
+                    elements.telegramInput.value = currentUser.social_links.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
+                    elements.githubInput.value = currentUser.social_links.find(link => link.name === 'GitHub')?.url || '';
+                    elements.linkedinInput.value = currentUser.social_links.find(link => link.name === 'LinkedIn')?.url || '';
+                    elements.instagramInput.value = currentUser.social_links.find(link => link.name === 'Instagram')?.url || '';
+                    elements.facebookInput.value = currentUser.social_links.find(link => link.name === 'Facebook')?.url || '';
+                    elements.youtubeInput.value = currentUser.social_links.find(link => link.name === 'YouTube')?.url || '';
+                    
+                    // Предварительный просмотр текущего аватара
+                    if (currentUser.avatar) {
+                        elements.avatarPreview.innerHTML = `<img src="${currentUser.avatar}" alt="Current Avatar" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
+                    } else {
+                        elements.avatarPreview.innerHTML = '';
+                    }
+                }
+            };
+        }
+
+        if (elements.closeModalBtn) {
+            elements.closeModalBtn.onclick = () => {
+                elements.editModal.style.display = 'none';
+            };
+        }
+
+        if (elements.cancelEditBtn) {
+            elements.cancelEditBtn.onclick = () => {
+                elements.editModal.style.display = 'none';
+            };
+        }
+
+        // Обработка предварительного просмотра аватара
+        if (elements.avatarInput) {
+            elements.avatarInput.onchange = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        elements.avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Avatar Preview" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    elements.avatarPreview.innerHTML = '';
+                }
+            };
+        }
+
+        // Обработка отправки формы редактирования
+        if (elements.editProfileForm) {
+            elements.editProfileForm.onsubmit = async (event) => {
+                event.preventDefault();
+                console.log('🚀 Форма отправлена!');
+                
+                        // Получаем Telegram ID из данных пользователя
+        let telegramId = window.currentUser?.telegram_id;
+        
+        console.log('🔍 Telegram ID из currentUser:', telegramId);
+        
+        if (!telegramId) {
+            showNotification('error_telegram_id_missing', 'error', null, getTranslation('error_telegram_id_missing', 'Не удалось получить данные пользователя. Попробуйте обновить страницу.'));
+            return;
+        }
+
+                const formData = new FormData();
+                // Добавляем файл аватара, если он выбран
+                if (elements.avatarInput.files && elements.avatarInput.files[0]) {
+                    console.log('📁 Добавляем файл аватара:', elements.avatarInput.files[0].name);
+                    formData.append('avatar', elements.avatarInput.files[0]);
+                } else {
+                    console.log('📁 Файл аватара не выбран');
+                }
+                // Добавляем остальные поля формы
+                formData.append('website', elements.websiteInput.value);
+                formData.append('telegram', elements.telegramInput.value);
+                formData.append('github', elements.githubInput.value);
+                formData.append('linkedin', elements.linkedinInput.value);
+                formData.append('instagram', elements.instagramInput.value);
+                formData.append('facebook', elements.facebookInput.value);
+                formData.append('youtube', elements.youtubeInput.value);
+
+                try {
+                    const response = await fetch(`/api/profile/${telegramId}/update/`, {
+                        method: 'PATCH', // Используем PATCH для частичного обновления
+                        body: formData, // FormData автоматически устанавливает Content-Type: multipart/form-data
+                        // headers: { 'Content-Type': 'multipart/form-data' } // Не устанавливать вручную для FormData
+                    });
+
+                    if (response.ok) {
+                        const updatedUserData = await response.json();
+                        console.log('✅ Профиль успешно обновлен:', updatedUserData);
+                        showNotification('profile_update_success', 'success', null, getTranslation('profile_update_success', 'Профиль успешно обновлен!'));
+                        
+                        // Обновляем отображение аватара и других данных
+                        updateProfileDOM(updatedUserData);
+                        elements.editModal.style.display = 'none';
+                        
+                        // Обновляем глобальный объект currentUser
+                        window.currentUser = updatedUserData;
+                        
+                        // Сохраняем Telegram ID в глобальной переменной для использования в формах
+                        if (updatedUserData.telegram_id) {
+                            window.telegramUserId = updatedUserData.telegram_id;
+                            console.log('💾 Telegram ID сохранен:', updatedUserData.telegram_id);
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        console.error('❌ Ошибка обновления профиля:', errorData);
+                        showNotification('profile_update_error', 'error', null, getTranslation('profile_update_error', 'Ошибка при обновлении профиля: ') + JSON.stringify(errorData));
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка при отправке формы профиля:', error);
+                    showNotification('profile_update_error', 'error', null, getTranslation('profile_update_error', 'Ошибка при обновлении профиля.') + ` ${error.message}`);
+                }
+            };
+        }
     };
 
     // --- Первичный запуск ---

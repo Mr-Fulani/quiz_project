@@ -494,11 +494,11 @@ class MiniAppUser(models.Model):
         default='ru', 
         verbose_name="Язык"
     )
-    avatar = models.URLField(
-        max_length=500,
-        blank=True,
-        null=True,
-        verbose_name="Аватар (URL фото из Telegram)"
+    avatar = models.ImageField(
+        upload_to='mini_app_avatars/', 
+        blank=True, 
+        null=True, 
+        verbose_name="Аватар Mini App"
     )
     created_at = models.DateTimeField(
         auto_now_add=True, 
@@ -536,6 +536,15 @@ class MiniAppUser(models.Model):
         related_name='mini_app_user',
         verbose_name="Django админ",
         help_text="Связь с Django админом, если он также управляет сайтом"
+    )
+    linked_custom_user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mini_app_profile',
+        verbose_name="Связанный пользователь сайта",
+        help_text="Связь с основным пользователем сайта, если он существует"
     )
 
     class Meta:

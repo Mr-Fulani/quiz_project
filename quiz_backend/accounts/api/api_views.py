@@ -6,6 +6,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from django.contrib.auth import get_user_model, logout, login
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -415,17 +418,129 @@ class ProfileUpdateByTelegramView(generics.UpdateAPIView):
     APIView для обновления профиля пользователя по его telegram_id.
     Используется для mini_app, чтобы загружать аватар.
     """
-    queryset = CustomUser.objects.all()
-    serializer_class = ProfileSerializer
-    permission_classes = [permissions.AllowAny]  # Временно разрешаем без аутентификации для mini_app
+    queryset = MiniAppUser.objects.all()
+    serializer_class = MiniAppUserUpdateSerializer
+    permission_classes = [permissions.AllowAny]
     lookup_field = 'telegram_id'
+    parser_classes = [MultiPartParser, FormParser]
+
+    @swagger_auto_schema(
+        operation_description="Обновление аватара пользователя Mini App.",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_PATH,
+                description="ID пользователя Telegram.",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+            openapi.Parameter(
+                'avatar',
+                openapi.IN_FORM,
+                description="Файл аватара для загрузки.",
+                type=openapi.TYPE_FILE,
+                required=False
+            ),
+            openapi.Parameter(
+                'username',
+                openapi.IN_FORM,
+                description="Имя пользователя.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'first_name',
+                openapi.IN_FORM,
+                description="Имя.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'last_name',
+                openapi.IN_FORM,
+                description="Фамилия.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'language',
+                openapi.IN_FORM,
+                description="Язык.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+        ],
+        responses={
+            200: MiniAppUserSerializer,
+            400: 'Неверные данные',
+            404: 'Пользователь не найден'
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Частичное обновление профиля пользователя Mini App.",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_PATH,
+                description="ID пользователя Telegram.",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+            openapi.Parameter(
+                'avatar',
+                openapi.IN_FORM,
+                description="Файл аватара для загрузки.",
+                type=openapi.TYPE_FILE,
+                required=False
+            ),
+            openapi.Parameter(
+                'username',
+                openapi.IN_FORM,
+                description="Имя пользователя.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'first_name',
+                openapi.IN_FORM,
+                description="Имя.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'last_name',
+                openapi.IN_FORM,
+                description="Фамилия.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'language',
+                openapi.IN_FORM,
+                description="Язык.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+        ],
+        responses={
+            200: MiniAppUserSerializer,
+            400: 'Неверные данные',
+            404: 'Пользователь не найден'
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
 
     def get_object(self):
         """
-        Получаем пользователя по telegram_id из URL.
+        Получаем пользователя MiniAppUser по telegram_id из URL.
         """
         telegram_id = self.kwargs.get('telegram_id')
-        return get_object_or_404(CustomUser, telegram_id=telegram_id)
+        return get_object_or_404(MiniAppUser, telegram_id=telegram_id)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -596,6 +711,18 @@ class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):
         Получает объект по telegram_id.
         """
         telegram_id = self.kwargs.get('telegram_id')
+        logger.info(f"🔍 MiniAppUserByTelegramIDView: Ищем пользователя с telegram_id={telegram_id} (тип: {type(telegram_id)})")
+        
+        # Проверяем, есть ли пользователь в базе
+        user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
+        if user:
+            logger.info(f"✅ Найден пользователь: ID={user.id}, telegram_id={user.telegram_id}, username={user.username}")
+        else:
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден в базе данных")
+            # Проверим все telegram_id в базе
+            all_users = MiniAppUser.objects.values_list('telegram_id', flat=True)
+            logger.info(f"📋 Все telegram_id в базе: {list(all_users)}")
+        
         return get_object_or_404(MiniAppUser, telegram_id=telegram_id)
     
     def get_serializer_class(self):
@@ -638,37 +765,19 @@ class MiniAppProfileByTelegramID(APIView):
                 mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
 
                 if not mini_app_user:
-                    # Создаем нового MiniAppUser
-                    logger.info(f"Создаем нового MiniAppUser для telegram_id {telegram_id}.")
-                    try:
-                        mini_app_user = MiniAppUser.objects.create(
-                            telegram_id=telegram_id,
-                            username=username or f"user_{telegram_id}",
-                            first_name=user_data.get('first_name', ''),
-                            last_name=user_data.get('last_name', ''),
-                            language=user_data.get('language_code', 'ru'),
-                            avatar=user_data.get('photo_url', ''),  # Сохраняем photo_url из Telegram
-                        )
-                        logger.info(f"✅ Успешно создан MiniAppUser: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
-                    except IntegrityError:
-                        logger.warning(f"Имя пользователя '{username}' уже занято. Создаем уникальное имя.")
-                        unique_username = f"{username}_{telegram_id}"
-                        mini_app_user = MiniAppUser.objects.create(
-                            telegram_id=telegram_id,
-                            username=unique_username,
-                            first_name=user_data.get('first_name', ''),
-                            last_name=user_data.get('last_name', ''),
-                            language=user_data.get('language_code', 'ru'),
-                            avatar=user_data.get('photo_url', ''),  # Сохраняем photo_url из Telegram
-                        )
-                        logger.info(f"✅ Успешно создан MiniAppUser с уникальным именем: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
+                    # Создаем нового MiniAppUser с использованием сериализатора
+                    logger.info(f"Создаем нового MiniAppUser для telegram_id {telegram_id} через MiniAppUserCreateSerializer.")
+                    create_serializer = MiniAppUserCreateSerializer(data=user_data)
+                    create_serializer.is_valid(raise_exception=True)
+                    mini_app_user = create_serializer.save()
+
+                    logger.info(f"✅ Успешно создан MiniAppUser: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
                 else:
-                    # Обновляем существующего пользователя, если у него нет аватарки
-                    logger.info(f"Найден существующий MiniAppUser для telegram_id {telegram_id}.")
-                    if not mini_app_user.avatar and user_data.get('photo_url'):
-                        logger.info(f"Обновляем аватарку для существующего пользователя {telegram_id}.")
-                        mini_app_user.avatar = user_data.get('photo_url')
-                        mini_app_user.save()
+                    # Если пользователь существует, обновляем его данные, если предоставлены
+                    logger.info(f"Найден существующий MiniAppUser для telegram_id {telegram_id}. Обновляем данные.")
+                    update_serializer = MiniAppUserUpdateSerializer(mini_app_user, data=user_data, partial=True)
+                    update_serializer.is_valid(raise_exception=True)
+                    mini_app_user = update_serializer.save()
 
         except Exception as e:
             logger.exception(f"Критическая ошибка при создании/обновлении MiniAppUser для telegram_id={telegram_id}: {e}")

@@ -218,28 +218,57 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
 @router.patch("/profile/{telegram_id}/update/")
 async def update_profile_json(telegram_id: int, request: Request):
     """
-    Обновляет профиль пользователя в JSON формате.
+    Обновляет профиль пользователя, включая загрузку аватара.
     """
     logger.info(f"Updating profile JSON for telegram_id: {telegram_id}")
     
     try:
-        # Получаем JSON данные из запроса
-        profile_data = await request.json()
-        logger.info(f"Received profile data: {profile_data}")
+        # Проверяем тип контента
+        content_type = request.headers.get("content-type", "")
         
-        # Отправляем данные в Django API
-        updated_profile = await django_api_service.update_user_profile(telegram_id, profile_data)
-        
-        if updated_profile:
-            return JSONResponse(content=updated_profile)
+        if "multipart/form-data" in content_type:
+            # Обрабатываем загрузку файла
+            form_data = await request.form()
+            avatar_file = form_data.get("avatar")
+            
+            if avatar_file:
+                # Читаем содержимое файла
+                file_content = await avatar_file.read()
+                
+                # Отправляем файл в Django API
+                django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/profile/by-telegram/{telegram_id}/update/"
+                files = {'avatar': (avatar_file.filename, file_content, avatar_file.content_type)}
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.patch(django_update_url, files=files, timeout=30.0)
+                    
+                if response.status_code == 200:
+                    return JSONResponse(content=response.json(), status_code=response.status_code)
+                else:
+                    raise HTTPException(status_code=response.status_code, detail=response.text)
+            else:
+                raise HTTPException(status_code=400, detail="No avatar file provided")
         else:
-            raise HTTPException(status_code=500, detail="Failed to update profile")
+            # Обрабатываем JSON данные
+            profile_data = await request.json()
+            logger.info(f"Received profile data: {profile_data}")
+            
+            # Отправляем данные в Django API
+            updated_profile = await django_api_service.update_user_profile(telegram_id, profile_data)
+            
+            if updated_profile:
+                return JSONResponse(content=updated_profile)
+            else:
+                raise HTTPException(status_code=500, detail="Failed to update profile")
             
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON in request: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON data")
     except Exception as e:
         logger.error(f"Error updating profile: {e}")
+        logger.error(f"Error type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 # Вспомогательные функции для работы с Django API
