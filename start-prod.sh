@@ -7,6 +7,6 @@ echo "🌐 Запуск продакшена..."
 export NGINX_DOCKERFILE=Dockerfile.prod
 
 # Запускаем контейнеры
-docker-compose down && docker-compose up --build -d
+docker-compose down && docker-compose up --build
 
 echo "✅ Продакшен запущен!"
