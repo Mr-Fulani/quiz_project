@@ -151,6 +151,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         if mini_app_profile and mini_app_profile.avatar:
             request = self.context.get('request')
             if request:
+                # Используем правильный хост для mini_app
+                host = request.headers.get('X-Forwarded-Host', request.get_host())
+                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                # Если запрос идет от mini_app, используем порт 80 (nginx)
+                if 'mini.quiz-code.com' in host or 'localhost' in host:
+                    return f"{scheme}://{host}{mini_app_profile.avatar.url}"
                 return request.build_absolute_uri(mini_app_profile.avatar.url)
             return mini_app_profile.avatar.url
         
@@ -158,6 +164,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         if obj.avatar:
             request = self.context.get('request')
             if request:
+                # Используем правильный хост для mini_app
+                host = request.headers.get('X-Forwarded-Host', request.get_host())
+                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                # Если запрос идет от mini_app, используем порт 80 (nginx)
+                if 'mini.quiz-code.com' in host or 'localhost' in host:
+                    return f"{scheme}://{host}{obj.avatar.url}"
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
         
@@ -307,10 +319,19 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type', 'avatar', 'social_links')
     
     def get_avatar(self, obj):
-        """Возвращает относительный путь к аватару пользователя."""
+        """Возвращает абсолютный URL к аватару пользователя."""
         if obj.avatar:
             # Если avatar - это ImageField, возвращаем его URL
             if hasattr(obj.avatar, 'url'):
+                request = self.context.get('request')
+                if request:
+                    # Используем правильный хост для mini_app
+                    host = request.headers.get('X-Forwarded-Host', request.get_host())
+                    scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                    # Если запрос идет от mini_app, используем порт 80 (nginx)
+                    if 'mini.quiz-code.com' in host or 'localhost' in host:
+                        return f"{scheme}://{host}{obj.avatar.url}"
+                    return request.build_absolute_uri(obj.avatar.url)
                 return obj.avatar.url
             # Если avatar - это строка (URL), возвращаем как есть
             return obj.avatar

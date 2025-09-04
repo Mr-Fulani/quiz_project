@@ -73,16 +73,11 @@
             let finalUrl = '/static/images/default_avatar.png';
             
             if (avatarUrl) {
-                // Если URL содержит полный путь с доменом, извлекаем только путь к файлу
+                // Если URL содержит полный путь с доменом, используем его как есть
                 if (avatarUrl.startsWith('http')) {
-                    try {
-                        const url = new URL(avatarUrl);
-                        finalUrl = url.pathname;
-                    } catch (e) {
-                        console.warn('Ошибка парсинга URL аватара:', e);
-                        finalUrl = avatarUrl;
-                    }
+                    finalUrl = avatarUrl;
                 } else {
+                    // Для относительных URL добавляем правильный базовый URL
                     finalUrl = avatarUrl;
                 }
             }
@@ -145,13 +140,14 @@
         updateSocialLinks(userData.social_links, elements);
 
         // Заполняем поля модального окна при загрузке профиля
-        elements.websiteInput.value = userData.social_links.find(link => link.name === 'Веб-сайт')?.url || '';
-        elements.telegramInput.value = userData.social_links.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
-        elements.githubInput.value = userData.social_links.find(link => link.name === 'GitHub')?.url || '';
-        elements.linkedinInput.value = userData.social_links.find(link => link.name === 'LinkedIn')?.url || '';
-        elements.instagramInput.value = userData.social_links.find(link => link.name === 'Instagram')?.url || '';
-        elements.facebookInput.value = userData.social_links.find(link => link.name === 'Facebook')?.url || '';
-        elements.youtubeInput.value = userData.social_links.find(link => link.name === 'YouTube')?.url || '';
+        const socialLinks = userData.social_links || [];
+        elements.websiteInput.value = socialLinks.find(link => link.name === 'Веб-сайт')?.url || '';
+        elements.telegramInput.value = socialLinks.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
+        elements.githubInput.value = socialLinks.find(link => link.name === 'GitHub')?.url || '';
+        elements.linkedinInput.value = socialLinks.find(link => link.name === 'LinkedIn')?.url || '';
+        elements.instagramInput.value = socialLinks.find(link => link.name === 'Instagram')?.url || '';
+        elements.facebookInput.value = socialLinks.find(link => link.name === 'Facebook')?.url || '';
+        elements.youtubeInput.value = socialLinks.find(link => link.name === 'YouTube')?.url || '';
 
         hideLoader();
         elements.profileContainer.style.display = 'block';
@@ -278,13 +274,14 @@
                     elements.editProfileForm.querySelector('input[name="username"]').value = currentUser.username || '';
                     
                     // Также заполняем поля социальных сетей
-                    elements.websiteInput.value = currentUser.social_links.find(link => link.name === 'Веб-сайт')?.url || '';
-                    elements.telegramInput.value = currentUser.social_links.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
-                    elements.githubInput.value = currentUser.social_links.find(link => link.name === 'GitHub')?.url || '';
-                    elements.linkedinInput.value = currentUser.social_links.find(link => link.name === 'LinkedIn')?.url || '';
-                    elements.instagramInput.value = currentUser.social_links.find(link => link.name === 'Instagram')?.url || '';
-                    elements.facebookInput.value = currentUser.social_links.find(link => link.name === 'Facebook')?.url || '';
-                    elements.youtubeInput.value = currentUser.social_links.find(link => link.name === 'YouTube')?.url || '';
+                    const currentSocialLinks = currentUser.social_links || [];
+                    elements.websiteInput.value = currentSocialLinks.find(link => link.name === 'Веб-сайт')?.url || '';
+                    elements.telegramInput.value = currentSocialLinks.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
+                    elements.githubInput.value = currentSocialLinks.find(link => link.name === 'GitHub')?.url || '';
+                    elements.linkedinInput.value = currentSocialLinks.find(link => link.name === 'LinkedIn')?.url || '';
+                    elements.instagramInput.value = currentSocialLinks.find(link => link.name === 'Instagram')?.url || '';
+                    elements.facebookInput.value = currentSocialLinks.find(link => link.name === 'Facebook')?.url || '';
+                    elements.youtubeInput.value = currentSocialLinks.find(link => link.name === 'YouTube')?.url || '';
                     
                     // Предварительный просмотр текущего аватара
                     if (currentUser.avatar) {
