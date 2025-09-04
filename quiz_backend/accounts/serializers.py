@@ -309,7 +309,11 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         """Возвращает относительный путь к аватару пользователя."""
         if obj.avatar:
-            return obj.avatar.url
+            # Если avatar - это ImageField, возвращаем его URL
+            if hasattr(obj.avatar, 'url'):
+                return obj.avatar.url
+            # Если avatar - это строка (URL), возвращаем как есть
+            return obj.avatar
         return None
     
     def get_social_links(self, obj):
