@@ -1,21 +1,14 @@
-FROM nginx:1.21.6-alpine
+# Dockerfile для nginx сервера
+FROM nginx:alpine
 
-# Копируем конфигурацию Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
+# Копируем конфигурацию nginx (по умолчанию локальная)
+COPY nginx-local.conf /etc/nginx/nginx.conf
 
-# Создаем директории для сертификатов
-RUN mkdir -p /etc/letsencrypt/live/quiz-code.com
-RUN mkdir -p /etc/letsencrypt/live/quiz-format.com
-RUN mkdir -p /etc/letsencrypt/live/quiz-game.co
-
-# Создаем директории для mini поддоменов
-RUN mkdir -p /etc/letsencrypt/live/mini.quiz-code.com
-RUN mkdir -p /etc/letsencrypt/live/mini.quiz-format.com
-RUN mkdir -p /etc/letsencrypt/live/mini.quiz-game.co
-
-# Создаем директорию для веб-корня certbot
+# Создаем необходимые директории
 RUN mkdir -p /var/www/certbot
 
-EXPOSE 80 443
+# Открываем порты
+EXPOSE 80 443 8080
 
+# Запускаем nginx
 CMD ["nginx", "-g", "daemon off;"]
