@@ -105,7 +105,7 @@ services:
       - quiz_backend
 
   nginx:
-    image: nginx:1.21.6-alpine # Используем готовый образ Nginx
+    build: ./nginx
     container_name: nginx
     ports:
       - "80:80"
@@ -116,7 +116,6 @@ services:
       - ./media:/app/media
       - ./certbot/www:/var/www/certbot/
       - ./certbot/conf/:/etc/letsencrypt/
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf # Монтируем конфигурацию Nginx
     depends_on:
       - quiz_backend
       - mini_app
