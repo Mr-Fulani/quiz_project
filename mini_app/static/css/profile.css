@@ -335,26 +335,30 @@
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 999999;
     left: 0;
     top: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
+    overflow-y: auto;
 }
 
 .modal-content {
     background: rgba(21, 31, 40, 0.95);
     border: 1px solid rgba(0, 255, 0, 0.4);
-    margin: 5% auto;
+    margin: 2% auto 100px auto; /* Увеличиваем нижний отступ, чтобы не перекрывалось навигацией */
     padding: 0;
     border-radius: 20px;
     width: 90%;
     max-width: 500px;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
-    overflow: hidden;
+    overflow-y: auto;
+    max-height: 80vh; /* Уменьшаем высоту, чтобы поместиться выше навигации */
     backdrop-filter: blur(15px);
+    position: relative;
+    z-index: 1000000; /* Еще больше увеличиваем z-index */
 }
 
 .modal-header {
@@ -535,6 +539,12 @@
     .profile-avatar-container {
         width: 200px;
         height: 200px;
+    }
+    
+    /* Специальные стили для модального окна на мобильных */
+    .modal-content {
+        margin: 1% auto 120px auto; /* Еще больше отступ снизу на мобильных */
+        max-height: 70vh; /* Еще меньше высота на мобильных */
     }
     
     .profile-avatar {
