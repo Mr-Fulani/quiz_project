@@ -105,7 +105,9 @@ services:
       - quiz_backend
 
   nginx:
-    build: ./nginx
+    build: 
+      context: ./nginx
+      dockerfile: ${NGINX_DOCKERFILE:-Dockerfile}
     container_name: nginx
     ports:
       - "80:80"
