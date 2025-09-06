@@ -17,7 +17,7 @@ EMAIL="fulani.dev@gmail.com" # Замените на реальный email
 # echo "Запуск Certbot с командой: docker compose -f docker-compose.local-prod.yml run --rm --entrypoint \"sh\" certbot -c \"set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot --staging --agree-tos -v --non-interactive --email $EMAIL --config-dir /etc/letsencrypt/conf --work-dir /etc/letsencrypt/work --logs-dir /etc/letsencrypt/logs --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot\""
 
 echo "🔌 Остановка и удаление существующих контейнеров..."
-docker compose -f docker-compose.local-prod.yml down --volumes
+docker compose down --volumes
 
 echo "🧹 Очистка предыдущих конфигураций Certbot..."
 sudo -S rm -rf ./certbot/conf
@@ -26,17 +26,15 @@ sudo -S chown -R $(id -u):$(id -g) ./certbot # Устанавливаем пра
 
 echo "⏳ Запуск Certbot для получения первоначальных сертификатов..."
     # Запуск Certbot для получения первоначальных сертификатов
-    # Команда Certbot будет запущена вручную внутри контейнера после его старта для отладки.
-    # docker compose -f docker-compose.local-prod.yml run --rm --entrypoint "sh" certbot -c "set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot \\
-    #           --staging \\
-    #           --agree-tos \\
-    #           -v \\
-    #           --non-interactive \\
-    #           --email $EMAIL \\
-    #           --config-dir /etc/letsencrypt/conf \\
-    #           --work-dir /etc/letsencrypt/work \\
-    #           --logs-dir /etc/letsencrypt/logs \\
-    #           --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot" > certbot_debug.log 2>&1
+    docker compose run --rm --entrypoint "sh" certbot -c "set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot \\
+              --agree-tos \\
+              -v \\
+              --non-interactive \\
+              --email $EMAIL \\
+              --config-dir /etc/letsencrypt/conf \\
+              --work-dir /etc/letsencrypt/work \\
+              --logs-dir /etc/letsencrypt/logs \\
+              --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot" > certbot_debug.log 2>&1
     
     echo "⌛ Ожидание генерации сертификатов..."
     # Certbot теперь запускается вручную после старта контейнера
@@ -48,6 +46,6 @@ until [ -d "./certbot/conf/live/$(echo $DOMAINS | cut -d',' -f1)/" ]; do
 done
 
 echo "✅ Сертификаты сгенерированы! Запуск всех служб..."
-docker compose -f docker-compose.local-prod.yml up -d --build
+docker compose up -d --build
 
 echo "✅ Продакшен запущен!"
