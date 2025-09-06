@@ -27,7 +27,21 @@ sudo -S rm -rf ./certbot/conf
 sudo -S mkdir -p ./certbot/conf/live ./certbot/conf/work ./certbot/conf/logs
 sudo -S chown -R $(id -u):$(id -g) ./certbot # Устанавливаем правильные права доступа
 
-echo "⏳ Запуск Certbot для получения первоначальных сертификатов..."
+echo "🚀 Запуск базовых сервисов (без SSL)..."
+# Запускаем только базовые сервисы без SSL
+docker compose up -d database quiz_backend mini_app
+
+echo "⏳ Ожидание готовности сервисов..."
+sleep 10
+
+echo "🌐 Запуск Nginx (без SSL)..."
+# Запускаем Nginx отдельно
+docker compose up -d nginx
+
+echo "⏳ Ожидание готовности Nginx..."
+sleep 5
+
+echo "🔐 Запуск Certbot для получения SSL сертификатов..."
     # Запуск Certbot для получения первоначальных сертификатов
     echo "Выполняется команда: docker compose run --rm --entrypoint \"sh\" certbot -c \"/usr/local/bin/certbot certonly --webroot -w /var/www/certbot --agree-tos -v --non-interactive --email $EMAIL --domains $DOMAINS\""
     docker compose run --rm --entrypoint "sh" certbot -c "/usr/local/bin/certbot certonly --webroot -w /var/www/certbot --agree-tos -v --non-interactive --email $EMAIL --domains $DOMAINS" > certbot_debug.log 2>&1
@@ -48,7 +62,9 @@ until [ -d "./certbot/conf/live/$(echo $DOMAINS | cut -d',' -f1)/" ]; do
   sleep 5
 done
 
-echo "✅ Сертификаты сгенерированы! Запуск всех служб..."
+echo "🔄 Перезапуск всех сервисов с SSL..."
+# Перезапускаем все сервисы с SSL сертификатами
+docker compose down
 docker compose up -d --build
 
 echo "✅ Продакшен запущен!"
