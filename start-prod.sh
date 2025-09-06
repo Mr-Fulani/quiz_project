@@ -34,9 +34,9 @@ docker compose up -d database quiz_backend mini_app
 echo "⏳ Ожидание готовности сервисов..."
 sleep 10
 
-echo "🌐 Запуск Nginx (без SSL)..."
-# Пересобираем Nginx с правильной конфигурацией
-docker compose build nginx
+echo "🌐 Запуск Nginx (временная конфигурация для получения сертификатов)..."
+# Пересобираем Nginx с временной конфигурацией (только HTTP)
+docker compose build nginx --build-arg NGINX_CONF=nginx-temp.conf
 # Запускаем Nginx отдельно
 docker compose up -d nginx
 
