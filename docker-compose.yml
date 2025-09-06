@@ -110,7 +110,7 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
       args:
-        NGINX_CONF: nginx-local.conf
+        NGINX_CONF: nginx-prod.conf
     container_name: nginx
     ports:
       - "80:80"
@@ -131,6 +131,7 @@ services:
   certbot:
     image: certbot/certbot
     container_name: certbot
+    user: "root" # Временно для отладки проблем с разрешениями
     environment:
       - CURRENT_UID=${CURRENT_UID}
       - CURRENT_GID=${CURRENT_GID}
@@ -139,6 +140,8 @@ services:
       - ./certbot/conf/:/etc/letsencrypt/
     networks:
       - quiz_network
+    entrypoint: sh # Используем sh в качестве точки входа для удержания контейнера запущенным
+    command: -c "while true; do sleep 30; done" # Держим контейнер запущенным для ручной отладки
 
 networks:
   quiz_network:
