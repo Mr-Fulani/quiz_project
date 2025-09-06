@@ -1,8 +1,8 @@
 # Dockerfile для nginx сервера
 FROM nginx:alpine
 
-# Копируем конфигурацию nginx (по умолчанию локальная)
-COPY nginx-local.conf /etc/nginx/nginx.conf
+ARG NGINX_CONF=nginx-local.conf
+COPY ${NGINX_CONF} /etc/nginx/nginx.conf
 
 # Создаем необходимые директории
 RUN mkdir -p /var/www/certbot

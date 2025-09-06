@@ -100,6 +100,7 @@ services:
     volumes:
       - ./mini_app:/mini_app
       - ./mini_app/static:/mini_app/static
+       # - ./media:/app/media
     command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
     depends_on:
       - quiz_backend
@@ -107,7 +108,9 @@ services:
   nginx:
     build: 
       context: ./nginx
-      dockerfile: ${NGINX_DOCKERFILE:-Dockerfile}
+      dockerfile: Dockerfile
+      args:
+        NGINX_CONF: nginx-local.conf
     container_name: nginx
     ports:
       - "80:80"

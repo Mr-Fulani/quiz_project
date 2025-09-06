@@ -1,8 +1,8 @@
 # Dockerfile для nginx сервера (продакшен)
 FROM nginx:alpine
 
-# Копируем продакшен конфигурацию nginx
-COPY nginx-prod.conf /etc/nginx/nginx.conf
+ARG NGINX_CONF=nginx-prod.conf
+COPY ${NGINX_CONF} /etc/nginx/nginx.conf
 
 # Создаем необходимые директории
 RUN mkdir -p /var/www/certbot
