@@ -14,14 +14,13 @@ echo "🔌 Остановка и удаление существующих ко�
 docker compose down
 
 echo "⏳ Запуск Certbot для получения первоначальных сертификатов..."
-docker compose run --rm --entrypoint "\
+docker compose run --rm \
   certbot certonly --webroot -w /var/www/certbot \
     --staging \
     --agree-tos \
     --non-interactive \
     --email $EMAIL \
-    -d $(echo $DOMAINS | tr ',' ' -d ')"
-certbot
+    -d $(echo $DOMAINS | tr ',' ' -d ')
 
 echo "⌛ Ожидание генерации сертификатов..."
 until [ -f "./certbot/conf/live/$(echo $DOMAINS | cut -d',' -f1)/fullchain.pem" ]; do
