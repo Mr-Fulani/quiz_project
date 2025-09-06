@@ -13,6 +13,10 @@ EMAIL="fulani.dev@gmail.com" # Замените на реальный email
 echo "🔌 Остановка и удаление существующих контейнеров..."
 docker compose down
 
+echo "🧹 Очистка предыдущих конфигураций Certbot..."
+sudo rm -rf ./certbot/conf
+sudo mkdir -p ./certbot/conf/live
+
 echo "⏳ Запуск Certbot для получения первоначальных сертификатов..."
 docker compose run --rm \
   certbot certonly --webroot -w /var/www/certbot \
