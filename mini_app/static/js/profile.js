@@ -80,6 +80,10 @@
                     // Для относительных URL добавляем правильный базовый URL
                     finalUrl = avatarUrl;
                 }
+                
+                // Добавляем cache-busting параметр для предотвращения кэширования
+                const separator = finalUrl.includes('?') ? '&' : '?';
+                finalUrl += `${separator}t=${Date.now()}`;
             }
             
             avatar.src = finalUrl;

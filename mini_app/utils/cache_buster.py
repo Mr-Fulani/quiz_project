@@ -59,8 +59,11 @@ def get_versioned_url(static_path: str, filename: str) -> str:
     # Используем версию из STATIC_VERSIONS как fallback, если хэш не получен
     version_from_config = STATIC_VERSIONS.get(filename, '1.0')
     
+    # Принудительно используем версию из конфига для критически важных файлов
+    if filename in STATIC_VERSIONS:
+        return f"{static_path}{filename}?v={version_from_config}&t={get_cache_buster()}"
     # Если есть хэш, используем его, иначе используем версию из конфига + timestamp
-    if file_hash:
+    elif file_hash:
         return f"{static_path}{filename}?v={file_hash}"
     else:
         return f"{static_path}{filename}?v={version_from_config}&t={get_cache_buster()}"
@@ -71,7 +74,7 @@ STATIC_VERSIONS = {
     'donation.js': '2.1',
     'localization.js': '1.9',
     'share-app.js': '1.8',
-    'profile.js': '2.7',
+    'profile.js': '5.0',
     'search.js': '1.7',
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
