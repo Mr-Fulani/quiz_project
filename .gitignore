@@ -20,6 +20,11 @@ add_groups.py
 postgres_data/
 database/clear_tables.py
 
+# SSL Certificates - НЕ коммитить в git!
+certbot/conf/
+certbot/www/
+certbot_debug.log
+
 
 
 tasks.json
