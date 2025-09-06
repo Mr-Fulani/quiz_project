@@ -86,21 +86,41 @@ services:
       - quiz_backend
 
   nginx:
-    build: ./nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile # Используем унифицированный Dockerfile
+      args:
+        NGINX_CONF: nginx-prod.conf
     container_name: nginx_local_prod
     ports:
       - "80:80"
-      - "8081:8080"
+      - "443:443"
     volumes:
       - static_volume_local_prod:/app/staticfiles
       - ./media:/app/media
-      - ./nginx/nginx-local-prod.conf:/etc/nginx/nginx.conf:ro  # Используем специальную конфигурацию
+      - /Users/user/telegram_quiz_bots/quiz_project/certbot/www:/var/www/certbot/
+      - /Users/user/telegram_quiz_bots/quiz_project/certbot/conf/:/etc/letsencrypt/
     depends_on:
       - quiz_backend
       - mini_app
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot_local_prod
+    user: "root" # Временно для отладки проблем с разрешениями
+    environment:
+      - CURRENT_UID=${CURRENT_UID}
+      - CURRENT_GID=${CURRENT_GID}
+    volumes:
+      - ./certbot/www:/var/www/certbot/
+      - ./certbot/conf/:/etc/letsencrypt/
+    networks:
+      - quiz_network_local_prod
+    entrypoint: sh # Используем sh в качестве точки входа для удержания контейнера запущенным
+    command: -c "while true; do sleep 30; done" # Держим контейнер запущенным для ручной отладки
 
 networks:
   quiz_network_local_prod:
