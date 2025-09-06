@@ -9,9 +9,11 @@ echo "🌐 Запуск продакшена..."
 # Устанавливаем переменную окружения для продакшен конфигурации
 # export NGINX_DOCKERFILE=Dockerfile.prod
 
-# Извлекаем домены из nginx-prod.conf (для Certbot), учитывая многострочные определения
-DOMAINS=$(awk '/server_name/{p=1; next} /;/{if(p){gsub(/;/,"",$0); print; p=0;}} p' nginx/nginx-prod.conf | xargs | tr ' ' ',' | sed 's/,$//')
+# Извлекаем домены из nginx-prod.conf (для Certbot), исключая localhost и IP адреса
+DOMAINS=$(awk '/server_name/{p=1; next} /;/{if(p){gsub(/;/,"",$0); print; p=0;}} p' nginx/nginx-prod.conf | xargs | tr ' ' '\n' | grep -v -E '^(localhost|127\.0\.0\.1)$' | tr '\n' ',' | sed 's/,$//')
 EMAIL="fulani.dev@gmail.com" # Замените на реальный email
+
+echo "🔍 Извлеченные домены для Certbot: $DOMAINS"
 
 # Debug: Выводим полную команду Certbot перед выполнением
 # echo "Запуск Certbot с командой: docker compose -f docker-compose.local-prod.yml run --rm --entrypoint \"sh\" certbot -c \"set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot --staging --agree-tos -v --non-interactive --email $EMAIL --config-dir /etc/letsencrypt/conf --work-dir /etc/letsencrypt/work --logs-dir /etc/letsencrypt/logs --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot\""
