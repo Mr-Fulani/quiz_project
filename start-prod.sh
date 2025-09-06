@@ -19,7 +19,6 @@ sudo mkdir -p ./certbot/conf/live
 
 echo "⏳ Запуск Certbot для получения первоначальных сертификатов..."
 docker compose run --rm \
-  --entrypoint "" \
   certbot certonly --webroot -w /var/www/certbot \
     --staging \
     --agree-tos \
