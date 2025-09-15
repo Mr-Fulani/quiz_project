@@ -482,3 +482,67 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
         instance.update_last_seen()
         
         return instance 
+
+
+class MiniAppTopUserSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для топ-пользователей Mini App, включающий рейтинг и базовые данные.
+    """
+    avatar = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    quizzes_completed = serializers.SerializerMethodField()
+    average_score = serializers.SerializerMethodField() # Это success_rate
+    is_online = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MiniAppUser
+        fields = (
+            'id', 'telegram_id', 'username', 'first_name', 'last_name',
+            'avatar', 'rating', 'quizzes_completed', 'average_score', 'is_online'
+        )
+
+    def get_avatar(self, obj):
+        """
+        Возвращает URL аватара пользователя Mini App.
+        """
+        request = self.context.get('request')
+        if obj.avatar:
+            if hasattr(obj.avatar, 'url'):
+                if request:
+                    host = request.headers.get('X-Forwarded-Host', request.get_host())
+                    scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                    # Если запрос идет от mini_app, используем порт 80 (nginx)
+                    if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
+                        return f"{scheme}://{host}{obj.avatar.url}"
+                    return request.build_absolute_uri(obj.avatar.url)
+                return obj.avatar.url
+            return obj.avatar # Если это строка (URL)
+        
+        # Возвращаем дефолтный аватар, если ни один не найден
+        if request:
+            return request.build_absolute_uri('/static/images/default_avatar.png')
+        return '/static/images/default_avatar.png'
+
+    def get_rating(self, obj):
+        """
+        Возвращает рейтинг пользователя Mini App.
+        """
+        return obj.calculate_rating()
+
+    def get_quizzes_completed(self, obj):
+        """
+        Возвращает количество завершенных квизов для Mini App пользователя.
+        """
+        return obj.quizzes_completed
+
+    def get_average_score(self, obj):
+        """
+        Возвращает средний балл (процент успешности) для Mini App пользователя.
+        """
+        return obj.average_score
+
+    def get_is_online(self, obj):
+        """
+        Проверяет, онлайн ли пользователь Mini App.
+        """
+        return obj.is_online 

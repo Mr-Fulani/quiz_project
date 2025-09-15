@@ -29,7 +29,8 @@ from ..serializers import (
     SocialLinksSerializer,
     MiniAppUserSerializer,
     MiniAppUserCreateSerializer,
-    MiniAppUserUpdateSerializer
+    MiniAppUserUpdateSerializer,
+    MiniAppTopUserSerializer
 )
 
 User = get_user_model()
@@ -797,4 +798,36 @@ class MiniAppProfileByTelegramID(APIView):
             return Response({"error": "An internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         serializer = MiniAppUserSerializer(mini_app_user, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK) 
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MiniAppTopUsersListView(generics.ListAPIView):
+    """
+    APIView для получения списка топ-пользователей Mini App по рейтингу.
+    """
+    serializer_class = MiniAppTopUserSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        """
+        Возвращает топ-N пользователей Mini App, отсортированных по рейтингу.
+        """
+        # Аннотируем пользователей их рейтингом, используя метод из модели MiniAppUser
+        queryset = MiniAppUser.objects.annotate(
+            rating=MiniAppUser.get_rating_annotation()
+        ).order_by('-rating', '-created_at') # Сортируем по рейтингу, затем по дате создания
+        
+        # Ограничиваем количество пользователей (например, топ-100)
+        return queryset[:100]
+
+    @swagger_auto_schema(
+        operation_description="Получение списка топ-пользователей Mini App.",
+        responses={
+            200: openapi.Response(
+                "Список топ-пользователей Mini App",
+                MiniAppTopUserSerializer(many=True)
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs) 

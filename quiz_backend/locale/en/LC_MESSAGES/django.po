@@ -1066,8 +1066,8 @@ msgstr "Programming Basics"
 
 #: blog/templates/blog/index.html:188
 #, python-format
-msgid "80%% popularity"
-msgstr "80%% popularity"
+msgid "80% popularity"
+msgstr "80% popularity"
 
 #: blog/templates/blog/index.html:196
 msgid "World History"
@@ -1075,8 +1075,8 @@ msgstr "World History"
 
 #: blog/templates/blog/index.html:197
 #, python-format
-msgid "70%% popularity"
-msgstr "70%% popularity"
+msgid "70% popularity"
+msgstr "70% popularity"
 
 #: blog/templates/blog/index.html:205
 msgid "Science Quiz"
@@ -1084,8 +1084,8 @@ msgstr "Science Quiz"
 
 #: blog/templates/blog/index.html:206
 #, python-format
-msgid "90%% popularity"
-msgstr "90%% popularity"
+msgid "90% popularity"
+msgstr "90% popularity"
 
 #: blog/templates/blog/index.html:214
 msgid "Literature Masters"
@@ -1093,8 +1093,8 @@ msgstr "Literature Masters"
 
 #: blog/templates/blog/index.html:215
 #, python-format
-msgid "50%% popularity"
-msgstr "50%% popularity"
+msgid "50% popularity"
+msgstr "50% popularity"
 
 #: blog/templates/blog/index.html:297
 msgid "Jan"
@@ -1573,12 +1573,6 @@ msgid "Found a bug? Write to us in social networks!"
 msgstr "Found a bug? Write to us in social networks!"
 
 # New translations for Top Users
-msgid "no_top_users"
-msgstr "No top users yet"
-
-msgid "keep_playing"
-msgstr "Keep playing to get to the top!"
-
 msgid "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
 msgstr "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
 
@@ -2002,3 +1996,38 @@ msgstr "Super Admin"
 
 msgid "Django Admin"
 msgstr "Django Admin"
+
+# Donation admin translations
+msgid "Amount"
+msgstr "Amount"
+
+msgid "Days ago"
+msgstr "Days ago"
+
+msgid "%(days)d days ago"
+msgstr "%(days)d days ago"
+
+msgid "Mark selected donations as completed"
+msgstr "Mark selected donations as completed"
+
+msgid "Mark selected donations as failed"
+msgstr "Mark selected donations as failed"
+
+msgid "Export selected donations to CSV"
+msgstr "Export selected donations to CSV"
+
+msgid "Send thank you emails to completed donations"
+msgstr "Send thank you emails to completed donations"
+
+msgid "Successfully marked %(count)d donations as completed."
+msgstr "Successfully marked %(count)d donations as completed."
+
+msgid "Successfully marked %(count)d donations as failed."
+msgstr "Successfully marked %(count)d donations as failed."
+
+msgid "Sent %(sent)d thank you emails out of %(total)d completed donations."
+msgstr "Sent %(sent)d thank you emails out of %(total)d completed donations."
+
+# Donation statistics translations
+msgid "Donation Statistics"
+msgstr "Donation Statistics"

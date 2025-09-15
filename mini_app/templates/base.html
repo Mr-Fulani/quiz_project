@@ -318,6 +318,7 @@
         const list = document.querySelectorAll('.list');
         
         function activeLink(e){
+            console.log('activeLink: clicked event', e.currentTarget);
             // Предотвращаем стандартное поведение ссылки
             e.preventDefault();
             e.stopPropagation();
@@ -333,13 +334,14 @@
             
             // Получаем URL из href
             const href = this.getAttribute('href');
+            console.log('activeLink: href ->', href);
             
             // Загружаем контент через AJAX
             loadPage(href);
         }
         
         function loadPage(url) {
-            console.log('BASE.HTML: loadPage called with URL:', url);
+            console.log('loadPage: called with URL:', url);
             (async () => {
                 try {
                     // Показываем индикатор загрузки (опционально)
@@ -762,7 +764,6 @@
             // Устанавливаем активный класс
             if (activeItem) {
                 activeItem.classList.add('active');
-                console.log('✅ Navigation indicator set for:', currentPath);
             }
         });
     </script>

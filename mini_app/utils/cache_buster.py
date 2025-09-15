@@ -81,6 +81,7 @@ STATIC_VERSIONS = {
     'topic-detail.js': '1.6',
     'styles.css': '1.2',
     'profile.css': '1.2',
+    'top_users.css': '1.2',
 }
 
 

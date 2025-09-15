@@ -2291,3 +2291,28 @@ msgstr "Суперпользователь"
 
 msgid "Django Admin"
 msgstr "Django Администратор"
+
+# Переводы для топ-пользователей Mini App
+msgid "points"
+msgstr "Баллов"
+
+msgid "quizzes"
+msgstr "Квизов"
+
+msgid "success_rate"
+msgstr "Успешность"
+
+msgid "top_users"
+msgstr "Топ юзеров"
+
+msgid "top_users_title"
+msgstr "Топ юзеров"
+
+msgid "no_top_users"
+msgstr "Пока нет лучших пользователей"
+
+msgid "keep_playing"
+msgstr "Продолжайте играть, чтобы попасть в топ!"
+
+msgid "Last 30 Days"
+msgstr "За 30 дней"

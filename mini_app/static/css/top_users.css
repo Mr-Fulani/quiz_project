@@ -1,114 +1,302 @@
-.top-users-container {
-    padding: 20px;
-    max-width: 800px;
-    margin: 0 auto;
-    color: #fff;
+/* Стили для страницы топ-пользователей в матричном стиле */
+
+/* CSS переменные для единообразия с главной страницей */
+:root {
+    --base-bg: #151F28;
+    --matrix-color: #00ff00;
+    --active-color: #29fd53;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(0, 255, 0, 0.4);
+    --shadow-color: rgba(0, 255, 0, 0.3);
 }
 
-.top-users-container h1 {
+.top-users-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 30px 20px;
+    background: rgba(21, 31, 40, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px var(--shadow-color);
+    box-sizing: border-box;
+}
+
+.top-users-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
+}
+
+.top-users-header h1 {
     color: var(--active-color);
-    font-size: 2.5rem;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    font-size: 2.8rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    text-shadow: 0 0 20px var(--shadow-color);
+    letter-spacing: 1px;
+}
+
+.top-users-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    margin: 0;
+    font-weight: 300;
 }
 
 .top-users-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 20px;
 }
 
-.user-item-placeholder {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px dashed rgba(0, 255, 0, 0.4);
-    border-radius: 15px;
-    padding: 30px 20px;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    backdrop-filter: blur(10px);
+.user-item {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 25px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+}
+
+.user-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.1), transparent);
+    transition: left 0.6s ease;
+}
+
+.user-item:hover::before {
+    left: 100%;
+}
+
+.user-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--active-color);
+    box-shadow: 0 15px 40px var(--shadow-color);
+}
+
+.user-rank {
+    display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--active-color), var(--matrix-color));
+    border-radius: 50%;
+    color: var(--base-bg);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-right: 25px;
+    box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+    flex-shrink: 0;
+}
+
+.user-avatar-wrapper {
+    position: relative;
+    margin-right: 25px;
+    flex-shrink: 0;
 }
 
 .user-avatar {
-    font-size: 60px;
-    margin-bottom: 20px;
-    color: #fff;
-    text-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--border-color);
+    object-fit: cover;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.user-item-placeholder h3 {
+.user-avatar:hover {
+    border-color: var(--active-color);
+    transform: scale(1.05);
+}
+
+.online-indicator {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 16px;
+    height: 16px;
+    background: var(--active-color);
+    border: 3px solid var(--base-bg);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--active-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 var(--active-color); }
+    70% { box-shadow: 0 0 0 10px rgba(41, 253, 83, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(41, 253, 83, 0); }
+}
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-username {
     color: var(--active-color);
-    margin-bottom: 10px;
-    font-size: 1.5em;
+    font-size: 1.4rem;
     font-weight: 600;
+    margin: 0 0 8px 0;
     letter-spacing: 0.5px;
 }
 
-.user-item-placeholder p {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1.1em;
-    line-height: 1.5;
+.user-name {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0 0 15px 0;
+    font-weight: 300;
+}
+
+.user-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 300;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.stat-value {
+    color: var(--active-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-shadow: 0 0 10px var(--shadow-color);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.empty-state p {
+    font-size: 1.2rem;
+    margin: 0;
+    font-weight: 300;
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
     .top-users-container {
-        padding: 15px;
+        padding: 20px 15px;
+        margin: 10px;
     }
 
-    .top-users-container h1 {
-        font-size: 2rem;
-        margin-bottom: 20px;
+    .top-users-header h1 {
+        font-size: 2.2rem;
     }
 
-    .top-users-list {
-        grid-template-columns: 1fr;
+    .top-users-subtitle {
+        font-size: 1rem;
     }
 
-    .user-item-placeholder {
-        padding: 25px 15px;
-        min-height: 180px;
+    .user-item {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .user-rank {
+        margin: 0 0 20px 0;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    .user-avatar-wrapper {
+        margin: 0 0 20px 0;
     }
 
     .user-avatar {
-        font-size: 50px;
-        margin-bottom: 15px;
+        width: 70px;
+        height: 70px;
     }
 
-    .user-item-placeholder h3 {
-        font-size: 1.3em;
+    .user-stats {
+        justify-content: center;
+        gap: 15px;
     }
 
-    .user-item-placeholder p {
-        font-size: 1em;
+    .stat-item {
+        min-width: 70px;
     }
 }
 
 @media (max-width: 480px) {
     .top-users-container {
-        padding: 10px;
+        padding: 15px 10px;
+        margin: 5px;
     }
 
-    .top-users-container h1 {
+    .top-users-header h1 {
         font-size: 1.8rem;
-        margin-bottom: 15px;
+    }
+
+    .user-item {
+        padding: 15px;
+    }
+
+    .user-rank {
+        width: 45px;
+        height: 45px;
+        font-size: 1rem;
     }
 
     .user-avatar {
-        font-size: 40px;
-        margin-bottom: 10px;
+        width: 60px;
+        height: 60px;
     }
 
-    .user-item-placeholder h3 {
-        font-size: 1.1em;
+    .user-username {
+        font-size: 1.2rem;
     }
 
-    .user-item-placeholder p {
-        font-size: 0.9em;
+    .user-stats {
+        gap: 10px;
+    }
+
+    .stat-item {
+        min-width: 60px;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .stat-value {
+        font-size: 1rem;
     }
 }

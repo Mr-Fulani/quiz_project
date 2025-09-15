@@ -1,7 +1,7 @@
 import logging
 import time
 
-from fastapi import APIRouter, Request, UploadFile, File, Query
+from fastapi import APIRouter, Request, UploadFile, File, Query, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -97,24 +97,39 @@ async def top_users(
         localization_service.set_language(lang)
     
     current_language = localization_service.get_language()
-    logger.info(f"Rendering top_users page with language: {current_language}")
-    
-    # Получаем переводы для текущего языка
-    translations = localization_service.get_all_texts()
-    
-    return templates.TemplateResponse("top_users.html", {
-        "request": request,
-        "translations": translations,
-        "current_language": current_language,
-        "supported_languages": localization_service.get_supported_languages(),
-        "tasks_js_url": get_js_url('tasks.js'),
-        "localization_js_url": get_js_url('localization.js'),
-        "share_app_js_url": get_js_url('share-app.js'),
-        "donation_js_url": get_js_url('donation.js'),
-        "styles_css_url": get_css_url('styles.css'),
-        "share_app_css_url": get_css_url('share-app.css'),
-        "donation_css_url": get_css_url('donation.css'),
-    })
+    try:
+        logger.info(f"Rendering top_users page with language: {current_language}")
+        
+        # Получаем переводы для текущего языка
+        translations = localization_service.get_all_texts()
+        
+        # Получаем список топ-пользователей Mini App
+        top_users_data = await django_api_service.get_top_users_mini_app(language=current_language)
+        
+        logger.info(f"Получены данные топ-пользователей: {top_users_data}")
+        
+        if not top_users_data: # Если список пуст, передаем пустой список и выводим сообщение
+            logger.warning("Список топ-пользователей пуст или не содержит данных.")
+            top_users_data = [] # Убедимся, что это список
+        
+        return templates.TemplateResponse("top_users.html", {
+            "request": request,
+            "translations": translations,
+            "current_language": current_language,
+            "supported_languages": localization_service.get_supported_languages(),
+            "top_users": top_users_data, # Передаем данные топ-пользователей в шаблон
+            "tasks_js_url": get_js_url('tasks.js'),
+            "localization_js_url": get_js_url('localization.js'),
+            "share_app_js_url": get_js_url('share-app.js'),
+            "donation_js_url": get_js_url('donation.js'),
+            "styles_css_url": get_css_url('styles.css'),
+            "share_app_css_url": get_css_url('share-app.css'),
+            "donation_css_url": get_css_url('donation.css'),
+            "top_users_css_url": get_css_url('top_users.css'),
+        })
+    except Exception as e:
+        logger.error(f"Ошибка при рендеринге страницы топ-пользователей: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/statistics", response_class=HTMLResponse)
 async def statistics(

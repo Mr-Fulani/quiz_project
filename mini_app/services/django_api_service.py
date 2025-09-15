@@ -193,5 +193,17 @@ class DjangoAPIService:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")
             return None
 
+    async def get_top_users_mini_app(self, language: str = 'en') -> List[Dict[str, Any]]:
+        """
+        Получение списка топ-пользователей Mini App из Django API.
+        """
+        try:
+            params = {'language': language}
+            data = await self._make_request("GET", "/api/accounts/miniapp-users/top/", params=params)
+            return data  # API MiniAppTopUsersListView возвращает список напрямую
+        except Exception as e:
+            logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")
+            return []
+
 # Создаем единственный экземпляр сервиса
 django_api_service = DjangoAPIService(settings.DJANGO_API_BASE_URL) 
