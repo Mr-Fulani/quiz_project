@@ -29,6 +29,26 @@
     margin-bottom: 40px;
 }
 
+.header-icon {
+    margin-bottom: 20px;
+}
+
+.header-icon ion-icon {
+    font-size: 4rem;
+    color: var(--active-color);
+    text-shadow: 0 0 20px var(--shadow-color);
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 20px var(--shadow-color);
+    }
+    to {
+        text-shadow: 0 0 30px var(--active-color), 0 0 40px var(--shadow-color);
+    }
+}
+
 .top-users-header h1 {
     color: var(--active-color);
     font-size: 2.8rem;
@@ -109,8 +129,8 @@
 }
 
 .user-avatar {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     border: 3px solid var(--border-color);
     object-fit: cover;
@@ -241,8 +261,8 @@
     }
 
     .user-avatar {
-        width: 70px;
-        height: 70px;
+        width: 90px;
+        height: 90px;
     }
 
     .user-stats {
@@ -276,8 +296,8 @@
     }
 
     .user-avatar {
-        width: 60px;
-        height: 60px;
+        width: 80px;
+        height: 80px;
     }
 
     .user-username {
