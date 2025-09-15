@@ -1572,6 +1572,13 @@ msgstr "Description"
 msgid "Found a bug? Write to us in social networks!"
 msgstr "Found a bug? Write to us in social networks!"
 
+# New translations for Top Users
+msgid "no_top_users"
+msgstr "No top users yet"
+
+msgid "keep_playing"
+msgstr "Keep playing to get to the top!"
+
 msgid "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
 msgstr "No tasks available for difficulty level \"%(difficulty)s\" in subtopic \"%(subtopic_name)s\"."
 

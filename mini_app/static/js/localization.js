@@ -97,6 +97,7 @@ class LocalizationService {
      * Обновляет интерфейс с новыми переводами
      */
     updateInterface() {
+        console.log('LOCALIZATION.JS: updateInterface called. Current language:', this.currentLanguage, 'Translations keys:', Object.keys(this.translations));
         let updatedCount = 0;
         
         // Обновляем все элементы с data-translate атрибутом

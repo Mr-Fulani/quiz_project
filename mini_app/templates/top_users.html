@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ translations.get('top_users_title', 'Топ юзеров') }}
+{% endblock %}
+
+{% block content %}
+<div class="top-users-container">
+    <h1 data-translate="top_users_title">{{ translations.get('top_users_title', 'Топ юзеров') }}</h1>
+    
+    <div class="top-users-list">
+        <!-- Здесь будет отображаться список лучших пользователей -->
+        <div class="user-item-placeholder">
+            <div class="user-avatar">👤</div>
+            <h3 data-translate="no_top_users">{{ translations.get('no_top_users', 'Пока нет лучших пользователей') }}</h3>
+            <p data-translate="keep_playing">{{ translations.get('keep_playing', 'Продолжайте играть, чтобы попасть в топ!') }}</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.top-users-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.top-users-container h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.top-users-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.user-item-placeholder {
+    background: white;
+    border-radius: 15px;
+    padding: 40px 20px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border: 2px dashed #ddd;
+}
+
+.user-avatar {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.user-item-placeholder h3 {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.user-item-placeholder p {
+    color: #999;
+    font-size: 14px;
+    line-height: 1.5;
+}
+</style>
+{% endblock %}

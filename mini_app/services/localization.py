@@ -13,7 +13,7 @@ class LocalizationService:
             # Навигация
             "home": "Home",
             "profile": "Profile", 
-            "achievements": "Achievements",
+            "top_users": "Top Users",
             "statistics": "Statistics",
             "settings": "Settings",
             
@@ -46,9 +46,9 @@ class LocalizationService:
             "language": "Language",
             
             # Достижения
-            "achievements_title": "Achievements",
-            "no_achievements": "No achievements yet",
-            "keep_learning": "Keep learning to unlock achievements!",
+            "top_users_title": "Top Users",
+            "no_top_users": "No top users yet",
+            "keep_playing": "Keep playing to get to the top!",
             
             # Статистика
             "statistics_title": "Statistics",
@@ -125,7 +125,7 @@ class LocalizationService:
             # Навигация
             "home": "Главная",
             "profile": "Профиль",
-            "achievements": "Достижения", 
+            "top_users": "Топ юзеров",
             "statistics": "Статистика",
             "settings": "Настройки",
             
@@ -158,9 +158,9 @@ class LocalizationService:
             "language": "Язык",
             
             # Достижения
-            "achievements_title": "Достижения",
-            "no_achievements": "Пока нет достижений",
-            "keep_learning": "Продолжайте учиться, чтобы открыть достижения!",
+            "top_users_title": "Топ юзеров",
+            "no_top_users": "Пока нет лучших пользователей",
+            "keep_playing": "Продолжайте играть, чтобы попасть в топ!",
             
             # Статистика
             "statistics_title": "Статистика",
