@@ -6,61 +6,48 @@
 
 {% block content %}
 <div class="top-users-container">
-    <h1 data-translate="top_users_title">{{ translations.get('top_users_title', 'Топ юзеров') }}</h1>
+    <div class="top-users-header">
+        <h1 data-translate="top_users_title">{{ translations.get('top_users_title', 'Топ юзеров') }}</h1>
+        <p class="top-users-subtitle" data-translate="top_users_description">{{ translations.get('top_users_description', 'Лучшие игроки по рейтингу') }}</p>
+    </div>
     
     <div class="top-users-list">
-        <!-- Здесь будет отображаться список лучших пользователей -->
-        <div class="user-item-placeholder">
-            <div class="user-avatar">👤</div>
-            <h3 data-translate="no_top_users">{{ translations.get('no_top_users', 'Пока нет лучших пользователей') }}</h3>
-            <p data-translate="keep_playing">{{ translations.get('keep_playing', 'Продолжайте играть, чтобы попасть в топ!') }}</p>
-        </div>
+        {% if top_users %}
+            {% for user in top_users %}
+            <div class="user-item">
+                <div class="user-rank">{{ loop.index }}</div>
+                <div class="user-avatar-wrapper">
+                    <img class="user-avatar" src="{{ user.avatar or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
+                    {% if user.is_online %}
+                    <div class="online-indicator"></div>
+                    {% endif %}
+                </div>
+                <div class="user-info">
+                    <h3 class="user-username">{{ user.username }}</h3>
+                    <p class="user-name">{{ user.first_name }} {{ user.last_name }}</p>
+                    <div class="user-stats">
+                        <div class="stat-item">
+                            <span class="stat-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}:</span>
+                            <span class="stat-value">{{ user.rating }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label" data-translate="quizzes_completed">{{ translations.get('quizzes_completed', 'Квизов') }}:</span>
+                            <span class="stat-value">{{ user.quizzes_completed }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label" data-translate="average_score">{{ translations.get('average_score', 'Средний балл') }}:</span>
+                            <span class="stat-value">{{ "%.1f"|format(user.average_score) }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🏆</div>
+                <p data-translate="no_top_users">{{ translations.get('no_top_users', 'Пока нет лучших пользователей') }}</p>
+            </div>
+        {% endif %}
     </div>
 </div>
-
-<style>
-.top-users-container {
-    padding: 20px;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.top-users-container h1 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #333;
-}
-
-.top-users-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.user-item-placeholder {
-    background: white;
-    border-radius: 15px;
-    padding: 40px 20px;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    border: 2px dashed #ddd;
-}
-
-.user-avatar {
-    font-size: 48px;
-    margin-bottom: 20px;
-}
-
-.user-item-placeholder h3 {
-    color: #666;
-    margin-bottom: 10px;
-    font-size: 18px;
-}
-
-.user-item-placeholder p {
-    color: #999;
-    font-size: 14px;
-    line-height: 1.5;
-}
-</style>
 {% endblock %}

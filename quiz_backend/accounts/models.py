@@ -718,4 +718,66 @@ class MiniAppUser(models.Model):
             'main_site_successful': main_stats['main_successful_attempts'] or 0,
             'mini_app_successful': mini_app_stats['mini_app_successful_attempts'] or 0
         }
+    
+    @staticmethod
+    def get_rating_annotation():
+        """
+        Возвращает аннотацию для подсчета рейтинга Mini App пользователя.
+        """
+        from tasks.models import MiniAppTaskStatistics # Импорт внутри функции для избежания циклических зависимостей
+        from django.db.models import Sum, Case, When, Value, IntegerField
+        
+        return Sum(
+            Case(
+                When(task_statistics__successful=True, then=Case(
+                    When(task_statistics__task__difficulty='easy', then=Value(10)),
+                    When(task_statistics__task__difficulty='medium', then=Value(25)),
+                    When(task_statistics__task__difficulty='hard', then=Value(50)),
+                    default=Value(10),
+                    output_field=IntegerField(),
+                )),
+                default=0,
+                output_field=IntegerField(),
+            )
+        )
+    
+    def calculate_rating(self):
+        """
+        Расчёт рейтинга Mini App пользователя на основе сложности решённых задач.
+        """
+        rating_data = self.__class__.objects.filter(id=self.id).annotate(
+            total_score=self.get_rating_annotation()
+        ).first()
+        
+        return (rating_data.total_score or 0) if rating_data else 0
+
+    @property
+    def quizzes_completed(self):
+        """
+        Возвращает количество завершенных квизов для MiniAppUser.
+        """
+        from tasks.models import MiniAppTaskStatistics
+        return MiniAppTaskStatistics.objects.filter(mini_app_user=self, successful=True).count()
+    
+    @property
+    def average_score(self):
+        """
+        Возвращает средний балл (процент успешности) для MiniAppUser.
+        """
+        from tasks.models import MiniAppTaskStatistics
+        total_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=self).count()
+        successful_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=self, successful=True).count()
+        
+        if total_attempts == 0:
+            return 0.0
+        return round((successful_attempts / total_attempts) * 100, 1)
+
+    @property
+    def is_online(self):
+        """
+        Проверяет, онлайн ли пользователь (последний визит в течение 5 минут).
+        """
+        if not self.last_seen:
+            return False
+        return timezone.now() - self.last_seen < timedelta(minutes=5)
 
