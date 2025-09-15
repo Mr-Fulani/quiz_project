@@ -1954,11 +1954,17 @@ msgstr "Отправлено %(sent)d благодарственных писе�
 msgid "Donation Statistics"
 msgstr "Статистика донатов"
 
-msgid "Total Donations"
-msgstr "Всего донатов"
+msgid "top_users"
+msgstr "Топ юзеров"
 
-msgid "Completed"
-msgstr "Завершенных"
+msgid "top_users_title"
+msgstr "Топ юзеров"
+
+msgid "no_top_users"
+msgstr "Пока нет лучших пользователей"
+
+msgid "keep_playing"
+msgstr "Продолжайте играть, чтобы попасть в топ!"
 
 msgid "Last 30 Days"
 msgstr "За 30 дней"

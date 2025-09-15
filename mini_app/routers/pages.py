@@ -87,8 +87,8 @@ async def profile(
         "profile_js_url": get_js_url('profile.js'),
     })
 
-@router.get("/achievements", response_class=HTMLResponse)
-async def achievements(
+@router.get("/top_users", response_class=HTMLResponse)
+async def top_users(
     request: Request,
     lang: str = Query(default=None, description="Language code")
 ):
@@ -97,12 +97,12 @@ async def achievements(
         localization_service.set_language(lang)
     
     current_language = localization_service.get_language()
-    logger.info(f"Rendering achievements page with language: {current_language}")
+    logger.info(f"Rendering top_users page with language: {current_language}")
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
     
-    return templates.TemplateResponse("achievements.html", {
+    return templates.TemplateResponse("top_users.html", {
         "request": request,
         "translations": translations,
         "current_language": current_language,
