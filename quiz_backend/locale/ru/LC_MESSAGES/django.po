@@ -2316,3 +2316,6 @@ msgstr "Продолжайте играть, чтобы попасть в топ
 
 msgid "Last 30 Days"
 msgstr "За 30 дней"
+
+msgid "top_users_description"
+msgstr "Лучшие игроки по рейтингу"

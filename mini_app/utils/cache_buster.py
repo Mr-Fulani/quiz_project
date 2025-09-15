@@ -72,7 +72,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 # Версии для критически важных файлов
 STATIC_VERSIONS = {
     'donation.js': '2.1',
-    'localization.js': '1.9',
+    'localization.js': '2.1',
     'share-app.js': '1.8',
     'profile.js': '5.0',
     'search.js': '1.7',
@@ -81,7 +81,7 @@ STATIC_VERSIONS = {
     'topic-detail.js': '1.6',
     'styles.css': '1.2',
     'profile.css': '1.2',
-    'top_users.css': '1.3',
+    'top_users.css': '1.4',
 }
 
 

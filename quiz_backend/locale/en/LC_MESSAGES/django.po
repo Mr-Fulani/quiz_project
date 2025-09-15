@@ -2031,3 +2031,6 @@ msgstr "Sent %(sent)d thank you emails out of %(total)d completed donations."
 # Donation statistics translations
 msgid "Donation Statistics"
 msgstr "Donation Statistics"
+
+msgid "top_users_description"
+msgstr "Best players by rating"
