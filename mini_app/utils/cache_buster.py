@@ -79,7 +79,7 @@ STATIC_VERSIONS = {
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
     'topic-detail.js': '1.6',
-    'statistics.js': '2.9',  # Добавлена отладочная информация для getAchievementDescription
+    'statistics.js': '3.0',  # Добавлена локализация названий достижений
     'styles.css': '1.2',
     'profile.css': '1.2',
     'top_users.css': '1.4',

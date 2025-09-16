@@ -61,6 +61,12 @@ class LocalizationService:
             "achievements": "Achievements",
             "topic_progress": "Topic Progress",
             
+            # Названия достижений
+            "achievement_first_step": "First Step",
+            "achievement_expert": "Expert",
+            "achievement_streak": "Streak",
+            "achievement_master": "Master",
+            
             # Настройки
             "settings_title": "Settings",
             "language_settings": "Language",
@@ -175,6 +181,12 @@ class LocalizationService:
             "best_streak": "Лучшая серия",
             "achievements": "Достижения",
             "topic_progress": "Прогресс по темам",
+            
+            # Названия достижений
+            "achievement_first_step": "Первый шаг",
+            "achievement_expert": "Эксперт",
+            "achievement_streak": "Серия",
+            "achievement_master": "Мастер",
             
             # Настройки
             "settings_title": "Настройки",
