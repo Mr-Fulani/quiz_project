@@ -42,8 +42,8 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
+      - DB_HOST=database
+      - DB_PORT=5432
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
       - ALLOWED_HOSTS=quiz-code.localhost,mini.quiz-code.localhost,localhost,quiz_backend,quiz_backend:8000
