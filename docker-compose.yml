@@ -110,7 +110,7 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
       args:
-        NGINX_CONF: nginx-prod.conf
+        NGINX_CONF: nginx-local.conf
     container_name: nginx
     ports:
       - "80:80"
