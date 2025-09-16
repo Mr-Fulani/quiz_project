@@ -36,11 +36,7 @@ class StatisticsManager {
         // Анимация прогресс-баров
         this.animateProgressBars();
         
-        // Инициализация всплывающих подсказок для достижений
-        this.initAchievementTooltips();
         
-        // Добавляем обработчик клика по документу для скрытия подсказок
-        document.addEventListener('click', (e) => this.handleDocumentClick(e));
         
         // Обновление статистики каждые 30 секунд
         if (this.telegramId) {
@@ -131,10 +127,6 @@ class StatisticsManager {
             this.updateTopicProgress(data.topic_progress);
         }
 
-        // Обновляем достижения
-        if (data.achievements && data.achievements.length > 0) {
-            this.updateAchievements(data.achievements);
-        }
     }
 
     /**
@@ -210,215 +202,9 @@ class StatisticsManager {
         setTimeout(() => this.animateProgressBars(), 100);
     }
 
-    /**
-     * Обновление достижений
-     */
-    updateAchievements(achievements) {
-        const container = document.querySelector('.achievements-grid');
-        if (!container) return;
 
-        // Очищаем существующий контент
-        container.innerHTML = '';
-
-        achievements.forEach(achievement => {
-            const item = document.createElement('div');
-            item.className = `achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}`;
-            item.dataset.achievementId = achievement.id;
-            item.dataset.achievementName = achievement.name;
-            item.dataset.achievementDescription = achievement.description || '';
-            item.innerHTML = `
-                <div class="achievement-icon">${achievement.icon}</div>
-                <div class="achievement-name">${achievement.name}</div>
-            `;
-            container.appendChild(item);
-        });
-
-        // Переинициализируем подсказки для новых достижений
-        this.initAchievementTooltips();
-    }
-
-    /**
-     * Инициализация всплывающих подсказок для достижений
-     */
-    initAchievementTooltips() {
-        console.log('StatisticsManager: initAchievementTooltips вызван');
-        const achievements = document.querySelectorAll('.achievement-item');
-        console.log('StatisticsManager: Найдено достижений:', achievements.length);
-        
-        if (achievements.length === 0) {
-            console.log('StatisticsManager: Достижения не найдены, повторная попытка через 1 секунду');
-            setTimeout(() => this.initAchievementTooltips(), 1000);
-            return;
-        }
-        
-        achievements.forEach((achievement, index) => {
-            // Удаляем старые обработчики, если они есть
-            achievement.removeEventListener('mouseenter', this.showAchievementTooltip);
-            achievement.removeEventListener('mouseleave', this.hideAchievementTooltip);
-            achievement.removeEventListener('touchstart', this.showAchievementTooltip);
-            achievement.removeEventListener('touchend', this.hideAchievementTooltip);
-            achievement.removeEventListener('click', this.showAchievementTooltip);
-            
-            // Добавляем новые обработчики событий
-            achievement.addEventListener('mouseenter', (e) => this.showAchievementTooltip(e));
-            achievement.addEventListener('mouseleave', () => this.hideAchievementTooltip());
-            achievement.addEventListener('touchstart', (e) => this.showAchievementTooltip(e));
-            achievement.addEventListener('touchend', () => this.hideAchievementTooltip());
-            achievement.addEventListener('click', (e) => {
-                console.log('StatisticsManager: КЛИК ПО ДОСТИЖЕНИЮ!', e.target);
-                this.showAchievementTooltip(e);
-            });
-        });
-    }
-
-    /**
-     * Показать всплывающую подсказку для достижения
-     */
-    showAchievementTooltip(event) {
-        console.log('StatisticsManager: showAchievementTooltip вызван');
-        
-        const achievement = event.currentTarget;
-        const achievementId = achievement.dataset.achievementId;
-        const achievementName = achievement.dataset.achievementName;
-        
-        // Получаем описание достижения
-        const description = this.getAchievementDescription(achievementId, achievementName);
-        
-        // Создаем подсказку
-        let tooltip = document.querySelector('.achievement-tooltip');
-        if (!tooltip) {
-            console.log('StatisticsManager: Создание новой подсказки');
-            tooltip = document.createElement('div');
-            tooltip.className = 'achievement-tooltip';
-            tooltip.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(0, 0, 0, 0.9);
-                color: #00ff00;
-                padding: 20px;
-                border-radius: 10px;
-                border: 2px solid #00ff00;
-                z-index: 10000;
-                font-size: 18px;
-                text-align: center;
-                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-                max-width: 300px;
-                word-wrap: break-word;
-            `;
-            document.body.appendChild(tooltip);
-        }
-        
-        tooltip.innerHTML = '<strong>' + achievementName + '</strong><br><br>' + description;
-        
-        // Позиционируем подсказку
-        const rect = achievement.getBoundingClientRect();
-        tooltip.style.left = `${rect.left + rect.width / 2}px`;
-        tooltip.style.top = `${rect.top - 10}px`;
-        tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
-        
-        console.log('StatisticsManager: Позиция подсказки:', tooltip.style.left, tooltip.style.top);
-        
-        // Показываем подсказку
-        setTimeout(() => {
-            tooltip.classList.add('show');
-            console.log('StatisticsManager: Подсказка показана');
-        }, 10);
-    }
-
-    /**
-     * Скрыть всплывающую подсказку
-     */
-    hideAchievementTooltip() {
-        const tooltip = document.querySelector('.achievement-tooltip');
-        if (tooltip) {
-            tooltip.classList.remove('show');
-        }
-    }
-
-    /**
-     * Обработчик клика вне подсказки для её скрытия
-     */
-    handleDocumentClick(event) {
-        const tooltip = document.querySelector('.achievement-tooltip');
-        const achievement = event.target.closest('.achievement-item');
-        
-        if (tooltip && !achievement) {
-            this.hideAchievementTooltip();
-        }
-    }
-
-    /**
-     * Получить описание достижения на текущем языке
-     */
-    getAchievementDescription(achievementId, achievementName) {
-        console.log('StatisticsManager: getAchievementDescription вызван для ID:', achievementId, 'Название:', achievementName);
-        console.log('StatisticsManager: window.currentLanguage:', window.currentLanguage);
-        
-        const descriptions = {
-            '1': {
-                'en': 'Complete your first quiz to unlock this achievement!',
-                'ru': 'Пройдите первую викторину, чтобы разблокировать это достижение!'
-            },
-            '2': {
-                'en': 'Achieve 60% success rate to become an expert!',
-                'ru': 'Достигните 60% успешности, чтобы стать экспертом!'
-            },
-            '3': {
-                'en': 'Master web development topics to unlock this achievement!',
-                'ru': 'Освойте темы веб-разработки, чтобы разблокировать это достижение!'
-            },
-            '4': {
-                'en': 'Answer 3 questions correctly in a row to unlock this streak!',
-                'ru': 'Ответьте правильно на 3 вопроса подряд, чтобы разблокировать эту серию!'
-            },
-            '5': {
-                'en': 'Achieve 90% success rate to become a true expert!',
-                'ru': 'Достигните 90% успешности, чтобы стать настоящим экспертом!'
-            },
-            '6': {
-                'en': 'Complete quizzes quickly to unlock the speed achievement!',
-                'ru': 'Проходите викторины быстро, чтобы разблокировать достижение скорости!'
-            }
-        };
-
-        const currentLang = window.currentLanguage || 'en';
-        console.log('StatisticsManager: Используемый язык:', currentLang);
-        console.log('StatisticsManager: Доступные описания для ID', achievementId, ':', descriptions[achievementId]);
-        
-        const description = descriptions[achievementId]?.[currentLang] || descriptions[achievementId]?.['en'] || achievementName;
-        console.log('StatisticsManager: Выбранное описание:', description);
-        
-        return description;
-    }
-
-    /**
-     * Добавление эффекта пульсации для новых достижений
-     */
-    highlightNewAchievements() {
-        const unlockedAchievements = document.querySelectorAll('.achievement-item.unlocked');
-        unlockedAchievements.forEach(achievement => {
-            achievement.style.animation = 'pulse 2s infinite';
-        });
-    }
 }
 
-// CSS для анимации пульсации
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-        }
-        50% {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
-        }
-    }
-`;
-document.head.appendChild(style);
 
 
 // Инициализация при загрузке страницы
