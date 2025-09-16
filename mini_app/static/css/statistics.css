@@ -161,47 +161,6 @@
     animation: cardGlow 3s ease-in-out infinite 2s;
 }
 
-/* Стили для всплывающих подсказок достижений */
-.achievement-tooltip {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.95);
-    color: var(--active-color);
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 255, 0, 0.5);
-    box-shadow: 0 8px 25px rgba(0, 255, 0, 0.3);
-    backdrop-filter: blur(15px);
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    white-space: nowrap;
-    z-index: 1000;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s ease;
-    pointer-events: none;
-    max-width: 200px;
-    word-wrap: break-word;
-    white-space: normal;
-}
-
-.achievement-tooltip.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.achievement-tooltip::after {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-bottom: 6px solid rgba(0, 255, 0, 0.5);
-}
 
 /* Адаптивность */
 @media (max-width: 768px) {
@@ -319,29 +278,7 @@
         font-size: 12px;
     }
     
-    .achievement-tooltip {
-        font-size: 11px;
-        padding: 8px 10px;
-        max-width: 120px;
-    }
     
-    .achievements-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-    }
-    
-    .achievement-item {
-        padding: 10px 8px;
-    }
-    
-    .achievement-icon {
-        font-size: 24px;
-        margin-bottom: 6px;
-    }
-    
-    .achievement-name {
-        font-size: 10px;
-    }
 }
 
 /* Специальные стили для разных типов статистики */
@@ -453,61 +390,6 @@
     box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
-/* Стили для достижений */
-.achievements-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-}
-
-.achievement-item {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(0, 255, 0, 0.3);
-    border-radius: 15px;
-    padding: 20px;
-    text-align: center;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.achievement-item.unlocked {
-    background: rgba(0, 255, 0, 0.1);
-    border-color: var(--active-color);
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-}
-
-.achievement-item.locked {
-    opacity: 0.5;
-    filter: grayscale(0.8);
-}
-
-.achievement-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 255, 0, 0.3);
-}
-
-.achievement-icon {
-    font-size: 40px;
-    margin-bottom: 10px;
-    filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.3));
-}
-
-.achievement-item.unlocked .achievement-icon {
-    filter: drop-shadow(0 0 15px rgba(0, 255, 0, 0.5));
-}
-
-.achievement-name {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    font-weight: 600;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-}
-
-.achievement-item.unlocked .achievement-name {
-    color: var(--active-color);
-    text-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-}
 
 /* Адаптивность для новых элементов */
 @media (max-width: 768px) {
@@ -523,39 +405,5 @@
         font-size: 14px;
     }
     
-    .achievements-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 15px;
-    }
-    
-    .achievement-item {
-        padding: 15px;
-    }
-    
-    .achievement-icon {
-        font-size: 32px;
-    }
-    
-    .achievement-name {
-        font-size: 12px;
-    }
 }
 
-@media (max-width: 480px) {
-    .achievements-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-    
-    .achievement-item {
-        padding: 12px;
-    }
-    
-    .achievement-icon {
-        font-size: 28px;
-    }
-    
-    .achievement-name {
-        font-size: 11px;
-    }
-}

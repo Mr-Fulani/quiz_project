@@ -135,41 +135,6 @@
             <p data-translate="no_statistics_data">{{ translations.get('no_statistics_data', 'Пока нет данных для отображения') }}</p>
         </div>
     </div>
-    
-    <!-- Тестовые достижения для демонстрации всплывающих подсказок -->
-    <div class="chart-container">
-        <h2 data-translate="achievements">{{ translations.get('achievements', 'Достижения') }}</h2>
-        <div class="achievements-grid">
-            <div class="achievement-item unlocked" 
-                 data-achievement-id="1"
-                 data-achievement-name="{{ translations.get('achievement_first_step', 'First Step') }}"
-                 data-achievement-description="Пройдите первую викторину">
-                <div class="achievement-icon">🏆</div>
-                <div class="achievement-name">{{ translations.get('achievement_first_step', 'First Step') }}</div>
-            </div>
-            <div class="achievement-item locked" 
-                 data-achievement-id="2"
-                 data-achievement-name="{{ translations.get('achievement_expert', 'Expert') }}"
-                 data-achievement-description="Достигните 60% успешности">
-                <div class="achievement-icon">💻</div>
-                <div class="achievement-name">{{ translations.get('achievement_expert', 'Expert') }}</div>
-            </div>
-            <div class="achievement-item unlocked" 
-                 data-achievement-id="4"
-                 data-achievement-name="{{ translations.get('achievement_streak', 'Streak') }}"
-                 data-achievement-description="Ответьте правильно на 3 вопроса подряд">
-                <div class="achievement-icon">🔥</div>
-                <div class="achievement-name">{{ translations.get('achievement_streak', 'Streak') }}</div>
-            </div>
-            <div class="achievement-item locked" 
-                 data-achievement-id="5"
-                 data-achievement-name="{{ translations.get('achievement_master', 'Master') }}"
-                 data-achievement-description="Достигните 90% успешности">
-                <div class="achievement-icon">⭐</div>
-                <div class="achievement-name">{{ translations.get('achievement_master', 'Master') }}</div>
-            </div>
-        </div>
-    </div>
     {% endif %}
 </div>
 {% endblock %}
