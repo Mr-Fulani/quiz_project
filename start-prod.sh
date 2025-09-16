@@ -20,7 +20,7 @@ echo "ℹ️  Временно используются только домен�
 # echo "Запуск Certbot с командой: docker compose -f docker-compose.local-prod.yml run --rm --entrypoint \"sh\" certbot -c \"set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot --staging --agree-tos -v --non-interactive --email $EMAIL --config-dir /etc/letsencrypt/conf --work-dir /etc/letsencrypt/work --logs-dir /etc/letsencrypt/logs --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot\""
 
 echo "🔌 Остановка и удаление существующих контейнеров..."
-docker compose down --volumes
+docker compose -f docker-compose.local-prod.yml down --volumes
 
 echo "🧹 Проверка и подготовка конфигураций Certbot..."
 # Проверяем, есть ли уже сертификаты
@@ -38,28 +38,28 @@ fi
 if [ "$SKIP_CERTBOT" = true ]; then
     echo "🚀 Запуск всех сервисов с существующими SSL сертификатами..."
     # Если сертификаты уже есть, сразу запускаем все с SSL
-    docker compose up -d --build
+    docker compose -f docker-compose.local-prod.yml up -d --build
 else
     echo "🚀 Запуск базовых сервисов (без SSL)..."
     # Запускаем только базовые сервисы без SSL
-    docker compose up -d database quiz_backend mini_app
+    docker compose -f docker-compose.local-prod.yml up -d database quiz_backend mini_app
 
     echo "⏳ Ожидание готовности сервисов..."
     sleep 10
 
     echo "🌐 Запуск Nginx (временная конфигурация для получения сертификатов)..."
     # Пересобираем Nginx с временной конфигурацией (только HTTP)
-    docker compose build nginx --build-arg NGINX_CONF=nginx-temp.conf
+    docker compose -f docker-compose.local-prod.yml build nginx --build-arg NGINX_CONF=nginx-temp.conf
     # Запускаем Nginx отдельно
-    docker compose up -d nginx
+    docker compose -f docker-compose.local-prod.yml up -d nginx
 
     echo "⏳ Ожидание готовности Nginx..."
     sleep 5
 
     echo "🔐 Запуск Certbot для получения SSL сертификатов..."
         # Запуск Certbot для получения первоначальных сертификатов
-        echo "Выполняется команда: docker compose run --rm --entrypoint \"sh\" certbot -c \"/usr/local/bin/certbot certonly --webroot -w /var/www/certbot --agree-tos -v --non-interactive --email $EMAIL --domains $DOMAINS\""
-        docker compose run --rm --entrypoint "sh" certbot -c "/usr/local/bin/certbot certonly --webroot -w /var/www/certbot --agree-tos -v --non-interactive --email $EMAIL --domains $DOMAINS" > certbot_debug.log 2>&1
+        echo "Выполняется команда: docker compose -f docker-compose.local-prod.yml run --rm --entrypoint \"sh\" certbot -c \"/usr/local/bin/certbot certonly --webroot -w /var/www/certbot --agree-tos -v --non-interactive --email $EMAIL --domains $DOMAINS\""
+        docker compose -f docker-compose.local-prod.yml run --rm --entrypoint "sh" certbot -c "/usr/local/bin/certbot certonly --webroot -w /var/www/certbot --agree-tos -v --non-interactive --email $EMAIL --domains $DOMAINS" > certbot_debug.log 2>&1
         
         # Проверяем результат выполнения
         if [ $? -eq 0 ]; then
@@ -79,8 +79,8 @@ else
 
     echo "🔄 Перезапуск всех сервисов с SSL..."
     # Перезапускаем все сервисы с SSL сертификатами
-    docker compose down
-    docker compose up -d --build
+    docker compose -f docker-compose.local-prod.yml down
+    docker compose -f docker-compose.local-prod.yml up -d --build
 fi
 
 echo "✅ Продакшен запущен!"

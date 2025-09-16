@@ -575,6 +575,28 @@
                     console.error('❌ Failed to load settings.js');
                 };
                 document.head.appendChild(script);
+            } else if (url === '/statistics') {
+                console.log('🎯 Statistics page detected, loading script...');
+                // Для статистики загружаем скрипт
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '{{ get_js_url("statistics.js") }}';
+                script.onload = function() {
+                    console.log('✅ Statistics script loaded via base template');
+                    // Вызываем инициализацию статистики после загрузки скрипта
+                    setTimeout(() => {
+                        console.log('🚀 Calling initStatistics after script load');
+                        if (typeof window.initStatistics === 'function') {
+                            window.initStatistics();
+                        } else {
+                            console.error('❌ initStatistics function not found!');
+                        }
+                    }, 100);
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load statistics.js');
+                };
+                document.head.appendChild(script);
             }
         }
         

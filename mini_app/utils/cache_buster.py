@@ -79,7 +79,7 @@ STATIC_VERSIONS = {
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
     'topic-detail.js': '1.6',
-    'statistics.js': '2.7',  # Добавлена отладочная информация и улучшена инициализация
+    'statistics.js': '2.9',  # Добавлена отладочная информация для getAchievementDescription
     'styles.css': '1.2',
     'profile.css': '1.2',
     'top_users.css': '1.4',
