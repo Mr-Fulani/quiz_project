@@ -928,49 +928,49 @@ class MiniAppUserStatisticsView(APIView):
             # Получаем статистику из MiniAppTaskStatistics
             from tasks.models import MiniAppTaskStatistics
             
-                   # Основная статистика пользователя
-                   user_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).aggregate(
-                       total_attempts=Count('id'),
-                       successful_attempts=Count('id', filter=Q(successful=True)),
-                       failed_attempts=Count('id', filter=Q(successful=False))
-                   )
+            # Основная статистика пользователя
+            user_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).aggregate(
+                total_attempts=Count('id'),
+                successful_attempts=Count('id', filter=Q(successful=True)),
+                failed_attempts=Count('id', filter=Q(successful=False))
+            )
             
             success_rate = (
                 round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
                 if user_stats['total_attempts'] > 0 else 0
             )
             
-                   # Прогресс по темам (топ 5)
-                   topic_progress = []
-                   user_category_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).values(
-                       'task__topic__name',
-                       'task__topic__id'
-                   ).annotate(
-                       completed=Count('id', filter=Q(successful=True)),
-                       total=Count('id')
-                   ).order_by('-total')[:5]
+            # Прогресс по темам (топ 5)
+            topic_progress = []
+            user_category_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).values(
+                'task__topic__name',
+                'task__topic__id'
+            ).annotate(
+                completed=Count('id', filter=Q(successful=True)),
+                total=Count('id')
+            ).order_by('-total')[:5]
 
-                   # Определяем лучшую специализацию пользователя
-                   best_specialization = None
-                   best_percentage = 0
-                   
-                   for stat in user_category_stats:
-                       topic_name = stat['task__topic__name'] or 'Unknown'
-                       completed = stat['completed']
-                       total = stat['total']
-                       percentage = round((completed / total * 100), 0) if total > 0 else 0
+            # Определяем лучшую специализацию пользователя
+            best_specialization = None
+            best_percentage = 0
+            
+            for stat in user_category_stats:
+                topic_name = stat['task__topic__name'] or 'Unknown'
+                completed = stat['completed']
+                total = stat['total']
+                percentage = round((completed / total * 100), 0) if total > 0 else 0
 
-                       # Обновляем лучшую специализацию
-                       if percentage > best_percentage and total >= 3:  # Минимум 3 попытки
-                           best_percentage = percentage
-                           best_specialization = topic_name
+                # Обновляем лучшую специализацию
+                if percentage > best_percentage and total >= 3:  # Минимум 3 попытки
+                    best_percentage = percentage
+                    best_specialization = topic_name
 
-                       topic_progress.append({
-                           'name': topic_name,
-                           'completed': completed,
-                           'total': total,
-                           'percentage': percentage
-                       })
+                topic_progress.append({
+                    'name': topic_name,
+                    'completed': completed,
+                    'total': total,
+                    'percentage': percentage
+                })
             
             # Подсчет очков
             total_points = user_stats['successful_attempts'] * 10
@@ -1003,30 +1003,30 @@ class MiniAppUserStatisticsView(APIView):
                 'avatar_url': mini_app_user.avatar.url if mini_app_user.avatar else None
             }
             
-                   # Достижения с динамической специализацией
-                   achievements = [
-                       {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
-                       {'id': 2, 'name': f'Знаток {best_specialization or "Программирования"}', 'icon': '💻', 'unlocked': success_rate > 60, 'specialization': best_specialization},
-                       {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
-                       {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
-                       {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
-                       {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
-                   ]
+            # Достижения с динамической специализацией
+            achievements = [
+                {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
+                {'id': 2, 'name': f'Знаток {best_specialization or "Программирования"}', 'icon': '💻', 'unlocked': success_rate > 60, 'specialization': best_specialization},
+                {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
+                {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
+                {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
+                {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
+            ]
             
-                   statistics_data = {
-                       'user': user_info,
-                       'stats': {
-                           'total_quizzes': user_stats['total_attempts'],
-                           'completed_quizzes': user_stats['successful_attempts'],
-                           'failed_quizzes': user_stats['failed_attempts'],
-                           'success_rate': int(success_rate),
-                           'total_points': total_points,
-                           'current_streak': current_streak,
-                           'best_streak': best_streak
-                       },
-                       'topic_progress': topic_progress,
-                       'achievements': achievements
-                   }
+            statistics_data = {
+                'user': user_info,
+                'stats': {
+                    'total_quizzes': user_stats['total_attempts'],
+                    'completed_quizzes': user_stats['successful_attempts'],
+                    'failed_quizzes': user_stats['failed_attempts'],
+                    'success_rate': int(success_rate),
+                    'total_points': total_points,
+                    'current_streak': current_streak,
+                    'best_streak': best_streak
+                },
+                'topic_progress': topic_progress,
+                'achievements': achievements
+            }
             
             return Response(statistics_data)
             
