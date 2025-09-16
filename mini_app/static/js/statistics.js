@@ -252,8 +252,6 @@ class StatisticsManager {
         }
         
         achievements.forEach((achievement, index) => {
-            console.log(`StatisticsManager: Инициализация достижения ${index + 1}:`, achievement.dataset.achievementName);
-            
             // Удаляем старые обработчики, если они есть
             achievement.removeEventListener('mouseenter', this.showAchievementTooltip);
             achievement.removeEventListener('mouseleave', this.hideAchievementTooltip);
@@ -278,18 +276,13 @@ class StatisticsManager {
      */
     showAchievementTooltip(event) {
         console.log('StatisticsManager: showAchievementTooltip вызван');
-        console.log('StatisticsManager: event:', event);
-        console.log('StatisticsManager: event.currentTarget:', event.currentTarget);
         
         const achievement = event.currentTarget;
         const achievementId = achievement.dataset.achievementId;
         const achievementName = achievement.dataset.achievementName;
         
-        console.log('StatisticsManager: ID достижения:', achievementId, 'Название:', achievementName);
-        
         // Получаем описание достижения
         const description = this.getAchievementDescription(achievementId, achievementName);
-        console.log('StatisticsManager: Описание:', description);
         
         // Создаем подсказку
         let tooltip = document.querySelector('.achievement-tooltip');
@@ -360,6 +353,9 @@ class StatisticsManager {
      * Получить описание достижения на текущем языке
      */
     getAchievementDescription(achievementId, achievementName) {
+        console.log('StatisticsManager: getAchievementDescription вызван для ID:', achievementId, 'Название:', achievementName);
+        console.log('StatisticsManager: window.currentLanguage:', window.currentLanguage);
+        
         const descriptions = {
             '1': {
                 'en': 'Complete your first quiz to unlock this achievement!',
@@ -388,7 +384,11 @@ class StatisticsManager {
         };
 
         const currentLang = window.currentLanguage || 'en';
+        console.log('StatisticsManager: Используемый язык:', currentLang);
+        console.log('StatisticsManager: Доступные описания для ID', achievementId, ':', descriptions[achievementId]);
+        
         const description = descriptions[achievementId]?.[currentLang] || descriptions[achievementId]?.['en'] || achievementName;
+        console.log('StatisticsManager: Выбранное описание:', description);
         
         return description;
     }
@@ -424,21 +424,21 @@ document.head.appendChild(style);
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     console.log('StatisticsManager: DOMContentLoaded - Загрузка страницы статистики');
-    console.log('StatisticsManager: Текущий URL:', window.location.pathname);
     
     // Проверяем, что мы на странице статистики
     if (window.location.pathname === '/statistics') {
         console.log('StatisticsManager: Создание StatisticsManager');
         const statisticsManager = new StatisticsManager();
         statisticsManager.init();
-        
-        // Дополнительная инициализация через 2 секунды
-        setTimeout(() => {
-            console.log('StatisticsManager: Дополнительная инициализация через 2 секунды');
-            statisticsManager.initAchievementTooltips();
-        }, 2000);
     }
 });
+
+// Глобальная функция для инициализации статистики (вызывается из base.html)
+window.initStatistics = function() {
+    console.log('StatisticsManager: initStatistics вызван');
+    const statisticsManager = new StatisticsManager();
+    statisticsManager.init();
+};
 
 // Экспорт для использования в других модулях
 window.StatisticsManager = StatisticsManager;
