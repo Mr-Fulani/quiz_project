@@ -39,6 +39,9 @@ class StatisticsManager {
         // Инициализация всплывающих подсказок для достижений
         this.initAchievementTooltips();
         
+        // Добавляем обработчик клика по документу для скрытия подсказок
+        document.addEventListener('click', (e) => this.handleDocumentClick(e));
+        
         // Обновление статистики каждые 30 секунд
         if (this.telegramId) {
             setInterval(() => this.refreshStatistics(), 30000);
@@ -239,13 +242,24 @@ class StatisticsManager {
      */
     initAchievementTooltips() {
         const achievements = document.querySelectorAll('.achievement-item');
+        console.log('StatisticsManager: Найдено достижений:', achievements.length);
         
-        achievements.forEach(achievement => {
-            // Добавляем обработчики событий
+        achievements.forEach((achievement, index) => {
+            console.log(`StatisticsManager: Инициализация достижения ${index + 1}:`, achievement.dataset.achievementName);
+            
+            // Удаляем старые обработчики, если они есть
+            achievement.removeEventListener('mouseenter', this.showAchievementTooltip);
+            achievement.removeEventListener('mouseleave', this.hideAchievementTooltip);
+            achievement.removeEventListener('touchstart', this.showAchievementTooltip);
+            achievement.removeEventListener('touchend', this.hideAchievementTooltip);
+            achievement.removeEventListener('click', this.showAchievementTooltip);
+            
+            // Добавляем новые обработчики событий
             achievement.addEventListener('mouseenter', (e) => this.showAchievementTooltip(e));
             achievement.addEventListener('mouseleave', () => this.hideAchievementTooltip());
             achievement.addEventListener('touchstart', (e) => this.showAchievementTooltip(e));
             achievement.addEventListener('touchend', () => this.hideAchievementTooltip());
+            achievement.addEventListener('click', (e) => this.showAchievementTooltip(e));
         });
     }
 
@@ -253,16 +267,21 @@ class StatisticsManager {
      * Показать всплывающую подсказку для достижения
      */
     showAchievementTooltip(event) {
+        console.log('StatisticsManager: Показ подсказки для достижения');
         const achievement = event.currentTarget;
         const achievementId = achievement.dataset.achievementId;
         const achievementName = achievement.dataset.achievementName;
         
+        console.log('StatisticsManager: ID достижения:', achievementId, 'Название:', achievementName);
+        
         // Получаем описание достижения
         const description = this.getAchievementDescription(achievementId, achievementName);
+        console.log('StatisticsManager: Описание:', description);
         
         // Создаем подсказку
         let tooltip = document.querySelector('.achievement-tooltip');
         if (!tooltip) {
+            console.log('StatisticsManager: Создание новой подсказки');
             tooltip = document.createElement('div');
             tooltip.className = 'achievement-tooltip';
             document.body.appendChild(tooltip);
@@ -276,9 +295,12 @@ class StatisticsManager {
         tooltip.style.top = `${rect.top - 10}px`;
         tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
         
+        console.log('StatisticsManager: Позиция подсказки:', tooltip.style.left, tooltip.style.top);
+        
         // Показываем подсказку
         setTimeout(() => {
             tooltip.classList.add('show');
+            console.log('StatisticsManager: Подсказка показана');
         }, 10);
     }
 
@@ -293,6 +315,18 @@ class StatisticsManager {
     }
 
     /**
+     * Обработчик клика вне подсказки для её скрытия
+     */
+    handleDocumentClick(event) {
+        const tooltip = document.querySelector('.achievement-tooltip');
+        const achievement = event.target.closest('.achievement-item');
+        
+        if (tooltip && !achievement) {
+            this.hideAchievementTooltip();
+        }
+    }
+
+    /**
      * Получить описание достижения на текущем языке
      */
     getAchievementDescription(achievementId, achievementName) {
@@ -302,8 +336,8 @@ class StatisticsManager {
                 'ru': 'Пройдите первую викторину, чтобы разблокировать это достижение!'
             },
             '2': {
-                'en': 'Achieve 60% success rate to become a Python expert!',
-                'ru': 'Достигните 60% успешности, чтобы стать экспертом по Python!'
+                'en': 'Achieve 60% success rate to become an expert!',
+                'ru': 'Достигните 60% успешности, чтобы стать экспертом!'
             },
             '3': {
                 'en': 'Master web development topics to unlock this achievement!',
@@ -356,10 +390,70 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Функция для инициализации достижений
+function initAchievements() {
+    console.log('StatisticsManager: Инициализация достижений');
+    const achievements = document.querySelectorAll('.achievement-item');
+    console.log('StatisticsManager: Найдено достижений:', achievements.length);
+    
+    if (achievements.length === 0) {
+        console.log('StatisticsManager: Достижения не найдены, повторная попытка через 1 секунду');
+        setTimeout(initAchievements, 1000);
+        return;
+    }
+    
+    achievements.forEach((achievement, index) => {
+        console.log(`StatisticsManager: Инициализация достижения ${index + 1}:`, achievement.dataset.achievementName);
+        
+            // Добавляем обработчик для показа подсказок
+            achievement.addEventListener('click', (e) => {
+                console.log('StatisticsManager: Клик по достижению!', e.target);
+                console.log('StatisticsManager: Достижение:', achievement.dataset.achievementName);
+                
+                // Получаем локализованное описание
+                const achievementId = achievement.dataset.achievementId;
+                const description = this.getAchievementDescription(achievementId, achievement.dataset.achievementName);
+                
+                // Создаем визуальную подсказку
+                const tooltip = document.createElement('div');
+                tooltip.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.9);
+                    color: #00ff00;
+                    padding: 20px;
+                    border-radius: 10px;
+                    border: 2px solid #00ff00;
+                    z-index: 10000;
+                    font-size: 18px;
+                    text-align: center;
+                    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+                    max-width: 300px;
+                    word-wrap: break-word;
+                `;
+                tooltip.innerHTML = '<strong>' + achievement.dataset.achievementName + '</strong><br><br>' + description;
+                document.body.appendChild(tooltip);
+                
+                // Удаляем подсказку через 3 секунды
+                setTimeout(() => {
+                    if (tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                }, 3000);
+            });
+    });
+}
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     console.log('StatisticsManager: Загрузка страницы статистики');
-    new StatisticsManager();
+    const statisticsManager = new StatisticsManager();
+    statisticsManager.init();
+    
+    // Инициализация достижений с повторными попытками
+    setTimeout(initAchievements, 100);
 });
 
 // Экспорт для использования в других модулях
