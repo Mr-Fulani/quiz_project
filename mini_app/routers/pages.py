@@ -143,6 +143,22 @@ async def statistics(
     current_language = localization_service.get_language()
     logger.info(f"Rendering statistics page with language: {current_language}")
     
+    # Получаем telegram_id из заголовков/куки, если доступен
+    telegram_id = request.headers.get('X-Telegram-User-Id')
+    if not telegram_id:
+        telegram_id = request.cookies.get('telegram_id')
+    if telegram_id:
+        telegram_id = int(telegram_id)
+    
+    # Получаем статистику пользователя, если telegram_id доступен
+    user_statistics = None
+    if telegram_id:
+        try:
+            user_statistics = await django_api_service.get_user_statistics(telegram_id)
+            logger.info(f"Получена статистика для пользователя {telegram_id}: {user_statistics}")
+        except Exception as e:
+            logger.error(f"Ошибка при получении статистики для пользователя {telegram_id}: {e}")
+    
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
     
@@ -151,6 +167,8 @@ async def statistics(
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
+        "user_statistics": user_statistics,
+        "telegram_id": telegram_id,
         "tasks_js_url": get_js_url('tasks.js'),
         "localization_js_url": get_js_url('localization.js'),
         "share_app_js_url": get_js_url('share-app.js'),
@@ -158,6 +176,7 @@ async def statistics(
         "styles_css_url": get_css_url('styles.css'),
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
+        "statistics_js_url": get_js_url('statistics.js'),
     })
 
 @router.get("/settings", response_class=HTMLResponse)

@@ -16,6 +16,7 @@ from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.http import HttpResponseRedirect
 from django.db import transaction, IntegrityError
+from django.db.models import Count, Q
 import logging
 
 from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser, MiniAppUser
@@ -830,4 +831,202 @@ class MiniAppTopUsersListView(generics.ListAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs) 
+        return super().get(request, *args, **kwargs)
+
+
+class MiniAppUserStatisticsView(APIView):
+    """
+    APIView для получения статистики пользователя Mini App.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Получение статистики пользователя Mini App по telegram_id.",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_QUERY,
+                description="ID пользователя Telegram.",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                "Статистика пользователя Mini App",
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'telegram_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'username': openapi.Schema(type=openapi.TYPE_STRING),
+                                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'avatar_url': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        ),
+                        'stats': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'total_quizzes': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'completed_quizzes': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'success_rate': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'total_points': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'current_streak': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'best_streak': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            }
+                        ),
+                        'topic_progress': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'completed': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'percentage': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                }
+                            )
+                        ),
+                        'achievements': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'icon': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'unlocked': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                }
+                            )
+                        ),
+                    }
+                )
+            ),
+            404: 'Пользователь не найден',
+            400: 'Неверные параметры запроса'
+        }
+    )
+    def get(self, request):
+        """
+        Получает статистику пользователя Mini App по telegram_id.
+        """
+        telegram_id = request.query_params.get('telegram_id')
+        
+        if not telegram_id:
+            return Response(
+                {'error': 'telegram_id is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Получаем пользователя Mini App
+            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Получаем статистику из MiniAppTaskStatistics
+            from tasks.models import MiniAppTaskStatistics
+            
+            # Основная статистика пользователя
+            user_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).aggregate(
+                total_attempts=Count('id'),
+                successful_attempts=Count('id', filter=Q(successful=True))
+            )
+            
+            success_rate = (
+                round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
+                if user_stats['total_attempts'] > 0 else 0
+            )
+            
+            # Прогресс по темам (топ 5)
+            topic_progress = []
+            user_category_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).values(
+                'task__topic__name',
+                'task__topic__id'
+            ).annotate(
+                completed=Count('id', filter=Q(successful=True)),
+                total=Count('id')
+            ).order_by('-total')[:5]
+            
+            for stat in user_category_stats:
+                topic_name = stat['task__topic__name'] or 'Unknown'
+                completed = stat['completed']
+                total = stat['total']
+                percentage = round((completed / total * 100), 0) if total > 0 else 0
+                
+                topic_progress.append({
+                    'name': topic_name,
+                    'completed': completed,
+                    'total': total,
+                    'percentage': percentage
+                })
+            
+            # Подсчет очков
+            total_points = user_stats['successful_attempts'] * 10
+            
+            # Серия (streak)
+            recent_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).order_by('-last_attempt_date')[:10]
+            current_streak = 0
+            best_streak = 0
+            temp_streak = 0
+            
+            for attempt in recent_attempts:
+                if attempt.successful:
+                    temp_streak += 1
+                    if current_streak == 0:
+                        current_streak = temp_streak
+                else:
+                    if temp_streak > best_streak:
+                        best_streak = temp_streak
+                    temp_streak = 0
+            
+            if temp_streak > best_streak:
+                best_streak = temp_streak
+                
+            # Информация о пользователе
+            user_info = {
+                'telegram_id': mini_app_user.telegram_id,
+                'username': mini_app_user.username,
+                'first_name': mini_app_user.first_name or mini_app_user.username,
+                'last_name': mini_app_user.last_name or '',
+                'avatar_url': mini_app_user.avatar.url if mini_app_user.avatar else None
+            }
+            
+            # Достижения
+            achievements = [
+                {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
+                {'id': 2, 'name': 'Знаток Python', 'icon': '🐍', 'unlocked': success_rate > 60},
+                {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
+                {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
+                {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
+                {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
+            ]
+            
+            statistics_data = {
+                'user': user_info,
+                'stats': {
+                    'total_quizzes': user_stats['total_attempts'],
+                    'completed_quizzes': user_stats['successful_attempts'],
+                    'success_rate': int(success_rate),
+                    'total_points': total_points,
+                    'current_streak': current_streak,
+                    'best_streak': best_streak
+                },
+                'topic_progress': topic_progress,
+                'achievements': achievements
+            }
+            
+            return Response(statistics_data)
+            
+        except MiniAppUser.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при получении статистики для telegram_id={telegram_id}: {e}")
+            return Response(
+                {'error': 'Internal server error'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            ) 

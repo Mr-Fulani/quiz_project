@@ -205,5 +205,17 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")
             return []
 
+    async def get_user_statistics(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Получение статистики пользователя Mini App по telegram_id.
+        """
+        try:
+            params = {'telegram_id': telegram_id}
+            data = await self._make_request("GET", "/api/accounts/miniapp-users/statistics/", params=params)
+            return data
+        except Exception as e:
+            logger.error(f"Ошибка при получении статистики пользователя {telegram_id}: {e}")
+            return None
+
 # Создаем единственный экземпляр сервиса
 django_api_service = DjangoAPIService(settings.DJANGO_API_BASE_URL) 
