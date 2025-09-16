@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="/static/css/statistics.css">
+<link rel="stylesheet" href="{{ statistics_css_url }}">
 {% endblock %}
 
 {% block content %}
@@ -24,6 +24,12 @@
             <div class="stat-icon">✅</div>
             <div class="stat-number">{{ user_statistics.stats.completed_quizzes or 0 }}</div>
             <div class="stat-label" data-translate="correct_answers">{{ translations.get('correct_answers', 'Правильных ответов') }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">❌</div>
+            <div class="stat-number">{{ user_statistics.stats.failed_quizzes or 0 }}</div>
+            <div class="stat-label" data-translate="incorrect_answers">{{ translations.get('incorrect_answers', 'Неправильных ответов') }}</div>
         </div>
         
         <div class="stat-card">
@@ -99,6 +105,12 @@
         </div>
         
         <div class="stat-card">
+            <div class="stat-icon">❌</div>
+            <div class="stat-number">0</div>
+            <div class="stat-label" data-translate="incorrect_answers">{{ translations.get('incorrect_answers', 'Неправильных ответов') }}</div>
+        </div>
+        
+        <div class="stat-card">
             <div class="stat-icon">🎯</div>
             <div class="stat-number">0%</div>
             <div class="stat-label" data-translate="accuracy">{{ translations.get('accuracy', 'Точность') }}</div>
@@ -123,6 +135,121 @@
             <p data-translate="no_statistics_data">{{ translations.get('no_statistics_data', 'Пока нет данных для отображения') }}</p>
         </div>
     </div>
+    
+    <!-- Тестовые достижения для демонстрации всплывающих подсказок -->
+    <div class="chart-container">
+        <h2 data-translate="achievements">{{ translations.get('achievements', 'Достижения') }}</h2>
+        <div class="achievements-grid">
+            <div class="achievement-item unlocked" 
+                 data-achievement-id="1"
+                 data-achievement-name="Первый шаг"
+                 data-achievement-description="Пройдите первую викторину">
+                <div class="achievement-icon">🏆</div>
+                <div class="achievement-name">Первый шаг</div>
+            </div>
+            <div class="achievement-item locked" 
+                 data-achievement-id="2"
+                 data-achievement-name="Знаток Python"
+                 data-achievement-description="Достигните 60% успешности">
+                <div class="achievement-icon">💻</div>
+                <div class="achievement-name">Знаток Python</div>
+            </div>
+            <div class="achievement-item unlocked" 
+                 data-achievement-id="4"
+                 data-achievement-name="Серия"
+                 data-achievement-description="Ответьте правильно на 3 вопроса подряд">
+                <div class="achievement-icon">🔥</div>
+                <div class="achievement-name">Серия</div>
+            </div>
+            <div class="achievement-item locked" 
+                 data-achievement-id="5"
+                 data-achievement-name="Эксперт"
+                 data-achievement-description="Достигните 90% успешности">
+                <div class="achievement-icon">⭐</div>
+                <div class="achievement-name">Эксперт</div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ statistics_js_url }}"></script>
+<script>
+// Простой тест для проверки работы JavaScript
+console.log('StatisticsManager: HTML тест - JavaScript работает!');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('StatisticsManager: HTML тест - DOM загружен!');
+    
+    // Ждем немного и проверяем достижения
+    setTimeout(function() {
+        const achievements = document.querySelectorAll('.achievement-item');
+        console.log('StatisticsManager: HTML тест - найдено достижений:', achievements.length);
+        
+        achievements.forEach(function(achievement, index) {
+            console.log('StatisticsManager: HTML тест - достижение', index + 1, ':', achievement.dataset.achievementName);
+            
+            // Добавляем простой обработчик
+            achievement.addEventListener('click', function(e) {
+                console.log('StatisticsManager: HTML тест - КЛИК!', e.target);
+                console.log('StatisticsManager: HTML тест - Достижение:', achievement.dataset.achievementName);
+                
+                // Получаем локализованное описание
+                const achievementId = achievement.dataset.achievementId;
+                const descriptions = {
+                    '1': {
+                        'en': 'Complete your first quiz to unlock this achievement!',
+                        'ru': 'Пройдите первую викторину, чтобы разблокировать это достижение!'
+                    },
+                    '2': {
+                        'en': 'Achieve 60% success rate to become an expert!',
+                        'ru': 'Достигните 60% успешности, чтобы стать экспертом!'
+                    },
+                    '4': {
+                        'en': 'Answer 3 questions correctly in a row to unlock this streak!',
+                        'ru': 'Ответьте правильно на 3 вопроса подряд, чтобы разблокировать эту серию!'
+                    },
+                    '5': {
+                        'en': 'Achieve 90% success rate to become a true expert!',
+                        'ru': 'Достигните 90% успешности, чтобы стать настоящим экспертом!'
+                    }
+                };
+                
+                const currentLang = window.currentLanguage || 'en';
+                const description = descriptions[achievementId]?.[currentLang] || descriptions[achievementId]?.['en'] || achievement.dataset.achievementDescription;
+                
+                // Создаем визуальную подсказку вместо alert
+                const tooltip = document.createElement('div');
+                tooltip.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.9);
+                    color: #00ff00;
+                    padding: 20px;
+                    border-radius: 10px;
+                    border: 2px solid #00ff00;
+                    z-index: 10000;
+                    font-size: 18px;
+                    text-align: center;
+                    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+                    max-width: 300px;
+                    word-wrap: break-word;
+                `;
+                tooltip.innerHTML = '<strong>' + achievement.dataset.achievementName + '</strong><br><br>' + description;
+                document.body.appendChild(tooltip);
+                
+                // Удаляем подсказку через 3 секунды
+                setTimeout(() => {
+                    if (tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                }, 3000);
+            });
+        });
+    }, 1000);
+});
+</script>
 {% endblock %}
