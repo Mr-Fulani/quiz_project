@@ -154,9 +154,14 @@ class ProfileSerializer(serializers.ModelSerializer):
                 # Используем правильный хост для mini_app
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                # Если запрос идет от mini_app, используем порт 80 (nginx)
+                # Если запрос идет от mini_app, используем правильный домен
                 if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                    return f"{scheme}://{host}{mini_app_profile.avatar.url}"
+                    # Для локальной разработки используем localhost:8080
+                    if 'localhost' in host or 'ngrok' in host:
+                        return f"http://localhost:8080{mini_app_profile.avatar.url}"
+                    # Для продакшена используем mini.quiz-code.com
+                    else:
+                        return f"https://mini.quiz-code.com{mini_app_profile.avatar.url}"
                 return request.build_absolute_uri(mini_app_profile.avatar.url)
             return mini_app_profile.avatar.url
         
@@ -167,9 +172,14 @@ class ProfileSerializer(serializers.ModelSerializer):
                 # Используем правильный хост для mini_app
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                # Если запрос идет от mini_app, используем порт 80 (nginx)
+                # Если запрос идет от mini_app, используем правильный домен
                 if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                    return f"{scheme}://{host}{obj.avatar.url}"
+                    # Для локальной разработки используем localhost:8080
+                    if 'localhost' in host or 'ngrok' in host:
+                        return f"http://localhost:8080{obj.avatar.url}"
+                    # Для продакшена используем mini.quiz-code.com
+                    else:
+                        return f"https://mini.quiz-code.com{obj.avatar.url}"
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
         
@@ -328,9 +338,14 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
                     # Используем правильный хост для mini_app
                     host = request.headers.get('X-Forwarded-Host', request.get_host())
                     scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                    # Если запрос идет от mini_app, используем порт 80 (nginx)
+                    # Если запрос идет от mini_app, используем правильный домен
                     if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                        return f"{scheme}://{host}{obj.avatar.url}"
+                        # Для локальной разработки используем localhost:8080
+                        if 'localhost' in host or 'ngrok' in host:
+                            return f"http://localhost:8080{obj.avatar.url}"
+                        # Для продакшена используем mini.quiz-code.com
+                        else:
+                            return f"https://mini.quiz-code.com{obj.avatar.url}"
                     return request.build_absolute_uri(obj.avatar.url)
                 return obj.avatar.url
             # Если avatar - это строка (URL), возвращаем как есть
