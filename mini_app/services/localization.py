@@ -57,6 +57,8 @@ class LocalizationService:
             "accuracy": "Accuracy",
             "streak": "Current Streak",
             "best_streak": "Best Streak",
+            "achievements": "Achievements",
+            "topic_progress": "Topic Progress",
             
             # Настройки
             "settings_title": "Settings",
@@ -169,6 +171,8 @@ class LocalizationService:
             "accuracy": "Точность",
             "streak": "Текущая серия",
             "best_streak": "Лучшая серия",
+            "achievements": "Достижения",
+            "topic_progress": "Прогресс по темам",
             
             # Настройки
             "settings_title": "Настройки",

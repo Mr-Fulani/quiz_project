@@ -72,7 +72,10 @@
         <h2 data-translate="achievements">{{ translations.get('achievements', 'Достижения') }}</h2>
         <div class="achievements-grid">
             {% for achievement in user_statistics.achievements %}
-            <div class="achievement-item {% if achievement.unlocked %}unlocked{% else %}locked{% endif %}">
+            <div class="achievement-item {% if achievement.unlocked %}unlocked{% else %}locked{% endif %}" 
+                 data-achievement-id="{{ achievement.id }}"
+                 data-achievement-name="{{ achievement.name }}"
+                 data-achievement-description="{{ achievement.description or '' }}">
                 <div class="achievement-icon">{{ achievement.icon }}</div>
                 <div class="achievement-name">{{ achievement.name }}</div>
             </div>

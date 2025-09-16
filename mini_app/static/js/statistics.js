@@ -36,6 +36,9 @@ class StatisticsManager {
         // Анимация прогресс-баров
         this.animateProgressBars();
         
+        // Инициализация всплывающих подсказок для достижений
+        this.initAchievementTooltips();
+        
         // Обновление статистики каждые 30 секунд
         if (this.telegramId) {
             setInterval(() => this.refreshStatistics(), 30000);
@@ -217,12 +220,113 @@ class StatisticsManager {
         achievements.forEach(achievement => {
             const item = document.createElement('div');
             item.className = `achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+            item.dataset.achievementId = achievement.id;
+            item.dataset.achievementName = achievement.name;
+            item.dataset.achievementDescription = achievement.description || '';
             item.innerHTML = `
                 <div class="achievement-icon">${achievement.icon}</div>
                 <div class="achievement-name">${achievement.name}</div>
             `;
             container.appendChild(item);
         });
+
+        // Переинициализируем подсказки для новых достижений
+        this.initAchievementTooltips();
+    }
+
+    /**
+     * Инициализация всплывающих подсказок для достижений
+     */
+    initAchievementTooltips() {
+        const achievements = document.querySelectorAll('.achievement-item');
+        
+        achievements.forEach(achievement => {
+            // Добавляем обработчики событий
+            achievement.addEventListener('mouseenter', (e) => this.showAchievementTooltip(e));
+            achievement.addEventListener('mouseleave', () => this.hideAchievementTooltip());
+            achievement.addEventListener('touchstart', (e) => this.showAchievementTooltip(e));
+            achievement.addEventListener('touchend', () => this.hideAchievementTooltip());
+        });
+    }
+
+    /**
+     * Показать всплывающую подсказку для достижения
+     */
+    showAchievementTooltip(event) {
+        const achievement = event.currentTarget;
+        const achievementId = achievement.dataset.achievementId;
+        const achievementName = achievement.dataset.achievementName;
+        
+        // Получаем описание достижения
+        const description = this.getAchievementDescription(achievementId, achievementName);
+        
+        // Создаем подсказку
+        let tooltip = document.querySelector('.achievement-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.className = 'achievement-tooltip';
+            document.body.appendChild(tooltip);
+        }
+        
+        tooltip.textContent = description;
+        
+        // Позиционируем подсказку
+        const rect = achievement.getBoundingClientRect();
+        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+        tooltip.style.top = `${rect.top - 10}px`;
+        tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
+        
+        // Показываем подсказку
+        setTimeout(() => {
+            tooltip.classList.add('show');
+        }, 10);
+    }
+
+    /**
+     * Скрыть всплывающую подсказку
+     */
+    hideAchievementTooltip() {
+        const tooltip = document.querySelector('.achievement-tooltip');
+        if (tooltip) {
+            tooltip.classList.remove('show');
+        }
+    }
+
+    /**
+     * Получить описание достижения на текущем языке
+     */
+    getAchievementDescription(achievementId, achievementName) {
+        const descriptions = {
+            '1': {
+                'en': 'Complete your first quiz to unlock this achievement!',
+                'ru': 'Пройдите первую викторину, чтобы разблокировать это достижение!'
+            },
+            '2': {
+                'en': 'Achieve 60% success rate to become a Python expert!',
+                'ru': 'Достигните 60% успешности, чтобы стать экспертом по Python!'
+            },
+            '3': {
+                'en': 'Master web development topics to unlock this achievement!',
+                'ru': 'Освойте темы веб-разработки, чтобы разблокировать это достижение!'
+            },
+            '4': {
+                'en': 'Answer 3 questions correctly in a row to unlock this streak!',
+                'ru': 'Ответьте правильно на 3 вопроса подряд, чтобы разблокировать эту серию!'
+            },
+            '5': {
+                'en': 'Achieve 90% success rate to become a true expert!',
+                'ru': 'Достигните 90% успешности, чтобы стать настоящим экспертом!'
+            },
+            '6': {
+                'en': 'Complete quizzes quickly to unlock the speed achievement!',
+                'ru': 'Проходите викторины быстро, чтобы разблокировать достижение скорости!'
+            }
+        };
+
+        const currentLang = window.currentLanguage || 'en';
+        const description = descriptions[achievementId]?.[currentLang] || descriptions[achievementId]?.['en'] || achievementName;
+        
+        return description;
     }
 
     /**
