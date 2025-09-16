@@ -390,70 +390,12 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Функция для инициализации достижений
-function initAchievements() {
-    console.log('StatisticsManager: Инициализация достижений');
-    const achievements = document.querySelectorAll('.achievement-item');
-    console.log('StatisticsManager: Найдено достижений:', achievements.length);
-    
-    if (achievements.length === 0) {
-        console.log('StatisticsManager: Достижения не найдены, повторная попытка через 1 секунду');
-        setTimeout(initAchievements, 1000);
-        return;
-    }
-    
-    achievements.forEach((achievement, index) => {
-        console.log(`StatisticsManager: Инициализация достижения ${index + 1}:`, achievement.dataset.achievementName);
-        
-            // Добавляем обработчик для показа подсказок
-            achievement.addEventListener('click', (e) => {
-                console.log('StatisticsManager: Клик по достижению!', e.target);
-                console.log('StatisticsManager: Достижение:', achievement.dataset.achievementName);
-                
-                // Получаем локализованное описание
-                const achievementId = achievement.dataset.achievementId;
-                const description = this.getAchievementDescription(achievementId, achievement.dataset.achievementName);
-                
-                // Создаем визуальную подсказку
-                const tooltip = document.createElement('div');
-                tooltip.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: rgba(0, 0, 0, 0.9);
-                    color: #00ff00;
-                    padding: 20px;
-                    border-radius: 10px;
-                    border: 2px solid #00ff00;
-                    z-index: 10000;
-                    font-size: 18px;
-                    text-align: center;
-                    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-                    max-width: 300px;
-                    word-wrap: break-word;
-                `;
-                tooltip.innerHTML = '<strong>' + achievement.dataset.achievementName + '</strong><br><br>' + description;
-                document.body.appendChild(tooltip);
-                
-                // Удаляем подсказку через 3 секунды
-                setTimeout(() => {
-                    if (tooltip.parentNode) {
-                        tooltip.parentNode.removeChild(tooltip);
-                    }
-                }, 3000);
-            });
-    });
-}
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     console.log('StatisticsManager: Загрузка страницы статистики');
     const statisticsManager = new StatisticsManager();
     statisticsManager.init();
-    
-    // Инициализация достижений с повторными попытками
-    setTimeout(initAchievements, 100);
 });
 
 // Экспорт для использования в других модулях
