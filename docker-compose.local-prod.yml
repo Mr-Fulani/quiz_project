@@ -46,8 +46,8 @@ services:
       - DB_PORT=5432
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
-      - ALLOWED_HOSTS=quiz-code.localhost,mini.quiz-code.localhost,localhost,quiz_backend,quiz_backend:8000
-      - CSRF_TRUSTED_ORIGINS=http://quiz-code.localhost,http://mini.quiz-code.localhost,http://localhost:8080
+      - ALLOWED_HOSTS=quiz-code.com,mini.quiz-code.com,localhost,quiz_backend,quiz_backend:8000
+      - CSRF_TRUSTED_ORIGINS=https://quiz-code.com,https://mini.quiz-code.com,http://localhost:8080
     volumes:
       - ./quiz_backend:/app
       - static_volume_local_prod:/app/staticfiles
