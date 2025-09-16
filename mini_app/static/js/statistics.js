@@ -241,8 +241,15 @@ class StatisticsManager {
      * Инициализация всплывающих подсказок для достижений
      */
     initAchievementTooltips() {
+        console.log('StatisticsManager: initAchievementTooltips вызван');
         const achievements = document.querySelectorAll('.achievement-item');
         console.log('StatisticsManager: Найдено достижений:', achievements.length);
+        
+        if (achievements.length === 0) {
+            console.log('StatisticsManager: Достижения не найдены, повторная попытка через 1 секунду');
+            setTimeout(() => this.initAchievementTooltips(), 1000);
+            return;
+        }
         
         achievements.forEach((achievement, index) => {
             console.log(`StatisticsManager: Инициализация достижения ${index + 1}:`, achievement.dataset.achievementName);
@@ -259,7 +266,10 @@ class StatisticsManager {
             achievement.addEventListener('mouseleave', () => this.hideAchievementTooltip());
             achievement.addEventListener('touchstart', (e) => this.showAchievementTooltip(e));
             achievement.addEventListener('touchend', () => this.hideAchievementTooltip());
-            achievement.addEventListener('click', (e) => this.showAchievementTooltip(e));
+            achievement.addEventListener('click', (e) => {
+                console.log('StatisticsManager: КЛИК ПО ДОСТИЖЕНИЮ!', e.target);
+                this.showAchievementTooltip(e);
+            });
         });
     }
 
@@ -267,7 +277,10 @@ class StatisticsManager {
      * Показать всплывающую подсказку для достижения
      */
     showAchievementTooltip(event) {
-        console.log('StatisticsManager: Показ подсказки для достижения');
+        console.log('StatisticsManager: showAchievementTooltip вызван');
+        console.log('StatisticsManager: event:', event);
+        console.log('StatisticsManager: event.currentTarget:', event.currentTarget);
+        
         const achievement = event.currentTarget;
         const achievementId = achievement.dataset.achievementId;
         const achievementName = achievement.dataset.achievementName;
@@ -284,10 +297,27 @@ class StatisticsManager {
             console.log('StatisticsManager: Создание новой подсказки');
             tooltip = document.createElement('div');
             tooltip.className = 'achievement-tooltip';
+            tooltip.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.9);
+                color: #00ff00;
+                padding: 20px;
+                border-radius: 10px;
+                border: 2px solid #00ff00;
+                z-index: 10000;
+                font-size: 18px;
+                text-align: center;
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
             document.body.appendChild(tooltip);
         }
         
-        tooltip.textContent = description;
+        tooltip.innerHTML = '<strong>' + achievementName + '</strong><br><br>' + description;
         
         // Позиционируем подсказку
         const rect = achievement.getBoundingClientRect();
@@ -393,9 +423,21 @@ document.head.appendChild(style);
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('StatisticsManager: Загрузка страницы статистики');
-    const statisticsManager = new StatisticsManager();
-    statisticsManager.init();
+    console.log('StatisticsManager: DOMContentLoaded - Загрузка страницы статистики');
+    console.log('StatisticsManager: Текущий URL:', window.location.pathname);
+    
+    // Проверяем, что мы на странице статистики
+    if (window.location.pathname === '/statistics') {
+        console.log('StatisticsManager: Создание StatisticsManager');
+        const statisticsManager = new StatisticsManager();
+        statisticsManager.init();
+        
+        // Дополнительная инициализация через 2 секунды
+        setTimeout(() => {
+            console.log('StatisticsManager: Дополнительная инициализация через 2 секунды');
+            statisticsManager.initAchievementTooltips();
+        }, 2000);
+    }
 });
 
 // Экспорт для использования в других модулях
