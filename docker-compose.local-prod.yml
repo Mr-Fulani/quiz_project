@@ -98,8 +98,8 @@ services:
     volumes:
       - static_volume_local_prod:/app/staticfiles
       - ./media:/app/media
-      - /Users/user/telegram_quiz_bots/quiz_project/certbot/www:/var/www/certbot/
-      - /Users/user/telegram_quiz_bots/quiz_project/certbot/conf/:/etc/letsencrypt/
+      - ./certbot/www:/var/www/certbot/
+      - ./certbot/conf/:/etc/letsencrypt/
     depends_on:
       - quiz_backend
       - mini_app
