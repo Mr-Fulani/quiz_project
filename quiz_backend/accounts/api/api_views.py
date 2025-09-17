@@ -809,6 +809,13 @@ class MiniAppTopUsersListView(generics.ListAPIView):
     serializer_class = MiniAppTopUserSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get_serializer_context(self):
+        """
+        Добавляем request в контекст сериализатора, чтобы
+        можно было строить абсолютные URL для аватарок.
+        """
+        return {'request': self.request}
+
     def get_queryset(self):
         """
         Возвращает топ-N пользователей Mini App, отсортированных по рейтингу.

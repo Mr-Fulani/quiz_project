@@ -156,8 +156,11 @@ class ProfileSerializer(serializers.ModelSerializer):
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
                 # Если запрос идет от mini_app, используем правильный домен
                 if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
+                    # Для ngrok используем тот же домен с HTTPS
+                    if 'ngrok' in host:
+                        return f"https://{host}{mini_app_profile.avatar.url}"
                     # Для локальной разработки используем localhost:8080
-                    if 'localhost' in host or 'ngrok' in host:
+                    elif 'localhost' in host:
                         return f"http://localhost:8080{mini_app_profile.avatar.url}"
                     # Для продакшена используем mini.quiz-code.com
                     else:
@@ -174,8 +177,11 @@ class ProfileSerializer(serializers.ModelSerializer):
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
                 # Если запрос идет от mini_app, используем правильный домен
                 if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
+                    # Для ngrok используем тот же домен с HTTPS
+                    if 'ngrok' in host:
+                        return f"https://{host}{obj.avatar.url}"
                     # Для локальной разработки используем localhost:8080
-                    if 'localhost' in host or 'ngrok' in host:
+                    elif 'localhost' in host:
                         return f"http://localhost:8080{obj.avatar.url}"
                     # Для продакшена используем mini.quiz-code.com
                     else:
@@ -521,23 +527,33 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         Возвращает URL аватара пользователя Mini App.
         """
         request = self.context.get('request')
-        if obj.avatar:
-            if hasattr(obj.avatar, 'url'):
-                if request:
-                    host = request.headers.get('X-Forwarded-Host', request.get_host())
-                    scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                    # Если запрос идет от mini_app, используем порт 80 (nginx)
-                    if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                        return f"{scheme}://{host}{obj.avatar.url}"
-                    return request.build_absolute_uri(obj.avatar.url)
-                return obj.avatar.url
-            return obj.avatar # Если это строка (URL)
-        
-        # Возвращаем дефолтный аватар, если ни один не найден
-        if request:
-            return request.build_absolute_uri('/static/images/default_avatar.png')
-        return '/static/images/default_avatar.png'
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            if request:
+                host = request.headers.get('X-Forwarded-Host', request.get_host())
+                
+                # Для ngrok используем тот же домен с HTTPS
+                if 'ngrok' in host:
+                    return f"https://{host}{obj.avatar.url}"
+                # Для локальной разработки используем localhost:8080
+                elif 'localhost' in host:
+                    return f"http://localhost:8080{obj.avatar.url}"
+                # Для продакшена используем mini.quiz-code.com
+                elif 'mini.quiz-code.com' in host:
+                    return f"https://{host}{obj.avatar.url}"
+                
+                # Фоллбэк для внутренних запросов (mini_app -> quiz_backend)
+                # где host может быть 'quiz_backend:8000'
+                # В этом случае, строим URL на основе заголовка X-Forwarded-Host
+                # который nginx должен передавать от оригинального запроса.
+                original_host = request.headers.get('X-Forwarded-Host')
+                if original_host:
+                    scheme = request.headers.get('X-Forwarded-Proto', 'http')
+                    return f"{scheme}://{original_host}{obj.avatar.url}"
 
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
+    
     def get_rating(self, obj):
         """
         Возвращает рейтинг пользователя Mini App.

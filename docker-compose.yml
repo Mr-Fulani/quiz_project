@@ -86,8 +86,8 @@ services:
       context: ./mini_app
     env_file:
       - .env
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
     networks:
       - quiz_network
     environment:
@@ -111,15 +111,15 @@ services:
       dockerfile: Dockerfile
       args:
         NGINX_CONF: nginx-local.conf
-    container_name: nginx
+    container_name: nginx_local
+    environment:
+      NGINX_CONF: nginx-local.conf
     ports:
-      - "80:80"
-      - "443:443"
-      - "8081:8080"
+      - "8080:8080" # Возвращаем проброс порта
     volumes:
-      - static_volume:/app/staticfiles
-      - ./media:/app/media
+      - ./nginx/nginx-local.conf:/etc/nginx/nginx.conf:ro
       - ./certbot/www:/var/www/certbot/
+      - ./media:/app/media
       - ./certbot/conf/:/etc/letsencrypt/
     depends_on:
       - quiz_backend
