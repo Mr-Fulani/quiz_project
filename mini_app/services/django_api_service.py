@@ -24,9 +24,9 @@ class DjangoAPIService:
         if headers is None:
             headers = {}
         
-        # Если запрос идет к quiz_backend:8000, добавляем правильный Host заголовок
-        if 'quiz_backend:8000' in self.base_url:
-            # В продакшене используем правильный хост для мини-аппа
+        # Если запрос идет к quiz_backend:8000 и X-Forwarded-Host не передан,
+        # добавляем правильный Host заголовок для продакшена.
+        if 'quiz_backend:8000' in self.base_url and 'X-Forwarded-Host' not in headers:
             headers['Host'] = 'mini.quiz-code.com'
         
         async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -193,13 +193,23 @@ class DjangoAPIService:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")
             return None
 
-    async def get_top_users_mini_app(self, language: str = 'en') -> List[Dict[str, Any]]:
+    async def get_top_users_mini_app(
+        self, language: str = 'en', host: str = None, scheme: str = None
+    ) -> List[Dict[str, Any]]:
         """
         Получение списка топ-пользователей Mini App из Django API.
         """
         try:
             params = {'language': language}
-            data = await self._make_request("GET", "/api/accounts/miniapp-users/top/", params=params)
+            headers = {}
+            if host:
+                headers['X-Forwarded-Host'] = host
+            if scheme:
+                headers['X-Forwarded-Proto'] = scheme
+                
+            data = await self._make_request(
+                "GET", "/api/accounts/miniapp-users/top/", params=params, headers=headers
+            )
             return data  # API MiniAppTopUsersListView возвращает список напрямую
         except Exception as e:
             logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")

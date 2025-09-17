@@ -2,7 +2,7 @@
 # Использование: docker-compose -f docker-compose.local-prod.yml up
 
 services:
-  database:
+  postgres_db:
     image: postgres:15
     container_name: postgres_db_local_prod
     environment:
@@ -42,7 +42,7 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=database
+      - DB_HOST=postgres_db
       - DB_PORT=5432
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
@@ -55,7 +55,7 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      database:
+      postgres_db:
         condition: service_healthy
     networks:
       - quiz_network_local_prod
@@ -103,6 +103,32 @@ services:
     depends_on:
       - quiz_backend
       - mini_app
+    networks:
+      - quiz_network_local_prod
+    restart: unless-stopped
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    container_name: upbeat_robinson
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres_db:5432/${DB_NAME}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      - NGROK_HOST=${NGROK_HOST}
+      - CURRENT_UID=${CURRENT_UID}
+      - CURRENT_GID=${CURRENT_GID}
+    volumes:
+      - .:/quiz_project
+      - ./bot/fonts:/quiz_project/fonts
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres_db:
+        condition: service_healthy
     networks:
       - quiz_network_local_prod
     restart: unless-stopped

@@ -103,8 +103,12 @@ async def top_users(
         # Получаем переводы для текущего языка
         translations = localization_service.get_all_texts()
         
-        # Получаем список топ-пользователей Mini App
-        top_users_data = await django_api_service.get_top_users_mini_app(language=current_language)
+        # Получаем список топ-пользователей Mini App, передавая хост для правильных URL аватарок
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.scheme
+        top_users_data = await django_api_service.get_top_users_mini_app(
+            language=current_language, host=host, scheme=scheme
+        )
         
         logger.info(f"Получены данные топ-пользователей: {top_users_data}")
         
