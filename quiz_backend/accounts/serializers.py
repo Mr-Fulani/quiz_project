@@ -155,12 +155,16 @@ class ProfileSerializer(serializers.ModelSerializer):
             avatar_field = obj.avatar
 
         if avatar_field and hasattr(avatar_field, 'url'):
+            avatar_url = avatar_field.url
+            if avatar_url.startswith('http://') or avatar_url.startswith('https://'):
+                return avatar_url
+            
             request = self.context.get('request')
             if request:
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                return f"{scheme}://{host}{avatar_field.url}"
-            return avatar_field.url
+                return f"{scheme}://{host}{avatar_url}"
+            return avatar_url
         
         return None
     
@@ -310,12 +314,16 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         """Возвращает абсолютный URL к аватару пользователя."""
         if obj.avatar and hasattr(obj.avatar, 'url'):
+            avatar_url = obj.avatar.url
+            if avatar_url.startswith('http://') or avatar_url.startswith('https://'):
+                return avatar_url
+
             request = self.context.get('request')
             if request:
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                return f"{scheme}://{host}{obj.avatar.url}"
-            return obj.avatar.url
+                return f"{scheme}://{host}{avatar_url}"
+            return avatar_url
         return None
     
     def get_social_links(self, obj):
@@ -487,12 +495,16 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         Возвращает URL аватара пользователя Mini App.
         """
         if obj.avatar and hasattr(obj.avatar, 'url'):
+            avatar_url = obj.avatar.url
+            if avatar_url.startswith('http://') or avatar_url.startswith('https://'):
+                return avatar_url
+
             request = self.context.get('request')
             if request:
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                return f"{scheme}://{host}{obj.avatar.url}"
-            return obj.avatar.url
+                return f"{scheme}://{host}{avatar_url}"
+            return avatar_url
         return None
     
     def get_rating(self, obj):
