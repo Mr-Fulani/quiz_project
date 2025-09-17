@@ -82,7 +82,7 @@ STATIC_VERSIONS = {
     'statistics.js': '3.4',  # Исправлены URL аватарок для ngrok
     'styles.css': '1.2',
     'profile.css': '1.2',
-    'top_users.css': '1.5',  # Обновлено для исправления URL аватарок
+    'top_users.css': '1.6',  # Принудительное обновление для проверки отображения аватарок
     'statistics.css': '2.3',  # Исправлены аватарки
 }
 

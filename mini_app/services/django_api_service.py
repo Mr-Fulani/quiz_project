@@ -215,13 +215,21 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")
             return []
 
-    async def get_user_statistics(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user_statistics(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """
         Получение статистики пользователя Mini App по telegram_id.
         """
         try:
             params = {'telegram_id': telegram_id}
-            data = await self._make_request("GET", "/api/accounts/miniapp-users/statistics/", params=params)
+            headers = {}
+            if host:
+                headers['X-Forwarded-Host'] = host
+            if scheme:
+                headers['X-Forwarded-Proto'] = scheme
+
+            data = await self._make_request(
+                "GET", "/api/accounts/miniapp-users/statistics/", params=params, headers=headers
+            )
             return data
         except Exception as e:
             logger.error(f"Ошибка при получении статистики пользователя {telegram_id}: {e}")

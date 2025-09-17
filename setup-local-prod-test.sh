@@ -31,7 +31,7 @@ docker-compose down 2>/dev/null || true
 
 # 3. Запускаем тестовую конфигурацию
 echo "🚀 Запускаем тестовую конфигурацию..."
-docker-compose -f docker-compose.local-prod.yml up --build -d
+docker compose -f docker-compose.local-prod.yml -f docker-compose.local-prod.override.yml up --build -d --remove-orphans
 
 echo ""
 echo "✅ Локальная тестовая среда запущена!"
@@ -42,9 +42,9 @@ echo "📱 Мини-приложение: http://mini.quiz-code.localhost:8081"
 echo "🔧 Прямой доступ к мини-аппу: http://localhost:8080"
 echo ""
 echo "📊 Мониторинг:"
-echo "🔍 Логи: docker-compose -f docker-compose.local-prod.yml logs -f"
-echo "📈 Статус: docker-compose -f docker-compose.local-prod.yml ps"
+echo "🔍 Логи: docker-compose -f docker-compose.local-prod.yml -f docker-compose.local-prod.override.yml logs -f"
+echo "📈 Статус: docker-compose -f docker-compose.local-prod.yml -f docker-compose.local-prod.override.yml ps"
 echo ""
-echo "🛑 Остановка: docker-compose -f docker-compose.local-prod.yml down"
+echo "🛑 Остановка: docker-compose -f docker-compose.local-prod.yml -f docker-compose.local-prod.override.yml down"
 echo ""
 echo "⚠️  Помните: DEBUG=False, поэтому ошибки будут отображаться как в продакшене"
