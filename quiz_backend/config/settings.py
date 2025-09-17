@@ -41,6 +41,11 @@ if not DEBUG and not SECRET_KEY:
     raise ValueError("SECRET_KEY is not set for production environment!")
 
 
+# Настройки для работы за прокси-сервером (Nginx), применяются всегда
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
 # Отключаем проверку хостов для разработки
 USE_L10N = False
 
@@ -90,15 +95,6 @@ if not PUBLIC_URL and DEBUG:
 elif not PUBLIC_URL:
     # В продакшене используем основной домен
     PUBLIC_URL = "https://quiz-code.com"
-
-# Настройки для работы за прокси-сервером (Nginx)
-CSRF_TRUSTED_ORIGINS = [
-    'https://quiz-code.com',
-    'https://www.quiz-code.com',
-    'https://mini.quiz-code.com',
-]
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Настройки django-debug-toolbar
 INTERNAL_IPS = [
@@ -412,10 +408,6 @@ else:
     SECURE_HSTS_SECONDS = 2592000  # 30 дней
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-
-    # Настройки для работы за прокси-сервером (Nginx)
-    USE_X_FORWARDED_HOST = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)
 CSRF_EXEMPT_PATHS = [
