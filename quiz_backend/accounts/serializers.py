@@ -1,3 +1,4 @@
+from urllib.parse import unquote
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db.models import Count, Q
@@ -156,9 +157,15 @@ class ProfileSerializer(serializers.ModelSerializer):
 
         if avatar_field and hasattr(avatar_field, 'url'):
             avatar_url = avatar_field.url
-            if avatar_url.startswith('http://') or avatar_url.startswith('https://'):
-                return avatar_url
             
+            # Декодируем URL на случай, если он закодирован
+            decoded_url = unquote(avatar_url)
+            
+            # Проверяем, является ли декодированный URL абсолютным
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
+            
+            # Если это относительный путь, строим полный URL
             request = self.context.get('request')
             if request:
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
@@ -315,8 +322,12 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         """Возвращает абсолютный URL к аватару пользователя."""
         if obj.avatar and hasattr(obj.avatar, 'url'):
             avatar_url = obj.avatar.url
-            if avatar_url.startswith('http://') or avatar_url.startswith('https://'):
-                return avatar_url
+            
+            # Декодируем URL
+            decoded_url = unquote(avatar_url)
+            
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
 
             request = self.context.get('request')
             if request:
@@ -496,8 +507,12 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         """
         if obj.avatar and hasattr(obj.avatar, 'url'):
             avatar_url = obj.avatar.url
-            if avatar_url.startswith('http://') or avatar_url.startswith('https://'):
-                return avatar_url
+            
+            # Декодируем URL
+            decoded_url = unquote(avatar_url)
+
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
 
             request = self.context.get('request')
             if request:
