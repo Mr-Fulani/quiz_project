@@ -48,7 +48,7 @@ USE_L10N = False
 MOCK_TELEGRAM_AUTH = DEBUG
 
 if DEBUG:
-    ALLOWED_HOSTS = ["*", "quiz_backend", "quiz_backend:8000"]
+    ALLOWED_HOSTS = ["*", "quiz_backend", "quiz_backend:8000", "nginx_local", "nginx_local:8080"]
 else:
     # Хосты для продакшена - твои домены + localhost для curl
     env_hosts = os.getenv("ALLOWED_HOSTS", "")
@@ -62,6 +62,10 @@ else:
             ALLOWED_HOSTS.append('quiz_backend')
         if 'quiz_backend:8000' not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append('quiz_backend:8000')
+        if 'nginx_local' not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append('nginx_local')
+        if 'nginx_local:8080' not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append('nginx_local:8080')
         logger.info(f"ALLOWED_HOSTS from env: {ALLOWED_HOSTS}")
     else:
         # Фоллбэк только с твоими хостами
