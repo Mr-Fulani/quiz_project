@@ -73,22 +73,6 @@
     </div>
     {% endif %}
     
-    {% if user_statistics.achievements and user_statistics.achievements|length > 0 %}
-    <div class="chart-container">
-        <h2 data-translate="achievements">{{ translations.get('achievements', 'Достижения') }}</h2>
-        <div class="achievements-grid">
-            {% for achievement in user_statistics.achievements %}
-            <div class="achievement-item {% if achievement.unlocked %}unlocked{% else %}locked{% endif %}" 
-                 data-achievement-id="{{ achievement.id }}"
-                 data-achievement-name="{{ achievement.name }}"
-                 data-achievement-description="{{ achievement.description or '' }}">
-                <div class="achievement-icon">{{ achievement.icon }}</div>
-                <div class="achievement-name">{{ achievement.name }}</div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
     
     {% else %}
     <div class="stats-grid">
@@ -141,80 +125,4 @@
 
 {% block extra_js %}
 <script src="{{ statistics_js_url }}"></script>
-<script>
-// Простой тест для проверки работы JavaScript
-console.log('StatisticsManager: HTML тест - JavaScript работает!');
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('StatisticsManager: HTML тест - DOM загружен!');
-    
-    // Ждем немного и проверяем достижения
-    setTimeout(function() {
-        const achievements = document.querySelectorAll('.achievement-item');
-        console.log('StatisticsManager: HTML тест - найдено достижений:', achievements.length);
-        
-        achievements.forEach(function(achievement, index) {
-            console.log('StatisticsManager: HTML тест - достижение', index + 1, ':', achievement.dataset.achievementName);
-            
-            // Добавляем простой обработчик
-            achievement.addEventListener('click', function(e) {
-                console.log('StatisticsManager: HTML тест - КЛИК!', e.target);
-                console.log('StatisticsManager: HTML тест - Достижение:', achievement.dataset.achievementName);
-                
-                // Получаем локализованное описание
-                const achievementId = achievement.dataset.achievementId;
-                const descriptions = {
-                    '1': {
-                        'en': 'Complete your first quiz to unlock this achievement!',
-                        'ru': 'Пройдите первую викторину, чтобы разблокировать это достижение!'
-                    },
-                    '2': {
-                        'en': 'Achieve 60% success rate to become an expert!',
-                        'ru': 'Достигните 60% успешности, чтобы стать экспертом!'
-                    },
-                    '4': {
-                        'en': 'Answer 3 questions correctly in a row to unlock this streak!',
-                        'ru': 'Ответьте правильно на 3 вопроса подряд, чтобы разблокировать эту серию!'
-                    },
-                    '5': {
-                        'en': 'Achieve 90% success rate to become a true expert!',
-                        'ru': 'Достигните 90% успешности, чтобы стать настоящим экспертом!'
-                    }
-                };
-                
-                const currentLang = window.currentLanguage || 'en';
-                const description = descriptions[achievementId]?.[currentLang] || descriptions[achievementId]?.['en'] || achievement.dataset.achievementDescription;
-                
-                // Создаем визуальную подсказку вместо alert
-                const tooltip = document.createElement('div');
-                tooltip.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: rgba(0, 0, 0, 0.9);
-                    color: #00ff00;
-                    padding: 20px;
-                    border-radius: 10px;
-                    border: 2px solid #00ff00;
-                    z-index: 10000;
-                    font-size: 18px;
-                    text-align: center;
-                    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-                    max-width: 300px;
-                    word-wrap: break-word;
-                `;
-                tooltip.innerHTML = '<strong>' + achievement.dataset.achievementName + '</strong><br><br>' + description;
-                document.body.appendChild(tooltip);
-                
-                // Удаляем подсказку через 3 секунды
-                setTimeout(() => {
-                    if (tooltip.parentNode) {
-                        tooltip.parentNode.removeChild(tooltip);
-                    }
-                }, 3000);
-            });
-        });
-    }, 1000);
-});
-</script>
 {% endblock %}
