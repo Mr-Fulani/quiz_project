@@ -74,7 +74,7 @@ STATIC_VERSIONS = {
     'donation.js': '2.1',
     'localization.js': '2.1',
     'share-app.js': '1.8',
-    'profile.js': '5.2',  # Обновлено: добавлена отладка через alert для диагностики в Telegram
+    'profile.js': '5.3',  # Обновлено: убрана отладка, исправлена проблема с localhost в avatar URL
     'search.js': '1.7',
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
