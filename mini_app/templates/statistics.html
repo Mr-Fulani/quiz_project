@@ -57,12 +57,14 @@
         <div class="topic-progress-list">
             {% for topic in user_statistics.topic_progress %}
             <div class="topic-progress-item">
-                <div class="topic-name">{{ topic.name }}</div>
-                <div class="topic-stats">
-                    <span class="topic-completed">{{ topic.completed }}</span>
-                    <span class="topic-separator">/</span>
-                    <span class="topic-total">{{ topic.total }}</span>
-                    <span class="topic-percentage">({{ topic.percentage }}%)</span>
+                <div class="topic-content">
+                    <div class="topic-name">{{ topic.name }}</div>
+                    <div class="topic-stats">
+                        <span class="topic-completed">{{ topic.completed }}</span>
+                        <span class="topic-separator">/</span>
+                        <span class="topic-total">{{ topic.total }}</span>
+                        <span class="topic-percentage">({{ topic.percentage }}%)</span>
+                    </div>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: {{ topic.percentage }}%"></div>
