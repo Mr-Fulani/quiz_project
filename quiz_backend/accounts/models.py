@@ -500,6 +500,12 @@ class MiniAppUser(models.Model):
         null=True, 
         verbose_name="Аватар Mini App"
     )
+    telegram_photo_url = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="URL фото из Telegram"
+    )
     created_at = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="Дата создания"

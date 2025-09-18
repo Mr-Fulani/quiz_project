@@ -320,7 +320,11 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type', 'avatar', 'social_links')
     
     def get_avatar(self, obj):
-        """Возвращает абсолютный URL к аватару пользователя."""
+        """
+        Возвращает абсолютный URL к аватару пользователя.
+        Приоритет: 1) загруженный avatar, 2) telegram_photo_url, 3) None
+        """
+        # Сначала проверяем загруженный аватар
         if obj.avatar and hasattr(obj.avatar, 'url'):
             avatar_url = obj.avatar.url
             # Декодируем URL
@@ -335,6 +339,11 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
                 return f"{scheme}://{host}{avatar_url}"
             return avatar_url
+        
+        # Если загруженного аватара нет, используем URL из Telegram
+        if obj.telegram_photo_url:
+            return obj.telegram_photo_url
+            
         return None
     
     def get_social_links(self, obj):
@@ -396,15 +405,25 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
     Используется при первом входе пользователя в Mini App.
     Автоматически связывает с существующими пользователями.
     """
+    photo_url = serializers.URLField(required=False, write_only=True)
+    language_code = serializers.CharField(source='language', required=False)
     
     class Meta:
         model = MiniAppUser
-        fields = ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'avatar')
+        fields = ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'language_code', 'avatar', 'photo_url', 'telegram_photo_url')
+        extra_kwargs = {
+            'telegram_photo_url': {'write_only': True}
+        }
     
     def create(self, validated_data):
         """
         Создает пользователя Mini App и автоматически связывает с существующими пользователями.
         """
+        # Обрабатываем photo_url из Telegram
+        photo_url = validated_data.pop('photo_url', None)
+        if photo_url:
+            validated_data['telegram_photo_url'] = photo_url
+            
         # Создаем пользователя
         mini_app_user = MiniAppUser.objects.create(**validated_data)
         
@@ -465,7 +484,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MiniAppUser
-        fields = ('username', 'first_name', 'last_name', 'language', 'avatar')
+        fields = ('username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url')
     
     def update(self, instance, validated_data):
         """
@@ -504,7 +523,9 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
     def get_avatar_url(self, obj):
         """
         Возвращает URL аватара пользователя Mini App.
+        Приоритет: 1) загруженный avatar, 2) telegram_photo_url, 3) None
         """
+        # Сначала проверяем загруженный аватар
         if obj.avatar and hasattr(obj.avatar, 'url'):
             avatar_url = obj.avatar.url
             # Декодируем URL
@@ -534,6 +555,12 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
                 logger.info(f"[DEBUG AVATAR] final_url: {final_url}")
                 return final_url
             return avatar_url
+        
+        # Если загруженного аватара нет, используем URL из Telegram
+        if obj.telegram_photo_url:
+            logger.info(f"[DEBUG AVATAR] Using telegram_photo_url: {obj.telegram_photo_url}")
+            return obj.telegram_photo_url
+            
         return None
     
     def get_rating(self, obj):
