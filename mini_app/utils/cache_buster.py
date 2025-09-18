@@ -83,7 +83,7 @@ STATIC_VERSIONS = {
     'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
     'profile.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
     'top_users.css': '1.9',  # Обновлено: исправлена логика обработки photo_url в MiniAppUserUpdateSerializer
-    'statistics.css': '2.6',  # Обновлено: исправлена позиция и цвет полосы прогресса в статистике
+    'statistics.css': '2.7',  # Обновлено: принудительный сброс кэша для полосы прогресса
 }
 
 
