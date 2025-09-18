@@ -97,7 +97,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://www.quiz-code.com',
     'https://mini.quiz-code.com',
 ]
-USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_HOST = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Настройки django-debug-toolbar
@@ -414,7 +414,7 @@ else:
     SECURE_HSTS_PRELOAD = True
 
     # Настройки для работы за прокси-сервером (Nginx)
-    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_HOST = False
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)

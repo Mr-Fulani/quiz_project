@@ -1,7 +1,11 @@
+from urllib.parse import unquote
+import logging
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db.models import Count, Q
 from .models import CustomUser, UserChannelSubscription, TelegramAdmin, DjangoAdmin, MiniAppUser, TelegramUser
+
+logger = logging.getLogger(__name__)
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -148,47 +152,28 @@ class ProfileSerializer(serializers.ModelSerializer):
         # obj is CustomUser instance
         # Сначала пытаемся получить аватар из MiniAppUser, если он связан
         mini_app_profile = getattr(obj, 'mini_app_profile', None)
+        avatar_field = None
         if mini_app_profile and mini_app_profile.avatar:
+            avatar_field = mini_app_profile.avatar
+        elif obj.avatar:
+            avatar_field = obj.avatar
+
+        if avatar_field and hasattr(avatar_field, 'url'):
+            avatar_url = avatar_field.url
+            # Декодируем URL на случай, если он закодирован
+            decoded_url = unquote(avatar_url)
+            
+            # Проверяем, является ли декодированный URL абсолютным
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
+            
+            # Если это относительный путь, строим полный URL
             request = self.context.get('request')
             if request:
-                # Используем правильный хост для mini_app
                 host = request.headers.get('X-Forwarded-Host', request.get_host())
                 scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                # Если запрос идет от mini_app, используем правильный домен
-                if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                    # Для ngrok используем тот же домен с HTTPS
-                    if 'ngrok' in host:
-                        return f"https://{host}{mini_app_profile.avatar.url}"
-                    # Для локальной разработки используем localhost:8080
-                    elif 'localhost' in host:
-                        return f"http://localhost:8080{mini_app_profile.avatar.url}"
-                    # Для продакшена используем mini.quiz-code.com
-                    else:
-                        return f"https://mini.quiz-code.com{mini_app_profile.avatar.url}"
-                return request.build_absolute_uri(mini_app_profile.avatar.url)
-            return mini_app_profile.avatar.url
-        
-        # Если MiniAppUser не связан или у него нет аватара, используем аватар из CustomUser
-        if obj.avatar:
-            request = self.context.get('request')
-            if request:
-                # Используем правильный хост для mini_app
-                host = request.headers.get('X-Forwarded-Host', request.get_host())
-                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                # Если запрос идет от mini_app, используем правильный домен
-                if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                    # Для ngrok используем тот же домен с HTTPS
-                    if 'ngrok' in host:
-                        return f"https://{host}{obj.avatar.url}"
-                    # Для локальной разработки используем localhost:8080
-                    elif 'localhost' in host:
-                        return f"http://localhost:8080{obj.avatar.url}"
-                    # Для продакшена используем mini.quiz-code.com
-                    else:
-                        return f"https://mini.quiz-code.com{obj.avatar.url}"
-                return request.build_absolute_uri(obj.avatar.url)
-            return obj.avatar.url
-        
+                return f"{scheme}://{host}{avatar_url}"
+            return avatar_url
         return None
     
     def get_social_links(self, obj):
@@ -336,26 +321,20 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     
     def get_avatar(self, obj):
         """Возвращает абсолютный URL к аватару пользователя."""
-        if obj.avatar:
-            # Если avatar - это ImageField, возвращаем его URL
-            if hasattr(obj.avatar, 'url'):
-                request = self.context.get('request')
-                if request:
-                    # Используем правильный хост для mini_app
-                    host = request.headers.get('X-Forwarded-Host', request.get_host())
-                    scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-                    # Если запрос идет от mini_app, используем правильный домен
-                    if 'mini.quiz-code.com' in host or 'localhost' in host or 'ngrok' in host:
-                        # Для локальной разработки используем localhost:8080
-                        if 'localhost' in host or 'ngrok' in host:
-                            return f"http://localhost:8080{obj.avatar.url}"
-                        # Для продакшена используем mini.quiz-code.com
-                        else:
-                            return f"https://mini.quiz-code.com{obj.avatar.url}"
-                    return request.build_absolute_uri(obj.avatar.url)
-                return obj.avatar.url
-            # Если avatar - это строка (URL), возвращаем как есть
-            return obj.avatar
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            avatar_url = obj.avatar.url
+            # Декодируем URL
+            decoded_url = unquote(avatar_url)
+            
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
+
+            request = self.context.get('request')
+            if request:
+                host = request.headers.get('X-Forwarded-Host', request.get_host())
+                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                return f"{scheme}://{host}{avatar_url}"
+            return avatar_url
         return None
     
     def get_social_links(self, obj):
@@ -509,7 +488,7 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для топ-пользователей Mini App, включающий рейтинг и базовые данные.
     """
-    avatar = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
     quizzes_completed = serializers.SerializerMethodField()
     average_score = serializers.SerializerMethodField() # Это success_rate
@@ -519,39 +498,42 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
-            'avatar', 'rating', 'quizzes_completed', 'average_score', 'is_online'
+            'avatar_url', 'rating', 'quizzes_completed', 'average_score', 'is_online'
         )
 
-    def get_avatar(self, obj):
+    def get_avatar_url(self, obj):
         """
         Возвращает URL аватара пользователя Mini App.
         """
-        request = self.context.get('request')
         if obj.avatar and hasattr(obj.avatar, 'url'):
-            if request:
-                host = request.headers.get('X-Forwarded-Host', request.get_host())
-                
-                # Для ngrok используем тот же домен с HTTPS
-                if 'ngrok' in host:
-                    return f"https://{host}{obj.avatar.url}"
-                # Для локальной разработки используем localhost:8080
-                elif 'localhost' in host:
-                    return f"http://localhost:8080{obj.avatar.url}"
-                # Для продакшена используем mini.quiz-code.com
-                elif 'mini.quiz-code.com' in host:
-                    return f"https://{host}{obj.avatar.url}"
-                
-                # Фоллбэк для внутренних запросов (mini_app -> quiz_backend)
-                # где host может быть 'quiz_backend:8000'
-                # В этом случае, строим URL на основе заголовка X-Forwarded-Host
-                # который nginx должен передавать от оригинального запроса.
-                original_host = request.headers.get('X-Forwarded-Host')
-                if original_host:
-                    scheme = request.headers.get('X-Forwarded-Proto', 'http')
-                    return f"{scheme}://{original_host}{obj.avatar.url}"
+            avatar_url = obj.avatar.url
+            # Декодируем URL
+            decoded_url = unquote(avatar_url)
+            
+            logger.info(f"[DEBUG AVATAR] raw avatar_url: {avatar_url}")
+            logger.info(f"[DEBUG AVATAR] decoded_url: {decoded_url}")
 
-                return request.build_absolute_uri(obj.avatar.url)
-            return obj.avatar.url
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                logger.info(f"[DEBUG AVATAR] returning decoded: {decoded_url}")
+                return decoded_url
+
+            request = self.context.get('request')
+            if request:
+                logger.info(f"[DEBUG AVATAR] all request headers: {dict(request.headers)}")
+                # Используем X-Forwarded-Host напрямую, если он есть, иначе request.get_host()
+                forwarded_host = request.headers.get('X-Forwarded-Host')
+                if forwarded_host:
+                    host = forwarded_host
+                    logger.info(f"[DEBUG AVATAR] Using forwarded_host: {forwarded_host}")
+                else:
+                    host = request.get_host()
+                    logger.info(f"[DEBUG AVATAR] Using request.get_host(): {host}")
+                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                final_url = f"{scheme}://{host}{avatar_url}"
+                logger.info(f"[DEBUG AVATAR] headers: forwarded_host={forwarded_host}, host={host}, scheme={scheme}")
+                logger.info(f"[DEBUG AVATAR] final_url: {final_url}")
+                return final_url
+            return avatar_url
         return None
     
     def get_rating(self, obj):
