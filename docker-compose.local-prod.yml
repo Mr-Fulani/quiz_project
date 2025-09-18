@@ -17,7 +17,7 @@ services:
       - quiz_network_local_prod
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-fulani_quiz_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -74,7 +74,7 @@ services:
       - APP_HOST=0.0.0.0
       - APP_PORT=8080
       - DJANGO_API_TOKEN=${DJANGO_API_TOKEN:-your-api-token}
-      - DJANGO_API_BASE_URL=http://nginx:80
+      - DJANGO_API_BASE_URL=http://quiz_backend:8000
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/mini_app
       - DEBUG=False  # Отключаем DEBUG для тестирования
