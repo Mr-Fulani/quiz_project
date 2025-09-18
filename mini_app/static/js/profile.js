@@ -135,6 +135,10 @@
             window.telegramUserId = userData.telegram_id;
             console.log('💾 Telegram ID сохранен при загрузке:', userData.telegram_id);
         }
+        
+        // Обновляем глобальный объект currentUser с актуальными данными из БД
+        window.currentUser = userData;
+        console.log('💾 window.currentUser обновлен с актуальными данными:', userData);
 
         const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         elements.name.textContent = fullName || 'Пользователь';
