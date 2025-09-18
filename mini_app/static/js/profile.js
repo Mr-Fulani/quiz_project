@@ -139,6 +139,12 @@
         // Обновляем глобальный объект currentUser с актуальными данными из БД
         window.currentUser = userData;
         console.log('💾 window.currentUser обновлен с актуальными данными:', userData);
+        
+        // Временная отладка для Telegram
+        const tg = getTelegramWebApp();
+        if (tg && tg.showAlert) {
+            tg.showAlert(`DEBUG: Avatar URL = ${userData.avatar || 'null'}`);
+        }
 
         const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         elements.name.textContent = fullName || 'Пользователь';
