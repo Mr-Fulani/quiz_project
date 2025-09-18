@@ -48,7 +48,7 @@ USE_L10N = False
 MOCK_TELEGRAM_AUTH = DEBUG
 
 if DEBUG:
-    ALLOWED_HOSTS = ["*", "quiz_backend", "quiz_backend:8000", "nginx_local", "nginx_local:8080"]
+    ALLOWED_HOSTS = ["*", "quiz_backend", "quiz_backend:8000", "nginx_local", "nginx_local:8080", "localhost", "127.0.0.1"]
 else:
     # Хосты для продакшена - твои домены + localhost для curl
     env_hosts = os.getenv("ALLOWED_HOSTS", "")
@@ -104,11 +104,15 @@ CSRF_TRUSTED_ORIGINS = [
 USE_X_FORWARDED_HOST = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Настройки django-debug-toolbar
-INTERNAL_IPS = [
-    '127.0.0.1',
-    'localhost',
-]
+# Настройки django-debug-toolbar (только если установлен)
+try:
+    import debug_toolbar
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
+    ]
+except ImportError:
+    INTERNAL_IPS = []
 
 
 # Application definition
@@ -147,10 +151,19 @@ INSTALLED_APPS = [
 ]
 
 if DEBUG:
-    INSTALLED_APPS.extend([
-        'debug_toolbar',
-        'silk',
-    ])
+    # Добавляем debug_toolbar только если он установлен
+    try:
+        import debug_toolbar
+        INSTALLED_APPS.extend(['debug_toolbar'])
+    except ImportError:
+        logger.warning("debug_toolbar not installed, skipping")
+    
+    # Добавляем silk только если он установлен
+    try:
+        import silk
+        INSTALLED_APPS.extend(['silk'])
+    except ImportError:
+        logger.warning("silk not installed, skipping")
 
 TINYMCE_DEFAULT_CONFIG = {
     'height': 400,
@@ -214,10 +227,18 @@ if DEBUG:
     # AllowAllHostsMiddleware можно использовать, если ALLOWED_HOSTS = ['*'] не подходит
     # В данном случае, мы используем '*', так что этот middleware можно закомментировать или удалить
     # MIDDLEWARE.insert(0, 'config.middleware.AllowAllHostsMiddleware')
-    MIDDLEWARE.extend([
-        'debug_toolbar.middleware.DebugToolbarMiddleware',
-        'silk.middleware.SilkyMiddleware',
-    ])
+    # Добавляем middleware только если соответствующие пакеты установлены
+    try:
+        import debug_toolbar
+        MIDDLEWARE.extend(['debug_toolbar.middleware.DebugToolbarMiddleware'])
+    except ImportError:
+        pass
+    
+    try:
+        import silk
+        MIDDLEWARE.extend(['silk.middleware.SilkyMiddleware'])
+    except ImportError:
+        pass
 
 ROOT_URLCONF = 'config.urls'
 
