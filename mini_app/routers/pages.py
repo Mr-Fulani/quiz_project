@@ -152,10 +152,12 @@ async def statistics(
     telegram_id = request.headers.get('X-Telegram-User-Id')
     if not telegram_id:
         telegram_id = request.cookies.get('telegram_id')
+    
+    user_statistics = None  # Инициализируем переменную
     if telegram_id:
         try:
             host = request.headers.get('x-forwarded-host') or request.headers.get('host')
-            scheme = request.headers.get('x-forwarded-proto') or request.scheme
+            scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
             user_statistics = await django_api_service.get_user_statistics(
                 telegram_id, host=host, scheme=scheme
             )
