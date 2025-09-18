@@ -503,15 +503,26 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     
     Позволяет обновлять основные данные пользователя.
     """
+    photo_url = serializers.URLField(required=False, write_only=True)
     
     class Meta:
         model = MiniAppUser
-        fields = ('username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url')
+        fields = ('username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url', 'photo_url')
+        extra_kwargs = {
+            'telegram_photo_url': {'write_only': True}
+        }
     
     def update(self, instance, validated_data):
         """
         Обновляет данные пользователя и время последнего визита.
         """
+        # Обрабатываем photo_url из Telegram
+        photo_url = validated_data.pop('photo_url', None)
+        if photo_url:
+            validated_data['telegram_photo_url'] = photo_url
+            # Если приходит новый URL от Telegram, очищаем загруженный avatar
+            validated_data['avatar'] = None
+            
         # Обновляем данные
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

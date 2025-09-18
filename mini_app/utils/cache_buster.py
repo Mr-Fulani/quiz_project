@@ -82,7 +82,7 @@ STATIC_VERSIONS = {
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
     'profile.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
-    'top_users.css': '1.7',  # Обновлено: исправлен mini_app API service для HTTPS аватарок
+    'top_users.css': '1.9',  # Обновлено: исправлена логика обработки photo_url в MiniAppUserUpdateSerializer
     'statistics.css': '2.5',  # Обновлено: исправлен mini_app API service для аватарок
 }
 
