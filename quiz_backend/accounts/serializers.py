@@ -170,8 +170,19 @@ class ProfileSerializer(serializers.ModelSerializer):
             # Если это относительный путь, строим полный URL
             request = self.context.get('request')
             if request:
-                host = request.headers.get('X-Forwarded-Host', request.get_host())
-                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                # Приоритет: X-Forwarded-Host > Host заголовок > fallback
+                forwarded_host = request.headers.get('X-Forwarded-Host')
+                host_header = request.headers.get('Host')
+                
+                if forwarded_host:
+                    host = forwarded_host
+                elif host_header and not host_header.startswith('localhost'):
+                    host = host_header
+                else:
+                    # Fallback для продакшена
+                    host = 'mini.quiz-code.com'
+                
+                scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{avatar_url}"
             return avatar_url
         return None
@@ -335,8 +346,19 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
 
             request = self.context.get('request')
             if request:
-                host = request.headers.get('X-Forwarded-Host', request.get_host())
-                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                # Приоритет: X-Forwarded-Host > Host заголовок > fallback
+                forwarded_host = request.headers.get('X-Forwarded-Host')
+                host_header = request.headers.get('Host')
+                
+                if forwarded_host:
+                    host = forwarded_host
+                elif host_header and not host_header.startswith('localhost'):
+                    host = host_header
+                else:
+                    # Fallback для продакшена
+                    host = 'mini.quiz-code.com'
+                
+                scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 return f"{scheme}://{host}{avatar_url}"
             return avatar_url
         
@@ -541,17 +563,24 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 logger.info(f"[DEBUG AVATAR] all request headers: {dict(request.headers)}")
-                # Используем X-Forwarded-Host напрямую, если он есть, иначе request.get_host()
+                # Приоритет: X-Forwarded-Host > Host заголовок > fallback
                 forwarded_host = request.headers.get('X-Forwarded-Host')
+                host_header = request.headers.get('Host')
+                
                 if forwarded_host:
                     host = forwarded_host
                     logger.info(f"[DEBUG AVATAR] Using forwarded_host: {forwarded_host}")
+                elif host_header and not host_header.startswith('localhost'):
+                    host = host_header
+                    logger.info(f"[DEBUG AVATAR] Using host_header: {host_header}")
                 else:
-                    host = request.get_host()
-                    logger.info(f"[DEBUG AVATAR] Using request.get_host(): {host}")
-                scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+                    # Fallback для продакшена
+                    host = 'mini.quiz-code.com'
+                    logger.info(f"[DEBUG AVATAR] Using fallback host: {host}")
+                
+                scheme = request.headers.get('X-Forwarded-Proto', 'https')
                 final_url = f"{scheme}://{host}{avatar_url}"
-                logger.info(f"[DEBUG AVATAR] headers: forwarded_host={forwarded_host}, host={host}, scheme={scheme}")
+                logger.info(f"[DEBUG AVATAR] headers: forwarded_host={forwarded_host}, host_header={host_header}, final_host={host}, scheme={scheme}")
                 logger.info(f"[DEBUG AVATAR] final_url: {final_url}")
                 return final_url
             return avatar_url

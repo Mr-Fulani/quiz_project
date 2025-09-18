@@ -101,7 +101,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://www.quiz-code.com',
     'https://mini.quiz-code.com',
 ]
-USE_X_FORWARDED_HOST = False
+USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Настройки django-debug-toolbar (только если установлен)
