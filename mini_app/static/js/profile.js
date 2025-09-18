@@ -359,7 +359,7 @@
                 formData.append('youtube', elements.youtubeInput.value);
 
                 try {
-                    const response = await fetch(`/api/profile/${telegramId}/update/`, {
+                    const response = await fetch(`/api/accounts/miniapp-users/update/${telegramId}/`, {
                         method: 'PATCH', // Используем PATCH для частичного обновления
                         body: formData, // FormData автоматически устанавливает Content-Type: multipart/form-data
                         // headers: { 'Content-Type': 'multipart/form-data' } // Не устанавливать вручную для FormData

@@ -52,6 +52,7 @@ urlpatterns = [
         'delete': 'destroy'
     }), name='miniapp-user-detail'),
     path('miniapp-users/by-telegram/<int:telegram_id>/', api_views.MiniAppUserByTelegramIDView.as_view(), name='miniapp-user-by-telegram'),
+    path('miniapp-users/update/<int:telegram_id>/', api_views.MiniAppUserUpdateByTelegramIDView.as_view(), name='miniapp-user-update-by-telegram'),
     path('miniapp-users/profile/by-telegram/', api_views.MiniAppProfileByTelegramID.as_view(), name='miniapp-profile-by-telegram'),
     path('miniapp-users/top/', api_views.MiniAppTopUsersListView.as_view(), name='miniapp-top-users'), # Новый эндпоинт для топ-пользователей Mini App
     path('miniapp-users/statistics/', api_views.MiniAppUserStatisticsView.as_view(), name='miniapp-user-statistics'), # Статистика пользователя Mini App

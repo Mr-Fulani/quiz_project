@@ -215,51 +215,70 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
-@router.patch("/profile/{telegram_id}/update/")
-async def update_profile_json(telegram_id: int, request: Request):
+@router.patch("/accounts/miniapp-users/update/{telegram_id}/")
+async def update_miniapp_user_profile(telegram_id: int, request: Request):
     """
-    Обновляет профиль пользователя, включая загрузку аватара.
+    Обновляет профиль пользователя MiniApp, включая загрузку аватара.
+    Проксирует запросы в Django API.
     """
-    logger.info(f"Updating profile JSON for telegram_id: {telegram_id}")
+    logger.info(f"Updating MiniApp user profile for telegram_id: {telegram_id}")
     
     try:
         # Проверяем тип контента
         content_type = request.headers.get("content-type", "")
         
         if "multipart/form-data" in content_type:
-            # Обрабатываем загрузку файла
+            # Обрабатываем загрузку файла и других данных
             form_data = await request.form()
-            avatar_file = form_data.get("avatar")
             
-            if avatar_file:
-                # Читаем содержимое файла
-                file_content = await avatar_file.read()
-                
-                # Отправляем файл в Django API
-                django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/profile/by-telegram/{telegram_id}/update/"
-                files = {'avatar': (avatar_file.filename, file_content, avatar_file.content_type)}
-                
-                async with httpx.AsyncClient() as client:
-                    response = await client.patch(django_update_url, files=files, timeout=30.0)
+            # Подготавливаем данные для отправки в Django API
+            django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/update/{telegram_id}/"
+            
+            # Подготавливаем файлы и данные
+            files = {}
+            data = {}
+            
+            for key, value in form_data.items():
+                if hasattr(value, 'read'):  # Это файл
+                    file_content = await value.read()
+                    files[key] = (value.filename, file_content, value.content_type)
+                else:  # Это обычные данные
+                    data[key] = value
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.patch(
+                    django_update_url, 
+                    files=files if files else None,
+                    data=data if data else None,
+                    timeout=30.0
+                )
                     
-                if response.status_code == 200:
-                    return JSONResponse(content=response.json(), status_code=response.status_code)
-                else:
-                    raise HTTPException(status_code=response.status_code, detail=response.text)
+            if response.status_code == 200:
+                return JSONResponse(content=response.json(), status_code=response.status_code)
             else:
-                raise HTTPException(status_code=400, detail="No avatar file provided")
+                logger.error(f"Django API error: {response.status_code} - {response.text}")
+                raise HTTPException(status_code=response.status_code, detail=response.text)
+                
         else:
             # Обрабатываем JSON данные
             profile_data = await request.json()
             logger.info(f"Received profile data: {profile_data}")
             
             # Отправляем данные в Django API
-            updated_profile = await django_api_service.update_user_profile(telegram_id, profile_data)
+            django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/update/{telegram_id}/"
             
-            if updated_profile:
-                return JSONResponse(content=updated_profile)
+            async with httpx.AsyncClient() as client:
+                response = await client.patch(
+                    django_update_url,
+                    json=profile_data,
+                    timeout=30.0
+                )
+            
+            if response.status_code == 200:
+                return JSONResponse(content=response.json())
             else:
-                raise HTTPException(status_code=500, detail="Failed to update profile")
+                logger.error(f"Django API error: {response.status_code} - {response.text}")
+                raise HTTPException(status_code=response.status_code, detail=response.text)
             
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON in request: {e}")
@@ -270,6 +289,15 @@ async def update_profile_json(telegram_id: int, request: Request):
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+@router.patch("/profile/{telegram_id}/update/")
+async def update_profile_json(telegram_id: int, request: Request):
+    """
+    УСТАРЕВШИЙ ENDPOINT - оставлен для совместимости.
+    Перенаправляет на новый endpoint.
+    """
+    logger.warning(f"Using deprecated endpoint /profile/{telegram_id}/update/ - redirecting to new endpoint")
+    return await update_miniapp_user_profile(telegram_id, request)
 
 # Вспомогательные функции для работы с Django API
 async def fetch_topics_from_django(search: str = None):
