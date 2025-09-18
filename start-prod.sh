@@ -20,7 +20,7 @@ echo "ℹ️  Временно используются только домен�
 # echo "Запуск Certbot с командой: docker compose -f docker-compose.local-prod.yml run --rm --entrypoint \"sh\" certbot -c \"set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot --staging --agree-tos -v --non-interactive --email $EMAIL --config-dir /etc/letsencrypt/conf --work-dir /etc/letsencrypt/work --logs-dir /etc/letsencrypt/logs --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot\""
 
 echo "🔌 Остановка и удаление существующих контейнеров..."
-docker compose -f docker-compose.local-prod.yml down --volumes
+docker compose -f docker-compose.local-prod.yml down --remove-orphans
 
 echo "🧹 Проверка и подготовка конфигураций Certbot..."
 # Проверяем, есть ли уже сертификаты
