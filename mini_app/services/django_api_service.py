@@ -143,8 +143,11 @@ class DjangoAPIService:
         headers = {}
         if host:
             headers['X-Forwarded-Host'] = host
+            headers['Host'] = host
+            logger.info(f"[DEBUG API] Setting X-Forwarded-Host for profile: {host}")
         if scheme:
             headers['X-Forwarded-Proto'] = scheme
+            logger.info(f"[DEBUG API] Setting X-Forwarded-Proto for profile: {scheme}")
             
         try:
             # Сначала пытаемся получить профиль по GET запросу
@@ -153,6 +156,7 @@ class DjangoAPIService:
                 f'/api/accounts/miniapp-users/by-telegram/{telegram_id}/',
                 headers=headers
             )
+            logger.info(f"Ответ от Django API (profile): {profile}")
             logger.info(f"Найден существующий профиль для telegram_id={telegram_id}")
             return profile
         except httpx.HTTPStatusError as e:
