@@ -58,7 +58,6 @@ class LocalizationService:
             "accuracy": "Accuracy",
             "streak": "Current Streak",
             "best_streak": "Best Streak",
-            "achievements": "Achievements",
             "topic_progress": "Topic Progress",
             
             
@@ -79,7 +78,6 @@ class LocalizationService:
             "app_name": "Quiz Mini App",
             "app_features_learning": "📚 Learning",
             "app_features_quizzes": "🎯 Quizzes",
-            "app_features_achievements": "🏆 Achievements",
             
             # Донаты
             "support_project": "Support Project",
@@ -174,7 +172,6 @@ class LocalizationService:
             "accuracy": "Точность",
             "streak": "Текущая серия",
             "best_streak": "Лучшая серия",
-            "achievements": "Достижения",
             "topic_progress": "Прогресс по темам",
             
             
@@ -195,7 +192,6 @@ class LocalizationService:
             "app_name": "Quiz Mini App",
             "app_features_learning": "📚 Обучение",
             "app_features_quizzes": "🎯 Квизы",
-            "app_features_achievements": "🏆 Достижения",
             
             # Донаты
             "support_project": "Поддержать проект",

@@ -218,11 +218,6 @@
         font-size: 14px;
     }
     
-    .achievement-tooltip {
-        font-size: 12px;
-        padding: 10px 12px;
-        max-width: 150px;
-    }
 }
 
 @media (max-width: 480px) {
