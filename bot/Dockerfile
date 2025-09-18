@@ -20,16 +20,16 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # Копируем остальные файлы проекта
-COPY . .
+# COPY . .
 
 # Копируем папку fonts (если нужна)
-COPY ./fonts /quiz_project/fonts
+COPY ./bot/fonts /quiz_project/fonts
 
 # Устанавливаем PYTHONPATH
 ENV PYTHONPATH=/quiz_project
 
 # Копируем entrypoint.sh в контейнер
-COPY entrypoint.sh /entrypoint.sh
+COPY bot/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Указываем точку входа

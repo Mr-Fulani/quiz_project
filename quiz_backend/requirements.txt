@@ -25,6 +25,7 @@ django-filter==24.3
 djangorestframework==3.15.2
 drf-yasg==1.21.8
 frozenlist==1.4.1
+gunicorn==22.0.0
 greenlet==3.1.1
 idna==3.10
 inflection==0.5.1

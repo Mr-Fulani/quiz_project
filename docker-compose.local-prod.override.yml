@@ -1,0 +1,17 @@
+services:
+  nginx:
+    ports:
+      - "8081:8080" # Используем порт 8081 для Nginx на хосте, чтобы избежать конфликтов
+    build:
+      args:
+        NGINX_CONF: nginx-local.conf # Используем локальный конфиг без SSL
+    depends_on:
+      quiz_backend:
+        condition: service_started
+
+  mini_app:
+    ports: [] # Убираем проброс портов для mini_app, т.к. доступ будет через Nginx
+
+  telegram_bot:
+    environment:
+      DEBUG: 'False'
