@@ -96,13 +96,13 @@ async def verify_init_data(request: Request):
 
         # Получаем хост и схему из оригинального запроса, чтобы
         # бэкенд мог строить правильные абсолютные URL
-        host = request.headers.get('host')
-        scheme = request.url.scheme
+        # Используем ту же логику что в top_users (которая работает!)
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
         
-        # Исправляем localhost на правильный домен для продакшена
-        if host and (host.startswith('localhost') or host.startswith('127.0.0.1')):
-            host = 'mini.quiz-code.com'
-            scheme = 'https'
+        logger.info(f"🔍 HOST from headers: {host}")
+        logger.info(f"🔍 SCHEME from headers: {scheme}")
+        logger.info(f"🔍 All headers: {dict(request.headers)}")
 
         profile_data = await django_api_service.get_or_create_user_profile(
             user_data=init_data.user,
