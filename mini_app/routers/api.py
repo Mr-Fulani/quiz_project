@@ -98,6 +98,11 @@ async def verify_init_data(request: Request):
         # бэкенд мог строить правильные абсолютные URL
         host = request.headers.get('host')
         scheme = request.url.scheme
+        
+        # Исправляем localhost на правильный домен для продакшена
+        if host and (host.startswith('localhost') or host.startswith('127.0.0.1')):
+            host = 'mini.quiz-code.com'
+            scheme = 'https'
 
         profile_data = await django_api_service.get_or_create_user_profile(
             user_data=init_data.user,
