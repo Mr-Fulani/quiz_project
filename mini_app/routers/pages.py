@@ -105,7 +105,8 @@ async def top_users(
         
         # Получаем список топ-пользователей Mini App, передавая хост для правильных URL аватарок
         host = request.headers.get('x-forwarded-host') or request.headers.get('host')
-        scheme = request.headers.get('x-forwarded-proto') or request.scheme
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+        logger.info(f"[DEBUG] top_users: host={host}, scheme={scheme}, all_headers={dict(request.headers)}")
         top_users_data = await django_api_service.get_top_users_mini_app(
             language=current_language, host=host, scheme=scheme
         )
@@ -152,13 +153,12 @@ async def statistics(
     if not telegram_id:
         telegram_id = request.cookies.get('telegram_id')
     if telegram_id:
-        telegram_id = int(telegram_id)
-    
-    # Получаем статистику пользователя, если telegram_id доступен
-    user_statistics = None
-    if telegram_id:
         try:
-            user_statistics = await django_api_service.get_user_statistics(telegram_id)
+            host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+            scheme = request.headers.get('x-forwarded-proto') or request.scheme
+            user_statistics = await django_api_service.get_user_statistics(
+                telegram_id, host=host, scheme=scheme
+            )
             logger.info(f"Получена статистика для пользователя {telegram_id}: {user_statistics}")
         except Exception as e:
             logger.error(f"Ошибка при получении статистики для пользователя {telegram_id}: {e}")

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
     
     # Django API
-    DJANGO_API_BASE_URL: str = "http://quiz_backend:8000"
+    DJANGO_API_BASE_URL: str = "http://nginx_local:8080"
     DJANGO_API_TOKEN: str
     
     # Локализация

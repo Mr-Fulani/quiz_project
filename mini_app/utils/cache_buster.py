@@ -79,11 +79,11 @@ STATIC_VERSIONS = {
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
     'topic-detail.js': '1.6',
-    'statistics.js': '3.4',  # Исправлены URL аватарок для ngrok
-    'styles.css': '1.2',
-    'profile.css': '1.2',
-    'top_users.css': '1.5',  # Обновлено для исправления URL аватарок
-    'statistics.css': '2.3',  # Исправлены аватарки
+    'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
+    'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
+    'profile.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
+    'top_users.css': '1.7',  # Обновлено: исправлен mini_app API service для HTTPS аватарок
+    'statistics.css': '2.5',  # Обновлено: исправлен mini_app API service для аватарок
 }
 
 

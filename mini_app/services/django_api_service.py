@@ -24,10 +24,17 @@ class DjangoAPIService:
         if headers is None:
             headers = {}
         
-        # Если запрос идет к quiz_backend:8000 и X-Forwarded-Host не передан,
-        # добавляем правильный Host заголовок для продакшена.
-        if 'quiz_backend:8000' in self.base_url and 'X-Forwarded-Host' not in headers:
-            headers['Host'] = 'mini.quiz-code.com'
+        # Если запрос идет через nginx, добавляем правильные заголовки
+        # для корректной работы с Django API
+        if ('nginx_local:8080' in self.base_url or 'nginx:80' in self.base_url) and 'X-Forwarded-Host' not in headers:
+            if 'nginx_local:8080' in self.base_url:
+                # Локальная разработка с ngrok
+                headers['X-Forwarded-Host'] = '77273f38044f.ngrok-free.app'
+                headers['X-Forwarded-Proto'] = 'https'
+            elif 'nginx:80' in self.base_url:
+                # Продакшен конфигурация
+                headers['X-Forwarded-Host'] = 'mini.quiz-code.com'
+                headers['X-Forwarded-Proto'] = 'https'
         
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
@@ -204,8 +211,12 @@ class DjangoAPIService:
             headers = {}
             if host:
                 headers['X-Forwarded-Host'] = host
+                headers['Host'] = host
+                logger.info(f"[DEBUG API] Setting X-Forwarded-Host: {host}")
+                logger.info(f"[DEBUG API] Setting Host: {host}")
             if scheme:
                 headers['X-Forwarded-Proto'] = scheme
+                logger.info(f"[DEBUG API] Setting X-Forwarded-Proto: {scheme}")
                 
             data = await self._make_request(
                 "GET", "/api/accounts/miniapp-users/top/", params=params, headers=headers
@@ -215,13 +226,21 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")
             return []
 
-    async def get_user_statistics(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user_statistics(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """
         Получение статистики пользователя Mini App по telegram_id.
         """
         try:
             params = {'telegram_id': telegram_id}
-            data = await self._make_request("GET", "/api/accounts/miniapp-users/statistics/", params=params)
+            headers = {}
+            if host:
+                headers['X-Forwarded-Host'] = host
+            if scheme:
+                headers['X-Forwarded-Proto'] = scheme
+
+            data = await self._make_request(
+                "GET", "/api/accounts/miniapp-users/statistics/", params=params, headers=headers
+            )
             return data
         except Exception as e:
             logger.error(f"Ошибка при получении статистики пользователя {telegram_id}: {e}")
