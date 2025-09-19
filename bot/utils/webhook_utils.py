@@ -22,7 +22,7 @@ async def create_webhook_data(
 
     Args:
         task_id (int): ID задачи.
-        channel_username (str): Имя пользователя канала (например, '@ChannelName').
+        channel_username (str|None): Имя пользователя канала (например, '@ChannelName') или None если нет username.
         poll_msg: Сообщение с опросом (dict или объект Aiogram).
         image_url (str): URL изображения задачи.
         poll_message (Dict): Данные сообщения с опросом.
@@ -42,7 +42,12 @@ async def create_webhook_data(
         # poll_msg может быть aiogram.types.Message / или Poll / etc.
         message_id = getattr(poll_msg, "message_id", None)
 
-    poll_link = f"https://t.me/{channel_username}/{message_id}"
+    # Формируем ссылку на опрос - используем username если есть, иначе group_id
+    if channel_username and channel_username.strip():
+        poll_link = f"https://t.me/{channel_username.lstrip('@')}/{message_id}"
+    else:
+        # Для каналов без username используем group_id (работает для публичных каналов)
+        poll_link = f"https://t.me/c/{str(group.group_id).replace('-100', '')}/{message_id}"
 
     if isinstance(image_message, dict):
         caption = image_message.get("caption", "")

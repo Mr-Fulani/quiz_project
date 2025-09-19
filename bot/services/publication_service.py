@@ -218,22 +218,12 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         reply_markup=button_message["reply_markup"]
                     )
 
-                    # Получение username канала
+                    # Получение username канала (если есть)
                     chat = await bot.get_chat(group.group_id)
                     channel_username = chat.username
                     if not channel_username:
-                        failed_count += 1
-                        logger.warning(f"Username канала для chat_id {group.group_id} не найден.")
-                        failed_publications.append({
-                            "task_id": task_in_group.id,
-                            "translation_id": translation.id,
-                            "language": translation.language,
-                            "error": "Username канала не найден"
-                        })
-                        # Помечаем задачу как с ошибкой
-                        task_in_group.error = True
-                        await db_session.commit()
-                        continue
+                        logger.info(f"Username канала для chat_id {group.group_id} не найден. Используем group_id для формирования ссылки.")
+                        channel_username = None  # Передаем None, webhook_utils обработает это
 
                     # Формируем webhook_data
                     webhook_data, poll_link = await create_webhook_data(
@@ -554,20 +544,22 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             await db_session.commit()
             return False
 
-        # Получение username канала
+        # Получение username канала (если есть)
         try:
             chat = await bot.get_chat(group.group_id)
             channel_username = chat.username
             if not channel_username:
-                raise ValueError(f"Username канала не найден для группы {group.group_name}")
-            logger.info(f"✅ Username канала '{group.group_name}' получен: @{channel_username}")
+                logger.info(f"Username канала '{group.group_name}' не найден. Используем group_id для формирования ссылки.")
+                channel_username = None  # Передаем None, webhook_utils обработает это
+            else:
+                logger.info(f"✅ Username канала '{group.group_name}' получен: @{channel_username}")
         except Exception as e:
             logger.error(f"❌ Ошибка при получении информации о канале: {e}")
             failed_publications.append({
                 "task_id": translation.task.id,
                 "translation_id": translation.id,
                 "language": translation.language,
-                "error": f"Ошибка при получении username канала: {e}"
+                "error": f"Ошибка при получении информации о канале: {e}"
             })
             # Помечаем задачу как с ошибкой
             translation.task.error = True
@@ -848,17 +840,8 @@ async def publish_task_by_translation_group(
                         chat = await bot.get_chat(group.group_id)
                         channel_username = chat.username
                         if not channel_username:
-                            logger.error(f"❌ Username канала не найден для группы {group.group_name} в задаче {task_in_group.id}")
-                            failed_count += 1
-                            failed_publications.append({
-                                "task_id": task_in_group.id,
-                                "translation_id": translation.id,
-                                "language": translation.language,
-                                "error": "Username канала не найден"
-                            })
-                            task_in_group.error = True
-                            await db_session.commit()
-                            continue
+                            logger.info(f"Username канала для группы {group.group_name} не найден. Используем group_id для формирования ссылки.")
+                            channel_username = None  # Передаем None, webhook_utils обработает это
 
                         await message.answer(log_username_received(group.group_name, channel_username))
 

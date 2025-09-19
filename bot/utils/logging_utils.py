@@ -13,8 +13,11 @@ def log_publication_start(task_id: int, translation_id: int, language: str, targ
     logger.info(message)
     return message
 
-def log_username_received(group_name: str, channel_username: str) -> str:
-    message = f"✅ Username канала `{group_name}` получен: @{channel_username}"
+def log_username_received(group_name: str, channel_username: str | None) -> str:
+    if channel_username:
+        message = f"✅ Username канала `{group_name}` получен: @{channel_username}"
+    else:
+        message = f"✅ Канал `{group_name}` без username - используем group_id для ссылок"
     logger.info(message)
     return message
 
