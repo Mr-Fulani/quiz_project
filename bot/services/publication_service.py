@@ -384,12 +384,16 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                 return False
             except Exception as e:
                 logger.error(f"❌ Ошибка при откате транзакции: {e}")
+                # Не пытаемся делать rollback повторно, если уже была ошибка
                 await message.answer(f"❌ Ошибка при откате транзакции: {e}")
                 return False
 
     except Exception as e:
         logger.error(f"⚠️ Ошибка при публикации задачи с ID {task_id}: {str(e)}")
-        await db_session.rollback()
+        try:
+            await db_session.rollback()
+        except Exception as rollback_error:
+            logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
         await message.answer(f"⚠️ Ошибка при публикации задачи с ID {task_id}: {str(e)}")
         return False
 
@@ -605,7 +609,10 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             await db_session.commit()
         except Exception as e:
             logger.error(f"❌ Ошибка при обновлении статуса перевода {translation.id}: {e}")
-            await db_session.rollback()
+            try:
+                await db_session.rollback()
+            except Exception as rollback_error:
+                logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
 
             # Откат: удаление загруженных изображений из S3
             for s3_url in uploaded_images:
@@ -633,7 +640,10 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
 
     except Exception as e:
         logger.error(f"❌ Ошибка при публикации перевода {translation.id}: {str(e)}")
-        await db_session.rollback()
+        try:
+            await db_session.rollback()
+        except Exception as rollback_error:
+            logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
         return False
 
 
@@ -931,7 +941,10 @@ async def publish_task_by_translation_group(
                 return True, published_count, failed_count, total_translations
             except Exception as e:
                 logger.error(f"❌ Ошибка при обновлении статуса задач: {e}")
-                await db_session.rollback()
+                try:
+                    await db_session.rollback()
+                except Exception as rollback_error:
+                    logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
                 for s3_url in uploaded_images:
                     try:
                         s3_key = extract_s3_key_from_url(s3_url)
@@ -943,7 +956,10 @@ async def publish_task_by_translation_group(
                 await message.answer(f"❌ Ошибка при обновлении статуса задач: {e}")
                 return False, published_count, failed_count, total_translations
         else:
-            await db_session.rollback()
+            try:
+                await db_session.rollback()
+            except Exception as rollback_error:
+                logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
             failure_message = (
                 f"❌ Публикация завершилась неудачно.\n"
                 f"📜 Всего переводов: {total_translations}\n"
@@ -962,7 +978,10 @@ async def publish_task_by_translation_group(
     except Exception as e:
         error_msg = f"❌ Общая ошибка при публикации задач по топикам: {str(e)}"
         logger.exception(error_msg)
-        await db_session.rollback()
+        try:
+            await db_session.rollback()
+        except Exception as rollback_error:
+            logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
         for s3_url in uploaded_images:
             try:
                 s3_key = extract_s3_key_from_url(s3_url)
