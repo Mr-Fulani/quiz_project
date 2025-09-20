@@ -78,28 +78,36 @@ class Command(BaseCommand):
             # Формируем возможные имена файлов для темы
             possible_names = self.get_possible_icon_names(topic.name)
             
-            # Ищем подходящий файл иконки с приоритетом точного совпадения
+            # Ищем подходящий файл иконки, проверяя на пустоту
             found_icon = None
             
-            # Сначала ищем точное совпадение
+            # 1. Точное совпадение
             for icon_file in icon_files:
                 icon_name_lower = icon_file.lower()
                 for possible_name in possible_names:
                     expected_pattern = f"{possible_name.lower()}-icon"
                     if icon_name_lower == expected_pattern or icon_name_lower.startswith(expected_pattern):
-                        found_icon = icon_file
-                        break
+                        icon_full_path = os.path.join(icons_dir, icon_file)
+                        if os.path.exists(icon_full_path) and os.path.getsize(icon_full_path) > 100:
+                            found_icon = icon_file
+                            break
+                        else:
+                            self.stdout.write(f"  ⚠️  Пропущена пустая иконка (точное совпадение): {icon_file}")
                 if found_icon:
                     break
             
-            # Если точного совпадения нет, ищем частичное
+            # 2. Частичное совпадение, если точное не найдено
             if not found_icon:
                 for icon_file in icon_files:
                     icon_name_lower = icon_file.lower()
                     for possible_name in possible_names:
                         if possible_name.lower() in icon_name_lower:
-                            found_icon = icon_file
-                            break
+                            icon_full_path = os.path.join(icons_dir, icon_file)
+                            if os.path.exists(icon_full_path) and os.path.getsize(icon_full_path) > 100:
+                                found_icon = icon_file
+                                break
+                            else:
+                                self.stdout.write(f"  ⚠️  Пропущена пустая иконка (частичное совпадение): {icon_file}")
                     if found_icon:
                         break
             
