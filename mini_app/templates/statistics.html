@@ -51,29 +51,6 @@
         </div>
     </div>
     
-    {% if user_statistics.topic_progress and user_statistics.topic_progress|length > 0 %}
-    <div class="chart-container">
-        <h2 data-translate="topic_progress">{{ translations.get('topic_progress', 'Прогресс по темам') }}</h2>
-        <div class="topic-progress-list">
-            {% for topic in user_statistics.topic_progress %}
-            <div class="topic-progress-item">
-                <div class="topic-content">
-                    <div class="topic-name">{{ topic.name }}</div>
-                    <div class="topic-stats">
-                        <span class="topic-completed">{{ topic.completed }}</span>
-                        <span class="topic-separator">/</span>
-                        <span class="topic-total">{{ topic.total }}</span>
-                        <span class="topic-percentage">({{ topic.percentage }}%)</span>
-                    </div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{ topic.percentage }}%"></div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
     
     
     {% else %}

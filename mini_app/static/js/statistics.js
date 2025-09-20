@@ -33,8 +33,6 @@ class StatisticsManager {
         // Анимация появления карточек
         this.animateCards();
         
-        // Анимация прогресс-баров
-        this.animateProgressBars();
         
         
         
@@ -61,21 +59,6 @@ class StatisticsManager {
         });
     }
 
-    /**
-     * Анимация прогресс-баров
-     */
-    animateProgressBars() {
-        const progressBars = document.querySelectorAll('.progress-fill');
-        progressBars.forEach((bar, index) => {
-            const width = bar.style.width;
-            bar.style.width = '0%';
-            
-            setTimeout(() => {
-                bar.style.transition = 'width 1.2s ease';
-                bar.style.width = width;
-            }, 500 + (index * 200));
-        });
-    }
 
     /**
      * Обновление статистики через API
@@ -122,10 +105,6 @@ class StatisticsManager {
         this.updateStatCard('.stat-card:nth-child(4) .stat-number', data.stats.current_streak || 0);
         this.updateStatCard('.stat-card:nth-child(5) .stat-number', data.stats.best_streak || 0);
 
-        // Обновляем прогресс по темам
-        if (data.topic_progress && data.topic_progress.length > 0) {
-            this.updateTopicProgress(data.topic_progress);
-        }
 
     }
 
@@ -170,37 +149,6 @@ class StatisticsManager {
         requestAnimationFrame(animate);
     }
 
-    /**
-     * Обновление прогресса по темам
-     */
-    updateTopicProgress(topicProgress) {
-        const container = document.querySelector('.topic-progress-list');
-        if (!container) return;
-
-        // Очищаем существующий контент
-        container.innerHTML = '';
-
-        topicProgress.forEach(topic => {
-            const item = document.createElement('div');
-            item.className = 'topic-progress-item';
-            item.innerHTML = `
-                <div class="topic-name">${topic.name}</div>
-                <div class="topic-stats">
-                    <span class="topic-completed">${topic.completed}</span>
-                    <span class="topic-separator">/</span>
-                    <span class="topic-total">${topic.total}</span>
-                    <span class="topic-percentage">(${topic.percentage}%)</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${topic.percentage}%"></div>
-                </div>
-            `;
-            container.appendChild(item);
-        });
-
-        // Анимируем новые прогресс-бары
-        setTimeout(() => this.animateProgressBars(), 100);
-    }
 
 
 }

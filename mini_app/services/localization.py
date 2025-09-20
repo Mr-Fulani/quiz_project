@@ -58,7 +58,6 @@ class LocalizationService:
             "accuracy": "Accuracy",
             "streak": "Current Streak",
             "best_streak": "Best Streak",
-            "topic_progress": "Topic Progress",
             
             
             # Настройки
@@ -116,8 +115,6 @@ class LocalizationService:
             "rating": "Rating",
             "quizzes": "Quizzes",
             "success_rate": "Success Rate",
-            "progress_topics": "Topic Progress",
-            "no_progress_data": "No progress data available.",
             "social_networks": "Social Networks",
             "no_social_links": "Social networks not specified.",
             "refresh_data": "Refresh Data",
@@ -172,7 +169,6 @@ class LocalizationService:
             "accuracy": "Точность",
             "streak": "Текущая серия",
             "best_streak": "Лучшая серия",
-            "topic_progress": "Прогресс по темам",
             
             
             # Настройки
@@ -230,8 +226,6 @@ class LocalizationService:
             "rating": "Рейтинг",
             "quizzes": "Квизов",
             "success_rate": "Успешность",
-            "progress_topics": "Прогресс по темам",
-            "no_progress_data": "Нет данных о прогрессе.",
             "social_networks": "Социальные сети",
             "no_social_links": "Социальные сети не указаны.",
             "refresh_data": "Обновить данные",
