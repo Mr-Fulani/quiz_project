@@ -1,0 +1,220 @@
+{
+  "tasks": [
+    {
+      "topic": "Java",
+      "subtopic": "String Interning",
+      "description": "Understanding String object creation and interning",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "public class StringTest {\n    public static void main(String[] args) {\n        String s1 = \"hello\";\n        String s2 = \"hello\";\n        String s3 = new String(\"hello\");\n        String s4 = s3.intern();\n        \n        System.out.println(s1 == s2);\n        System.out.println(s1 == s3);\n        System.out.println(s1 == s4);\n    }\n}\n\n// What will be printed?",
+          "answers": ["true false true", "true true true", "false false false"],
+          "correct_answer": "true false true",
+          "explanation": "String literals are interned and share the same reference. new String() creates a new object. intern() returns the interned version from the string pool."
+        },
+        {
+          "language": "ru",
+          "question": "public class StringTest {\n    public static void main(String[] args) {\n        String s1 = \"hello\";\n        String s2 = \"hello\";\n        String s3 = new String(\"hello\");\n        String s4 = s3.intern();\n        \n        System.out.println(s1 == s2);\n        System.out.println(s1 == s3);\n        System.out.println(s1 == s4);\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["true false true", "true true true", "false false false"],
+          "correct_answer": "true false true",
+          "explanation": "Строковые литералы интернируются и разделяют одну и ту же ссылку. new String() создает новый объект. intern() возвращает интернированную версию из пула строк."
+        },
+        {
+          "language": "tr",
+          "question": "public class StringTest {\n    public static void main(String[] args) {\n        String s1 = \"hello\";\n        String s2 = \"hello\";\n        String s3 = new String(\"hello\");\n        String s4 = s3.intern();\n        \n        System.out.println(s1 == s2);\n        System.out.println(s1 == s3);\n        System.out.println(s1 == s4);\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["true false true", "true true true", "false false false"],
+          "correct_answer": "true false true",
+          "explanation": "String literalleri intern edilir ve aynı referansı paylaşır. new String() yeni bir nesne oluşturur. intern() string pool'dan intern edilmiş versiyonu döndürür."
+        },
+        {
+          "language": "ar",
+          "question": "public class StringTest {\n    public static void main(String[] args) {\n        String s1 = \"hello\";\n        String s2 = \"hello\";\n        String s3 = new String(\"hello\");\n        String s4 = s3.intern();\n        \n        System.out.println(s1 == s2);\n        System.out.println(s1 == s3);\n        System.out.println(s1 == s4);\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["true false true", "true true true", "false false false"],
+          "correct_answer": "true false true",
+          "explanation": "النصوص الحرفية يتم تخزينها داخلياً وتتشارك نفس المرجع. new String() ينشئ كائن جديد. intern() يُرجع النسخة المخزنة من مجموعة النصوص."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Method Overloading",
+      "description": "Understanding method overloading resolution with autoboxing",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "public class OverloadTest {\n    public static void test(int x) {\n        System.out.println(\"int\");\n    }\n    \n    public static void test(Integer x) {\n        System.out.println(\"Integer\");\n    }\n    \n    public static void test(Object x) {\n        System.out.println(\"Object\");\n    }\n    \n    public static void main(String[] args) {\n        test(5);\n    }\n}\n\n// What will be printed?",
+          "answers": ["int", "Integer", "Object"],
+          "correct_answer": "int",
+          "explanation": "Method overloading resolution prioritizes exact matches over autoboxing. The literal 5 is an int, so the int parameter method is chosen over Integer (autoboxing) or Object (widening)."
+        },
+        {
+          "language": "ru",
+          "question": "public class OverloadTest {\n    public static void test(int x) {\n        System.out.println(\"int\");\n    }\n    \n    public static void test(Integer x) {\n        System.out.println(\"Integer\");\n    }\n    \n    public static void test(Object x) {\n        System.out.println(\"Object\");\n    }\n    \n    public static void main(String[] args) {\n        test(5);\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["int", "Integer", "Object"],
+          "correct_answer": "int",
+          "explanation": "Разрешение перегрузки методов приоритизирует точные совпадения над автобоксингом. Литерал 5 является int, поэтому выбирается метод с параметром int вместо Integer (автобоксинг) или Object (расширение)."
+        },
+        {
+          "language": "tr",
+          "question": "public class OverloadTest {\n    public static void test(int x) {\n        System.out.println(\"int\");\n    }\n    \n    public static void test(Integer x) {\n        System.out.println(\"Integer\");\n    }\n    \n    public static void test(Object x) {\n        System.out.println(\"Object\");\n    }\n    \n    public static void main(String[] args) {\n        test(5);\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["int", "Integer", "Object"],
+          "correct_answer": "int",
+          "explanation": "Method overloading çözümlemesi tam eşleşmeleri autoboxing'e göre önceliklendirir. 5 literal'ı bir int'tir, bu yüzden Integer (autoboxing) veya Object (widening) yerine int parametreli method seçilir."
+        },
+        {
+          "language": "ar",
+          "question": "public class OverloadTest {\n    public static void test(int x) {\n        System.out.println(\"int\");\n    }\n    \n    public static void test(Integer x) {\n        System.out.println(\"Integer\");\n    }\n    \n    public static void test(Object x) {\n        System.out.println(\"Object\");\n    }\n    \n    public static void main(String[] args) {\n        test(5);\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["int", "Integer", "Object"],
+          "correct_answer": "int",
+          "explanation": "تحليل تحميل الطرق يعطي أولوية للمطابقات الدقيقة على التحويل التلقائي. الرقم 5 هو int، لذا يتم اختيار طريقة معامل int بدلاً من Integer (autoboxing) أو Object (توسيع)."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Static Initialization",
+      "description": "Understanding static block execution order",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "public class InitTest {\n    static {\n        System.out.print(\"A\");\n    }\n    \n    static int x = printAndReturn(\"B\");\n    \n    static {\n        System.out.print(\"C\");\n    }\n    \n    static int printAndReturn(String s) {\n        System.out.print(s);\n        return 1;\n    }\n    \n    public static void main(String[] args) {\n        System.out.print(\"D\");\n    }\n}\n\n// What will be printed?",
+          "answers": ["ABCD", "ACBD", "ADBC"],
+          "correct_answer": "ABCD",
+          "explanation": "Static initializers and static variable assignments are executed in the order they appear in the class, before the main method runs."
+        },
+        {
+          "language": "ru",
+          "question": "public class InitTest {\n    static {\n        System.out.print(\"A\");\n    }\n    \n    static int x = printAndReturn(\"B\");\n    \n    static {\n        System.out.print(\"C\");\n    }\n    \n    static int printAndReturn(String s) {\n        System.out.print(s);\n        return 1;\n    }\n    \n    public static void main(String[] args) {\n        System.out.print(\"D\");\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["ABCD", "ACBD", "ADBC"],
+          "correct_answer": "ABCD",
+          "explanation": "Статические инициализаторы и присваивания статических переменных выполняются в порядке их появления в классе, до запуска метода main."
+        },
+        {
+          "language": "tr",
+          "question": "public class InitTest {\n    static {\n        System.out.print(\"A\");\n    }\n    \n    static int x = printAndReturn(\"B\");\n    \n    static {\n        System.out.print(\"C\");\n    }\n    \n    static int printAndReturn(String s) {\n        System.out.print(s);\n        return 1;\n    }\n    \n    public static void main(String[] args) {\n        System.out.print(\"D\");\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["ABCD", "ACBD", "ADBC"],
+          "correct_answer": "ABCD",
+          "explanation": "Static initializer'lar ve static değişken atamaları sınıfta göründükleri sırayla, main method çalışmadan önce yürütülür."
+        },
+        {
+          "language": "ar",
+          "question": "public class InitTest {\n    static {\n        System.out.print(\"A\");\n    }\n    \n    static int x = printAndReturn(\"B\");\n    \n    static {\n        System.out.print(\"C\");\n    }\n    \n    static int printAndReturn(String s) {\n        System.out.print(s);\n        return 1;\n    }\n    \n    public static void main(String[] args) {\n        System.out.print(\"D\");\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["ABCD", "ACBD", "ADBC"],
+          "correct_answer": "ABCD",
+          "explanation": "المنشئات الثابتة وتعيينات المتغيرات الثابتة تُنفذ بالترتيب الذي تظهر به في الكلاس، قبل تشغيل دالة main."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Exception Handling",
+      "description": "Understanding finally block execution with return statements",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "public class ExceptionTest {\n    public static int test() {\n        try {\n            return 1;\n        } catch (Exception e) {\n            return 2;\n        } finally {\n            return 3;\n        }\n    }\n    \n    public static void main(String[] args) {\n        System.out.println(test());\n    }\n}\n\n// What will be printed?",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "3",
+          "explanation": "The finally block always executes and its return statement overrides any return from try or catch blocks. The method returns 3."
+        },
+        {
+          "language": "ru",
+          "question": "public class ExceptionTest {\n    public static int test() {\n        try {\n            return 1;\n        } catch (Exception e) {\n            return 2;\n        } finally {\n            return 3;\n        }\n    }\n    \n    public static void main(String[] args) {\n        System.out.println(test());\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "3",
+          "explanation": "Блок finally всегда выполняется, и его оператор return переопределяет любой return из блоков try или catch. Метод возвращает 3."
+        },
+        {
+          "language": "tr",
+          "question": "public class ExceptionTest {\n    public static int test() {\n        try {\n            return 1;\n        } catch (Exception e) {\n            return 2;\n        } finally {\n            return 3;\n        }\n    }\n    \n    public static void main(String[] args) {\n        System.out.println(test());\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "3",
+          "explanation": "Finally bloğu her zaman çalışır ve return ifadesi try veya catch bloklarındaki herhangi bir return'ü geçersiz kılar. Method 3 döndürür."
+        },
+        {
+          "language": "ar",
+          "question": "public class ExceptionTest {\n    public static int test() {\n        try {\n            return 1;\n        } catch (Exception e) {\n            return 2;\n        } finally {\n            return 3;\n        }\n    }\n    \n    public static void main(String[] args) {\n        System.out.println(test());\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "3",
+          "explanation": "بلوك finally ينفذ دائماً وعبارة return الخاصة به تتفوق على أي return من بلوك try أو catch. الطريقة ترجع 3."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Generics Type Erasure",
+      "description": "Understanding generic type erasure and runtime behavior",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "import java.util.*;\n\npublic class GenericsTest {\n    public static void main(String[] args) {\n        List<String> stringList = new ArrayList<>();\n        List<Integer> intList = new ArrayList<>();\n        \n        System.out.println(stringList.getClass() == intList.getClass());\n        System.out.println(stringList.getClass().getName());\n    }\n}\n\n// What will be printed?",
+          "answers": ["true java.util.ArrayList", "false java.util.ArrayList<String>", "true java.util.ArrayList<String>"],
+          "correct_answer": "true java.util.ArrayList",
+          "explanation": "Due to type erasure, generic type information is removed at runtime. Both lists have the same class type: ArrayList, without generic parameters."
+        },
+        {
+          "language": "ru",
+          "question": "import java.util.*;\n\npublic class GenericsTest {\n    public static void main(String[] args) {\n        List<String> stringList = new ArrayList<>();\n        List<Integer> intList = new ArrayList<>();\n        \n        System.out.println(stringList.getClass() == intList.getClass());\n        System.out.println(stringList.getClass().getName());\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["true java.util.ArrayList", "false java.util.ArrayList<String>", "true java.util.ArrayList<String>"],
+          "correct_answer": "true java.util.ArrayList",
+          "explanation": "Из-за стирания типов информация о генерических типах удаляется во время выполнения. Оба списка имеют один и тот же тип класса: ArrayList, без генерических параметров."
+        },
+        {
+          "language": "tr",
+          "question": "import java.util.*;\n\npublic class GenericsTest {\n    public static void main(String[] args) {\n        List<String> stringList = new ArrayList<>();\n        List<Integer> intList = new ArrayList<>();\n        \n        System.out.println(stringList.getClass() == intList.getClass());\n        System.out.println(stringList.getClass().getName());\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["true java.util.ArrayList", "false java.util.ArrayList<String>", "true java.util.ArrayList<String>"],
+          "correct_answer": "true java.util.ArrayList",
+          "explanation": "Type erasure nedeniyle generic tip bilgisi runtime'da kaldırılır. Her iki liste de aynı sınıf tipine sahiptir: ArrayList, generic parametreler olmadan."
+        },
+        {
+          "language": "ar",
+          "question": "import java.util.*;\n\npublic class GenericsTest {\n    public static void main(String[] args) {\n        List<String> stringList = new ArrayList<>();\n        List<Integer> intList = new ArrayList<>();\n        \n        System.out.println(stringList.getClass() == intList.getClass());\n        System.out.println(stringList.getClass().getName());\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["true java.util.ArrayList", "false java.util.ArrayList<String>", "true java.util.ArrayList<String>"],
+          "correct_answer": "true java.util.ArrayList",
+          "explanation": "بسبب محو الأنواع، تتم إزالة معلومات النوع العام في وقت التشغيل. كلا القائمتين لهما نفس نوع الكلاس: ArrayList، بدون معاملات عامة."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Wrapper Class Caching",
+      "description": "Understanding Integer caching behavior",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "public class IntegerTest {\n    public static void main(String[] args) {\n        Integer a = 127;\n        Integer b = 127;\n        Integer c = 128;\n        Integer d = 128;\n        \n        System.out.println(a == b);\n        System.out.println(c == d);\n    }\n}\n\n// What will be printed?",
+          "answers": ["true true", "false false", "true false"],
+          "correct_answer": "true false",
+          "explanation": "Java caches Integer objects for values -128 to 127. Values within this range share the same object reference, while values outside create new objects."
+        },
+        {
+          "language": "ru",
+          "question": "public class IntegerTest {\n    public static void main(String[] args) {\n        Integer a = 127;\n        Integer b = 127;\n        Integer c = 128;\n        Integer d = 128;\n        \n        System.out.println(a == b);\n        System.out.println(c == d);\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["true true", "false false", "true false"],
+          "correct_answer": "true false",
+          "explanation": "Java кэширует объекты Integer для значений от -128 до 127. Значения в этом диапазоне разделяют одну и ту же ссылку на объект, в то время как значения вне диапазона создают новые объекты."
+        },
+        {
+          "language": "tr",
+          "question": "public class IntegerTest {\n    public static void main(String[] args) {\n        Integer a = 127;\n        Integer b = 127;\n        Integer c = 128;\n        Integer d = 128;\n        \n        System.out.println(a == b);\n        System.out.println(c == d);\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["true true", "false false", "true false"],
+          "correct_answer": "true false",
+          "explanation": "Java, -128 ile 127 arasındaki değerler için Integer nesnelerini önbelleğe alır. Bu aralıktaki değerler aynı nesne referansını paylaşırken, aralık dışındaki değerler yeni nesneler oluşturur."
+        },
+        {
+          "language": "ar",
+          "question": "public class IntegerTest {\n    public static void main(String[] args) {\n        Integer a = 127;\n        Integer b = 127;\n        Integer c = 128;\n        Integer d = 128;\n        \n        System.out.println(a == b);\n        System.out.println(c == d);\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["true true", "false false", "true false"],
+          "correct_answer": "true false",
+          "explanation": "Java يخزن مؤقتاً كائنات Integer للقيم من -128 إلى 127. القيم ضمن هذا النطاق تتشارك نفس مرجع الكائن، بينما القيم خارج النطاق تنشئ كائنات جديدة."
+        }
+      ]
+    }
+  ]
+}

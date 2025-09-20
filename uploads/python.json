@@ -1,0 +1,220 @@
+{
+  "tasks": [
+    {
+      "topic": "Python",
+      "subtopic": "Mutable Default Arguments",
+      "description": "Understanding mutable default argument behavior",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# What will be printed?",
+          "answers": ["[2]", "[1, 2]", "[]"],
+          "correct_answer": "[1, 2]",
+          "explanation": "The default argument [] is evaluated only once when the function is defined. Both calls share the same list object, so the second call sees the item from the first call."
+        },
+        {
+          "language": "ru",
+          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# Что будет выведено?",
+          "answers": ["[2]", "[1, 2]", "[]"],
+          "correct_answer": "[1, 2]",
+          "explanation": "Аргумент по умолчанию [] вычисляется только один раз при определении функции. Оба вызова используют один и тот же объект списка, поэтому второй вызов видит элемент из первого вызова."
+        },
+        {
+          "language": "tr",
+          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# Ne yazdırılacak?",
+          "answers": ["[2]", "[1, 2]", "[]"],
+          "correct_answer": "[1, 2]",
+          "explanation": "Varsayılan argüman [] sadece fonksiyon tanımlandığında bir kez değerlendirilir. Her iki çağrı da aynı liste nesnesini paylaşır, bu yüzden ikinci çağrı birinci çağrıdan gelen öğeyi görür."
+        },
+        {
+          "language": "ar",
+          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# ماذا سيُطبع؟",
+          "answers": ["[2]", "[1, 2]", "[]"],
+          "correct_answer": "[1, 2]",
+          "explanation": "المعطى الافتراضي [] يتم تقييمه مرة واحدة فقط عند تعريف الدالة. كلا الاستدعاءين يتشاركان نفس كائن القائمة، لذا الاستدعاء الثاني يرى العنصر من الاستدعاء الأول."
+        }
+      ]
+    },
+    {
+      "topic": "Python",
+      "subtopic": "Closures and Late Binding",
+      "description": "Understanding variable capture in closures",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# What will be printed?",
+          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
+          "correct_answer": "[2, 2, 2]",
+          "explanation": "All lambda functions capture the variable 'i' by reference, not by value. When executed, 'i' has the value 2 (the last value from the loop), so all functions return 2."
+        },
+        {
+          "language": "ru",
+          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# Что будет выведено?",
+          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
+          "correct_answer": "[2, 2, 2]",
+          "explanation": "Все lambda функции захватывают переменную 'i' по ссылке, а не по значению. При выполнении 'i' имеет значение 2 (последнее значение из цикла), поэтому все функции возвращают 2."
+        },
+        {
+          "language": "tr",
+          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# Ne yazdırılacak?",
+          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
+          "correct_answer": "[2, 2, 2]",
+          "explanation": "Tüm lambda fonksiyonları 'i' değişkenini değer olarak değil, referans olarak yakalar. Çalıştırıldığında 'i' değeri 2'dir (döngüdeki son değer), bu yüzden tüm fonksiyonlar 2 döndürür."
+        },
+        {
+          "language": "ar",
+          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# ماذا سيُطبع؟",
+          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
+          "correct_answer": "[2, 2, 2]",
+          "explanation": "جميع دوال lambda تلتقط المتغير 'i' بالمرجع وليس بالقيمة. عند التنفيذ، 'i' له القيمة 2 (القيمة الأخيرة من الحلقة)، لذا تُرجع جميع الدوال 2."
+        }
+      ]
+    },
+    {
+      "topic": "Python",
+      "subtopic": "List Multiplication",
+      "description": "Understanding list multiplication with mutable objects",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# What will be printed?",
+          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
+          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
+          "explanation": "The * operator creates references to the same list object, not copies. All three rows are the same list object, so modifying one affects all."
+        },
+        {
+          "language": "ru",
+          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# Что будет выведено?",
+          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
+          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
+          "explanation": "Оператор * создает ссылки на один и тот же объект списка, а не копии. Все три строки - это один и тот же объект списка, поэтому изменение одной влияет на все."
+        },
+        {
+          "language": "tr",
+          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# Ne yazdırılacak?",
+          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
+          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
+          "explanation": "* operatörü aynı liste nesnesine referanslar oluşturur, kopya değil. Üç satır da aynı liste nesnesidir, bu yüzden birini değiştirmek hepsini etkiler."
+        },
+        {
+          "language": "ar",
+          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# ماذا سيُطبع؟",
+          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
+          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
+          "explanation": "المشغل * ينشئ مراجع لنفس كائن القائمة وليس نسخ. الصفوف الثلاثة هي نفس كائن القائمة، لذا تعديل واحد يؤثر على الجميع."
+        }
+      ]
+    },
+    {
+      "topic": "Python",
+      "subtopic": "Dictionary Iteration",
+      "description": "Understanding dictionary modification during iteration",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# What will happen?",
+          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
+          "correct_answer": "RuntimeError",
+          "explanation": "Modifying a dictionary while iterating over it raises a RuntimeError: dictionary changed size during iteration."
+        },
+        {
+          "language": "ru",
+          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# Что произойдет?",
+          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
+          "correct_answer": "RuntimeError",
+          "explanation": "Изменение словаря во время итерации по нему вызывает RuntimeError: dictionary changed size during iteration."
+        },
+        {
+          "language": "tr",
+          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# Ne olacak?",
+          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
+          "correct_answer": "RuntimeError",
+          "explanation": "Sözlük üzerinde iterasyon yaparken sözlüğü değiştirmek RuntimeError atar: dictionary changed size during iteration."
+        },
+        {
+          "language": "ar",
+          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# ماذا سيحدث؟",
+          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
+          "correct_answer": "RuntimeError",
+          "explanation": "تعديل القاموس أثناء التكرار عليه يثير RuntimeError: dictionary changed size during iteration."
+        }
+      ]
+    },
+    {
+      "topic": "Python",
+      "subtopic": "Class Variables vs Instance Variables",
+      "description": "Understanding the difference between class and instance variables",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# What will be printed?",
+          "answers": ["1 2 0", "1 1 0", "1 2 2"],
+          "correct_answer": "1 2 2",
+          "explanation": "The first instance creates an instance variable that shadows the class variable. The second instance modifies the class variable directly. Both instances see their respective count values, and the class variable is 2."
+        },
+        {
+          "language": "ru",
+          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# Что будет выведено?",
+          "answers": ["1 2 0", "1 1 0", "1 2 2"],
+          "correct_answer": "1 2 2",
+          "explanation": "Первый экземпляр создает переменную экземпляра, которая затеняет переменную класса. Второй экземпляр изменяет переменную класса напрямую. Оба экземпляра видят свои соответствующие значения count, а переменная класса равна 2."
+        },
+        {
+          "language": "tr",
+          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# Ne yazdırılacak?",
+          "answers": ["1 2 0", "1 1 0", "1 2 2"],
+          "correct_answer": "1 2 2",
+          "explanation": "İlk örnek, sınıf değişkenini gölgeleyen bir örnek değişkeni oluşturur. İkinci örnek sınıf değişkenini doğrudan değiştirir. Her iki örnek de kendi count değerlerini görür ve sınıf değişkeni 2'dir."
+        },
+        {
+          "language": "ar",
+          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# ماذا سيُطبع؟",
+          "answers": ["1 2 0", "1 1 0", "1 2 2"],
+          "correct_answer": "1 2 2",
+          "explanation": "المثيل الأول ينشئ متغير مثيل يخفي متغير الكلاس. المثيل الثاني يعدل متغير الكلاس مباشرة. كلا المثيلين يريان قيم count الخاصة بهما، ومتغير الكلاس هو 2."
+        }
+      ]
+    },
+    {
+      "topic": "Python",
+      "subtopic": "Generator Expressions",
+      "description": "Understanding generator expression evaluation timing",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# What will be printed?",
+          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
+          "correct_answer": "[0, 2, 4] [0, 2, 4]",
+          "explanation": "List comprehensions are evaluated immediately when created, while generator expressions are evaluated lazily when iterated over. Both produce the same result when consumed."
+        },
+        {
+          "language": "ru",
+          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# Что будет выведено?",
+          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
+          "correct_answer": "[0, 2, 4] [0, 2, 4]",
+          "explanation": "Списочные включения вычисляются немедленно при создании, в то время как генераторные выражения вычисляются лениво при итерации. Оба дают одинаковый результат при потреблении."
+        },
+        {
+          "language": "tr",
+          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# Ne yazdırılacak?",
+          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
+          "correct_answer": "[0, 2, 4] [0, 2, 4]",
+          "explanation": "Liste comprehensions oluşturulduğunda hemen değerlendirilir, generator expressions ise iterate edildiğinde lazy olarak değerlendirilir. İkisi de tüketildiğinde aynı sonucu üretir."
+        },
+        {
+          "language": "ar",
+          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# ماذا سيُطبع؟",
+          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
+          "correct_answer": "[0, 2, 4] [0, 2, 4]",
+          "explanation": "List comprehensions يتم تقييمها فوراً عند الإنشاء، بينما generator expressions يتم تقييمها بكسل عند التكرار. كلاهما ينتج نفس النتيجة عند الاستهلاك."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "tasks": [
+    {
+      "topic": "Swift",
+      "subtopic": "SwiftUI - State & Binding",
+      "description": "Задача на понимание механизма @State в SwiftUI",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nWhat happens when the button is pressed multiple times?",
+          "answers": [
+            "The text updates dynamically to reflect the new count",
+            "The count increases internally but the UI does not update",
+            "The app crashes after the second press"
+          ],
+          "correct_answer": "The text updates dynamically to reflect the new count",
+          "explanation": "In SwiftUI, @State marks a variable as reactive. When it changes, the view body re-renders and the Text updates dynamically."
+        },
+        {
+          "language": "ru",
+          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nЧто произойдет при многократном нажатии кнопки?",
+          "answers": [
+            "Текст будет динамически обновляться, показывая новое значение",
+            "Значение счётчика изменится, но UI не обновится",
+            "Приложение вылетит после второго нажатия"
+          ],
+          "correct_answer": "Текст будет динамически обновляться, показывая новое значение",
+          "explanation": "В SwiftUI переменные с @State являются реактивными. При их изменении происходит повторный рендеринг, и Text обновляется."
+        },
+        {
+          "language": "tr",
+          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nButona birkaç kez basıldığında ne olur?",
+          "answers": [
+            "Metin yeni değeri gösterecek şekilde dinamik olarak güncellenir",
+            "Sayaç artar ama arayüz güncellenmez",
+            "Uygulama ikinci basıştan sonra çöker"
+          ],
+          "correct_answer": "Metin yeni değeri gösterecek şekilde dinamik olarak güncellenir",
+          "explanation": "SwiftUI'de @State değişkenleri reaktiftir. Değer değiştiğinde görünüm yeniden render edilir ve metin güncellenir."
+        },
+        {
+          "language": "ar",
+          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nماذا يحدث عند الضغط على الزر عدة مرات؟",
+          "answers": [
+            "النص يتم تحديثه ديناميكياً ليعكس القيمة الجديدة",
+            "القيمة تزداد داخلياً لكن واجهة المستخدم لا تتغير",
+            "التطبيق يتعطل بعد الضغطة الثانية"
+          ],
+          "correct_answer": "النص يتم تحديثه ديناميكياً ليعكس القيمة الجديدة",
+          "explanation": "في SwiftUI، المتغيرات مع @State تكون تفاعلية. عند تغييرها، يتم إعادة بناء الواجهة وتحديث النص."
+        }
+      ]
+    },
+    {
+      "topic": "Swift",
+      "subtopic": "Vapor - Routing",
+      "description": "Задача на понимание обработки маршрутов в Vapor",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nWhat happens if the user visits `http://localhost:8080/hello`?",
+          "answers": [
+            "The browser shows: Hello, Vapor!",
+            "The server returns a 404 error",
+            "The server crashes due to missing middleware"
+          ],
+          "correct_answer": "The browser shows: Hello, Vapor!",
+          "explanation": "The route `/hello` is explicitly defined. When visited, Vapor executes the closure and returns the string response."
+        },
+        {
+          "language": "ru",
+          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nЧто произойдет при переходе на `http://localhost:8080/hello`?",
+          "answers": [
+            "Браузер отобразит: Hello, Vapor!",
+            "Сервер вернёт ошибку 404",
+            "Сервер упадёт из-за отсутствия middleware"
+          ],
+          "correct_answer": "Браузер отобразит: Hello, Vapor!",
+          "explanation": "Маршрут `/hello` явно определён. При обращении к нему Vapor выполнит замыкание и вернёт строку."
+        },
+        {
+          "language": "tr",
+          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nKullanıcı `http://localhost:8080/hello` adresini ziyaret ederse ne olur?",
+          "answers": [
+            "Tarayıcıda: Hello, Vapor! gösterilir",
+            "Sunucu 404 hatası döner",
+            "Sunucu middleware eksikliğinden çöker"
+          ],
+          "correct_answer": "Tarayıcıda: Hello, Vapor! gösterilir",
+          "explanation": "Route `/hello` açıkça tanımlanmıştır. Ziyaret edildiğinde, Vapor closure'u çalıştırır ve string yanıt döner."
+        },
+        {
+          "language": "ar",
+          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nماذا يحدث إذا زار المستخدم `http://localhost:8080/hello`؟",
+          "answers": [
+            "المتصفح يعرض: Hello, Vapor!",
+            "الخادم يعيد خطأ 404",
+            "الخادم يتعطل بسبب نقص middleware"
+          ],
+          "correct_answer": "المتصفح يعرض: Hello, Vapor!",
+          "explanation": "المسار `/hello` معرف صراحةً. عند زيارته، يقوم Vapor بتنفيذ الكود وإرجاع النص."
+        }
+      ]
+    }
+  ]
+}
