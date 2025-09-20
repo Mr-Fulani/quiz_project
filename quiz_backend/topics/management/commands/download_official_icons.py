@@ -25,12 +25,17 @@ class Command(BaseCommand):
             default=2,
             help='Задержка между запросами в секундах (по умолчанию 2)',
         )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Принудительно скачать заново все иконки, даже если они уже существуют',
+        )
 
     def handle(self, *args, **options):
         self.stdout.write("🎨 Начинаю скачивание официальных PNG иконок...")
         
         # Папка для сохранения иконок
-        icons_dir = os.path.join(settings.BASE_DIR, 'static', 'blog', 'images', 'icons')
+        icons_dir = os.path.join(settings.BASE_DIR, 'blog', 'static', 'blog', 'images', 'icons')
         os.makedirs(icons_dir, exist_ok=True)
         
         # Получаем темы для обработки
@@ -44,6 +49,7 @@ class Command(BaseCommand):
         downloaded_count = 0
         skipped_count = 0
         error_count = 0
+        force_download = options['force']
         
         for i, topic in enumerate(topics):
             self.stdout.write(f"\n🔍 Обрабатываю тему: {topic.name}")
@@ -53,7 +59,7 @@ class Command(BaseCommand):
             png_path = os.path.join(icons_dir, png_filename)
             
             # Проверяем, есть ли уже официальная PNG иконка
-            if os.path.exists(png_path):
+            if not force_download and os.path.exists(png_path):
                 # Проверяем размер файла - если больше 1000 байт, скорее всего это официальная иконка
                 file_size = os.path.getsize(png_path)
                 if file_size > 1000:
@@ -63,6 +69,8 @@ class Command(BaseCommand):
                 else:
                     self.stdout.write(f"  🔄 Заменяю самодельную/пустую иконку на официальную: {png_filename} ({file_size} байт)")
                     os.remove(png_path)  # Удаляем самодельную/пустую иконку
+            elif force_download and os.path.exists(png_path):
+                self.stdout.write(f"  🔥 Принудительная перезапись для: {png_filename}")
             
             # Скачиваем официальную иконку
             success = self.download_official_icon(topic.name, png_path)
@@ -92,6 +100,35 @@ class Command(BaseCommand):
     def download_official_icon(self, topic_name, output_path):
         """Скачивает официальную PNG иконку для темы"""
         
+        # URL для devicons
+        devicon_name = topic_name.lower().replace(' ', '').replace('.', '').replace('#', 'sharp').replace('+', 'plus')
+        devicon_url = f'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/{devicon_name}/{devicon_name}-original.svg'
+        
+        # Сначала пытаемся скачать SVG из devicons и конвертировать в PNG
+        try:
+            response = requests.get(devicon_url, stream=True, timeout=15)
+            response.raise_for_status()
+            
+            content_type = response.headers.get('Content-Type', '')
+            if 'image/svg' in content_type:
+                if CAIROSVG_AVAILABLE:
+                    try:
+                        png_data = cairosvg.svg2png(bytestring=response.content, output_width=64, output_height=64)
+                        with open(output_path, 'wb') as f:
+                            f.write(png_data)
+                        
+                        if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                            self.stdout.write(f"    ✅ Успешно скачано и конвертировано из devicons")
+                            return True
+                    except Exception as e:
+                        self.stdout.write(f"    ❌ Ошибка конвертации SVG из devicons: {e}")
+                else:
+                    self.stdout.write(f"    ⚠️  cairosvg не установлен, не могу конвертировать SVG из devicons")
+        except Exception as e:
+            self.stdout.write(f"    ℹ️  Не удалось скачать с devicons: {e}")
+
+        # Если devicons не сработал, используем старый список официальных URL
+        self.stdout.write(f"    ℹ️  Пробую найти по официальному URL...")
         # Специальные URL для известных технологий (используем простые и надежные источники)
         official_urls = {
             'Python': 'https://www.python.org/static/img/python-logo.png',
@@ -114,8 +151,8 @@ class Command(BaseCommand):
             'R': 'https://www.r-project.org/Rlogo.png',
             'MATLAB': 'https://upload.wikimedia.org/wikipedia/commons/2/21/Matlab_Logo.png',
             'Julia': 'https://julialang.org/assets/img/logos/logo-square.png',
-            'HTML': 'https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg',
-            'CSS': 'https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg',
+            'HTML': 'https://www.w3.org/html/logo/downloads/HTML5_Logo_256.png',
+            'CSS': 'https://cdn.worldvectorlogo.com/logos/css-3.svg',
             'Sass': 'https://sass-lang.com/assets/img/logos/logo-b6e1ef6e.svg',
             'Less': 'https://lesscss.org/public/img/less_logo.png',
             'Bootstrap': 'https://getbootstrap.com/docs/5.3/assets/brand/bootstrap-logo-shadow.png',
@@ -124,26 +161,26 @@ class Command(BaseCommand):
             'Redux': 'https://redux.js.org/img/redux.svg',
             'Vuex': 'https://vuex.vuejs.org/logo.png',
             'MobX': 'https://mobx.js.org/img/mobx.png',
-            'GraphQL': 'https://graphql.org/img/logo.png',
-            'REST API': 'https://upload.wikimedia.org/wikipedia/commons/b/b6/Rest_api_logo.png',
+            'GraphQL': 'https://graphql.org/img/logo.svg',
+            'REST API': 'https://www.vectorlogo.zone/logos/getpostman/getpostman-icon.svg',
             'MongoDB': 'https://www.mongodb.com/assets/images/global/leaf.png',
             'PostgreSQL': 'https://www.postgresql.org/media/img/about/press/elephant.png',
             'MySQL': 'https://www.mysql.com/common/logos/logo-mysql-170x115.png',
             'Redis': 'https://redis.io/images/redis-white.png',
-            'Elasticsearch': 'https://www.elastic.co/assets/blt0f7538f490728e20/logo-elastic-search-color-64-v2.png',
+            'Elasticsearch': 'https://cdn.worldvectorlogo.com/logos/elasticsearch.svg',
             'AWS': 'https://d0.awsstatic.com/logos/powered-by-aws.png',
-            'Azure': 'https://azure.microsoft.com/sv-se/assets/brand/azure-icon-512x512.png',
+            'Azure': 'https://symbols.getvecta.com/stencil_25/41_azure.d8d64ad038.svg',
             'Google Cloud': 'https://cloud.google.com/_static/cloud/images/social-icon-google-cloud-1200-630.png',
-            'Heroku': 'https://www.heroku.com/assets/logos/heroku-logotype-vertical-purple-2021.png',
+            'Heroku': 'https://www.herokucdn.com/deploy/button.svg',
             'Kubernetes': 'https://kubernetes.io/images/favicon.png',
             'Jenkins': 'https://www.jenkins.io/images/logos/jenkins/jenkins.png',
-            'GitLab CI': 'https://about.gitlab.com/images/press/press-kit-icon.png',
+            'GitLab CI': 'https://about.gitlab.com/images/press/logo/png/gitlab-icon-rgb.png',
             'GitHub Actions': 'https://github.githubassets.com/images/modules/site/features/actions-icon-64x64.png',
-            'Jest': 'https://jestjs.io/img/jest-logo.png',
-            'Cypress': 'https://www.cypress.io/img/logo/cypress-logo-dark.png',
+            'Jest': 'https://jestjs.io/img/jest.svg',
+            'Cypress': 'https://raw.githubusercontent.com/cypress-io/cypress-icons/master/src/icons/icon_128x128.png',
             'Selenium': 'https://www.selenium.dev/images/selenium_logo_square_green.png',
             'Postman': 'https://www.postman.com/_assets/logos/postman-logo-icon-orange.png',
-            'Insomnia': 'https://insomnia.rest/images/insomnia-logo.png',
+            'Insomnia': 'https://insomnia.rest/images/insomnia-logo.svg',
             'Figma': 'https://www.figma.com/static/images/og-image.png',
             'Adobe XD': 'https://www.adobe.com/content/dam/cc/icons/xd.svg',
             'Sketch': 'https://www.sketch.com/images/press/sketch-logo-square.png',
@@ -151,7 +188,7 @@ class Command(BaseCommand):
             'Docker': 'https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png',
             'Git': 'https://git-scm.com/images/logos/downloads/Git-Icon-1788C.png',
             'Golang': 'https://go.dev/blog/go-brand/Go-Logo/PNG/Go-Logo_Blue.png',
-            'SQL': 'https://upload.wikimedia.org/wikipedia/commons/8/87/Sql_data_base_with_logo.png',
+            'SQL': 'https://www.mysql.com/common/logos/logo-mysql-170x115.png',
         }
         
         # Если есть официальный URL для темы
@@ -194,30 +231,5 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(f"    ❌ Ошибка скачивания с официального URL: {e}")
         
-        # Если официальный URL не сработал, пробуем альтернативные источники
-        alternative_urls = [
-            f'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/{topic_name.lower().replace(" ", "").replace(".", "").replace("#", "sharp")}/{topic_name.lower().replace(" ", "").replace(".", "").replace("#", "sharp")}-original.png',
-            f'https://raw.githubusercontent.com/devicons/devicon/master/icons/{topic_name.lower().replace(" ", "").replace(".", "").replace("#", "sharp")}/{topic_name.lower().replace(" ", "").replace(".", "").replace("#", "sharp")}-original.png',
-        ]
-        
-        for url in alternative_urls:
-            try:
-                response = requests.get(url, stream=True, timeout=10)
-                response.raise_for_status()
-                
-                with open(output_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                # Проверяем, что файл скачался и не пустой
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 100:  # Минимум 100 байт
-                    return True
-                else:
-                    # Удаляем пустой файл
-                    if os.path.exists(output_path):
-                        os.remove(output_path)
-                    
-            except Exception:
-                continue
-        
+        # Если ничего не сработало
         return False
