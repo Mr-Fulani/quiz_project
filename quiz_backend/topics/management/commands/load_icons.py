@@ -26,8 +26,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("🎨 Начинаю загрузку иконок для тем...")
         
-        # Папка с иконками
-        icons_dir = os.path.join(settings.BASE_DIR, 'blog', 'static', 'blog', 'images', 'icons')
+        # Папка с иконками (используем staticfiles после collectstatic)
+        icons_dir = os.path.join(settings.BASE_DIR, 'staticfiles', 'blog', 'images', 'icons')
+        
+        # Если staticfiles не существует, используем исходную папку
+        if not os.path.exists(icons_dir):
+            icons_dir = os.path.join(settings.BASE_DIR, 'blog', 'static', 'blog', 'images', 'icons')
         
         if not os.path.exists(icons_dir):
             self.stdout.write(f"❌ Папка с иконками не найдена: {icons_dir}")

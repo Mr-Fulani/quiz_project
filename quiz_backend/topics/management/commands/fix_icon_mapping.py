@@ -16,8 +16,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("🔧 Исправляю сопоставление иконок с темами...")
         
-        # Папка с иконками
-        icons_dir = os.path.join(settings.BASE_DIR, 'blog', 'static', 'blog', 'images', 'icons')
+        # Папка с иконками (используем staticfiles после collectstatic)
+        icons_dir = os.path.join(settings.BASE_DIR, 'staticfiles', 'blog', 'images', 'icons')
+        
+        # Если staticfiles не существует, используем исходную папку
+        if not os.path.exists(icons_dir):
+            icons_dir = os.path.join(settings.BASE_DIR, 'blog', 'static', 'blog', 'images', 'icons')
         
         if not os.path.exists(icons_dir):
             self.stdout.write(f"❌ Папка с иконками не найдена: {icons_dir}")
@@ -85,11 +89,17 @@ class Command(BaseCommand):
                         break
             
             if found_icon:
-                # Обновляем путь к иконке в БД
-                topic.icon = f'/static/blog/images/icons/{found_icon}'
-                topic.save()
-                self.stdout.write(f"  ✅ {topic.name} → {found_icon}")
-                updated_count += 1
+                # Проверяем, что файл действительно существует
+                icon_path = os.path.join(icons_dir, found_icon)
+                if os.path.exists(icon_path):
+                    # Обновляем путь к иконке в БД
+                    topic.icon = f'/static/blog/images/icons/{found_icon}'
+                    topic.save()
+                    self.stdout.write(f"  ✅ {topic.name} → {found_icon}")
+                    updated_count += 1
+                else:
+                    self.stdout.write(f"  ❌ Файл не существует: {found_icon}")
+                    not_found_count += 1
             else:
                 self.stdout.write(f"  ❌ Не найдена иконка для: {topic.name}")
                 not_found_count += 1
