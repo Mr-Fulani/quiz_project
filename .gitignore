@@ -28,7 +28,8 @@ certbot_debug.log
 
 
 tasks.json
-*.json
+!package.json
+!package-lock.json
 
 /staticfiles
 
