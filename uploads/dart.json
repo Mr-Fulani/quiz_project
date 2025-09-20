@@ -1,0 +1,76 @@
+{
+  "tasks": [
+    {
+      "topic": "Dart",
+      "subtopic": "Null Safety",
+      "description": "Understanding nullable types in Dart",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "void main() {\n  String? name;\n  print(name?.length);\n}\n\n# What will be printed?",
+          "answers": ["null", "0", "Runtime error"],
+          "correct_answer": "null",
+          "explanation": "The variable 'name' is nullable and currently null. Using ?. prevents an error and evaluates to null."
+        },
+        {
+          "language": "ru",
+          "question": "void main() {\n  String? name;\n  print(name?.length);\n}\n\n# Что будет выведено?",
+          "answers": ["null", "0", "Ошибка во время выполнения"],
+          "correct_answer": "null",
+          "explanation": "Переменная 'name' допускает null и сейчас равна null. Оператор ?. предотвращает ошибку и возвращает null."
+        },
+        {
+          "language": "tr",
+          "question": "void main() {\n  String? name;\n  print(name?.length);\n}\n\n# Ne yazdırılacak?",
+          "answers": ["null", "0", "Çalışma zamanı hatası"],
+          "correct_answer": "null",
+          "explanation": "'name' değişkeni null olabilir ve şu anda null'dur. ?. operatörü hata oluşmasını engeller ve null döndürür."
+        },
+        {
+          "language": "ar",
+          "question": "void main() {\n  String? name;\n  print(name?.length);\n}\n\n# ماذا سيُطبع؟",
+          "answers": ["null", "0", "خطأ وقت التشغيل"],
+          "correct_answer": "null",
+          "explanation": "المتغير 'name' يمكن أن يكون null وهو null الآن. استخدام ?. يمنع الخطأ ويعيد null."
+        }
+      ]
+    },
+    {
+      "topic": "Dart",
+      "subtopic": "Collections - For-in Loop",
+      "description": "Iterating through a list with for-in",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "void main() {\n  var numbers = [1, 2, 3];\n  for (var n in numbers) {\n    print(n * 2);\n  }\n}\n\n# What will be printed?",
+          "answers": ["2 4 6", "1 2 3", "Error: invalid loop"],
+          "correct_answer": "2 4 6",
+          "explanation": "The for-in loop iterates through each element in the list. Each value is doubled and printed, so the output is 2, 4, 6."
+        },
+        {
+          "language": "ru",
+          "question": "void main() {\n  var numbers = [1, 2, 3];\n  for (var n in numbers) {\n    print(n * 2);\n  }\n}\n\n# Что будет выведено?",
+          "answers": ["2 4 6", "1 2 3", "Ошибка: неверный цикл"],
+          "correct_answer": "2 4 6",
+          "explanation": "Цикл for-in проходит по каждому элементу списка. Каждый элемент умножается на 2, поэтому вывод: 2, 4, 6."
+        },
+        {
+          "language": "tr",
+          "question": "void main() {\n  var numbers = [1, 2, 3];\n  for (var n in numbers) {\n    print(n * 2);\n  }\n}\n\n# Ne yazdırılacak?",
+          "answers": ["2 4 6", "1 2 3", "Hata: geçersiz döngü"],
+          "correct_answer": "2 4 6",
+          "explanation": "For-in döngüsü listedeki her elemanı gezer. Her değer ikiyle çarpılır ve yazdırılır: 2, 4, 6."
+        },
+        {
+          "language": "ar",
+          "question": "void main() {\n  var numbers = [1, 2, 3];\n  for (var n in numbers) {\n    print(n * 2);\n  }\n}\n\n# ماذا سيُطبع؟",
+          "answers": ["2 4 6", "1 2 3", "خطأ: حلقة غير صالحة"],
+          "correct_answer": "2 4 6",
+          "explanation": "حلقة for-in تمر على كل عنصر في القائمة. كل عنصر يُضرب ×2 ويُطبع: 2، 4، 6."
+        }
+      ]
+    }
+  ]
+}

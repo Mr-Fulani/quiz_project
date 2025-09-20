@@ -1,0 +1,184 @@
+{
+  "tasks": [
+    {
+      "topic": "Golang",
+      "subtopic": "Goroutines",
+      "description": "Understanding goroutine execution and race conditions",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\n\nimport (\n    \"fmt\"\n    \"time\"\n)\n\nfunc main() {\n    counter := 0\n    for i := 0; i < 1000; i++ {\n        go func() {\n            counter++\n        }()\n    }\n    time.Sleep(time.Second)\n    fmt.Println(counter)\n}\n\n// What is the likely outcome?",
+          "answers": ["Always 1000", "Less than 1000", "Compilation error"],
+          "correct_answer": "Less than 1000",
+          "explanation": "This code has a race condition. Multiple goroutines are accessing and modifying the 'counter' variable concurrently without synchronization, leading to lost updates."
+        },
+        {
+          "language": "ru",
+          "question": "package main\n\nimport (\n    \"fmt\"\n    \"time\"\n)\n\nfunc main() {\n    counter := 0\n    for i := 0; i < 1000; i++ {\n        go func() {\n            counter++\n        }()\n    }\n    time.Sleep(time.Second)\n    fmt.Println(counter)\n}\n\n// Какой вероятный результат?",
+          "answers": ["Всегда 1000", "Меньше 1000", "Ошибка компиляции"],
+          "correct_answer": "Меньше 1000",
+          "explanation": "В этом коде есть состояние гонки. Несколько горутин одновременно обращаются и изменяют переменную 'counter' без синхронизации, что приводит к потере обновлений."
+        },
+        {
+          "language": "tr",
+          "question": "package main\n\nimport (\n    \"fmt\"\n    \"time\"\n)\n\nfunc main() {\n    counter := 0\n    for i := 0; i < 1000; i++ {\n        go func() {\n            counter++\n        }()\n    }\n    time.Sleep(time.Second)\n    fmt.Println(counter)\n}\n\n// Muhtemel sonuç nedir?",
+          "answers": ["Her zaman 1000", "1000'den az", "Derleme hatası"],
+          "correct_answer": "1000'den az",
+          "explanation": "Bu kodda race condition vardır. Birden fazla goroutine, senkronizasyon olmadan 'counter' değişkenine eşzamanlı olarak erişiyor ve değiştiriyor, bu da kayıp güncellemelere yol açıyor."
+        },
+        {
+          "language": "ar",
+          "question": "package main\n\nimport (\n    \"fmt\"\n    \"time\"\n)\n\nfunc main() {\n    counter := 0\n    for i := 0; i < 1000; i++ {\n        go func() {\n            counter++\n        }()\n    }\n    time.Sleep(time.Second)\n    fmt.Println(counter)\n}\n\n// ما هي النتيجة المحتملة؟",
+          "answers": ["دائماً 1000", "أقل من 1000", "خطأ في التجميع"],
+          "correct_answer": "أقل من 1000",
+          "explanation": "هذا الكود يحتوي على race condition. عدة goroutines تصل وتعدل متغير 'counter' بشكل متزامن بدون تنسيق، مما يؤدي إلى فقدان التحديثات."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Channels",
+      "description": "Understanding channel blocking behavior",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    ch := make(chan int, 2)\n    ch <- 1\n    ch <- 2\n    ch <- 3\n    fmt.Println(<-ch)\n}\n\n// What will happen?",
+          "answers": ["Prints 1", "Prints 3", "Deadlock"],
+          "correct_answer": "Deadlock",
+          "explanation": "The channel has a buffer of 2. After sending 1 and 2, the buffer is full. Sending 3 will block because no goroutine is reading from the channel, causing a deadlock."
+        },
+        {
+          "language": "ru",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    ch := make(chan int, 2)\n    ch <- 1\n    ch <- 2\n    ch <- 3\n    fmt.Println(<-ch)\n}\n\n// Что произойдет?",
+          "answers": ["Выведет 1", "Выведет 3", "Взаимоблокировка"],
+          "correct_answer": "Взаимоблокировка",
+          "explanation": "Канал имеет буфер размером 2. После отправки 1 и 2 буфер заполнен. Отправка 3 заблокируется, поскольку никакая горутина не читает из канала, что вызывает взаимоблокировку."
+        },
+        {
+          "language": "tr",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    ch := make(chan int, 2)\n    ch <- 1\n    ch <- 2\n    ch <- 3\n    fmt.Println(<-ch)\n}\n\n// Ne olacak?",
+          "answers": ["1 yazdırır", "3 yazdırır", "Deadlock"],
+          "correct_answer": "Deadlock",
+          "explanation": "Kanal 2 boyutlu buffer'a sahiptir. 1 ve 2 gönderildikten sonra buffer dolar. 3 göndermek bloke olur çünkü hiçbir goroutine kanaldan okumaz, bu deadlock'a neden olur."
+        },
+        {
+          "language": "ar",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    ch := make(chan int, 2)\n    ch <- 1\n    ch <- 2\n    ch <- 3\n    fmt.Println(<-ch)\n}\n\n// ماذا سيحدث؟",
+          "answers": ["يطبع 1", "يطبع 3", "Deadlock"],
+          "correct_answer": "Deadlock",
+          "explanation": "القناة لها buffer بحجم 2. بعد إرسال 1 و 2، يمتلئ buffer. إرسال 3 سيتوقف لأن لا يوجد goroutine يقرأ من القناة، مما يسبب deadlock."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Interfaces",
+      "description": "Understanding interface implementation and nil interfaces",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\n\nimport \"fmt\"\n\ntype MyError struct {\n    msg string\n}\n\nfunc (e *MyError) Error() string {\n    return e.msg\n}\n\nfunc returnsError() error {\n    var err *MyError\n    return err\n}\n\nfunc main() {\n    err := returnsError()\n    fmt.Println(err == nil)\n}\n\n// What will be printed?",
+          "answers": ["true", "false", "panic"],
+          "correct_answer": "false",
+          "explanation": "An interface value is nil only when both its type and value are nil. Here, err has type *MyError (not nil) but value nil, so err != nil."
+        },
+        {
+          "language": "ru",
+          "question": "package main\n\nimport \"fmt\"\n\ntype MyError struct {\n    msg string\n}\n\nfunc (e *MyError) Error() string {\n    return e.msg\n}\n\nfunc returnsError() error {\n    var err *MyError\n    return err\n}\n\nfunc main() {\n    err := returnsError()\n    fmt.Println(err == nil)\n}\n\n// Что будет выведено?",
+          "answers": ["true", "false", "паника"],
+          "correct_answer": "false",
+          "explanation": "Значение интерфейса является nil только когда и его тип, и значение являются nil. Здесь err имеет тип *MyError (не nil), но значение nil, поэтому err != nil."
+        },
+        {
+          "language": "tr",
+          "question": "package main\n\nimport \"fmt\"\n\ntype MyError struct {\n    msg string\n}\n\nfunc (e *MyError) Error() string {\n    return e.msg\n}\n\nfunc returnsError() error {\n    var err *MyError\n    return err\n}\n\nfunc main() {\n    err := returnsError()\n    fmt.Println(err == nil)\n}\n\n// Ne yazdırılacak?",
+          "answers": ["true", "false", "panic"],
+          "correct_answer": "false",
+          "explanation": "Bir interface değeri sadece hem tipi hem de değeri nil olduğunda nil'dir. Burada err, *MyError tipine sahip (nil değil) ancak değeri nil, bu yüzden err != nil."
+        },
+        {
+          "language": "ar",
+          "question": "package main\n\nimport \"fmt\"\n\ntype MyError struct {\n    msg string\n}\n\nfunc (e *MyError) Error() string {\n    return e.msg\n}\n\nfunc returnsError() error {\n    var err *MyError\n    return err\n}\n\nfunc main() {\n    err := returnsError()\n    fmt.Println(err == nil)\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["true", "false", "panic"],
+          "correct_answer": "false",
+          "explanation": "قيمة interface تكون nil فقط عندما يكون كل من نوعها وقيمتها nil. هنا، err لها نوع *MyError (ليس nil) لكن قيمة nil، لذا err != nil."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Slices",
+      "description": "Understanding slice behavior and memory allocation",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    s1 := make([]int, 3, 5)\n    s2 := s1[:2]\n    s2 = append(s2, 42)\n    fmt.Println(s1[2])\n}\n\n// What will be printed?",
+          "answers": ["0", "42", "panic"],
+          "correct_answer": "42",
+          "explanation": "s1 and s2 share the same underlying array. When we append 42 to s2, it modifies the shared array at index 2, which affects s1[2]."
+        },
+        {
+          "language": "ru",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    s1 := make([]int, 3, 5)\n    s2 := s1[:2]\n    s2 = append(s2, 42)\n    fmt.Println(s1[2])\n}\n\n// Что будет выведено?",
+          "answers": ["0", "42", "паника"],
+          "correct_answer": "42",
+          "explanation": "s1 и s2 используют один и тот же базовый массив. Когда мы добавляем 42 к s2, это изменяет общий массив по индексу 2, что влияет на s1[2]."
+        },
+        {
+          "language": "tr",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    s1 := make([]int, 3, 5)\n    s2 := s1[:2]\n    s2 = append(s2, 42)\n    fmt.Println(s1[2])\n}\n\n// Ne yazdırılacak?",
+          "answers": ["0", "42", "panic"],
+          "correct_answer": "42",
+          "explanation": "s1 ve s2 aynı temel diziyi paylaşır. s2'ye 42 eklediğimizde, paylaşılan dizinin 2. indeksini değiştirir, bu da s1[2]'yi etkiler."
+        },
+        {
+          "language": "ar",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    s1 := make([]int, 3, 5)\n    s2 := s1[:2]\n    s2 = append(s2, 42)\n    fmt.Println(s1[2])\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["0", "42", "panic"],
+          "correct_answer": "42",
+          "explanation": "s1 و s2 يتشاركان نفس المصفوفة الأساسية. عندما نضيف 42 إلى s2، فإنه يعدل المصفوفة المشتركة في الفهرس 2، مما يؤثر على s1[2]."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Closures",
+      "description": "Understanding closure variable capture",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    funcs := make([]func(), 3)\n    for i := 0; i < 3; i++ {\n        funcs[i] = func() {\n            fmt.Print(i)\n        }\n    }\n    for _, f := range funcs {\n        f()\n    }\n}\n\n// What will be printed?",
+          "answers": ["012", "333", "222"],
+          "correct_answer": "333",
+          "explanation": "All closures capture the same variable 'i' by reference. When executed, i has the value 3 (loop exit condition), so all functions print 3."
+        },
+        {
+          "language": "ru",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    funcs := make([]func(), 3)\n    for i := 0; i < 3; i++ {\n        funcs[i] = func() {\n            fmt.Print(i)\n        }\n    }\n    for _, f := range funcs {\n        f()\n    }\n}\n\n// Что будет выведено?",
+          "answers": ["012", "333", "222"],
+          "correct_answer": "333",
+          "explanation": "Все замыкания захватывают одну и ту же переменную 'i' по ссылке. При выполнении i имеет значение 3 (условие выхода из цикла), поэтому все функции выводят 3."
+        },
+        {
+          "language": "tr",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    funcs := make([]func(), 3)\n    for i := 0; i < 3; i++ {\n        funcs[i] = func() {\n            fmt.Print(i)\n        }\n    }\n    for _, f := range funcs {\n        f()\n    }\n}\n\n// Ne yazdırılacak?",
+          "answers": ["012", "333", "222"],
+          "correct_answer": "333",
+          "explanation": "Tüm closure'lar aynı 'i' değişkenini referans olarak yakalar. Çalıştırıldığında i değeri 3'tür (döngü çıkış koşulu), bu yüzden tüm fonksiyonlar 3 yazdırır."
+        },
+        {
+          "language": "ar",
+          "question": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    funcs := make([]func(), 3)\n    for i := 0; i < 3; i++ {\n        funcs[i] = func() {\n            fmt.Print(i)\n        }\n    }\n    for _, f := range funcs {\n        f()\n    }\n}\n\n// ماذا سيُطبع؟",
+          "answers": ["012", "333", "222"],
+          "correct_answer": "333",
+          "explanation": "جميع closures تلتقط نفس المتغير 'i' بالمرجع. عند التنفيذ، i له القيمة 3 (شرط الخروج من الحلقة)، لذا تطبع جميع الدوال 3."
+        }
+      ]
+    }
+  ]
+}

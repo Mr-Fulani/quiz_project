@@ -1,0 +1,220 @@
+{
+  "tasks": [
+    {
+      "topic": "SQL",
+      "subtopic": "NULL Handling",
+      "description": "Understanding NULL behavior in comparisons and aggregations",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "Given table: employees (id, salary)\nData: (1, 1000), (2, NULL), (3, 2000)\n\nSELECT COUNT(*), COUNT(salary), AVG(salary)\nFROM employees\nWHERE salary <> 1500;\n\n-- What will be returned?",
+          "answers": ["3, 2, 1500", "2, 2, 1500", "2, 2, 1000"],
+          "correct_answer": "2, 2, 1500",
+          "explanation": "NULL values are excluded from WHERE conditions with comparison operators. COUNT(*) counts all rows, COUNT(salary) ignores NULLs, AVG() calculates average of non-NULL values only."
+        },
+        {
+          "language": "ru",
+          "question": "Дана таблица: employees (id, salary)\nДанные: (1, 1000), (2, NULL), (3, 2000)\n\nSELECT COUNT(*), COUNT(salary), AVG(salary)\nFROM employees\nWHERE salary <> 1500;\n\n-- Что будет возвращено?",
+          "answers": ["3, 2, 1500", "2, 2, 1500", "2, 2, 1000"],
+          "correct_answer": "2, 2, 1500",
+          "explanation": "Значения NULL исключаются из условий WHERE с операторами сравнения. COUNT(*) считает все строки, COUNT(salary) игнорирует NULL, AVG() вычисляет среднее только для не-NULL значений."
+        },
+        {
+          "language": "tr",
+          "question": "Verilen tablo: employees (id, salary)\nVeri: (1, 1000), (2, NULL), (3, 2000)\n\nSELECT COUNT(*), COUNT(salary), AVG(salary)\nFROM employees\nWHERE salary <> 1500;\n\n-- Ne döndürülecek?",
+          "answers": ["3, 2, 1500", "2, 2, 1500", "2, 2, 1000"],
+          "correct_answer": "2, 2, 1500",
+          "explanation": "NULL değerleri karşılaştırma operatörleriyle WHERE koşullarından hariç tutulur. COUNT(*) tüm satırları sayar, COUNT(salary) NULL'ları yok sayar, AVG() sadece NULL olmayan değerlerin ortalamasını hesaplar."
+        },
+        {
+          "language": "ar",
+          "question": "الجدول المعطى: employees (id, salary)\nالبيانات: (1, 1000), (2, NULL), (3, 2000)\n\nSELECT COUNT(*), COUNT(salary), AVG(salary)\nFROM employees\nWHERE salary <> 1500;\n\n-- ماذا سيُرجع؟",
+          "answers": ["3, 2, 1500", "2, 2, 1500", "2, 2, 1000"],
+          "correct_answer": "2, 2, 1500",
+          "explanation": "قيم NULL مستبعدة من شروط WHERE مع مشغلات المقارنة. COUNT(*) يعد جميع الصفوف، COUNT(salary) يتجاهل NULL، AVG() يحسب متوسط القيم غير NULL فقط."
+        }
+      ]
+    },
+    {
+      "topic": "SQL",
+      "subtopic": "Window Functions",
+      "description": "Understanding RANK vs DENSE_RANK vs ROW_NUMBER",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "Given table: scores (name, points)\nData: ('Alice', 95), ('Bob', 87), ('Carol', 95), ('Dave', 82)\n\nSELECT name, points,\n       RANK() OVER (ORDER BY points DESC) as rank_val,\n       DENSE_RANK() OVER (ORDER BY points DESC) as dense_rank_val,\n       ROW_NUMBER() OVER (ORDER BY points DESC) as row_num\nFROM scores;\n\n-- What rank_val will Dave get?",
+          "answers": ["3", "4", "2"],
+          "correct_answer": "4",
+          "explanation": "RANK() skips numbers after ties. Alice and Carol tie for rank 1, so the next rank is 4 (skipping 2 and 3). Dave gets rank 4."
+        },
+        {
+          "language": "ru",
+          "question": "Дана таблица: scores (name, points)\nДанные: ('Alice', 95), ('Bob', 87), ('Carol', 95), ('Dave', 82)\n\nSELECT name, points,\n       RANK() OVER (ORDER BY points DESC) as rank_val,\n       DENSE_RANK() OVER (ORDER BY points DESC) as dense_rank_val,\n       ROW_NUMBER() OVER (ORDER BY points DESC) as row_num\nFROM scores;\n\n-- Какой rank_val получит Dave?",
+          "answers": ["3", "4", "2"],
+          "correct_answer": "4",
+          "explanation": "RANK() пропускает номера после ничьих. Alice и Carol делят ранг 1, поэтому следующий ранг - 4 (пропуская 2 и 3). Dave получает ранг 4."
+        },
+        {
+          "language": "tr",
+          "question": "Verilen tablo: scores (name, points)\nVeri: ('Alice', 95), ('Bob', 87), ('Carol', 95), ('Dave', 82)\n\nSELECT name, points,\n       RANK() OVER (ORDER BY points DESC) as rank_val,\n       DENSE_RANK() OVER (ORDER BY points DESC) as dense_rank_val,\n       ROW_NUMBER() OVER (ORDER BY points DESC) as row_num\nFROM scores;\n\n-- Dave hangi rank_val'ı alacak?",
+          "answers": ["3", "4", "2"],
+          "correct_answer": "4",
+          "explanation": "RANK() beraberliklerde sayıları atlar. Alice ve Carol 1. sırayı paylaşır, bu yüzden sonraki sıra 4'tür (2 ve 3'ü atlayarak). Dave 4. sırayı alır."
+        },
+        {
+          "language": "ar",
+          "question": "الجدول المعطى: scores (name, points)\nالبيانات: ('Alice', 95), ('Bob', 87), ('Carol', 95), ('Dave', 82)\n\nSELECT name, points,\n       RANK() OVER (ORDER BY points DESC) as rank_val,\n       DENSE_RANK() OVER (ORDER BY points DESC) as dense_rank_val,\n       ROW_NUMBER() OVER (ORDER BY points DESC) as row_num\nFROM scores;\n\n-- ما rank_val الذي سيحصل عليه Dave؟",
+          "answers": ["3", "4", "2"],
+          "correct_answer": "4",
+          "explanation": "RANK() يتخطى الأرقام بعد التعادل. Alice و Carol يتشاركان الترتيب 1، لذا الترتيب التالي هو 4 (متخطياً 2 و 3). Dave يحصل على الترتيب 4."
+        }
+      ]
+    },
+    {
+      "topic": "SQL",
+      "subtopic": "JOIN Types",
+      "description": "Understanding different JOIN behaviors with NULL values",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "Given tables:\nusers: (id, name) -> (1, 'Alice'), (2, 'Bob'), (3, 'Carol')\norders: (user_id, amount) -> (1, 100), (1, 200), (4, 150)\n\nSELECT COUNT(*)\nFROM users u\nRIGHT JOIN orders o ON u.id = o.user_id;\n\n-- What will be returned?",
+          "answers": ["2", "3", "4"],
+          "correct_answer": "3",
+          "explanation": "RIGHT JOIN returns all rows from the right table (orders). There are 3 orders total: 2 matching users and 1 with no matching user (user_id=4)."
+        },
+        {
+          "language": "ru",
+          "question": "Даны таблицы:\nusers: (id, name) -> (1, 'Alice'), (2, 'Bob'), (3, 'Carol')\norders: (user_id, amount) -> (1, 100), (1, 200), (4, 150)\n\nSELECT COUNT(*)\nFROM users u\nRIGHT JOIN orders o ON u.id = o.user_id;\n\n-- Что будет возвращено?",
+          "answers": ["2", "3", "4"],
+          "correct_answer": "3",
+          "explanation": "RIGHT JOIN возвращает все строки из правой таблицы (orders). Всего есть 3 заказа: 2 с соответствующими пользователями и 1 без соответствующего пользователя (user_id=4)."
+        },
+        {
+          "language": "tr",
+          "question": "Verilen tablolar:\nusers: (id, name) -> (1, 'Alice'), (2, 'Bob'), (3, 'Carol')\norders: (user_id, amount) -> (1, 100), (1, 200), (4, 150)\n\nSELECT COUNT(*)\nFROM users u\nRIGHT JOIN orders o ON u.id = o.user_id;\n\n-- Ne döndürülecek?",
+          "answers": ["2", "3", "4"],
+          "correct_answer": "3",
+          "explanation": "RIGHT JOIN sağ tablodaki (orders) tüm satırları döndürür. Toplam 3 sipariş var: 2'si eşleşen kullanıcılarla ve 1'i eşleşen kullanıcısı olmayan (user_id=4)."
+        },
+        {
+          "language": "ar",
+          "question": "الجداول المعطاة:\nusers: (id, name) -> (1, 'Alice'), (2, 'Bob'), (3, 'Carol')\norders: (user_id, amount) -> (1, 100), (1, 200), (4, 150)\n\nSELECT COUNT(*)\nFROM users u\nRIGHT JOIN orders o ON u.id = o.user_id;\n\n-- ماذا سيُرجع؟",
+          "answers": ["2", "3", "4"],
+          "correct_answer": "3",
+          "explanation": "RIGHT JOIN يُرجع جميع الصفوف من الجدول الأيمن (orders). يوجد 3 طلبات إجمالي: 2 مع مستخدمين متطابقين و 1 بدون مستخدم متطابق (user_id=4)."
+        }
+      ]
+    },
+    {
+      "topic": "SQL",
+      "subtopic": "GROUP BY with HAVING",
+      "description": "Understanding execution order of WHERE vs HAVING",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "Given table: sales (product, region, amount)\nData: ('A', 'North', 100), ('A', 'South', 200), ('B', 'North', 50), ('B', 'South', 300)\n\nSELECT product, SUM(amount)\nFROM sales\nWHERE amount > 75\nGROUP BY product\nHAVING COUNT(*) > 1;\n\n-- How many rows will be returned?",
+          "answers": ["0", "1", "2"],
+          "correct_answer": "1",
+          "explanation": "WHERE filters before grouping (removes B-North with 50). After grouping: A has 2 rows, B has 1 row. HAVING filters groups with COUNT > 1, so only product A is returned."
+        },
+        {
+          "language": "ru",
+          "question": "Дана таблица: sales (product, region, amount)\nДанные: ('A', 'North', 100), ('A', 'South', 200), ('B', 'North', 50), ('B', 'South', 300)\n\nSELECT product, SUM(amount)\nFROM sales\nWHERE amount > 75\nGROUP BY product\nHAVING COUNT(*) > 1;\n\n-- Сколько строк будет возвращено?",
+          "answers": ["0", "1", "2"],
+          "correct_answer": "1",
+          "explanation": "WHERE фильтрует до группировки (убирает B-North с 50). После группировки: A имеет 2 строки, B имеет 1 строку. HAVING фильтрует группы с COUNT > 1, поэтому возвращается только продукт A."
+        },
+        {
+          "language": "tr",
+          "question": "Verilen tablo: sales (product, region, amount)\nVeri: ('A', 'North', 100), ('A', 'South', 200), ('B', 'North', 50), ('B', 'South', 300)\n\nSELECT product, SUM(amount)\nFROM sales\nWHERE amount > 75\nGROUP BY product\nHAVING COUNT(*) > 1;\n\n-- Kaç satır döndürülecek?",
+          "answers": ["0", "1", "2"],
+          "correct_answer": "1",
+          "explanation": "WHERE gruplama öncesi filtreler (50'li B-North'u kaldırır). Gruplamadan sonra: A'nın 2 satırı, B'nin 1 satırı var. HAVING COUNT > 1 olan grupları filtreler, bu yüzden sadece ürün A döndürülür."
+        },
+        {
+          "language": "ar",
+          "question": "الجدول المعطى: sales (product, region, amount)\nالبيانات: ('A', 'North', 100), ('A', 'South', 200), ('B', 'North', 50), ('B', 'South', 300)\n\nSELECT product, SUM(amount)\nFROM sales\nWHERE amount > 75\nGROUP BY product\nHAVING COUNT(*) > 1;\n\n-- كم صف سيُرجع؟",
+          "answers": ["0", "1", "2"],
+          "correct_answer": "1",
+          "explanation": "WHERE يرشح قبل التجميع (يزيل B-North مع 50). بعد التجميع: A له 2 صف، B له 1 صف. HAVING يرشح المجموعات مع COUNT > 1، لذا يُرجع المنتج A فقط."
+        }
+      ]
+    },
+    {
+      "topic": "SQL",
+      "subtopic": "Subquery Correlation",
+      "description": "Understanding correlated vs non-correlated subqueries",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "Given table: employees (id, name, salary, dept_id)\nData: (1, 'Alice', 5000, 1), (2, 'Bob', 6000, 1), (3, 'Carol', 4500, 2), (4, 'Dave', 5500, 2)\n\nSELECT name, salary\nFROM employees e1\nWHERE salary > (SELECT AVG(salary) \n                FROM employees e2 \n                WHERE e2.dept_id = e1.dept_id);\n\n-- How many employees will be returned?",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "2",
+          "explanation": "This is a correlated subquery. Dept 1 average: 5500, so Bob (6000) qualifies. Dept 2 average: 5000, so Dave (5500) qualifies. Alice (5000) and Carol (4500) don't exceed their department averages."
+        },
+        {
+          "language": "ru",
+          "question": "Дана таблица: employees (id, name, salary, dept_id)\nДанные: (1, 'Alice', 5000, 1), (2, 'Bob', 6000, 1), (3, 'Carol', 4500, 2), (4, 'Dave', 5500, 2)\n\nSELECT name, salary\nFROM employees e1\nWHERE salary > (SELECT AVG(salary) \n                FROM employees e2 \n                WHERE e2.dept_id = e1.dept_id);\n\n-- Сколько сотрудников будет возвращено?",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "2",
+          "explanation": "Это коррелированный подзапрос. Среднее отдела 1: 5500, поэтому Bob (6000) подходит. Среднее отдела 2: 5000, поэтому Dave (5500) подходит. Alice (5000) и Carol (4500) не превышают средние по своим отделам."
+        },
+        {
+          "language": "tr",
+          "question": "Verilen tablo: employees (id, name, salary, dept_id)\nVeri: (1, 'Alice', 5000, 1), (2, 'Bob', 6000, 1), (3, 'Carol', 4500, 2), (4, 'Dave', 5500, 2)\n\nSELECT name, salary\nFROM employees e1\nWHERE salary > (SELECT AVG(salary) \n                FROM employees e2 \n                WHERE e2.dept_id = e1.dept_id);\n\n-- Kaç çalışan döndürülecek?",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "2",
+          "explanation": "Bu korelasyonlu bir alt sorgu. Bölüm 1 ortalaması: 5500, bu yüzden Bob (6000) uygun. Bölüm 2 ortalaması: 5000, bu yüzden Dave (5500) uygun. Alice (5000) ve Carol (4500) bölüm ortalamalarını aşmıyor."
+        },
+        {
+          "language": "ar",
+          "question": "الجدول المعطى: employees (id, name, salary, dept_id)\nالبيانات: (1, 'Alice', 5000, 1), (2, 'Bob', 6000, 1), (3, 'Carol', 4500, 2), (4, 'Dave', 5500, 2)\n\nSELECT name, salary\nFROM employees e1\nWHERE salary > (SELECT AVG(salary) \n                FROM employees e2 \n                WHERE e2.dept_id = e1.dept_id);\n\n-- كم موظف سيُرجع؟",
+          "answers": ["1", "2", "3"],
+          "correct_answer": "2",
+          "explanation": "هذا استعلام فرعي مترابط. متوسط القسم 1: 5500، لذا Bob (6000) مؤهل. متوسط القسم 2: 5000، لذا Dave (5500) مؤهل. Alice (5000) و Carol (4500) لا يتجاوزان متوسط أقسامهما."
+        }
+      ]
+    },
+    {
+      "topic": "SQL",
+      "subtopic": "UNION vs UNION ALL",
+      "description": "Understanding duplicate handling in set operations",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "Given tables:\ntable1: (id, value) -> (1, 'A'), (2, 'B')\ntable2: (id, value) -> (2, 'B'), (3, 'C')\n\nQuery 1: SELECT * FROM table1 UNION SELECT * FROM table2;\nQuery 2: SELECT * FROM table1 UNION ALL SELECT * FROM table2;\n\n-- How many rows will each query return?",
+          "answers": ["Query 1: 3, Query 2: 4", "Query 1: 4, Query 2: 3", "Query 1: 2, Query 2: 4"],
+          "correct_answer": "Query 1: 3, Query 2: 4",
+          "explanation": "UNION removes duplicates, so (2, 'B') appears only once, resulting in 3 rows. UNION ALL keeps all rows including duplicates, resulting in 4 rows."
+        },
+        {
+          "language": "ru",
+          "question": "Даны таблицы:\ntable1: (id, value) -> (1, 'A'), (2, 'B')\ntable2: (id, value) -> (2, 'B'), (3, 'C')\n\nЗапрос 1: SELECT * FROM table1 UNION SELECT * FROM table2;\nЗапрос 2: SELECT * FROM table1 UNION ALL SELECT * FROM table2;\n\n-- Сколько строк вернет каждый запрос?",
+          "answers": ["Запрос 1: 3, Запрос 2: 4", "Запрос 1: 4, Запрос 2: 3", "Запрос 1: 2, Запрос 2: 4"],
+          "correct_answer": "Запрос 1: 3, Запрос 2: 4",
+          "explanation": "UNION удаляет дубликаты, поэтому (2, 'B') появляется только один раз, результат - 3 строки. UNION ALL сохраняет все строки включая дубликаты, результат - 4 строки."
+        },
+        {
+          "language": "tr",
+          "question": "Verilen tablolar:\ntable1: (id, value) -> (1, 'A'), (2, 'B')\ntable2: (id, value) -> (2, 'B'), (3, 'C')\n\nSorgu 1: SELECT * FROM table1 UNION SELECT * FROM table2;\nSorgu 2: SELECT * FROM table1 UNION ALL SELECT * FROM table2;\n\n-- Her sorgu kaç satır döndürecek?",
+          "answers": ["Sorgu 1: 3, Sorgu 2: 4", "Sorgu 1: 4, Sorgu 2: 3", "Sorgu 1: 2, Sorgu 2: 4"],
+          "correct_answer": "Sorgu 1: 3, Sorgu 2: 4",
+          "explanation": "UNION duplikatları kaldırır, bu yüzden (2, 'B') sadece bir kez görünür, sonuç 3 satır. UNION ALL duplikatlar dahil tüm satırları tutar, sonuç 4 satır."
+        },
+        {
+          "language": "ar",
+          "question": "الجداول المعطاة:\ntable1: (id, value) -> (1, 'A'), (2, 'B')\ntable2: (id, value) -> (2, 'B'), (3, 'C')\n\nالاستعلام 1: SELECT * FROM table1 UNION SELECT * FROM table2;\nالاستعلام 2: SELECT * FROM table1 UNION ALL SELECT * FROM table2;\n\n-- كم صف سيُرجع كل استعلام؟",
+          "answers": ["الاستعلام 1: 3, الاستعلام 2: 4", "الاستعلام 1: 4, الاستعلام 2: 3", "الاستعلام 1: 2, الاستعلام 2: 4"],
+          "correct_answer": "الاستعلام 1: 3, الاستعلام 2: 4",
+          "explanation": "UNION يزيل المكررات، لذا (2, 'B') يظهر مرة واحدة فقط، النتيجة 3 صفوف. UNION ALL يحتفظ بجميع الصفوف بما في ذلك المكررات، النتيجة 4 صفوف."
+        }
+      ]
+    }
+  ]
+}

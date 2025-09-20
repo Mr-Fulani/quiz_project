@@ -1,0 +1,220 @@
+{
+  "tasks": [
+    {
+      "topic": "JavaScript",
+      "subtopic": "Closures",
+      "description": "Understanding closure behavior in loops",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "for (var i = 0; i < 3; i++) {\n    setTimeout(function() {\n        console.log(i);\n    }, 100);\n}\n\n// What will be logged to the console?",
+          "answers": ["0 1 2", "3 3 3", "undefined undefined undefined"],
+          "correct_answer": "3 3 3",
+          "explanation": "Due to closure and 'var' hoisting, all setTimeout callbacks share the same 'i' variable. By the time callbacks execute, the loop has finished and 'i' equals 3."
+        },
+        {
+          "language": "ru",
+          "question": "for (var i = 0; i < 3; i++) {\n    setTimeout(function() {\n        console.log(i);\n    }, 100);\n}\n\n// Что будет выведено в консоль?",
+          "answers": ["0 1 2", "3 3 3", "undefined undefined undefined"],
+          "correct_answer": "3 3 3",
+          "explanation": "Из-за замыканий и всплытия 'var', все колбэки setTimeout разделяют одну и ту же переменную 'i'. К моменту выполнения колбэков цикл завершился и 'i' равно 3."
+        },
+        {
+          "language": "tr",
+          "question": "for (var i = 0; i < 3; i++) {\n    setTimeout(function() {\n        console.log(i);\n    }, 100);\n}\n\n// Konsola ne yazdırılacak?",
+          "answers": ["0 1 2", "3 3 3", "undefined undefined undefined"],
+          "correct_answer": "3 3 3",
+          "explanation": "Closure ve 'var' hoisting nedeniyle, tüm setTimeout callback'leri aynı 'i' değişkenini paylaşır. Callback'ler çalıştığında döngü bitmiş ve 'i' değeri 3'tür."
+        },
+        {
+          "language": "ar",
+          "question": "for (var i = 0; i < 3; i++) {\n    setTimeout(function() {\n        console.log(i);\n    }, 100);\n}\n\n// ماذا سيُطبع في وحدة التحكم؟",
+          "answers": ["0 1 2", "3 3 3", "undefined undefined undefined"],
+          "correct_answer": "3 3 3",
+          "explanation": "بسبب الإغلاق و hoisting لـ 'var'، جميع callbacks الخاصة بـ setTimeout تشارك نفس المتغير 'i'. عندما تُنفذ callbacks، تكون الحلقة انتهت و 'i' يساوي 3."
+        }
+      ]
+    },
+    {
+      "topic": "JavaScript",
+      "subtopic": "Prototypes",
+      "description": "Understanding prototype chain behavior",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "function Person(name) {\n    this.name = name;\n}\n\nPerson.prototype.greet = function() {\n    return \"Hello, \" + this.name;\n};\n\nconst person1 = new Person(\"Alice\");\nconst person2 = new Person(\"Bob\");\n\nPerson.prototype.greet = function() {\n    return \"Hi, \" + this.name;\n};\n\nconsole.log(person1.greet());\n\n// What will be logged?",
+          "answers": ["Hello, Alice", "Hi, Alice", "Error"],
+          "correct_answer": "Hi, Alice",
+          "explanation": "JavaScript uses prototype chain lookup. When person1.greet() is called, it looks up the prototype chain and finds the most recently assigned greet method on Person.prototype."
+        },
+        {
+          "language": "ru",
+          "question": "function Person(name) {\n    this.name = name;\n}\n\nPerson.prototype.greet = function() {\n    return \"Hello, \" + this.name;\n};\n\nconst person1 = new Person(\"Alice\");\nconst person2 = new Person(\"Bob\");\n\nPerson.prototype.greet = function() {\n    return \"Hi, \" + this.name;\n};\n\nconsole.log(person1.greet());\n\n// Что будет выведено?",
+          "answers": ["Hello, Alice", "Hi, Alice", "Ошибка"],
+          "correct_answer": "Hi, Alice",
+          "explanation": "JavaScript использует поиск по цепочке прототипов. Когда вызывается person1.greet(), он ищет по цепочке прототипов и находит последний назначенный метод greet в Person.prototype."
+        },
+        {
+          "language": "tr",
+          "question": "function Person(name) {\n    this.name = name;\n}\n\nPerson.prototype.greet = function() {\n    return \"Hello, \" + this.name;\n};\n\nconst person1 = new Person(\"Alice\");\nconst person2 = new Person(\"Bob\");\n\nPerson.prototype.greet = function() {\n    return \"Hi, \" + this.name;\n};\n\nconsole.log(person1.greet());\n\n// Ne yazdırılacak?",
+          "answers": ["Hello, Alice", "Hi, Alice", "Hata"],
+          "correct_answer": "Hi, Alice",
+          "explanation": "JavaScript prototype chain araması kullanır. person1.greet() çağrıldığında, prototype chain'de arama yapar ve Person.prototype'da en son atanan greet metodunu bulur."
+        },
+        {
+          "language": "ar",
+          "question": "function Person(name) {\n    this.name = name;\n}\n\nPerson.prototype.greet = function() {\n    return \"Hello, \" + this.name;\n};\n\nconst person1 = new Person(\"Alice\");\nconst person2 = new Person(\"Bob\");\n\nPerson.prototype.greet = function() {\n    return \"Hi, \" + this.name;\n};\n\nconsole.log(person1.greet());\n\n// ماذا سيُطبع؟",
+          "answers": ["Hello, Alice", "Hi, Alice", "خطأ"],
+          "correct_answer": "Hi, Alice",
+          "explanation": "JavaScript يستخدم البحث في سلسلة prototype. عندما يُستدعى person1.greet()، يبحث في سلسلة prototype ويجد آخر دالة greet مُعيّنة في Person.prototype."
+        }
+      ]
+    },
+    {
+      "topic": "JavaScript",
+      "subtopic": "Async/Await",
+      "description": "Understanding async/await execution order",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "async function test() {\n    console.log('1');\n    await Promise.resolve();\n    console.log('2');\n}\n\nconsole.log('3');\ntest();\nconsole.log('4');\n\n// What is the order of console output?",
+          "answers": ["3 1 4 2", "3 1 2 4", "1 2 3 4"],
+          "correct_answer": "3 1 4 2",
+          "explanation": "Synchronous code runs first: '3', then '1'. The 'await' makes the rest of test() run in the next microtask queue, so '4' runs before '2'."
+        },
+        {
+          "language": "ru",
+          "question": "async function test() {\n    console.log('1');\n    await Promise.resolve();\n    console.log('2');\n}\n\nconsole.log('3');\ntest();\nconsole.log('4');\n\n// Какой порядок вывода в консоль?",
+          "answers": ["3 1 4 2", "3 1 2 4", "1 2 3 4"],
+          "correct_answer": "3 1 4 2",
+          "explanation": "Синхронный код выполняется первым: '3', затем '1'. 'await' заставляет остаток test() выполниться в следующей очереди микрозадач, поэтому '4' выполняется перед '2'."
+        },
+        {
+          "language": "tr",
+          "question": "async function test() {\n    console.log('1');\n    await Promise.resolve();\n    console.log('2');\n}\n\nconsole.log('3');\ntest();\nconsole.log('4');\n\n// Konsol çıktısının sırası nedir?",
+          "answers": ["3 1 4 2", "3 1 2 4", "1 2 3 4"],
+          "correct_answer": "3 1 4 2",
+          "explanation": "Senkron kod önce çalışır: '3', sonra '1'. 'await' test() fonksiyonunun geri kalanını microtask queue'da çalıştırır, bu yüzden '4', '2'den önce çalışır."
+        },
+        {
+          "language": "ar",
+          "question": "async function test() {\n    console.log('1');\n    await Promise.resolve();\n    console.log('2');\n}\n\nconsole.log('3');\ntest();\nconsole.log('4');\n\n// ما هو ترتيب الإخراج في وحدة التحكم؟",
+          "answers": ["3 1 4 2", "3 1 2 4", "1 2 3 4"],
+          "correct_answer": "3 1 4 2",
+          "explanation": "الكود المتزامن يُنفذ أولاً: '3'، ثم '1'. 'await' يجعل باقي test() يُنفذ في microtask queue التالية، لذا '4' يُنفذ قبل '2'."
+        }
+      ]
+    },
+    {
+      "topic": "JavaScript",
+      "subtopic": "Hoisting",
+      "description": "Understanding variable hoisting with let, const, and var",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "console.log(a);\nconsole.log(b);\nconsole.log(c);\n\nvar a = 1;\nlet b = 2;\nconst c = 3;\n\n// What will happen?",
+          "answers": ["undefined, ReferenceError, ReferenceError", "1, 2, 3", "ReferenceError for all"],
+          "correct_answer": "undefined, ReferenceError, ReferenceError",
+          "explanation": "'var' is hoisted and initialized with undefined. 'let' and 'const' are hoisted but not initialized, creating a temporal dead zone until their declaration."
+        },
+        {
+          "language": "ru",
+          "question": "console.log(a);\nconsole.log(b);\nconsole.log(c);\n\nvar a = 1;\nlet b = 2;\nconst c = 3;\n\n// Что произойдет?",
+          "answers": ["undefined, ReferenceError, ReferenceError", "1, 2, 3", "ReferenceError для всех"],
+          "correct_answer": "undefined, ReferenceError, ReferenceError",
+          "explanation": "'var' всплывает и инициализируется как undefined. 'let' и 'const' всплывают, но не инициализируются, создавая временную мертвую зону до их объявления."
+        },
+        {
+          "language": "tr",
+          "question": "console.log(a);\nconsole.log(b);\nconsole.log(c);\n\nvar a = 1;\nlet b = 2;\nconst c = 3;\n\n// Ne olacak?",
+          "answers": ["undefined, ReferenceError, ReferenceError", "1, 2, 3", "Hepsi için ReferenceError"],
+          "correct_answer": "undefined, ReferenceError, ReferenceError",
+          "explanation": "'var' hoist edilir ve undefined ile başlatılır. 'let' ve 'const' hoist edilir ama başlatılmaz, deklarasyonlarına kadar temporal dead zone oluşturur."
+        },
+        {
+          "language": "ar",
+          "question": "console.log(a);\nconsole.log(b);\nconsole.log(c);\n\nvar a = 1;\nlet b = 2;\nconst c = 3;\n\n// ماذا سيحدث؟",
+          "answers": ["undefined, ReferenceError, ReferenceError", "1, 2, 3", "ReferenceError للجميع"],
+          "correct_answer": "undefined, ReferenceError, ReferenceError",
+          "explanation": "'var' يُرفع ويُهيأ بـ undefined. 'let' و 'const' يُرفعان لكن لا يُهيآن، مما ينشئ منطقة ميتة مؤقتة حتى إعلانهما."
+        }
+      ]
+    },
+    {
+      "topic": "JavaScript",
+      "subtopic": "Event Loop",
+      "description": "Understanding event loop and task queues",
+      "difficulty": "hard",
+      "translations": [
+        {
+          "language": "en",
+          "question": "console.log('1');\n\nsetTimeout(() => console.log('2'), 0);\n\nPromise.resolve().then(() => console.log('3'));\n\nsetImmediate(() => console.log('4'));\n\nconsole.log('5');\n\n// What is the order in Node.js?",
+          "answers": ["1 5 3 2 4", "1 5 2 3 4", "1 5 3 4 2"],
+          "correct_answer": "1 5 3 2 4",
+          "explanation": "Synchronous code runs first (1, 5). Microtasks (Promises) have higher priority than macrotasks. Promise.then runs before setTimeout and setImmediate."
+        },
+        {
+          "language": "ru",
+          "question": "console.log('1');\n\nsetTimeout(() => console.log('2'), 0);\n\nPromise.resolve().then(() => console.log('3'));\n\nsetImmediate(() => console.log('4'));\n\nconsole.log('5');\n\n// Какой порядок в Node.js?",
+          "answers": ["1 5 3 2 4", "1 5 2 3 4", "1 5 3 4 2"],
+          "correct_answer": "1 5 3 2 4",
+          "explanation": "Синхронный код выполняется первым (1, 5). Микрозадачи (Promises) имеют более высокий приоритет чем макрозадачи. Promise.then выполняется перед setTimeout и setImmediate."
+        },
+        {
+          "language": "tr",
+          "question": "console.log('1');\n\nsetTimeout(() => console.log('2'), 0);\n\nPromise.resolve().then(() => console.log('3'));\n\nsetImmediate(() => console.log('4'));\n\nconsole.log('5');\n\n// Node.js'te sıra nedir?",
+          "answers": ["1 5 3 2 4", "1 5 2 3 4", "1 5 3 4 2"],
+          "correct_answer": "1 5 3 2 4",
+          "explanation": "Senkron kod önce çalışır (1, 5). Microtask'lar (Promises) macrotask'lardan daha yüksek önceliğe sahiptir. Promise.then, setTimeout ve setImmediate'den önce çalışır."
+        },
+        {
+          "language": "ar",
+          "question": "console.log('1');\n\nsetTimeout(() => console.log('2'), 0);\n\nPromise.resolve().then(() => console.log('3'));\n\nsetImmediate(() => console.log('4'));\n\nconsole.log('5');\n\n// ما هو الترتيب في Node.js؟",
+          "answers": ["1 5 3 2 4", "1 5 2 3 4", "1 5 3 4 2"],
+          "correct_answer": "1 5 3 2 4",
+          "explanation": "الكود المتزامن يُنفذ أولاً (1, 5). Microtasks (Promises) لها أولوية أعلى من macrotasks. Promise.then يُنفذ قبل setTimeout و setImmediate."
+        }
+      ]
+    },
+    {
+      "topic": "JavaScript",
+      "subtopic": "Object Comparison",
+      "description": "Understanding object equality and reference comparison",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "en",
+          "question": "const obj1 = { name: 'Alice', age: 25 };\nconst obj2 = { name: 'Alice', age: 25 };\nconst obj3 = obj1;\n\nconsole.log(obj1 === obj2);\nconsole.log(obj1 === obj3);\nconsole.log(JSON.stringify(obj1) === JSON.stringify(obj2));\n\n// What will be logged?",
+          "answers": ["false, true, true", "true, true, true", "false, false, true"],
+          "correct_answer": "false, true, true",
+          "explanation": "Objects are compared by reference, not by value. obj1 and obj2 are different objects. obj3 references the same object as obj1. JSON.stringify compares string representations."
+        },
+        {
+          "language": "ru",
+          "question": "const obj1 = { name: 'Alice', age: 25 };\nconst obj2 = { name: 'Alice', age: 25 };\nconst obj3 = obj1;\n\nconsole.log(obj1 === obj2);\nconsole.log(obj1 === obj3);\nconsole.log(JSON.stringify(obj1) === JSON.stringify(obj2));\n\n// Что будет выведено?",
+          "answers": ["false, true, true", "true, true, true", "false, false, true"],
+          "correct_answer": "false, true, true",
+          "explanation": "Объекты сравниваются по ссылке, а не по значению. obj1 и obj2 - разные объекты. obj3 ссылается на тот же объект что и obj1. JSON.stringify сравнивает строковые представления."
+        },
+        {
+          "language": "tr",
+          "question": "const obj1 = { name: 'Alice', age: 25 };\nconst obj2 = { name: 'Alice', age: 25 };\nconst obj3 = obj1;\n\nconsole.log(obj1 === obj2);\nconsole.log(obj1 === obj3);\nconsole.log(JSON.stringify(obj1) === JSON.stringify(obj2));\n\n// Ne yazdırılacak?",
+          "answers": ["false, true, true", "true, true, true", "false, false, true"],
+          "correct_answer": "false, true, true",
+          "explanation": "Objeler değere göre değil referansa göre karşılaştırılır. obj1 ve obj2 farklı objelerdir. obj3, obj1 ile aynı objeyi referans alır. JSON.stringify string temsillerini karşılaştırır."
+        },
+        {
+          "language": "ar",
+          "question": "const obj1 = { name: 'Alice', age: 25 };\nconst obj2 = { name: 'Alice', age: 25 };\nconst obj3 = obj1;\n\nconsole.log(obj1 === obj2);\nconsole.log(obj1 === obj3);\nconsole.log(JSON.stringify(obj1) === JSON.stringify(obj2));\n\n// ماذا سيُطبع؟",
+          "answers": ["false, true, true", "true, true, true", "false, false, true"],
+          "correct_answer": "false, true, true",
+          "explanation": "الكائنات تُقارن بالمرجع وليس بالقيمة. obj1 و obj2 كائنان مختلفان. obj3 يشير لنفس الكائن مثل obj1. JSON.stringify يقارن التمثيلات النصية."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "tasks": [
+    {
+      "topic": "Golang",
+      "subtopic": "Interfaces",
+      "description": "Understanding interface implementation and type assertions",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\nimport \"fmt\"\n\ntype Speaker interface {\n    Speak() string\n}\n\ntype Dog struct{}\n\nfunc (d Dog) Speak() string {\n    return \"Woof!\"\n}\n\nfunc main() {\n    var s Speaker = Dog{}\n    fmt.Println(s.Speak())\n}",
+          "answers": ["Woof!", "Error: Dog does not implement Speaker", "nil", "panic"],
+          "correct_answer": "Woof!",
+          "explanation": "Dog implements the Speak method defined in the Speaker interface, so it satisfies the interface and returns \"Woof!\"."
+        },
+        {
+          "language": "ru",
+          "question": "package main\nimport \"fmt\"\n\ntype Speaker interface {\n    Speak() string\n}\n\ntype Dog struct{}\n\nfunc (d Dog) Speak() string {\n    return \"Woof!\"\n}\n\nfunc main() {\n    var s Speaker = Dog{}\n    fmt.Println(s.Speak())\n}",
+          "answers": ["Woof!", "Ошибка: Dog не реализует Speaker", "nil", "panic"],
+          "correct_answer": "Woof!",
+          "explanation": "Dog реализует метод Speak, определенный в интерфейсе Speaker, поэтому удовлетворяет интерфейсу и возвращает \"Woof!\"."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Slices",
+      "description": "Understanding slice capacity and behavior on append",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    a := []int{1, 2, 3}\n    b := a[:2]\n    b = append(b, 99)\n    fmt.Println(\"a:\", a)\n    fmt.Println(\"b:\", b)\n}",
+          "answers": ["a: [1 2 99], b: [1 2 99]", "a: [1 2 3], b: [1 2 99]", "a: [1 2 3], b: [1 2 3]", "Error: slice out of bounds"],
+          "correct_answer": "a: [1 2 99], b: [1 2 99]",
+          "explanation": "Slice b shares the same backing array as a. When appending 99 to b, it overwrites a[2] because b has capacity to hold the new element."
+        },
+        {
+          "language": "ru",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    a := []int{1, 2, 3}\n    b := a[:2]\n    b = append(b, 99)\n    fmt.Println(\"a:\", a)\n    fmt.Println(\"b:\", b)\n}",
+          "answers": ["a: [1 2 99], b: [1 2 99]", "a: [1 2 3], b: [1 2 99]", "a: [1 2 3], b: [1 2 3]", "Ошибка: выход за границы среза"],
+          "correct_answer": "a: [1 2 99], b: [1 2 99]",
+          "explanation": "Срез b использует тот же базовый массив, что и a. При добавлении 99 к b, он перезаписывает a[2], поскольку у b достаточно емкости для нового элемента."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Goroutines and Channels",
+      "description": "Understanding channel behavior and goroutine synchronization",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    ch := make(chan int, 2)\n    ch <- 1\n    ch <- 2\n    close(ch)\n    \n    for v := range ch {\n        fmt.Print(v, \" \")\n    }\n    fmt.Print(\"done\")\n}",
+          "answers": ["1 2 done", "deadlock", "1 done", "2 done"],
+          "correct_answer": "1 2 done",
+          "explanation": "The buffered channel contains 2 values. After closing, range reads all remaining values (1, 2) then exits when channel is empty."
+        },
+        {
+          "language": "ru",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    ch := make(chan int, 2)\n    ch <- 1\n    ch <- 2\n    close(ch)\n    \n    for v := range ch {\n        fmt.Print(v, \" \")\n    }\n    fmt.Print(\"done\")\n}",
+          "answers": ["1 2 done", "deadlock", "1 done", "2 done"],
+          "correct_answer": "1 2 done",
+          "explanation": "Буферизованный канал содержит 2 значения. После закрытия range читает все оставшиеся значения (1, 2), затем выходит когда канал пуст."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Pointers and Methods",
+      "description": "Understanding pointer receivers vs value receivers",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\nimport \"fmt\"\n\ntype Counter struct {\n    value int\n}\n\nfunc (c Counter) Increment() {\n    c.value++\n}\n\nfunc (c *Counter) IncrementPtr() {\n    c.value++\n}\n\nfunc main() {\n    c := Counter{value: 0}\n    c.Increment()\n    c.IncrementPtr()\n    fmt.Println(c.value)\n}",
+          "answers": ["0", "1", "2", "Error: cannot call pointer method on value"],
+          "correct_answer": "1",
+          "explanation": "Increment() uses value receiver so it doesn't modify the original. IncrementPtr() uses pointer receiver so it modifies the original counter."
+        },
+        {
+          "language": "ru",
+          "question": "package main\nimport \"fmt\"\n\ntype Counter struct {\n    value int\n}\n\nfunc (c Counter) Increment() {\n    c.value++\n}\n\nfunc (c *Counter) IncrementPtr() {\n    c.value++\n}\n\nfunc main() {\n    c := Counter{value: 0}\n    c.Increment()\n    c.IncrementPtr()\n    fmt.Println(c.value)\n}",
+          "answers": ["0", "1", "2", "Ошибка: нельзя вызвать метод с указателем на значении"],
+          "correct_answer": "1",
+          "explanation": "Increment() использует получатель по значению, поэтому не изменяет оригинал. IncrementPtr() использует получатель-указатель, поэтому изменяет оригинальный счетчик."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Maps and Zero Values",
+      "description": "Understanding map initialization and zero values",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    var m map[string]int\n    m[\"key\"] = 42\n    fmt.Println(m[\"key\"])\n}",
+          "answers": ["42", "0", "panic: assignment to entry in nil map", "nil"],
+          "correct_answer": "panic: assignment to entry in nil map",
+          "explanation": "A nil map cannot be written to. The map must be initialized with make() or map literal before assignment."
+        },
+        {
+          "language": "ru",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    var m map[string]int\n    m[\"key\"] = 42\n    fmt.Println(m[\"key\"])\n}",
+          "answers": ["42", "0", "panic: assignment to entry in nil map", "nil"],
+          "correct_answer": "panic: assignment to entry in nil map",
+          "explanation": "В nil map нельзя записывать значения. Map должна быть инициализирована с помощью make() или литерала map перед присваиванием."
+        }
+      ]
+    },
+    {
+      "topic": "Golang",
+      "subtopic": "Defer and Function Calls",
+      "description": "Understanding defer execution order and variable capture",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "en",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    i := 0\n    defer fmt.Print(i)\n    defer func() { fmt.Print(i) }()\n    defer func() { fmt.Print(i) }\n    i++\n    fmt.Print(i)\n}",
+          "answers": ["1100", "1010", "1001", "0011"],
+          "correct_answer": "1100",
+          "explanation": "Output: 1 (current i), then defers in reverse order: closure captures final i (1), anonymous func captures final i (1), deferred i captures initial value (0)."
+        },
+        {
+          "language": "ru",
+          "question": "package main\nimport \"fmt\"\n\nfunc main() {\n    i := 0\n    defer fmt.Print(i)\n    defer func() { fmt.Print(i) }()\n    defer func() { fmt.Print(i) }\n    i++\n    fmt.Print(i)\n}",
+          "answers": ["1100", "1010", "1001", "0011"],
+          "correct_answer": "1100",
+          "explanation": "Вывод: 1 (текущее i), затем defer в обратном порядке: замыкание захватывает финальное i (1), анонимная функция захватывает финальное i (1), отложенное i захватывает начальное значение (0)."
+        }
+      ]
+    }
+  ]
+}

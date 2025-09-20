@@ -1,0 +1,61 @@
+{
+  "tasks": [
+    {
+      "topic": "Java",
+      "subtopic": "Lambda",
+      "description": "Фильтрация списка через stream и lambda",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "List<String> list = Arrays.asList(\"apple\", \"banana\", \"cherry\");\nList<String> result = list.stream()\n    .filter(s -> s.startsWith(\"b\"))\n    .collect(Collectors.toList());\nSystem.out.println(result);",
+          "answers": [
+            "[banana]",
+            "[apple, banana]",
+            "[banana, cherry]"
+          ],
+          "correct_answer": "[banana]",
+          "explanation": "Фильтруются только элементы, начинающиеся на 'b'."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Lambda",
+      "description": "Использование map для преобразования элементов",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "List<Integer> numbers = Arrays.asList(1, 2, 3);\nList<Integer> result = numbers.stream()\n    .map(n -> n * n)\n    .collect(Collectors.toList());\nSystem.out.println(result);",
+          "answers": [
+            "[1, 4, 9]",
+            "[2, 3, 4]",
+            "[1, 2, 3]"
+          ],
+          "correct_answer": "[1, 4, 9]",
+          "explanation": "Каждый элемент возводится в квадрат через функцию map."
+        }
+      ]
+    },
+    {
+      "topic": "Java",
+      "subtopic": "Lambda",
+      "description": "Сортировка списка через лямбду",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "List<String> names = Arrays.asList(\"Tom\", \"Jerry\", \"Anna\");\nnames.sort((s1, s2) -> s1.length() - s2.length());\nSystem.out.println(names);",
+          "answers": [
+            "[Tom, Anna, Jerry]",
+            "[Anna, Tom, Jerry]",
+            "[Jerry, Tom, Anna]"
+          ],
+          "correct_answer": "[Tom, Anna, Jerry]",
+          "explanation": "Список сортируется по длине строк, от самой короткой к самой длинной."
+        }
+      ]
+    }
+  ]
+}
