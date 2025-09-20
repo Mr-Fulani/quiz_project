@@ -216,6 +216,14 @@ const randomCard = function () {
         '3566002020360505',
         '6200000000000005',
         '6759649826438453',
+        // Новые тестовые карты для различных сценариев ошибок
+        '4000000000000002', // charge_declined - отклонение с кодом card_declined
+        '4000000000009995', // charge_declined_insufficient_funds - недостаточно средств
+        '4000000000009987', // charge_declined_lost_card - потерянная карта
+        '4000000000009979', // charge_declined_stolen_card - украденная карта
+        '4000000000000069', // charge_declined_expired_card - истекшая карта
+        '4000000000000119', // charge_declined_processing_error - ошибка обработки
+        '4000000000005126', // refund_fail - успешный платеж, но неудачный возврат
     ];
     let randomNumber = Math.floor(Math.random() * testCards.length);
     cardnumber_mask.unmaskedValue = testCards[randomNumber];
