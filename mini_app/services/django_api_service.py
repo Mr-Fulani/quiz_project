@@ -24,9 +24,16 @@ class DjangoAPIService:
         if headers is None:
             headers = {}
         
+        # Если запрос идет напрямую к Django (quiz_backend:8000), 
+        # устанавливаем правильный Host заголовок
+        if 'quiz_backend:8000' in self.base_url:
+            headers['Host'] = 'quiz-code.com'
+            headers['X-Forwarded-Host'] = 'quiz-code.com'
+            headers['X-Forwarded-Proto'] = 'https'
+        
         # Если запрос идет через nginx, добавляем правильные заголовки
         # для корректной работы с Django API
-        if ('nginx_local:8080' in self.base_url or 'nginx:80' in self.base_url) and 'X-Forwarded-Host' not in headers:
+        elif ('nginx_local:8080' in self.base_url or 'nginx:80' in self.base_url) and 'X-Forwarded-Host' not in headers:
             if 'nginx_local:8080' in self.base_url:
                 # Локальная разработка с ngrok
                 headers['X-Forwarded-Host'] = '77273f38044f.ngrok-free.app'
