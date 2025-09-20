@@ -716,6 +716,14 @@
                     { number: '4242424242424242', brand: 'visa' },    // Visa
                     { number: '5555555555554444', brand: 'mastercard' }, // Mastercard
                     { number: '378282246310005', brand: 'amex' },     // American Express
+                    // Новые тестовые карты для различных сценариев ошибок
+                    { number: '4000000000000002', brand: 'visa' },    // charge_declined - отклонение с кодом card_declined
+                    { number: '4000000000009995', brand: 'visa' },    // charge_declined_insufficient_funds - недостаточно средств
+                    { number: '4000000000009987', brand: 'visa' },    // charge_declined_lost_card - потерянная карта
+                    { number: '4000000000009979', brand: 'visa' },    // charge_declined_stolen_card - украденная карта
+                    { number: '4000000000000069', brand: 'visa' },    // charge_declined_expired_card - истекшая карта
+                    { number: '4000000000000119', brand: 'visa' },    // charge_declined_processing_error - ошибка обработки
+                    { number: '4000000000005126', brand: 'visa' },    // refund_fail - успешный платеж, но неудачный возврат
                 ];
                 
                 const randomCard = testCards[Math.floor(Math.random() * testCards.length)];
