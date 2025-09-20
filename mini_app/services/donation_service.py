@@ -17,7 +17,6 @@ class DonationService:
     def __init__(self):
         from core.config import settings
         self.api_service = DjangoAPIService(settings.DJANGO_API_BASE_URL)
-        self.base_url = "/donation"
     
     async def create_payment_intent(
         self, 
@@ -39,7 +38,7 @@ class DonationService:
             Dict с данными Payment Intent или ошибкой
         """
         try:
-            url = f"{self.base_url}/create-payment-intent/"
+            url = "/donation/create-payment-intent/"
             data = {
                 'amount': amount,
                 'currency': currency,
@@ -80,7 +79,7 @@ class DonationService:
             Dict с результатом подтверждения
         """
         try:
-            url = f"{self.base_url}/confirm-payment/"
+            url = "/donation/confirm-payment/"
             data = {
                 'payment_intent_id': payment_intent_id,
                 'payment_method_id': payment_method_id
