@@ -120,8 +120,8 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
       - NGROK_HOST=${NGROK_HOST}
-      - CURRENT_UID=${CURRENT_UID}
-      - CURRENT_GID=${CURRENT_GID}
+      - PYTHONPATH=/quiz_project
+      - LOGO_PATH=/quiz_project/bot/assets/logo.png
     volumes:
       - .:/quiz_project
       - ./bot/fonts:/quiz_project/fonts
@@ -133,14 +133,12 @@ services:
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
+    entrypoint: ["/entrypoint.sh"]
 
   certbot:
     image: certbot/certbot
     container_name: certbot_local_prod
     user: "root" # Временно для отладки проблем с разрешениями
-    environment:
-      - CURRENT_UID=${CURRENT_UID}
-      - CURRENT_GID=${CURRENT_GID}
     volumes:
       - ./certbot/www:/var/www/certbot/
       - ./certbot/conf/:/etc/letsencrypt/
