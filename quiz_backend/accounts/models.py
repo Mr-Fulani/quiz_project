@@ -506,6 +506,39 @@ class MiniAppUser(models.Model):
         null=True,
         verbose_name="URL фото из Telegram"
     )
+    
+    # Поля социальных сетей
+    website = models.URLField(
+        max_length=200, 
+        blank=True, 
+        verbose_name="Веб-сайт"
+    )
+    telegram = models.CharField(
+        max_length=100, 
+        blank=True, 
+        verbose_name="Telegram"
+    )
+    github = models.URLField(
+        blank=True, 
+        verbose_name="GitHub"
+    )
+    instagram = models.URLField(
+        blank=True, 
+        verbose_name="Instagram"
+    )
+    facebook = models.URLField(
+        blank=True, 
+        verbose_name="Facebook"
+    )
+    linkedin = models.URLField(
+        blank=True, 
+        verbose_name="LinkedIn"
+    )
+    youtube = models.URLField(
+        blank=True, 
+        verbose_name="YouTube"
+    )
+    
     created_at = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="Дата создания"
@@ -589,6 +622,68 @@ class MiniAppUser(models.Model):
             return f"@{self.username}"
         else:
             return f"User {self.telegram_id}"
+    
+    def get_social_links(self):
+        """
+        Возвращает список социальных ссылок пользователя.
+        
+        Returns:
+            list: Список словарей с информацией о социальных сетях
+        """
+        social_links = []
+        
+        if self.website and self.website.strip():
+            social_links.append({
+                "name": "Веб-сайт",
+                "url": self.website,
+                "icon": "🌐"
+            })
+        
+        if self.telegram and self.telegram.strip():
+            # Убираем @ если он есть в начале
+            telegram_username = self.telegram.lstrip('@')
+            social_links.append({
+                "name": "Telegram",
+                "url": f"https://t.me/{telegram_username}" if not self.telegram.startswith('http') else self.telegram,
+                "icon": "📱"
+            })
+        
+        if self.github and self.github.strip():
+            social_links.append({
+                "name": "GitHub",
+                "url": self.github,
+                "icon": "💻"
+            })
+        
+        if self.linkedin and self.linkedin.strip():
+            social_links.append({
+                "name": "LinkedIn",
+                "url": self.linkedin,
+                "icon": "💼"
+            })
+        
+        if self.instagram and self.instagram.strip():
+            social_links.append({
+                "name": "Instagram",
+                "url": self.instagram,
+                "icon": "📷"
+            })
+        
+        if self.facebook and self.facebook.strip():
+            social_links.append({
+                "name": "Facebook",
+                "url": self.facebook,
+                "icon": "👥"
+            })
+        
+        if self.youtube and self.youtube.strip():
+            social_links.append({
+                "name": "YouTube",
+                "url": self.youtube,
+                "icon": "📺"
+            })
+        
+        return social_links
 
     @property
     def is_admin(self):
