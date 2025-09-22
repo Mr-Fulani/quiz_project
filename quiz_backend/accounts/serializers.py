@@ -191,49 +191,51 @@ class ProfileSerializer(serializers.ModelSerializer):
         """Возвращает социальные ссылки пользователя"""
         social_links = []
         
-        if obj.website:
+        if obj.website and obj.website.strip():
             social_links.append({
                 "name": "Веб-сайт",
                 "url": obj.website,
                 "icon": "🌐"
             })
         
-        if obj.telegram:
+        if obj.telegram and obj.telegram.strip():
+            # Убираем @ если он есть в начале
+            telegram_username = obj.telegram.lstrip('@')
             social_links.append({
                 "name": "Telegram",
-                "url": f"https://t.me/{obj.telegram}" if not obj.telegram.startswith('http') else obj.telegram,
+                "url": f"https://t.me/{telegram_username}" if not obj.telegram.startswith('http') else obj.telegram,
                 "icon": "📱"
             })
         
-        if obj.github:
+        if obj.github and obj.github.strip():
             social_links.append({
                 "name": "GitHub",
                 "url": obj.github,
                 "icon": "💻"
             })
         
-        if obj.linkedin:
+        if obj.linkedin and obj.linkedin.strip():
             social_links.append({
                 "name": "LinkedIn",
                 "url": obj.linkedin,
                 "icon": "💼"
             })
         
-        if obj.instagram:
+        if obj.instagram and obj.instagram.strip():
             social_links.append({
                 "name": "Instagram",
                 "url": obj.instagram,
                 "icon": "📷"
             })
         
-        if obj.facebook:
+        if obj.facebook and obj.facebook.strip():
             social_links.append({
                 "name": "Facebook",
                 "url": obj.facebook,
                 "icon": "👥"
             })
         
-        if obj.youtube:
+        if obj.youtube and obj.youtube.strip():
             social_links.append({
                 "name": "YouTube",
                 "url": obj.youtube,
@@ -369,55 +371,9 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         return None
     
     def get_social_links(self, obj):
-        """Возвращает социальные ссылки пользователя Mini App, если есть связанный CustomUser."""
-        social_links_data = []
-        
-        if obj.linked_custom_user:
-            user = obj.linked_custom_user
-            if user.website:
-                social_links_data.append({
-                    "name": "Веб-сайт",
-                    "url": user.website,
-                    "icon": "🌐"
-                })
-            if user.telegram:
-                social_links_data.append({
-                    "name": "Telegram",
-                    "url": f"https://t.me/{user.telegram}" if not user.telegram.startswith('http') else user.telegram,
-                    "icon": "📱"
-                })
-            if user.github:
-                social_links_data.append({
-                    "name": "GitHub",
-                    "url": user.github,
-                    "icon": "💻"
-                })
-            if user.linkedin:
-                social_links_data.append({
-                    "name": "LinkedIn",
-                    "url": user.linkedin,
-                    "icon": "💼"
-                })
-            if user.instagram:
-                social_links_data.append({
-                    "name": "Instagram",
-                    "url": user.instagram,
-                    "icon": "📷"
-                })
-            if user.facebook:
-                social_links_data.append({
-                    "name": "Facebook",
-                    "url": user.facebook,
-                    "icon": "👥"
-                })
-            if user.youtube:
-                social_links_data.append({
-                    "name": "YouTube",
-                    "url": user.youtube,
-                    "icon": "📺"
-                })
-        
-        return social_links_data
+        """Возвращает социальные ссылки пользователя Mini App."""
+        # Используем метод из модели MiniAppUser
+        return obj.get_social_links()
 
 
 class MiniAppUserCreateSerializer(serializers.ModelSerializer):
@@ -501,13 +457,17 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для обновления пользователя Mini App.
     
-    Позволяет обновлять основные данные пользователя.
+    Позволяет обновлять основные данные пользователя, включая социальные сети.
     """
     photo_url = serializers.URLField(required=False, write_only=True)
+    social_links = serializers.SerializerMethodField()
     
     class Meta:
         model = MiniAppUser
-        fields = ('username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url', 'photo_url')
+        fields = (
+            'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url', 'photo_url',
+            'website', 'telegram', 'github', 'linkedin', 'instagram', 'facebook', 'youtube', 'social_links'
+        )
         extra_kwargs = {
             'telegram_photo_url': {'write_only': True}
         }
@@ -525,7 +485,14 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
             
         # Обновляем данные
         for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            # Для социальных сетей: очищаем пустые строки и пробелы
+            if attr in ['website', 'telegram', 'github', 'linkedin', 'instagram', 'facebook', 'youtube']:
+                if value is not None:
+                    cleaned_value = value.strip() if value else ''
+                    setattr(instance, attr, cleaned_value)
+            else:
+                # Для остальных полей обновляем как обычно
+                setattr(instance, attr, value)
         
         # Сохраняем изменения
         instance.save()
@@ -534,6 +501,11 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
         instance.update_last_seen()
         
         return instance 
+    
+    def get_social_links(self, obj):
+        """Возвращает социальные ссылки пользователя Mini App."""
+        # Используем метод из модели MiniAppUser
+        return obj.get_social_links()
 
 
 class MiniAppTopUserSerializer(serializers.ModelSerializer):

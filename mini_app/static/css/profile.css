@@ -236,6 +236,39 @@
     border-color: var(--active-color);
 }
 
+/* Специальные цвета для иконок социальных сетей */
+.social-icon .fa-globe {
+    color: #007bff; /* Синий для веб-сайтов */
+}
+
+.social-icon .fa-telegram {
+    color: #0088cc; /* Официальный цвет Telegram */
+}
+
+.social-icon .fa-github {
+    color: #333; /* Официальный цвет GitHub */
+}
+
+.social-icon .fa-linkedin {
+    color: #0077b5; /* Официальный цвет LinkedIn */
+}
+
+.social-icon .fa-instagram {
+    color: #e4405f; /* Официальный цвет Instagram */
+}
+
+.social-icon .fa-facebook {
+    color: #1877f2; /* Официальный цвет Facebook */
+}
+
+.social-icon .fa-youtube {
+    color: #ff0000; /* Официальный цвет YouTube */
+}
+
+.social-icon .fa-link {
+    color: var(--active-color); /* Матричный цвет для остальных ссылок */
+}
+
 .social-info {
     flex: 1;
 }

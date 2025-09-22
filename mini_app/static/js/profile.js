@@ -62,6 +62,7 @@
             instagramInput: document.getElementById('instagram-input'),
             facebookInput: document.getElementById('facebook-input'),
             youtubeInput: document.getElementById('youtube-input'),
+            refreshBtn: document.getElementById('refresh-btn'),
         };
     }
 
@@ -98,27 +99,73 @@
     }
 
     function updateSocialLinks(socialLinks, elements) {
-        elements.socials.innerHTML = '';
-        if (socialLinks && socialLinks.length > 0) {
-            socialLinks.forEach(link => {
-                const iconClass = `fab fa-${link.name.toLowerCase()}`;
-                const socialItem = document.createElement('a');
-                socialItem.className = 'social-link-card';
-                socialItem.href = link.url;
-                socialItem.target = '_blank';
-                socialItem.innerHTML = `
-                    <div class="social-icon"><i class="${iconClass}"></i></div>
-                    <div class="social-info">
-                        <div class="social-name">${link.name}</div>
-                        <div class="social-url">${link.url.replace(/^(https?:\/\/)?(www\.)?/, '')}</div>
-                    </div>
-                `;
-                elements.socials.appendChild(socialItem);
-            });
-        } else {
-            elements.socials.innerHTML = '<p class="social-empty">Социальные сети не указаны.</p>';
+        console.log('🔗 updateSocialLinks вызван с данными:', socialLinks);
+        
+        if (!elements.socials) {
+            console.error('❌ Контейнер социальных ссылок не найден');
+            return;
         }
+
+        // Очищаем контейнер
+        elements.socials.innerHTML = '';
+
+        if (!socialLinks || socialLinks.length === 0) {
+            elements.socials.innerHTML = '<p class="social-empty">Социальные сети не указаны.</p>';
+            return;
+        }
+
+        // Создаем HTML для каждой социальной ссылки в правильном формате
+        socialLinks.forEach(link => {
+            const linkElement = document.createElement('a');
+            linkElement.href = link.url;
+            linkElement.target = '_blank';
+            linkElement.rel = 'noopener noreferrer';
+            linkElement.className = 'social-link-card';
+            
+            // Определяем правильную Font Awesome иконку для каждой социальной сети
+            let iconClass = 'fas fa-link'; // По умолчанию
+            
+            switch (link.name) {
+                case 'Веб-сайт':
+                    iconClass = 'fas fa-globe';
+                    break;
+                case 'Telegram':
+                    iconClass = 'fab fa-telegram';
+                    break;
+                case 'GitHub':
+                    iconClass = 'fab fa-github';
+                    break;
+                case 'LinkedIn':
+                    iconClass = 'fab fa-linkedin';
+                    break;
+                case 'Instagram':
+                    iconClass = 'fab fa-instagram';
+                    break;
+                case 'Facebook':
+                    iconClass = 'fab fa-facebook';
+                    break;
+                case 'YouTube':
+                    iconClass = 'fab fa-youtube';
+                    break;
+                default:
+                    iconClass = 'fas fa-link';
+            }
+            
+            // Создаем правильную структуру HTML с Font Awesome иконками
+            linkElement.innerHTML = `
+                <div class="social-icon"><i class="${iconClass}"></i></div>
+                <div class="social-info">
+                    <div class="social-name">${link.name}</div>
+                    <div class="social-url">${link.url.replace(/^(https?:\/\/)?(www\.)?/, '')}</div>
+                </div>
+            `;
+            
+            elements.socials.appendChild(linkElement);
+        });
+        
+        console.log(`✅ Добавлено ${socialLinks.length} социальных ссылок`);
     }
+
 
     function updateProfileDOM(userData) {
         console.log('🚀 updateProfileDOM вызван с данными:', userData);
@@ -310,6 +357,20 @@
         if (elements.cancelEditBtn) {
             elements.cancelEditBtn.onclick = () => {
                 elements.editModal.style.display = 'none';
+            };
+        }
+
+        // Обработчик кнопки "Обновить данные"
+        if (elements.refreshBtn) {
+            elements.refreshBtn.onclick = () => {
+                console.log('🔄 Кнопка "Обновить данные" нажата');
+                // Используем глобальную функцию showNotification из base.html для автоматического исчезновения
+                if (window.showNotification) {
+                    window.showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                } else {
+                    showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                }
+                fetchProfileDataFromServer();
             };
         }
 
