@@ -351,10 +351,7 @@ LOCALE_PATHS = [
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [
-    # Только общие файлы, папки приложений обрабатываются автоматически
-    os.path.join(BASE_DIR, 'static'),  # Общие файлы
-]
+# STATICFILES_DIRS - не нужен, так как все статические файлы находятся в приложениях
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Стандартное хранение статических файлов без хеширования
