@@ -222,6 +222,10 @@ MIDDLEWARE = [
     'accounts.middleware.UpdateLastSeenMiddleware',
 ]
 
+# В продакшене добавляем middleware для раздачи статических файлов (только для отладки)
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+
 if DEBUG:
     # Добавляем middleware для разработки
     # AllowAllHostsMiddleware можно использовать, если ALLOWED_HOSTS = ['*'] не подходит
@@ -351,11 +355,28 @@ LOCALE_PATHS = [
 
 STATIC_URL = '/static/'
 
-# STATICFILES_DIRS - не нужен, так как все статические файлы находятся в приложениях
+# STATICFILES_DIRS - отключаем, чтобы не было дублирования
+# Все статические файлы должны быть в приложениях (blog/static/, accounts/static/ и т.д.)
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Стандартное хранение статических файлов без хеширования
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# Настройки для статических файлов в продакшене
+if not DEBUG:
+    # В продакшене используем стандартное хранилище
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    
+    # Дополнительные настройки для статических файлов
+    STATICFILES_FINDERS = [
+        'django.contrib.staticfiles.finders.FileSystemFinder',
+        'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    ]
+    
+    # Настройки WhiteNoise для раздачи статических файлов
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
 
 # Media files
 MEDIA_URL = '/media/'

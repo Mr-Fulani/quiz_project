@@ -93,12 +93,12 @@
     <!-- <link rel="manifest" href="{% static 'path/to/site.webmanifest' %}"> -->
     <!-- <link rel="mask-icon" href="{% static 'path/to/safari-pinned-tab.svg' %}" color="#5bbad5"> -->
 
-    <link rel="stylesheet" href="{% static 'css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/global.css' %}">
     <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
     {% block extra_css %}{% endblock %}
 
-    <script type="module" src="{% static 'js/ionicons/ionicons.esm.js' %}"></script>
-    <script nomodule src="{% static 'js/ionicons/ionicons.js' %}"></script>
+    <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}"></script>
+    <script nomodule src="{% static 'blog/js/ionicons/ionicons.js' %}"></script>
     
     <!-- Глобальная функция для Telegram авторизации -->
     <script>
@@ -172,8 +172,8 @@
 
     </script>
 
-    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
-    <script src="{% static 'js/font-awesome.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}">
+    <script src="{% static 'blog/js/font-awesome.min.js' %}"></script>
 
     <!-- GSAP будет подключен в футере для анимации пчелы -->
 
@@ -449,7 +449,7 @@
 </div>
 {% endif %}
 
-<script defer src="{% static 'js/main.js' %}"></script>
+<script defer src="{% static 'blog/js/main.js' %}"></script>
 <script>
     window.loginUrl = "{% url 'accounts:login' %}";
 </script>
@@ -805,9 +805,9 @@
 
 </style>
 <!-- Скрипты для 3D анимации пчелы -->
-<script src="{% static 'js/gsap.min.js' %}"></script>
-<script src="{% static 'js/ScrollTrigger.min.js' %}"></script>
-<script type="module" src="{% static 'js/bee-scroll.js' %}"></script>
+<script src="{% static 'blog/js/gsap.min.js' %}"></script>
+<script src="{% static 'blog/js/ScrollTrigger.min.js' %}"></script>
+<script type="module" src="{% static 'blog/js/bee-scroll.js' %}"></script>
 
 <!-- Telegram Auth Handler -->
 <script>
@@ -933,7 +933,7 @@
 {% block scripts %}{% endblock %}
 
 <!-- Подключение JavaScript для динамических отступов заголовков -->
-<script src="{% static 'js/header-spacing.js' %}"></script>
+<script src="{% static 'blog/js/header-spacing.js' %}"></script>
 
 </body>
 </html>
