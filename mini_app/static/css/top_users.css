@@ -110,15 +110,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, var(--active-color), var(--matrix-color));
-    border-radius: 50%;
-    color: var(--base-bg);
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-right: 25px;
-    box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+    width: 40px;
+    height: 40px;
+    background: rgba(41, 253, 83, 0.2);
+    border: 2px solid var(--active-color);
+    border-radius: 8px;
+    color: var(--active-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-right: 20px;
     flex-shrink: 0;
 }
 
@@ -127,22 +127,21 @@
     margin-right: 25px;
     flex-shrink: 0;
     width: 120px;
-    height: 120px;
-    border-radius: 50%;
+    height: 160px;
+    border-radius: 12px;
     overflow: hidden;
 }
 
 .user-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
     border: 3px solid var(--border-color);
     object-fit: cover;
     object-position: center;
     transition: all 0.3s ease;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     display: block;
-    aspect-ratio: 1;
     overflow: hidden;
 }
 
@@ -252,27 +251,30 @@
     }
 
     .user-item {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        text-align: left;
+        align-items: center;
         padding: 20px;
     }
 
     .user-rank {
-        margin: 0 0 20px 0;
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
+        margin: 0 16px 0 0;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
     }
 
     .user-avatar-wrapper {
-        margin: 0 0 20px 0;
+        margin: 0 20px 0 0;
         width: 110px;
-        height: 110px;
+        height: 150px;
+        border-radius: 12px;
     }
 
     .user-avatar {
-        width: 110px;
-        height: 110px;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
     }
 
     .user-stats {
@@ -300,19 +302,23 @@
     }
 
     .user-rank {
-        width: 45px;
-        height: 45px;
-        font-size: 1rem;
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+        margin-right: 12px;
     }
 
     .user-avatar-wrapper {
-        width: 100px;
-        height: 100px;
+        width: 96px;
+        height: 128px;
+        border-radius: 10px;
+        margin-right: 16px;
     }
 
     .user-avatar {
-        width: 100px;
-        height: 100px;
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
     }
 
     .user-username {
