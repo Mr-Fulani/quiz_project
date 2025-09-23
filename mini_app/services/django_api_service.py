@@ -212,13 +212,25 @@ class DjangoAPIService:
             return None
 
     async def get_top_users_mini_app(
-        self, language: str = 'en', host: str = None, scheme: str = None
+        self, language: str = 'en', host: str = None, scheme: str = None,
+        gender: str = None, age: str = None, language_pref: str = None, rating: str = None
     ) -> List[Dict[str, Any]]:
         """
-        Получение списка топ-пользователей Mini App из Django API.
+        Получение списка топ-пользователей Mini App из Django API с поддержкой фильтрации.
         """
         try:
             params = {'language': language}
+            
+            # Добавляем параметры фильтрации
+            if gender:
+                params['gender'] = gender
+            if age:
+                params['age'] = age
+            if language_pref:
+                params['language_pref'] = language_pref
+            if rating:
+                params['rating'] = rating
+                
             headers = {}
             if host:
                 headers['X-Forwarded-Host'] = host
@@ -235,6 +247,19 @@ class DjangoAPIService:
             return data  # API MiniAppTopUsersListView возвращает список напрямую
         except Exception as e:
             logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")
+            return []
+
+    async def get_programming_languages(self) -> List[Dict[str, Any]]:
+        """
+        Получение списка языков программирования (тем) для фильтрации.
+        """
+        try:
+            data = await self._make_request(
+                "GET", "/api/accounts/programming-languages/"
+            )
+            return data
+        except Exception as e:
+            logger.error(f"Ошибка при получении языков программирования: {e}")
             return []
 
     async def get_user_statistics(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:

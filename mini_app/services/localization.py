@@ -50,6 +50,16 @@ class LocalizationService:
             "no_top_users": "No top users yet",
             "keep_playing": "Keep playing to get to the top!",
             
+            # Фильтры
+            "gender": "Gender",
+            "age": "Age",
+            "programming_language": "Programming Language",
+            "rating": "Rating",
+            "all": "All",
+            "male": "Male",
+            "female": "Female",
+            "reset_filters": "Reset Filters",
+            
             # Статистика
             "statistics_title": "Statistics",
             "total_questions": "Total Questions",
@@ -160,6 +170,16 @@ class LocalizationService:
             "top_users_title": "Топ юзеров",
             "no_top_users": "Пока нет лучших пользователей",
             "keep_playing": "Продолжайте играть, чтобы попасть в топ!",
+            
+            # Фильтры
+            "gender": "Пол",
+            "age": "Возраст",
+            "programming_language": "Язык программирования",
+            "rating": "Рейтинг",
+            "all": "Все",
+            "male": "Мужской",
+            "female": "Женский",
+            "reset_filters": "Сбросить",
             
             # Статистика
             "statistics_title": "Статистика",

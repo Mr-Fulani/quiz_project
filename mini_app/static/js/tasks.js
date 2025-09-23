@@ -428,7 +428,7 @@ if (window.TaskManagerAlreadyLoaded) {
                     console.log('🔧 Добавлены данные Telegram');
                 }
                 
-                const url = `/api/tasks/${taskId}/submit-mini-app`;
+                const url = `/api/tasks/${taskId}/submit-mini-app/`;
                 console.log('🌐 URL запроса:', url);
                 console.log('📋 Данные запроса:', {
                     ...requestData,

@@ -56,4 +56,5 @@ urlpatterns = [
     path('miniapp-users/profile/by-telegram/', api_views.MiniAppProfileByTelegramID.as_view(), name='miniapp-profile-by-telegram'),
     path('miniapp-users/top/', api_views.MiniAppTopUsersListView.as_view(), name='miniapp-top-users'), # Новый эндпоинт для топ-пользователей Mini App
     path('miniapp-users/statistics/', api_views.MiniAppUserStatisticsView.as_view(), name='miniapp-user-statistics'), # Статистика пользователя Mini App
+    path('programming-languages/', api_views.ProgrammingLanguagesListView.as_view(), name='programming-languages'), # Языки программирования для фильтрации
 ] 
