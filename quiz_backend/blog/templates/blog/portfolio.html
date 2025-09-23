@@ -2,7 +2,7 @@
 {% load static blog_tags interaction_tags i18n %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/interactions.css' %}">
+<link rel="stylesheet" href="{% static 'blog/css/interactions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -117,5 +117,5 @@ All static text is localized using {% trans %} for English msgid and translation
 {% block scripts %}
 <script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
 <script type="module" src="{% static 'blog/js/filter-dropdown.js' %}"></script>
-    <script src="{% static 'js/interactions.js' %}?v=2.1"></script>
+    <script src="{% static 'blog/js/interactions.js' %}?v=2.1"></script>
 {% endblock %}
