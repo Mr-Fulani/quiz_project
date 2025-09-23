@@ -15,19 +15,28 @@ document.addEventListener('DOMContentLoaded', function () {
     function isElementInViewport(el) {
         const rect = el.getBoundingClientRect();
         const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-        console.log(`Element rect: top=${rect.top}, bottom=${rect.bottom}, windowHeight=${windowHeight}`);
         return (
             rect.top >= 0 &&
             rect.bottom <= windowHeight
         );
     }
 
-    // Пауза при скролле
-    window.addEventListener('scroll', function () {
-        console.log('Scroll event triggered');
+    // Throttling функция для оптимизации событий скролла
+    let scrollTimeout;
+    function throttledScrollHandler() {
+        if (scrollTimeout) {
+            return; // Игнорируем, если уже есть активный таймер
+        }
+        
+        scrollTimeout = setTimeout(() => {
+            scrollTimeout = null;
+            handleScroll();
+        }, 100); // Обрабатываем максимум 10 раз в секунду
+    }
+    
+    function handleScroll() {
         if (youtubeIframe) {
             const inView = isElementInViewport(youtubeIframe);
-            console.log(`YouTube in view: ${inView}`);
             if (!inView) {
                 try {
                     youtubeIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
@@ -39,13 +48,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (localVideo && !localVideo.paused) {
             const inView = isElementInViewport(localVideo);
-            console.log(`Local video in view: ${inView}`);
             if (!inView) {
                 localVideo.pause();
                 console.log(`Local video paused on scroll out of view (${page})`);
             }
         }
-    });
+    }
+
+    // Пауза при скролле с throttling
+    window.addEventListener('scroll', throttledScrollHandler, { passive: true });
 
     // Пауза при переходе на другую страницу
     const navigationLinks = document.querySelectorAll('[data-nav-link]');

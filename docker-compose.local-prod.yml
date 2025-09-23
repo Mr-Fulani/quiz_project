@@ -99,6 +99,7 @@ services:
     volumes:
       - static_volume_local_prod:/app/staticfiles
       - ./media:/app/media
+      - ./mini_app/static:/mini_app/static
       - ./certbot/www:/var/www/certbot/
       - ./certbot/conf/:/etc/letsencrypt/
     depends_on:
