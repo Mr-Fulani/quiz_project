@@ -512,15 +512,43 @@ article.active {
     padding-left: 7px; /* Внутренний отступ слева */
 }
 
+/* Проект: ссылки GitHub / Live Demo (локализация и цвет) */
+.project-links a.btn {
+    background: transparent;
+    border: 1px solid var(--vegas-gold);
+    color: var(--vegas-gold);
+    padding: 8px 14px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+.project-links a.btn:hover {
+    background: rgba(245, 215, 122, .12);
+    color: #f5d77a;
+    box-shadow: 0 0 18px rgba(245, 215, 122, .2);
+    transform: translateY(-1px);
+}
+
+.project-links a.btn ion-icon {
+    font-size: 18px;
+}
+
 /* 286: Стили для ссылки внутри элемента соцсетей */
 .social-item .social-link {
-    color: var(--light-gray70); /* Цвет ссылки – светло-серый */
+    /* Цвет ссылок соцсетей — золотой под бренд */
+    color: var(--vegas-gold);
     font-size: 18px; /* Размер шрифта для иконок соцсетей */
+    transition: color .2s ease, text-shadow .2s ease, transform .2s ease;
 }
 
 /* 290: При наведении на социальную ссылку изменяется её цвет */
 .social-item .social-link:hover {
-    color: var(--light-gray); /* Цвет становится чуть ярче */
+    color: #f5d77a; /* Светлее золота */
+    text-shadow: 0 0 8px rgba(245, 215, 122, .35);
+    transform: translateY(-2px);
 }
 
 
@@ -569,6 +597,22 @@ article.active {
     font-size: var(--fs8); /* 319: Размер шрифта */
     padding: 20px 7px; /* 320: Внутренние отступы */
     transition: color var(--transition1); /* 321: Плавный переход цвета */
+}
+
+/* Сброс фиолетового visited у карточек: наследуем цвет контейнера */
+.blog-posts-item > a,
+.project-item > a {
+    color: inherit;
+}
+.blog-posts-item > a:visited,
+.project-item > a:visited {
+    color: inherit;
+}
+
+/* OVERRIDE: карточки постов/проектов — заголовок золотым цветом по бренду */
+.blog-item-title,
+.project-title {
+    color: var(--vegas-gold);
 }
 
 /* 324: Эффекты при наведении и фокусе */
@@ -1634,12 +1678,21 @@ article.active {
 .blog-text,
 .project-text,
 .article-text {
-    color: var(--light-gray); /* 1046: Унифицированный цвет текста */
+    /* Текст превью на карточках и в деталке — светло‑золотистый */
+    color: #e9d08a;
     font-size: var(--fs6); /* 1047: Размер шрифта */
     font-weight: var(--fw300); /* 1048: Лёгкий вес шрифта */
     line-height: 1.6; /* 1049: Межстрочный интервал */
     text-align: justify; /* 1050: Выравнивание по ширине */
     margin-bottom: 15px; /* 1051: Отступ снизу для разделения */
+}
+
+/* Принудительно перекрашиваем текст на карточках, т.к. обертка <a> задает свой цвет */
+.blog-posts-item > a .blog-text,
+.blog-posts-item > a .project-text,
+.project-item > a .blog-text,
+.project-item > a .project-text {
+    color: #e9d08a !important;
 }
 
 /**
@@ -1869,6 +1922,93 @@ textarea.form-input::-webkit-resizer {
 
 
 
+
+/* =============================== */
+/*     ARTICLE PROSE (LIGHT TOUCH) */
+/* =============================== */
+/* Точечное улучшение читабельности контента постов/проектов */
+.article-text {
+    color: #e2e6ea;
+    line-height: 1.75;
+    font-size: 16px;
+}
+
+.article-text h1,
+.article-text h2,
+.article-text h3,
+.article-text h4,
+.article-text h5,
+.article-text h6 {
+    color: #fff;
+    margin: 1.1em 0 .6em;
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+.article-text h1 { font-size: 1.9rem; }
+.article-text h2 { font-size: 1.6rem; }
+.article-text h3 { font-size: 1.35rem; }
+
+/* Ссылки — inline, с мягким подсвечиванием снизу */
+.article-text a {
+    color: #8ab4f8;
+    text-decoration: none;
+    box-shadow: inset 0 -2px 0 rgba(138,180,248,.35);
+    transition: color .2s ease, box-shadow .2s ease;
+    display: inline;
+    white-space: normal;
+}
+
+.article-text a:hover {
+    color: #cfe2ff;
+    box-shadow: inset 0 -2px 0 rgba(207,226,255,.9);
+}
+
+.article-text ul,
+.article-text ol { margin: 0 0 1.05em 1.25em; }
+.article-text li { margin: .35em 0; }
+.article-text ul li::marker { color: #79d2a6; }
+.article-text ol li::marker { color: #ffd479; }
+
+.article-text blockquote {
+    margin: 1.1em 0;
+    padding: .85em 1em;
+    border-left: 4px solid #79d2a6;
+    background: rgba(121,210,166,.08);
+    color: #eaf5ef;
+    border-radius: 8px;
+}
+
+.article-text code {
+    background: rgba(255,255,255,.08);
+    padding: .12em .4em;
+    border-radius: 6px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: .95em;
+}
+
+.article-text img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.1em auto;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.25);
+}
+
+.article-text hr {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+    margin: 1.4em 0;
+}
+
+@media (max-width: 768px) {
+    .article-text { font-size: 15px; }
+    .article-text h1 { font-size: 1.6rem; }
+    .article-text h2 { font-size: 1.4rem; }
+    .article-text h3 { font-size: 1.2rem; }
+}
 
 /* =============================== */
 /*         MEDIA QUERIES         */
