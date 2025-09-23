@@ -90,7 +90,11 @@ async def profile(
 @router.get("/top_users", response_class=HTMLResponse)
 async def top_users(
     request: Request,
-    lang: str = Query(default=None, description="Language code")
+    lang: str = Query(default=None, description="Language code"),
+    gender: str = Query(default=None, description="Gender filter"),
+    age: str = Query(default=None, description="Age filter"),
+    language: str = Query(default=None, description="Programming language filter"),
+    rating: str = Query(default=None, description="Rating filter")
 ):
     # Язык уже установлен middleware, но можно переопределить через query параметр
     if lang:
@@ -107,9 +111,15 @@ async def top_users(
         host = request.headers.get('x-forwarded-host') or request.headers.get('host')
         scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
         logger.info(f"[DEBUG] top_users: host={host}, scheme={scheme}, all_headers={dict(request.headers)}")
+        logger.info(f"[DEBUG] top_users filters: gender={gender}, age={age}, language={language}, rating={rating}")
+        logger.info(f"[DEBUG] top_users query_params: {request.query_params}")
         top_users_data = await django_api_service.get_top_users_mini_app(
-            language=current_language, host=host, scheme=scheme
+            language=current_language, host=host, scheme=scheme,
+            gender=gender, age=age, language_pref=language, rating=rating
         )
+        
+        # Получаем список языков программирования для фильтра
+        programming_languages = await django_api_service.get_programming_languages()
         
         logger.info(f"Получены данные топ-пользователей: {top_users_data}")
         
@@ -123,6 +133,7 @@ async def top_users(
             "current_language": current_language,
             "supported_languages": localization_service.get_supported_languages(),
             "top_users": top_users_data, # Передаем данные топ-пользователей в шаблон
+            "programming_languages": programming_languages, # Передаем языки программирования для фильтра
             "tasks_js_url": get_js_url('tasks.js'),
             "localization_js_url": get_js_url('localization.js'),
             "share_app_js_url": get_js_url('share-app.js'),
@@ -131,6 +142,7 @@ async def top_users(
             "share_app_css_url": get_css_url('share-app.css'),
             "donation_css_url": get_css_url('donation.css'),
             "top_users_css_url": get_css_url('top_users.css'),
+            "top_users_js_url": get_js_url('top_users.js'),
         })
     except Exception as e:
         logger.error(f"Ошибка при рендеринге страницы топ-пользователей: {e}", exc_info=True)

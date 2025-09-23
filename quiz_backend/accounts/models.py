@@ -539,6 +539,31 @@ class MiniAppUser(models.Model):
         verbose_name="YouTube"
     )
     
+    # Дополнительные поля для фильтрации
+    gender = models.CharField(
+        max_length=10,
+        choices=[
+            ('male', 'Мужской'),
+            ('female', 'Женский'),
+        ],
+        blank=True,
+        null=True,
+        verbose_name="Пол"
+    )
+    birth_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Дата рождения"
+    )
+    programming_language = models.ForeignKey(
+        'topics.Topic',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Любимый язык программирования",
+        help_text="Ссылка на тему (язык программирования) из базы тем"
+    )
+    
     created_at = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="Дата создания"
@@ -622,6 +647,47 @@ class MiniAppUser(models.Model):
             return f"@{self.username}"
         else:
             return f"User {self.telegram_id}"
+    
+    @property
+    def age(self):
+        """
+        Возраст пользователя на основе даты рождения.
+        
+        Returns:
+            int or None: Возраст в годах или None если дата рождения не указана
+        """
+        if not self.birth_date:
+            return None
+        
+        from datetime import date
+        today = date.today()
+        age = today.year - self.birth_date.year
+        
+        # Проверяем, прошел ли день рождения в этом году
+        if today.month < self.birth_date.month or (today.month == self.birth_date.month and today.day < self.birth_date.day):
+            age -= 1
+            
+        return age
+    
+    def get_age_range(self):
+        """
+        Возвращает возрастной диапазон пользователя.
+        
+        Returns:
+            str or None: Возрастной диапазон или None если возраст неизвестен
+        """
+        age = self.age
+        if age is None:
+            return None
+        
+        if age <= 25:
+            return "18-25"
+        elif age <= 35:
+            return "26-35"
+        elif age <= 45:
+            return "36-45"
+        else:
+            return "46+"
     
     def get_social_links(self):
         """

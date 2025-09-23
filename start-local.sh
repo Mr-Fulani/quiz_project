@@ -18,7 +18,12 @@ echo "🚀 Запуск всех сервисов для локальной ра
 docker compose up --build -d
 
 echo "⏳ Ожидание запуска сервисов..."
-sleep 5
+sleep 10
+
+echo "🔄 Применение миграций базы данных..."
+# Выполняем миграции в контейнере quiz_backend
+docker compose exec -T quiz_backend python manage.py makemigrations
+docker compose exec -T quiz_backend python manage.py migrate
 
 echo "📋 Показ логов в реальном времени..."
 echo "   Для остановки нажмите Ctrl+C"

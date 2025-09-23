@@ -6,11 +6,55 @@
 
 {% block content %}
 <div class="top-users-container">
-    <div class="top-users-header">
-        <div class="header-icon">
-            <ion-icon name="trophy-outline"></ion-icon>
+    <div class="filter-section">
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label class="filter-label" data-translate="gender">{{ translations.get('gender', 'Пол') }}:</label>
+                <select class="filter-select" id="gender-filter">
+                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    <option value="male" data-translate="male">{{ translations.get('male', 'Мужской') }}</option>
+                    <option value="female" data-translate="female">{{ translations.get('female', 'Женский') }}</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" data-translate="age">{{ translations.get('age', 'Возраст') }}:</label>
+                <select class="filter-select" id="age-filter">
+                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    <option value="18-25">18-25</option>
+                    <option value="26-35">26-35</option>
+                    <option value="36-45">36-45</option>
+                    <option value="46+">46+</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" data-translate="programming_language">{{ translations.get('programming_language', 'Язык программирования') }}:</label>
+                <select class="filter-select" id="language-filter">
+                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    {% if programming_languages %}
+                        {% for lang in programming_languages %}
+                            <option value="{{ lang.name }}">{{ lang.name }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}:</label>
+                <select class="filter-select" id="rating-filter">
+                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    <option value="1000+">1000+</option>
+                    <option value="500-999">500-999</option>
+                    <option value="100-499">100-499</option>
+                    <option value="0-99">0-99</option>
+                </select>
+            </div>
+            
+            <button class="filter-reset-btn" id="reset-filters" data-translate="reset_filters">
+                {{ translations.get('reset_filters', 'Сбросить') }}
+            </button>
         </div>
-        <h1 data-translate="top_users_title">{{ translations.get('top_users_title', 'Топ юзеров') }}</h1>
     </div>
     
     <div class="top-users-list">
@@ -52,4 +96,28 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+    // Подключаем JavaScript для фильтрации топ пользователей
+    const script = document.createElement('script');
+    script.src = '{{ top_users_js_url }}';
+    script.onload = function() {
+        console.log('📜 top_users.js загружен, инициализируем фильтр...');
+        // Инициализируем фильтр после загрузки скрипта и готовности DOM
+        if (typeof TopUsersFilter !== 'undefined') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    console.log('🔄 DOM готов, инициализируем фильтр...');
+                    window.topUsersFilter = new TopUsersFilter();
+                });
+            } else {
+                console.log('🔄 DOM уже готов, инициализируем фильтр...');
+                window.topUsersFilter = new TopUsersFilter();
+            }
+        } else {
+            console.error('❌ TopUsersFilter не найден');
+        }
+    };
+    document.head.appendChild(script);
+</script>
 {% endblock %}

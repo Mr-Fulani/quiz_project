@@ -1695,6 +1695,24 @@ article.active {
     color: #e9d08a !important;
 }
 
+/* Дополнительно красим весь текстовый блок внутри карточки, если параграфы переопределяются выше */
+.blog-posts-item > a .blog-content,
+.project-item > a .blog-content {
+    color: #e9d08a !important;
+}
+
+/* И на всякий случай любые прямые параграфы внутри ссылки карточки */
+.blog-posts-item > a p,
+.project-item > a p {
+    color: #e9d08a !important;
+}
+
+/* Жестко распространяем цвет на все элементы превью внутри карточки */
+.blog-posts-item > a .blog-content *,
+.project-item > a .blog-content * {
+    color: inherit !important;
+}
+
 /**
  * 1054: Стили для пагинации в blog_page.
  * Добавлено для стилизации пагинации в духе дизайна.

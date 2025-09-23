@@ -20,6 +20,7 @@ from django.db.models import Count, Q
 import logging
 
 from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser, MiniAppUser
+from topics.models import Topic
 from ..serializers import (
     UserSerializer,
     LoginSerializer,
@@ -918,12 +919,61 @@ class MiniAppTopUsersListView(generics.ListAPIView):
 
     def get_queryset(self):
         """
-        Возвращает топ-N пользователей Mini App, отсортированных по рейтингу.
+        Возвращает топ-N пользователей Mini App, отсортированных по рейтингу с поддержкой фильтрации.
         """
         # Аннотируем пользователей их рейтингом, используя метод из модели MiniAppUser
         queryset = MiniAppUser.objects.annotate(
             rating=MiniAppUser.get_rating_annotation()
-        ).order_by('-rating', '-created_at') # Сортируем по рейтингу, затем по дате создания
+        )
+        
+        # Применяем фильтры
+        gender = self.request.query_params.get('gender')
+        age = self.request.query_params.get('age')
+        language_pref = self.request.query_params.get('language_pref')
+        rating = self.request.query_params.get('rating')
+        
+        if gender:
+            queryset = queryset.filter(gender=gender)
+        
+        if age:
+            # Фильтрация по возрастному диапазону
+            from datetime import date
+            today = date.today()
+            
+            if age == '18-25':
+                birth_year_max = today.year - 18
+                birth_year_min = today.year - 25
+            elif age == '26-35':
+                birth_year_max = today.year - 26
+                birth_year_min = today.year - 35
+            elif age == '36-45':
+                birth_year_max = today.year - 36
+                birth_year_min = today.year - 45
+            elif age == '46+':
+                birth_year_max = today.year - 46
+                birth_year_min = today.year - 100  # Предполагаем, что никто не старше 100 лет
+            
+            queryset = queryset.filter(
+                birth_date__year__gte=birth_year_min,
+                birth_date__year__lte=birth_year_max
+            )
+        
+        if language_pref:
+            queryset = queryset.filter(programming_language__name__iexact=language_pref)
+        
+        if rating:
+            # Фильтрация по рейтингу
+            if rating == '1000+':
+                queryset = queryset.filter(rating__gte=1000)
+            elif rating == '500-999':
+                queryset = queryset.filter(rating__gte=500, rating__lt=1000)
+            elif rating == '100-499':
+                queryset = queryset.filter(rating__gte=100, rating__lt=500)
+            elif rating == '0-99':
+                queryset = queryset.filter(rating__lt=100)
+        
+        # Сортируем по рейтингу, затем по дате создания
+        queryset = queryset.order_by('-rating', '-created_at')
         
         # Ограничиваем количество пользователей (например, топ-100)
         return queryset[:100]
@@ -1147,4 +1197,50 @@ class MiniAppUserStatisticsView(APIView):
             return Response(
                 {'error': 'Internal server error'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            ) 
+            )
+
+
+class ProgrammingLanguagesListView(generics.ListAPIView):
+    """
+    APIView для получения списка языков программирования (тем) для фильтрации.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        """
+        Возвращает все темы (языки программирования) отсортированные по названию.
+        """
+        return Topic.objects.all().order_by('name')
+
+    @swagger_auto_schema(
+        operation_description="Получение списка языков программирования для фильтрации топ пользователей.",
+        responses={
+            200: openapi.Response(
+                "Список языков программирования",
+                openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID темы'),
+                            'name': openapi.Schema(type=openapi.TYPE_STRING, description='Название языка программирования'),
+                        }
+                    )
+                )
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Возвращает список языков программирования в формате JSON.
+        """
+        topics = self.get_queryset()
+        languages = [
+            {
+                'id': topic.id,
+                'name': topic.name,
+                'value': topic.name.lower().replace(' ', '_').replace('#', 'sharp')
+            }
+            for topic in topics
+        ]
+        return Response(languages) 
