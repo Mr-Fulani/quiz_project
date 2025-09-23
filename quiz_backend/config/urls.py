@@ -138,6 +138,9 @@ def test_404(request):
 handler404 = 'blog.views.custom_404'
 # -> Обработчик 404 направлен на функцию custom_404 в blog/views.py
 
+handler413 = 'blog.views.custom_413'
+# -> Обработчик 413 направлен на функцию custom_413 в blog/views.py
+
 # Убрал дублирование, так как static() уже обрабатывает это для DEBUG=True
 # Всегда обслуживаем статические файлы (если требуется)
 # urlpatterns += [

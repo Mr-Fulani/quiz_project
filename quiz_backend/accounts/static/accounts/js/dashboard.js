@@ -20,17 +20,23 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof messages === 'undefined') {
         console.warn('Messages object not found. Using default English messages.');
         window.messages = {
-            avatar_updated: "Avatar updated successfully!",
-            avatar_error: "Error updating avatar.",
-            profile_updated: "Profile updated successfully!",
-            profile_error: "Error updating profile.",
-            settings_updated: "Settings updated!",
-            settings_error: "Error updating settings.",
-            password_changed: "Password changed successfully!",
-            password_error: "Error changing password.",
-            content_load_error: "Failed to load content.",
-            solved_tasks: "Solved Tasks",
-            task_count: "Task Count"
+            avatar_updated: "Аватар успешно обновлен!",
+            avatar_error: "Ошибка обновления аватара.",
+            avatar_too_large: "Файл аватара слишком большой. Максимальный размер: 50 МБ.",
+            avatar_invalid_format: "Недопустимый формат файла. Разрешены: JPG, PNG, GIF.",
+            profile_updated: "Профиль успешно обновлен!",
+            profile_error: "Ошибка обновления профиля.",
+            settings_updated: "Настройки обновлены!",
+            settings_error: "Ошибка обновления настроек.",
+            password_changed: "Пароль успешно изменен!",
+            password_error: "Ошибка изменения пароля.",
+            content_load_error: "Не удалось загрузить содержимое.",
+            solved_tasks: "Решенные задачи",
+            task_count: "Количество задач",
+            file_too_large: "Файл слишком большой. Максимальный размер: 50 МБ.",
+            invalid_file_format: "Недопустимый формат файла.",
+            upload_error: "Ошибка загрузки файла.",
+            network_error: "Ошибка сети. Проверьте подключение к интернету."
         };
     }
 
@@ -136,6 +142,26 @@ document.addEventListener('DOMContentLoaded', function () {
         const avatarInput = avatarUpload.querySelector('#id_avatar');
         avatarInput.addEventListener('change', async function (e) {
             e.preventDefault();
+            
+            // Проверяем размер файла перед загрузкой
+            const file = e.target.files[0];
+            if (file) {
+                const maxSize = 50 * 1024 * 1024; // 50 МБ
+                if (file.size > maxSize) {
+                    showNotification(messages.avatar_too_large, 'error');
+                    e.target.value = ''; // Очищаем input
+                    return;
+                }
+                
+                // Проверяем формат файла
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    showNotification(messages.avatar_invalid_format, 'error');
+                    e.target.value = ''; // Очищаем input
+                    return;
+                }
+            }
+            
             const formData = new FormData(avatarUpload);
             try {
                 const response = await fetch(avatarUpload.action, {
@@ -146,6 +172,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
+                
+                // Проверяем статус ответа
+                if (response.status === 413) {
+                    showNotification(messages.file_too_large, 'error');
+                    return;
+                }
+                
                 const data = await response.json();
                 if (response.ok && data.status === 'success') {
                     showNotification(messages.avatar_updated, 'success');
@@ -157,7 +190,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } catch (error) {
                 console.error('Error uploading avatar:', error);
-                showNotification(messages.avatar_error, 'error');
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showNotification(messages.network_error, 'error');
+                } else {
+                    showNotification(messages.upload_error, 'error');
+                }
             }
         });
         // Предотвращаем стандартную отправку формы
