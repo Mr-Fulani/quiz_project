@@ -1709,6 +1709,15 @@ def custom_404(request, exception=None):
     return redirect('404')
 
 
+def custom_413(request, exception=None):
+    """
+    Обрабатывает ошибку 413 (Request Entity Too Large).
+    
+    Отображает кастомную страницу с понятным объяснением ошибки.
+    """
+    return render(request, '413.html', status=413)
+
+
 
 
 
