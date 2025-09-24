@@ -313,8 +313,10 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     is_admin = serializers.BooleanField(read_only=True)
     admin_type = serializers.CharField(read_only=True)
-    avatar = serializers.SerializerMethodField() # Добавляем это поле
-    social_links = serializers.SerializerMethodField() # Добавляем это поле
+    avatar = serializers.SerializerMethodField()
+    social_links = serializers.SerializerMethodField()
+    programming_languages = serializers.StringRelatedField(many=True, read_only=True)
+    programming_language = serializers.StringRelatedField(read_only=True)
     
     # Связи с другими типами пользователей
     telegram_user_id = serializers.IntegerField(source='telegram_user.telegram_id', read_only=True)
@@ -326,9 +328,10 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
             'full_name', 'language', 'avatar', 'created_at', 'last_seen',
-            'is_admin', 'admin_type',
+            'is_admin', 'admin_type', 'grade', 'programming_language', 'programming_languages',
+            'gender', 'birth_date',
             'telegram_user_id', 'telegram_admin_id', 'django_admin_username',
-            'social_links' # Добавляем social_links
+            'social_links'
         )
         read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type', 'avatar', 'social_links')
     
@@ -369,6 +372,77 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
             return obj.telegram_photo_url
             
         return None
+    
+    def get_social_links(self, obj):
+        """Возвращает социальные ссылки пользователя Mini App."""
+        # Используем метод из модели MiniAppUser
+        return obj.get_social_links()
+
+
+class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для обновления профиля пользователя Mini App.
+    
+    Позволяет редактировать профессиональную информацию пользователя и основные данные.
+    """
+    programming_language_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="Список ID технологий"
+    )
+    photo_url = serializers.URLField(required=False, write_only=True)
+    social_links = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MiniAppUser
+        fields = (
+            'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url', 'photo_url',
+            'grade', 'programming_language_ids', 'gender', 'birth_date',
+            'website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'social_links'
+        )
+        extra_kwargs = {
+            'telegram_photo_url': {'write_only': True}
+        }
+    
+    def update(self, instance, validated_data):
+        """
+        Обновляет профиль пользователя.
+        """
+        # Обрабатываем programming_language_ids отдельно
+        programming_language_ids = validated_data.pop('programming_language_ids', None)
+        
+        # Обрабатываем photo_url из Telegram
+        photo_url = validated_data.pop('photo_url', None)
+        if photo_url:
+            validated_data['telegram_photo_url'] = photo_url
+            # Если приходит новый URL от Telegram, очищаем загруженный avatar
+            validated_data['avatar'] = None
+            
+        # Обновляем остальные поля
+        for attr, value in validated_data.items():
+            # Для социальных сетей: очищаем пустые строки и пробелы
+            if attr in ['website', 'telegram', 'github', 'linkedin', 'instagram', 'facebook', 'youtube']:
+                if value is not None:
+                    cleaned_value = value.strip() if value else ''
+                    setattr(instance, attr, cleaned_value)
+            else:
+                # Для остальных полей обновляем как обычно
+                setattr(instance, attr, value)
+        
+        instance.save()
+        
+        # Обновляем связи с технологиями
+        if programming_language_ids is not None:
+            from topics.models import Topic
+            # Получаем технологии по ID
+            topics = Topic.objects.filter(id__in=programming_language_ids)
+            instance.programming_languages.set(topics)
+        
+        # Обновляем время последнего визита
+        instance.update_last_seen()
+        
+        return instance
     
     def get_social_links(self, obj):
         """Возвращает социальные ссылки пользователя Mini App."""
@@ -453,59 +527,6 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
         return mini_app_user
 
 
-class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для обновления пользователя Mini App.
-    
-    Позволяет обновлять основные данные пользователя, включая социальные сети.
-    """
-    photo_url = serializers.URLField(required=False, write_only=True)
-    social_links = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = MiniAppUser
-        fields = (
-            'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url', 'photo_url',
-            'website', 'telegram', 'github', 'linkedin', 'instagram', 'facebook', 'youtube', 'social_links'
-        )
-        extra_kwargs = {
-            'telegram_photo_url': {'write_only': True}
-        }
-    
-    def update(self, instance, validated_data):
-        """
-        Обновляет данные пользователя и время последнего визита.
-        """
-        # Обрабатываем photo_url из Telegram
-        photo_url = validated_data.pop('photo_url', None)
-        if photo_url:
-            validated_data['telegram_photo_url'] = photo_url
-            # Если приходит новый URL от Telegram, очищаем загруженный avatar
-            validated_data['avatar'] = None
-            
-        # Обновляем данные
-        for attr, value in validated_data.items():
-            # Для социальных сетей: очищаем пустые строки и пробелы
-            if attr in ['website', 'telegram', 'github', 'linkedin', 'instagram', 'facebook', 'youtube']:
-                if value is not None:
-                    cleaned_value = value.strip() if value else ''
-                    setattr(instance, attr, cleaned_value)
-            else:
-                # Для остальных полей обновляем как обычно
-                setattr(instance, attr, value)
-        
-        # Сохраняем изменения
-        instance.save()
-        
-        # Обновляем время последнего визита
-        instance.update_last_seen()
-        
-        return instance 
-    
-    def get_social_links(self, obj):
-        """Возвращает социальные ссылки пользователя Mini App."""
-        # Используем метод из модели MiniAppUser
-        return obj.get_social_links()
 
 
 class MiniAppTopUserSerializer(serializers.ModelSerializer):

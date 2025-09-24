@@ -1550,11 +1550,32 @@ class MiniAppUserAdmin(admin.ModelAdmin):
     """
     Админ-панель для MiniAppUser.
     """
-    list_display = ['telegram_id', 'username', 'full_name', 'language', 'is_admin', 'admin_type', 'created_at', 'last_seen']
+    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'is_admin', 'admin_type', 'created_at', 'last_seen']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
-    list_filter = ['language', 'created_at', 'last_seen']
+    list_filter = ['language', 'grade', 'created_at', 'last_seen']
     readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name']
-    raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin']
+    raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin', 'programming_language']
+    filter_horizontal = ['programming_languages']
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url')
+        }),
+        ('Профессиональная информация', {
+            'fields': ('grade', 'programming_language', 'programming_languages', 'gender', 'birth_date')
+        }),
+        ('Социальные сети', {
+            'fields': ('website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube'),
+            'classes': ('collapse',)
+        }),
+        ('Связи с другими пользователями', {
+            'fields': ('telegram_user', 'telegram_admin', 'django_admin', 'linked_custom_user'),
+            'classes': ('collapse',)
+        }),
+        ('Системная информация', {
+            'fields': ('created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name'),
+            'classes': ('collapse',)
+        }),
+    )
     actions = ['update_last_seen', 'link_to_existing_users', 'merge_statistics_with_custom_user']
 
     def update_last_seen(self, request, queryset):

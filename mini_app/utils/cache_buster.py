@@ -72,9 +72,9 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 # Версии для критически важных файлов
 STATIC_VERSIONS = {
     'donation.js': '2.1',
-    'localization.js': '2.1',
+    'localization.js': '2.2',  # Обновлены переводы для профессиональной информации
     'share-app.js': '1.8',
-    'profile.js': '5.3',  # Обновлено: убрана отладка, исправлена проблема с localhost в avatar URL
+            'profile.js': '19.0',  # Исправлена локализация профессиональной информации
     'search.js': '1.7',
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
@@ -82,7 +82,7 @@ STATIC_VERSIONS = {
     'top_users.js': '17.0',  # Изменены заголовки фильтров: "Технология" и "Грейд"
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
-    'profile.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
+    'profile.css': '6.0',  # Обновлены стили для локализации
     'top_users.css': '2.0',  # Обновлены заголовки фильтров: "Технология" и "Грейд"
     'statistics.css': '2.7',  # Обновлено: принудительный сброс кэша для полосы прогресса
 }

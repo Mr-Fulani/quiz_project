@@ -129,6 +129,19 @@ class LocalizationService:
             "no_social_links": "Social networks not specified.",
             "refresh_data": "Refresh Data",
             "no_statistics_data": "No data available for display.",
+            
+            # Профессиональная информация
+            "professional_info": "Professional Information",
+            "grade": "Grade",
+            "technologies": "Technologies",
+            "grade_junior": "Junior",
+            "grade_middle": "Middle",
+            "grade_senior": "Senior",
+            "not_specified": "Not specified",
+            "no_technologies": "No technologies specified",
+            "select_grade": "Select grade",
+            "select_gender": "Select gender",
+            "loading_technologies": "Loading technologies...",
         },
         "ru": {
             # Навигация
@@ -250,6 +263,19 @@ class LocalizationService:
             "no_social_links": "Социальные сети не указаны.",
             "refresh_data": "Обновить данные",
             "no_statistics_data": "Пока нет данных для отображения",
+            
+            # Профессиональная информация
+            "professional_info": "Профессиональная информация",
+            "grade": "Грейд",
+            "technologies": "Технологии",
+            "grade_junior": "Junior",
+            "grade_middle": "Middle",
+            "grade_senior": "Senior",
+            "not_specified": "Не указан",
+            "no_technologies": "Технологии не указаны",
+            "select_grade": "Выберите грейд",
+            "select_gender": "Выберите пол",
+            "loading_technologies": "Загрузка технологий...",
         }
     }
     

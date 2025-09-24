@@ -98,6 +98,151 @@
         }
     }
 
+    function updateProfessionalInfo(userData) {
+        console.log('💼 updateProfessionalInfo вызван с данными:', userData);
+        
+        // Обновляем грейд с эффектами
+        const gradeElement = document.getElementById('profile-grade');
+        if (gradeElement) {
+            if (userData.grade) {
+                const gradeLabels = {
+                    'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
+                    'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
+                    'senior': (window.translations && window.translations.get) ? window.translations.get('grade_senior', 'Senior') : 'Senior'
+                };
+                const gradeText = gradeLabels[userData.grade] || userData.grade;
+                
+                // Добавляем классы для эффектов в зависимости от грейда
+                gradeElement.className = `info-value grade-${userData.grade}`;
+                gradeElement.textContent = gradeText;
+                
+                console.log(`🎯 Грейд установлен: ${gradeText} (${userData.grade})`);
+            } else {
+                gradeElement.className = 'info-value grade-none';
+                gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
+            }
+        }
+        
+        // Обновляем технологии
+        const technologiesElement = document.getElementById('profile-technologies');
+        if (technologiesElement) {
+            if (userData.programming_languages && userData.programming_languages.length > 0) {
+                technologiesElement.innerHTML = '';
+                userData.programming_languages.forEach(tech => {
+                    const techTag = document.createElement('span');
+                    techTag.className = 'technology-tag';
+                    techTag.textContent = tech;
+                    technologiesElement.appendChild(techTag);
+                });
+            } else {
+                technologiesElement.innerHTML = '<span class="no-data">Технологии не указаны</span>';
+            }
+        }
+    }
+
+    async function loadTechnologies(selectedTechnologies = []) {
+        console.log('🔧 loadTechnologies вызван с выбранными технологиями:', selectedTechnologies);
+        
+        const container = document.getElementById('technologies-container');
+        if (!container) {
+            console.error('❌ Контейнер технологий не найден');
+            return;
+        }
+        
+        container.innerHTML = '<div class="technologies-loading">Загрузка технологий...</div>';
+        
+        try {
+                // Загружаем список технологий из API
+                const response = await fetch('/api/accounts/programming-languages/');
+            if (!response.ok) {
+                throw new Error('Не удалось загрузить технологии');
+            }
+            
+            const technologies = await response.json();
+            console.log('📋 Загружены технологии:', technologies);
+            
+            // Создаем выпадающий список для выбора технологий
+            container.innerHTML = `
+                <select id="technologies-select" name="programming_language_ids" multiple>
+                    ${technologies.map(tech => {
+                        const isSelected = selectedTechnologies.some(selected => 
+                            selected === tech.name || selected.id === tech.id
+                        );
+                        return `<option value="${tech.id}" ${isSelected ? 'selected' : ''}>${tech.name}</option>`;
+                    }).join('')}
+                </select>
+            `;
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки технологий:', error);
+            container.innerHTML = '<div class="technologies-error">Ошибка загрузки технологий</div>';
+        }
+    }
+
+    async function loadTechnologiesWithNames(selectedTechnologyNames = []) {
+        console.log('🔧 loadTechnologiesWithNames вызван с именами технологий:', selectedTechnologyNames);
+        
+        const container = document.getElementById('technologies-container');
+        console.log('🔍 Контейнер технологий:', container);
+        if (!container) {
+            console.error('❌ Контейнер технологий не найден');
+            return;
+        }
+        
+            container.innerHTML = '<div class="technologies-loading">Загрузка технологий...</div>';
+            console.log('⏳ Начата загрузка технологий...');
+            
+            // Добавляем тестовый select для проверки
+            setTimeout(() => {
+                if (container.innerHTML.includes('Загрузка технологий...')) {
+                    console.log('⚠️ Тест: добавляем простой select для проверки');
+                    container.innerHTML = `
+                        <select id="test-select" multiple>
+                            <option value="1">Test Option 1</option>
+                            <option value="2">Test Option 2</option>
+                        </select>
+                    `;
+                }
+            }, 3000);
+        
+        try {
+            // Загружаем список технологий из API
+            console.log('🌐 Отправляем запрос на /api/accounts/programming-languages/');
+            const response = await fetch('/api/accounts/programming-languages/');
+            console.log('📡 Получен ответ:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const technologies = await response.json();
+            console.log('📋 Загружены технологии:', technologies);
+            console.log('📊 Количество технологий:', technologies.length);
+            
+                // Создаем обычный выпадающий список для выбора одной технологии
+                const selectHTML = `
+                    <select id="technologies-select" name="programming_language_ids">
+                        <option value="">Выберите технологию</option>
+                        ${technologies.map(tech => {
+                            const isSelected = selectedTechnologyNames.includes(tech.name);
+                            console.log(`🔍 Технология: ${tech.name}, ID: ${tech.id}, Выбрана: ${isSelected}`);
+                            return `<option value="${tech.id}" ${isSelected ? 'selected' : ''}>${tech.name}</option>`;
+                        }).join('')}
+                    </select>
+                `;
+            
+            console.log('🎨 HTML для select:', selectHTML);
+            container.innerHTML = selectHTML;
+            
+            console.log('✅ Выпадающий список технологий создан');
+            console.log('🎯 Созданный select элемент:', document.getElementById('technologies-select'));
+            
+        } catch (error) {
+            console.error('❌ Ошибка загрузки технологий:', error);
+            container.innerHTML = '<div class="technologies-error">Ошибка загрузки технологий: ' + error.message + '</div>';
+        }
+    }
+
     function updateSocialLinks(socialLinks, elements) {
         console.log('🔗 updateSocialLinks вызван с данными:', socialLinks);
         
@@ -192,6 +337,7 @@
         elements.username.textContent = userData.username ? `@${userData.username}` : 'скрыт';
         
         updateAvatar(userData.avatar);
+        updateProfessionalInfo(userData);
         updateSocialLinks(userData.social_links, elements);
 
         // Заполняем поля модального окна при загрузке профиля
@@ -319,14 +465,54 @@
                 elements.editModal.style.display = 'block';
                 // Заполняем поля формы текущими данными профиля
                 const currentUser = window.currentUser; // Глобальная переменная из base.html
+                console.log('🔍 Текущий пользователь для заполнения формы:', currentUser);
+                
+                // Проверяем, авторизован ли пользователь (есть ли реальные данные)
+                if (!currentUser || !currentUser.id || currentUser.first_name === 'Тестовый') {
+                    console.warn('⚠️ Пользователь не авторизован, показываем заглушку');
+                    // Не заполняем поля, если пользователь не авторизован
+                    return;
+                }
+                
                 if (currentUser) {
                     const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim();
                     // elements.name.textContent = fullName || 'Пользователь'; // Это не input, а h1
                     // elements.username.textContent = currentUser.username ? `@${currentUser.username}` : translations.get('hidden', 'скрыт');
-                    // Здесь нужно заполнить поля ввода, а не текстовые элементы
-                    elements.editProfileForm.querySelector('input[name="first_name"]').value = currentUser.first_name || '';
-                    elements.editProfileForm.querySelector('input[name="last_name"]').value = currentUser.last_name || '';
-                    elements.editProfileForm.querySelector('input[name="username"]').value = currentUser.username || '';
+                    // Основные поля (имя, фамилия, username) не редактируются в этой форме
+                    console.log('📝 Основные данные пользователя (не редактируются):', {
+                        firstName: currentUser.first_name,
+                        lastName: currentUser.last_name,
+                        username: currentUser.username
+                    });
+                    
+                    // Заполняем новые поля
+                    const gradeInput = document.getElementById('grade-input');
+                    if (gradeInput) {
+                        gradeInput.value = currentUser.grade || '';
+                        console.log('📝 Заполнен грейд:', currentUser.grade);
+                    }
+                    
+                    const genderInput = document.getElementById('gender-input');
+                    if (genderInput) {
+                        genderInput.value = currentUser.gender || '';
+                        console.log('📝 Заполнен пол:', currentUser.gender);
+                    }
+                    
+                    const birthDateInput = document.getElementById('birth-date-input');
+                    if (birthDateInput) {
+                        birthDateInput.value = currentUser.birth_date || '';
+                        console.log('📝 Заполнена дата рождения:', currentUser.birth_date);
+                    }
+                    
+                    // Загружаем и заполняем технологии (берем только первую)
+                    if (currentUser.programming_languages && currentUser.programming_languages.length > 0) {
+                        const firstTechnology = currentUser.programming_languages[0];
+                        console.log('📝 Загружаем технологии, первая выбрана:', firstTechnology);
+                        loadTechnologiesWithNames([firstTechnology]);
+                    } else {
+                        console.log('📝 Нет выбранных технологий, загружаем пустой список');
+                        loadTechnologiesWithNames([]);
+                    }
                     
                     // Также заполняем поля социальных сетей
                     const currentSocialLinks = currentUser.social_links || [];
@@ -414,6 +600,33 @@
                 } else {
                     console.log('📁 Файл аватара не выбран');
                 }
+                // Добавляем новые поля
+                const gradeInput = document.getElementById('grade-input');
+                if (gradeInput) {
+                    formData.append('grade', gradeInput.value);
+                }
+                
+                const genderInput = document.getElementById('gender-input');
+                if (genderInput) {
+                    formData.append('gender', genderInput.value);
+                }
+                
+                const birthDateInput = document.getElementById('birth-date-input');
+                if (birthDateInput) {
+                    formData.append('birth_date', birthDateInput.value);
+                }
+                
+            // Собираем выбранную технологию из выпадающего списка (одну)
+            const technologiesSelect = document.getElementById('technologies-select');
+            if (technologiesSelect && technologiesSelect.value) {
+                const selectedTechnologyId = parseInt(technologiesSelect.value);
+                // Отправляем как массив чисел, а не как JSON строку
+                formData.append('programming_language_ids', `[${selectedTechnologyId}]`);
+                console.log('📋 Отправляем programming_language_ids:', `[${selectedTechnologyId}]`);
+            } else {
+                console.log('📋 Нет выбранной технологии, не отправляем programming_language_ids');
+            }
+                
                 // Добавляем остальные поля формы
                 formData.append('website', elements.websiteInput.value);
                 formData.append('telegram', elements.telegramInput.value);
@@ -472,5 +685,37 @@
         console.log('📜 DOM already ready, calling initProfilePage immediately');
         window.initProfilePage();
     }
+
+    // Функция для обновления профессиональной информации при смене языка
+    window.updateProfessionalInfoOnLanguageChange = function() {
+        console.log('🌐 Обновление профессиональной информации при смене языка');
+        
+        // Обновляем грейд если он есть
+        const gradeElement = document.getElementById('profile-grade');
+        if (gradeElement && window.currentUser && window.currentUser.grade) {
+            const gradeLabels = {
+                'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
+                'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
+                'senior': (window.translations && window.translations.get) ? window.translations.get('grade_senior', 'Senior') : 'Senior'
+            };
+            const gradeText = gradeLabels[window.currentUser.grade] || window.currentUser.grade;
+            gradeElement.textContent = gradeText;
+            console.log(`🔄 Грейд обновлен: ${gradeText}`);
+        }
+        
+        // Обновляем текст "Не указан" если грейда нет
+        if (gradeElement && (!window.currentUser || !window.currentUser.grade)) {
+            gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
+        }
+        
+        // Обновляем текст "Не указаны" для технологий если их нет
+        const technologiesElement = document.getElementById('profile-technologies');
+        if (technologiesElement && (!window.currentUser || !window.currentUser.programming_languages || window.currentUser.programming_languages.length === 0)) {
+            const noDataElement = technologiesElement.querySelector('.no-data');
+            if (noDataElement) {
+                noDataElement.textContent = (window.translations && window.translations.get) ? window.translations.get('no_technologies', 'Технологии не указаны') : 'Технологии не указаны';
+            }
+        }
+    };
 
 })(window);

@@ -21,6 +21,23 @@
         <p id="profile-username" class="profile-username">@username</p>
     </div>
 
+    <!-- Профессиональная информация -->
+    <div class="professional-section">
+        <h2 class="progress-title" data-translate="professional_info">{{ translations.get('professional_info', 'Профессиональная информация') }}</h2>
+        <div class="professional-info">
+            <div class="info-item">
+                <span class="info-label" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</span>
+                <span id="profile-grade" class="info-value">Не указан</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label" data-translate="technologies">{{ translations.get('technologies', 'Технологии') }}:</span>
+                <div id="profile-technologies" class="info-value technologies-list">
+                    <span class="no-data" data-translate="no_technologies">{{ translations.get('no_technologies', 'Технологии не указаны') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="social-section">
         <h2 class="progress-title" data-translate="social_networks">{{ translations.get('social_networks', 'Социальные сети') }}</h2>
         <div id="social-links-container">
@@ -52,6 +69,37 @@
                     <label for="avatar-input">Аватар:</label>
                     <input type="file" id="avatar-input" name="avatar" accept="image/*">
                     <div class="avatar-preview" id="avatar-preview"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="grade-input" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</label>
+                    <select id="grade-input" name="grade">
+                        <option value="" data-translate="select_grade">{{ translations.get('select_grade', 'Выберите грейд') }}</option>
+                        <option value="junior" data-translate="grade_junior">{{ translations.get('grade_junior', 'Junior') }}</option>
+                        <option value="middle" data-translate="grade_middle">{{ translations.get('grade_middle', 'Middle') }}</option>
+                        <option value="senior" data-translate="grade_senior">{{ translations.get('grade_senior', 'Senior') }}</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="technologies-input" data-translate="technologies">{{ translations.get('technologies', 'Технологии') }}:</label>
+                    <div id="technologies-container" class="technologies-selector">
+                        <div class="technologies-loading" data-translate="loading_technologies">{{ translations.get('loading_technologies', 'Загрузка технологий...') }}</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="gender-input" data-translate="gender">{{ translations.get('gender', 'Пол') }}:</label>
+                    <select id="gender-input" name="gender">
+                        <option value="" data-translate="select_gender">{{ translations.get('select_gender', 'Выберите пол') }}</option>
+                        <option value="male" data-translate="male">{{ translations.get('male', 'Мужской') }}</option>
+                        <option value="female" data-translate="female">{{ translations.get('female', 'Женский') }}</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="birth-date-input" data-translate="birth_date">{{ translations.get('birth_date', 'Дата рождения') }}:</label>
+                    <input type="date" id="birth-date-input" name="birth_date">
                 </div>
                 
                 <div class="form-group">
