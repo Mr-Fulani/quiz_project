@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="filter-group">
-                <label class="filter-label" data-translate="programming_language">{{ translations.get('programming_language', 'Язык программирования') }}:</label>
+                <label class="filter-label" data-translate="technology">{{ translations.get('technology', 'Технология') }}:</label>
                 <select class="filter-select" id="language-filter" onchange="applyLanguageFilter(this)">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     {% if programming_languages %}
@@ -72,13 +72,12 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="filter-group">
-                <label class="filter-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}:</label>
-                <select class="filter-select" id="rating-filter" onchange="applyFilter('rating', this.value)">
+                <label class="filter-label" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</label>
+                <select class="filter-select" id="grade-filter" onchange="applyFilter('grade', this.value)">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
-                    <option value="1000+">1000+</option>
-                    <option value="500-999">500-999</option>
-                    <option value="100-499">100-499</option>
-                    <option value="0-99">0-99</option>
+                    <option value="junior">Junior</option>
+                    <option value="middle">Middle</option>
+                    <option value="senior">Senior</option>
                 </select>
             </div>
             
@@ -156,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 gender: document.getElementById('gender-filter')?.value || '',
                 age: document.getElementById('age-filter')?.value || '',
                 language: document.getElementById('language-filter')?.value || '',
-                rating: document.getElementById('rating-filter')?.value || ''
+                grade: document.getElementById('grade-filter')?.value || ''
             };
             
             console.log('💾 Сохраняем фильтры:', currentFilters);
@@ -185,9 +184,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         const languageSelect = document.getElementById('language-filter');
                         if (languageSelect) languageSelect.value = currentFilters.language;
                     }
-                    if (currentFilters.rating) {
-                        const ratingSelect = document.getElementById('rating-filter');
-                        if (ratingSelect) ratingSelect.value = currentFilters.rating;
+                    if (currentFilters.grade) {
+                        const gradeSelect = document.getElementById('grade-filter');
+                        if (gradeSelect) gradeSelect.value = currentFilters.grade;
                     }
                     console.log('🔄 Фильтры восстановлены');
                 }, 100);
@@ -216,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         url.searchParams.delete('gender');
         url.searchParams.delete('age'); 
         url.searchParams.delete('language_pref');
-        url.searchParams.delete('rating');
+        url.searchParams.delete('grade');
         
         console.log('🔄 Обновляем контент через AJAX:', url.toString());
         

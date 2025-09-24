@@ -94,7 +94,7 @@ async def top_users(
     gender: str = Query(default=None, description="Gender filter"),
     age: str = Query(default=None, description="Age filter"),
     language_pref: str = Query(default=None, description="Programming language filter"),
-    rating: str = Query(default=None, description="Rating filter")
+    grade: str = Query(default=None, description="Grade filter")
 ):
     # Язык уже установлен middleware, но можно переопределить через query параметр
     if lang:
@@ -111,11 +111,11 @@ async def top_users(
         host = request.headers.get('x-forwarded-host') or request.headers.get('host')
         scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
         logger.info(f"[DEBUG] top_users: host={host}, scheme={scheme}, all_headers={dict(request.headers)}")
-        logger.info(f"[DEBUG] top_users filters: gender={gender}, age={age}, language_pref={language_pref}, rating={rating}")
+        logger.info(f"[DEBUG] top_users filters: gender={gender}, age={age}, language_pref={language_pref}, grade={grade}")
         logger.info(f"[DEBUG] top_users query_params: {request.query_params}")
         top_users_data = await django_api_service.get_top_users_mini_app(
             language=current_language, host=host, scheme=scheme,
-            gender=gender, age=age, language_pref=language_pref, rating=rating
+            gender=gender, age=age, language_pref=language_pref, grade=grade
         )
         
         # Получаем список языков программирования для фильтра
