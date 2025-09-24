@@ -24,6 +24,7 @@ COPY services/ services/
 COPY core/ core/
 COPY middleware/ middleware/
 COPY utils/ utils/
+COPY templates/ templates/
 
 # Копируем основной файл приложения
 COPY app.py .

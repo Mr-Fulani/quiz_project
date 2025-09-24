@@ -4,13 +4,44 @@
 {{ translations.get('top_users_title', 'Топ юзеров') }}
 {% endblock %}
 
+{% block extra_head %}
+<style>
+/* Дополнительные стили для страницы фильтров */
+</style>
+<script>
+// Отключаем локализацию на странице фильтров
+window.DISABLE_LOCALIZATION = true;
+
+// Дополнительно блокируем все попытки загрузки локализации
+document.addEventListener('DOMContentLoaded', function() {
+    // Удаляем все скрипты локализации если они уже загружены
+    const localizationScripts = document.querySelectorAll('script[src*="localization"]');
+    localizationScripts.forEach(script => {
+        script.remove();
+        console.log('🗑️ Удален скрипт локализации');
+    });
+    
+    // Блокируем создание новых скриптов локализации
+    const originalCreateElement = document.createElement;
+    document.createElement = function(tagName) {
+        const element = originalCreateElement.call(this, tagName);
+        if (tagName.toLowerCase() === 'script' && element.src && element.src.includes('localization')) {
+            console.log('🚫 Блокируем создание скрипта локализации');
+            return null;
+        }
+        return element;
+    };
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="top-users-container">
     <div class="filter-section">
         <div class="filter-controls">
             <div class="filter-group">
                 <label class="filter-label" data-translate="gender">{{ translations.get('gender', 'Пол') }}:</label>
-                <select class="filter-select" id="gender-filter">
+                <select class="filter-select" id="gender-filter" onchange="applyFilter('gender', this.value)">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     <option value="male" data-translate="male">{{ translations.get('male', 'Мужской') }}</option>
                     <option value="female" data-translate="female">{{ translations.get('female', 'Женский') }}</option>
@@ -19,7 +50,7 @@
             
             <div class="filter-group">
                 <label class="filter-label" data-translate="age">{{ translations.get('age', 'Возраст') }}:</label>
-                <select class="filter-select" id="age-filter">
+                <select class="filter-select" id="age-filter" onchange="applyFilter('age', this.value)">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     <option value="18-25">18-25</option>
                     <option value="26-35">26-35</option>
@@ -30,7 +61,7 @@
             
             <div class="filter-group">
                 <label class="filter-label" data-translate="programming_language">{{ translations.get('programming_language', 'Язык программирования') }}:</label>
-                <select class="filter-select" id="language-filter">
+                <select class="filter-select" id="language-filter" onchange="applyLanguageFilter(this)">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     {% if programming_languages %}
                         {% for lang in programming_languages %}
@@ -42,7 +73,7 @@
             
             <div class="filter-group">
                 <label class="filter-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}:</label>
-                <select class="filter-select" id="rating-filter">
+                <select class="filter-select" id="rating-filter" onchange="applyFilter('rating', this.value)">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     <option value="1000+">1000+</option>
                     <option value="500-999">500-999</option>
@@ -51,7 +82,7 @@
                 </select>
             </div>
             
-            <button class="filter-reset-btn" id="reset-filters" data-translate="reset_filters">
+            <button class="filter-reset-btn" id="reset-filters" data-translate="reset_filters" onclick="resetFilters()">
                 {{ translations.get('reset_filters', 'Сбросить') }}
             </button>
         </div>
@@ -98,26 +129,220 @@
 </div>
 
 <script>
-    // Подключаем JavaScript для фильтрации топ пользователей
-    const script = document.createElement('script');
-    script.src = '{{ top_users_js_url }}';
-    script.onload = function() {
-        console.log('📜 top_users.js загружен, инициализируем фильтр...');
-        // Инициализируем фильтр после загрузки скрипта и готовности DOM
-        if (typeof TopUsersFilter !== 'undefined') {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
-                    console.log('🔄 DOM готов, инициализируем фильтр...');
-                    window.topUsersFilter = new TopUsersFilter();
-                });
-            } else {
-                console.log('🔄 DOM уже готов, инициализируем фильтр...');
-                window.topUsersFilter = new TopUsersFilter();
-            }
+    // Простые функции фильтрации
+    function applyFilter(filterName, value) {
+        console.log('🔄 Применяем фильтр:', filterName, value);
+        const url = new URL(window.location);
+        
+        if (value) {
+            url.searchParams.set(filterName, value);
         } else {
-            console.error('❌ TopUsersFilter не найден');
+            url.searchParams.delete(filterName);
         }
-    };
-    document.head.appendChild(script);
+        
+        console.log('🔄 Обновляем контент через AJAX:', url.toString());
+        
+        // Обновляем контент через AJAX вместо перезагрузки страницы
+        fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Сохраняем текущие значения фильтров
+            const currentFilters = {
+                gender: document.getElementById('gender-filter')?.value || '',
+                age: document.getElementById('age-filter')?.value || '',
+                language: document.getElementById('language-filter')?.value || '',
+                rating: document.getElementById('rating-filter')?.value || ''
+            };
+            
+            console.log('💾 Сохраняем фильтры:', currentFilters);
+            
+            // Обновляем только контент страницы
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.querySelector('.top-users-container');
+            const currentContent = document.querySelector('.top-users-container');
+            
+            if (newContent && currentContent) {
+                currentContent.innerHTML = newContent.innerHTML;
+                console.log('✅ Контент обновлен через AJAX');
+                
+                // Восстанавливаем значения фильтров
+                setTimeout(() => {
+                    if (currentFilters.gender) {
+                        const genderSelect = document.getElementById('gender-filter');
+                        if (genderSelect) genderSelect.value = currentFilters.gender;
+                    }
+                    if (currentFilters.age) {
+                        const ageSelect = document.getElementById('age-filter');
+                        if (ageSelect) ageSelect.value = currentFilters.age;
+                    }
+                    if (currentFilters.language) {
+                        const languageSelect = document.getElementById('language-filter');
+                        if (languageSelect) languageSelect.value = currentFilters.language;
+                    }
+                    if (currentFilters.rating) {
+                        const ratingSelect = document.getElementById('rating-filter');
+                        if (ratingSelect) ratingSelect.value = currentFilters.rating;
+                    }
+                    console.log('🔄 Фильтры восстановлены');
+                }, 100);
+            } else {
+                // Fallback - перезагружаем страницу
+                window.location.href = url.toString();
+            }
+        })
+        .catch(error => {
+            console.error('❌ Ошибка AJAX запроса:', error);
+            // Fallback - перезагружаем страницу
+            window.location.href = url.toString();
+        });
+    }
+    
+    function applyLanguageFilter(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const languageName = selectedOption.text;
+        console.log('🔄 Язык программирования:', languageName);
+        applyFilter('language_pref', languageName);
+    }
+    
+    function resetFilters() {
+        console.log('🔄 Сброс всех фильтров');
+        const url = new URL(window.location);
+        url.searchParams.delete('gender');
+        url.searchParams.delete('age'); 
+        url.searchParams.delete('language_pref');
+        url.searchParams.delete('rating');
+        
+        console.log('🔄 Обновляем контент через AJAX:', url.toString());
+        
+        // Обновляем контент через AJAX вместо перезагрузки страницы
+        fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Обновляем только контент страницы
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.querySelector('.top-users-container');
+            const currentContent = document.querySelector('.top-users-container');
+            
+            if (newContent && currentContent) {
+                currentContent.innerHTML = newContent.innerHTML;
+                console.log('✅ Фильтры сброшены, контент обновлен');
+            } else {
+                // Fallback - перезагружаем страницу
+                window.location.href = url.toString();
+            }
+        })
+        .catch(error => {
+            console.error('❌ Ошибка AJAX запроса:', error);
+            // Fallback - перезагружаем страницу
+            window.location.href = url.toString();
+        });
+    }
+    
+    // Полностью отключаем локализацию на странице фильтров
+    if (window.localizationService) {
+        window.localizationService.updateInterface = function() {
+            console.log('🚫 Локализация отключена на странице фильтров');
+            return;
+        };
+    }
+    
+    // Также отключаем автоматическую инициализацию локализации
+    if (window.initLocalization) {
+        window.initLocalization = function() {
+            console.log('🚫 Инициализация локализации отключена на странице фильтров');
+            return;
+        };
+    }
+    
+    // Отключаем все обработчики событий локализации
+    document.removeEventListener('DOMContentLoaded', window.initLocalization);
+    document.removeEventListener('click', function(e) {
+        if (e.target.matches('[data-translate]')) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+    
+    // Отключаем все события локализации
+    document.addEventListener('DOMContentLoaded', function() {
+        // Удаляем все обработчики событий локализации
+        const languageSelect = document.querySelector('select[name="language"]');
+        if (languageSelect) {
+            languageSelect.removeEventListener('change', function() {});
+            console.log('🚫 Обработчики локализации удалены');
+        }
+    });
+    
+    // Восстанавливаем состояние фильтров после перезагрузки
+    function restoreFilterState() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Восстанавливаем фильтр пола
+        const gender = urlParams.get('gender');
+        if (gender) {
+            const genderSelect = document.getElementById('gender-filter');
+            if (genderSelect) {
+                genderSelect.value = gender;
+            }
+        }
+        
+        // Восстанавливаем фильтр возраста
+        const age = urlParams.get('age');
+        if (age) {
+            const ageSelect = document.getElementById('age-filter');
+            if (ageSelect) {
+                ageSelect.value = age;
+            }
+        }
+        
+        // Восстанавливаем фильтр языка программирования
+        const languagePref = urlParams.get('language_pref');
+        if (languagePref) {
+            const languageSelect = document.getElementById('language-filter');
+            if (languageSelect) {
+                // Ищем опцию по тексту
+                for (let option of languageSelect.options) {
+                    if (option.text === languagePref) {
+                        languageSelect.value = option.value;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Восстанавливаем фильтр рейтинга
+        const rating = urlParams.get('rating');
+        if (rating) {
+            const ratingSelect = document.getElementById('rating-filter');
+            if (ratingSelect) {
+                ratingSelect.value = rating;
+            }
+        }
+        
+        console.log('✅ Состояние фильтров восстановлено');
+    }
+    
+    // Восстанавливаем состояние при загрузке страницы
+    document.addEventListener('DOMContentLoaded', restoreFilterState);
+    
+    console.log('✅ Функции фильтрации загружены');
+    
+    // Тестируем функции
+    console.log('🧪 Тест функций фильтрации:');
+    console.log('  - applyFilter:', typeof applyFilter);
+    console.log('  - applyLanguageFilter:', typeof applyLanguageFilter);
+    console.log('  - resetFilters:', typeof resetFilters);
 </script>
 {% endblock %}
