@@ -139,6 +139,7 @@ class TopUsersFilter {
 
 
     resetFilters() {
+        console.log('🔄 Reset filters clicked - сброс фильтров');
         this.filters = {
             gender: '',
             age: '',
@@ -158,6 +159,8 @@ class TopUsersFilter {
         url.searchParams.delete('age');
         url.searchParams.delete('language');
         url.searchParams.delete('rating');
+        
+        console.log('🔄 Reset filters - перезагружаем страницу:', url.toString());
         window.location.href = url.toString();
     }
 }
