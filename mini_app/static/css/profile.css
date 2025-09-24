@@ -616,3 +616,213 @@
         padding: 20px;
     }
 }
+
+/* Стили для профессиональной информации */
+.professional-section {
+    margin-bottom: 30px;
+}
+
+.professional-info {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-weight: 600;
+    color: var(--matrix-color);
+    min-width: 120px;
+    margin-right: 15px;
+}
+
+.info-value {
+    color: rgba(255, 255, 255, 0.9);
+    flex: 1;
+}
+
+/* Эффекты для грейда */
+.grade-junior {
+    color: #00ff88 !important;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    animation: juniorGlow 2s ease-in-out infinite alternate;
+}
+
+.grade-middle {
+    color: #00aaff !important;
+    text-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
+    animation: middleGlow 2s ease-in-out infinite alternate;
+}
+
+.grade-senior {
+    color: #ff6b35 !important;
+    text-shadow: 0 0 20px rgba(255, 107, 53, 0.7);
+    animation: seniorGlow 2s ease-in-out infinite alternate;
+}
+
+.grade-none {
+    color: rgba(255, 255, 255, 0.5) !important;
+    font-style: italic;
+}
+
+/* Анимации для грейдов */
+@keyframes juniorGlow {
+    0% {
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+        transform: scale(1.02);
+    }
+}
+
+@keyframes middleGlow {
+    0% {
+        text-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 25px rgba(0, 170, 255, 0.9);
+        transform: scale(1.03);
+    }
+}
+
+@keyframes seniorGlow {
+    0% {
+        text-shadow: 0 0 20px rgba(255, 107, 53, 0.7);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 30px rgba(255, 107, 53, 1);
+        transform: scale(1.05);
+    }
+}
+
+.technologies-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.technology-tag {
+    background: rgba(0, 255, 0, 0.1);
+    color: var(--matrix-color);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.no-data {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+/* Стили для селектора технологий */
+.technologies-selector {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Стили для выпадающего списка технологий */
+#technologies-select {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    height: 48px;
+}
+
+#technologies-select:focus {
+    outline: none;
+    border-color: var(--matrix-color);
+    box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.2);
+}
+
+#technologies-select option {
+    background: var(--base-bg);
+    color: white;
+    padding: 8px;
+    border: none;
+}
+
+#technologies-select option:hover {
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.technologies-loading,
+.technologies-error {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 20px;
+    font-style: italic;
+}
+
+.technologies-error {
+    color: #ff6b6b;
+}
+
+/* Стили для селектов */
+select {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--matrix-color);
+    box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.2);
+}
+
+select option {
+    background: var(--base-bg);
+    color: white;
+}
+
+/* Стили для поля даты */
+input[type="date"] {
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+input[type="date"]:focus {
+    outline: none;
+    border-color: var(--matrix-color);
+    box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.2);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}

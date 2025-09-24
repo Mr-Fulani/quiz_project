@@ -778,15 +778,47 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         """
-        Переопределяем update для логирования.
+        Переопределяем update для логирования и обработки JSON данных.
         """
         logger.info(f"🔄 Обновление профиля пользователя telegram_id={kwargs.get('telegram_id')}")
         logger.info(f"📝 Данные запроса: {request.data}")
         logger.info(f"📁 Файлы запроса: {request.FILES}")
         
+        # Обрабатываем programming_language_ids если пришла JSON строка
+        data = request.data.copy()
+        if 'programming_language_ids' in data:
+            programming_language_ids_value = data['programming_language_ids']
+            if isinstance(programming_language_ids_value, str):
+                import json
+                try:
+                    if programming_language_ids_value.strip():  # Проверяем, что строка не пустая
+                        # Парсим JSON строку
+                        parsed_ids = json.loads(programming_language_ids_value)
+                        # Убеждаемся, что это список чисел
+                        if isinstance(parsed_ids, list):
+                            data['programming_language_ids'] = parsed_ids
+                        else:
+                            data['programming_language_ids'] = []
+                    else:
+                        data['programming_language_ids'] = []  # Пустая строка = пустой массив
+                    logger.info(f"🔄 Обработаны programming_language_ids: {data['programming_language_ids']}")
+                except json.JSONDecodeError:
+                    logger.warning(f"❌ Не удалось декодировать programming_language_ids: {programming_language_ids_value}")
+                    data['programming_language_ids'] = []
+            elif isinstance(programming_language_ids_value, list):
+                # Уже список, оставляем как есть
+                logger.info(f"🔄 programming_language_ids уже список: {programming_language_ids_value}")
+            else:
+                # Другой тип данных, преобразуем в пустой список
+                logger.warning(f"❌ Неожиданный тип programming_language_ids: {type(programming_language_ids_value)}")
+                data['programming_language_ids'] = []
+        else:
+            # Поле отсутствует, добавляем пустой список
+            data['programming_language_ids'] = []
+        
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(instance, data=data, partial=partial)
         
         if serializer.is_valid():
             logger.info(f"✅ Данные валидны, сохраняем изменения")
@@ -812,30 +844,51 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
                 required=True
             ),
             openapi.Parameter(
-                'avatar',
+                'grade',
                 openapi.IN_FORM,
-                description="Файл аватара для загрузки.",
-                type=openapi.TYPE_FILE,
-                required=False
-            ),
-            openapi.Parameter(
-                'username',
-                openapi.IN_FORM,
-                description="Имя пользователя.",
+                description="Грейд разработчика (junior, middle, senior).",
                 type=openapi.TYPE_STRING,
                 required=False
             ),
             openapi.Parameter(
-                'first_name',
+                'programming_language_ids',
                 openapi.IN_FORM,
-                description="Имя.",
+                description="Список ID технологий (JSON строка).",
                 type=openapi.TYPE_STRING,
                 required=False
             ),
             openapi.Parameter(
-                'last_name',
+                'gender',
                 openapi.IN_FORM,
-                description="Фамилия.",
+                description="Пол (male, female).",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'birth_date',
+                openapi.IN_FORM,
+                description="Дата рождения (YYYY-MM-DD).",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'website',
+                openapi.IN_FORM,
+                description="Веб-сайт.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'telegram',
+                openapi.IN_FORM,
+                description="Telegram username.",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'github',
+                openapi.IN_FORM,
+                description="GitHub профиль.",
                 type=openapi.TYPE_STRING,
                 required=False
             ),

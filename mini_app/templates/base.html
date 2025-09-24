@@ -75,7 +75,7 @@
     <link rel="stylesheet" href="/static/css/topic_detail.css">
     <link rel="stylesheet" href="/static/css/tasks.css">
     <link rel="stylesheet" href="/static/css/settings.css">
-    <link rel="stylesheet" href="/static/css/profile.css">
+    <link rel="stylesheet" href="{{ get_css_url('profile.css') }}">
     <link rel="stylesheet" href="/static/css/statistics.css">
     <link rel="stylesheet" href="{{ get_css_url('top_users.css') }}">
     
@@ -393,6 +393,11 @@
                                 if (window.localizationService) {
                                     window.localizationService.updateInterface();
                                 }
+                                
+                                // Обновляем профессиональную информацию если мы на странице профиля
+                                if (window.updateProfessionalInfoOnLanguageChange) {
+                                    window.updateProfessionalInfoOnLanguageChange();
+                                }
                             });
                             
                             console.log('BASE.HTML: After updateLocalizationFromPage and updateInterface');
@@ -694,6 +699,11 @@
                             // Принудительно обновляем интерфейс еще раз
                             if (window.localizationService) {
                                 window.localizationService.updateInterface();
+                            }
+                            
+                            // Обновляем профессиональную информацию если мы на странице профиля
+                            if (window.updateProfessionalInfoOnLanguageChange) {
+                                window.updateProfessionalInfoOnLanguageChange();
                             }
                         }, 100);
                         

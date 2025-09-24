@@ -563,6 +563,25 @@ class MiniAppUser(models.Model):
         verbose_name="Любимый язык программирования",
         help_text="Ссылка на тему (язык программирования) из базы тем"
     )
+    programming_languages = models.ManyToManyField(
+        'topics.Topic',
+        blank=True,
+        related_name='mini_app_users',
+        verbose_name="Любимые технологии",
+        help_text="Множественный выбор технологий, которые изучает пользователь"
+    )
+    grade = models.CharField(
+        max_length=20,
+        choices=[
+            ('junior', 'Junior'),
+            ('middle', 'Middle'),
+            ('senior', 'Senior'),
+        ],
+        blank=True,
+        null=True,
+        verbose_name="Грейд",
+        help_text="Уровень разработчика"
+    )
     
     created_at = models.DateTimeField(
         auto_now_add=True, 
