@@ -930,7 +930,7 @@ class MiniAppTopUsersListView(generics.ListAPIView):
         gender = self.request.query_params.get('gender')
         age = self.request.query_params.get('age')
         language_pref = self.request.query_params.get('language_pref')
-        rating = self.request.query_params.get('rating')
+        grade = self.request.query_params.get('grade')
         
         if gender:
             queryset = queryset.filter(gender=gender)
@@ -961,16 +961,14 @@ class MiniAppTopUsersListView(generics.ListAPIView):
         if language_pref:
             queryset = queryset.filter(programming_language__name__iexact=language_pref)
         
-        if rating:
-            # Фильтрация по рейтингу
-            if rating == '1000+':
-                queryset = queryset.filter(rating__gte=1000)
-            elif rating == '500-999':
-                queryset = queryset.filter(rating__gte=500, rating__lt=1000)
-            elif rating == '100-499':
-                queryset = queryset.filter(rating__gte=100, rating__lt=500)
-            elif rating == '0-99':
-                queryset = queryset.filter(rating__lt=100)
+        if grade:
+            # Фильтрация по грейду (основано на рейтинге)
+            if grade == 'junior':
+                queryset = queryset.filter(rating__lt=300)
+            elif grade == 'middle':
+                queryset = queryset.filter(rating__gte=300, rating__lt=700)
+            elif grade == 'senior':
+                queryset = queryset.filter(rating__gte=700)
         
         # Сортируем по рейтингу, затем по дате создания
         queryset = queryset.order_by('-rating', '-created_at')

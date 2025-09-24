@@ -79,7 +79,7 @@ STATIC_VERSIONS = {
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
     'topic-detail.js': '1.6',
-    'top_users.js': '16.0',  # Сохранение состояния фильтров после AJAX обновления
+    'top_users.js': '17.0',  # Изменены заголовки фильтров: "Технология" и "Грейд"
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
     'profile.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
