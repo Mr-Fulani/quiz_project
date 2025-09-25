@@ -568,12 +568,14 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
     quizzes_completed = serializers.SerializerMethodField()
     average_score = serializers.SerializerMethodField() # Это success_rate
     is_online = serializers.SerializerMethodField()
+    age = serializers.SerializerMethodField()
 
     class Meta:
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
-            'avatar_url', 'rating', 'quizzes_completed', 'average_score', 'is_online'
+            'avatar_url', 'rating', 'quizzes_completed', 'average_score', 'is_online',
+            'gender', 'birth_date', 'age', 'grade'
         )
 
     def get_avatar_url(self, obj):
@@ -648,4 +650,15 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         """
         Проверяет, онлайн ли пользователь Mini App.
         """
-        return obj.is_online 
+        return obj.is_online
+
+    def get_age(self, obj):
+        """
+        Вычисляет возраст пользователя на основе даты рождения.
+        """
+        if obj.birth_date:
+            from datetime import date
+            today = date.today()
+            age = today.year - obj.birth_date.year - ((today.month, today.day) < (obj.birth_date.month, obj.birth_date.day))
+            return age
+        return None 
