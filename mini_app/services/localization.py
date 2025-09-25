@@ -142,6 +142,14 @@ class LocalizationService:
             "select_grade": "Select grade",
             "select_gender": "Select gender",
             "loading_technologies": "Loading technologies...",
+            
+            # Персональная информация
+            "years_old": "years old",
+            "age_unknown": "Age not specified",
+            "grade_unknown": "Grade not specified",
+            "junior": "Junior",
+            "middle": "Middle",
+            "senior": "Senior",
         },
         "ru": {
             # Навигация
@@ -276,6 +284,14 @@ class LocalizationService:
             "select_grade": "Выберите грейд",
             "select_gender": "Выберите пол",
             "loading_technologies": "Загрузка технологий...",
+            
+            # Персональная информация
+            "years_old": "лет",
+            "age_unknown": "Возраст не указан",
+            "grade_unknown": "Грейд не указан",
+            "junior": "Junior",
+            "middle": "Middle",
+            "senior": "Senior",
         }
     }
     

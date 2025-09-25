@@ -138,13 +138,42 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="stat-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}:</span>
                             <span class="stat-value">{{ user.rating }}</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label" data-translate="quizzes_completed">{{ translations.get('quizzes_completed', 'Квизов') }}:</span>
-                            <span class="stat-value">{{ user.quizzes_completed }}</span>
+                        <div class="personal-info-item">
+                            <span class="gender-icon">
+                                {% if user.gender == 'male' %}
+                                    ♂️
+                                {% elif user.gender == 'female' %}
+                                    ♀️
+                                {% else %}
+                                    ❓
+                                {% endif %}
+                            </span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label" data-translate="average_score">{{ translations.get('average_score', 'Средний балл') }}:</span>
-                            <span class="stat-value">{{ "%.1f"|format(user.average_score) }}%</span>
+                        <div class="personal-info-item">
+                            <span class="age-info">
+                                {% if user.age %}
+                                    {{ user.age }} {{ translations.get('years_old', 'лет') }}
+                                {% else %}
+                                    {{ translations.get('age_unknown', 'Возраст не указан') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="personal-info-item">
+                            <span class="grade-info grade-{{ user.grade or 'none' }}">
+                                {% if user.grade %}
+                                    {% if user.grade == 'junior' %}
+                                        {{ translations.get('junior', 'Junior') }}
+                                    {% elif user.grade == 'middle' %}
+                                        {{ translations.get('middle', 'Middle') }}
+                                    {% elif user.grade == 'senior' %}
+                                        {{ translations.get('senior', 'Senior') }}
+                                    {% else %}
+                                        {{ user.grade }}
+                                    {% endif %}
+                                {% else %}
+                                    {{ translations.get('grade_unknown', 'Грейд не указан') }}
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </div>
