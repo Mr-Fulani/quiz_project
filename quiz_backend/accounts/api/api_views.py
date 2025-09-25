@@ -784,37 +784,9 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
         logger.info(f"📝 Данные запроса: {request.data}")
         logger.info(f"📁 Файлы запроса: {request.FILES}")
         
-        # Обрабатываем programming_language_ids если пришла JSON строка
+        # Сериализатор сам обработает programming_language_ids
         data = request.data.copy()
-        if 'programming_language_ids' in data:
-            programming_language_ids_value = data['programming_language_ids']
-            if isinstance(programming_language_ids_value, str):
-                import json
-                try:
-                    if programming_language_ids_value.strip():  # Проверяем, что строка не пустая
-                        # Парсим JSON строку
-                        parsed_ids = json.loads(programming_language_ids_value)
-                        # Убеждаемся, что это список чисел
-                        if isinstance(parsed_ids, list):
-                            data['programming_language_ids'] = parsed_ids
-                        else:
-                            data['programming_language_ids'] = []
-                    else:
-                        data['programming_language_ids'] = []  # Пустая строка = пустой массив
-                    logger.info(f"🔄 Обработаны programming_language_ids: {data['programming_language_ids']}")
-                except json.JSONDecodeError:
-                    logger.warning(f"❌ Не удалось декодировать programming_language_ids: {programming_language_ids_value}")
-                    data['programming_language_ids'] = []
-            elif isinstance(programming_language_ids_value, list):
-                # Уже список, оставляем как есть
-                logger.info(f"🔄 programming_language_ids уже список: {programming_language_ids_value}")
-            else:
-                # Другой тип данных, преобразуем в пустой список
-                logger.warning(f"❌ Неожиданный тип programming_language_ids: {type(programming_language_ids_value)}")
-                data['programming_language_ids'] = []
-        else:
-            # Поле отсутствует, добавляем пустой список
-            data['programming_language_ids'] = []
+        logger.info(f"🔄 Данные для сериализатора: {data}")
         
         partial = kwargs.pop('partial', False)
         instance = self.get_object()

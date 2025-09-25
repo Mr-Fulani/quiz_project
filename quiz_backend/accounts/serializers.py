@@ -379,16 +379,42 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         return obj.get_social_links()
 
 
+class ProgrammingLanguageIdsField(serializers.Field):
+    """
+    Кастомное поле для обработки programming_language_ids из QueryDict.
+    """
+    def to_internal_value(self, data):
+        """Преобразует данные в список чисел."""
+        if isinstance(data, list):
+            validated_ids = []
+            for item in data:
+                try:
+                    validated_ids.append(int(item))
+                except (ValueError, TypeError):
+                    continue
+            return validated_ids
+        elif isinstance(data, str):
+            try:
+                return [int(data)]
+            except (ValueError, TypeError):
+                return []
+        return []
+
+    def to_representation(self, value):
+        """Преобразует для отображения."""
+        return value
+
+
 class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для обновления профиля пользователя Mini App.
     
     Позволяет редактировать профессиональную информацию пользователя и основные данные.
     """
-    programming_language_ids = serializers.ListField(
-        child=serializers.IntegerField(),
+    programming_language_ids = ProgrammingLanguageIdsField(
         write_only=True,
         required=False,
+        allow_null=True,
         help_text="Список ID технологий"
     )
     photo_url = serializers.URLField(required=False, write_only=True)
@@ -397,7 +423,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MiniAppUser
         fields = (
-            'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url', 'photo_url',
+            'language', 'avatar', 'telegram_photo_url', 'photo_url',
             'grade', 'programming_language_ids', 'gender', 'birth_date',
             'website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'social_links'
         )
@@ -435,9 +461,13 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
         # Обновляем связи с технологиями
         if programming_language_ids is not None:
             from topics.models import Topic
-            # Получаем технологии по ID
-            topics = Topic.objects.filter(id__in=programming_language_ids)
-            instance.programming_languages.set(topics)
+            # programming_language_ids уже список чисел из to_internal_value
+            if isinstance(programming_language_ids, list):
+                topics = Topic.objects.filter(id__in=programming_language_ids)
+                instance.programming_languages.set(topics)
+            else:
+                # Fallback для других типов данных
+                instance.programming_languages.clear()
         
         # Обновляем время последнего визита
         instance.update_last_seen()

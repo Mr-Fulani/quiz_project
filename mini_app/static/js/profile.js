@@ -620,9 +620,9 @@
             const technologiesSelect = document.getElementById('technologies-select');
             if (technologiesSelect && technologiesSelect.value) {
                 const selectedTechnologyId = parseInt(technologiesSelect.value);
-                // Отправляем как массив чисел, а не как JSON строку
-                formData.append('programming_language_ids', `[${selectedTechnologyId}]`);
-                console.log('📋 Отправляем programming_language_ids:', `[${selectedTechnologyId}]`);
+                // Отправляем каждый ID отдельно для FormData
+                formData.append('programming_language_ids', selectedTechnologyId);
+                console.log('📋 Отправляем programming_language_ids:', selectedTechnologyId);
             } else {
                 console.log('📋 Нет выбранной технологии, не отправляем programming_language_ids');
             }
