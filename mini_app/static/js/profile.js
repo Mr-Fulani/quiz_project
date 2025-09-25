@@ -98,13 +98,134 @@
         }
     }
 
+    // Функция для обновления переводов в профессиональной информации
+    function updateProfessionalInfoTranslations() {
+        console.log('🌐 Обновляем переводы в профессиональной информации');
+
+        // Обновляем пол
+        const genderElement = document.getElementById('profile-gender');
+        if (genderElement) {
+            const currentGender = genderElement.getAttribute('data-gender');
+            if (currentGender) {
+                // Получаем переводы в зависимости от текущего языка
+                const currentLang = window.currentLanguage || 'en';
+                let genderText;
+                
+                if (currentLang === 'en') {
+                    genderText = currentGender === 'male' ? 'Male' : 'Female';
+                } else {
+                    genderText = currentGender === 'male' ? 'Мужской' : 'Женский';
+                }
+                
+                genderElement.textContent = genderText;
+            } else {
+                const currentLang = window.currentLanguage || 'en';
+                genderElement.textContent = currentLang === 'en' ? 'Not specified' : 'Не указан';
+            }
+        }
+        
+        // Обновляем дату рождения
+        const birthDateElement = document.getElementById('profile-birth-date');
+        if (birthDateElement) {
+            const currentLang = window.currentLanguage || 'en';
+            const birthDate = birthDateElement.getAttribute('data-date');
+            
+            if (birthDate) {
+                // Форматируем дату в зависимости от языка
+                const date = new Date(birthDate);
+                let formattedDate;
+                
+                if (currentLang === 'en') {
+                    formattedDate = date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } else {
+                    formattedDate = date.toLocaleDateString('ru-RU', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                
+                birthDateElement.textContent = formattedDate;
+            } else {
+                birthDateElement.textContent = currentLang === 'en' ? 'Not specified' : 'Не указана';
+            }
+        }
+        
+        // Обновляем грейд
+        const gradeElement = document.getElementById('profile-grade');
+        if (gradeElement) {
+            const currentGrade = gradeElement.getAttribute('data-grade');
+            if (currentGrade) {
+                const gradeLabels = {
+                    'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
+                    'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
+                    'senior': (window.translations && window.translations.get) ? window.translations.get('grade_senior', 'Senior') : 'Senior'
+                };
+                gradeElement.textContent = gradeLabels[currentGrade] || currentGrade;
+            } else {
+                gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
+            }
+        }
+        
+        // Обновляем технологии (если не указаны)
+        const technologiesElement = document.getElementById('profile-technologies');
+        if (technologiesElement && technologiesElement.querySelector('.no-data')) {
+            technologiesElement.innerHTML = `<span class="no-data">${(window.translations && window.translations.get) ? window.translations.get('no_technologies', 'Технологии не указаны') : 'Технологии не указаны'}</span>`;
+        }
+    }
+
     function updateProfessionalInfo(userData) {
         console.log('💼 updateProfessionalInfo вызван с данными:', userData);
+        console.log('🔍 userData.gender:', userData.gender);
+        console.log('🔍 userData.birth_date:', userData.birth_date);
+        
+        // Обновляем пол
+        const genderElement = document.getElementById('profile-gender');
+        if (genderElement) {
+            if (userData.gender) {
+                genderElement.setAttribute('data-gender', userData.gender);
+                const genderLabels = {
+                    'male': (window.translations && window.translations.get) ? window.translations.get('male', 'Мужской') : 'Мужской',
+                    'female': (window.translations && window.translations.get) ? window.translations.get('female', 'Женский') : 'Женский'
+                };
+                const genderText = genderLabels[userData.gender] || userData.gender;
+                genderElement.textContent = genderText;
+                console.log(`👤 Пол установлен: ${genderText} (${userData.gender})`);
+            } else {
+                genderElement.removeAttribute('data-gender');
+                genderElement.textContent = (window.translations && window.translations.get) ? window.translations.get('gender_unknown', 'Не указан') : 'Не указан';
+            }
+        }
+        
+        // Обновляем дату рождения
+        const birthDateElement = document.getElementById('profile-birth-date');
+        if (birthDateElement) {
+            if (userData.birth_date) {
+                birthDateElement.setAttribute('data-date', userData.birth_date);
+                // Форматируем дату для отображения
+                const birthDate = new Date(userData.birth_date);
+                const formattedDate = birthDate.toLocaleDateString('ru-RU', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                birthDateElement.textContent = formattedDate;
+                console.log(`📅 Дата рождения установлена: ${formattedDate} (${userData.birth_date})`);
+            } else {
+                birthDateElement.removeAttribute('data-date');
+                birthDateElement.textContent = (window.translations && window.translations.get) ? window.translations.get('gender_unknown', 'Не указана') : 'Не указана';
+            }
+        }
         
         // Обновляем грейд с эффектами
         const gradeElement = document.getElementById('profile-grade');
         if (gradeElement) {
             if (userData.grade) {
+                gradeElement.setAttribute('data-grade', userData.grade);
                 const gradeLabels = {
                     'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
                     'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
@@ -118,6 +239,7 @@
                 
                 console.log(`🎯 Грейд установлен: ${gradeText} (${userData.grade})`);
             } else {
+                gradeElement.removeAttribute('data-grade');
                 gradeElement.className = 'info-value grade-none';
                 gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
             }
@@ -127,6 +249,7 @@
         const technologiesElement = document.getElementById('profile-technologies');
         if (technologiesElement) {
             if (userData.programming_languages && userData.programming_languages.length > 0) {
+                technologiesElement.removeAttribute('data-empty');
                 technologiesElement.innerHTML = '';
                 userData.programming_languages.forEach(tech => {
                     const techTag = document.createElement('span');
@@ -135,9 +258,15 @@
                     technologiesElement.appendChild(techTag);
                 });
             } else {
-                technologiesElement.innerHTML = '<span class="no-data">Технологии не указаны</span>';
+                technologiesElement.setAttribute('data-empty', 'true');
+                technologiesElement.innerHTML = `<span class="no-data">${(window.translations && window.translations.get) ? window.translations.get('no_technologies', 'Технологии не указаны') : 'Технологии не указаны'}</span>`;
             }
         }
+        
+        // Обновляем переводы после загрузки данных
+        setTimeout(() => {
+            updateProfessionalInfoTranslations();
+        }, 100);
     }
 
     async function loadTechnologies(selectedTechnologies = []) {
@@ -400,7 +529,25 @@
             console.log('🔍 initData:', tg?.initData ? 'present' : 'missing');
             
             if (!tg || !tg.initData) {
-                console.log('⚠️ Нет initData, показываем заглушку');
+                console.log('⚠️ Нет initData, пытаемся получить данные профиля через API');
+                
+                // Пытаемся получить данные профиля через API
+                try {
+                    const profileResponse = await fetch('/api/accounts/miniapp-users/by-telegram/7827592658/');
+                    if (profileResponse.ok) {
+                        const profileData = await profileResponse.json();
+                        console.log('✅ Получены данные профиля через API:', profileData);
+                        console.log('🔍 gender в API данных:', profileData.gender);
+                        console.log('🔍 birth_date в API данных:', profileData.birth_date);
+                        updateProfileDOM(profileData);
+                        return;
+                    }
+                } catch (apiError) {
+                    console.error('❌ Ошибка получения данных через API:', apiError);
+                }
+                
+                // Fallback к заглушке
+                console.log('⚠️ Fallback к заглушке');
                 const mockData = {
                     first_name: 'Тестовый',
                     last_name: 'Пользователь',
@@ -411,7 +558,9 @@
                     quizzes_completed: 0,
                     success_rate: 0,
                     social_links: [],
-                    progress: []
+                    progress: [],
+                    gender: 'male',  // Добавляем поле пола для тестирования
+                    birth_date: '1990-01-01'  // Добавляем дату рождения для тестирования
                 };
                 updateProfileDOM(mockData);
                 return;
@@ -435,6 +584,8 @@
 
             const data = await response.json();
             console.log('✅ Получены данные профиля:', data);
+            console.log('🔍 gender в данных:', data.gender);
+            console.log('🔍 birth_date в данных:', data.birth_date);
             
             updateProfileDOM(data);
 
@@ -717,5 +868,25 @@
             }
         }
     };
+
+    // Обработчик смены языка
+    window.onLanguageChanged = function() {
+        console.log('🌐 Язык изменен, обновляем переводы в профиле');
+        updateProfessionalInfoTranslations();
+    };
+
+    // Альтернативный обработчик для совместимости
+    window.updateProfessionalInfoOnLanguageChange = function() {
+        console.log('🌐 Альтернативный обработчик смены языка вызван');
+        updateProfessionalInfoTranslations();
+    };
+
+    // Вызываем обновление переводов при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🌐 DOM загружен, проверяем переводы в профиле');
+        setTimeout(() => {
+            updateProfessionalInfoTranslations();
+        }, 500);
+    });
 
 })(window);

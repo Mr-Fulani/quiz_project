@@ -150,6 +150,8 @@ class LocalizationService:
             "junior": "Junior",
             "middle": "Middle",
             "senior": "Senior",
+            "birth_date": "Birth Date",
+            "gender_unknown": "Not specified",
         },
         "ru": {
             # Навигация
@@ -292,6 +294,8 @@ class LocalizationService:
             "junior": "Junior",
             "middle": "Middle",
             "senior": "Senior",
+            "birth_date": "Дата рождения",
+            "gender_unknown": "Не указан",
         }
     }
     
