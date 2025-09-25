@@ -61,7 +61,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
     
     # Принудительно используем версию из конфига для критически важных файлов
     if filename in STATIC_VERSIONS:
-        return f"{static_path}{filename}?v={version_from_config}&t={get_cache_buster()}"
+        return f"{static_path}{filename}?v={version_from_config}&t={get_cache_buster()}&force={int(time.time())}"
     # Если есть хэш, используем его, иначе используем версию из конфига + timestamp
     elif file_hash:
         return f"{static_path}{filename}?v={file_hash}"
@@ -83,7 +83,7 @@ STATIC_VERSIONS = {
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
     'profile.css': '6.0',  # Обновлены стили для локализации
-    'top_users.css': '4.0',  # Исправлена адаптивность - фильтры в одну строку на мобильных
+    'top_users.css': '18.0',  # Добавлено дрожание электрического тока
     'statistics.css': '2.7',  # Обновлено: принудительный сброс кэша для полосы прогресса
 }
 

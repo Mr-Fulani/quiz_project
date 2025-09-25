@@ -58,7 +58,7 @@ class LocalizationService:
             "all": "All",
             "male": "Male",
             "female": "Female",
-            "reset_filters": "Reset Filters",
+            "reset_filters": "Reset ",
             
             # Статистика
             "statistics_title": "Statistics",
