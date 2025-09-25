@@ -627,16 +627,59 @@
     border: 1px solid rgba(0, 255, 0, 0.2);
     border-radius: 15px;
     padding: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.professional-info:hover {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: var(--active-color);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 255, 0, 0.3);
+}
+
+.professional-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(0, 255, 0, 0.1),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.professional-info:hover::before {
+    left: 100%;
+}
+
+.professional-info:active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(0, 255, 0, 0.2);
 }
 
 .info-item {
     display: flex;
     align-items: flex-start;
     margin-bottom: 15px;
+    transition: all 0.3s ease;
+    padding: 8px;
+    border-radius: 8px;
 }
 
 .info-item:last-child {
     margin-bottom: 0;
+}
+
+.info-item:hover {
+    background: rgba(0, 255, 0, 0.05);
+    transform: translateX(5px);
 }
 
 .info-label {
@@ -644,11 +687,32 @@
     color: var(--matrix-color);
     min-width: 120px;
     margin-right: 15px;
+    transition: all 0.3s ease;
+}
+
+.info-item:hover .info-label {
+    color: var(--active-color);
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
 }
 
 .info-value {
     color: rgba(255, 255, 255, 0.9);
     flex: 1;
+    transition: all 0.3s ease;
+}
+
+.info-item:hover .info-value {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.info-item:active {
+    transform: translateX(2px);
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.professional-info:active .info-item {
+    transform: translateX(2px);
 }
 
 /* Эффекты для грейда */
