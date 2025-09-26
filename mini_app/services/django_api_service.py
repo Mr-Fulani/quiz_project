@@ -43,7 +43,7 @@ class DjangoAPIService:
                 headers['X-Forwarded-Host'] = 'mini.quiz-code.com'
                 headers['X-Forwarded-Proto'] = 'https'
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
                 response = await client.request(method, url, headers=headers, **kwargs)
                 response.raise_for_status()

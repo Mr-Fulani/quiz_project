@@ -117,7 +117,7 @@ class DjangoAPIService:
     async def get_user_profile(self, telegram_id: int):
         profile_url = f"{self.base_url}/api/accounts/profile/by-telegram/{telegram_id}/"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.get(profile_url, headers=self.headers)
                 response.raise_for_status()
                 return response.json()

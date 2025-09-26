@@ -159,7 +159,7 @@ async def get_profile_by_telegram_id(telegram_id: int):
     headers = {}  # Временно убираем токен для тестирования
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(django_url, headers=headers, timeout=10.0)
         
         if response.status_code == 200:
@@ -209,7 +209,7 @@ async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
     files = {'avatar': (avatar.filename, file_content, avatar.content_type)}
     
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.patch(django_update_url, files=files, headers=headers, timeout=30.0)
             
         if response.status_code == 200:
@@ -250,7 +250,7 @@ async def update_miniapp_user_profile(telegram_id: int, request: Request):
                 else:  # Это обычные данные
                     data[key] = value
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.patch(
                     django_update_url, 
                     files=files if files else None,
@@ -272,7 +272,7 @@ async def update_miniapp_user_profile(telegram_id: int, request: Request):
             # Отправляем данные в Django API
             django_update_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/update/{telegram_id}/"
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.patch(
                     django_update_url,
                     json=profile_data,
@@ -625,7 +625,7 @@ async def submit_task_answer(task_id: int, request: Request):
             'answer': answer
         }
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.post(django_url, json=payload, timeout=10.0)
         
         if response.status_code == 200:
