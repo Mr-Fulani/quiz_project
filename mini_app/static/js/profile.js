@@ -16,6 +16,14 @@
         return window.Telegram?.WebApp;
     }
 
+    // Функция для получения telegram_id из URL параметров
+    function getTelegramIdFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const telegramId = urlParams.get('telegram_id');
+        console.log('🔍 Telegram ID из URL:', telegramId);
+        return telegramId ? parseInt(telegramId) : null;
+    }
+
     // Простая функция для показа уведомлений
     function showNotification(key, type, element, message) {
         console.log(`📢 Notification [${type}]: ${message}`);
@@ -527,6 +535,33 @@
             const tg = getTelegramWebApp();
             console.log('🔍 Telegram WebApp:', tg);
             console.log('🔍 initData:', tg?.initData ? 'present' : 'missing');
+            
+            // Проверяем, есть ли telegram_id в URL (для просмотра чужого профиля)
+            const urlTelegramId = getTelegramIdFromURL();
+            
+            if (urlTelegramId) {
+                console.log('🔍 Загружаем профиль пользователя по telegram_id из URL:', urlTelegramId);
+                
+                try {
+                    const profileResponse = await fetch(`/api/accounts/miniapp-users/by-telegram/${urlTelegramId}/`);
+                    if (profileResponse.ok) {
+                        const profileData = await profileResponse.json();
+                        console.log('✅ Получены данные профиля через API:', profileData);
+                        console.log('🔍 gender в API данных:', profileData.gender);
+                        console.log('🔍 birth_date в API данных:', profileData.birth_date);
+                        updateProfileDOM(profileData);
+                        return;
+                    } else {
+                        console.error('❌ Ошибка загрузки профиля:', profileResponse.status);
+                        showNotification('profile_load_error', 'error', null, getTranslation('profile_load_error', 'Ошибка загрузки профиля'));
+                        return;
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка при загрузке профиля:', error);
+                    showNotification('profile_load_error', 'error', null, getTranslation('profile_load_error', 'Ошибка загрузки профиля'));
+                    return;
+                }
+            }
             
             if (!tg || !tg.initData) {
                 console.log('⚠️ Нет initData, пытаемся получить данные профиля через API');

@@ -175,6 +175,32 @@ async def get_profile_by_telegram_id(telegram_id: int):
         logger.error(f"An unexpected error occurred in get_profile_by_telegram_id: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
+@router.get("/accounts/miniapp-users/by-telegram/{telegram_id}/")
+async def get_miniapp_user_by_telegram_id(telegram_id: int):
+    """
+    Проксирует запрос к Django API для получения MiniApp пользователя по telegram_id.
+    """
+    logger.info(f"Fetching MiniApp user from Django for telegram_id: {telegram_id}")
+    django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/by-telegram/{telegram_id}/"
+    headers = {}  # Временно убираем токен для тестирования
+
+    try:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(django_url, headers=headers, timeout=10.0)
+        
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"Error from Django API [get_miniapp_user_by_telegram_id]: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except httpx.RequestError as e:
+        logger.error(f"Request error while contacting Django API: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to backend service.")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred in get_miniapp_user_by_telegram_id: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
 
 # Удален старый handler /topics без telegram_id, используем расширенную версию ниже
 
