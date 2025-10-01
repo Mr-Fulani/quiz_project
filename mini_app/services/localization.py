@@ -152,6 +152,13 @@ class LocalizationService:
             "senior": "Senior",
             "birth_date": "Birth Date",
             "gender_unknown": "Not specified",
+            "website": "Website",
+            "telegram": "Telegram",
+            "github": "GitHub",
+            "linkedin": "LinkedIn",
+            "instagram": "Instagram",
+            "facebook": "Facebook",
+            "youtube": "YouTube",
         },
         "ru": {
             # Навигация
@@ -296,6 +303,13 @@ class LocalizationService:
             "senior": "Senior",
             "birth_date": "Дата рождения",
             "gender_unknown": "Не указан",
+            "website": "Веб-сайт",
+            "telegram": "Telegram",
+            "github": "GitHub",
+            "linkedin": "LinkedIn",
+            "instagram": "Instagram",
+            "facebook": "Facebook",
+            "youtube": "YouTube",
         }
     }
     

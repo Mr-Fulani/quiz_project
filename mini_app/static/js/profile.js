@@ -169,20 +169,20 @@
             const currentGrade = gradeElement.getAttribute('data-grade');
             if (currentGrade) {
                 const gradeLabels = {
-                    'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
-                    'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
-                    'senior': (window.translations && window.translations.get) ? window.translations.get('grade_senior', 'Senior') : 'Senior'
+                    'junior': (window.translations && window.translations.grade_junior) ? window.translations.grade_junior : 'Junior',
+                    'middle': (window.translations && window.translations.grade_middle) ? window.translations.grade_middle : 'Middle', 
+                    'senior': (window.translations && window.translations.grade_senior) ? window.translations.grade_senior : 'Senior'
                 };
                 gradeElement.textContent = gradeLabels[currentGrade] || currentGrade;
             } else {
-                gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
+                gradeElement.textContent = (window.translations && window.translations.not_specified) ? window.translations.not_specified : 'Не указан';
             }
         }
         
         // Обновляем технологии (если не указаны)
         const technologiesElement = document.getElementById('profile-technologies');
         if (technologiesElement && technologiesElement.querySelector('.no-data')) {
-            technologiesElement.innerHTML = `<span class="no-data">${(window.translations && window.translations.get) ? window.translations.get('no_technologies', 'Технологии не указаны') : 'Технологии не указаны'}</span>`;
+            technologiesElement.innerHTML = `<span class="no-data">${(window.translations && window.translations) ? window.translations.no_technologies || 'Технологии не указаны' : 'Технологии не указаны'}</span>`;
         }
     }
 
@@ -197,15 +197,15 @@
             if (userData.gender) {
                 genderElement.setAttribute('data-gender', userData.gender);
                 const genderLabels = {
-                    'male': (window.translations && window.translations.get) ? window.translations.get('male', 'Мужской') : 'Мужской',
-                    'female': (window.translations && window.translations.get) ? window.translations.get('female', 'Женский') : 'Женский'
+                    'male': (window.translations && window.translations) ? window.translations.male || 'Мужской' : 'Мужской',
+                    'female': (window.translations && window.translations) ? window.translations.female || 'Женский' : 'Женский'
                 };
                 const genderText = genderLabels[userData.gender] || userData.gender;
                 genderElement.textContent = genderText;
                 console.log(`👤 Пол установлен: ${genderText} (${userData.gender})`);
             } else {
                 genderElement.removeAttribute('data-gender');
-                genderElement.textContent = (window.translations && window.translations.get) ? window.translations.get('gender_unknown', 'Не указан') : 'Не указан';
+                genderElement.textContent = (window.translations && window.translations) ? window.translations.gender_unknown || 'Не указан' : 'Не указан';
             }
         }
         
@@ -225,7 +225,7 @@
                 console.log(`📅 Дата рождения установлена: ${formattedDate} (${userData.birth_date})`);
             } else {
                 birthDateElement.removeAttribute('data-date');
-                birthDateElement.textContent = (window.translations && window.translations.get) ? window.translations.get('gender_unknown', 'Не указана') : 'Не указана';
+                birthDateElement.textContent = (window.translations && window.translations) ? window.translations('gender_unknown', 'Не указана') : 'Не указана';
             }
         }
         
@@ -235,9 +235,9 @@
             if (userData.grade) {
                 gradeElement.setAttribute('data-grade', userData.grade);
                 const gradeLabels = {
-                    'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
-                    'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
-                    'senior': (window.translations && window.translations.get) ? window.translations.get('grade_senior', 'Senior') : 'Senior'
+                    'junior': (window.translations && window.translations) ? window.translations.grade_junior || 'Junior' : 'Junior',
+                    'middle': (window.translations && window.translations) ? window.translations.grade_middle || 'Middle' : 'Middle', 
+                    'senior': (window.translations && window.translations) ? window.translations.grade_senior || 'Senior' : 'Senior'
                 };
                 const gradeText = gradeLabels[userData.grade] || userData.grade;
                 
@@ -249,7 +249,7 @@
             } else {
                 gradeElement.removeAttribute('data-grade');
                 gradeElement.className = 'info-value grade-none';
-                gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
+                gradeElement.textContent = (window.translations && window.translations) ? window.translations.not_specified || 'Не указан' : 'Не указан';
             }
         }
         
@@ -267,7 +267,7 @@
                 });
             } else {
                 technologiesElement.setAttribute('data-empty', 'true');
-                technologiesElement.innerHTML = `<span class="no-data">${(window.translations && window.translations.get) ? window.translations.get('no_technologies', 'Технологии не указаны') : 'Технологии не указаны'}</span>`;
+                technologiesElement.innerHTML = `<span class="no-data">${(window.translations && window.translations) ? window.translations.no_technologies || 'Технологии не указаны' : 'Технологии не указаны'}</span>`;
             }
         }
         
@@ -886,9 +886,9 @@
         const gradeElement = document.getElementById('profile-grade');
         if (gradeElement && window.currentUser && window.currentUser.grade) {
             const gradeLabels = {
-                'junior': (window.translations && window.translations.get) ? window.translations.get('grade_junior', 'Junior') : 'Junior',
-                'middle': (window.translations && window.translations.get) ? window.translations.get('grade_middle', 'Middle') : 'Middle', 
-                'senior': (window.translations && window.translations.get) ? window.translations.get('grade_senior', 'Senior') : 'Senior'
+                'junior': (window.translations && window.translations) ? window.translations.grade_junior || 'Junior' : 'Junior',
+                'middle': (window.translations && window.translations) ? window.translations.grade_middle || 'Middle' : 'Middle', 
+                'senior': (window.translations && window.translations) ? window.translations.grade_senior || 'Senior' : 'Senior'
             };
             const gradeText = gradeLabels[window.currentUser.grade] || window.currentUser.grade;
             gradeElement.textContent = gradeText;
@@ -897,7 +897,7 @@
         
         // Обновляем текст "Не указан" если грейда нет
         if (gradeElement && (!window.currentUser || !window.currentUser.grade)) {
-            gradeElement.textContent = (window.translations && window.translations.get) ? window.translations.get('not_specified', 'Не указан') : 'Не указан';
+            gradeElement.textContent = (window.translations && window.translations) ? window.translations.not_specified || 'Не указан' : 'Не указан';
         }
         
         // Обновляем текст "Не указаны" для технологий если их нет
@@ -905,7 +905,7 @@
         if (technologiesElement && (!window.currentUser || !window.currentUser.programming_languages || window.currentUser.programming_languages.length === 0)) {
             const noDataElement = technologiesElement.querySelector('.no-data');
             if (noDataElement) {
-                noDataElement.textContent = (window.translations && window.translations.get) ? window.translations.get('no_technologies', 'Технологии не указаны') : 'Технологии не указаны';
+                noDataElement.textContent = (window.translations && window.translations) ? window.translations.no_technologies || 'Технологии не указаны' : 'Технологии не указаны';
             }
         }
     };
