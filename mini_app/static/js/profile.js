@@ -356,27 +356,197 @@
             console.log('📋 Загружены технологии:', technologies);
             console.log('📊 Количество технологий:', technologies.length);
             
-                // Создаем обычный выпадающий список для выбора одной технологии
+                // Создаем выпадающий список с чекбоксами для выбора технологий
                 const selectHTML = `
-                    <select id="technologies-select" name="programming_language_ids">
-                        <option value="">Выберите технологию</option>
+                    <div class="technologies-dropdown" style="position: relative; width: 100%;">
+                        <button type="button" id="technologies-toggle" class="technologies-toggle" style="
+                            width: 100%; 
+                            padding: 12px 16px; 
+                            border: 2px solid #e1e5e9; 
+                            border-radius: 8px; 
+                            background: #ffffff; 
+                            cursor: pointer;
+                            text-align: left;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            font-size: 14px;
+                            color: #2c3e50;
+                            transition: all 0.2s ease;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        " onmouseover="this.style.borderColor='#3498db'" onmouseout="this.style.borderColor='#e1e5e9'">
+                            <span id="technologies-selected-text">Выберите технологии (необязательно)</span>
+                            <span style="font-size: 12px; color: #7f8c8d;">▼</span>
+                        </button>
+                        <div id="technologies-dropdown-content" class="technologies-dropdown-content" style="
+                            display: none;
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 2px solid #e1e5e9;
+                            border-top: none;
+                            border-radius: 0 0 8px 8px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                        ">
                         ${technologies.map(tech => {
                             const isSelected = selectedTechnologyNames.includes(tech.name);
                             console.log(`🔍 Технология: ${tech.name}, ID: ${tech.id}, Выбрана: ${isSelected}`);
-                            return `<option value="${tech.id}" ${isSelected ? 'selected' : ''}>${tech.name}</option>`;
+                                return `
+                                    <label style="
+                                        display: flex; 
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        padding: 12px 16px; 
+                                        cursor: pointer; 
+                                        border-bottom: 1px solid #f8f9fa;
+                                        margin: 0;
+                                        font-size: 14px;
+                                        color: #2c3e50;
+                                        transition: background-color 0.2s ease;
+                                    " onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                        <span>${tech.name}</span>
+                                        <input type="checkbox" 
+                                               value="${tech.id}" 
+                                               ${isSelected ? 'checked' : ''} 
+                                               style="
+                                                   margin: 0;
+                                                   width: 16px;
+                                                   height: 16px;
+                                                   accent-color: #3498db;
+                                               ">
+                                    </label>
+                                `;
                         }).join('')}
-                    </select>
+                        </div>
+                    </div>
+                    <div class="technologies-help" style="margin-top: 8px; font-size: 12px; color: #7f8c8d;">
+                        💡 <span data-translate="technologies_help">Нажмите на список, чтобы выбрать несколько технологий. Поле можно оставить пустым.</span>
+                    </div>
+                    <div class="technologies-actions" style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button type="button" id="clear-technologies" style="
+                            padding: 6px 12px;
+                            background: #e74c3c;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 12px;
+                        " onmouseover="this.style.backgroundColor='#c0392b'" onmouseout="this.style.backgroundColor='#e74c3c'">
+                            🗑️ <span data-translate="clear_all">Очистить все</span>
+                        </button>
+                        <button type="button" id="select-all-technologies" style="
+                            padding: 6px 12px;
+                            background: #3498db;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 12px;
+                        " onmouseover="this.style.backgroundColor='#2980b9'" onmouseout="this.style.backgroundColor='#3498db'">
+                            ✅ <span data-translate="select_all">Выбрать все</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="technologies-clear-flag" name="technologies_clear" value="false">
                 `;
             
             console.log('🎨 HTML для select:', selectHTML);
             container.innerHTML = selectHTML;
             
             console.log('✅ Выпадающий список технологий создан');
-            console.log('🎯 Созданный select элемент:', document.getElementById('technologies-select'));
+            
+            // Добавляем обработчики для выпадающего списка
+            setupTechnologiesDropdown();
             
         } catch (error) {
             console.error('❌ Ошибка загрузки технологий:', error);
             container.innerHTML = '<div class="technologies-error">Ошибка загрузки технологий: ' + error.message + '</div>';
+        }
+    }
+
+    function setupTechnologiesDropdown() {
+        console.log('🔧 Настройка выпадающего списка технологий');
+        
+        const toggle = document.getElementById('technologies-toggle');
+        const content = document.getElementById('technologies-dropdown-content');
+        const selectedText = document.getElementById('technologies-selected-text');
+        
+        if (!toggle || !content || !selectedText) {
+            console.error('❌ Элементы выпадающего списка не найдены');
+            return;
+        }
+        
+        // Обработчик клика по кнопке
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = content.style.display !== 'none';
+            content.style.display = isOpen ? 'none' : 'block';
+            console.log('🔄 Выпадающий список:', isOpen ? 'закрыт' : 'открыт');
+        });
+        
+        // Обработчик клика по чекбоксам
+        content.addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                updateSelectedTechnologiesText();
+                console.log('✅ Обновлен текст выбранных технологий');
+            }
+        });
+        
+        // Закрытие при клике вне списка
+        document.addEventListener('click', (e) => {
+            if (!toggle.contains(e.target) && !content.contains(e.target)) {
+                content.style.display = 'none';
+            }
+        });
+        
+        // Обновляем текст при инициализации
+        updateSelectedTechnologiesText();
+        
+        // Добавляем обработчики для кнопок
+        const clearButton = document.getElementById('clear-technologies');
+        const selectAllButton = document.getElementById('select-all-technologies');
+        
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                const checkboxes = content.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = false);
+                // Устанавливаем флаг для отправки пустого массива
+                const clearFlag = document.getElementById('technologies-clear-flag');
+                if (clearFlag) {
+                    clearFlag.value = 'true';
+                }
+                updateSelectedTechnologiesText();
+                console.log('🗑️ Все технологии очищены, установлен флаг очистки');
+            });
+        }
+        
+        if (selectAllButton) {
+            selectAllButton.addEventListener('click', () => {
+                const checkboxes = content.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = true);
+                updateSelectedTechnologiesText();
+                console.log('✅ Все технологии выбраны');
+            });
+        }
+        
+        function updateSelectedTechnologiesText() {
+            const checkboxes = content.querySelectorAll('input[type="checkbox"]');
+            const selected = Array.from(checkboxes).filter(cb => cb.checked);
+            
+            if (selected.length === 0) {
+                selectedText.textContent = window.translations.select_technologies_optional || 'Выберите технологии (необязательно)';
+            } else if (selected.length === 1) {
+                selectedText.textContent = selected[0].parentElement.querySelector('span').textContent;
+            } else {
+                const selectedText = window.translations.selected_technologies || 'Выбрано:';
+                selectedText.textContent = `${selectedText} ${selected.length} ${window.translations.technologies || 'технологий'}`;
+            }
+            
+            console.log('📋 Выбрано технологий:', selected.length);
         }
     }
 
@@ -690,11 +860,10 @@
                         console.log('📝 Заполнена дата рождения:', currentUser.birth_date);
                     }
                     
-                    // Загружаем и заполняем технологии (берем только первую)
+                    // Загружаем и заполняем технологии (передаем все выбранные)
                     if (currentUser.programming_languages && currentUser.programming_languages.length > 0) {
-                        const firstTechnology = currentUser.programming_languages[0];
-                        console.log('📝 Загружаем технологии, первая выбрана:', firstTechnology);
-                        loadTechnologiesWithNames([firstTechnology]);
+                        console.log('📝 Загружаем технологии, все выбранные:', currentUser.programming_languages);
+                        loadTechnologiesWithNames(currentUser.programming_languages);
                     } else {
                         console.log('📝 Нет выбранных технологий, загружаем пустой список');
                         loadTechnologiesWithNames([]);
@@ -802,15 +971,33 @@
                     formData.append('birth_date', birthDateInput.value);
                 }
                 
-            // Собираем выбранную технологию из выпадающего списка (одну)
-            const technologiesSelect = document.getElementById('technologies-select');
-            if (technologiesSelect && technologiesSelect.value) {
-                const selectedTechnologyId = parseInt(technologiesSelect.value);
+            // Собираем выбранные технологии из чекбоксов
+            const technologiesContent = document.getElementById('technologies-dropdown-content');
+            const clearFlag = document.getElementById('technologies-clear-flag');
+            const shouldClear = clearFlag && clearFlag.value === 'true';
+            
+            if (technologiesContent) {
+                const checkboxes = technologiesContent.querySelectorAll('input[type="checkbox"]');
+                const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+                console.log('📋 Выбранные технологии:', selectedCheckboxes.map(cb => ({ id: cb.value, name: cb.parentElement.textContent.trim() })));
+                console.log('📋 Флаг очистки:', shouldClear);
+                
+                if (shouldClear) {
+                    // Отправляем пустой массив для удаления всех технологий
+                    formData.append('programming_language_ids', '');
+                    console.log('📋 Отправляем пустой массив для удаления всех технологий');
+                } else if (selectedCheckboxes.length > 0) {
                 // Отправляем каждый ID отдельно для FormData
-                formData.append('programming_language_ids', selectedTechnologyId);
-                console.log('📋 Отправляем programming_language_ids:', selectedTechnologyId);
+                    selectedCheckboxes.forEach(checkbox => {
+                        formData.append('programming_language_ids', checkbox.value);
+                    });
+                    console.log('📋 Отправляем programming_language_ids:', selectedCheckboxes.map(cb => cb.value));
             } else {
-                console.log('📋 Нет выбранной технологии, не отправляем programming_language_ids');
+                    // Если ничего не выбрано и нет флага очистки, НЕ отправляем programming_language_ids
+                    console.log('📋 Нет выбранных технологий, НЕ отправляем programming_language_ids (оставляем существующие)');
+                }
+            } else {
+                console.log('📋 Контейнер технологий не найден');
             }
                 
                 // Добавляем остальные поля формы
@@ -962,11 +1149,12 @@
                         birthDateInput.value = currentUser.birth_date || '';
                     }
                     
-                    // Загружаем технологии
+                    // Загружаем технологии (передаем все выбранные)
                     if (currentUser.programming_languages && currentUser.programming_languages.length > 0) {
-                        const firstTechnology = currentUser.programming_languages[0];
-                        loadTechnologiesWithNames([firstTechnology]);
+                        console.log('📝 Загружаем технологии, все выбранные:', currentUser.programming_languages);
+                        loadTechnologiesWithNames(currentUser.programming_languages);
                     } else {
+                        console.log('📝 Нет выбранных технологий, загружаем пустой список');
                         loadTechnologiesWithNames([]);
                     }
                     

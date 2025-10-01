@@ -2,105 +2,105 @@
   "tasks": [
     {
       "topic": "Swift",
-      "subtopic": "SwiftUI - State & Binding",
-      "description": "Задача на понимание механизма @State в SwiftUI",
+      "subtopic": "Recursive Functions",
+      "description": "Analyzing a recursive function in Swift and identifying logical issues.",
       "difficulty": "hard",
       "translations": [
         {
           "language": "en",
-          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nWhat happens when the button is pressed multiple times?",
+          "question": "The function below is intended to compute the factorial of a number. What is wrong with its implementation?\n\n```swift\nfunc factorial(_ n: Int) -> Int {\n    if n == 0 {\n        return 1\n    }\n    return n * factorial(n - 2)\n}\n```",
           "answers": [
-            "The text updates dynamically to reflect the new count",
-            "The count increases internally but the UI does not update",
-            "The app crashes after the second press"
+            "It decreases `n` by 2 instead of 1, skipping values.",
+            "It does not handle negative numbers, causing infinite recursion.",
+            "Both of the above"
           ],
-          "correct_answer": "The text updates dynamically to reflect the new count",
-          "explanation": "In SwiftUI, @State marks a variable as reactive. When it changes, the view body re-renders and the Text updates dynamically."
+          "correct_answer": "Both of the above",
+          "explanation": "The function incorrectly decrements by 2, skipping values, and does not handle negative inputs, which may lead to infinite recursion."
         },
         {
           "language": "ru",
-          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nЧто произойдет при многократном нажатии кнопки?",
+          "question": "Функция ниже должна вычислять факториал числа. В чём ошибка её реализации?\n\n```swift\nfunc factorial(_ n: Int) -> Int {\n    if n == 0 {\n        return 1\n    }\n    return n * factorial(n - 2)\n}\n```",
           "answers": [
-            "Текст будет динамически обновляться, показывая новое значение",
-            "Значение счётчика изменится, но UI не обновится",
-            "Приложение вылетит после второго нажатия"
+            "Аргумент уменьшается на 2 вместо 1, пропуская значения.",
+            "Нет проверки на отрицательные числа, что вызывает бесконечную рекурсию.",
+            "Обе ошибки"
           ],
-          "correct_answer": "Текст будет динамически обновляться, показывая новое значение",
-          "explanation": "В SwiftUI переменные с @State являются реактивными. При их изменении происходит повторный рендеринг, и Text обновляется."
+          "correct_answer": "Обе ошибки",
+          "explanation": "Функция неверно уменьшает аргумент на 2 и не обрабатывает отрицательные значения, что ведёт к бесконечной рекурсии."
         },
         {
           "language": "tr",
-          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nButona birkaç kez basıldığında ne olur?",
+          "question": "Aşağıdaki fonksiyon bir sayının faktöriyelini hesaplamak için yazılmıştır. Hangi hata(lar) vardır?\n\n```swift\nfunc factorial(_ n: Int) -> Int {\n    if n == 0 {\n        return 1\n    }\n    return n * factorial(n - 2)\n}\n```",
           "answers": [
-            "Metin yeni değeri gösterecek şekilde dinamik olarak güncellenir",
-            "Sayaç artar ama arayüz güncellenmez",
-            "Uygulama ikinci basıştan sonra çöker"
+            "Fonksiyon `n`'i 1 yerine 2 azaltıyor.",
+            "Negatif sayılar için durma koşulu yok, sonsuz döngüye girer.",
+            "Her ikisi de"
           ],
-          "correct_answer": "Metin yeni değeri gösterecek şekilde dinamik olarak güncellenir",
-          "explanation": "SwiftUI'de @State değişkenleri reaktiftir. Değer değiştiğinde görünüm yeniden render edilir ve metin güncellenir."
+          "correct_answer": "Her ikisi de",
+          "explanation": "Fonksiyon `n`'i yanlışlıkla 2 azaltıyor ve negatif sayılar için durma koşulu yok, bu yüzden sonsuz döngü oluşur."
         },
         {
           "language": "ar",
-          "question": "```swift\nimport SwiftUI\n\nstruct CounterView: View {\n    @State private var count = 0\n\n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increase\") {\n                count += 1\n            }\n        }\n    }\n}\n```\nماذا يحدث عند الضغط على الزر عدة مرات؟",
+          "question": "الدالة التالية مكتوبة لحساب مضروب العدد. ما الخطأ في تنفيذها؟\n\n```swift\nfunc factorial(_ n: Int) -> Int {\n    if n == 0 {\n        return 1\n    }\n    return n * factorial(n - 2)\n}\n```",
           "answers": [
-            "النص يتم تحديثه ديناميكياً ليعكس القيمة الجديدة",
-            "القيمة تزداد داخلياً لكن واجهة المستخدم لا تتغير",
-            "التطبيق يتعطل بعد الضغطة الثانية"
+            "تقوم بإنقاص `n` بمقدار 2 بدلاً من 1.",
+            "لا تحتوي على شرط توقف للأعداد السالبة مما يؤدي إلى استدعاء لانهائي.",
+            "كلاهما صحيح"
           ],
-          "correct_answer": "النص يتم تحديثه ديناميكياً ليعكس القيمة الجديدة",
-          "explanation": "في SwiftUI، المتغيرات مع @State تكون تفاعلية. عند تغييرها، يتم إعادة بناء الواجهة وتحديث النص."
+          "correct_answer": "كلاهما صحيح",
+          "explanation": "الدالة تنقص العدد بمقدار 2 بشكل خاطئ ولا تعالج القيم السالبة، مما يؤدي إلى استدعاء لانهائي."
         }
       ]
     },
     {
       "topic": "Swift",
-      "subtopic": "Vapor - Routing",
-      "description": "Задача на понимание обработки маршрутов в Vapor",
+      "subtopic": "Higher-Order Functions",
+      "description": "Determining the correct use of higher-order functions in Swift.",
       "difficulty": "hard",
       "translations": [
         {
           "language": "en",
-          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nWhat happens if the user visits `http://localhost:8080/hello`?",
+          "question": "We want to write a function `applyTwice` that applies a given function twice to a value. Which implementation is correct?\n\nOptions:\n1.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(x) + f(x)\n}\n```\n2.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(f(x))\n}\n```\n3.\n```swift\nfunc applyTwice(f: (Int, Int) -> Int, x: Int) -> Int {\n    return f(x, x)\n}\n```",
           "answers": [
-            "The browser shows: Hello, Vapor!",
-            "The server returns a 404 error",
-            "The server crashes due to missing middleware"
+            "Option 1",
+            "Option 2",
+            "Option 3"
           ],
-          "correct_answer": "The browser shows: Hello, Vapor!",
-          "explanation": "The route `/hello` is explicitly defined. When visited, Vapor executes the closure and returns the string response."
+          "correct_answer": "Option 2",
+          "explanation": "Option 2 correctly applies the function twice: f(f(x))."
         },
         {
           "language": "ru",
-          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nЧто произойдет при переходе на `http://localhost:8080/hello`?",
+          "question": "Нужно написать функцию `applyTwice`, которая применяет функцию дважды к значению. Какой вариант правильный?\n\nВарианты:\n1.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(x) + f(x)\n}\n```\n2.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(f(x))\n}\n```\n3.\n```swift\nfunc applyTwice(f: (Int, Int) -> Int, x: Int) -> Int {\n    return f(x, x)\n}\n```",
           "answers": [
-            "Браузер отобразит: Hello, Vapor!",
-            "Сервер вернёт ошибку 404",
-            "Сервер упадёт из-за отсутствия middleware"
+            "Вариант 1",
+            "Вариант 2",
+            "Вариант 3"
           ],
-          "correct_answer": "Браузер отобразит: Hello, Vapor!",
-          "explanation": "Маршрут `/hello` явно определён. При обращении к нему Vapor выполнит замыкание и вернёт строку."
+          "correct_answer": "Вариант 2",
+          "explanation": "Вариант 2 корректно применяет функцию дважды: f(f(x))."
         },
         {
           "language": "tr",
-          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nKullanıcı `http://localhost:8080/hello` adresini ziyaret ederse ne olur?",
+          "question": "`applyTwice` adında bir fonksiyon yazmak istiyoruz. Bu fonksiyon, verilen fonksiyonu bir değere iki kez uygulamalı. Aşağıdaki implementasyonlardan hangisi doğrudur?\n\nSeçenekler:\n1.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(x) + f(x)\n}\n```\n2.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(f(x))\n}\n```\n3.\n```swift\nfunc applyTwice(f: (Int, Int) -> Int, x: Int) -> Int {\n    return f(x, x)\n}\n```",
           "answers": [
-            "Tarayıcıda: Hello, Vapor! gösterilir",
-            "Sunucu 404 hatası döner",
-            "Sunucu middleware eksikliğinden çöker"
+            "Seçenek 1",
+            "Seçenek 2",
+            "Seçenek 3"
           ],
-          "correct_answer": "Tarayıcıda: Hello, Vapor! gösterilir",
-          "explanation": "Route `/hello` açıkça tanımlanmıştır. Ziyaret edildiğinde, Vapor closure'u çalıştırır ve string yanıt döner."
+          "correct_answer": "Seçenek 2",
+          "explanation": "Seçenek 2 doğrudur çünkü fonksiyon iki kez uygulanır: f(f(x))."
         },
         {
           "language": "ar",
-          "question": "```swift\nimport Vapor\n\nfunc routes(_ app: Application) throws {\n    app.get(\"hello\") { req -> String in\n        return \"Hello, Vapor!\"\n    }\n}\n```\nماذا يحدث إذا زار المستخدم `http://localhost:8080/hello`؟",
+          "question": "نريد كتابة دالة `applyTwice` تقوم بتطبيق دالة معينة مرتين على قيمة. أي من هذه الخيارات صحيح؟\n\nالخيارات:\n1.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(x) + f(x)\n}\n```\n2.\n```swift\nfunc applyTwice(f: (Int) -> Int, x: Int) -> Int {\n    return f(f(x))\n}\n```\n3.\n```swift\nfunc applyTwice(f: (Int, Int) -> Int, x: Int) -> Int {\n    return f(x, x)\n}\n```",
           "answers": [
-            "المتصفح يعرض: Hello, Vapor!",
-            "الخادم يعيد خطأ 404",
-            "الخادم يتعطل بسبب نقص middleware"
+            "الخيار 1",
+            "الخيار 2",
+            "الخيار 3"
           ],
-          "correct_answer": "المتصفح يعرض: Hello, Vapor!",
-          "explanation": "المسار `/hello` معرف صراحةً. عند زيارته، يقوم Vapor بتنفيذ الكود وإرجاع النص."
+          "correct_answer": "الخيار 2",
+          "explanation": "الخيار 2 صحيح لأنه يطبق الدالة مرتين: f(f(x))."
         }
       ]
     }

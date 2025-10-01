@@ -2,217 +2,105 @@
   "tasks": [
     {
       "topic": "Python",
-      "subtopic": "Mutable Default Arguments",
-      "description": "Understanding mutable default argument behavior",
-      "difficulty": "medium",
-      "translations": [
-        {
-          "language": "en",
-          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# What will be printed?",
-          "answers": ["[2]", "[1, 2]", "[]"],
-          "correct_answer": "[1, 2]",
-          "explanation": "The default argument [] is evaluated only once when the function is defined. Both calls share the same list object, so the second call sees the item from the first call."
-        },
-        {
-          "language": "ru",
-          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# Что будет выведено?",
-          "answers": ["[2]", "[1, 2]", "[]"],
-          "correct_answer": "[1, 2]",
-          "explanation": "Аргумент по умолчанию [] вычисляется только один раз при определении функции. Оба вызова используют один и тот же объект списка, поэтому второй вызов видит элемент из первого вызова."
-        },
-        {
-          "language": "tr",
-          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# Ne yazdırılacak?",
-          "answers": ["[2]", "[1, 2]", "[]"],
-          "correct_answer": "[1, 2]",
-          "explanation": "Varsayılan argüman [] sadece fonksiyon tanımlandığında bir kez değerlendirilir. Her iki çağrı da aynı liste nesnesini paylaşır, bu yüzden ikinci çağrı birinci çağrıdan gelen öğeyi görür."
-        },
-        {
-          "language": "ar",
-          "question": "def append_item(item, target_list=[]):\n    target_list.append(item)\n    return target_list\n\nresult1 = append_item(1)\nresult2 = append_item(2)\nprint(result2)\n\n# ماذا سيُطبع؟",
-          "answers": ["[2]", "[1, 2]", "[]"],
-          "correct_answer": "[1, 2]",
-          "explanation": "المعطى الافتراضي [] يتم تقييمه مرة واحدة فقط عند تعريف الدالة. كلا الاستدعاءين يتشاركان نفس كائن القائمة، لذا الاستدعاء الثاني يرى العنصر من الاستدعاء الأول."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Closures and Late Binding",
-      "description": "Understanding variable capture in closures",
+      "subtopic": "Recursive Functions",
+      "description": "Analyzing a recursive function and identifying logical errors in its implementation.",
       "difficulty": "hard",
       "translations": [
         {
           "language": "en",
-          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# What will be printed?",
-          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
-          "correct_answer": "[2, 2, 2]",
-          "explanation": "All lambda functions capture the variable 'i' by reference, not by value. When executed, 'i' has the value 2 (the last value from the loop), so all functions return 2."
+          "question": "The function below is intended to calculate the factorial of a number. What is the issue with its current implementation?\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "It decreases `n` by 2 instead of 1, skipping values.",
+            "It has no base case for negative numbers, leading to infinite recursion.",
+            "Both of the above"
+          ],
+          "correct_answer": "Both of the above",
+          "explanation": "The function incorrectly decrements by 2, skipping values, and also lacks handling for negative inputs, causing infinite recursion."
         },
         {
           "language": "ru",
-          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# Что будет выведено?",
-          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
-          "correct_answer": "[2, 2, 2]",
-          "explanation": "Все lambda функции захватывают переменную 'i' по ссылке, а не по значению. При выполнении 'i' имеет значение 2 (последнее значение из цикла), поэтому все функции возвращают 2."
+          "question": "Функция ниже должна вычислять факториал числа. В чём ошибка её реализации?\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "Аргумент уменьшается на 2 вместо 1, пропуская значения.",
+            "Нет проверки на отрицательные числа, что ведёт к бесконечной рекурсии.",
+            "Обе ошибки"
+          ],
+          "correct_answer": "Обе ошибки",
+          "explanation": "Функция неверно уменьшает аргумент на 2 и не обрабатывает отрицательные числа, что вызывает бесконечную рекурсию."
         },
         {
           "language": "tr",
-          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# Ne yazdırılacak?",
-          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
-          "correct_answer": "[2, 2, 2]",
-          "explanation": "Tüm lambda fonksiyonları 'i' değişkenini değer olarak değil, referans olarak yakalar. Çalıştırıldığında 'i' değeri 2'dir (döngüdeki son değer), bu yüzden tüm fonksiyonlar 2 döndürür."
+          "question": "Aşağıdaki fonksiyon bir sayının faktöriyelini hesaplamak için yazılmıştır. Hangi hata(lar) vardır?\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "Fonksiyon `n`'i 1 yerine 2 azaltıyor.",
+            "Negatif sayılar için durma koşulu yok, sonsuz döngüye girer.",
+            "Her ikisi de"
+          ],
+          "correct_answer": "Her ikisi de",
+          "explanation": "Fonksiyon `n`'i yanlışlıkla 2 azaltıyor ve negatif sayılar için durma koşulu yok, bu yüzden sonsuz döngü oluşur."
         },
         {
           "language": "ar",
-          "question": "funcs = []\nfor i in range(3):\n    funcs.append(lambda: i)\n\nresult = [f() for f in funcs]\nprint(result)\n\n# ماذا سيُطبع؟",
-          "answers": ["[0, 1, 2]", "[2, 2, 2]", "[None, None, None]"],
-          "correct_answer": "[2, 2, 2]",
-          "explanation": "جميع دوال lambda تلتقط المتغير 'i' بالمرجع وليس بالقيمة. عند التنفيذ، 'i' له القيمة 2 (القيمة الأخيرة من الحلقة)، لذا تُرجع جميع الدوال 2."
+          "question": "الدالة التالية مكتوبة لحساب مضروب العدد (factorial). ما الخطأ في تنفيذها؟\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "تقوم بإنقاص `n` بمقدار 2 بدلاً من 1.",
+            "لا تحتوي على شرط توقف للأعداد السالبة مما يؤدي إلى استدعاء لانهائي.",
+            "كلاهما صحيح"
+          ],
+          "correct_answer": "كلاهما صحيح",
+          "explanation": "الدالة تنقص العدد بمقدار 2 بشكل خاطئ ولا تعالج القيم السالبة، مما يؤدي إلى استدعاء لانهائي."
         }
       ]
     },
     {
       "topic": "Python",
-      "subtopic": "List Multiplication",
-      "description": "Understanding list multiplication with mutable objects",
-      "difficulty": "medium",
-      "translations": [
-        {
-          "language": "en",
-          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# What will be printed?",
-          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
-          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
-          "explanation": "The * operator creates references to the same list object, not copies. All three rows are the same list object, so modifying one affects all."
-        },
-        {
-          "language": "ru",
-          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# Что будет выведено?",
-          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
-          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
-          "explanation": "Оператор * создает ссылки на один и тот же объект списка, а не копии. Все три строки - это один и тот же объект списка, поэтому изменение одной влияет на все."
-        },
-        {
-          "language": "tr",
-          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# Ne yazdırılacak?",
-          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
-          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
-          "explanation": "* operatörü aynı liste nesnesine referanslar oluşturur, kopya değil. Üç satır da aynı liste nesnesidir, bu yüzden birini değiştirmek hepsini etkiler."
-        },
-        {
-          "language": "ar",
-          "question": "matrix = [[0] * 3] * 3\nmatrix[0][0] = 1\nprint(matrix)\n\n# ماذا سيُطبع؟",
-          "answers": ["[[1, 0, 0], [0, 0, 0], [0, 0, 0]]", "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]", "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]"],
-          "correct_answer": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
-          "explanation": "المشغل * ينشئ مراجع لنفس كائن القائمة وليس نسخ. الصفوف الثلاثة هي نفس كائن القائمة، لذا تعديل واحد يؤثر على الجميع."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Dictionary Iteration",
-      "description": "Understanding dictionary modification during iteration",
+      "subtopic": "Higher-Order Functions",
+      "description": "Determining the correct use of higher-order functions and function composition.",
       "difficulty": "hard",
       "translations": [
         {
           "language": "en",
-          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# What will happen?",
-          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
-          "correct_answer": "RuntimeError",
-          "explanation": "Modifying a dictionary while iterating over it raises a RuntimeError: dictionary changed size during iteration."
+          "question": "We want to write a function `apply_twice(f, x)` that applies a function `f` to a value `x` two times. Which of the following implementations is correct?\n\nOptions:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "Option 1",
+            "Option 2",
+            "Option 3"
+          ],
+          "correct_answer": "Option 2",
+          "explanation": "Option 2 correctly applies the function to the result of itself: f(f(x))."
         },
         {
           "language": "ru",
-          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# Что произойдет?",
-          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
-          "correct_answer": "RuntimeError",
-          "explanation": "Изменение словаря во время итерации по нему вызывает RuntimeError: dictionary changed size during iteration."
+          "question": "Нужно написать функцию `apply_twice(f, x)`, которая применяет функцию `f` к значению `x` дважды. Какой из вариантов правильный?\n\nВарианты:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "Вариант 1",
+            "Вариант 2",
+            "Вариант 3"
+          ],
+          "correct_answer": "Вариант 2",
+          "explanation": "Вариант 2 корректно вызывает функцию дважды, применяя её к результату самой себя: f(f(x))."
         },
         {
           "language": "tr",
-          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# Ne olacak?",
-          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
-          "correct_answer": "RuntimeError",
-          "explanation": "Sözlük üzerinde iterasyon yaparken sözlüğü değiştirmek RuntimeError atar: dictionary changed size during iteration."
+          "question": "`apply_twice(f, x)` adında bir fonksiyon yazmak istiyoruz. Bu fonksiyon, verilen `f` fonksiyonunu `x` değerine iki kez uygulamalı. Aşağıdaki implementasyonlardan hangisi doğrudur?\n\nSeçenekler:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "Seçenek 1",
+            "Seçenek 2",
+            "Seçenek 3"
+          ],
+          "correct_answer": "Seçenek 2",
+          "explanation": "Seçenek 2 doğrudur çünkü fonksiyon kendisinin sonucuna uygulanır: f(f(x))."
         },
         {
           "language": "ar",
-          "question": "d = {'a': 1, 'b': 2, 'c': 3}\nfor key in d:\n    if d[key] % 2 == 0:\n        del d[key]\nprint(d)\n\n# ماذا سيحدث؟",
-          "answers": ["{'a': 1, 'c': 3}", "RuntimeError", "KeyError"],
-          "correct_answer": "RuntimeError",
-          "explanation": "تعديل القاموس أثناء التكرار عليه يثير RuntimeError: dictionary changed size during iteration."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Class Variables vs Instance Variables",
-      "description": "Understanding the difference between class and instance variables",
-      "difficulty": "medium",
-      "translations": [
-        {
-          "language": "en",
-          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# What will be printed?",
-          "answers": ["1 2 0", "1 1 0", "1 2 2"],
-          "correct_answer": "1 2 2",
-          "explanation": "The first instance creates an instance variable that shadows the class variable. The second instance modifies the class variable directly. Both instances see their respective count values, and the class variable is 2."
-        },
-        {
-          "language": "ru",
-          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# Что будет выведено?",
-          "answers": ["1 2 0", "1 1 0", "1 2 2"],
-          "correct_answer": "1 2 2",
-          "explanation": "Первый экземпляр создает переменную экземпляра, которая затеняет переменную класса. Второй экземпляр изменяет переменную класса напрямую. Оба экземпляра видят свои соответствующие значения count, а переменная класса равна 2."
-        },
-        {
-          "language": "tr",
-          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# Ne yazdırılacak?",
-          "answers": ["1 2 0", "1 1 0", "1 2 2"],
-          "correct_answer": "1 2 2",
-          "explanation": "İlk örnek, sınıf değişkenini gölgeleyen bir örnek değişkeni oluşturur. İkinci örnek sınıf değişkenini doğrudan değiştirir. Her iki örnek de kendi count değerlerini görür ve sınıf değişkeni 2'dir."
-        },
-        {
-          "language": "ar",
-          "question": "class Counter:\n    count = 0\n    def __init__(self):\n        self.count += 1\n\nc1 = Counter()\nc2 = Counter()\nprint(c1.count, c2.count, Counter.count)\n\n# ماذا سيُطبع؟",
-          "answers": ["1 2 0", "1 1 0", "1 2 2"],
-          "correct_answer": "1 2 2",
-          "explanation": "المثيل الأول ينشئ متغير مثيل يخفي متغير الكلاس. المثيل الثاني يعدل متغير الكلاس مباشرة. كلا المثيلين يريان قيم count الخاصة بهما، ومتغير الكلاس هو 2."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Generator Expressions",
-      "description": "Understanding generator expression evaluation timing",
-      "difficulty": "hard",
-      "translations": [
-        {
-          "language": "en",
-          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# What will be printed?",
-          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
-          "correct_answer": "[0, 2, 4] [0, 2, 4]",
-          "explanation": "List comprehensions are evaluated immediately when created, while generator expressions are evaluated lazily when iterated over. Both produce the same result when consumed."
-        },
-        {
-          "language": "ru",
-          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# Что будет выведено?",
-          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
-          "correct_answer": "[0, 2, 4] [0, 2, 4]",
-          "explanation": "Списочные включения вычисляются немедленно при создании, в то время как генераторные выражения вычисляются лениво при итерации. Оба дают одинаковый результат при потреблении."
-        },
-        {
-          "language": "tr",
-          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# Ne yazdırılacak?",
-          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
-          "correct_answer": "[0, 2, 4] [0, 2, 4]",
-          "explanation": "Liste comprehensions oluşturulduğunda hemen değerlendirilir, generator expressions ise iterate edildiğinde lazy olarak değerlendirilir. İkisi de tüketildiğinde aynı sonucu üretir."
-        },
-        {
-          "language": "ar",
-          "question": "def create_generators():\n    return [x*2 for x in range(3)], (x*2 for x in range(3))\n\nlist_comp, gen_exp = create_generators()\nprint(list(list_comp), list(gen_exp))\n\n# ماذا سيُطبع؟",
-          "answers": ["[0, 2, 4] [0, 2, 4]", "[0, 2, 4] []", "[] [0, 2, 4]"],
-          "correct_answer": "[0, 2, 4] [0, 2, 4]",
-          "explanation": "List comprehensions يتم تقييمها فوراً عند الإنشاء، بينما generator expressions يتم تقييمها بكسل عند التكرار. كلاهما ينتج نفس النتيجة عند الاستهلاك."
+          "question": "نريد كتابة دالة `apply_twice(f, x)` تقوم بتطبيق الدالة `f` على القيمة `x` مرتين. أي من هذه الخيارات صحيح؟\n\nالخيارات:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "الخيار 1",
+            "الخيار 2",
+            "الخيار 3"
+          ],
+          "correct_answer": "الخيار 2",
+          "explanation": "الخيار 2 صحيح لأنه يطبق الدالة على نتيجة نفسها: f(f(x))."
         }
       ]
     }
