@@ -27,15 +27,15 @@
         <div class="professional-info">
             <div class="info-item">
                 <span class="info-label" data-translate="gender">{{ translations.get('gender', 'Пол') }}:</span>
-                <span id="profile-gender" class="info-value">Не указан</span>
+                <span id="profile-gender" class="info-value" data-translate="not_specified">{{ translations.get('not_specified', 'Не указан') }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label" data-translate="birth_date">{{ translations.get('birth_date', 'Дата рождения') }}:</span>
-                <span id="profile-birth-date" class="info-value">Не указана</span>
+                <span id="profile-birth-date" class="info-value" data-translate="not_specified">{{ translations.get('not_specified', 'Не указана') }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</span>
-                <span id="profile-grade" class="info-value">Не указан</span>
+                <span id="profile-grade" class="info-value" data-translate="not_specified">{{ translations.get('not_specified', 'Не указан') }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label" data-translate="technologies">{{ translations.get('technologies', 'Технологии') }}:</span>
@@ -69,12 +69,12 @@
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Редактировать профиль</h2>
+                <h2 data-translate="edit_profile">{{ translations.get('edit_profile', 'Редактировать профиль') }}</h2>
                 <span class="close">&times;</span>
             </div>
             <form id="edit-profile-form" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="avatar-input">Аватар:</label>
+                    <label for="avatar-input" data-translate="upload_avatar">{{ translations.get('upload_avatar', 'Аватар') }}:</label>
                     <input type="file" id="avatar-input" name="avatar" accept="image/*">
                     <div class="avatar-preview" id="avatar-preview"></div>
                 </div>
@@ -111,43 +111,43 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="website-input">Веб-сайт:</label>
+                    <label for="website-input" data-translate="website">{{ translations.get('website', 'Веб-сайт') }}:</label>
                     <input type="url" id="website-input" name="website" placeholder="https://example.com">
                 </div>
                 
                 <div class="form-group">
-                    <label for="telegram-input">Telegram:</label>
+                    <label for="telegram-input" data-translate="telegram">{{ translations.get('telegram', 'Telegram') }}:</label>
                     <input type="text" id="telegram-input" name="telegram" placeholder="username">
                 </div>
                 
                 <div class="form-group">
-                    <label for="github-input">GitHub:</label>
+                    <label for="github-input" data-translate="github">{{ translations.get('github', 'GitHub') }}:</label>
                     <input type="url" id="github-input" name="github" placeholder="https://github.com/username">
                 </div>
                 
                 <div class="form-group">
-                    <label for="linkedin-input">LinkedIn:</label>
+                    <label for="linkedin-input" data-translate="linkedin">{{ translations.get('linkedin', 'LinkedIn') }}:</label>
                     <input type="url" id="linkedin-input" name="linkedin" placeholder="https://linkedin.com/in/username">
                 </div>
                 
                 <div class="form-group">
-                    <label for="instagram-input">Instagram:</label>
+                    <label for="instagram-input" data-translate="instagram">{{ translations.get('instagram', 'Instagram') }}:</label>
                     <input type="url" id="instagram-input" name="instagram" placeholder="https://instagram.com/username">
                 </div>
                 
                 <div class="form-group">
-                    <label for="facebook-input">Facebook:</label>
+                    <label for="facebook-input" data-translate="facebook">{{ translations.get('facebook', 'Facebook') }}:</label>
                     <input type="url" id="facebook-input" name="facebook" placeholder="https://facebook.com/username">
                 </div>
                 
                 <div class="form-group">
-                    <label for="youtube-input">YouTube:</label>
+                    <label for="youtube-input" data-translate="youtube">{{ translations.get('youtube', 'YouTube') }}:</label>
                     <input type="url" id="youtube-input" name="youtube" placeholder="https://youtube.com/channel/...">
                 </div>
                 
                 <div class="modal-actions">
-                    <button type="button" class="btn-cancel">Отмена</button>
-                    <button type="submit" class="btn-save">Сохранить</button>
+                    <button type="button" class="btn-cancel" data-translate="cancel">{{ translations.get('cancel', 'Отмена') }}</button>
+                    <button type="submit" class="btn-save" data-translate="save_changes">{{ translations.get('save_changes', 'Сохранить') }}</button>
                 </div>
             </form>
         </div>
