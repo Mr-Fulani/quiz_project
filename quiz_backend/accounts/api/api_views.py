@@ -987,13 +987,8 @@ class MiniAppTopUsersListView(generics.ListAPIView):
             queryset = queryset.filter(programming_language__name__iexact=language_pref)
         
         if grade:
-            # Фильтрация по грейду (основано на рейтинге)
-            if grade == 'junior':
-                queryset = queryset.filter(rating__lt=300)
-            elif grade == 'middle':
-                queryset = queryset.filter(rating__gte=300, rating__lt=700)
-            elif grade == 'senior':
-                queryset = queryset.filter(rating__gte=700)
+            # Фильтрация по грейду (используем поле grade из модели)
+            queryset = queryset.filter(grade=grade)
         
         # Сортируем по рейтингу, затем по дате создания
         queryset = queryset.order_by('-rating', '-created_at')

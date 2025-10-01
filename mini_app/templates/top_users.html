@@ -40,31 +40,6 @@
         </filter>
     </defs>
 </svg>
-<script>
-// Отключаем локализацию на странице фильтров
-window.DISABLE_LOCALIZATION = true;
-
-// Дополнительно блокируем все попытки загрузки локализации
-document.addEventListener('DOMContentLoaded', function() {
-    // Удаляем все скрипты локализации если они уже загружены
-    const localizationScripts = document.querySelectorAll('script[src*="localization"]');
-    localizationScripts.forEach(script => {
-        script.remove();
-        console.log('🗑️ Удален скрипт локализации');
-    });
-    
-    // Блокируем создание новых скриптов локализации
-    const originalCreateElement = document.createElement;
-    document.createElement = function(tagName) {
-        const element = originalCreateElement.call(this, tagName);
-        if (tagName.toLowerCase() === 'script' && element.src && element.src.includes('localization')) {
-            console.log('🚫 Блокируем создание скрипта локализации');
-            return null;
-        }
-        return element;
-    };
-});
-</script>
 {% endblock %}
 
 {% block content %}
@@ -73,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="filter-controls">
             <div class="filter-group">
                 <label class="filter-label" data-translate="gender">{{ translations.get('gender', 'Пол') }}:</label>
-                <select class="filter-select" id="gender-filter" onchange="applyFilter('gender', this.value)">
+                <select class="filter-select" id="gender-filter">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     <option value="male" data-translate="male">{{ translations.get('male', 'Мужской') }}</option>
                     <option value="female" data-translate="female">{{ translations.get('female', 'Женский') }}</option>
@@ -82,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="filter-group">
                 <label class="filter-label" data-translate="age">{{ translations.get('age', 'Возраст') }}:</label>
-                <select class="filter-select" id="age-filter" onchange="applyFilter('age', this.value)">
+                <select class="filter-select" id="age-filter">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     <option value="18-25">18-25</option>
                     <option value="26-35">26-35</option>
@@ -93,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="filter-group">
                 <label class="filter-label" data-translate="technology">{{ translations.get('technology', 'Технология') }}:</label>
-                <select class="filter-select" id="language-filter" onchange="applyLanguageFilter(this)">
+                <select class="filter-select" id="language-filter">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     {% if programming_languages %}
                         {% for lang in programming_languages %}
@@ -105,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="filter-group">
                 <label class="filter-label" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</label>
-                <select class="filter-select" id="grade-filter" onchange="applyFilter('grade', this.value)">
+                <select class="filter-select" id="grade-filter">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
                     <option value="junior">Junior</option>
                     <option value="middle">Middle</option>
@@ -113,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </select>
             </div>
             
-            <button class="filter-reset-btn" id="reset-filters" data-translate="reset_filters" onclick="resetFilters()">
+            <button class="filter-reset-btn" id="reset-filters" data-translate="reset_filters">
                 {{ translations.get('reset_filters', 'Сбросить') }}
             </button>
         </div>
@@ -188,116 +163,30 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
-    // Простые функции фильтрации
-    function applyFilter(filterName, value) {
-        console.log('🔄 Применяем фильтр:', filterName, value);
-        const url = new URL(window.location);
-        
-        if (value) {
-            url.searchParams.set(filterName, value);
-        } else {
-            url.searchParams.delete(filterName);
-        }
-        
-        console.log('🔄 Обновляем контент через AJAX:', url.toString());
-        
-        // Обновляем контент через AJAX вместо перезагрузки страницы
-        fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            // Сохраняем текущие значения фильтров
-            const currentFilters = {
-                gender: document.getElementById('gender-filter')?.value || '',
-                age: document.getElementById('age-filter')?.value || '',
-                language: document.getElementById('language-filter')?.value || '',
-                grade: document.getElementById('grade-filter')?.value || ''
-            };
-            
-            console.log('💾 Сохраняем фильтры:', currentFilters);
-            
-            // Обновляем только контент страницы
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newContent = doc.querySelector('.top-users-container');
-            const currentContent = document.querySelector('.top-users-container');
-            
-            if (newContent && currentContent) {
-                currentContent.innerHTML = newContent.innerHTML;
-                console.log('✅ Контент обновлен через AJAX');
-                
-                // Восстанавливаем значения фильтров
-                setTimeout(() => {
-                    if (currentFilters.gender) {
-                        const genderSelect = document.getElementById('gender-filter');
-                        if (genderSelect) genderSelect.value = currentFilters.gender;
-                    }
-                    if (currentFilters.age) {
-                        const ageSelect = document.getElementById('age-filter');
-                        if (ageSelect) ageSelect.value = currentFilters.age;
-                    }
-                    if (currentFilters.language) {
-                        const languageSelect = document.getElementById('language-filter');
-                        if (languageSelect) languageSelect.value = currentFilters.language;
-                    }
-                    if (currentFilters.grade) {
-                        const gradeSelect = document.getElementById('grade-filter');
-                        if (gradeSelect) gradeSelect.value = currentFilters.grade;
-                    }
-                    console.log('🔄 Фильтры восстановлены');
-                }, 100);
-            } else {
-                // Fallback - перезагружаем страницу
-                window.location.href = url.toString();
-            }
-        })
-        .catch(error => {
-            console.error('❌ Ошибка AJAX запроса:', error);
-            // Fallback - перезагружаем страницу
-            window.location.href = url.toString();
-        });
-    }
+// Инициализация фильтров топ пользователей
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Top users page loaded, initializing filters...');
     
-    function applyLanguageFilter(selectElement) {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const languageName = selectedOption.text;
-        console.log('🔄 Язык программирования:', languageName);
-        applyFilter('language_pref', languageName);
-    }
-    
-    function resetFilters() {
-        console.log('🔄 Сброс всех фильтров');
-        const url = new URL(window.location);
-        url.searchParams.delete('gender');
-        url.searchParams.delete('age'); 
-        url.searchParams.delete('language_pref');
-        url.searchParams.delete('grade');
+    // Проверяем, что скрипт top_users.js загружен
+    if (typeof window.TopUsersFilter === 'function') {
+        console.log('✅ TopUsersFilter class found, initializing...');
+        window.topUsersFilter = new window.TopUsersFilter();
+        console.log('✅ TopUsersFilter initialized successfully');
+    } else {
+        console.error('❌ TopUsersFilter class not found! Trying to load script...');
         
-        console.log('🔄 Обновляем контент через AJAX:', url.toString());
-        
-        // Обновляем контент через AJAX вместо перезагрузки страницы
-        fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            // Обновляем только контент страницы
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newContent = doc.querySelector('.top-users-container');
-            const currentContent = document.querySelector('.top-users-container');
-            
-            if (newContent && currentContent) {
-                currentContent.innerHTML = newContent.innerHTML;
-                console.log('✅ Фильтры сброшены, контент обновлен');
+        // Загружаем скрипт если он не загружен
+        const script = document.createElement('script');
+        script.src = '{{ get_js_url("top_users.js") }}';
+        script.onload = function() {
+            console.log('✅ Top users script loaded, initializing...');
+            if (typeof window.TopUsersFilter === 'function') {
+                window.topUsersFilter = new window.TopUsersFilter();
+                console.log('✅ TopUsersFilter initialized after script load');
             } else {
                 // Fallback - перезагружаем страницу
                 window.location.href = url.toString();
@@ -394,27 +283,13 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Состояние фильтров восстановлено');
     }
     
-    // Восстанавливаем состояние при загрузке страницы
-    document.addEventListener('DOMContentLoaded', restoreFilterState);
-    
-    // Функция для открытия профиля пользователя
-    function openUserProfile(telegramId) {
-        console.log('🔍 Открываем профиль пользователя:', telegramId);
-        
-        // Создаем URL для профиля с параметром telegram_id
-        const profileUrl = `/profile?telegram_id=${telegramId}`;
-        
-        // Открываем профиль в новом окне/вкладке
-        window.open(profileUrl, '_blank');
-    }
+    // Инициализируем новый фильтр
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 Инициализация TopUsersFilter...');
+        window.topUsersFilter = new window.TopUsersFilter();
+        console.log('✅ TopUsersFilter инициализирован');
+    });
     
     console.log('✅ Функции фильтрации загружены');
-    
-    // Тестируем функции
-    console.log('🧪 Тест функций фильтрации:');
-    console.log('  - applyFilter:', typeof applyFilter);
-    console.log('  - applyLanguageFilter:', typeof applyLanguageFilter);
-    console.log('  - resetFilters:', typeof resetFilters);
-    console.log('  - openUserProfile:', typeof openUserProfile);
 </script>
 {% endblock %}
