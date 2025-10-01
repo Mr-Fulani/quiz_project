@@ -846,6 +846,12 @@
                             window.telegramUserId = updatedUserData.telegram_id;
                             console.log('💾 Telegram ID сохранен:', updatedUserData.telegram_id);
                         }
+                        
+                        // Принудительно обновляем переводы после обновления профиля
+                        setTimeout(() => {
+                            console.log('🔄 Принудительное обновление переводов после сохранения профиля');
+                            updateProfessionalInfoTranslations();
+                        }, 200);
                     } else {
                         const errorData = await response.json();
                         console.error('❌ Ошибка обновления профиля:', errorData);
@@ -923,5 +929,81 @@
             updateProfessionalInfoTranslations();
         }, 500);
     });
+
+    // Функция для переинициализации при SPA навигации
+    window.reinitializeProfilePage = function() {
+        console.log('🔄 reinitializeProfilePage вызван для SPA навигации');
+        
+        // Переинициализируем обработчики событий
+        const elements = getDOMElements();
+        
+        // Переинициализируем обработчик кнопки редактирования
+        if (elements.editProfileBtn) {
+            elements.editProfileBtn.onclick = () => {
+                elements.editModal.style.display = 'block';
+                // Заполняем поля формы текущими данными профиля
+                const currentUser = window.currentUser;
+                console.log('🔍 Текущий пользователь для заполнения формы:', currentUser);
+                
+                if (currentUser && currentUser.id && currentUser.first_name !== 'Тестовый') {
+                    // Заполняем поля формы
+                    const gradeInput = document.getElementById('grade-input');
+                    if (gradeInput) {
+                        gradeInput.value = currentUser.grade || '';
+                    }
+                    
+                    const genderInput = document.getElementById('gender-input');
+                    if (genderInput) {
+                        genderInput.value = currentUser.gender || '';
+                    }
+                    
+                    const birthDateInput = document.getElementById('birth-date-input');
+                    if (birthDateInput) {
+                        birthDateInput.value = currentUser.birth_date || '';
+                    }
+                    
+                    // Загружаем технологии
+                    if (currentUser.programming_languages && currentUser.programming_languages.length > 0) {
+                        const firstTechnology = currentUser.programming_languages[0];
+                        loadTechnologiesWithNames([firstTechnology]);
+                    } else {
+                        loadTechnologiesWithNames([]);
+                    }
+                    
+                    // Заполняем социальные сети
+                    const currentSocialLinks = currentUser.social_links || [];
+                    elements.websiteInput.value = currentSocialLinks.find(link => link.name === 'Веб-сайт')?.url || '';
+                    elements.telegramInput.value = currentSocialLinks.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
+                    elements.githubInput.value = currentSocialLinks.find(link => link.name === 'GitHub')?.url || '';
+                    elements.linkedinInput.value = currentSocialLinks.find(link => link.name === 'LinkedIn')?.url || '';
+                    elements.instagramInput.value = currentSocialLinks.find(link => link.name === 'Instagram')?.url || '';
+                    elements.facebookInput.value = currentSocialLinks.find(link => link.name === 'Facebook')?.url || '';
+                    elements.youtubeInput.value = currentSocialLinks.find(link => link.name === 'YouTube')?.url || '';
+                    
+                    // Предварительный просмотр аватара
+                    if (currentUser.avatar) {
+                        elements.avatarPreview.innerHTML = `<img src="${currentUser.avatar}" alt="Current Avatar" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
+                    } else {
+                        elements.avatarPreview.innerHTML = '';
+                    }
+                }
+            };
+        }
+        
+        // Переинициализируем обработчик кнопки обновления
+        if (elements.refreshBtn) {
+            elements.refreshBtn.onclick = () => {
+                console.log('🔄 Кнопка "Обновить данные" нажата');
+                if (window.showNotification) {
+                    window.showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                } else {
+                    showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                }
+                fetchProfileDataFromServer();
+            };
+        }
+        
+        console.log('✅ Profile page переинициализирован для SPA навигации');
+    };
 
 })(window);
