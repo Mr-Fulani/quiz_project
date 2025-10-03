@@ -274,7 +274,16 @@ async def update_miniapp_user_profile(telegram_id: int, request: Request):
                     file_content = await value.read()
                     files[key] = (value.filename, file_content, value.content_type)
                 else:  # Это обычные данные
-                    data[key] = value
+                    # Для programming_language_ids собираем все значения в список
+                    if key == 'programming_language_ids':
+                        if key not in data:
+                            data[key] = []
+                        if isinstance(data[key], list):
+                            data[key].append(value)
+                        else:
+                            data[key] = [data[key], value]
+                    else:
+                        data[key] = value
             
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.patch(

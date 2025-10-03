@@ -394,6 +394,37 @@
     z-index: 1000000; /* Еще больше увеличиваем z-index */
 }
 
+/* Медиа-запросы для мобильных устройств */
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 10px auto 20px auto; /* Уменьшаем отступы для мобильных устройств */
+        width: 95%;
+        max-width: 400px;
+        max-height: 85vh; /* Увеличиваем высоту для мобильных устройств */
+        border-radius: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 5px auto 15px auto; /* Еще меньше отступы для маленьких экранов */
+        width: 98%;
+        max-width: 350px;
+        max-height: 90vh; /* Максимальная высота для маленьких экранов */
+        border-radius: 12px;
+    }
+}
+
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 360px) {
+    .modal-content {
+        margin: 2px auto 10px auto; /* Минимальные отступы */
+        width: 99%;
+        max-width: 320px;
+        max-height: 95vh; /* Почти на весь экран */
+    }
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;

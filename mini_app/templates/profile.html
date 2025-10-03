@@ -80,6 +80,16 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="first-name-input" data-translate="first_name">{{ translations.get('first_name', 'Имя') }}:</label>
+                    <input type="text" id="first-name-input" name="first_name" placeholder="{{ translations.get('first_name', 'Введите имя') }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="last-name-input" data-translate="last_name">{{ translations.get('last_name', 'Фамилия') }}:</label>
+                    <input type="text" id="last-name-input" name="last_name" placeholder="{{ translations.get('last_name', 'Введите фамилию') }}">
+                </div>
+                
+                <div class="form-group">
                     <label for="grade-input" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</label>
                     <select id="grade-input" name="grade">
                         <option value="" data-translate="select_grade">{{ translations.get('select_grade', 'Выберите грейд') }}</option>

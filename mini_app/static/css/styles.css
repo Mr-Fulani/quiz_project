@@ -1210,10 +1210,31 @@ body.fullscreen-active .gallery__container {
 
 @media (max-width: 768px) {
     .modal-content {
-        margin: 1% auto;
+        margin: 10px auto 20px auto; /* Улучшенное позиционирование для мобильных */
+        width: 95%;
+        max-width: 400px;
+        max-height: 85vh; /* Увеличиваем высоту для мобильных устройств */
+        border-radius: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 5px auto 15px auto; /* Еще меньше отступы для маленьких экранов */
         width: 98%;
-        max-height: 98vh;
+        max-width: 350px;
+        max-height: 90vh; /* Максимальная высота для маленьких экранов */
         border-radius: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .modal-content {
+        margin: 2px auto 10px auto; /* Минимальные отступы */
+        width: 99%;
+        max-width: 320px;
+        max-height: 95vh; /* Почти на весь экран */
+        border-radius: 10px;
     }
 }
 
