@@ -394,10 +394,19 @@ class ProgrammingLanguageIdsField(serializers.Field):
                     continue
             return validated_ids
         elif isinstance(data, str):
-            try:
-                return [int(data)]
-            except (ValueError, TypeError):
-                return []
+            # Если это строка, пытаемся разделить по запятым или пробелам
+            if data.strip():
+                try:
+                    # Пробуем разделить по запятым
+                    ids = [int(x.strip()) for x in data.split(',') if x.strip()]
+                    return ids
+                except (ValueError, TypeError):
+                    # Если не получилось, пробуем как одно число
+                    try:
+                        return [int(data)]
+                    except (ValueError, TypeError):
+                        return []
+            return []
         return []
 
     def to_representation(self, value):
@@ -423,6 +432,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MiniAppUser
         fields = (
+            'id', 'telegram_id', 'username', 'first_name', 'last_name', 'full_name',
             'language', 'avatar', 'telegram_photo_url', 'photo_url',
             'grade', 'programming_language_ids', 'gender', 'birth_date',
             'website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'social_links'
@@ -430,6 +440,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'telegram_photo_url': {'write_only': True}
         }
+        read_only_fields = ('id', 'telegram_id', 'username', 'full_name')
     
     def update(self, instance, validated_data):
         """

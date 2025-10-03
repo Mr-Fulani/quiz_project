@@ -63,6 +63,8 @@
             editProfileForm: document.getElementById('edit-profile-form'),
             avatarInput: document.getElementById('avatar-input'),
             avatarPreview: document.getElementById('avatar-preview'),
+            firstNameInput: document.getElementById('first-name-input'),
+            lastNameInput: document.getElementById('last-name-input'),
             websiteInput: document.getElementById('website-input'),
             telegramInput: document.getElementById('telegram-input'),
             githubInput: document.getElementById('github-input'),
@@ -77,6 +79,7 @@
     // --- Функции обновления UI ---
 
     function updateAvatar(avatarUrl) {
+        console.log('🖼️ updateAvatar вызван с URL:', avatarUrl);
         const { avatar } = getDOMElements();
         if (avatar) {
             let finalUrl = '/static/images/default_avatar.png';
@@ -95,11 +98,16 @@
                 finalUrl += `${separator}t=${Date.now()}`;
             }
             
+            console.log('🖼️ Устанавливаем аватарку:', finalUrl);
             avatar.src = finalUrl;
             avatar.style.display = 'block';
             
-            avatar.onerror = () => {
-                console.warn('Ошибка загрузки аватара:', finalUrl);
+            // Принудительно обновляем аватарку
+            avatar.onload = function() {
+                console.log('✅ Аватарка успешно загружена');
+            };
+            avatar.onerror = function() {
+                console.log('❌ Ошибка загрузки аватарки, используем дефолтную');
                 avatar.src = '/static/images/default_avatar.png';
                 avatar.onerror = null;
             };
@@ -225,7 +233,7 @@
                 console.log(`📅 Дата рождения установлена: ${formattedDate} (${userData.birth_date})`);
             } else {
                 birthDateElement.removeAttribute('data-date');
-                birthDateElement.textContent = (window.translations && window.translations) ? window.translations('gender_unknown', 'Не указана') : 'Не указана';
+                birthDateElement.textContent = (window.translations && window.translations.gender_unknown) ? window.translations.gender_unknown : 'Не указана';
             }
         }
         
@@ -542,8 +550,8 @@
             } else if (selected.length === 1) {
                 selectedText.textContent = selected[0].parentElement.querySelector('span').textContent;
             } else {
-                const selectedText = window.translations.selected_technologies || 'Выбрано:';
-                selectedText.textContent = `${selectedText} ${selected.length} ${window.translations.technologies || 'технологий'}`;
+                const selectedTextLabel = window.translations.selected_technologies || 'Выбрано:';
+                selectedText.textContent = `${selectedTextLabel} ${selected.length} ${window.translations.technologies || 'технологий'}`;
             }
             
             console.log('📋 Выбрано технологий:', selected.length);
@@ -619,6 +627,102 @@
     }
 
 
+    // Функция для AJAX обновления профиля после сохранения
+    async function updateProfileAfterSave(userData) {
+        console.log('🔄 updateProfileAfterSave вызван с данными:', userData);
+        const elements = getDOMElements();
+        
+        try {
+            // 1. Обновляем имя и username
+            if (userData.first_name || userData.last_name || userData.username) {
+                const fullName = userData.full_name || `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+                if (elements.name) {
+                    elements.name.textContent = fullName || 'Пользователь';
+                    console.log('✅ Имя обновлено:', fullName);
+                }
+                if (elements.username) {
+                    elements.username.textContent = userData.username ? `@${userData.username}` : 'скрыт';
+                    console.log('✅ Username обновлен:', userData.username);
+                }
+            }
+            
+            // 2. Обновляем аватар
+            if (userData.avatar) {
+                const avatarUrl = userData.avatar + '?t=' + Date.now();
+                if (elements.avatar) {
+                    elements.avatar.src = avatarUrl;
+                    elements.avatar.onload = () => console.log('✅ Аватар обновлен:', avatarUrl);
+                    elements.avatar.onerror = () => console.log('❌ Ошибка загрузки аватара');
+                }
+            }
+            
+            // 3. Обновляем профессиональную информацию
+            if (userData.gender || userData.birth_date || userData.grade) {
+                updateProfessionalInfo(userData);
+                console.log('✅ Профессиональная информация обновлена');
+            }
+            
+            // 4. Обновляем социальные ссылки
+            if (userData.social_links) {
+                updateSocialLinks(userData.social_links, elements);
+                console.log('✅ Социальные ссылки обновлены');
+            }
+            
+            // 5. Обновляем технологии в профиле
+            const technologiesElement = document.getElementById('profile-technologies');
+            if (technologiesElement) {
+                if (userData.programming_languages && userData.programming_languages.length > 0) {
+                    technologiesElement.removeAttribute('data-empty');
+                    technologiesElement.innerHTML = '';
+                    userData.programming_languages.forEach(tech => {
+                        const techTag = document.createElement('span');
+                        techTag.className = 'technology-tag';
+                        // Проверяем, является ли tech объектом с полем name или строкой
+                        techTag.textContent = typeof tech === 'object' && tech.name ? tech.name : tech;
+                        technologiesElement.appendChild(techTag);
+                    });
+                    console.log('✅ Технологии в профиле обновлены:', userData.programming_languages.length);
+                } else {
+                    technologiesElement.innerHTML = '<span class="no-data" data-translate="no_technologies">Технологии не указаны</span>';
+                    console.log('✅ Технологии очищены в профиле');
+                }
+            }
+            
+            // 6. Обновляем технологии в модальном окне
+            if (userData.programming_languages && userData.programming_languages.length > 0) {
+                console.log('🔧 Обновляем технологии в модальном окне:', userData.programming_languages);
+                loadTechnologiesWithNames(userData.programming_languages);
+            } else {
+                console.log('🔧 Нет технологий, очищаем модальное окно');
+                loadTechnologiesWithNames([]);
+            }
+            
+            // 7. Обновляем поля формы
+            if (elements.firstNameInput) {
+                elements.firstNameInput.value = userData.first_name || '';
+            }
+            if (elements.lastNameInput) {
+                elements.lastNameInput.value = userData.last_name || '';
+            }
+            
+            // 8. Обновляем window.currentUser с новыми данными
+            if (window.currentUser) {
+                window.currentUser.programming_languages = userData.programming_languages || [];
+                window.currentUser.first_name = userData.first_name || '';
+                window.currentUser.last_name = userData.last_name || '';
+                window.currentUser.full_name = userData.full_name || '';
+                window.currentUser.username = userData.username || '';
+                window.currentUser.avatar = userData.avatar || '';
+                console.log('✅ window.currentUser обновлен с новыми данными');
+            }
+            
+            console.log('✅ AJAX обновление профиля завершено');
+            
+        } catch (error) {
+            console.error('❌ Ошибка при AJAX обновлении профиля:', error);
+        }
+    }
+
     function updateProfileDOM(userData) {
         console.log('🚀 updateProfileDOM вызван с данными:', userData);
         const elements = getDOMElements();
@@ -635,19 +739,79 @@
             console.log('💾 Telegram ID сохранен при загрузке:', userData.telegram_id);
         }
         
+        console.log('🔍 Обновляем имя пользователя:', {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            username: userData.username,
+            full_name: userData.full_name
+        });
+        
+        // Если данные пользователя неполные, используем сохраненные данные
+        if (!userData.first_name && !userData.last_name && !userData.username && !userData.full_name) {
+            console.log('⚠️ Данные пользователя неполные, используем сохраненные данные');
+            const savedUser = window.currentUser;
+            if (savedUser && (savedUser.first_name || savedUser.last_name || savedUser.username || savedUser.full_name)) {
+                userData.first_name = savedUser.first_name;
+                userData.last_name = savedUser.last_name;
+                userData.username = savedUser.username;
+                userData.full_name = savedUser.full_name;
+                console.log('✅ Восстановлены данные пользователя:', {
+                    first_name: userData.first_name,
+                    last_name: userData.last_name,
+                    username: userData.username,
+                    full_name: userData.full_name
+                });
+            }
+        }
+        
         // Обновляем глобальный объект currentUser с актуальными данными из БД
         window.currentUser = userData;
         console.log('💾 window.currentUser обновлен с актуальными данными:', userData);
-
-        const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+        
+        // Используем full_name если есть, иначе собираем из first_name и last_name
+        const fullName = userData.full_name || `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         elements.name.textContent = fullName || 'Пользователь';
         elements.username.textContent = userData.username ? `@${userData.username}` : 'скрыт';
+        
+        console.log('✅ Имя пользователя обновлено:', {
+            nameElement: elements.name.textContent,
+            usernameElement: elements.username.textContent
+        });
         
         updateAvatar(userData.avatar);
         updateProfessionalInfo(userData);
         updateSocialLinks(userData.social_links, elements);
+        
+        // Обновляем технологии если они есть в данных
+        if (userData.programming_languages && userData.programming_languages.length > 0) {
+            console.log('🔧 Обновляем технологии:', userData.programming_languages);
+            loadTechnologiesWithNames(userData.programming_languages);
+        } else {
+            console.log('🔧 Нет технологий в данных, очищаем отображение');
+            // Очищаем отображение технологий если их нет
+            const technologiesContainer = document.getElementById('profile-technologies');
+            if (technologiesContainer) {
+                technologiesContainer.innerHTML = '<span class="no-data" data-translate="no_technologies">Технологии не указаны</span>';
+            }
+        }
 
         // Заполняем поля модального окна при загрузке профиля
+        if (elements.firstNameInput) {
+            elements.firstNameInput.value = userData.first_name || '';
+            console.log('👤 Заполняем поле имени:', userData.first_name);
+            console.log('🔍 Поле имени найдено:', elements.firstNameInput);
+        } else {
+            console.log('❌ Поле имени НЕ найдено!');
+        }
+        
+        if (elements.lastNameInput) {
+            elements.lastNameInput.value = userData.last_name || '';
+            console.log('👤 Заполняем поле фамилии:', userData.last_name);
+            console.log('🔍 Поле фамилии найдено:', elements.lastNameInput);
+        } else {
+            console.log('❌ Поле фамилии НЕ найдено!');
+        }
+        
         const socialLinks = userData.social_links || [];
         elements.websiteInput.value = socialLinks.find(link => link.name === 'Веб-сайт')?.url || '';
         elements.telegramInput.value = socialLinks.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
@@ -658,8 +822,54 @@
         elements.youtubeInput.value = socialLinks.find(link => link.name === 'YouTube')?.url || '';
 
         hideLoader();
+        
+        // Принудительно показываем контейнер профиля
         elements.profileContainer.style.display = 'block';
+        elements.profileContainer.style.visibility = 'visible';
+        elements.profileContainer.style.opacity = '1';
+        elements.profileContainer.removeAttribute('hidden');
+        elements.profileContainer.classList.remove('hidden');
+        
         console.log('✅ Профиль успешно обновлен и показан');
+        console.log('🔍 Состояние контейнера в updateProfileDOM:', {
+            display: elements.profileContainer.style.display,
+            visibility: elements.profileContainer.style.visibility,
+            opacity: elements.profileContainer.style.opacity,
+            computedDisplay: window.getComputedStyle(elements.profileContainer).display,
+            innerHTML: elements.profileContainer.innerHTML.length
+        });
+        
+        // Принудительно обновляем содержимое профиля
+        if (elements.profileContainer.innerHTML.length < 100) {
+            console.log('⚠️ ПРОБЛЕМА: Контейнер профиля пустой! Принудительно перезагружаем профиль...');
+            // Перезагружаем профиль с сервера
+            setTimeout(() => {
+                fetchProfileDataFromServer();
+            }, 100);
+        }
+        
+        // Дополнительная проверка через небольшую задержку
+        setTimeout(() => {
+            const elementsAfter = getDOMElements();
+            if (elementsAfter.profileContainer) {
+                const computedStyle = window.getComputedStyle(elementsAfter.profileContainer);
+                console.log('🔍 Проверка видимости через 50ms:', {
+                    styleDisplay: elementsAfter.profileContainer.style.display,
+                    computedDisplay: computedStyle.display,
+                    visibility: computedStyle.visibility,
+                    opacity: computedStyle.opacity
+                });
+                
+                if (computedStyle.display === 'none' || elementsAfter.profileContainer.style.display === 'none') {
+                    elementsAfter.profileContainer.style.display = 'block';
+                    elementsAfter.profileContainer.style.visibility = 'visible';
+                    elementsAfter.profileContainer.style.opacity = '1';
+                    elementsAfter.profileContainer.removeAttribute('hidden');
+                    elementsAfter.profileContainer.classList.remove('hidden');
+                    console.log('🔧 Исправление видимости профиля в updateProfileDOM');
+                }
+            }
+        }, 50);
     }
 
     // --- Управление состоянием загрузки ---
@@ -819,6 +1029,29 @@
         if (elements.editProfileBtn) {
             elements.editProfileBtn.onclick = () => {
                 elements.editModal.style.display = 'block';
+                
+                // Улучшенное позиционирование для мобильных устройств
+                const modalContent = elements.editModal.querySelector('.modal-content');
+                if (modalContent) {
+                    // Сбрасываем любые предыдущие стили позиционирования
+                    modalContent.style.position = '';
+                    modalContent.style.top = '';
+                    modalContent.style.left = '';
+                    modalContent.style.transform = '';
+                    
+                    // Для мобильных устройств добавляем специальное позиционирование
+                    if (window.innerWidth <= 768) {
+                        // Прокручиваем к началу страницы для лучшего отображения
+                        window.scrollTo(0, 0);
+                        
+                        // Добавляем небольшую задержку для корректного отображения
+                        setTimeout(() => {
+                            modalContent.style.position = 'relative';
+                            modalContent.style.top = '10px';
+                        }, 50);
+                    }
+                }
+                
                 // Заполняем поля формы текущими данными профиля
                 const currentUser = window.currentUser; // Глобальная переменная из base.html
                 console.log('🔍 Текущий пользователь для заполнения формы:', currentUser);
@@ -867,6 +1100,23 @@
                     } else {
                         console.log('📝 Нет выбранных технологий, загружаем пустой список');
                         loadTechnologiesWithNames([]);
+                    }
+                    
+                    // Заполняем поля имени и фамилии
+                    if (elements.firstNameInput) {
+                        elements.firstNameInput.value = currentUser.first_name || '';
+                        console.log('👤 Заполняем поле имени в reinitializeProfilePage:', currentUser.first_name);
+                        console.log('🔍 Поле имени найдено в reinitializeProfilePage:', elements.firstNameInput);
+                    } else {
+                        console.log('❌ Поле имени НЕ найдено в reinitializeProfilePage!');
+                    }
+                    
+                    if (elements.lastNameInput) {
+                        elements.lastNameInput.value = currentUser.last_name || '';
+                        console.log('👤 Заполняем поле фамилии в reinitializeProfilePage:', currentUser.last_name);
+                        console.log('🔍 Поле фамилии найдено в reinitializeProfilePage:', elements.lastNameInput);
+                    } else {
+                        console.log('❌ Поле фамилии НЕ найдено в reinitializeProfilePage!');
                     }
                     
                     // Также заполняем поля социальных сетей
@@ -955,6 +1205,18 @@
                 } else {
                     console.log('📁 Файл аватара не выбран');
                 }
+                
+                // Добавляем поля имени и фамилии
+                if (elements.firstNameInput) {
+                    formData.append('first_name', elements.firstNameInput.value);
+                    console.log('👤 Добавляем имя:', elements.firstNameInput.value);
+                }
+                
+                if (elements.lastNameInput) {
+                    formData.append('last_name', elements.lastNameInput.value);
+                    console.log('👤 Добавляем фамилию:', elements.lastNameInput.value);
+                }
+                
                 // Добавляем новые поля
                 const gradeInput = document.getElementById('grade-input');
                 if (gradeInput) {
@@ -1021,8 +1283,7 @@
                         console.log('✅ Профиль успешно обновлен:', updatedUserData);
                         showNotification('profile_update_success', 'success', null, getTranslation('profile_update_success', 'Профиль успешно обновлен!'));
                         
-                        // Обновляем отображение аватара и других данных
-                        updateProfileDOM(updatedUserData);
+                        // Закрываем модальное окно сначала
                         elements.editModal.style.display = 'none';
                         
                         // Обновляем глобальный объект currentUser
@@ -1034,11 +1295,89 @@
                             console.log('💾 Telegram ID сохранен:', updatedUserData.telegram_id);
                         }
                         
-                        // Принудительно обновляем переводы после обновления профиля
+                        // Обновляем отображение профиля с задержкой для корректного отображения
                         setTimeout(() => {
-                            console.log('🔄 Принудительное обновление переводов после сохранения профиля');
-                            updateProfessionalInfoTranslations();
-                        }, 200);
+                            console.log('🔄 Обновляем отображение профиля после сохранения');
+                            
+                            // Принудительно показываем контейнер профиля
+                            const elements = getDOMElements();
+                            console.log('🔍 Состояние контейнера профиля до обновления:', {
+                                exists: !!elements.profileContainer,
+                                display: elements.profileContainer ? elements.profileContainer.style.display : 'не найден',
+                                visibility: elements.profileContainer ? elements.profileContainer.style.visibility : 'не найден',
+                                computedDisplay: elements.profileContainer ? window.getComputedStyle(elements.profileContainer).display : 'не найден',
+                                innerHTML: elements.profileContainer ? elements.profileContainer.innerHTML.length : 'не найден'
+                            });
+                            
+                            if (elements.profileContainer) {
+                                // Принудительно показываем контейнер
+                                elements.profileContainer.style.display = 'block';
+                                elements.profileContainer.style.visibility = 'visible';
+                                elements.profileContainer.style.opacity = '1';
+                                elements.profileContainer.removeAttribute('hidden');
+                                elements.profileContainer.classList.remove('hidden');
+                                console.log('✅ Контейнер профиля принудительно показан');
+                            }
+                            
+                            // AJAX обновление всех элементов профиля
+                            console.log('🔄 AJAX обновление профиля после сохранения');
+                            updateProfileAfterSave(updatedUserData);
+                            
+                            // Принудительно обновляем переводы после обновления профиля
+                            setTimeout(() => {
+                                console.log('🔄 Принудительное обновление переводов после сохранения профиля');
+                                updateProfessionalInfoTranslations();
+                                
+                                // Дополнительная проверка видимости профиля
+                                const elementsAfter = getDOMElements();
+                                console.log('🔍 Состояние контейнера профиля после обновления:', {
+                                    exists: !!elementsAfter.profileContainer,
+                                    display: elementsAfter.profileContainer ? elementsAfter.profileContainer.style.display : 'не найден',
+                                    visibility: elementsAfter.profileContainer ? elementsAfter.profileContainer.style.visibility : 'не найден',
+                                    computedDisplay: elementsAfter.profileContainer ? window.getComputedStyle(elementsAfter.profileContainer).display : 'не найден',
+                                    innerHTML: elementsAfter.profileContainer ? elementsAfter.profileContainer.innerHTML.length : 'не найден'
+                                });
+                                
+                                if (elementsAfter.profileContainer) {
+                                    elementsAfter.profileContainer.style.display = 'block';
+                                    elementsAfter.profileContainer.style.visibility = 'visible';
+                                    elementsAfter.profileContainer.style.opacity = '1';
+                                    elementsAfter.profileContainer.removeAttribute('hidden');
+                                    elementsAfter.profileContainer.classList.remove('hidden');
+                                    console.log('🔧 Финальное исправление видимости профиля');
+                                }
+                                
+                                // Дополнительная проверка через еще одну задержку
+                                setTimeout(() => {
+                                    const elementsFinal = getDOMElements();
+                                    if (elementsFinal.profileContainer) {
+                                        const computedStyle = window.getComputedStyle(elementsFinal.profileContainer);
+                                        console.log('🔍 Финальная проверка видимости:', {
+                                            styleDisplay: elementsFinal.profileContainer.style.display,
+                                            computedDisplay: computedStyle.display,
+                                            visibility: computedStyle.visibility,
+                                            opacity: computedStyle.opacity,
+                                            innerHTML: elementsFinal.profileContainer.innerHTML.length
+                                        });
+                                        
+                                        if (computedStyle.display === 'none' || elementsFinal.profileContainer.style.display === 'none') {
+                                            elementsFinal.profileContainer.style.display = 'block';
+                                            elementsFinal.profileContainer.style.visibility = 'visible';
+                                            elementsFinal.profileContainer.style.opacity = '1';
+                                            elementsFinal.profileContainer.removeAttribute('hidden');
+                                            elementsFinal.profileContainer.classList.remove('hidden');
+                                            console.log('🔧 Экстренное исправление видимости профиля');
+                                        }
+                                        
+                                        // Проверяем, есть ли содержимое в профиле
+                                        if (elementsFinal.profileContainer.innerHTML.length < 100) {
+                                            console.log('⚠️ ПРОБЛЕМА: Контейнер профиля пустой или почти пустой!');
+                                            console.log('🔍 Содержимое контейнера:', elementsFinal.profileContainer.innerHTML);
+                                        }
+                                    }
+                                }, 200);
+                            }, 100);
+                        }, 100);
                     } else {
                         const errorData = await response.json();
                         console.error('❌ Ошибка обновления профиля:', errorData);
@@ -1124,10 +1463,55 @@
         // Переинициализируем обработчики событий
         const elements = getDOMElements();
         
+        // Добавляем обработчик изменения размера окна для корректного позиционирования модального окна
+        window.addEventListener('resize', () => {
+            if (elements.editModal && elements.editModal.style.display === 'block') {
+                const modalContent = elements.editModal.querySelector('.modal-content');
+                if (modalContent) {
+                    // Сбрасываем стили позиционирования при изменении размера
+                    modalContent.style.position = '';
+                    modalContent.style.top = '';
+                    modalContent.style.left = '';
+                    modalContent.style.transform = '';
+                    
+                    // Применяем новое позиционирование для мобильных устройств
+                    if (window.innerWidth <= 768) {
+                        setTimeout(() => {
+                            modalContent.style.position = 'relative';
+                            modalContent.style.top = '10px';
+                        }, 100);
+                    }
+                }
+            }
+        });
+        
         // Переинициализируем обработчик кнопки редактирования
         if (elements.editProfileBtn) {
             elements.editProfileBtn.onclick = () => {
                 elements.editModal.style.display = 'block';
+                
+                // Улучшенное позиционирование для мобильных устройств
+                const modalContent = elements.editModal.querySelector('.modal-content');
+                if (modalContent) {
+                    // Сбрасываем любые предыдущие стили позиционирования
+                    modalContent.style.position = '';
+                    modalContent.style.top = '';
+                    modalContent.style.left = '';
+                    modalContent.style.transform = '';
+                    
+                    // Для мобильных устройств добавляем специальное позиционирование
+                    if (window.innerWidth <= 768) {
+                        // Прокручиваем к началу страницы для лучшего отображения
+                        window.scrollTo(0, 0);
+                        
+                        // Добавляем небольшую задержку для корректного отображения
+                        setTimeout(() => {
+                            modalContent.style.position = 'relative';
+                            modalContent.style.top = '10px';
+                        }, 50);
+                    }
+                }
+                
                 // Заполняем поля формы текущими данными профиля
                 const currentUser = window.currentUser;
                 console.log('🔍 Текущий пользователь для заполнения формы:', currentUser);

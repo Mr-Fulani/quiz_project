@@ -784,8 +784,19 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
         logger.info(f"📝 Данные запроса: {request.data}")
         logger.info(f"📁 Файлы запроса: {request.FILES}")
         
+        # Логируем programming_language_ids отдельно для отладки
+        programming_language_ids = request.data.getlist('programming_language_ids')  # Используем getlist для получения всех значений
+        if programming_language_ids:
+            logger.info(f"🔧 programming_language_ids получены: {programming_language_ids} (тип: {type(programming_language_ids)})")
+        
         # Сериализатор сам обработает programming_language_ids
         data = request.data.copy()
+        
+        # Исправляем programming_language_ids для правильной обработки множественных значений
+        if programming_language_ids:
+            data['programming_language_ids'] = programming_language_ids
+            logger.info(f"🔧 Исправленные programming_language_ids: {data['programming_language_ids']}")
+        
         logger.info(f"🔄 Данные для сериализатора: {data}")
         
         partial = kwargs.pop('partial', False)
