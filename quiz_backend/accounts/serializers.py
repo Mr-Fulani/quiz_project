@@ -428,13 +428,14 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
     )
     photo_url = serializers.URLField(required=False, write_only=True)
     social_links = serializers.SerializerMethodField()
+    programming_languages = serializers.SerializerMethodField()
     
     class Meta:
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name', 'full_name',
             'language', 'avatar', 'telegram_photo_url', 'photo_url',
-            'grade', 'programming_language_ids', 'gender', 'birth_date',
+            'grade', 'programming_language_ids', 'programming_languages', 'gender', 'birth_date',
             'website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'social_links'
         )
         extra_kwargs = {
@@ -489,6 +490,10 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
         """Возвращает социальные ссылки пользователя Mini App."""
         # Используем метод из модели MiniAppUser
         return obj.get_social_links()
+    
+    def get_programming_languages(self, obj):
+        """Возвращает список названий технологий пользователя."""
+        return [tech.name for tech in obj.programming_languages.all()]
 
 
 class MiniAppUserCreateSerializer(serializers.ModelSerializer):

@@ -630,6 +630,9 @@
     // Функция для AJAX обновления профиля после сохранения
     async function updateProfileAfterSave(userData) {
         console.log('🔄 updateProfileAfterSave вызван с данными:', userData);
+        console.log('🔍 programming_languages в данных:', userData.programming_languages);
+        console.log('🔍 Тип programming_languages:', typeof userData.programming_languages);
+        console.log('🔍 Длина programming_languages:', userData.programming_languages ? userData.programming_languages.length : 'undefined');
         const elements = getDOMElements();
         
         try {
@@ -670,22 +673,31 @@
             
             // 5. Обновляем технологии в профиле
             const technologiesElement = document.getElementById('profile-technologies');
+            console.log('🔍 Элемент технологий найден:', technologiesElement);
+            console.log('🔍 Данные технологий для обновления:', userData.programming_languages);
+            
             if (technologiesElement) {
                 if (userData.programming_languages && userData.programming_languages.length > 0) {
+                    console.log('🔧 Обновляем технологии в профиле, количество:', userData.programming_languages.length);
                     technologiesElement.removeAttribute('data-empty');
                     technologiesElement.innerHTML = '';
-                    userData.programming_languages.forEach(tech => {
+                    userData.programming_languages.forEach((tech, index) => {
+                        console.log(`🔧 Создаем тег для технологии ${index}:`, tech);
                         const techTag = document.createElement('span');
                         techTag.className = 'technology-tag';
                         // Проверяем, является ли tech объектом с полем name или строкой
                         techTag.textContent = typeof tech === 'object' && tech.name ? tech.name : tech;
                         technologiesElement.appendChild(techTag);
+                        console.log(`✅ Тег технологии ${index} добавлен:`, techTag.textContent);
                     });
                     console.log('✅ Технологии в профиле обновлены:', userData.programming_languages.length);
                 } else {
+                    console.log('🔧 Нет технологий, очищаем профиль');
                     technologiesElement.innerHTML = '<span class="no-data" data-translate="no_technologies">Технологии не указаны</span>';
                     console.log('✅ Технологии очищены в профиле');
                 }
+            } else {
+                console.log('❌ Элемент технологий не найден!');
             }
             
             // 6. Обновляем технологии в модальном окне
@@ -1281,6 +1293,7 @@
                     if (response.ok) {
                         const updatedUserData = await response.json();
                         console.log('✅ Профиль успешно обновлен:', updatedUserData);
+                        console.log('🔍 programming_languages в ответе сервера:', updatedUserData.programming_languages);
                         showNotification('profile_update_success', 'success', null, getTranslation('profile_update_success', 'Профиль успешно обновлен!'));
                         
                         // Закрываем модальное окно сначала
