@@ -49,7 +49,7 @@
             <div class="filter-group">
                 <label class="filter-label" data-translate="gender">{{ translations.get('gender', 'Пол') }}:</label>
                 <select class="filter-select" id="gender-filter">
-                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    <option value="" data-translate="gender_placeholder">{{ translations.get('gender_placeholder', 'Пол') }}</option>
                     <option value="male" data-translate="male">{{ translations.get('male', 'Мужской') }}</option>
                     <option value="female" data-translate="female">{{ translations.get('female', 'Женский') }}</option>
                 </select>
@@ -58,7 +58,7 @@
             <div class="filter-group">
                 <label class="filter-label" data-translate="age">{{ translations.get('age', 'Возраст') }}:</label>
                 <select class="filter-select" id="age-filter">
-                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    <option value="" data-translate="age_placeholder">{{ translations.get('age_placeholder', 'Возраст') }}</option>
                     <option value="18-25">18-25</option>
                     <option value="26-35">26-35</option>
                     <option value="36-45">36-45</option>
@@ -69,7 +69,7 @@
             <div class="filter-group">
                 <label class="filter-label" data-translate="technology">{{ translations.get('technology', 'Технология') }}:</label>
                 <select class="filter-select" id="language-filter">
-                    <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
+                    <option value="" data-translate="technology_placeholder">{{ translations.get('technology_placeholder', 'Тема') }}</option>
                     {% if programming_languages %}
                         {% for lang in programming_languages %}
                             <option value="{{ lang.name }}">{{ lang.name }}</option>
