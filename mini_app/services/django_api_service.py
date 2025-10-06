@@ -213,7 +213,7 @@ class DjangoAPIService:
 
     async def get_top_users_mini_app(
         self, language: str = 'en', host: str = None, scheme: str = None,
-        gender: str = None, age: str = None, language_pref: str = None, grade: str = None
+        gender: str = None, age: str = None, language_pref: str = None, online_only: str = None
     ) -> List[Dict[str, Any]]:
         """
         Получение списка топ-пользователей Mini App из Django API с поддержкой фильтрации.
@@ -228,8 +228,8 @@ class DjangoAPIService:
                 params['age'] = age
             if language_pref:
                 params['language_pref'] = language_pref
-            if grade:
-                params['grade'] = grade
+            if online_only:
+                params['online_only'] = online_only
                 
             headers = {}
             if host:

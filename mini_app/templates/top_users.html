@@ -79,12 +79,10 @@
             </div>
             
             <div class="filter-group">
-                <label class="filter-label" data-translate="grade">{{ translations.get('grade', 'Грейд') }}:</label>
-                <select class="filter-select" id="grade-filter">
+                <label class="filter-label" data-translate="online_status">{{ translations.get('online_status', 'Статус') }}:</label>
+                <select class="filter-select" id="online-filter">
                     <option value="" data-translate="all">{{ translations.get('all', 'Все') }}</option>
-                    <option value="junior">Junior</option>
-                    <option value="middle">Middle</option>
-                    <option value="senior">Senior</option>
+                    <option value="true" data-translate="online">{{ translations.get('online', 'Онлайн') }}</option>
                 </select>
             </div>
             

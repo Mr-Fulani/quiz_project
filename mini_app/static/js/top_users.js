@@ -5,7 +5,7 @@ class TopUsersFilter {
             gender: '',
             age: '',
             language: '',
-            grade: ''
+            online: ''
         };
         
         this.init();
@@ -27,7 +27,7 @@ class TopUsersFilter {
             'gender-filter': document.getElementById('gender-filter'),
             'age-filter': document.getElementById('age-filter'),
             'language-filter': document.getElementById('language-filter'),
-            'grade-filter': document.getElementById('grade-filter'),
+            'online-filter': document.getElementById('online-filter'),
             'reset-filters': document.getElementById('reset-filters')
         };
         
@@ -47,13 +47,14 @@ class TopUsersFilter {
         const genderFilter = document.getElementById('gender-filter');
         const ageFilter = document.getElementById('age-filter');
         const languageFilter = document.getElementById('language-filter');
-        // const ratingFilter = document.getElementById('rating-filter'); // Убран, так как нет в HTML
+        const onlineFilter = document.getElementById('online-filter');
         const resetButton = document.getElementById('reset-filters');
         
         console.log('🔍 Найденные элементы:', {
             genderFilter: !!genderFilter,
             ageFilter: !!ageFilter,
             languageFilter: !!languageFilter,
+            onlineFilter: !!onlineFilter,
             resetButton: !!resetButton
         });
         
@@ -61,7 +62,7 @@ class TopUsersFilter {
         if (!genderFilter) console.warn('⚠️ gender-filter не найден');
         if (!ageFilter) console.warn('⚠️ age-filter не найден');
         if (!languageFilter) console.warn('⚠️ language-filter не найден');
-        // if (!ratingFilter) console.warn('⚠️ rating-filter не найден'); // Убран
+        if (!onlineFilter) console.warn('⚠️ online-filter не найден');
         if (!resetButton) console.warn('⚠️ reset-filters кнопка не найдена');
         
         genderFilter?.addEventListener('change', (e) => {
@@ -88,18 +89,17 @@ class TopUsersFilter {
         //     this.applyFilters();
         // });
 
-        // Добавляем обработчик для фильтра грейда
-        const gradeFilter = document.getElementById('grade-filter');
-        if (gradeFilter) {
-            console.log('✅ Grade filter найден, привязываем обработчик');
-            gradeFilter.addEventListener('change', (e) => {
-                console.log('🎯 Grade filter changed:', e.target.value);
-                this.filters.grade = e.target.value;
-                console.log('🎯 Обновленные фильтры:', this.filters);
+        // Добавляем обработчик для фильтра онлайн статуса
+        if (onlineFilter) {
+            console.log('✅ Online filter найден, привязываем обработчик');
+            onlineFilter.addEventListener('change', (e) => {
+                console.log('🟢 Online filter changed:', e.target.value);
+                this.filters.online = e.target.value;
+                console.log('🟢 Обновленные фильтры:', this.filters);
                 this.applyFilters();
             });
         } else {
-            console.error('❌ Grade filter не найден!');
+            console.error('❌ Online filter не найден!');
         }
 
         // Кнопка сброса фильтров
@@ -123,15 +123,13 @@ class TopUsersFilter {
         this.filters.gender = urlParams.get('gender') || '';
         this.filters.age = urlParams.get('age') || '';
         this.filters.language = urlParams.get('language_pref') || '';
-        this.filters.grade = urlParams.get('grade') || '';
-        // this.filters.rating = urlParams.get('rating') || ''; // Убран
+        this.filters.online = urlParams.get('online_only') || '';
 
         // Устанавливаем значения в селекты
         this.setSelectValue('gender-filter', this.filters.gender);
         this.setSelectValue('age-filter', this.filters.age);
         this.setSelectValue('language-filter', this.filters.language);
-        this.setSelectValue('grade-filter', this.filters.grade);
-        // this.setSelectValue('rating-filter', this.filters.rating); // Убран
+        this.setSelectValue('online-filter', this.filters.online);
     }
 
     setSelectValue(selectId, value) {
@@ -152,7 +150,7 @@ class TopUsersFilter {
             gender: this.filters.gender,
             age: this.filters.age,
             language: this.filters.language,
-            grade: this.filters.grade
+            online: this.filters.online
         });
         // Обновляем контент через AJAX вместо перезагрузки страницы
         this.updateContentWithFilters();
@@ -168,7 +166,7 @@ class TopUsersFilter {
         url.searchParams.delete('gender');
         url.searchParams.delete('age');
         url.searchParams.delete('language_pref');
-        url.searchParams.delete('grade');
+        url.searchParams.delete('online_only');
 
         // Добавляем новые параметры фильтров
         if (this.filters.gender) {
@@ -180,8 +178,8 @@ class TopUsersFilter {
         if (this.filters.language) {
             url.searchParams.set('language_pref', this.filters.language);
         }
-        if (this.filters.grade) {
-            url.searchParams.set('grade', this.filters.grade);
+        if (this.filters.online) {
+            url.searchParams.set('online_only', this.filters.online);
         }
         // if (this.filters.rating) { // Убран
         //     url.searchParams.set('rating', this.filters.rating);
@@ -203,8 +201,7 @@ class TopUsersFilter {
                 gender: document.getElementById('gender-filter')?.value || '',
                 age: document.getElementById('age-filter')?.value || '',
                 language: document.getElementById('language-filter')?.value || '',
-                grade: document.getElementById('grade-filter')?.value || '',
-                // rating: document.getElementById('rating-filter')?.value || '' // Убран
+                online: document.getElementById('online-filter')?.value || ''
             };
             
             console.log('💾 Сохраняем фильтры:', currentFilters);
@@ -243,14 +240,10 @@ class TopUsersFilter {
                         const languageSelect = document.getElementById('language-filter');
                         if (languageSelect) languageSelect.value = currentFilters.language;
                     }
-                    if (currentFilters.grade) {
-                        const gradeSelect = document.getElementById('grade-filter');
-                        if (gradeSelect) gradeSelect.value = currentFilters.grade;
+                    if (currentFilters.online) {
+                        const onlineSelect = document.getElementById('online-filter');
+                        if (onlineSelect) onlineSelect.value = currentFilters.online;
                     }
-                    // if (currentFilters.rating) { // Убран
-                    //     const ratingSelect = document.getElementById('rating-filter');
-                    //     if (ratingSelect) ratingSelect.value = currentFilters.rating;
-                    // }
                     console.log('🔄 Фильтры восстановлены');
                     
                     // Переинициализируем обработчики событий только если обновили весь контент
@@ -281,8 +274,7 @@ class TopUsersFilter {
         url.searchParams.delete('gender');
         url.searchParams.delete('age');
         url.searchParams.delete('language_pref');
-        url.searchParams.delete('grade');
-        // url.searchParams.delete('rating'); // Убран
+        url.searchParams.delete('online_only');
 
         // Добавляем новые параметры фильтров
         if (this.filters.gender) {
@@ -297,14 +289,10 @@ class TopUsersFilter {
             url.searchParams.set('language_pref', this.filters.language);
             console.log('➕ Добавлен language_pref:', this.filters.language);
         }
-        if (this.filters.grade) {
-            url.searchParams.set('grade', this.filters.grade);
-            console.log('➕ Добавлен grade:', this.filters.grade);
+        if (this.filters.online) {
+            url.searchParams.set('online_only', this.filters.online);
+            console.log('➕ Добавлен online_only:', this.filters.online);
         }
-        // if (this.filters.rating) { // Убран
-        //     url.searchParams.set('rating', this.filters.rating);
-        //     console.log('➕ Добавлен rating:', this.filters.rating);
-        // }
 
         console.log('🔄 Новый URL:', url.toString());
         console.log('🔄 Перезагружаем страницу...');
@@ -323,15 +311,14 @@ class TopUsersFilter {
             gender: '',
             age: '',
             language: '',
-            grade: ''
+            online: ''
         };
 
         // Сбрасываем селекты
         this.setSelectValue('gender-filter', '');
         this.setSelectValue('age-filter', '');
         this.setSelectValue('language-filter', '');
-        this.setSelectValue('grade-filter', '');
-        // this.setSelectValue('rating-filter', ''); // Убран
+        this.setSelectValue('online-filter', '');
         
         console.log('🔄 Фильтры сброшены в объекте:', this.filters);
 
@@ -340,8 +327,7 @@ class TopUsersFilter {
         url.searchParams.delete('gender');
         url.searchParams.delete('age');
         url.searchParams.delete('language_pref');
-        url.searchParams.delete('grade');
-        // url.searchParams.delete('rating'); // Убран
+        url.searchParams.delete('online_only');
         
         console.log('🔄 Reset filters - обновляем контент через AJAX:', url.toString());
         

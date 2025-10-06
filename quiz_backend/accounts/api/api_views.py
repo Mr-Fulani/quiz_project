@@ -966,7 +966,7 @@ class MiniAppTopUsersListView(generics.ListAPIView):
         gender = self.request.query_params.get('gender')
         age = self.request.query_params.get('age')
         language_pref = self.request.query_params.get('language_pref')
-        grade = self.request.query_params.get('grade')
+        online_only = self.request.query_params.get('online_only')
         
         if gender:
             queryset = queryset.filter(gender=gender)
@@ -997,9 +997,12 @@ class MiniAppTopUsersListView(generics.ListAPIView):
         if language_pref:
             queryset = queryset.filter(programming_language__name__iexact=language_pref)
         
-        if grade:
-            # Фильтрация по грейду (используем поле grade из модели)
-            queryset = queryset.filter(grade=grade)
+        if online_only == 'true':
+            # Фильтрация только онлайн пользователей (последний визит в течение 5 минут)
+            from datetime import timedelta
+            from django.utils import timezone
+            five_minutes_ago = timezone.now() - timedelta(minutes=5)
+            queryset = queryset.filter(last_seen__gte=five_minutes_ago)
         
         # Сортируем по рейтингу, затем по дате создания
         queryset = queryset.order_by('-rating', '-created_at')
