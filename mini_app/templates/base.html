@@ -6,6 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{{ translations.get('home', 'Мое приложение') }}{% endblock %}</title>
 
+    {% block extra_head %}{% endblock %}
+
     <!-- Подключение шрифтов -->
 <!--    <link rel="stylesheet" href="/static/css/fonts.css">-->
 
@@ -413,10 +415,12 @@
                                 }, 100);
                             }
 
-                            // Инициализация профиля теперь происходит в loadPageSpecificScripts
-                            
-                            // Загружаем специфичные скрипты для страницы
-                            loadPageSpecificScripts(url);
+                            // ВАЖНО: Загружаем специфичные скрипты для страницы ПОСЛЕ вставки контента
+                            // Задержка нужна чтобы DOM успел полностью обновиться
+                            setTimeout(() => {
+                                console.log('🔄 DOM updated, loading page-specific scripts...');
+                                loadPageSpecificScripts(url);
+                            }, 50);
                             
                             // Сбрасываем флаги переинициализации при загрузке новой страницы
                             if (window.tasksScriptReinitialized) {
@@ -463,6 +467,11 @@
             // Удаляем все динамические скрипты
             const dynamicScripts = document.querySelectorAll('script[data-dynamic="true"]');
             dynamicScripts.forEach(script => script.remove());
+            
+            // Удаляем все динамические CSS
+            const dynamicStyles = document.querySelectorAll('link[data-dynamic="true"]');
+            dynamicStyles.forEach(style => style.remove());
+            console.log('🧹 Cleaned up dynamic scripts and styles');
             
             // Загружаем стили и скрипты в зависимости от страницы
             if (url === '/' || url === '/index' || url.startsWith('/?') || url.startsWith('/index?')) {
@@ -611,37 +620,101 @@
                 };
                 document.head.appendChild(script);
             } else if (url === '/top_users' || url.startsWith('/top_users')) {
-                console.log('🎯 Top users page detected, loading script...');
-                // Для топ пользователей загружаем скрипт
-                const script = document.createElement('script');
-                script.setAttribute('data-dynamic', 'true');
-                script.src = '{{ get_js_url("top_users.js") }}';
-                script.onload = function() {
-                    console.log('✅ Top users script loaded via base template');
-                    // Вызываем инициализацию фильтров после загрузки скрипта
-                    setTimeout(() => {
-                        console.log('🚀 Calling TopUsersFilter initialization after script load');
-                        if (typeof window.TopUsersFilter === 'function') {
-                            // Инициализируем фильтр топ пользователей
-                            window.topUsersFilter = new window.TopUsersFilter();
-                            console.log('✅ TopUsersFilter initialized');
-                        } else {
-                            console.error('❌ TopUsersFilter class not found!');
-                        }
-                        
-                        // Также вызываем переинициализацию для SPA навигации
+                console.log('🎯 Top users page detected, loading resources...');
+                
+                // 1. Загружаем Swiper CSS из CDN (если еще не загружен)
+                if (!document.querySelector('link[href*="swiper-bundle.min.css"]')) {
+                    const swiperCSS = document.createElement('link');
+                    swiperCSS.rel = 'stylesheet';
+                    swiperCSS.href = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css';
+                    swiperCSS.setAttribute('data-dynamic', 'true');
+                    document.head.appendChild(swiperCSS);
+                    console.log('✅ Swiper CSS loaded from CDN');
+                }
+                
+                // 2. Загружаем custom Swiper CSS
+                if (!document.querySelector('link[href*="top_users_swiper.css"]')) {
+                    const customSwiperCSS = document.createElement('link');
+                    customSwiperCSS.rel = 'stylesheet';
+                    customSwiperCSS.href = '{{ get_css_url("top_users_swiper.css") }}';
+                    customSwiperCSS.setAttribute('data-dynamic', 'true');
+                    document.head.appendChild(customSwiperCSS);
+                    console.log('✅ Custom Swiper CSS loaded');
+                }
+                
+                // 3. Загружаем Swiper JS из CDN (если еще не загружен)
+                const loadSwiperJS = new Promise((resolve) => {
+                    if (typeof Swiper !== 'undefined') {
+                        console.log('✅ Swiper JS already loaded');
+                        resolve();
+                    } else {
+                        const swiperJS = document.createElement('script');
+                        swiperJS.src = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js';
+                        swiperJS.setAttribute('data-dynamic', 'true');
+                        swiperJS.onload = () => {
+                            console.log('✅ Swiper JS loaded from CDN');
+                            resolve();
+                        };
+                        swiperJS.onerror = () => {
+                            console.error('❌ Failed to load Swiper JS from CDN');
+                            resolve(); // Продолжаем даже если не загрузился
+                        };
+                        document.head.appendChild(swiperJS);
+                    }
+                });
+                
+                // 4. После загрузки Swiper, загружаем наши скрипты
+                loadSwiperJS.then(() => {
+                    // Загружаем top_users.js
+                    const script = document.createElement('script');
+                    script.setAttribute('data-dynamic', 'true');
+                    script.src = '{{ get_js_url("top_users.js") }}';
+                    script.onload = function() {
+                        console.log('✅ Top users script loaded via base template');
+                        // Вызываем инициализацию фильтров и кнопок после загрузки скрипта
                         setTimeout(() => {
-                            if (typeof window.reinitializeTopUsersPage === 'function') {
-                                console.log('🔄 Calling reinitializeTopUsersPage for SPA navigation');
-                                window.reinitializeTopUsersPage();
+                            console.log('🚀 Calling TopUsersFilter initialization after script load');
+                            if (typeof window.TopUsersFilter === 'function') {
+                                // Инициализируем фильтр топ пользователей
+                                window.topUsersFilter = new window.TopUsersFilter();
+                                console.log('✅ TopUsersFilter initialized');
+                            } else {
+                                console.error('❌ TopUsersFilter class not found!');
                             }
-                        }, 200);
-                    }, 100);
-                };
-                script.onerror = function() {
-                    console.error('❌ Failed to load top_users.js');
-                };
-                document.head.appendChild(script);
+                            
+                            // Инициализируем кнопки карусели с повторными попытками
+                            function tryInitCarouselButtons(attempt = 1, maxAttempts = 5) {
+                                if (typeof window.initCarouselButtons === 'function') {
+                                    console.log(`🔧 Calling initCarouselButtons from base.html (attempt ${attempt})`);
+                                    const success = window.initCarouselButtons();
+                                    
+                                    // Если не удалось (элементы не найдены), пробуем еще раз
+                                    if (!success && attempt < maxAttempts) {
+                                        console.log(`⏳ Retry initCarouselButtons in 300ms (attempt ${attempt + 1})`);
+                                        setTimeout(() => tryInitCarouselButtons(attempt + 1, maxAttempts), 300);
+                                    }
+                                } else {
+                                    console.error('❌ initCarouselButtons function not found!');
+                                }
+                            }
+                            
+                            // Пробуем инициализировать кнопки
+                            tryInitCarouselButtons();
+                            
+                            // Также вызываем переинициализацию для SPA навигации
+                            setTimeout(() => {
+                                if (typeof window.reinitializeTopUsersPage === 'function') {
+                                    console.log('🔄 Calling reinitializeTopUsersPage for SPA navigation');
+                                    window.reinitializeTopUsersPage();
+                                }
+                            }, 500);
+                        }, 100);
+                    };
+                    script.onerror = function() {
+                        console.error('❌ Failed to load top_users.js');
+                    };
+                    document.head.appendChild(script);
+                });
             }
         }
         

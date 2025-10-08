@@ -5,9 +5,24 @@
 {% endblock %}
 
 {% block extra_head %}
-<style>
-/* Дополнительные стили для страницы фильтров */
-</style>
+<!-- Swiper CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<!-- Custom Swiper styles -->
+<link rel="stylesheet" href="{{ get_css_url('top_users_swiper.css') }}" />
+
+<!-- Swiper JS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script src="{{ get_js_url('top_users_swiper.js') }}"></script>
+
+<script>
+// Функция для открытия профиля пользователя
+function openUserProfile(telegramId) {
+    console.log('👤 Открываем профиль пользователя:', telegramId);
+    // Здесь можно добавить логику для открытия профиля
+    alert('Открываем профиль пользователя: ' + telegramId);
+}
+</script>
+
 <!-- SVG фильтр для электрической обводки -->
 <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
     <defs>
@@ -92,10 +107,12 @@
         </div>
     </div>
     
-    <div class="top-users-list">
+    <!-- Топ-5 пользователей (всегда видимые) -->
+    <div class="top-5-users">
+        <div class="top-users-list" id="top-5-list">
         {% if top_users %}
-            {% for user in top_users %}
-            <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile({{ user.telegram_id }})">
+                {% for user in top_users[:3] %}
+            <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
                 <div class="user-rank">{{ loop.index }}</div>
                 <div class="user-avatar-wrapper">
                     <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
@@ -158,6 +175,83 @@
                 <p data-translate="no_top_users">{{ translations.get('no_top_users', 'Пока нет лучших пользователей') }}</p>
             </div>
         {% endif %}
+        </div>
+    </div>
+
+    <!-- Кнопка "Все пользователи" -->
+    {% if top_users %}
+    <div class="show-all-section">
+        <button class="show-all-btn" id="show-all-users" data-translate="show_all_users">
+            {{ translations.get('show_all_users', 'Все пользователи') }} ({{ top_users|length }})
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Свайп-карусель для остальных пользователей (скрытая по умолчанию) -->
+    <div class="all-users-carousel" id="all-users-carousel" style="display: none;">
+        <h2 class="section-title" data-translate="all_users_title">{{ translations.get('all_users_title', 'Все пользователи') }}</h2>
+        <div class="swiper" id="users-swiper">
+            <div class="swiper-wrapper">
+                {% if top_users %}
+                {% for user in top_users[3:] %}
+                    <div class="swiper-slide">
+                        <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
+                            <!-- Аватарка на весь экран -->
+                            <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
+                            
+                            <!-- Информация внизу экрана -->
+                            <div class="user-info-container">
+                                <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                                <div class="user-username">@{{ user.username }}</div>
+                                
+                                <div class="user-stats">
+                                    <div class="user-rating">
+                                        ⭐ {{ user.rating }} {{ translations.get('rating', 'Рейтинг') }}
+                                    </div>
+                                    <div class="user-details">
+                                        <span class="gender-icon">
+                                            {% if user.gender == 'male' %}
+                                                ♂️
+                                            {% elif user.gender == 'female' %}
+                                                ♀️
+                                            {% else %}
+                                                ❓
+                                            {% endif %}
+                                        </span>
+                                        <span class="age-info">
+                                            {% if user.age %}
+                                                {{ user.age }} {{ translations.get('years_old', 'лет') }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="grade-info">
+                                            {% if user.grade %}
+                                                {% if user.grade == 'junior' %}
+                                                    {{ translations.get('junior', 'Junior') }}
+                                                {% elif user.grade == 'middle' %}
+                                                    {{ translations.get('middle', 'Middle') }}
+                                                {% elif user.grade == 'senior' %}
+                                                    {{ translations.get('senior', 'Senior') }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <!-- Навигация -->
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+        </div>
+        
+        <!-- Индикатор свайпа -->
+        <div class="swipe-indicator">← Свайпайте →</div>
+        
+        <!-- Кнопка "Скрыть" убрана - закрытие по клику вне области -->
     </div>
 </div>
 
@@ -165,9 +259,17 @@
 
 {% block extra_scripts %}
 <script>
-// Инициализация фильтров топ пользователей
+// Инициализация при прямой загрузке страницы (не через SPA)
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Top users page loaded, initializing filters...');
+    console.log('🚀 Top users page loaded (DOMContentLoaded), initializing...');
+    
+    // Инициализируем кнопки карусели если функция существует
+    if (typeof window.initCarouselButtons === 'function') {
+        console.log('🔧 Инициализируем кнопки карусели (DOMContentLoaded)');
+        window.initCarouselButtons();
+    } else {
+        console.error('❌ window.initCarouselButtons not found yet (DOMContentLoaded)');
+    }
     
     // Проверяем, что скрипт top_users.js загружен
     if (typeof window.TopUsersFilter === 'function') {
@@ -175,119 +277,11 @@ document.addEventListener('DOMContentLoaded', function() {
         window.topUsersFilter = new window.TopUsersFilter();
         console.log('✅ TopUsersFilter initialized successfully');
     } else {
-        console.error('❌ TopUsersFilter class not found! Trying to load script...');
-        
-        // Загружаем скрипт если он не загружен
-        const script = document.createElement('script');
-        script.src = '{{ get_js_url("top_users.js") }}';
-        script.onload = function() {
-            console.log('✅ Top users script loaded, initializing...');
-            if (typeof window.TopUsersFilter === 'function') {
-                window.topUsersFilter = new window.TopUsersFilter();
-                console.log('✅ TopUsersFilter initialized after script load');
-            } else {
-                // Fallback - перезагружаем страницу
-                window.location.href = url.toString();
-            }
-        })
-        .catch(error => {
-            console.error('❌ Ошибка AJAX запроса:', error);
-            // Fallback - перезагружаем страницу
-            window.location.href = url.toString();
-        });
+        console.error('❌ TopUsersFilter class not found! (DOMContentLoaded)');
     }
     
-    // Полностью отключаем локализацию на странице фильтров
-    if (window.localizationService) {
-        window.localizationService.updateInterface = function() {
-            console.log('🚫 Локализация отключена на странице фильтров');
-            return;
-        };
-    }
-    
-    // Также отключаем автоматическую инициализацию локализации
-    if (window.initLocalization) {
-        window.initLocalization = function() {
-            console.log('🚫 Инициализация локализации отключена на странице фильтров');
-            return;
-        };
-    }
-    
-    // Отключаем все обработчики событий локализации
-    document.removeEventListener('DOMContentLoaded', window.initLocalization);
-    document.removeEventListener('click', function(e) {
-        if (e.target.matches('[data-translate]')) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    });
-    
-    // Отключаем все события локализации
-    document.addEventListener('DOMContentLoaded', function() {
-        // Удаляем все обработчики событий локализации
-        const languageSelect = document.querySelector('select[name="language"]');
-        if (languageSelect) {
-            languageSelect.removeEventListener('change', function() {});
-            console.log('🚫 Обработчики локализации удалены');
-        }
-    });
-    
-    // Восстанавливаем состояние фильтров после перезагрузки
-    function restoreFilterState() {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        // Восстанавливаем фильтр пола
-        const gender = urlParams.get('gender');
-        if (gender) {
-            const genderSelect = document.getElementById('gender-filter');
-            if (genderSelect) {
-                genderSelect.value = gender;
-            }
-        }
-        
-        // Восстанавливаем фильтр возраста
-        const age = urlParams.get('age');
-        if (age) {
-            const ageSelect = document.getElementById('age-filter');
-            if (ageSelect) {
-                ageSelect.value = age;
-            }
-        }
-        
-        // Восстанавливаем фильтр языка программирования
-        const languagePref = urlParams.get('language_pref');
-        if (languagePref) {
-            const languageSelect = document.getElementById('language-filter');
-            if (languageSelect) {
-                // Ищем опцию по тексту
-                for (let option of languageSelect.options) {
-                    if (option.text === languagePref) {
-                        languageSelect.value = option.value;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        // Восстанавливаем фильтр рейтинга
-        const rating = urlParams.get('rating');
-        if (rating) {
-            const ratingSelect = document.getElementById('rating-filter');
-            if (ratingSelect) {
-                ratingSelect.value = rating;
-            }
-        }
-        
-        console.log('✅ Состояние фильтров восстановлено');
-    }
-    
-    // Инициализируем новый фильтр
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('🚀 Инициализация TopUsersFilter...');
-        window.topUsersFilter = new window.TopUsersFilter();
-        console.log('✅ TopUsersFilter инициализирован');
-    });
-    
-    console.log('✅ Функции фильтрации загружены');
+    console.log('✅ Инициализация завершена (DOMContentLoaded)');
+});
+
 </script>
 {% endblock %}

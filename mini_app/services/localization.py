@@ -47,6 +47,10 @@ class LocalizationService:
             
             # Достижения
             "top_users_title": "Top Users",
+            "top_5_title": "Top 5 Users",
+            "all_users_title": "All Users",
+            "show_all_users": "Show All Users",
+            "hide_all_users": "Hide",
             "no_top_users": "No top users yet",
             "keep_playing": "Keep playing to get to the top!",
             
@@ -210,6 +214,10 @@ class LocalizationService:
             
             # Достижения
             "top_users_title": "Топ юзеров",
+            "top_5_title": "Топ-5 пользователей",
+            "all_users_title": "Все пользователи",
+            "show_all_users": "Все пользователи",
+            "hide_all_users": "Скрыть",
             "no_top_users": "Пока нет лучших пользователей",
             "keep_playing": "Продолжайте играть, чтобы попасть в топ!",
             
