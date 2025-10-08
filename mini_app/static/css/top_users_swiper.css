@@ -1,0 +1,570 @@
+/* ========================================
+   СТИЛИ ДЛЯ КНОПОК И КАРУСЕЛИ
+   ======================================== */
+
+/* Секция заголовка */
+.section-title {
+    font-size: clamp(1.2rem, 4vw, 1.5rem);
+    font-weight: bold;
+    color: var(--text-color);
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.top-5-users {
+    margin-bottom: 1.25rem;
+}
+
+/* ========================================
+   КНОПКИ "ПОКАЗАТЬ ВСЕ" И "СКРЫТЬ"
+   ======================================== */
+.show-all-section, 
+.hide-all-section {
+    text-align: center;
+    margin: 1.5rem 0;
+    padding: 1rem;
+}
+
+.show-all-btn, 
+.hide-all-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: clamp(0.75rem, 3vw, 1rem) clamp(1.5rem, 5vw, 2rem);
+    border-radius: 1.5rem;
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    min-width: clamp(150px, 40vw, 200px);
+    display: inline-block;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.show-all-btn:active, 
+.hide-all-btn:active {
+    transform: scale(0.98);
+}
+
+.show-all-btn:hover, 
+.hide-all-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.hide-all-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.hide-all-btn:hover {
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+/* ========================================
+   ПОЛНОЭКРАННАЯ КАРУСЕЛЬ
+   ======================================== */
+.all-users-carousel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 99999;
+    display: none;
+    overflow: hidden;
+}
+
+/* На мобильных устройствах position:fixed часто конфликтует с safe-area и virtual keyboard.
+   Переключаемся на absolute и используем transform для корректного позиционирования при открытом клавиатурном/адресном баре */
+@media (max-width: 480px) {
+    .all-users-carousel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100vh;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.6); /* затемнение фона, чтобы окно выглядело модально */
+        /* Отступ сверху для учёта заголовка Telegram WebApp, чтобы окно не перекрывалось */
+        padding-top: calc(env(safe-area-inset-top, 0px) + 56px);
+    }
+
+    /* Ограничиваем ширину внутреннего окна карусели */
+    .all-users-carousel .swiper {
+        width: calc(100% - 40px);
+        max-width: 360px; /* уже окно на мобилках */
+        max-height: 80vh; /* ограничиваем высоту */
+        height: auto;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        background: #000; /* фон внутри окна */
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Контент слайдов подгоняем под новое окно */
+    .all-users-carousel .swiper-slide {
+        align-items: stretch;
+        justify-content: center;
+    }
+
+    .all-users-carousel .swiper-slide .user-item {
+        max-height: calc(80vh - 60px);
+        border-radius: 14px;
+    }
+
+    /* Заголовок внутри окна */
+    .all-users-carousel .section-title {
+        position: absolute;
+        top: calc(env(safe-area-inset-top, 1rem) + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100001;
+        width: calc(100% - 48px);
+        max-width: 380px;
+        text-align: center;
+    }
+
+    /* Индикатор свайпа не должен быть fixed на мобильных */
+    .swiper-slide::after {
+        position: absolute;
+        top: calc(env(safe-area-inset-top, 1rem) + 3.5rem);
+    }
+}
+
+/* Заголовок карусели */
+.all-users-carousel .section-title {
+    position: fixed;
+    top: env(safe-area-inset-top, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100001;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    margin: 0;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 1rem;
+    backdrop-filter: blur(10px);
+    font-size: clamp(1rem, 3.5vw, 1.3rem);
+}
+
+/* Контейнер Swiper */
+.all-users-carousel .swiper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.all-users-carousel .swiper-wrapper {
+    height: 100%;
+}
+
+.all-users-carousel .swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ========================================
+   КАРТОЧКА ПОЛЬЗОВАТЕЛЯ В КАРУСЕЛИ
+   ======================================== */
+.swiper-slide .user-item {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: #000;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Аватарка пользователя */
+.swiper-slide .user-avatar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Градиент для читаемости текста */
+.swiper-slide .user-item::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Информация пользователя */
+.swiper-slide .user-info-container {
+    position: relative;
+    z-index: 2;
+    padding: clamp(1rem, 4vw, 2rem);
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+    color: white;
+}
+
+.swiper-slide .user-name {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    line-height: 1.2;
+}
+
+.swiper-slide .user-username {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    opacity: 0.9;
+    margin-bottom: 1rem;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+}
+
+/* Статистика пользователя */
+.swiper-slide .user-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.swiper-slide .user-rating {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1rem;
+    border-radius: 1.5rem;
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Детали пользователя */
+.swiper-slide .user-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.swiper-slide .user-details span {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    padding: 0.4rem 0.8rem;
+    border-radius: 1rem;
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+   НАВИГАЦИЯ SWIPER
+   ======================================== */
+
+/* Кнопки навигации */
+.all-users-carousel .swiper-button-next,
+.all-users-carousel .swiper-button-prev {
+    width: clamp(40px, 10vw, 50px);
+    height: clamp(40px, 10vw, 50px);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.all-users-carousel .swiper-button-next:after,
+.all-users-carousel .swiper-button-prev:after {
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: bold;
+}
+
+.all-users-carousel .swiper-button-next:hover,
+.all-users-carousel .swiper-button-prev:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(1.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Пагинация - полностью скрыта */
+.all-users-carousel .swiper-pagination {
+    display: none !important;
+}
+
+.all-users-carousel .swiper-pagination-bullet {
+    display: none !important;
+}
+
+.all-users-carousel .swiper-pagination-bullet-active {
+    display: none !important;
+}
+
+/* Индикатор свайпа - компактный, внизу за пределами модального окна */
+.swipe-indicator {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 1.5rem;
+    font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+    z-index: 100001;
+    animation: pulse 2s infinite;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    white-space: nowrap;
+    display: inline-block;
+    width: auto;
+    max-width: none;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ - МОБИЛЬНЫЕ
+   ======================================== */
+@media (max-width: 480px) {
+    /* Кнопки управления */
+    .show-all-btn, .hide-all-btn {
+        width: 90%;
+        max-width: 300px;
+    }
+    
+    /* Аватарка */
+    .swiper-slide .user-avatar {
+        object-fit: contain;
+        background: #000;
+    }
+    
+    /* Информация */
+    .swiper-slide .user-info-container {
+        padding: 1rem 1rem calc(env(safe-area-inset-bottom, 1rem) + 1rem);
+    }
+    
+    .swiper-slide .user-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    /* Скрываем стрелки на маленьких экранах */
+    .all-users-carousel .swiper-button-next,
+    .all-users-carousel .swiper-button-prev {
+        display: none;
+    }
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ - ПЛАНШЕТЫ
+   ======================================== */
+@media (min-width: 481px) and (max-width: 1024px) {
+    /* Центрируем контент */
+    .swiper-slide .user-item {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .swiper-slide .user-avatar {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    /* Стрелки видны, но прозрачнее */
+    .all-users-carousel .swiper-button-next,
+    .all-users-carousel .swiper-button-prev {
+        opacity: 0.6;
+    }
+    
+    .all-users-carousel .swiper-button-next:hover,
+    .all-users-carousel .swiper-button-prev:hover {
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ - ДЕСКТОП
+   ======================================== */
+@media (min-width: 1025px) {
+    /* Центрируем контент с ограничением ширины */
+    .swiper-slide .user-item {
+        max-width: 800px;
+        margin: 0 auto;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    
+    .swiper-slide .user-avatar {
+        max-width: 800px;
+        border-radius: 1rem;
+    }
+    
+    /* Показываем более заметные стрелки */
+    .all-users-carousel .swiper-button-next,
+    .all-users-carousel .swiper-button-prev {
+        background: rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Индикатор не нужен на десктопе */
+    .swiper-slide::after {
+        content: 'Используйте стрелки или клавиши ← →';
+    }
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ - ЛАНДШАФТ
+   ======================================== */
+@media (orientation: landscape) and (max-height: 600px) {
+    /* Уменьшаем отступы */
+    .swiper-slide .user-info-container {
+        padding: 0.75rem 1rem calc(env(safe-area-inset-bottom, 0.5rem) + 0.5rem);
+    }
+    
+    .swiper-slide .user-name {
+        font-size: clamp(1.2rem, 4vh, 1.5rem);
+        margin-bottom: 0.3rem;
+    }
+    
+    .swiper-slide .user-username {
+        font-size: clamp(0.9rem, 3vh, 1rem);
+        margin-bottom: 0.5rem;
+    }
+    
+    .swiper-slide .user-stats {
+        margin-top: 0.5rem;
+    }
+    
+    .swiper-slide .user-details {
+        margin-top: 0.3rem;
+    }
+    
+    /* Скрываем индикатор свайпа */
+    .swiper-slide::after {
+        display: none;
+    }
+    
+    /* Уменьшаем заголовок */
+    .all-users-carousel .section-title {
+        top: 0.5rem;
+        font-size: clamp(0.9rem, 3vh, 1.1rem);
+        padding: 0.3rem 0.8rem;
+    }
+    
+    /* Пагинация ближе к низу */
+    .all-users-carousel .swiper-pagination {
+        bottom: 0.5rem;
+    }
+}
+
+/* ========================================
+   iOS SAFE AREA
+   ======================================== */
+@supports (padding: max(0px)) {
+    .swiper-slide .user-info-container {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    
+    .all-users-carousel .swiper-pagination {
+        bottom: max(1.5rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* ========================================
+   TOUCH УСТРОЙСТВА
+   ======================================== */
+@media (hover: none) and (pointer: coarse) {
+    /* Убираем hover эффекты */
+    .show-all-btn:hover, 
+    .hide-all-btn:hover {
+        transform: none;
+    }
+    
+    /* Увеличиваем зоны нажатия */
+    .show-all-btn, 
+    .hide-all-btn {
+        padding: 1rem 2rem;
+        min-height: 48px;
+    }
+    
+    /* Скрываем стрелки на touch устройствах */
+    .all-users-carousel .swiper-button-next,
+    .all-users-carousel .swiper-button-prev {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+    
+    /* Увеличиваем размер пагинации для touch */
+    .all-users-carousel .swiper-pagination-bullet {
+        width: 10px;
+        height: 10px;
+        margin: 0 5px;
+    }
+}
+
+/* ========================================
+   ТЕМНАЯ ТЕМА
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+    .all-users-carousel {
+        background: #000;
+    }
+    
+    .swiper-slide .user-item::before {
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+    }
+}
+
+/* ========================================
+   УМЕНЬШЕННОЕ ДВИЖЕНИЕ
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+    .swiper-slide::after {
+        animation: none;
+    }
+    
+    .all-users-carousel .swiper {
+        --swiper-transition-timing-function: linear;
+    }
+    
+    .show-all-btn, 
+    .hide-all-btn {
+        transition: none;
+    }
+}
+
+/* ========================================
+   ВЫСОКОЕ РАЗРЕШЕНИЕ
+   ======================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .swiper-slide .user-avatar {
+        image-rendering: -webkit-optimize-contrast;
+    }
+}

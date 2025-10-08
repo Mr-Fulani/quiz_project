@@ -1,3 +1,150 @@
+// ГЛОБАЛЬНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ КНОПОК КАРУСЕЛИ
+window.initCarouselButtons = function() {
+    console.log('🔧 ИНИЦИАЛИЗАЦИЯ КНОПОК И SWIPER');
+    
+    const showBtn = document.getElementById('show-all-users');
+    const carousel = document.getElementById('all-users-carousel');
+    
+    console.log('🔧 Поиск элементов:', {
+        showBtn: !!showBtn,
+        carousel: !!carousel
+    });
+    
+    if (showBtn && carousel) {
+        console.log('🔧 Все элементы найдены, добавляем обработчики');
+        
+        // Удаляем старые обработчики (если есть)
+        showBtn.onclick = null;
+        
+        // Обработчик для кнопки "Показать всех"
+        showBtn.onclick = function(e) {
+            console.log('🔧 КНОПКА "ПОКАЗАТЬ ВСЕХ" НАЖАТА!');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Скрываем кнопку "Показать всех"
+            showBtn.style.display = 'none';
+            
+            // Блокируем скролл body — сохраняем позицию и фиксируем с top offset
+            const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+            window.scrollPositionBeforeSwiper = scrollY;
+
+            document.body.style.overflow = 'hidden';
+            // Фиксируем тело и смещаем вверх на текущий скролл, чтобы не было прыжка на мобильных
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            
+            // Показываем карусель
+            carousel.style.display = 'block';
+            
+            // Инициализируем Swiper
+            setTimeout(() => {
+                if (typeof Swiper !== 'undefined') {
+                    console.log('🔧 Инициализируем Swiper');
+                    
+                    // Уничтожаем предыдущий экземпляр Swiper если есть
+                    if (window.userSwiper) {
+                        window.userSwiper.destroy(true, true);
+                    }
+                    
+                    window.userSwiper = new Swiper('#users-swiper', {
+                        slidesPerView: 1,
+                        spaceBetween: 0,
+                        centeredSlides: true,
+                        loop: false,
+                        effect: 'slide',
+                        speed: 300,
+                        navigation: {
+                            nextEl: '.swiper-button-next',
+                            prevEl: '.swiper-button-prev',
+                        },
+                        pagination: {
+                            el: '.swiper-pagination',
+                            clickable: true,
+                            dynamicBullets: true,
+                        },
+                        on: {
+                            init: function() {
+                                console.log('🔧 Swiper инициализирован!');
+                            }
+                        }
+                    });
+                } else {
+                    console.error('🔧 Swiper не найден!');
+                }
+            }, 100);
+        };
+        
+        // Функция закрытия карусели
+        function closeCarousel() {
+            console.log('🔧 ЗАКРЫТИЕ КАРУСЕЛИ');
+            
+            // Уничтожаем Swiper
+            if (window.userSwiper) {
+                window.userSwiper.destroy(true, true);
+                window.userSwiper = null;
+            }
+            
+            // Скрываем карусель
+            carousel.style.display = 'none';
+            
+            // Восстанавливаем скролл body и позицию
+            const prevScroll = typeof window.scrollPositionBeforeSwiper !== 'undefined' ? window.scrollPositionBeforeSwiper : 0;
+
+            // Убираем фиксацию тела и очищаем top, затем восстанавливаем позицию скролла
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+
+            if (prevScroll) {
+                window.scrollTo(0, prevScroll);
+                delete window.scrollPositionBeforeSwiper;
+            }
+            
+            // Показываем кнопку "Показать всех"
+            showBtn.style.display = 'block';
+            
+            console.log('✅ Карусель закрыта, стили восстановлены');
+        };
+        
+        // Обработчик закрытия по клавише ESC
+        const handleEscKey = function(e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                if (carousel.style.display === 'block') {
+                    closeCarousel();
+                }
+            }
+        };
+
+        // Обработчик клика вне области карусели для закрытия
+        carousel.addEventListener('click', function(e) {
+            // Если клик был по самому контейнеру карусели (не по swiper или его содержимому)
+            if (e.target === carousel) {
+                console.log('🔧 КЛИК ВНЕ ОБЛАСТИ КАРУСЕЛИ - ЗАКРЫВАЕМ');
+                closeCarousel();
+            }
+        });
+        
+        // Добавляем обработчик ESC
+        document.addEventListener('keydown', handleEscKey);
+        
+        // Сохраняем ссылку на обработчик для возможности удаления
+        window.carouselEscHandler = handleEscKey;
+        
+        console.log('🔧 Обработчики добавлены успешно!');
+        return true;
+    } else {
+        console.error('🔧 Не все элементы найдены!');
+        return false;
+    }
+};
+
 // Фильтрация топ пользователей
 class TopUsersFilter {
     constructor() {
@@ -250,6 +397,12 @@ class TopUsersFilter {
                     if (!newUserList || !currentUserList) {
                         this.bindEvents();
                     }
+                    
+                    // Переинициализируем обработчики кнопок карусели
+                    if (typeof window.initCarouselButtons === 'function') {
+                        console.log('🔄 Переинициализация кнопок карусели');
+                        window.initCarouselButtons();
+                    }
                 }, 100);
             } else {
                 // Fallback - перезагружаем страницу
@@ -359,6 +512,14 @@ class TopUsersFilter {
                     currentContent.innerHTML = newContent.innerHTML;
                     console.log('✅ Фильтры сброшены, контент обновлен (fallback)');
                 }
+                
+                // Переинициализируем обработчики кнопок карусели после сброса фильтров
+                setTimeout(() => {
+                    if (typeof window.initCarouselButtons === 'function') {
+                        console.log('🔄 Переинициализация кнопок карусели после сброса');
+                        window.initCarouselButtons();
+                    }
+                }, 100);
             } else {
                 // Fallback - перезагружаем страницу
                 window.location.href = url.toString();
