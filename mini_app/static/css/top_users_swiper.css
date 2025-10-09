@@ -65,42 +65,46 @@
     right: 0;
     bottom: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh; /* Fallback для старых браузеров */
+    height: 100dvh; /* Dynamic viewport height для iOS */
     background: #000;
     z-index: 99999;
     display: none;
     overflow: hidden;
 }
 
-/* На мобильных устройствах position:fixed часто конфликтует с safe-area и virtual keyboard.
-   Переключаемся на absolute и используем transform для корректного позиционирования при открытом клавиатурном/адресном баре */
+/* На мобильных устройствах используем улучшенное позиционирование для корректной работы на всех iOS устройствах */
 @media (max-width: 480px) {
     .all-users-carousel {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        height: 100vh;
+        /* Используем dvh (dynamic viewport height) для корректной работы на iOS */
+        height: 100dvh;
+        min-height: -webkit-fill-available;
         z-index: 99999;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0,0,0,0.6); /* затемнение фона, чтобы окно выглядело модально */
-        /* Отступ сверху для учёта заголовка Telegram WebApp, чтобы окно не перекрывалось */
-        padding-top: calc(env(safe-area-inset-top, 0px) + 56px);
+        background: rgba(0,0,0,0.95); /* затемнение фона */
+        /* Максимально увеличенные отступы сверху и снизу */
+        padding-top: clamp(100px, 18vh, 150px);
+        padding-bottom: clamp(100px, 18vh, 150px);
     }
 
-    /* Ограничиваем ширину внутреннего окна карусели */
+    /* Ограничиваем ширину и высоту внутреннего окна карусели */
     .all-users-carousel .swiper {
         width: calc(100% - 40px);
-        max-width: 360px; /* уже окно на мобилках */
-        max-height: 80vh; /* ограничиваем высоту */
+        max-width: 360px;
+        /* Максимально уменьшенная высота */
+        max-height: calc(100dvh - clamp(200px, 36vh, 300px));
         height: auto;
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        background: #000; /* фон внутри окна */
+        background: #000;
         display: flex;
         flex-direction: column;
     }
@@ -112,15 +116,16 @@
     }
 
     .all-users-carousel .swiper-slide .user-item {
-        max-height: calc(80vh - 60px);
+        max-height: 100%;
         border-radius: 14px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
-
-    /* Индикатор свайпа не должен быть fixed на мобильных */
+    /* Индикатор свайпа адаптивный */
     .swiper-slide::after {
         position: absolute;
-        top: calc(env(safe-area-inset-top, 1rem) + 3.5rem);
+        top: clamp(1rem, env(safe-area-inset-top, 1rem) + 2rem, 4rem);
     }
 }
 
@@ -158,6 +163,7 @@
     background: #000;
     cursor: pointer;
     overflow: hidden;
+    padding-top: 5px; /* Минимальный отступ сверху */
 }
 
 /* Аватарка пользователя */
@@ -171,13 +177,47 @@
     object-position: center;
 }
 
+/* Индикатор онлайн статуса */
+.swiper-slide .online-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 16px;
+    height: 16px;
+    background: var(--active-color);
+    border: 3px solid var(--base-bg);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--active-color);
+    animation: pulse 2s infinite;
+    z-index: 10;
+}
+
+/* Текстовый индикатор онлайн статуса */
+.swiper-slide .online-status-text {
+    position: absolute;
+    top: 15px;
+    right: 40px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    color: var(--active-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    text-shadow: 0 0 8px var(--active-color);
+    z-index: 10;
+    white-space: nowrap;
+}
+
 
 /* Информация пользователя */
 .swiper-slide .user-info-container {
     position: relative;
     z-index: 2;
     padding: clamp(1rem, 4vw, 2rem);
-    padding-bottom: env(safe-area-inset-bottom, 1rem);
+    padding-top: clamp(0.5rem, 2vw, 1rem); /* Уменьшен верхний отступ */
+    padding-bottom: clamp(0.5rem, 2vw, 1rem); /* Уменьшен нижний отступ */
     color: white;
 }
 
@@ -223,13 +263,133 @@
     margin-top: 0.75rem;
 }
 
-.swiper-slide .user-details span {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-    padding: 0.4rem 0.8rem;
-    border-radius: 1rem;
-    font-size: clamp(0.8rem, 2vw, 0.9rem);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+/* Матричные стили для элементов профиля */
+.swiper-slide .gender-icon {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    font-weight: 500;
+    background: rgba(0, 255, 255, 0.1);
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    text-align: center;
+    min-width: 80px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    height: 32px;
+    box-sizing: border-box;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.swiper-slide .gender-icon:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: var(--active-color);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.swiper-slide .age-info {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: rgba(0, 255, 255, 0.1);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    text-align: center;
+    min-width: 80px;
+    transition: all 0.3s ease;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.swiper-slide .age-info:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: var(--active-color);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+.swiper-slide .grade-info {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: rgba(0, 255, 255, 0.1);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    text-align: center;
+    min-width: 80px;
+    transition: all 0.3s ease;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.swiper-slide .grade-info:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: var(--active-color);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+/* Стили для грейдов с анимацией */
+.swiper-slide .grade-junior {
+    color: #00ff88 !important;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    animation: juniorGlow 2s ease-in-out infinite alternate;
+}
+
+.swiper-slide .grade-middle {
+    color: #00aaff !important;
+    text-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
+    animation: middleGlow 2s ease-in-out infinite alternate;
+}
+
+.swiper-slide .grade-senior {
+    color: #ff6b35 !important;
+    text-shadow: 0 0 20px rgba(255, 107, 53, 0.7);
+    animation: seniorGlow 2s ease-in-out infinite alternate;
+}
+
+/* Анимации для грейдов */
+@keyframes juniorGlow {
+    0% {
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+        transform: scale(1.02);
+    }
+}
+
+@keyframes middleGlow {
+    0% {
+        text-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 25px rgba(0, 170, 255, 0.9);
+        transform: scale(1.03);
+    }
+}
+
+@keyframes seniorGlow {
+    0% {
+        text-shadow: 0 0 20px rgba(255, 107, 53, 0.7);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 30px rgba(255, 107, 53, 1);
+        transform: scale(1.05);
+    }
 }
 
 /* ========================================
@@ -265,7 +425,7 @@
 /* Индикатор свайпа - компактный, внизу за пределами модального окна */
 .swipe-indicator {
     position: fixed;
-    bottom: 40px;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.8);
@@ -320,6 +480,71 @@
     .all-users-carousel .swiper-button-next,
     .all-users-carousel .swiper-button-prev {
         display: none;
+    }
+}
+
+/* ========================================
+   СПЕЦИФИЧНЫЕ МОДЕЛИ iPhone
+   ======================================== */
+
+/* iPhone 11, 11 Pro, XR (828x1792, 375x812, 414x896) */
+@media only screen 
+  and (min-device-width: 375px) 
+  and (max-device-width: 414px) 
+  and (-webkit-device-pixel-ratio: 2) {
+    .all-users-carousel {
+        padding-top: clamp(90px, 17vh, 140px);
+        padding-bottom: clamp(90px, 17vh, 140px);
+    }
+    
+    .all-users-carousel .swiper {
+        max-height: calc(100dvh - clamp(180px, 34vh, 280px));
+    }
+}
+
+/* iPhone 12, 12 Pro, 13, 13 Pro, 14, 14 Pro (390x844) */
+@media only screen 
+  and (device-width: 390px) 
+  and (device-height: 844px) 
+  and (-webkit-device-pixel-ratio: 3) {
+    .all-users-carousel {
+        padding-top: clamp(100px, 18vh, 150px);
+        padding-bottom: clamp(100px, 18vh, 150px);
+    }
+    
+    .all-users-carousel .swiper {
+        max-height: calc(100dvh - clamp(200px, 36vh, 300px));
+    }
+}
+
+/* iPhone 14 Plus, 13 Pro Max, 12 Pro Max (428x926) */
+@media only screen 
+  and (device-width: 428px) 
+  and (device-height: 926px) 
+  and (-webkit-device-pixel-ratio: 3) {
+    .all-users-carousel {
+        padding-top: clamp(105px, 19vh, 155px);
+        padding-bottom: clamp(105px, 19vh, 155px);
+    }
+    
+    .all-users-carousel .swiper {
+        max-height: calc(100dvh - clamp(210px, 38vh, 310px));
+    }
+}
+
+/* iPhone 14 Pro Max, 15 Pro Max (430x932) - новые модели с Dynamic Island */
+@media only screen 
+  and (device-width: 430px) 
+  and (device-height: 932px) 
+  and (-webkit-device-pixel-ratio: 3) {
+    .all-users-carousel {
+        /* Экстремально увеличенные отступы для Dynamic Island */
+        padding-top: clamp(110px, 20vh, 160px);
+        padding-bottom: clamp(110px, 20vh, 160px);
+    }
+    
+    .all-users-carousel .swiper {
+        max-height: calc(100dvh - clamp(220px, 40vh, 320px));
     }
 }
 

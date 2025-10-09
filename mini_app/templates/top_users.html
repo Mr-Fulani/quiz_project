@@ -197,6 +197,10 @@ function openUserProfile(telegramId) {
                         <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
                             <!-- Аватарка на весь экран -->
                             <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
+                            {% if user.is_online %}
+                            <div class="online-indicator"></div>
+                            <div class="online-status-text">{{ translations.get('online', 'онлайн') }}</div>
+                            {% endif %}
                             
                             <!-- Информация внизу экрана -->
                             <div class="user-info-container">
@@ -208,31 +212,31 @@ function openUserProfile(telegramId) {
                                         ⭐ {{ user.rating }} {{ translations.get('rating', 'Рейтинг') }}
                                     </div>
                                     <div class="user-details">
+                                        {% if user.gender %}
                                         <span class="gender-icon">
                                             {% if user.gender == 'male' %}
                                                 ♂️
                                             {% elif user.gender == 'female' %}
                                                 ♀️
-                                            {% else %}
-                                                ❓
                                             {% endif %}
                                         </span>
+                                        {% endif %}
+                                        {% if user.age %}
                                         <span class="age-info">
-                                            {% if user.age %}
-                                                {{ user.age }} {{ translations.get('years_old', 'лет') }}
+                                            {{ user.age }} {{ translations.get('years_old', 'лет') }}
+                                        </span>
+                                        {% endif %}
+                                        {% if user.grade %}
+                                        <span class="grade-info grade-{{ user.grade }}">
+                                            {% if user.grade == 'junior' %}
+                                                {{ translations.get('junior', 'Junior') }}
+                                            {% elif user.grade == 'middle' %}
+                                                {{ translations.get('middle', 'Middle') }}
+                                            {% elif user.grade == 'senior' %}
+                                                {{ translations.get('senior', 'Senior') }}
                                             {% endif %}
                                         </span>
-                                        <span class="grade-info">
-                                            {% if user.grade %}
-                                                {% if user.grade == 'junior' %}
-                                                    {{ translations.get('junior', 'Junior') }}
-                                                {% elif user.grade == 'middle' %}
-                                                    {{ translations.get('middle', 'Middle') }}
-                                                {% elif user.grade == 'senior' %}
-                                                    {{ translations.get('senior', 'Senior') }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </span>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
