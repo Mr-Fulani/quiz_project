@@ -459,9 +459,10 @@
         max-width: 300px;
     }
     
-    /* Аватарка */
+    /* Аватарка - растянута на всю рамку */
     .swiper-slide .user-avatar {
-        object-fit: contain;
+        object-fit: cover;
+        object-position: center;
         background: #000;
     }
     
