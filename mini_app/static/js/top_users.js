@@ -61,11 +61,6 @@ window.initCarouselButtons = function() {
                             nextEl: '.swiper-button-next',
                             prevEl: '.swiper-button-prev',
                         },
-                        pagination: {
-                            el: '.swiper-pagination',
-                            clickable: true,
-                            dynamicBullets: true,
-                        },
                         on: {
                             init: function() {
                                 console.log('🔧 Swiper инициализирован!');

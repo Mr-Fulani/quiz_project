@@ -2,14 +2,6 @@
    СТИЛИ ДЛЯ КНОПОК И КАРУСЕЛИ
    ======================================== */
 
-/* Секция заголовка */
-.section-title {
-    font-size: clamp(1.2rem, 4vw, 1.5rem);
-    font-weight: bold;
-    color: var(--text-color);
-    margin: 1rem 0;
-    text-align: center;
-}
 
 .top-5-users {
     margin-bottom: 1.25rem;
@@ -124,17 +116,6 @@
         border-radius: 14px;
     }
 
-    /* Заголовок внутри окна */
-    .all-users-carousel .section-title {
-        position: absolute;
-        top: calc(env(safe-area-inset-top, 1rem) + 8px);
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 100001;
-        width: calc(100% - 48px);
-        max-width: 380px;
-        text-align: center;
-    }
 
     /* Индикатор свайпа не должен быть fixed на мобильных */
     .swiper-slide::after {
@@ -143,22 +124,6 @@
     }
 }
 
-/* Заголовок карусели */
-.all-users-carousel .section-title {
-    position: fixed;
-    top: env(safe-area-inset-top, 1rem);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100001;
-    color: white;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-    margin: 0;
-    padding: 0.5rem 1rem;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 1rem;
-    backdrop-filter: blur(10px);
-    font-size: clamp(1rem, 3.5vw, 1.3rem);
-}
 
 /* Контейнер Swiper */
 .all-users-carousel .swiper {
@@ -206,18 +171,6 @@
     object-position: center;
 }
 
-/* Градиент для читаемости текста */
-.swiper-slide .user-item::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
-    z-index: 1;
-    pointer-events: none;
-}
 
 /* Информация пользователя */
 .swiper-slide .user-info-container {
@@ -307,19 +260,6 @@
     background: rgba(255, 255, 255, 0.35);
     transform: scale(1.1);
     border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Пагинация - полностью скрыта */
-.all-users-carousel .swiper-pagination {
-    display: none !important;
-}
-
-.all-users-carousel .swiper-pagination-bullet {
-    display: none !important;
-}
-
-.all-users-carousel .swiper-pagination-bullet-active {
-    display: none !important;
 }
 
 /* Индикатор свайпа - компактный, внизу за пределами модального окна */
@@ -471,17 +411,6 @@
         display: none;
     }
     
-    /* Уменьшаем заголовок */
-    .all-users-carousel .section-title {
-        top: 0.5rem;
-        font-size: clamp(0.9rem, 3vh, 1.1rem);
-        padding: 0.3rem 0.8rem;
-    }
-    
-    /* Пагинация ближе к низу */
-    .all-users-carousel .swiper-pagination {
-        bottom: 0.5rem;
-    }
 }
 
 /* ========================================
@@ -490,10 +419,6 @@
 @supports (padding: max(0px)) {
     .swiper-slide .user-info-container {
         padding-bottom: max(1rem, env(safe-area-inset-bottom));
-    }
-    
-    .all-users-carousel .swiper-pagination {
-        bottom: max(1.5rem, env(safe-area-inset-bottom));
     }
 }
 
@@ -520,13 +445,6 @@
         opacity: 0.3;
         pointer-events: none;
     }
-    
-    /* Увеличиваем размер пагинации для touch */
-    .all-users-carousel .swiper-pagination-bullet {
-        width: 10px;
-        height: 10px;
-        margin: 0 5px;
-    }
 }
 
 /* ========================================
@@ -537,9 +455,6 @@
         background: #000;
     }
     
-    .swiper-slide .user-item::before {
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
-    }
 }
 
 /* ========================================

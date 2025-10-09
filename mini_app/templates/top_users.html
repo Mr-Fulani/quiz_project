@@ -189,7 +189,6 @@ function openUserProfile(telegramId) {
 
     <!-- Свайп-карусель для остальных пользователей (скрытая по умолчанию) -->
     <div class="all-users-carousel" id="all-users-carousel" style="display: none;">
-        <h2 class="section-title" data-translate="all_users_title">{{ translations.get('all_users_title', 'Все пользователи') }}</h2>
         <div class="swiper" id="users-swiper">
             <div class="swiper-wrapper">
                 {% if top_users %}
@@ -243,7 +242,6 @@ function openUserProfile(telegramId) {
                 {% endif %}
             </div>
             <!-- Навигация -->
-            <div class="swiper-pagination"></div>
             <div class="swiper-button-next"></div>
             <div class="swiper-button-prev"></div>
         </div>
