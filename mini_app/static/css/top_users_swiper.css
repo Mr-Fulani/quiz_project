@@ -57,54 +57,56 @@
 
 /* ========================================
    ПОЛНОЭКРАННАЯ КАРУСЕЛЬ
+   UPDATED: 2025-10-10 21:00:00 - CACHE BUST
    ======================================== */
 .all-users-carousel {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100vh; /* Fallback для старых браузеров */
-    height: 100dvh; /* Dynamic viewport height для iOS */
-    background: rgba(0, 0, 0, 0.95) !important; /* Темный полупрозрачный фон */
-    z-index: 99999;
-    display: none;
-    overflow: hidden;
-    padding-top: 60px !important; /* Минимальный отступ сверху */
-    padding-bottom: 60px !important; /* Минимальный отступ снизу для индикатора */
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 330px !important;
+    height: 445px !important;
+    max-width: 330px !important;
+    max-height: 445px !important;
+    min-width: 330px !important;
+    min-height: 445px !important;
+    background: transparent !important;
+    z-index: 99999 !important;
+    display: none !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    text-align: center !important; /* Центрируем inline элементы */
 }
 
-/* НАСТРОЙКИ ДЛЯ ДЕСКТОПА (явно для Telegram Desktop) */
-@media (min-width: 481px) {
-    .all-users-carousel {
-        padding-top: 80px !important; /* Небольшой отступ для десктопа */
-        padding-bottom: 80px !important; /* Отступ снизу */
-    }
-}
-
-/* НАСТРОЙКИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+/* МОБИЛЬНЫЕ УСТРОЙСТВА */
 @media (max-width: 480px) {
     .all-users-carousel {
-        padding-top: 60px !important; /* Небольшой отступ сверху на мобильных */
-        padding-bottom: 60px !important; /* Небольшой отступ снизу на мобильных */
+        width: 330px !important;
+        height: 515px !important;
+        max-width: 330px !important;
+        max-height: 515px !important;
+        min-width: 330px !important;
+        min-height: 515px !important;
     }
 }
+
+
+/* МЕДИАЗАПРОСЫ УДАЛЕНЫ */
+
+/* МАКСИМАЛЬНЫЙ ПРИОРИТЕТ УДАЛЕН - ИСПОЛЬЗУЕТСЯ БАЗОВЫЙ РАЗМЕР */
 
 /* УДАЛЕНЫ ДУБЛИРУЮЩИЕСЯ МЕДИА-ЗАПРОСЫ - ЕСТЬ НИЖЕ */
 
 /* СТАРЫЙ КОД УДАЛЕН - КОНФЛИКТОВАЛ С НОВЫМ */
 
 
-/* Добавляем контейнер для индикатора свайпа с относительным позиционированием */
+/* Центрируем контент */
 .all-users-carousel.active {
     display: flex !important;
     flex-direction: column !important;
-    align-items: stretch !important; /* Растягиваем по всей ширине */
-    justify-content: space-between !important; /* Распределяем между swiper и индикатором */
-    gap: 12px; /* Зазор между swiper и индикатором */
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .all-users-carousel .swiper-container-wrapper {
@@ -116,86 +118,20 @@
     flex-direction: column;
 }
 
-/* УДАЛЕН ДУБЛИРУЮЩИЙСЯ БЛОК - text-align добавлен в основной блок выше */
-
-/* ВРЕМЕННО ОТКЛЮЧЕН - ПРОВЕРЯЕМ, ПРИМЕНЯЕТСЯ ЛИ К TELEGRAM DESKTOP */
-/*
-@media (max-width: 480px) {
-    .all-users-carousel {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 100dvh;
-        min-height: -webkit-fill-available;
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0,0,0,0.95);
-        padding-top: clamp(100px, 18vh, 150px);
-        padding-bottom: 0;
-    }
-
-    .all-users-carousel .swiper {
-        width: calc(100% - 40px);
-        max-width: 360px;
-        max-height: calc(100dvh - clamp(180px, 32vh, 280px));
-        height: auto;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        background: #000;
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 4px;
-    }
-
-    .swipe-indicator {
-        position: static;
-        margin-top: 0;
-        transform: none;
-        left: auto;
-    }
-
-    .all-users-carousel .swiper-slide {
-        align-items: stretch;
-        justify-content: center;
-    }
-
-    .all-users-carousel .swiper-slide .user-item {
-        max-height: 100%;
-        border-radius: 14px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .swiper-slide::after {
-        position: absolute;
-        top: clamp(1rem, env(safe-area-inset-top, 1rem) + 2rem, 4rem);
-    }
-}
-*/
 
 
-/* Контейнер Swiper */
+/* КОНФЛИКТУЮЩИЙ БЛОК ПОЛНОСТЬЮ УДАЛЕН */
+
+
+/* Контейнер Swiper - на всю высоту родителя */
 .all-users-carousel .swiper {
     width: 100% !important;
-    height: 100% !important; /* Занимаем всю доступную высоту */
-    min-height: calc(100vh - 140px) !important; /* Минимальная высота (60px сверху + 60px снизу + 20px запас) */
-    flex: 1 !important; /* Растягиваем на всё доступное пространство */
+    height: 100% !important;
     position: relative !important;
     display: flex !important;
     flex-direction: column !important;
-}
-
-/* Для десктопа увеличиваем минимальную высоту */
-@media (min-width: 481px) {
-    .all-users-carousel .swiper {
-        min-height: calc(100vh - 180px) !important; /* 80px сверху + 80px снизу + 20px запас */
-    }
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .all-users-carousel .swiper-wrapper {
@@ -216,10 +152,10 @@
 /* ========================================
    КАРТОЧКА ПОЛЬЗОВАТЕЛЯ В КАРУСЕЛИ
    ======================================== */
-.swiper-slide .user-item {
+.all-users-carousel .swiper-slide .user-item {
     width: 100% !important;
     height: 100% !important;
-    min-height: 100% !important; /* Занимаем минимум всю высоту */
+    min-height: 100% !important; /* Занимаем всю высоту родителя */
     position: relative !important;
     display: flex !important;
     flex-direction: column !important;
@@ -228,18 +164,27 @@
     cursor: pointer !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
-    padding: 0 !important; /* Убираем padding */
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    margin: 0 !important;
 }
 
-/* Аватарка пользователя */
-.swiper-slide .user-avatar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
+/* Аватарка пользователя - растянута на весь контейнер */
+.all-users-carousel .swiper-slide .user-avatar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 12px !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* Индикатор онлайн статуса */
@@ -487,28 +432,7 @@
     border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* Индикатор свайпа - компактный, внизу за пределами модального окна */
-.swipe-indicator {
-    position: static; /* Делаем статичным по умолчанию */
-    bottom: auto;
-    left: auto;
-    transform: none;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    color: white;
-    padding: 0.6rem 1rem;
-    border-radius: 1.5rem;
-    font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-    z-index: 100001;
-    animation: pulse 2s infinite;
-    pointer-events: none;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    white-space: nowrap;
-    display: inline-block; /* Возвращаем inline-block */
-    width: auto;
-    max-width: none;
-    margin: 0 auto; /* Центрируем по горизонтали */
-}
+/* ИНДИКАТОР СВАЙПА УДАЛЕН */
 
 @keyframes pulse {
     0%, 100% { opacity: 0.6; }
@@ -518,155 +442,14 @@
 /* ========================================
    АДАПТИВНОСТЬ - МОБИЛЬНЫЕ
    ======================================== */
-@media (max-width: 480px) {
-    /* Кнопки управления */
-    .show-all-btn, .hide-all-btn {
-        width: 90%;
-        max-width: 300px;
-    }
-    
-    /* Аватарка - растянута на всю рамку */
-    .swiper-slide .user-avatar {
-        object-fit: cover;
-        object-position: center;
-        background: #000;
-    }
-    
-    /* Информация */
-    .swiper-slide .user-info-container {
-        padding: 1rem 1rem calc(env(safe-area-inset-bottom, 1rem) + 1rem);
-    }
-    
-    .swiper-slide .user-stats {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    /* Скрываем стрелки на маленьких экранах */
-    .all-users-carousel .swiper-button-next,
-    .all-users-carousel .swiper-button-prev {
-        display: none;
-    }
-}
-
-/* ========================================
-   СПЕЦИФИЧНЫЕ МОДЕЛИ iPhone
-   ======================================== */
-
-/* iPhone 11, 11 Pro, XR (828x1792, 375x812, 414x896) */
-@media only screen 
-  and (min-device-width: 375px) 
-  and (max-device-width: 414px) 
-  and (-webkit-device-pixel-ratio: 2) {
-    .all-users-carousel {
-        padding-top: 60px !important;
-        padding-bottom: 60px !important;
-    }
-    
-    .all-users-carousel .swiper {
-        min-height: calc(100dvh - 140px) !important;
-        height: 100% !important;
-    }
-}
-
-/* iPhone 12, 12 Pro, 13, 13 Pro, 14, 14 Pro (390x844) */
-@media only screen 
-  and (device-width: 390px) 
-  and (device-height: 844px) 
-  and (-webkit-device-pixel-ratio: 3) {
-    .all-users-carousel {
-        padding-top: 60px !important;
-        padding-bottom: 60px !important;
-    }
-    
-    .all-users-carousel .swiper {
-        min-height: calc(100dvh - 140px) !important;
-        height: 100% !important;
-    }
-}
-
-/* iPhone 14 Plus, 13 Pro Max, 12 Pro Max (428x926) */
-@media only screen 
-  and (device-width: 428px) 
-  and (device-height: 926px) 
-  and (-webkit-device-pixel-ratio: 3) {
-    .all-users-carousel {
-        padding-top: 60px !important;
-        padding-bottom: 60px !important;
-    }
-    
-    .all-users-carousel .swiper {
-        min-height: calc(100dvh - 140px) !important;
-        height: 100% !important;
-    }
-}
-
-/* iPhone 14 Pro Max, 15 Pro Max (430x932) - новые модели с Dynamic Island */
-@media only screen 
-  and (device-width: 430px) 
-  and (device-height: 932px) 
-  and (-webkit-device-pixel-ratio: 3) {
-    .all-users-carousel {
-        padding-top: 70px !important; /* Немного больше для Dynamic Island */
-        padding-bottom: 60px !important;
-    }
-    
-    .all-users-carousel .swiper {
-        min-height: calc(100dvh - 150px) !important;
-        height: 100% !important;
-    }
-}
+/* МЕДИАЗАПРОС ДЛЯ МОБИЛЬНЫХ УДАЛЕН */
 
 /* ========================================
    АДАПТИВНОСТЬ - ПЛАНШЕТЫ
    ======================================== */
-@media (min-width: 481px) and (max-width: 1024px) {
-    /* Карусель с flexbox для правильного позиционирования */
-    .all-users-carousel {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        justify-content: space-between !important;
-        padding-top: 80px !important;
-        padding-bottom: 80px !important;
-    }
-    
-    .all-users-carousel .swiper {
-        min-height: calc(100vh - 180px) !important;
-        height: 100% !important;
-        flex: 1 !important;
-    }
-    
-    /* Центрируем контент */
-    .swiper-slide .user-item {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    .swiper-slide .user-avatar {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    /* Стрелки видны, но прозрачнее */
-    .all-users-carousel .swiper-button-next,
-    .all-users-carousel .swiper-button-prev {
-        opacity: 0.6;
-    }
-    
-    .all-users-carousel .swiper-button-next:hover,
-    .all-users-carousel .swiper-button-prev:hover {
-        opacity: 1;
-    }
+/* МЕДИАЗАПРОС ДЛЯ ПЛАНШЕТОВ УДАЛЕН */
 
     /* Индикатор на фиксированном расстоянии на планшетах */
-    .swipe-indicator {
-        position: static;
-        margin-top: 0;
-        transform: none;
-        left: auto;
-    }
 }
 
 /* УДАЛЕН КОНФЛИКТУЮЩИЙ КОД БЕЗ @media - ПРИМЕНЯЛСЯ КО ВСЕМ УСТРОЙСТВАМ */
@@ -674,36 +457,7 @@
 /* ========================================
    АДАПТИВНОСТЬ - ЛАНДШАФТ
    ======================================== */
-@media (orientation: landscape) and (max-height: 600px) {
-    /* Уменьшаем отступы */
-    .swiper-slide .user-info-container {
-        padding: 0.75rem 1rem calc(env(safe-area-inset-bottom, 0.5rem) + 0.5rem);
-    }
-    
-    .swiper-slide .user-name {
-        font-size: clamp(1.2rem, 4vh, 1.5rem);
-        margin-bottom: 0.3rem;
-    }
-    
-    .swiper-slide .user-username {
-        font-size: clamp(0.9rem, 3vh, 1rem);
-        margin-bottom: 0.5rem;
-    }
-    
-    .swiper-slide .user-stats {
-        margin-top: 0.5rem;
-    }
-    
-    .swiper-slide .user-details {
-        margin-top: 0.3rem;
-    }
-    
-    /* Скрываем индикатор свайпа */
-    .swiper-slide::after {
-        display: none;
-    }
-    
-}
+/* МЕДИАЗАПРОС ДЛЯ ЛАНДШАФТА УДАЛЕН */
 
 /* ========================================
    iOS SAFE AREA
@@ -717,62 +471,43 @@
 /* ========================================
    TOUCH УСТРОЙСТВА
    ======================================== */
-@media (hover: none) and (pointer: coarse) {
-    /* Убираем hover эффекты */
-    .show-all-btn:hover, 
-    .hide-all-btn:hover {
-        transform: none;
-    }
-    
-    /* Увеличиваем зоны нажатия */
-    .show-all-btn, 
-    .hide-all-btn {
-        padding: 1rem 2rem;
-        min-height: 48px;
-    }
-    
-    /* Скрываем стрелки на touch устройствах */
-    .all-users-carousel .swiper-button-next,
-    .all-users-carousel .swiper-button-prev {
-        opacity: 0.3;
-        pointer-events: none;
-    }
-}
+/* МЕДИАЗАПРОС ДЛЯ TOUCH УСТРОЙСТВ УДАЛЕН */
 
 /* ========================================
    ТЕМНАЯ ТЕМА
    ======================================== */
-@media (prefers-color-scheme: dark) {
-    .all-users-carousel {
-        background: #000;
-    }
-    
-}
+/* МЕДИАЗАПРОС ДЛЯ ТЕМНОЙ ТЕМЫ УДАЛЕН */
 
 /* ========================================
    УМЕНЬШЕННОЕ ДВИЖЕНИЕ
    ======================================== */
-@media (prefers-reduced-motion: reduce) {
-    .swiper-slide::after {
-        animation: none;
-    }
-    
-    .all-users-carousel .swiper {
-        --swiper-transition-timing-function: linear;
-    }
-    
-    .show-all-btn, 
-    .hide-all-btn {
-        transition: none;
-    }
-}
+/* МЕДИАЗАПРОС ДЛЯ УМЕНЬШЕННОГО ДВИЖЕНИЯ УДАЛЕН */
 
 /* ========================================
    ВЫСОКОЕ РАЗРЕШЕНИЕ
    ======================================== */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    .swiper-slide .user-avatar {
-        image-rendering: -webkit-optimize-contrast;
-    }
+/* МЕДИАЗАПРОС ДЛЯ ВЫСОКОГО РАЗРЕШЕНИЯ УДАЛЕН */
+
+/* ========================================
+   ФИНАЛЬНОЕ ПЕРЕОПРЕДЕЛЕНИЕ - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ
+   VERSION 22.6 - ПРОВЕРКА КЭША
+   ======================================== */
+#all-users-carousel.all-users-carousel,
+.all-users-carousel.all-users-carousel,
+div#all-users-carousel {
+    width: 330px !important;
+    height: 445px !important;
+    max-width: 330px !important;
+    max-height: 445px !important;
+    min-width: 330px !important;
+    min-height: 445px !important;
 }
+
+/* Дополнительное переопределение на случай, если display: block */
+#all-users-carousel[style*="display"],
+.all-users-carousel[style*="display"] {
+    width: 330px !important;
+    height: 445px !important;
+}
+
 

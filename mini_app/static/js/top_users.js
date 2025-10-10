@@ -41,6 +41,29 @@ window.initCarouselButtons = function() {
             carousel.style.display = 'block';
             carousel.classList.add('active');
             
+            // Принудительно устанавливаем размеры в зависимости от типа устройства
+            const screenWidth = window.innerWidth;
+            // Проверяем именно мобильное устройство, а не просто узкий экран
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const width = '330px';
+            const height = isMobile ? '515px' : '445px';  // Для мобильных +5px
+            
+            carousel.style.setProperty('width', width, 'important');
+            carousel.style.setProperty('height', height, 'important');
+            carousel.style.setProperty('max-width', width, 'important');
+            carousel.style.setProperty('max-height', height, 'important');
+            carousel.style.setProperty('min-width', width, 'important');
+            carousel.style.setProperty('min-height', height, 'important');
+            
+            console.log('🔧 Установлены размеры контейнера:', {
+                screenWidth: screenWidth,
+                isMobile: isMobile,
+                width: width,
+                height: height,
+                computedWidth: window.getComputedStyle(carousel).width,
+                computedHeight: window.getComputedStyle(carousel).height
+            });
+            
             // Инициализируем Swiper
             setTimeout(() => {
                 if (typeof Swiper !== 'undefined') {
@@ -65,6 +88,25 @@ window.initCarouselButtons = function() {
                         on: {
                             init: function() {
                                 console.log('🔧 Swiper инициализирован!');
+                                
+                                // Повторно устанавливаем размеры после инициализации Swiper
+                                setTimeout(() => {
+                                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                                    const width = '330px';
+                                    const height = isMobile ? '515px' : '445px';
+                                    
+                                    carousel.style.setProperty('width', width, 'important');
+                                    carousel.style.setProperty('height', height, 'important');
+                                    carousel.style.setProperty('max-width', width, 'important');
+                                    carousel.style.setProperty('max-height', height, 'important');
+                                    carousel.style.setProperty('min-width', width, 'important');
+                                    carousel.style.setProperty('min-height', height, 'important');
+                                    
+                                    console.log('🔧 Размеры повторно установлены после Swiper init:', {
+                                        computedWidth: window.getComputedStyle(carousel).width,
+                                        computedHeight: window.getComputedStyle(carousel).height
+                                    });
+                                }, 50);
                             }
                         }
                     });
