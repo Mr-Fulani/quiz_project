@@ -78,7 +78,7 @@ STATIC_VERSIONS = {
     'tasks.js': '3.11',
     'topic-cards.js': '1.5',
     'topic-detail.js': '1.6',
-    'top_users.js': '25.6',  # Мобильные: 330x515px (+5px), десктоп: 330x445px (без изменений)
+    'top_users.js': '26.1',  # Обработчик клика создается при каждом открытии и удаляется после закрытия
     'top_users_swiper.js': '1.3',  # Отключен для избежания конфликтов (инициализация теперь в top_users.html)
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'styles.css': '1.4',  # Обновлено: исправлен mini_app API service для аватарок
