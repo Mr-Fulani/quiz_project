@@ -46,7 +46,10 @@ window.initCarouselButtons = function() {
             // Проверяем именно мобильное устройство, а не просто узкий экран
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const width = '330px';
-            const height = isMobile ? '515px' : '445px';  // Для мобильных +5px
+            const height = isMobile ? '515px' : '445px';
+            
+            // Позиционирование: десктоп выше, мобильные чуть ниже
+            const topPosition = isMobile ? 'calc(50% + 10px)' : 'calc(50% - 10px)';
             
             carousel.style.setProperty('width', width, 'important');
             carousel.style.setProperty('height', height, 'important');
@@ -54,6 +57,7 @@ window.initCarouselButtons = function() {
             carousel.style.setProperty('max-height', height, 'important');
             carousel.style.setProperty('min-width', width, 'important');
             carousel.style.setProperty('min-height', height, 'important');
+            carousel.style.setProperty('top', topPosition, 'important');
             
             console.log('🔧 Установлены размеры контейнера:', {
                 screenWidth: screenWidth,
@@ -63,6 +67,25 @@ window.initCarouselButtons = function() {
                 computedWidth: window.getComputedStyle(carousel).width,
                 computedHeight: window.getComputedStyle(carousel).height
             });
+            
+            // Обработчик клика вне контейнера свайпера
+            const handleOutsideClick = function(e) {
+                // Проверяем, открыта ли карусель
+                if (carousel.style.display !== 'block') return;
+                
+                // Проверяем, был ли клик вне контейнера карусели
+                if (!carousel.contains(e.target)) {
+                    console.log('🔧 КЛИК ВНЕ КОНТЕЙНЕРА СВАЙПЕРА - ЗАКРЫВАЕМ');
+                    closeCarousel();
+                    // Удаляем обработчик после закрытия
+                    document.removeEventListener('click', handleOutsideClick);
+                }
+            };
+            
+            // Добавляем обработчик с небольшой задержкой, чтобы не сработал на клике по кнопке
+            setTimeout(() => {
+                document.addEventListener('click', handleOutsideClick);
+            }, 100);
             
             // Инициализируем Swiper
             setTimeout(() => {
@@ -94,6 +117,7 @@ window.initCarouselButtons = function() {
                                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                                     const width = '330px';
                                     const height = isMobile ? '515px' : '445px';
+                                    const topPosition = isMobile ? 'calc(50% + 10px)' : 'calc(50% - 10px)';
                                     
                                     carousel.style.setProperty('width', width, 'important');
                                     carousel.style.setProperty('height', height, 'important');
@@ -101,6 +125,7 @@ window.initCarouselButtons = function() {
                                     carousel.style.setProperty('max-height', height, 'important');
                                     carousel.style.setProperty('min-width', width, 'important');
                                     carousel.style.setProperty('min-height', height, 'important');
+                                    carousel.style.setProperty('top', topPosition, 'important');
                                     
                                     console.log('🔧 Размеры повторно установлены после Swiper init:', {
                                         computedWidth: window.getComputedStyle(carousel).width,
@@ -161,11 +186,16 @@ window.initCarouselButtons = function() {
             }
         };
 
-        // Обработчик клика вне области карусели для закрытия
+        // Обработчик клика внутри контейнера (на пустую область)
         carousel.addEventListener('click', function(e) {
-            // Если клик был по самому контейнеру карусели (не по swiper или его содержимому)
-            if (e.target === carousel) {
-                console.log('🔧 КЛИК ВНЕ ОБЛАСТИ КАРУСЕЛИ - ЗАКРЫВАЕМ');
+            // Проверяем, был ли клик по контейнеру или по swiper (не по user-item)
+            const clickedOnCarousel = e.target === carousel;
+            const clickedOnSwiper = e.target.classList.contains('swiper') || 
+                                   e.target.classList.contains('swiper-wrapper') ||
+                                   e.target.classList.contains('swiper-slide');
+            
+            if (clickedOnCarousel || clickedOnSwiper) {
+                console.log('🔧 КЛИК ВНЕ ОБЛАСТИ КОНТЕНТА - ЗАКРЫВАЕМ');
                 closeCarousel();
             }
         });
