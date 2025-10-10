@@ -37,8 +37,9 @@ window.initCarouselButtons = function() {
             document.body.style.right = '0';
             document.body.style.width = '100%';
             
-            // Показываем карусель
+            // Показываем карусель и добавляем класс active для flex-стилей
             carousel.style.display = 'block';
+            carousel.classList.add('active');
             
             // Инициализируем Swiper
             setTimeout(() => {
@@ -83,8 +84,9 @@ window.initCarouselButtons = function() {
                 window.userSwiper = null;
             }
             
-            // Скрываем карусель
+            // Скрываем карусель и удаляем класс active
             carousel.style.display = 'none';
+            carousel.classList.remove('active');
             
             // Восстанавливаем скролл body и позицию
             const prevScroll = typeof window.scrollPositionBeforeSwiper !== 'undefined' ? window.scrollPositionBeforeSwiper : 0;
