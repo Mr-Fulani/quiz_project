@@ -71,7 +71,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 
 # Версии для критически важных файлов
 STATIC_VERSIONS = {
-    'donation.js': '2.1',
+    'donation.js': '2.9',  # Установлена английская локаль для Stripe Elements
     'localization.js': '2.3',  # Исправлены переводы для профиля пользователя
     'share-app.js': '1.8',
     'search.js': '1.7',

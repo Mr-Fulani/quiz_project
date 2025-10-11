@@ -191,12 +191,12 @@ class DonationSystem {
         const amount = this.selectedAmount;
         
         if (!name) {
-            this.showError('Пожалуйста, введите ваше имя');
+            this.showError(window.t('donation_enter_name', 'Пожалуйста, введите ваше имя'));
             return false;
         }
         
         if (amount < 1) {
-            this.showError('Минимальная сумма доната: $1');
+            this.showError(window.t('donation_min_amount_error', 'Минимальная сумма доната: $1'));
             return false;
         }
         
@@ -209,7 +209,7 @@ class DonationSystem {
         this.modal.innerHTML = `
             <div class="stripe-modal-content">
                 <div class="stripe-modal-header">
-                    <h3 data-translate="donation_pay">Оплатить</h3>
+                    <h3 data-translate="donation_pay">${window.t ? window.t('donation_pay', 'Оплатить') : 'Оплатить'}</h3>
                     <button class="stripe-modal-close" onclick="donationSystem.closePaymentModal()">&times;</button>
                 </div>
                 
@@ -217,12 +217,12 @@ class DonationSystem {
                 
                 <form id="payment-form-modal">
                     <div class="input-group">
-                        <label data-translate="donation_card_number">Номер карты</label>
+                        <label data-translate="donation_card_number">${window.t ? window.t('donation_card_number', 'Номер карты') : 'Номер карты'}</label>
                         <div class="stripe-element" id="card-element-modal"></div>
                     </div>
                     
                                                         <button type="submit" class="donate-btn" id="submit-button-modal" disabled>
-                        <span data-translate="donation_processing">Обработка платежа...</span>
+                        <span data-translate="donation_processing">${window.t ? window.t('donation_processing', 'Обработка платежа...') : 'Обработка платежа...'}</span>
                     </button>
                 </form>
             </div>
@@ -276,7 +276,8 @@ class DonationSystem {
             }
             console.log('✅ Card element found:', cardElement);
             
-            this.elements = this.stripe.elements();
+            // Создаем Elements с английской локалью
+            this.elements = this.stripe.elements({ locale: 'en' });
             this.cardElement = this.elements.create('card', {
                 style: {
                     base: {
@@ -310,7 +311,7 @@ class DonationSystem {
     
     async createPaymentIntent() {
         try {
-            this.showStatus('processing', 'Создание платежа...');
+            this.showStatus('processing', window.t('donation_creating_payment', 'Создание платежа...'));
             
             const formData = {
                 amount: this.selectedAmount,
@@ -334,13 +335,13 @@ class DonationSystem {
             if (data.success) {
                 this.currentPaymentIntent = data.client_secret;
                 console.log('✅ Payment Intent created with secret:', data.client_secret);
-                this.showStatus('success', 'Платеж готов к обработке');
+                this.showStatus('success', window.t('donation_payment_ready', 'Платеж готов к обработке'));
             } else {
-                this.showStatus('error', data.message || 'Ошибка создания платежа');
+                this.showStatus('error', data.message || window.t('donation_creation_error', 'Ошибка создания платежа'));
                 console.error('❌ Payment Intent creation failed:', data.message);
             }
         } catch (error) {
-            this.showStatus('error', 'Ошибка сети');
+            this.showStatus('error', window.t('donation_network_error', 'Ошибка сети'));
             console.error('❌ Error creating Payment Intent:', error);
         }
     }
@@ -355,12 +356,12 @@ class DonationSystem {
         
         if (!this.currentPaymentIntent) {
             console.error('❌ No payment intent available');
-            this.showStatus('error', 'Ошибка: платеж не инициализирован');
+            this.showStatus('error', window.t('donation_not_initialized', 'Ошибка: платеж не инициализирован'));
             return;
         }
         
         this.isProcessing = true;
-        this.showStatus('processing', 'Обработка платежа...');
+        this.showStatus('processing', window.t('donation_processing', 'Обработка платежа...'));
         
         try {
             console.log('🔧 Confirming card payment with Stripe...');
@@ -379,15 +380,15 @@ class DonationSystem {
             if (result.error) {
                 this.showStatus('error', result.error.message);
                 console.error('❌ Payment failed:', result.error);
-                this.showNotification('error', 'Ошибка платежа', result.error.message);
+                    this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), result.error.message);
             } else {
                 console.log('✅ Payment intent status:', result.paymentIntent.status);
                 if (result.paymentIntent.status === 'succeeded') {
-                    this.showStatus('success', 'Платеж успешно обработан!');
+                    this.showStatus('success', window.t('donation_success_processed', 'Платеж успешно обработан!'));
                     console.log('✅ Payment succeeded');
                     
                     // Показываем уведомление об успешном платеже
-                    this.showNotification('success', 'Платеж успешен!', 'Ваш платеж был успешно обработан.');
+                    this.showNotification('success', window.t('donation_payment_successful', 'Платеж успешен!'), window.t('donation_payment_processed', 'Ваш платеж был успешно обработан.'));
                     
                     // Уведомляем Django backend об успешном платеже
                     await this.confirmPayment(result.paymentIntent.id);
@@ -398,12 +399,12 @@ class DonationSystem {
                         this.resetForm();
                     }, 4000);
                 } else {
-                    this.showStatus('error', `Статус платежа: ${result.paymentIntent.status}`);
+                    this.showStatus('error', `${window.t('donation_status', 'Статус платежа')}: ${result.paymentIntent.status}`);
                     console.log('⚠️ Payment not succeeded, status:', result.paymentIntent.status);
                 }
             }
         } catch (error) {
-            this.showStatus('error', 'Ошибка обработки платежа');
+            this.showStatus('error', window.t('donation_processing_error', 'Ошибка обработки платежа'));
             console.error('❌ Error handling payment:', error);
         } finally {
             this.isProcessing = false;
@@ -414,7 +415,7 @@ class DonationSystem {
     async confirmPayment(paymentIntentId) {
         try {
             console.log('📡 Confirming payment with Django backend...');
-            this.showStatus('processing', 'Сохранение данных платежа...');
+            this.showStatus('processing', window.t('donation_saving_data', 'Сохранение данных платежа...'));
             
             const response = await fetch('/api/confirm-payment', {
                 method: 'POST',
@@ -430,19 +431,19 @@ class DonationSystem {
             
             if (data.success) {
                 console.log('✅ Payment confirmed with Django backend');
-                this.showStatus('success', 'Платеж сохранен! Благодарственное письмо отправлено на ваш email.');
+                this.showStatus('success', window.t('donation_saved_email_sent', 'Платеж сохранен! Благодарственное письмо отправлено на ваш email.'));
                 
                 // Показываем уведомление о благодарственном письме
-                this.showNotification('success', 'Спасибо за поддержку!', 'Благодарственное письмо отправлено на ваш email.');
+                this.showNotification('success', window.t('donation_thanks_support', 'Спасибо за поддержку!'), window.t('donation_thanks_email', 'Благодарственное письмо отправлено на ваш email.'));
             } else {
                 console.warn('⚠️ Payment confirmation failed:', data.message);
-                this.showStatus('warning', 'Платеж обработан, но возникли проблемы с сохранением данных.');
-                this.showNotification('warning', 'Внимание', 'Платеж обработан, но возникли проблемы с сохранением данных.');
+                this.showStatus('warning', window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
+                this.showNotification('warning', window.t('donation_warning', 'Внимание'), window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
             }
         } catch (error) {
             console.error('❌ Error confirming payment with Django backend:', error);
-            this.showStatus('warning', 'Платеж обработан, но возникли проблемы с сохранением данных.');
-            this.showNotification('warning', 'Внимание', 'Платеж обработан, но возникли проблемы с сохранением данных.');
+            this.showStatus('warning', window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
+            this.showNotification('warning', window.t('donation_warning', 'Внимание'), window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
         }
     }
     

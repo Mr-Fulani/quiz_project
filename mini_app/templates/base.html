@@ -93,6 +93,11 @@
         window.currentLanguage = '{{ current_language or "en" }}';
         window.translations = JSON.parse('{{ translations | tojson | safe }}');
         window.supportedLanguages = JSON.parse('{{ supported_languages | tojson | safe }}');
+        
+        // Функция для получения переводов в JavaScript
+        window.t = function(key, fallback = '') {
+            return window.translations[key] || fallback || key;
+        };
     </script>
     
     <!-- Подключение Ionicons для иконок (если нужно для меню) -->
