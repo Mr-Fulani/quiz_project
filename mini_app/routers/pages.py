@@ -141,7 +141,6 @@ async def top_users(
             "styles_css_url": get_css_url('styles.css'),
             "share_app_css_url": get_css_url('share-app.css'),
             "donation_css_url": get_css_url('donation.css'),
-            "top_users_css_url": get_css_url('top_users.css'),
             "top_users_js_url": get_js_url('top_users.js'),
         })
     except Exception as e:
@@ -195,7 +194,6 @@ async def statistics(
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
         "statistics_js_url": get_js_url('statistics.js'),
-        "statistics_css_url": get_css_url('statistics.css'),
     })
 
 @router.get("/settings", response_class=HTMLResponse)

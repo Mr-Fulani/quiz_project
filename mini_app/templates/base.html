@@ -74,11 +74,11 @@
     <link rel="stylesheet" href="{{ donation_css_url }}">
     
     <!-- Стили для страниц подтем, задач, настроек, профиля и статистики (всегда доступны) -->
-    <link rel="stylesheet" href="/static/css/topic_detail.css">
-    <link rel="stylesheet" href="/static/css/tasks.css">
-    <link rel="stylesheet" href="/static/css/settings.css">
+    <link rel="stylesheet" href="{{ get_css_url('topic_detail.css') }}">
+    <link rel="stylesheet" href="{{ get_css_url('tasks.css') }}">
+    <link rel="stylesheet" href="{{ get_css_url('settings.css') }}">
     <link rel="stylesheet" href="{{ get_css_url('profile.css') }}">
-    <link rel="stylesheet" href="/static/css/statistics.css">
+    <link rel="stylesheet" href="{{ get_css_url('statistics.css') }}">
     <link rel="stylesheet" href="{{ get_css_url('top_users.css') }}">
     
     <!-- Дополнительные стили для страниц -->
