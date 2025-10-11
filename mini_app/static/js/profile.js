@@ -1165,7 +1165,7 @@
 
         // Обработчик кнопки "Обновить данные"
         if (elements.refreshBtn) {
-            elements.refreshBtn.onclick = () => {
+            elements.refreshBtn.onclick = async () => {
                 console.log('🔄 Кнопка "Обновить данные" нажата');
                 // Используем глобальную функцию showNotification из base.html для автоматического исчезновения
                 if (window.showNotification) {
@@ -1173,6 +1173,32 @@
                 } else {
                     showNotification('refreshing_data', 'info', null, 'Обновление данных...');
                 }
+                
+                // Обновляем статус онлайн
+                const telegramId = window.currentUser?.telegram_id;
+                if (telegramId) {
+                    try {
+                        console.log('🟢 Обновление статуса онлайн для telegram_id:', telegramId);
+                        const response = await fetch('/api/accounts/miniapp-users/update-last-seen/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ telegram_id: telegramId })
+                        });
+                        
+                        if (response.ok) {
+                            console.log('✅ Статус онлайн обновлен успешно');
+                        } else {
+                            console.warn('⚠️ Не удалось обновить статус онлайн:', response.status);
+                        }
+                    } catch (error) {
+                        console.error('❌ Ошибка при обновлении статуса онлайн:', error);
+                    }
+                } else {
+                    console.warn('⚠️ Не найден telegram_id для обновления статуса онлайн');
+                }
+                
                 fetchProfileDataFromServer();
             };
         }
@@ -1577,13 +1603,39 @@
         
         // Переинициализируем обработчик кнопки обновления
         if (elements.refreshBtn) {
-            elements.refreshBtn.onclick = () => {
+            elements.refreshBtn.onclick = async () => {
                 console.log('🔄 Кнопка "Обновить данные" нажата');
                 if (window.showNotification) {
                     window.showNotification('refreshing_data', 'info', null, 'Обновление данных...');
                 } else {
                     showNotification('refreshing_data', 'info', null, 'Обновление данных...');
                 }
+                
+                // Обновляем статус онлайн
+                const telegramId = window.currentUser?.telegram_id;
+                if (telegramId) {
+                    try {
+                        console.log('🟢 Обновление статуса онлайн для telegram_id:', telegramId);
+                        const response = await fetch('/api/accounts/miniapp-users/update-last-seen/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ telegram_id: telegramId })
+                        });
+                        
+                        if (response.ok) {
+                            console.log('✅ Статус онлайн обновлен успешно');
+                        } else {
+                            console.warn('⚠️ Не удалось обновить статус онлайн:', response.status);
+                        }
+                    } catch (error) {
+                        console.error('❌ Ошибка при обновлении статуса онлайн:', error);
+                    }
+                } else {
+                    console.warn('⚠️ Не найден telegram_id для обновления статуса онлайн');
+                }
+                
                 fetchProfileDataFromServer();
             };
         }
