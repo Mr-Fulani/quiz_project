@@ -57,13 +57,17 @@
 
 /* ========================================
    ПОЛНОЭКРАННАЯ КАРУСЕЛЬ
-   UPDATED: 2025-10-10 21:00:00 - CACHE BUST
+   UPDATED: 2025-10-11 - Safe Areas Support
    ======================================== */
 .all-users-carousel {
     position: fixed !important;
+    /* Центрирование с учетом Safe Areas */
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
+    /* Учитываем Safe Areas при расчете доступного пространства */
+    margin-top: calc(env(safe-area-inset-top, 0px) / 2) !important;
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) / 2) !important;
     width: 330px !important;
     height: 445px !important;
     max-width: 330px !important;
@@ -75,7 +79,6 @@
     display: none !important;
     overflow: hidden !important;
     padding: 0 !important;
-    margin: 0 !important;
     box-sizing: border-box !important;
 }
 
