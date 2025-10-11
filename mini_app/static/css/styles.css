@@ -38,6 +38,12 @@ body {
     display: flex;
     flex-direction: column;
     padding-bottom: 70px; /* Чтобы контент не заходил под нижнюю навигацию */
+    
+    /* Safe Area Insets для Telegram Mini App */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Утилитарный класс для скрытия элементов */
@@ -520,7 +526,7 @@ body {
 /* Нижняя навигация - точная копия оригинала */
 .navigation {
     position: fixed;
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
     left: 50%;
     transform: translateX(-50%);
     width: 400px;
@@ -1779,9 +1785,33 @@ body.fullscreen-active .gallery__container {
     }
 }
 
+/* ========= SAFE AREA СТИЛИ ДЛЯ TELEGRAM MINI APP ========= */
 
+/* Заголовки страниц с учетом Safe Area */
+.page-header {
+    margin-top: max(20px, env(safe-area-inset-top));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+}
 
+/* Контейнеры с кнопками в верхней части */
+.top-controls {
+    margin-top: max(10px, env(safe-area-inset-top));
+    padding-left: max(15px, env(safe-area-inset-left));
+    padding-right: max(15px, env(safe-area-inset-right));
+}
 
+/* Кнопки закрытия и меню */
+.close-button, .menu-button {
+    margin-top: max(10px, env(safe-area-inset-top));
+}
+
+/* Фильтры и кнопки в верхней части */
+.filter-buttons {
+    margin-top: max(15px, env(safe-area-inset-top));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+}
 
 
 
