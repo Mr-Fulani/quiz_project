@@ -1169,9 +1169,9 @@
                 console.log('🔄 Кнопка "Обновить данные" нажата');
                 // Используем глобальную функцию showNotification из base.html для автоматического исчезновения
                 if (window.showNotification) {
-                    window.showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                    window.showNotification('refreshing_data', 'info');
                 } else {
-                    showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                    showNotification('refreshing_data', 'info', null, 'Refreshing data...');
                 }
                 
                 // Обновляем статус онлайн
@@ -1606,9 +1606,9 @@
             elements.refreshBtn.onclick = async () => {
                 console.log('🔄 Кнопка "Обновить данные" нажата');
                 if (window.showNotification) {
-                    window.showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                    window.showNotification('refreshing_data', 'info');
                 } else {
-                    showNotification('refreshing_data', 'info', null, 'Обновление данных...');
+                    showNotification('refreshing_data', 'info', null, 'Refreshing data...');
                 }
                 
                 // Обновляем статус онлайн
