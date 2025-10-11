@@ -80,6 +80,10 @@
     <link rel="stylesheet" href="{{ get_css_url('profile.css') }}">
     <link rel="stylesheet" href="{{ get_css_url('statistics.css') }}">
     <link rel="stylesheet" href="{{ get_css_url('top_users.css') }}">
+    <link rel="stylesheet" href="{{ get_css_url('top_users_swiper.css') }}">
+    
+    <!-- Swiper CSS из CDN для карусели топ пользователей (всегда доступен) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     
     <!-- Дополнительные стили для страниц -->
     {% block extra_css %}{% endblock %}
@@ -107,6 +111,40 @@
            <script src="{{ localization_js_url }}"></script>
 </head>
 <body>
+    <!-- SVG фильтры для эффектов (всегда доступны) -->
+    <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
+        <defs>
+            <!-- Фильтр электрической обводки для кнопки сброса -->
+            <filter id="turbulent-displace" colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise1" seed="1" />
+                <feOffset in="noise1" dx="0" dy="0" result="offsetNoise1">
+                    <animate attributeName="dy" values="700; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
+                </feOffset>
+
+                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise2" seed="1" />
+                <feOffset in="noise2" dx="0" dy="0" result="offsetNoise2">
+                    <animate attributeName="dy" values="0; -700" dur="6s" repeatCount="indefinite" calcMode="linear" />
+                </feOffset>
+
+                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise1" seed="2" />
+                <feOffset in="noise1" dx="0" dy="0" result="offsetNoise3">
+                    <animate attributeName="dx" values="490; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
+                </feOffset>
+
+                <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise2" seed="2" />
+                <feOffset in="noise2" dx="0" dy="0" result="offsetNoise4">
+                    <animate attributeName="dx" values="0; -490" dur="6s" repeatCount="indefinite" calcMode="linear" />
+                </feOffset>
+
+                <feComposite in="offsetNoise1" in2="offsetNoise2" result="part1" />
+                <feComposite in="offsetNoise3" in2="offsetNoise4" result="part2" />
+                <feBlend in="part1" in2="part2" mode="color-dodge" result="combinedNoise" />
+
+                <feDisplacementMap in="SourceGraphic" in2="combinedNoise" scale="30" xChannelSelector="R" yChannelSelector="B" />
+            </filter>
+        </defs>
+    </svg>
+    
     <div id="notification-container"></div>
     
     <script>
@@ -428,20 +466,25 @@
                                 window.tasksScriptReinitialized = false;
                             }
                             
-                            // Принудительно обновляем стили после загрузки страницы
+                            // Проверяем загрузку всех необходимых CSS файлов
                             setTimeout(() => {
-                                // Принудительно перерисовываем страницу для применения стилей
-                                document.body.style.display = 'none';
-                                document.body.offsetHeight; // Триггерим reflow
-                                document.body.style.display = '';
-                                console.log('🔄 Styles refreshed after page load');
+                                const requiredCSS = [
+                                    'link[href*="top_users.css"]',
+                                    'link[href*="profile.css"]',
+                                    'link[href*="statistics.css"]',
+                                    'link[href*="topic_detail.css"]',
+                                    'link[href*="tasks.css"]',
+                                    'link[href*="settings.css"]'
+                                ];
+                                const loadedCSS = requiredCSS.filter(selector => 
+                                    document.querySelector(selector)
+                                );
+                                console.log('✅ CSS files loaded:', loadedCSS.length, '/', requiredCSS.length);
                                 
-                                // Дополнительная проверка загрузки CSS файлов
-                                const topicDetailCSS = document.querySelector('link[href*="topic_detail.css"]');
-                                const tasksCSS = document.querySelector('link[href*="tasks.css"]');
-                                console.log('🔍 CSS files status:', {
-                                    topicDetailCSS: topicDetailCSS ? 'loaded' : 'not found',
-                                    tasksCSS: tasksCSS ? 'loaded' : 'not found'
+                                // Логируем какие CSS файлы загружены
+                                loadedCSS.forEach(selector => {
+                                    const cssFile = selector.match(/\[href\*="(.+?)"\]/)[1];
+                                    console.log('  ✓', cssFile);
                                 });
                             }, 100);
                             
@@ -468,10 +511,9 @@
             const dynamicScripts = document.querySelectorAll('script[data-dynamic="true"]');
             dynamicScripts.forEach(script => script.remove());
             
-            // Удаляем все динамические CSS
-            const dynamicStyles = document.querySelectorAll('link[data-dynamic="true"]');
-            dynamicStyles.forEach(style => style.remove());
-            console.log('🧹 Cleaned up dynamic scripts and styles');
+            // НЕ удаляем CSS файлы - они остаются в DOM для предотвращения сброса стилей
+            // Проверка наличия будет при загрузке новых CSS
+            console.log('🧹 Cleaned up dynamic scripts (CSS сохранены для стабильности)');
             
             // Загружаем стили и скрипты в зависимости от страницы
             if (url === '/' || url === '/index' || url.startsWith('/?') || url.startsWith('/index?')) {
@@ -622,24 +664,33 @@
             } else if (url === '/top_users' || url.startsWith('/top_users')) {
                 console.log('🎯 Top users page detected, loading resources...');
                 
-                // 1. Загружаем Swiper CSS из CDN (если еще не загружен)
-                if (!document.querySelector('link[href*="swiper-bundle.min.css"]')) {
+                // CSS файлы уже загружены в base.html как постоянные
+                // Проверяем их наличие для отладки
+                const swiperCDNCSS = document.querySelector('link[href*="swiper-bundle.min.css"]');
+                const customSwiperCSS = document.querySelector('link[href*="top_users_swiper.css"]');
+                
+                console.log('🔍 Swiper CSS status:', {
+                    cdnCSS: swiperCDNCSS ? 'loaded' : 'missing',
+                    customCSS: customSwiperCSS ? 'loaded' : 'missing'
+                });
+                
+                // Если CSS отсутствуют (не должно происходить), загружаем их динамически
+                if (!swiperCDNCSS) {
+                    console.warn('⚠️ Swiper CDN CSS отсутствует, загружаем динамически...');
                     const swiperCSS = document.createElement('link');
                     swiperCSS.rel = 'stylesheet';
                     swiperCSS.href = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css';
-                    swiperCSS.setAttribute('data-dynamic', 'true');
+                    swiperCSS.setAttribute('data-permanent', 'true');
                     document.head.appendChild(swiperCSS);
-                    console.log('✅ Swiper CSS loaded from CDN');
                 }
                 
-                // 2. Загружаем custom Swiper CSS
-                if (!document.querySelector('link[href*="top_users_swiper.css"]')) {
-                    const customSwiperCSS = document.createElement('link');
-                    customSwiperCSS.rel = 'stylesheet';
-                    customSwiperCSS.href = '{{ get_css_url("top_users_swiper.css") }}';
-                    customSwiperCSS.setAttribute('data-dynamic', 'true');
-                    document.head.appendChild(customSwiperCSS);
-                    console.log('✅ Custom Swiper CSS loaded');
+                if (!customSwiperCSS) {
+                    console.warn('⚠️ Custom Swiper CSS отсутствует, загружаем динамически...');
+                    const customCSS = document.createElement('link');
+                    customCSS.rel = 'stylesheet';
+                    customCSS.href = '{{ get_css_url("top_users_swiper.css") }}';
+                    customCSS.setAttribute('data-permanent', 'true');
+                    document.head.appendChild(customCSS);
                 }
                 
                 // 3. Загружаем Swiper JS из CDN (если еще не загружен)

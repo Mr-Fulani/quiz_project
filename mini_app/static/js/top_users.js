@@ -22,8 +22,8 @@ window.initCarouselButtons = function() {
             e.preventDefault();
             e.stopPropagation();
             
-            // Скрываем кнопку "Показать всех"
-            showBtn.style.display = 'none';
+            // Скрываем кнопку "Показать всех" через класс вместо inline стиля
+            showBtn.classList.add('hidden');
             
             // Блокируем скролл body — сохраняем позицию и фиксируем с top offset
             const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
@@ -171,10 +171,22 @@ window.initCarouselButtons = function() {
                 delete window.scrollPositionBeforeSwiper;
             }
             
-            // Показываем кнопку "Показать всех"
-            showBtn.style.display = 'block';
+            // Показываем кнопку "Показать всех" через удаление класса
+            showBtn.classList.remove('hidden');
             
-            console.log('✅ Карусель закрыта, стили восстановлены');
+            // Принудительно переприменяем все стили после манипуляций с document.body
+            setTimeout(() => {
+                // Триггерим reflow для переприменения CSS
+                void showBtn.offsetHeight;
+                
+                // Проверяем что стили кнопок применены корректно
+                const resetBtn = document.getElementById('reset-filters');
+                if (resetBtn) {
+                    void resetBtn.offsetHeight;
+                }
+                
+                console.log('✅ Карусель закрыта, стили восстановлены и переприменены');
+            }, 50);
         };
         
         // Обработчик закрытия по клавише ESC
