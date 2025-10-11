@@ -365,9 +365,16 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Настройки для статических файлов в продакшене
 if not DEBUG:
-    # В продакшене используем ManifestStaticFilesStorage для версионирования файлов
-    # Это добавляет хеш к именам файлов, чтобы браузер загружал новые версии
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+    # В Django 4.2+ используем STORAGES вместо STATICFILES_STORAGE
+    # ManifestStaticFilesStorage добавляет хеш к именам файлов для версионирования
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+        },
+    }
     
     # Дополнительные настройки для статических файлов
     STATICFILES_FINDERS = [
