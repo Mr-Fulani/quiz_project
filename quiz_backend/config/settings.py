@@ -365,8 +365,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Настройки для статических файлов в продакшене
 if not DEBUG:
-    # В продакшене используем стандартное хранилище
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    # В продакшене используем ManifestStaticFilesStorage для версионирования файлов
+    # Это добавляет хеш к именам файлов, чтобы браузер загружал новые версии
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
     
     # Дополнительные настройки для статических файлов
     STATICFILES_FINDERS = [
