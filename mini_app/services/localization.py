@@ -138,6 +138,7 @@ class LocalizationService:
             "social_networks": "Social Networks",
             "no_social_links": "Social networks not specified.",
             "refresh_data": "Refresh Data",
+            "refreshing_data": "Refreshing data...",
             "no_statistics_data": "No data available for display.",
             
             # Профессиональная информация
@@ -305,6 +306,7 @@ class LocalizationService:
             "social_networks": "Социальные сети",
             "no_social_links": "Социальные сети не указаны.",
             "refresh_data": "Обновить данные",
+            "refreshing_data": "Обновление данных...",
             "no_statistics_data": "Пока нет данных для отображения",
             
             # Профессиональная информация
