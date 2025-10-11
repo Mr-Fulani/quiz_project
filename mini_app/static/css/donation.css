@@ -262,8 +262,13 @@
     text-align: center;
     padding: 15px;
     border-radius: 10px;
-    margin-bottom: 15px;
+    margin: 15px auto;
     font-weight: 500;
+    /* Учитываем Safe Areas Telegram */
+    margin-top: max(15px, env(safe-area-inset-top));
+    margin-left: max(15px, env(safe-area-inset-left));
+    margin-right: max(15px, env(safe-area-inset-right));
+    max-width: 90%;
 }
 
 .payment-status.success {
