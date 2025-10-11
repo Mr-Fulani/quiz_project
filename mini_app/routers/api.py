@@ -202,6 +202,40 @@ async def get_miniapp_user_by_telegram_id(telegram_id: int):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
+@router.post("/accounts/miniapp-users/update-last-seen/")
+async def update_last_seen(request: Request):
+    """
+    Проксирует запрос к Django API для обновления статуса онлайн пользователя (last_seen).
+    """
+    try:
+        data = await request.json()
+        telegram_id = data.get('telegram_id')
+        
+        if not telegram_id:
+            logger.error("telegram_id is missing in update-last-seen request")
+            raise HTTPException(status_code=400, detail="telegram_id is required")
+        
+        logger.info(f"Updating last_seen for telegram_id: {telegram_id}")
+        
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/update-last-seen/"
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post(django_url, json=data, timeout=10.0)
+        
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"Error from Django API [update_last_seen]: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except httpx.RequestError as e:
+        logger.error(f"Request error while contacting Django API: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to backend service.")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred in update_last_seen: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+
 # Удален старый handler /topics без telegram_id, используем расширенную версию ниже
 
 @router.get("/topic/{topic_id}")
