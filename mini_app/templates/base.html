@@ -157,11 +157,11 @@
                     transform: translateX(-50%) translateY(100px); /* Для анимации появления */
                 `;
             } else {
-                // По умолчанию - внизу по центру, как было
+                // По умолчанию - вверху по центру, чтобы не мешать нижнему меню навигации
                 notificationStyles += `
-                    bottom: 20px;
+                    top: 100px;
                     left: 50%;
-                    transform: translateX(-50%) translateY(100px); /* Сначала скрываем снизу */
+                    transform: translateX(-50%) translateY(-100px); /* Сначала скрываем сверху */
                 `;
             }
             
@@ -185,7 +185,7 @@
 
             setTimeout(() => {
                 notification.style.opacity = '0';
-                notification.style.transform = targetElement ? 'translateX(-50%) translateY(20px)' : 'translateX(-50%) translateY(20px)'; // Скрываем вниз
+                notification.style.transform = targetElement ? 'translateX(-50%) translateY(20px)' : 'translateX(-50%) translateY(-100px)'; // Скрываем вверх для обычных уведомлений
                 notification.addEventListener('transitionend', () => notification.remove(), {once: true});
             }, 3000);
         }
