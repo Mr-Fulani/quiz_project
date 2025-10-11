@@ -27,8 +27,6 @@ services:
       context: ./quiz_backend
       dockerfile: Dockerfile
     container_name: quiz_backend_local_prod
-    env_file:
-      - .env
     environment:
       - DEBUG=False  # Важно: отключаем DEBUG для тестирования продакшен логики
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
@@ -64,8 +62,6 @@ services:
     container_name: mini_app_local_prod
     build:
       context: ./mini_app
-    env_file:
-      - .env
     ports:
       - "8080:8080"
     networks:
@@ -114,8 +110,6 @@ services:
       context: .
       dockerfile: bot/Dockerfile
     container_name: upbeat_robinson
-    env_file:
-      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres_db:5432/${DB_NAME:-fulani_quiz_db}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
