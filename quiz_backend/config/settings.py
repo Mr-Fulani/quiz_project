@@ -366,13 +366,14 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Настройки для статических файлов в продакшене
 if not DEBUG:
     # В Django 4.2+ используем STORAGES вместо STATICFILES_STORAGE
-    # ManifestStaticFilesStorage добавляет хеш к именам файлов для версионирования
+    # Используем стандартное хранение, так как кэширование управляется Nginx
+    # ManifestStaticFilesStorage вызывает ошибки с вложенными директориями
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
     
