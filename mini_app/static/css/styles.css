@@ -40,6 +40,11 @@ body {
     padding-bottom: 70px; /* Чтобы контент не заходил под нижнюю навигацию */
 }
 
+/* Утилитарный класс для скрытия элементов */
+.hidden {
+    display: none !important;
+}
+
 /* Фоновый слой */
 .background-layer {
     position: fixed;
