@@ -674,17 +674,20 @@ if (window.TaskManagerAlreadyLoaded) {
         styleToast(toast, backgroundColor) {
             toast.style.cssText = `
                 position: fixed;
-                top: 20px;
-                right: 20px;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
                 padding: 15px 20px;
                 border-radius: 8px;
                 color: white;
                 font-weight: 600;
                 z-index: 1000;
-                max-width: 350px;
+                max-width: min(350px, calc(100vw - 40px));
+                width: 90%;
+                text-align: center;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 background: ${backgroundColor};
-                animation: slideInRight 0.3s ease;
+                animation: fadeInScale 0.3s ease;
             `;
             
             // Добавляем CSS анимацию если её нет
@@ -692,13 +695,13 @@ if (window.TaskManagerAlreadyLoaded) {
                 const style = document.createElement('style');
                 style.id = 'toast-animations';
                 style.textContent = `
-                    @keyframes slideInRight {
+                    @keyframes fadeInScale {
                         from {
-                            transform: translateX(100%);
+                            transform: translate(-50%, -50%) scale(0.9);
                             opacity: 0;
                         }
                         to {
-                            transform: translateX(0);
+                            transform: translate(-50%, -50%) scale(1);
                             opacity: 1;
                         }
                     }

@@ -1,3 +1,224 @@
+// ГЛОБАЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ СВАЙПЕРА НА ОПРЕДЕЛЁННОМ СЛАЙДЕ
+window.openSwiperAtIndex = function(slideIndex = 3) {
+    console.log('🔧 ОТКРЫТИЕ СВАЙПЕРА НА СЛАЙДЕ:', slideIndex);
+    
+    const showBtn = document.getElementById('show-all-users');
+    const carousel = document.getElementById('all-users-carousel');
+    
+    if (!carousel) {
+        console.error('🔧 Карусель не найдена!');
+        return;
+    }
+    
+    // Скрываем кнопку "Показать всех" если она есть
+    if (showBtn) {
+        showBtn.classList.add('hidden');
+    }
+    
+    // Блокируем скролл body — сохраняем позицию и фиксируем с top offset
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    window.scrollPositionBeforeSwiper = scrollY;
+
+    document.body.style.overflow = 'hidden';
+    // Фиксируем тело и смещаем вверх на текущий скролл, чтобы не было прыжка на мобильных
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    
+    // Показываем карусель и добавляем класс active для flex-стилей
+    carousel.style.display = 'block';
+    carousel.classList.add('active');
+    
+    // Принудительно устанавливаем размеры в зависимости от типа устройства
+    const screenWidth = window.innerWidth;
+    // Проверяем именно мобильное устройство, а не просто узкий экран
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const width = '330px';
+    const height = isMobile ? '515px' : '445px';
+    
+    // Позиционирование с учетом Safe Areas Telegram
+    let topPosition;
+    if (isMobile) {
+        // Для iOS используем более точное центрирование с учетом вырезов
+        if (isIOS && CSS.supports('padding', 'max(0px)')) {
+            topPosition = 'calc(50vh + env(safe-area-inset-top, 0px) * 0.3 - env(safe-area-inset-bottom, 0px) * 0.3)';
+        } else {
+            // Для Android и старых iOS
+            topPosition = 'calc(50% + env(safe-area-inset-top, 0px) / 2 - env(safe-area-inset-bottom, 0px) / 4 + 20px)';
+        }
+    } else {
+        // Для десктопа
+        topPosition = 'calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2)';
+    }
+    
+    carousel.style.setProperty('width', width, 'important');
+    carousel.style.setProperty('height', height, 'important');
+    carousel.style.setProperty('max-width', width, 'important');
+    carousel.style.setProperty('max-height', height, 'important');
+    carousel.style.setProperty('min-width', width, 'important');
+    carousel.style.setProperty('min-height', height, 'important');
+    carousel.style.setProperty('top', topPosition, 'important');
+    
+    console.log('🔧 Установлены размеры контейнера:', {
+        screenWidth: screenWidth,
+        isMobile: isMobile,
+        width: width,
+        height: height,
+        computedWidth: window.getComputedStyle(carousel).width,
+        computedHeight: window.getComputedStyle(carousel).height
+    });
+    
+    // Обработчик клика вне контейнера свайпера
+    const handleOutsideClick = function(e) {
+        // Проверяем, открыта ли карусель
+        if (carousel.style.display !== 'block') return;
+        
+        // Проверяем, был ли клик вне контейнера карусели
+        if (!carousel.contains(e.target)) {
+            console.log('🔧 КЛИК ВНЕ КОНТЕЙНЕРА СВАЙПЕРА - ЗАКРЫВАЕМ');
+            closeCarousel();
+            // Удаляем обработчик после закрытия
+            document.removeEventListener('click', handleOutsideClick);
+        }
+    };
+    
+    // Добавляем обработчик с небольшой задержкой, чтобы не сработал на клике по кнопке
+    setTimeout(() => {
+        document.addEventListener('click', handleOutsideClick);
+    }, 100);
+    
+    // Инициализируем Swiper с начальным слайдом
+    setTimeout(() => {
+        if (typeof Swiper !== 'undefined') {
+            console.log('🔧 Инициализируем Swiper на слайде:', slideIndex);
+            
+            // Уничтожаем предыдущий экземпляр Swiper если есть
+            if (window.userSwiper) {
+                window.userSwiper.destroy(true, true);
+            }
+            
+            window.userSwiper = new Swiper('#users-swiper', {
+                slidesPerView: 1,
+                spaceBetween: 0,
+                centeredSlides: true,
+                loop: false,
+                effect: 'slide',
+                speed: 300,
+                initialSlide: slideIndex, // Начинаем с указанного слайда
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev',
+                },
+                on: {
+                    init: function() {
+                        console.log('🔧 Swiper инициализирован на слайде:', this.activeIndex);
+                        
+                        // Повторно устанавливаем размеры после инициализации Swiper
+                        setTimeout(() => {
+                            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                            const width = '330px';
+                            const height = isMobile ? '515px' : '445px';
+                            // Позиционирование с учетом Safe Areas Telegram
+                            let topPosition;
+                            if (isMobile) {
+                                // Для iOS используем более точное центрирование с учетом вырезов
+                                if (isIOS && CSS.supports('padding', 'max(0px)')) {
+                                    topPosition = 'calc(50vh + env(safe-area-inset-top, 0px) * 0.3 - env(safe-area-inset-bottom, 0px) * 0.3)';
+                                } else {
+                                    // Для Android и старых iOS
+                                    topPosition = 'calc(50% + env(safe-area-inset-top, 0px) / 2 - env(safe-area-inset-bottom, 0px) / 4 + 20px)';
+                                }
+                            } else {
+                                // Для десктопа
+                                topPosition = 'calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2)';
+                            }
+                            
+                            carousel.style.setProperty('width', width, 'important');
+                            carousel.style.setProperty('height', height, 'important');
+                            carousel.style.setProperty('max-width', width, 'important');
+                            carousel.style.setProperty('max-height', height, 'important');
+                            carousel.style.setProperty('min-width', width, 'important');
+                            carousel.style.setProperty('min-height', height, 'important');
+                            carousel.style.setProperty('top', topPosition, 'important');
+                            
+                            console.log('🔧 Размеры повторно установлены после Swiper init:', {
+                                computedWidth: window.getComputedStyle(carousel).width,
+                                computedHeight: window.getComputedStyle(carousel).height
+                            });
+                        }, 50);
+                    }
+                }
+            });
+        } else {
+            console.error('🔧 Swiper не найден!');
+        }
+    }, 100);
+};
+
+// ГЛОБАЛЬНАЯ ФУНКЦИЯ ЗАКРЫТИЯ КАРУСЕЛИ
+window.closeCarousel = function() {
+    console.log('🔧 ЗАКРЫТИЕ КАРУСЕЛИ');
+    
+    const showBtn = document.getElementById('show-all-users');
+    const carousel = document.getElementById('all-users-carousel');
+    
+    if (!carousel) {
+        console.error('🔧 Карусель не найдена при закрытии');
+        return;
+    }
+    
+    // Уничтожаем Swiper
+    if (window.userSwiper) {
+        window.userSwiper.destroy(true, true);
+        window.userSwiper = null;
+    }
+    
+    // Скрываем карусель и удаляем класс active
+    carousel.style.display = 'none';
+    carousel.classList.remove('active');
+    
+    // Восстанавливаем скролл body и позицию
+    const prevScroll = typeof window.scrollPositionBeforeSwiper !== 'undefined' ? window.scrollPositionBeforeSwiper : 0;
+
+    // Убираем фиксацию тела и очищаем top, затем восстанавливаем позицию скролла
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+
+    if (prevScroll) {
+        window.scrollTo(0, prevScroll);
+        delete window.scrollPositionBeforeSwiper;
+    }
+    
+    // Показываем кнопку "Показать всех" через удаление класса
+    if (showBtn) {
+        showBtn.classList.remove('hidden');
+    }
+    
+    // Принудительно переприменяем все стили после манипуляций с document.body
+    setTimeout(() => {
+        // Триггерим reflow для переприменения CSS
+        if (showBtn) {
+            void showBtn.offsetHeight;
+        }
+        
+        // Проверяем что стили кнопок применены корректно
+        const resetBtn = document.getElementById('reset-filters');
+        if (resetBtn) {
+            void resetBtn.offsetHeight;
+        }
+        
+        console.log('✅ Карусель закрыта, стили восстановлены и переприменены');
+    }, 50);
+};
+
 // ГЛОБАЛЬНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ КНОПОК КАРУСЕЛИ
 window.initCarouselButtons = function() {
     console.log('🔧 ИНИЦИАЛИЗАЦИЯ КНОПОК И SWIPER');
@@ -16,177 +237,14 @@ window.initCarouselButtons = function() {
         // Удаляем старые обработчики (если есть)
         showBtn.onclick = null;
         
-        // Обработчик для кнопки "Показать всех"
+        // Обработчик для кнопки "Показать всех" - открываем с 4-го слайда (индекс 3)
         showBtn.onclick = function(e) {
             console.log('🔧 КНОПКА "ПОКАЗАТЬ ВСЕХ" НАЖАТА!');
             e.preventDefault();
             e.stopPropagation();
             
-            // Скрываем кнопку "Показать всех" через класс вместо inline стиля
-            showBtn.classList.add('hidden');
-            
-            // Блокируем скролл body — сохраняем позицию и фиксируем с top offset
-            const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-            window.scrollPositionBeforeSwiper = scrollY;
-
-            document.body.style.overflow = 'hidden';
-            // Фиксируем тело и смещаем вверх на текущий скролл, чтобы не было прыжка на мобильных
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${scrollY}px`;
-            document.body.style.left = '0';
-            document.body.style.right = '0';
-            document.body.style.width = '100%';
-            
-            // Показываем карусель и добавляем класс active для flex-стилей
-            carousel.style.display = 'block';
-            carousel.classList.add('active');
-            
-            // Принудительно устанавливаем размеры в зависимости от типа устройства
-            const screenWidth = window.innerWidth;
-            // Проверяем именно мобильное устройство, а не просто узкий экран
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const width = '330px';
-            const height = isMobile ? '515px' : '445px';
-            
-            // Позиционирование: десктоп выше, мобильные чуть ниже
-            const topPosition = isMobile ? 'calc(50% + 10px)' : 'calc(50% - 10px)';
-            
-            carousel.style.setProperty('width', width, 'important');
-            carousel.style.setProperty('height', height, 'important');
-            carousel.style.setProperty('max-width', width, 'important');
-            carousel.style.setProperty('max-height', height, 'important');
-            carousel.style.setProperty('min-width', width, 'important');
-            carousel.style.setProperty('min-height', height, 'important');
-            carousel.style.setProperty('top', topPosition, 'important');
-            
-            console.log('🔧 Установлены размеры контейнера:', {
-                screenWidth: screenWidth,
-                isMobile: isMobile,
-                width: width,
-                height: height,
-                computedWidth: window.getComputedStyle(carousel).width,
-                computedHeight: window.getComputedStyle(carousel).height
-            });
-            
-            // Обработчик клика вне контейнера свайпера
-            const handleOutsideClick = function(e) {
-                // Проверяем, открыта ли карусель
-                if (carousel.style.display !== 'block') return;
-                
-                // Проверяем, был ли клик вне контейнера карусели
-                if (!carousel.contains(e.target)) {
-                    console.log('🔧 КЛИК ВНЕ КОНТЕЙНЕРА СВАЙПЕРА - ЗАКРЫВАЕМ');
-                    closeCarousel();
-                    // Удаляем обработчик после закрытия
-                    document.removeEventListener('click', handleOutsideClick);
-                }
-            };
-            
-            // Добавляем обработчик с небольшой задержкой, чтобы не сработал на клике по кнопке
-            setTimeout(() => {
-                document.addEventListener('click', handleOutsideClick);
-            }, 100);
-            
-            // Инициализируем Swiper
-            setTimeout(() => {
-                if (typeof Swiper !== 'undefined') {
-                    console.log('🔧 Инициализируем Swiper');
-                    
-                    // Уничтожаем предыдущий экземпляр Swiper если есть
-                    if (window.userSwiper) {
-                        window.userSwiper.destroy(true, true);
-                    }
-                    
-                    window.userSwiper = new Swiper('#users-swiper', {
-                        slidesPerView: 1,
-                        spaceBetween: 0,
-                        centeredSlides: true,
-                        loop: false,
-                        effect: 'slide',
-                        speed: 300,
-                        navigation: {
-                            nextEl: '.swiper-button-next',
-                            prevEl: '.swiper-button-prev',
-                        },
-                        on: {
-                            init: function() {
-                                console.log('🔧 Swiper инициализирован!');
-                                
-                                // Повторно устанавливаем размеры после инициализации Swiper
-                                setTimeout(() => {
-                                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                                    const width = '330px';
-                                    const height = isMobile ? '515px' : '445px';
-                                    const topPosition = isMobile ? 'calc(50% + 10px)' : 'calc(50% - 10px)';
-                                    
-                                    carousel.style.setProperty('width', width, 'important');
-                                    carousel.style.setProperty('height', height, 'important');
-                                    carousel.style.setProperty('max-width', width, 'important');
-                                    carousel.style.setProperty('max-height', height, 'important');
-                                    carousel.style.setProperty('min-width', width, 'important');
-                                    carousel.style.setProperty('min-height', height, 'important');
-                                    carousel.style.setProperty('top', topPosition, 'important');
-                                    
-                                    console.log('🔧 Размеры повторно установлены после Swiper init:', {
-                                        computedWidth: window.getComputedStyle(carousel).width,
-                                        computedHeight: window.getComputedStyle(carousel).height
-                                    });
-                                }, 50);
-                            }
-                        }
-                    });
-                } else {
-                    console.error('🔧 Swiper не найден!');
-                }
-            }, 100);
-        };
-        
-        // Функция закрытия карусели
-        function closeCarousel() {
-            console.log('🔧 ЗАКРЫТИЕ КАРУСЕЛИ');
-            
-            // Уничтожаем Swiper
-            if (window.userSwiper) {
-                window.userSwiper.destroy(true, true);
-                window.userSwiper = null;
-            }
-            
-            // Скрываем карусель и удаляем класс active
-            carousel.style.display = 'none';
-            carousel.classList.remove('active');
-            
-            // Восстанавливаем скролл body и позицию
-            const prevScroll = typeof window.scrollPositionBeforeSwiper !== 'undefined' ? window.scrollPositionBeforeSwiper : 0;
-
-            // Убираем фиксацию тела и очищаем top, затем восстанавливаем позицию скролла
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.left = '';
-            document.body.style.right = '';
-            document.body.style.width = '';
-
-            if (prevScroll) {
-                window.scrollTo(0, prevScroll);
-                delete window.scrollPositionBeforeSwiper;
-            }
-            
-            // Показываем кнопку "Показать всех" через удаление класса
-            showBtn.classList.remove('hidden');
-            
-            // Принудительно переприменяем все стили после манипуляций с document.body
-            setTimeout(() => {
-                // Триггерим reflow для переприменения CSS
-                void showBtn.offsetHeight;
-                
-                // Проверяем что стили кнопок применены корректно
-                const resetBtn = document.getElementById('reset-filters');
-                if (resetBtn) {
-                    void resetBtn.offsetHeight;
-                }
-                
-                console.log('✅ Карусель закрыта, стили восстановлены и переприменены');
-            }, 50);
+            // Открываем свайпер на 4-м слайде (индекс 3)
+            openSwiperAtIndex(3);
         };
         
         // Обработчик закрытия по клавише ESC

@@ -61,13 +61,10 @@
    ======================================== */
 .all-users-carousel {
     position: fixed !important;
-    /* Центрирование с учетом Safe Areas */
-    top: 50% !important;
+    /* Центрирование с учетом Safe Areas Telegram */
+    top: calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2) !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    /* Учитываем Safe Areas при расчете доступного пространства */
-    margin-top: calc(env(safe-area-inset-top, 0px) / 2) !important;
-    margin-bottom: calc(env(safe-area-inset-bottom, 0px) / 2) !important;
     width: 330px !important;
     height: 445px !important;
     max-width: 330px !important;
@@ -79,6 +76,7 @@
     display: none !important;
     overflow: hidden !important;
     padding: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
 }
 
@@ -91,6 +89,19 @@
         max-height: 515px !important;
         min-width: 330px !important;
         min-height: 515px !important;
+        /* Центрирование с учетом Safe Areas для мобильных Telegram */
+        /* Используем более агрессивное смещение вниз для компенсации верхней панели Telegram */
+        top: calc(50% + env(safe-area-inset-top, 0px) / 2 - env(safe-area-inset-bottom, 0px) / 4 + 20px) !important;
+    }
+}
+
+/* iOS устройства (iPhone с вырезом) - дополнительная настройка */
+@supports (padding: max(0px)) {
+    @media (max-width: 480px) {
+        .all-users-carousel {
+            /* Для iOS с safe areas используем более точное центрирование */
+            top: calc(50vh + env(safe-area-inset-top, 0px) * 0.3 - env(safe-area-inset-bottom, 0px) * 0.3) !important;
+        }
     }
 }
 

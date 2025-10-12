@@ -79,7 +79,7 @@ function openUserProfile(telegramId) {
         <div class="top-users-list" id="top-5-list">
         {% if top_users %}
                 {% for user in top_users[:3] %}
-            <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
+            <div class="user-item" data-telegram-id="{{ user.telegram_id }}" data-user-index="{{ loop.index0 }}" onclick="event.stopPropagation(); openSwiperAtIndex({{ loop.index0 }});">
                 <div class="user-rank">{{ loop.index }}</div>
                 <div class="user-avatar-wrapper">
                     <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
@@ -154,12 +154,12 @@ function openUserProfile(telegramId) {
     </div>
     {% endif %}
 
-    <!-- Свайп-карусель для остальных пользователей (скрытая по умолчанию) -->
+    <!-- Свайп-карусель для всех пользователей (скрытая по умолчанию) -->
     <div class="all-users-carousel" id="all-users-carousel" style="display: none;">
         <div class="swiper" id="users-swiper">
             <div class="swiper-wrapper">
                 {% if top_users %}
-                {% for user in top_users[3:] %}
+                {% for user in top_users %}
                     <div class="swiper-slide">
                         <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
                             <!-- Аватарка на весь экран -->
