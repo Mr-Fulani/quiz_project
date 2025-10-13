@@ -437,6 +437,20 @@
     border-color: var(--active-color);
 }
 
+.whatsapp-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 0, 0.4);
+    background: rgba(0, 255, 0, 0.1);
+    border-color: var(--active-color);
+}
+
+.instagram-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 0, 0.4);
+    background: rgba(0, 255, 0, 0.1);
+    border-color: var(--active-color);
+}
+
 .twitter-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 255, 0, 0.4);
