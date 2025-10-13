@@ -1205,6 +1205,11 @@ body.fullscreen-active .gallery__container {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
+    /* Учитываем safe areas Telegram */
+    padding-top: var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px)));
+    padding-bottom: var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+    padding-left: var(--tg-safe-area-inset-left, var(--safe-area-left, env(safe-area-inset-left, 0px)));
+    padding-right: var(--tg-safe-area-inset-right, var(--safe-area-right, env(safe-area-inset-right, 0px)));
 }
 
 .modal-content {
@@ -1214,7 +1219,7 @@ body.fullscreen-active .gallery__container {
     border-radius: 20px;
     width: 95%;
     max-width: 500px;
-    max-height: 95vh;
+    max-height: calc(95vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))));
     overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     animation: modalSlideIn 0.3s ease;
