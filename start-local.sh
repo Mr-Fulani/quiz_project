@@ -15,7 +15,8 @@ docker image prune -f
 
 echo "🚀 Запуск всех сервисов для локальной разработки..."
 # Запускаем все сервисы в фоновом режиме
-docker compose up --build -d
+# --force-recreate: принудительно пересоздает контейнеры, обновляя переменные окружения из .env
+docker compose up --build --force-recreate -d
 
 echo "⏳ Ожидание запуска сервисов..."
 sleep 10

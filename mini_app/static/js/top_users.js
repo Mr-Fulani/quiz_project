@@ -4,6 +4,7 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
     
     const showBtn = document.getElementById('show-all-users');
     const carousel = document.getElementById('all-users-carousel');
+    const backdrop = document.getElementById('carousel-backdrop');
     
     if (!carousel) {
         console.error('🔧 Карусель не найдена!');
@@ -27,40 +28,44 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
     document.body.style.right = '0';
     document.body.style.width = '100%';
     
+    // Показываем backdrop
+    if (backdrop) {
+        backdrop.classList.add('active');
+    }
+    
     // Показываем карусель и добавляем класс active для flex-стилей
     carousel.style.display = 'block';
     carousel.classList.add('active');
     
     // Принудительно устанавливаем размеры в зависимости от типа устройства
     const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
     // Проверяем именно мобильное устройство, а не просто узкий экран
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const width = '330px';
     const height = isMobile ? '515px' : '445px';
     
-    // Позиционирование с учетом Safe Areas Telegram
-    let topPosition;
-    if (isMobile) {
-        // Для iOS используем более точное центрирование с учетом вырезов
-        if (isIOS && CSS.supports('padding', 'max(0px)')) {
-            topPosition = 'calc(50vh + env(safe-area-inset-top, 0px) * 0.3 - env(safe-area-inset-bottom, 0px) * 0.3)';
-        } else {
-            // Для Android и старых iOS
-            topPosition = 'calc(50% + env(safe-area-inset-top, 0px) / 2 - env(safe-area-inset-bottom, 0px) / 4 + 20px)';
-        }
-    } else {
-        // Для десктопа
-        topPosition = 'calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2)';
-    }
+    // Позиционирование - центрирование с учетом Safe Areas Telegram (задано в CSS)
+    // Используем проценты для корректного центрирования
+    const topPosition = '50%';
+    const leftPosition = '50%';
     
+    // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ СТИЛЕЙ С ВЫСОКОЙ СПЕЦИФИЧНОСТЬЮ
+    carousel.style.setProperty('position', 'fixed', 'important');
+    carousel.style.setProperty('top', topPosition, 'important');
+    carousel.style.setProperty('left', leftPosition, 'important');
+    carousel.style.setProperty('right', 'auto', 'important');
+    carousel.style.setProperty('bottom', 'auto', 'important');
+    carousel.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
     carousel.style.setProperty('width', width, 'important');
     carousel.style.setProperty('height', height, 'important');
     carousel.style.setProperty('max-width', width, 'important');
     carousel.style.setProperty('max-height', height, 'important');
     carousel.style.setProperty('min-width', width, 'important');
     carousel.style.setProperty('min-height', height, 'important');
-    carousel.style.setProperty('top', topPosition, 'important');
+    carousel.style.setProperty('margin', '0', 'important');
+    carousel.style.setProperty('padding', '0', 'important');
+    carousel.style.setProperty('z-index', '99999', 'important');
     
     console.log('🔧 Установлены размеры контейнера:', {
         screenWidth: screenWidth,
@@ -71,23 +76,42 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
         computedHeight: window.getComputedStyle(carousel).height
     });
     
-    // Обработчик клика вне контейнера свайпера
+    // ДОПОЛНИТЕЛЬНАЯ ОТЛАДКА ПОЗИЦИОНИРОВАНИЯ
+    console.log('🔧 ОТЛАДКА ПОЗИЦИОНИРОВАНИЯ:', {
+        top: carousel.style.top,
+        left: carousel.style.left,
+        transform: carousel.style.transform,
+        position: getComputedStyle(carousel).position,
+        display: carousel.style.display,
+        zIndex: getComputedStyle(carousel).zIndex,
+        windowInnerWidth: window.innerWidth,
+        windowInnerHeight: window.innerHeight
+    });
+    
+    // Обработчик клика вне контейнера свайпера или на backdrop
     const handleOutsideClick = function(e) {
         // Проверяем, открыта ли карусель
         if (carousel.style.display !== 'block') return;
         
-        // Проверяем, был ли клик вне контейнера карусели
-        if (!carousel.contains(e.target)) {
+        // Проверяем, был ли клик вне контейнера карусели или на backdrop
+        if (!carousel.contains(e.target) || (backdrop && e.target === backdrop)) {
             console.log('🔧 КЛИК ВНЕ КОНТЕЙНЕРА СВАЙПЕРА - ЗАКРЫВАЕМ');
             closeCarousel();
             // Удаляем обработчик после закрытия
             document.removeEventListener('click', handleOutsideClick);
+            if (backdrop) {
+                backdrop.removeEventListener('click', handleOutsideClick);
+            }
         }
     };
     
     // Добавляем обработчик с небольшой задержкой, чтобы не сработал на клике по кнопке
     setTimeout(() => {
         document.addEventListener('click', handleOutsideClick);
+        // Также добавляем обработчик на backdrop
+        if (backdrop) {
+            backdrop.addEventListener('click', handleOutsideClick);
+        }
     }, 100);
     
     // Инициализируем Swiper с начальным слайдом
@@ -119,23 +143,11 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
                         // Повторно устанавливаем размеры после инициализации Swiper
                         setTimeout(() => {
                             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
                             const width = '330px';
                             const height = isMobile ? '515px' : '445px';
-                            // Позиционирование с учетом Safe Areas Telegram
-                            let topPosition;
-                            if (isMobile) {
-                                // Для iOS используем более точное центрирование с учетом вырезов
-                                if (isIOS && CSS.supports('padding', 'max(0px)')) {
-                                    topPosition = 'calc(50vh + env(safe-area-inset-top, 0px) * 0.3 - env(safe-area-inset-bottom, 0px) * 0.3)';
-                                } else {
-                                    // Для Android и старых iOS
-                                    topPosition = 'calc(50% + env(safe-area-inset-top, 0px) / 2 - env(safe-area-inset-bottom, 0px) / 4 + 20px)';
-                                }
-                            } else {
-                                // Для десктопа
-                                topPosition = 'calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2)';
-                            }
+                            // Центрирование
+                            const topPosition = '50%';
+                            const leftPosition = '50%';
                             
                             carousel.style.setProperty('width', width, 'important');
                             carousel.style.setProperty('height', height, 'important');
@@ -144,6 +156,10 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
                             carousel.style.setProperty('min-width', width, 'important');
                             carousel.style.setProperty('min-height', height, 'important');
                             carousel.style.setProperty('top', topPosition, 'important');
+                            carousel.style.setProperty('left', leftPosition, 'important');
+                            carousel.style.setProperty('right', 'auto', 'important');
+                            carousel.style.setProperty('bottom', 'auto', 'important');
+                            carousel.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
                             
                             console.log('🔧 Размеры повторно установлены после Swiper init:', {
                                 computedWidth: window.getComputedStyle(carousel).width,
@@ -165,6 +181,7 @@ window.closeCarousel = function() {
     
     const showBtn = document.getElementById('show-all-users');
     const carousel = document.getElementById('all-users-carousel');
+    const backdrop = document.getElementById('carousel-backdrop');
     
     if (!carousel) {
         console.error('🔧 Карусель не найдена при закрытии');
@@ -175,6 +192,11 @@ window.closeCarousel = function() {
     if (window.userSwiper) {
         window.userSwiper.destroy(true, true);
         window.userSwiper = null;
+    }
+    
+    // Скрываем backdrop
+    if (backdrop) {
+        backdrop.classList.remove('active');
     }
     
     // Скрываем карусель и удаляем класс active
