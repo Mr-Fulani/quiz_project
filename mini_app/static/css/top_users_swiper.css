@@ -56,14 +56,40 @@
 }
 
 /* ========================================
+   BACKDROP ДЛЯ МОДАЛЬНОГО ОКНА
+   ======================================== */
+.carousel-backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+    z-index: 99998 !important;
+    display: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.carousel-backdrop.active {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* ========================================
    ПОЛНОЭКРАННАЯ КАРУСЕЛЬ
-   UPDATED: 2025-10-11 - Safe Areas Support
+   UPDATED: 2025-10-12 - Простое центрирование
    ======================================== */
 .all-users-carousel {
     position: fixed !important;
-    /* Центрирование с учетом Safe Areas Telegram */
-    top: calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2) !important;
+    /* Простое центрирование - работает всегда */
+    top: 50% !important;
     left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
     transform: translate(-50%, -50%) !important;
     width: 330px !important;
     height: 445px !important;
@@ -80,6 +106,23 @@
     box-sizing: border-box !important;
 }
 
+/* Дополнительное принудительное позиционирование */
+#all-users-carousel.all-users-carousel,
+.all-users-carousel.all-users-carousel,
+div#all-users-carousel.all-users-carousel {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+/* Display управляется JavaScript */
+#all-users-carousel.all-users-carousel[style*="display: block"],
+.all-users-carousel.all-users-carousel[style*="display: block"],
+div#all-users-carousel.all-users-carousel[style*="display: block"] {
+    display: block !important;
+}
+
 /* МОБИЛЬНЫЕ УСТРОЙСТВА */
 @media (max-width: 480px) {
     .all-users-carousel {
@@ -89,19 +132,7 @@
         max-height: 515px !important;
         min-width: 330px !important;
         min-height: 515px !important;
-        /* Центрирование с учетом Safe Areas для мобильных Telegram */
-        /* Используем более агрессивное смещение вниз для компенсации верхней панели Telegram */
-        top: calc(50% + env(safe-area-inset-top, 0px) / 2 - env(safe-area-inset-bottom, 0px) / 4 + 20px) !important;
-    }
-}
-
-/* iOS устройства (iPhone с вырезом) - дополнительная настройка */
-@supports (padding: max(0px)) {
-    @media (max-width: 480px) {
-        .all-users-carousel {
-            /* Для iOS с safe areas используем более точное центрирование */
-            top: calc(50vh + env(safe-area-inset-top, 0px) * 0.3 - env(safe-area-inset-bottom, 0px) * 0.3) !important;
-        }
+        /* Центрирование уже задано в базовых стилях с учетом Safe Areas */
     }
 }
 
@@ -454,24 +485,9 @@
 }
 
 /* ========================================
-   АДАПТИВНОСТЬ - МОБИЛЬНЫЕ
+   АДАПТИВНОСТЬ
    ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ МОБИЛЬНЫХ УДАЛЕН */
-
-/* ========================================
-   АДАПТИВНОСТЬ - ПЛАНШЕТЫ
-   ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ ПЛАНШЕТОВ УДАЛЕН */
-
-    /* Индикатор на фиксированном расстоянии на планшетах */
-}
-
-/* УДАЛЕН КОНФЛИКТУЮЩИЙ КОД БЕЗ @media - ПРИМЕНЯЛСЯ КО ВСЕМ УСТРОЙСТВАМ */
-
-/* ========================================
-   АДАПТИВНОСТЬ - ЛАНДШАФТ
-   ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ ЛАНДШАФТА УДАЛЕН */
+/* Медиазапросы удалены - используются базовые стили */
 
 /* ========================================
    iOS SAFE AREA
@@ -482,25 +498,6 @@
     }
 }
 
-/* ========================================
-   TOUCH УСТРОЙСТВА
-   ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ TOUCH УСТРОЙСТВ УДАЛЕН */
-
-/* ========================================
-   ТЕМНАЯ ТЕМА
-   ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ ТЕМНОЙ ТЕМЫ УДАЛЕН */
-
-/* ========================================
-   УМЕНЬШЕННОЕ ДВИЖЕНИЕ
-   ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ УМЕНЬШЕННОГО ДВИЖЕНИЯ УДАЛЕН */
-
-/* ========================================
-   ВЫСОКОЕ РАЗРЕШЕНИЕ
-   ======================================== */
-/* МЕДИАЗАПРОС ДЛЯ ВЫСОКОГО РАЗРЕШЕНИЯ УДАЛЕН */
 
 /* ========================================
    ФИНАЛЬНОЕ ПЕРЕОПРЕДЕЛЕНИЕ - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ

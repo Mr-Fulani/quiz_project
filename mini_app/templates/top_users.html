@@ -154,71 +154,72 @@ function openUserProfile(telegramId) {
     </div>
     {% endif %}
 
-    <!-- Свайп-карусель для всех пользователей (скрытая по умолчанию) -->
-    <div class="all-users-carousel" id="all-users-carousel" style="display: none;">
-        <div class="swiper" id="users-swiper">
-            <div class="swiper-wrapper">
-                {% if top_users %}
-                {% for user in top_users %}
-                    <div class="swiper-slide">
-                        <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
-                            <!-- Аватарка на весь экран -->
-                            <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
-                            {% if user.is_online %}
-                            <div class="online-indicator"></div>
-                            <div class="online-status-text">{{ translations.get('online', 'онлайн') }}</div>
-                            {% endif %}
+</div>
+
+<!-- Backdrop для модального окна (ВНЕ КОНТЕЙНЕРА) -->
+<div class="carousel-backdrop" id="carousel-backdrop"></div>
+
+<!-- Свайп-карусель для всех пользователей (ВНЕ КОНТЕЙНЕРА - для правильного position: fixed) -->
+<div class="all-users-carousel" id="all-users-carousel" style="display: none;">
+    <div class="swiper" id="users-swiper">
+        <div class="swiper-wrapper">
+            {% if top_users %}
+            {% for user in top_users %}
+                <div class="swiper-slide">
+                    <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
+                        <!-- Аватарка на весь экран -->
+                        <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
+                        {% if user.is_online %}
+                        <div class="online-indicator"></div>
+                        <div class="online-status-text">{{ translations.get('online', 'онлайн') }}</div>
+                        {% endif %}
+                        
+                        <!-- Информация внизу экрана -->
+                        <div class="user-info-container">
+                            <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                            <div class="user-username">@{{ user.username }}</div>
                             
-                            <!-- Информация внизу экрана -->
-                            <div class="user-info-container">
-                                <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
-                                <div class="user-username">@{{ user.username }}</div>
-                                
-                                <div class="user-stats">
-                                    <div class="user-rating">
-                                        ⭐ {{ user.rating }} {{ translations.get('rating', 'Рейтинг') }}
-                                    </div>
-                                    <div class="user-details">
-                                        {% if user.gender %}
-                                        <span class="gender-icon">
-                                            {% if user.gender == 'male' %}
-                                                ♂️
-                                            {% elif user.gender == 'female' %}
-                                                ♀️
-                                            {% endif %}
-                                        </span>
+                            <div class="user-stats">
+                                <div class="user-rating">
+                                    ⭐ {{ user.rating }} {{ translations.get('rating', 'Рейтинг') }}
+                                </div>
+                                <div class="user-details">
+                                    {% if user.gender %}
+                                    <span class="gender-icon">
+                                        {% if user.gender == 'male' %}
+                                            ♂️
+                                        {% elif user.gender == 'female' %}
+                                            ♀️
                                         {% endif %}
-                                        {% if user.age %}
-                                        <span class="age-info">
-                                            {{ user.age }} {{ translations.get('years_old', 'лет') }}
-                                        </span>
+                                    </span>
+                                    {% endif %}
+                                    {% if user.age %}
+                                    <span class="age-info">
+                                        {{ user.age }} {{ translations.get('years_old', 'лет') }}
+                                    </span>
+                                    {% endif %}
+                                    {% if user.grade %}
+                                    <span class="grade-info grade-{{ user.grade }}">
+                                        {% if user.grade == 'junior' %}
+                                            {{ translations.get('junior', 'Junior') }}
+                                        {% elif user.grade == 'middle' %}
+                                            {{ translations.get('middle', 'Middle') }}
+                                        {% elif user.grade == 'senior' %}
+                                            {{ translations.get('senior', 'Senior') }}
                                         {% endif %}
-                                        {% if user.grade %}
-                                        <span class="grade-info grade-{{ user.grade }}">
-                                            {% if user.grade == 'junior' %}
-                                                {{ translations.get('junior', 'Junior') }}
-                                            {% elif user.grade == 'middle' %}
-                                                {{ translations.get('middle', 'Middle') }}
-                                            {% elif user.grade == 'senior' %}
-                                                {{ translations.get('senior', 'Senior') }}
-                                            {% endif %}
-                                        </span>
-                                        {% endif %}
-                                    </div>
+                                    </span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            <!-- Навигация -->
-            <div class="swiper-button-next"></div>
-            <div class="swiper-button-prev"></div>
+                </div>
+                {% endfor %}
+            {% endif %}
         </div>
-        
-        
-        <!-- Кнопка "Скрыть" убрана - закрытие по клику вне области -->
+        <!-- Навигация -->
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
     </div>
 </div>
 
