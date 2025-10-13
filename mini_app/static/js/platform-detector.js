@@ -113,6 +113,12 @@
             document.documentElement.style.setProperty('--safe-area-bottom', `${platform.safeArea.bottom}px`);
             document.documentElement.style.setProperty('--safe-area-left', `${platform.safeArea.left}px`);
             document.documentElement.style.setProperty('--safe-area-right', `${platform.safeArea.right}px`);
+            
+            // Также устанавливаем Telegram-специфичные переменные для совместимости
+            document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${platform.safeArea.top}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${platform.safeArea.bottom}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${platform.safeArea.left}px`);
+            document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${platform.safeArea.right}px`);
         }
         
         // Адаптируем высоту для мобильных устройств

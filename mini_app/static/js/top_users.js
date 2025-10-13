@@ -534,6 +534,23 @@ class TopUsersFilter {
                     console.log('✅ Контент обновлен через AJAX (fallback)');
                 }
                 
+                // ОБНОВЛЯЕМ МОДАЛЬНОЕ ОКНО СВАЙПЕРА (оно вне контейнера)
+                const newCarousel = doc.querySelector('.all-users-carousel');
+                const currentCarousel = document.querySelector('.all-users-carousel');
+                
+                if (newCarousel && currentCarousel) {
+                    // Уничтожаем старый Swiper если он существует
+                    if (window.userSwiper) {
+                        console.log('🔄 Уничтожаем старый Swiper перед обновлением');
+                        window.userSwiper.destroy(true, true);
+                        window.userSwiper = null;
+                    }
+                    
+                    // Обновляем контент карусели
+                    currentCarousel.innerHTML = newCarousel.innerHTML;
+                    console.log('✅ Модальное окно свайпера обновлено с учетом фильтров');
+                }
+                
                 // Восстанавливаем значения фильтров
                 setTimeout(() => {
                     if (currentFilters.gender) {
@@ -672,6 +689,23 @@ class TopUsersFilter {
                     // Fallback - обновляем весь контент
                     currentContent.innerHTML = newContent.innerHTML;
                     console.log('✅ Фильтры сброшены, контент обновлен (fallback)');
+                }
+                
+                // ОБНОВЛЯЕМ МОДАЛЬНОЕ ОКНО СВАЙПЕРА при сбросе фильтров
+                const newCarousel = doc.querySelector('.all-users-carousel');
+                const currentCarousel = document.querySelector('.all-users-carousel');
+                
+                if (newCarousel && currentCarousel) {
+                    // Уничтожаем старый Swiper если он существует
+                    if (window.userSwiper) {
+                        console.log('🔄 Уничтожаем старый Swiper перед обновлением (сброс)');
+                        window.userSwiper.destroy(true, true);
+                        window.userSwiper = null;
+                    }
+                    
+                    // Обновляем контент карусели
+                    currentCarousel.innerHTML = newCarousel.innerHTML;
+                    console.log('✅ Модальное окно свайпера обновлено после сброса фильтров');
                 }
                 
                 // Переинициализируем обработчики кнопок карусели после сброса фильтров
