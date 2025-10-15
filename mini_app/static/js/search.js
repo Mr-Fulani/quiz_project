@@ -86,20 +86,27 @@ function updateGallery(topics) {
         container.innerHTML = '<div class="no-results">Темы не найдены</div>';
     } else {
         console.log('🎨 Создаем HTML для', topics.length, 'тем');
-        container.innerHTML = topics.map((topic, index) => `
-            <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}">
-                <img src="${topic.image_url}" alt="${topic.name}">
-                <div class="card-overlay always-visible">
-                    <h3>${topic.name}</h3>
-                    <p class="difficulty">${topic.difficulty}</p>
-                    <p class="questions">${topic.questions_count} вопросов</p>
-                    <div class="card-actions">
-                        <button class="btn-start" onclick="startTopic(event, ${topic.id})">Начать</button>
-                        <button class="btn-back" onclick="goBack(event)">Назад</button>
+        container.innerHTML = topics.map((topic, index) => {
+            const mediaType = topic.media_type || 'default';
+            const mediaElement = mediaType === 'video' 
+                ? `<video src="${topic.image_url}" alt="${topic.name}" autoplay loop muted playsinline></video>`
+                : `<img src="${topic.image_url}" alt="${topic.name}">`;
+            
+            return `
+                <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}" data-media-type="${mediaType}">
+                    ${mediaElement}
+                    <div class="card-overlay always-visible">
+                        <h3>${topic.name}</h3>
+                        <p class="difficulty">${topic.difficulty}</p>
+                        <p class="questions">${topic.questions_count} вопросов</p>
+                        <div class="card-actions">
+                            <button class="btn-start" onclick="startTopic(event, ${topic.id})">Начать</button>
+                            <button class="btn-back" onclick="goBack(event)">Назад</button>
+                        </div>
                     </div>
-                </div>
-            </span>
-        `).join('');
+                </span>
+            `;
+        }).join('');
     }
     
     console.log('🔄 Переинициализируем обработчики событий');

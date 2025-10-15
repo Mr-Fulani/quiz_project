@@ -201,6 +201,16 @@ def topics_simple(request):
     
     data = []
     for topic in topics:
+        # Определяем URL медиа для карточки
+        from django.conf import settings
+        media_url = f'https://picsum.photos/800/800?{topic.id}'  # Fallback
+        if topic.media_type == 'image' and topic.card_image:
+            media_url = f"{settings.MEDIA_URL}{topic.card_image.name}"
+        elif topic.media_type == 'video' and topic.card_video:
+            media_url = f"{settings.MEDIA_URL}{topic.card_video.name}"
+        elif topic.icon and topic.icon != '/static/blog/images/icons/default-icon.png':
+            media_url = topic.icon
+        
         topic_data = {
             'id': topic.id,
             'name': topic.name,
@@ -208,7 +218,8 @@ def topics_simple(request):
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
             'questions_count': topic.tasks_count, # Используем аннотированное количество
-            'image_url': f'https://picsum.photos/800/800?{topic.id}',  # Увеличено для Retina-дисплеев
+            'image_url': media_url,
+            'media_type': topic.media_type,  # Добавляем тип медиа
         }
         if telegram_id:
             topic_data['completed_tasks_count'] = topic.completed_tasks_count
@@ -244,6 +255,16 @@ def topic_detail_simple(request, topic_id):
                 task__topic=topic
             ).values('task').distinct().count()
         
+        # Определяем URL медиа для карточки
+        from django.conf import settings
+        media_url = f'https://picsum.photos/800/800?{topic.id}'  # Fallback
+        if topic.media_type == 'image' and topic.card_image:
+            media_url = f"{settings.MEDIA_URL}{topic.card_image.name}"
+        elif topic.media_type == 'video' and topic.card_video:
+            media_url = f"{settings.MEDIA_URL}{topic.card_video.name}"
+        elif topic.icon and topic.icon != '/static/blog/images/icons/default-icon.png':
+            media_url = topic.icon
+        
         data = {
             'id': topic.id,
             'name': topic.name,
@@ -251,7 +272,8 @@ def topic_detail_simple(request, topic_id):
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
             'questions_count': tasks_count,
-            'image_url': f'https://picsum.photos/800/800?{topic.id}',  # Увеличено для Retina-дисплеев
+            'image_url': media_url,
+            'media_type': topic.media_type,  # Добавляем тип медиа
             'completed_tasks_count': completed_tasks_count
         }
         return Response(data)
