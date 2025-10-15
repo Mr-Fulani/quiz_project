@@ -173,6 +173,10 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
         """
         from django.conf import settings
         
+        # Для типа "По умолчанию" всегда используем picsum.photos
+        if obj.media_type == 'default':
+            return f"https://picsum.photos/800/800?{obj.id}"
+        
         # Приоритет 1: Загруженное изображение
         if obj.media_type == 'image' and obj.card_image:
             return f"{settings.MEDIA_URL}{obj.card_image.name}"
@@ -181,9 +185,5 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
         if obj.media_type == 'video' and obj.card_video:
             return f"{settings.MEDIA_URL}{obj.card_video.name}"
         
-        # Приоритет 3: Иконка темы
-        if obj.icon and obj.icon != '/static/blog/images/icons/default-icon.png':
-            return obj.icon
-        
-        # Приоритет 4: Fallback на красивые изображения (увеличено для Retina-дисплеев)
+        # Fallback на красивые изображения (увеличено для Retina-дисплеев)
         return f"https://picsum.photos/800/800?{obj.id}" 
