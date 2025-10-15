@@ -123,6 +123,7 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
     difficulty = serializers.SerializerMethodField()
     questions_count = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    media_type = serializers.CharField()
 
     class Meta:
         model = Topic
@@ -134,7 +135,8 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
             'difficulty',
             'questions_count',
             'subtopics_count',
-            'image_url'
+            'image_url',
+            'media_type'
         ]
 
     def get_subtopics_count(self, obj):
@@ -162,9 +164,26 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
         ).distinct().count()
     
     def get_image_url(self, obj):
-        # Используем иконку темы или fallback на случайное изображение
+        """
+        Возвращает URL медиа для карточки темы с учетом приоритета:
+        1. Загруженное изображение (если media_type='image')
+        2. Загруженное видео (если media_type='video')
+        3. Иконка темы (если не default)
+        4. Fallback на picsum.photos
+        """
+        from django.conf import settings
+        
+        # Приоритет 1: Загруженное изображение
+        if obj.media_type == 'image' and obj.card_image:
+            return f"{settings.MEDIA_URL}{obj.card_image.name}"
+        
+        # Приоритет 2: Загруженное видео
+        if obj.media_type == 'video' and obj.card_video:
+            return f"{settings.MEDIA_URL}{obj.card_video.name}"
+        
+        # Приоритет 3: Иконка темы
         if obj.icon and obj.icon != '/static/blog/images/icons/default-icon.png':
             return obj.icon
-        else:
-            # Fallback на красивые изображения (увеличено для Retina-дисплеев)
-            return f"https://picsum.photos/800/800?{obj.id}" 
+        
+        # Приоритет 4: Fallback на красивые изображения (увеличено для Retina-дисплеев)
+        return f"https://picsum.photos/800/800?{obj.id}" 

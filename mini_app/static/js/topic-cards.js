@@ -204,14 +204,28 @@ function initTopicCards() {
         
         // Добавляем все карточки в Swiper
         topicCards.forEach((topicCard, index) => {
-            const img = topicCard.querySelector('img');
+            const mediaType = topicCard.getAttribute('data-media-type') || 'default';
             const title = topicCard.querySelector('.card-overlay h3').textContent;
             const topicId = topicCard.getAttribute('data-topic-id');
+            
+            // Получаем медиа-элемент (img или video)
+            let mediaElement = '';
+            if (mediaType === 'video') {
+                const video = topicCard.querySelector('video');
+                if (video) {
+                    mediaElement = `<video src="${video.src}" alt="${title}" autoplay loop muted playsinline></video>`;
+                }
+            } else {
+                const img = topicCard.querySelector('img');
+                if (img) {
+                    mediaElement = `<img src="${img.src}" alt="${img.alt}">`;
+                }
+            }
             
             swiperHTML += `
                 <div class="swiper-slide">
                     <div class="topic-card-enlarged">
-                        <img src="${img.src}" alt="${img.alt}">
+                        ${mediaElement}
                         <div class="card-overlay always-visible">
                             <h3>${title}</h3>
                             <div class="card-actions">

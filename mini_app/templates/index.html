@@ -16,8 +16,12 @@
     <div class="gallery__container">
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
-        <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}">
-            <img src="{{ topic.image_url }}" alt="{{ topic.name }}">
+        <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}" data-media-type="{{ topic.get('media_type', 'default') }}">
+            {% if topic.get('media_type') == 'video' %}
+                <video src="{{ topic.image_url }}" alt="{{ topic.name }}" autoplay loop muted playsinline></video>
+            {% else %}
+                <img src="{{ topic.image_url }}" alt="{{ topic.name }}">
+            {% endif %}
             <div class="card-overlay always-visible">
                 <h3>{{ topic.name }}</h3>
             </div>
@@ -71,6 +75,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } catch (e) {
         console.warn('Init progress render failed:', e);
+    }
+    
+    // Фиксируем размеры видео в карусели после загрузки метаданных
+    try {
+        document.querySelectorAll('.gallery__container video').forEach(video => {
+            video.addEventListener('loadedmetadata', function() {
+                // Принудительно устанавливаем размеры как у изображений
+                this.style.height = '120%';
+                this.style.width = '100%';
+                this.style.objectFit = 'cover';
+            });
+        });
+    } catch (e) {
+        console.warn('Video size fix failed:', e);
     }
 });
 

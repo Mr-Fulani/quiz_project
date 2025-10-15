@@ -74,15 +74,15 @@ STATIC_VERSIONS = {
     'donation.js': '2.9',  # Установлена английская локаль для Stripe Elements
     'localization.js': '2.3',  # Исправлены переводы для профиля пользователя
     'share-app.js': '1.9',  # Добавлены кнопки WhatsApp и Instagram с функционалом копирования ссылки
-    'search.js': '1.7',
+    'search.js': '1.8',  # Добавлена поддержка видео в карусели
     'tasks.js': '3.12',  # Центрирование toast уведомлений с учетом Safe Areas
-    'topic-cards.js': '2.0',  # Добавлен Swiper для свайпа между увеличенными карточками тем
+    'topic-cards.js': '2.3',  # Убраны inline стили для видео - используем только CSS
     'topic-detail.js': '1.6',
     'top_users.js': '30.4',  # ИСПРАВЛЕНО: Фильтры теперь применяются ко всем пользователям (включая модальное окно)
     'top_users_swiper.js': '1.3',  # Отключен для избежания конфликтов (инициализация теперь в top_users.html)
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
-    'styles.css': '2.2',  # ИСПРАВЛЕНО: увеличено разрешение изображений с 400x400 до 800x800 для Retina-дисплеев
+    'styles.css': '2.9',  # Убраны !important, добавлены max/min-width/height: none/0
     'donation.css': '1.3',  # Обновлено: добавлена поддержка safe areas для Stripe модального окна
     'profile.css': '8.2',  # Обновлено: добавлена поддержка safe areas для модального окна профиля
     'share-app.css': '2.1',  # Обновлено: добавлены стили для кнопок WhatsApp и Instagram
@@ -90,7 +90,7 @@ STATIC_VERSIONS = {
     'profile.js': '5.3',  # Добавлен метод get_programming_languages в сериализатор
     'top_users.css': '31.8',  # Обновлены стили для свайпера со всеми карточками
     'top_users_swiper.css': '30.3',  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Убран inset:unset который переопределял top/left
-    'topic_cards_swiper.css': '1.0',  # Стили для Swiper карточек тем (аналогично top_users_swiper.css)
+    'topic_cards_swiper.css': '1.1',  # Добавлены стили для video в увеличенной карточке  # Стили для Swiper карточек тем (аналогично top_users_swiper.css)
     'statistics.css': '2.7',  # Обновлено: принудительный сброс кэша для полосы прогресса
     # Принудительное обновление кэша для Django статических файлов
     'global.css': '2.0',  # Принудительное обновление кэша для исправления стилей
