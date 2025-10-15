@@ -206,6 +206,9 @@ body {
     transition: 0.5s;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(0, 255, 0, 0.2);
+    /* Улучшение качества изображений */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 /* Отдельные стили для видео */
@@ -329,7 +332,6 @@ body {
     border-radius: 0 0 12px 12px !important;
     top: auto !important;
     bottom: 0 !important;
-    backdrop-filter: blur(3px) !important;
 }
 
 .selected-card-container .card-overlay h3 {
@@ -377,7 +379,8 @@ body {
     width: 100% !important;
     height: 100% !important;
     border-radius: 12px !important;
-    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 /* Затемнение остальных карточек при выборе */
@@ -478,7 +481,6 @@ body {
     text-align: center;
     height: auto;
     min-height: 28px;
-    backdrop-filter: blur(5px);
     border: 1px solid rgba(0, 255, 0, 0.2);
     border-bottom: none;
 }
@@ -1634,6 +1636,14 @@ body.fullscreen-active .gallery__container {
         image-rendering: -webkit-optimize-contrast;
         image-rendering: crisp-edges;
     }
+}
+
+/* Общие улучшения качества для всех изображений в карточках */
+.topic-card img,
+.topic-card video,
+.topic-card-enlarged img,
+.topic-card-enlarged video {
+    image-rendering: -webkit-optimize-contrast;
 }
 
 /* Стили для списка тем под каруселью */

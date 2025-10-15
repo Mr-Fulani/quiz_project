@@ -82,7 +82,7 @@ STATIC_VERSIONS = {
     'top_users_swiper.js': '1.3',  # Отключен для избежания конфликтов (инициализация теперь в top_users.html)
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
-    'styles.css': '2.9',  # Убраны !important, добавлены max/min-width/height: none/0
+    'styles.css': '3.1',  # Исправлено позиционирование: убраны transform и perspective, оставлен только image-rendering
     'donation.css': '1.3',  # Обновлено: добавлена поддержка safe areas для Stripe модального окна
     'profile.css': '8.2',  # Обновлено: добавлена поддержка safe areas для модального окна профиля
     'share-app.css': '2.1',  # Обновлено: добавлены стили для кнопок WhatsApp и Instagram
