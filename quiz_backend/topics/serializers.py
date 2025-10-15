@@ -166,5 +166,5 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
         if obj.icon and obj.icon != '/static/blog/images/icons/default-icon.png':
             return obj.icon
         else:
-            # Fallback на красивые изображения
-            return f"https://picsum.photos/400/400?{obj.id}" 
+            # Fallback на красивые изображения (увеличено для Retina-дисплеев)
+            return f"https://picsum.photos/800/800?{obj.id}" 
