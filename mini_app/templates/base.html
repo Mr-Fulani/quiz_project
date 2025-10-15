@@ -81,8 +81,9 @@
     <link rel="stylesheet" href="{{ get_css_url('statistics.css') }}">
     <link rel="stylesheet" href="{{ get_css_url('top_users.css') }}">
     <link rel="stylesheet" href="{{ get_css_url('top_users_swiper.css') }}">
+    <link rel="stylesheet" href="{{ get_css_url('topic_cards_swiper.css') }}">
     
-    <!-- Swiper CSS из CDN для карусели топ пользователей (всегда доступен) -->
+    <!-- Swiper CSS из CDN для карусели топ пользователей и карточек тем (всегда доступен) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     
     <!-- Дополнительные стили для страниц -->
@@ -524,38 +525,62 @@
             if (url === '/' || url === '/index' || url.startsWith('/?') || url.startsWith('/index?')) {
                 console.log('🎯 Home page detected, loading scripts...');
                 
-                // Загружаем search.js
-                const searchScript = document.createElement('script');
-                searchScript.setAttribute('data-dynamic', 'true');
-                searchScript.src = '{{ get_js_url("search.js") }}';
-                searchScript.onload = function() {
-                    console.log('✅ Search script loaded via base template');
-                };
-                searchScript.onerror = function() {
-                    console.error('❌ Failed to load search.js');
-                };
-                document.head.appendChild(searchScript);
+                // Загружаем Swiper JS из CDN если еще не загружен (для свайпа карточек)
+                const loadSwiperJS = new Promise((resolve) => {
+                    if (typeof Swiper !== 'undefined') {
+                        console.log('✅ Swiper JS already loaded');
+                        resolve();
+                    } else {
+                        const swiperJS = document.createElement('script');
+                        swiperJS.src = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js';
+                        swiperJS.setAttribute('data-dynamic', 'true');
+                        swiperJS.onload = () => {
+                            console.log('✅ Swiper JS loaded from CDN for topic cards');
+                            resolve();
+                        };
+                        swiperJS.onerror = () => {
+                            console.error('❌ Failed to load Swiper JS from CDN');
+                            resolve(); // Продолжаем даже если не загрузился
+                        };
+                        document.head.appendChild(swiperJS);
+                    }
+                });
                 
-                // Загружаем topic-cards.js
-                const topicCardsScript = document.createElement('script');
-                topicCardsScript.setAttribute('data-dynamic', 'true');
-                topicCardsScript.src = '{{ get_js_url("topic-cards.js") }}';
-                topicCardsScript.onload = function() {
-                    console.log('✅ Topic cards script loaded via base template');
-                    // Вызываем инициализацию карточек после загрузки скрипта
-                    setTimeout(() => {
-                        console.log('🚀 Calling initTopicCards after script load');
-                        if (typeof window.initTopicCards === 'function') {
-                            window.initTopicCards();
-                        } else {
-                            console.error('❌ initTopicCards function not found!');
-                        }
-                    }, 100);
-                };
-                topicCardsScript.onerror = function() {
-                    console.error('❌ Failed to load topic-cards.js');
-                };
-                document.head.appendChild(topicCardsScript);
+                // После загрузки Swiper загружаем остальные скрипты
+                loadSwiperJS.then(() => {
+                    // Загружаем search.js
+                    const searchScript = document.createElement('script');
+                    searchScript.setAttribute('data-dynamic', 'true');
+                    searchScript.src = '{{ get_js_url("search.js") }}';
+                    searchScript.onload = function() {
+                        console.log('✅ Search script loaded via base template');
+                    };
+                    searchScript.onerror = function() {
+                        console.error('❌ Failed to load search.js');
+                    };
+                    document.head.appendChild(searchScript);
+                    
+                    // Загружаем topic-cards.js
+                    const topicCardsScript = document.createElement('script');
+                    topicCardsScript.setAttribute('data-dynamic', 'true');
+                    topicCardsScript.src = '{{ get_js_url("topic-cards.js") }}';
+                    topicCardsScript.onload = function() {
+                        console.log('✅ Topic cards script loaded via base template');
+                        // Вызываем инициализацию карточек после загрузки скрипта
+                        setTimeout(() => {
+                            console.log('🚀 Calling initTopicCards after script load');
+                            if (typeof window.initTopicCards === 'function') {
+                                window.initTopicCards();
+                            } else {
+                                console.error('❌ initTopicCards function not found!');
+                            }
+                        }, 100);
+                    };
+                    topicCardsScript.onerror = function() {
+                        console.error('❌ Failed to load topic-cards.js');
+                    };
+                    document.head.appendChild(topicCardsScript);
+                });
             } else if (url.startsWith('/topic/')) {
                 // Загружаем скрипт для страницы подтем
                 const script = document.createElement('script');

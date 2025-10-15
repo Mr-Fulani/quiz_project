@@ -46,6 +46,9 @@ function initTopicCards() {
     let selectedCard = null;
     let selectedCardOverlay = null;
     
+    // Переменная для хранения экземпляра Swiper
+    let topicSwiper = null;
+    
     // Создаем overlay при инициализации
     createSelectedCardOverlay();
     
@@ -69,9 +72,9 @@ function initTopicCards() {
                 searchInput.blur();
             }
             
-                    if (e.target === selectedCardOverlay) {
-            goBackFromCard();
-        }
+            if (e.target === selectedCardOverlay) {
+                goBackFromCard();
+            }
         });
         
         document.body.appendChild(selectedCardOverlay);
@@ -179,6 +182,9 @@ function initTopicCards() {
         // Выбираем новую карточку
         selectedCard = card;
         
+        // Получаем индекс выбранной карточки
+        const cardIndex = parseInt(card.getAttribute('data-i') || '0', 10);
+        
         // Останавливаем галерею
         pauseGallery();
         
@@ -186,38 +192,102 @@ function initTopicCards() {
         card.classList.add('selected');
         galleryContainer.classList.add('has-selection');
         
-        // Создаем overlay и показываем увеличенную версию
+        // Создаем overlay и показываем Swiper с возможностью свайпа
         const overlay = createSelectedCardOverlay();
         const container = overlay.querySelector('.selected-card-container');
         
-        // Копируем содержимое карточки
-        const img = card.querySelector('img');
-        const title = card.querySelector('.card-overlay h3').textContent;
-        const topicId = card.getAttribute('data-topic-id');
+        // Создаем структуру Swiper со всеми карточками
+        let swiperHTML = `
+            <div class="swiper" id="topic-cards-swiper">
+                <div class="swiper-wrapper">
+        `;
         
-        container.innerHTML = `
-            <img src="${img.src}" alt="${img.alt}" style="width: 100%; height: 100%; object-fit: cover;">
-            <div class="card-overlay always-visible">
-                <h3>${title}</h3>
-                <div class="card-actions">
-                    <button class="btn-start" onclick="handleStartTopic(event, ${topicId})">Начать</button>
-                    <button class="btn-back" onclick="goBackFromCard(event)">Назад</button>
+        // Добавляем все карточки в Swiper
+        topicCards.forEach((topicCard, index) => {
+            const img = topicCard.querySelector('img');
+            const title = topicCard.querySelector('.card-overlay h3').textContent;
+            const topicId = topicCard.getAttribute('data-topic-id');
+            
+            swiperHTML += `
+                <div class="swiper-slide">
+                    <div class="topic-card-enlarged">
+                        <img src="${img.src}" alt="${img.alt}">
+                        <div class="card-overlay always-visible">
+                            <h3>${title}</h3>
+                            <div class="card-actions">
+                                <button class="btn-start" onclick="handleStartTopic(event, ${topicId})">Начать</button>
+                                <button class="btn-back" onclick="goBackFromCard(event)">Назад</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            `;
+        });
+        
+        swiperHTML += `
+                </div>
+                <!-- Навигация -->
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
             </div>
         `;
+        
+        container.innerHTML = swiperHTML;
         
         // Показываем overlay
         setTimeout(() => {
             overlay.classList.add('active');
         }, 50);
         
-        console.log('Card selected successfully');
+        // Инициализируем Swiper после показа overlay
+        setTimeout(() => {
+            if (typeof Swiper !== 'undefined') {
+                console.log('Инициализируем Swiper на слайде:', cardIndex);
+                
+                // Уничтожаем предыдущий экземпляр Swiper если есть
+                if (topicSwiper) {
+                    topicSwiper.destroy(true, true);
+                }
+                
+                topicSwiper = new Swiper('#topic-cards-swiper', {
+                    slidesPerView: 1,
+                    spaceBetween: 0,
+                    centeredSlides: true,
+                    loop: false,
+                    effect: 'slide',
+                    speed: 300,
+                    initialSlide: cardIndex, // Начинаем с выбранной карточки
+                    navigation: {
+                        nextEl: '.swiper-button-next',
+                        prevEl: '.swiper-button-prev',
+                    },
+                    on: {
+                        init: function() {
+                            console.log('Swiper инициализирован на слайде:', this.activeIndex);
+                        }
+                    }
+                });
+                
+                console.log('Swiper карточек тем успешно инициализирован');
+            } else {
+                console.error('Swiper библиотека не найдена! Убедитесь, что Swiper.js подключен.');
+            }
+        }, 100);
+        
+        console.log('Card selected successfully with Swiper support');
     }
 
     // Убрали прогресс из overlay карточки по требованию
     
     function goBackFromCard() {
         console.log('Going back from selected card');
+        
+        // Уничтожаем Swiper если он существует
+        if (topicSwiper) {
+            console.log('Уничтожаем Swiper перед закрытием');
+            topicSwiper.destroy(true, true);
+            topicSwiper = null;
+        }
         
         // Скрываем overlay
         if (selectedCardOverlay) {

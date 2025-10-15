@@ -1,0 +1,241 @@
+/* ========================================
+   СТИЛИ ДЛЯ SWIPER КАРТОЧЕК ТЕМ
+   Аналогично top_users_swiper.css
+   ======================================== */
+
+/* ========================================
+   BACKDROP ДЛЯ МОДАЛЬНОГО ОКНА
+   ======================================== */
+.selected-card-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+    z-index: 99998 !important;
+    display: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.selected-card-overlay.active {
+    display: flex !important;
+    opacity: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ========================================
+   КОНТЕЙНЕР SWIPER КАРТОЧЕК
+   ======================================== */
+.selected-card-container {
+    position: fixed !important;
+    /* Простое центрирование */
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 330px !important;
+    height: 445px !important;
+    max-width: 330px !important;
+    max-height: 445px !important;
+    min-width: 330px !important;
+    min-height: 445px !important;
+    background: transparent !important;
+    z-index: 99999 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* МОБИЛЬНЫЕ УСТРОЙСТВА */
+@media (max-width: 480px) {
+    .selected-card-container {
+        width: 330px !important;
+        height: 515px !important;
+        max-width: 330px !important;
+        max-height: 515px !important;
+        min-width: 330px !important;
+        min-height: 515px !important;
+    }
+}
+
+/* Контейнер Swiper */
+.selected-card-container .swiper {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.selected-card-container .swiper-wrapper {
+    height: 100% !important;
+    flex: 1 !important;
+}
+
+.selected-card-container .swiper-slide {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+/* ========================================
+   КАРТОЧКА ТЕМЫ В SWIPER
+   ======================================== */
+.selected-card-container .swiper-slide .topic-card-enlarged {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-end !important;
+    background: #000 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    margin: 0 !important;
+}
+
+/* Изображение карточки */
+.selected-card-container .swiper-slide .topic-card-enlarged img {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 12px !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Overlay с кнопками */
+.selected-card-container .card-overlay {
+    position: relative !important;
+    z-index: 2 !important;
+    padding: clamp(1rem, 4vw, 2rem) !important;
+    padding-top: clamp(0.5rem, 2vw, 1rem) !important;
+    padding-bottom: clamp(0.5rem, 2vw, 1rem) !important;
+    color: white !important;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.9) 0%,
+        rgba(0, 0, 0, 0.7) 50%,
+        transparent 100%
+    ) !important;
+}
+
+.selected-card-container .card-overlay h3 {
+    font-size: clamp(1.5rem, 5vw, 2rem) !important;
+    font-weight: 700 !important;
+    margin-bottom: 1rem !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8) !important;
+    line-height: 1.2 !important;
+}
+
+/* Кнопки действий */
+.selected-card-container .card-actions {
+    display: flex !important;
+    gap: 0.75rem !important;
+    margin-top: 1rem !important;
+}
+
+.selected-card-container .card-actions button {
+    flex: 1 !important;
+    padding: 0.75rem 1.5rem !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+.selected-card-container .btn-start {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+}
+
+.selected-card-container .btn-start:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+.selected-card-container .btn-start:active {
+    transform: scale(0.98) !important;
+}
+
+.selected-card-container .btn-back {
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.selected-card-container .btn-back:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2) !important;
+}
+
+.selected-card-container .btn-back:active {
+    transform: scale(0.98) !important;
+}
+
+/* ========================================
+   НАВИГАЦИЯ SWIPER
+   ======================================== */
+.selected-card-container .swiper-button-next,
+.selected-card-container .swiper-button-prev {
+    width: clamp(40px, 10vw, 50px) !important;
+    height: clamp(40px, 10vw, 50px) !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
+    transition: all 0.3s ease !important;
+}
+
+.selected-card-container .swiper-button-next:after,
+.selected-card-container .swiper-button-prev:after {
+    font-size: clamp(16px, 4vw, 20px) !important;
+    font-weight: bold !important;
+}
+
+.selected-card-container .swiper-button-next:hover,
+.selected-card-container .swiper-button-prev:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.1) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ========================================
+   iOS SAFE AREA
+   ======================================== */
+@supports (padding: max(0px)) {
+    .selected-card-container .card-overlay {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    }
+}
+

@@ -2,217 +2,105 @@
   "tasks": [
     {
       "topic": "Python",
-      "subtopic": "Metaclasses",
-      "description": "Understanding metaclass behavior and class creation",
+      "subtopic": "Recursive Functions",
+      "description": "Analyzing a recursive function and identifying logical errors in its implementation.",
       "difficulty": "hard",
       "translations": [
         {
           "language": "en",
-          "question": "What will the following code output?\n\n```python\nclass Meta(type):\n    def __new__(cls, name, bases, attrs):\n        attrs['class_id'] = f\"{name.lower()}_123\"\n        return super().__new__(cls, name, bases, attrs)\n\nclass MyClass(metaclass=Meta):\n    pass\n\nobj = MyClass()\nprint(obj.class_id)\nprint(MyClass.class_id)\n```\n\nWhat will be printed?",
-          "answers": ["myclass_123\\nmyclass_123", "MyClass_123\\nMyClass_123", "Error"],
-          "correct_answer": "myclass_123\nmyclass_123",
-          "explanation": "The metaclass adds a 'class_id' attribute during class creation with the lowercase class name plus '_123'."
+          "question": "The function below is intended to calculate the factorial of a number. What is the issue with its current implementation?\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "It decreases `n` by 2 instead of 1, skipping values.",
+            "It has no base case for negative numbers, leading to infinite recursion.",
+            "Both of the above"
+          ],
+          "correct_answer": "Both of the above",
+          "explanation": "The function incorrectly decrements by 2, skipping values, and also lacks handling for negative inputs, causing infinite recursion."
         },
         {
           "language": "ru",
-          "question": "Что выведет следующий код?\n\n```python\nclass Meta(type):\n    def __new__(cls, name, bases, attrs):\n        attrs['class_id'] = f\"{name.lower()}_123\"\n        return super().__new__(cls, name, bases, attrs)\n\nclass MyClass(metaclass=Meta):\n    pass\n\nobj = MyClass()\nprint(obj.class_id)\nprint(MyClass.class_id)\n```\n\nЧто будет напечатано?",
-          "answers": ["myclass_123\\nmyclass_123", "MyClass_123\\nMyClass_123", "Ошибка"],
-          "correct_answer": "myclass_123\nmyclass_123",
-          "explanation": "Метакласс добавляет атрибут 'class_id' при создании класса с именем класса в нижнем регистре плюс '_123'."
+          "question": "Функция ниже должна вычислять факториал числа. В чём ошибка её реализации?\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "Аргумент уменьшается на 2 вместо 1, пропуская значения.",
+            "Нет проверки на отрицательные числа, что ведёт к бесконечной рекурсии.",
+            "Обе ошибки"
+          ],
+          "correct_answer": "Обе ошибки",
+          "explanation": "Функция неверно уменьшает аргумент на 2 и не обрабатывает отрицательные числа, что вызывает бесконечную рекурсию."
         },
         {
           "language": "tr",
-          "question": "Aşağıdaki kod ne yazdırır?\n\n```python\nclass Meta(type):\n    def __new__(cls, name, bases, attrs):\n        attrs['class_id'] = f\"{name.lower()}_123\"\n        return super().__new__(cls, name, bases, attrs)\n\nclass MyClass(metaclass=Meta):\n    pass\n\nobj = MyClass()\nprint(obj.class_id)\nprint(MyClass.class_id)\n```\n\nÇıktı nedir?",
-          "answers": ["myclass_123\\nmyclass_123", "MyClass_123\\nMyClass_123", "Hata"],
-          "correct_answer": "myclass_123\nmyclass_123",
-          "explanation": "Metasınıf, sınıf oluşturma sırasında küçük harfli sınıf adı artı '_123' ile 'class_id' özelliği ekler."
+          "question": "Aşağıdaki fonksiyon bir sayının faktöriyelini hesaplamak için yazılmıştır. Hangi hata(lar) vardır?\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "Fonksiyon `n`'i 1 yerine 2 azaltıyor.",
+            "Negatif sayılar için durma koşulu yok, sonsuz döngüye girer.",
+            "Her ikisi de"
+          ],
+          "correct_answer": "Her ikisi de",
+          "explanation": "Fonksiyon `n`'i yanlışlıkla 2 azaltıyor ve negatif sayılar için durma koşulu yok, bu yüzden sonsuz döngü oluşur."
         },
         {
           "language": "ar",
-          "question": "ما هو ناتج تنفيذ الكود التالي؟\n\n```python\nclass Meta(type):\n    def __new__(cls, name, bases, attrs):\n        attrs['class_id'] = f\"{name.lower()}_123\"\n        return super().__new__(cls, name, bases, attrs)\n\nclass MyClass(metaclass=Meta):\n    pass\n\nobj = MyClass()\nprint(obj.class_id)\nprint(MyClass.class_id)\n```\n\nما الذي سيتم طباعته؟",
-          "answers": ["myclass_123\\nmyclass_123", "MyClass_123\\nMyClass_123", "خطأ"],
-          "correct_answer": "myclass_123\nmyclass_123",
-          "explanation": "الميتاكلاس يضيف خاصية 'class_id' أثناء إنشاء الكلاس باستخدام اسم الكلاس بأحرف صغيرة مع '_123'."
+          "question": "الدالة التالية مكتوبة لحساب مضروب العدد (factorial). ما الخطأ في تنفيذها؟\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 2)\n```",
+          "answers": [
+            "تقوم بإنقاص `n` بمقدار 2 بدلاً من 1.",
+            "لا تحتوي على شرط توقف للأعداد السالبة مما يؤدي إلى استدعاء لانهائي.",
+            "كلاهما صحيح"
+          ],
+          "correct_answer": "كلاهما صحيح",
+          "explanation": "الدالة تنقص العدد بمقدار 2 بشكل خاطئ ولا تعالج القيم السالبة، مما يؤدي إلى استدعاء لانهائي."
         }
       ]
     },
     {
       "topic": "Python",
-      "subtopic": "Context Managers",
-      "description": "Advanced context manager behavior with exceptions",
+      "subtopic": "Higher-Order Functions",
+      "description": "Determining the correct use of higher-order functions and function composition.",
       "difficulty": "hard",
       "translations": [
         {
           "language": "en",
-          "question": "What will this code output?\n\n```python\nclass CustomContext:\n    def __enter__(self):\n        print(\"Entering\")\n        return self\n    \n    def __exit__(self, exc_type, exc_val, exc_tb):\n        print(f\"Exiting: {exc_type is not None}\")\n        return True\n\nwith CustomContext():\n    print(\"Inside\")\n    raise ValueError(\"Test error\")\n    \nprint(\"After with\")\n```\n\nWhat will be printed?",
-          "answers": ["Entering\\nInside\\nExiting: True\\nAfter with", "Entering\\nInside\\nExiting: False", "Entering\\nInside\\nValueError"],
-          "correct_answer": "Entering\nInside\nExiting: True\nAfter with",
-          "explanation": "The context manager's __exit__ returns True, suppressing the exception, so execution continues."
+          "question": "We want to write a function `apply_twice(f, x)` that applies a function `f` to a value `x` two times. Which of the following implementations is correct?\n\nOptions:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "Option 1",
+            "Option 2",
+            "Option 3"
+          ],
+          "correct_answer": "Option 2",
+          "explanation": "Option 2 correctly applies the function to the result of itself: f(f(x))."
         },
         {
           "language": "ru",
-          "question": "Что выведет этот код?\n\n```python\nclass CustomContext:\n    def __enter__(self):\n        print(\"Entering\")\n        return self\n    \n    def __exit__(self, exc_type, exc_val, exc_tb):\n        print(f\"Exiting: {exc_type is not None}\")\n        return True\n\nwith CustomContext():\n    print(\"Inside\")\n    raise ValueError(\"Test error\")\n    \nprint(\"After with\")\n```\n\nЧто будет напечатано?",
-          "answers": ["Entering\\nInside\\nExiting: True\\nAfter with", "Entering\\nInside\\nExiting: False", "Entering\\nInside\\nValueError"],
-          "correct_answer": "Entering\nInside\nExiting: True\nAfter with",
-          "explanation": "Метод __exit__ контекст-менеджера возвращает True, подавляя исключение, поэтому выполнение продолжается."
+          "question": "Нужно написать функцию `apply_twice(f, x)`, которая применяет функцию `f` к значению `x` дважды. Какой из вариантов правильный?\n\nВарианты:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "Вариант 1",
+            "Вариант 2",
+            "Вариант 3"
+          ],
+          "correct_answer": "Вариант 2",
+          "explanation": "Вариант 2 корректно вызывает функцию дважды, применяя её к результату самой себя: f(f(x))."
         },
         {
           "language": "tr",
-          "question": "Bu kod ne yazdırır?\n\n```python\nclass CustomContext:\n    def __enter__(self):\n        print(\"Entering\")\n        return self\n    \n    def __exit__(self, exc_type, exc_val, exc_tb):\n        print(f\"Exiting: {exc_type is not None}\")\n        return True\n\nwith CustomContext():\n    print(\"Inside\")\n    raise ValueError(\"Test error\")\n    \nprint(\"After with\")\n```\n\nÇıktı nedir?",
-          "answers": ["Entering\\nInside\\nExiting: True\\nAfter with", "Entering\\nInside\\nExiting: False", "Entering\\nInside\\nValueError"],
-          "correct_answer": "Entering\nInside\nExiting: True\nAfter with",
-          "explanation": "Context manager'ın __exit__ metodu True döndürerek exception'ı bastırır, bu yüzden çalışma devam eder."
+          "question": "`apply_twice(f, x)` adında bir fonksiyon yazmak istiyoruz. Bu fonksiyon, verilen `f` fonksiyonunu `x` değerine iki kez uygulamalı. Aşağıdaki implementasyonlardan hangisi doğrudur?\n\nSeçenekler:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "Seçenek 1",
+            "Seçenek 2",
+            "Seçenek 3"
+          ],
+          "correct_answer": "Seçenek 2",
+          "explanation": "Seçenek 2 doğrudur çünkü fonksiyon kendisinin sonucuna uygulanır: f(f(x))."
         },
         {
           "language": "ar",
-          "question": "ما هو ناتج هذا الكود؟\n\n```python\nclass CustomContext:\n    def __enter__(self):\n        print(\"Entering\")\n        return self\n    \n    def __exit__(self, exc_type, exc_val, exc_tb):\n        print(f\"Exiting: {exc_type is not None}\")\n        return True\n\nwith CustomContext():\n    print(\"Inside\")\n    raise ValueError(\"Test error\")\n    \nprint(\"After with\")\n```\n\nما الذي سيتم طباعته؟",
-          "answers": ["Entering\\nInside\\nExiting: True\\nAfter with", "Entering\\nInside\\nExiting: False", "Entering\\nInside\\nValueError"],
-          "correct_answer": "Entering\nInside\nExiting: True\nAfter with",
-          "explanation": "دالة __exit__ في مدير السياق ترجع True، مما يقمع الاستثناء ويستمر التنفيذ."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Descriptors",
-      "description": "Understanding descriptor protocol and attribute access",
-      "difficulty": "hard",
-      "translations": [
-        {
-          "language": "en",
-          "question": "What will this code print?\n\n```python\nclass Descriptor:\n    def __get__(self, obj, owner):\n        return f\"Getting from {owner.__name__}\"\n    \n    def __set__(self, obj, value):\n        print(f\"Setting {value}\")\n\nclass MyClass:\n    attr = Descriptor()\n\nobj = MyClass()\nobj.attr = \"test\"\nprint(obj.attr)\n```\n\nWhat will be printed?",
-          "answers": ["Setting test\\nGetting from MyClass", "Setting test\\ntest", "Getting from MyClass"],
-          "correct_answer": "Setting test\nGetting from MyClass",
-          "explanation": "The descriptor's __set__ is called first, then __get__ is called when accessing the attribute."
-        },
-        {
-          "language": "ru",
-          "question": "Что напечатает этот код?\n\n```python\nclass Descriptor:\n    def __get__(self, obj, owner):\n        return f\"Getting from {owner.__name__}\"\n    \n    def __set__(self, obj, value):\n        print(f\"Setting {value}\")\n\nclass MyClass:\n    attr = Descriptor()\n\nobj = MyClass()\nobj.attr = \"test\"\nprint(obj.attr)\n```\n\nЧто будет напечатано?",
-          "answers": ["Setting test\\nGetting from MyClass", "Setting test\\ntest", "Getting from MyClass"],
-          "correct_answer": "Setting test\nGetting from MyClass",
-          "explanation": "Сначала вызывается __set__ дескриптора, затем __get__ при обращении к атрибуту."
-        },
-        {
-          "language": "tr",
-          "question": "Bu kod ne yazdırır?\n\n```python\nclass Descriptor:\n    def __get__(self, obj, owner):\n        return f\"Getting from {owner.__name__}\"\n    \n    def __set__(self, obj, value):\n        print(f\"Setting {value}\")\n\nclass MyClass:\n    attr = Descriptor()\n\nobj = MyClass()\nobj.attr = \"test\"\nprint(obj.attr)\n```\n\nÇıktı nedir?",
-          "answers": ["Setting test\\nGetting from MyClass", "Setting test\\ntest", "Getting from MyClass"],
-          "correct_answer": "Setting test\nGetting from MyClass",
-          "explanation": "Önce descriptor'ın __set__ metodu çağrılır, sonra attribute'a erişirken __get__ çağrılır."
-        },
-        {
-          "language": "ar",
-          "question": "ما الذي سيطبعه هذا الكود؟\n\n```python\nclass Descriptor:\n    def __get__(self, obj, owner):\n        return f\"Getting from {owner.__name__}\"\n    \n    def __set__(self, obj, value):\n        print(f\"Setting {value}\")\n\nclass MyClass:\n    attr = Descriptor()\n\nobj = MyClass()\nobj.attr = \"test\"\nprint(obj.attr)\n```\n\nما الذي سيتم طباعته؟",
-          "answers": ["Setting test\\nGetting from MyClass", "Setting test\\ntest", "Getting from MyClass"],
-          "correct_answer": "Setting test\nGetting from MyClass",
-          "explanation": "يتم استدعاء __set__ الخاص بالواصف أولاً، ثم __get__ عند الوصول للخاصية."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Memory Management",
-      "description": "Understanding object identity and memory allocation",
-      "difficulty": "hard",
-      "translations": [
-        {
-          "language": "en",
-          "question": "What will this code output?\n\n```python\na = 256\nb = 256\nc = 257\nd = 257\n\nprint(a is b)\nprint(c is d)\nprint(id(a) == id(b))\nprint(id(c) == id(d))\n```\n\nWhat will be printed?",
-          "answers": ["True\\nFalse\\nTrue\\nFalse", "True\\nTrue\\nTrue\\nTrue", "False\\nFalse\\nFalse\\nFalse"],
-          "correct_answer": "True\nFalse\nTrue\nFalse",
-          "explanation": "Python caches small integers (-5 to 256). 256 uses same object, 257 creates new objects each time."
-        },
-        {
-          "language": "ru",
-          "question": "Что выведет этот код?\n\n```python\na = 256\nb = 256\nc = 257\nd = 257\n\nprint(a is b)\nprint(c is d)\nprint(id(a) == id(b))\nprint(id(c) == id(d))\n```\n\nЧто будет напечатано?",
-          "answers": ["True\\nFalse\\nTrue\\nFalse", "True\\nTrue\\nTrue\\nTrue", "False\\nFalse\\nFalse\\nFalse"],
-          "correct_answer": "True\nFalse\nTrue\nFalse",
-          "explanation": "Python кэширует малые целые числа (от -5 до 256). 256 использует один объект, 257 создает новые объекты."
-        },
-        {
-          "language": "tr",
-          "question": "Bu kod ne yazdırır?\n\n```python\na = 256\nb = 256\nc = 257\nd = 257\n\nprint(a is b)\nprint(c is d)\nprint(id(a) == id(b))\nprint(id(c) == id(d))\n```\n\nÇıktı nedir?",
-          "answers": ["True\\nFalse\\nTrue\\nFalse", "True\\nTrue\\nTrue\\nTrue", "False\\nFalse\\nFalse\\nFalse"],
-          "correct_answer": "True\nFalse\nTrue\nFalse",
-          "explanation": "Python küçük tam sayıları (-5 ile 256 arası) önbellekler. 256 aynı nesneyi, 257 her seferinde yeni nesne oluşturur."
-        },
-        {
-          "language": "ar",
-          "question": "ما هو ناتج هذا الكود؟\n\n```python\na = 256\nb = 256\nc = 257\nd = 257\n\nprint(a is b)\nprint(c is d)\nprint(id(a) == id(b))\nprint(id(c) == id(d))\n```\n\nما الذي سيتم طباعته؟",
-          "answers": ["True\\nFalse\\nTrue\\nFalse", "True\\nTrue\\nTrue\\nTrue", "False\\nFalse\\nFalse\\nFalse"],
-          "correct_answer": "True\nFalse\nTrue\nFalse",
-          "explanation": "Python يخزن الأرقام الصحيحة الصغيرة (-5 إلى 256) في ذاكرة التخزين المؤقت. 256 يستخدم نفس الكائن، 257 ينشئ كائنات جديدة."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Advanced Iterators",
-      "description": "Custom iterator with complex state management",
-      "difficulty": "hard",
-      "translations": [
-        {
-          "language": "en",
-          "question": "What will this code output?\n\n```python\nclass Counter:\n    def __init__(self, limit):\n        self.limit = limit\n        self.current = 0\n    \n    def __iter__(self):\n        return self\n    \n    def __next__(self):\n        if self.current < self.limit:\n            self.current += 1\n            return self.current * 2\n        raise StopIteration\n\ncounter = Counter(3)\nfor x in counter:\n    print(x)\n    if x == 4:\n        break\n\nfor y in counter:\n    print(f\"Second: {y}\")\n```\n\nWhat will be printed?",
-          "answers": ["2\\n4\\nSecond: 6", "2\\n4\\nSecond: 2\\nSecond: 4\\nSecond: 6", "2\\n4"],
-          "correct_answer": "2\n4\nSecond: 6",
-          "explanation": "The iterator maintains state. After the first loop breaks at x=4 (current=2), the second loop continues from current=2, yielding 6."
-        },
-        {
-          "language": "ru",
-          "question": "Что выведет этот код?\n\n```python\nclass Counter:\n    def __init__(self, limit):\n        self.limit = limit\n        self.current = 0\n    \n    def __iter__(self):\n        return self\n    \n    def __next__(self):\n        if self.current < self.limit:\n            self.current += 1\n            return self.current * 2\n        raise StopIteration\n\ncounter = Counter(3)\nfor x in counter:\n    print(x)\n    if x == 4:\n        break\n\nfor y in counter:\n    print(f\"Second: {y}\")\n```\n\nЧто будет напечатано?",
-          "answers": ["2\\n4\\nSecond: 6", "2\\n4\\nSecond: 2\\nSecond: 4\\nSecond: 6", "2\\n4"],
-          "correct_answer": "2\n4\nSecond: 6",
-          "explanation": "Итератор сохраняет состояние. После прерывания первого цикла на x=4 (current=2), второй цикл продолжает с current=2, выдавая 6."
-        },
-        {
-          "language": "tr",
-          "question": "Bu kod ne yazdırır?\n\n```python\nclass Counter:\n    def __init__(self, limit):\n        self.limit = limit\n        self.current = 0\n    \n    def __iter__(self):\n        return self\n    \n    def __next__(self):\n        if self.current < self.limit:\n            self.current += 1\n            return self.current * 2\n        raise StopIteration\n\ncounter = Counter(3)\nfor x in counter:\n    print(x)\n    if x == 4:\n        break\n\nfor y in counter:\n    print(f\"Second: {y}\")\n```\n\nÇıktı nedir?",
-          "answers": ["2\\n4\\nSecond: 6", "2\\n4\\nSecond: 2\\nSecond: 4\\nSecond: 6", "2\\n4"],
-          "correct_answer": "2\n4\nSecond: 6",
-          "explanation": "Iterator durumu korur. İlk döngü x=4'te durduğunda (current=2), ikinci döngü current=2'den devam ederek 6 üretir."
-        },
-        {
-          "language": "ar",
-          "question": "ما هو ناتج هذا الكود؟\n\n```python\nclass Counter:\n    def __init__(self, limit):\n        self.limit = limit\n        self.current = 0\n    \n    def __iter__(self):\n        return self\n    \n    def __next__(self):\n        if self.current < self.limit:\n            self.current += 1\n            return self.current * 2\n        raise StopIteration\n\ncounter = Counter(3)\nfor x in counter:\n    print(x)\n    if x == 4:\n        break\n\nfor y in counter:\n    print(f\"Second: {y}\")\n```\n\nما الذي سيتم طباعته؟",
-          "answers": ["2\\n4\\nSecond: 6", "2\\n4\\nSecond: 2\\nSecond: 4\\nSecond: 6", "2\\n4"],
-          "correct_answer": "2\n4\nSecond: 6",
-          "explanation": "المكرر يحتفظ بالحالة. بعد توقف الحلقة الأولى عند x=4 (current=2)، الحلقة الثانية تكمل من current=2 وتنتج 6."
-        }
-      ]
-    },
-    {
-      "topic": "Python",
-      "subtopic": "Multiple Inheritance & MRO",
-      "description": "Method Resolution Order in diamond inheritance",
-      "difficulty": "hard",
-      "translations": [
-        {
-          "language": "en",
-          "question": "What will this code print?\n\n```python\nclass A:\n    def method(self):\n        print(\"A\")\n\nclass B(A):\n    def method(self):\n        print(\"B\")\n        super().method()\n\nclass C(A):\n    def method(self):\n        print(\"C\")\n        super().method()\n\nclass D(B, C):\n    def method(self):\n        print(\"D\")\n        super().method()\n\nD().method()\n```\n\nWhat will be printed?",
-          "answers": ["D\\nB\\nC\\nA", "D\\nB\\nA", "D\\nC\\nA"],
-          "correct_answer": "D\nB\nC\nA",
-          "explanation": "MRO for D is D->B->C->A. Each super() call follows this order, so all methods are called once."
-        },
-        {
-          "language": "ru",
-          "question": "Что напечатает этот код?\n\n```python\nclass A:\n    def method(self):\n        print(\"A\")\n\nclass B(A):\n    def method(self):\n        print(\"B\")\n        super().method()\n\nclass C(A):\n    def method(self):\n        print(\"C\")\n        super().method()\n\nclass D(B, C):\n    def method(self):\n        print(\"D\")\n        super().method()\n\nD().method()\n```\n\nЧто будет напечатано?",
-          "answers": ["D\\nB\\nC\\nA", "D\\nB\\nA", "D\\nC\\nA"],
-          "correct_answer": "D\nB\nC\nA",
-          "explanation": "MRO для D: D->B->C->A. Каждый вызов super() следует этому порядку, поэтому все методы вызываются по одному разу."
-        },
-        {
-          "language": "tr",
-          "question": "Bu kod ne yazdırır?\n\n```python\nclass A:\n    def method(self):\n        print(\"A\")\n\nclass B(A):\n    def method(self):\n        print(\"B\")\n        super().method()\n\nclass C(A):\n    def method(self):\n        print(\"C\")\n        super().method()\n\nclass D(B, C):\n    def method(self):\n        print(\"D\")\n        super().method()\n\nD().method()\n```\n\nÇıktı nedir?",
-          "answers": ["D\\nB\\nC\\nA", "D\\nB\\nA", "D\\nC\\nA"],
-          "correct_answer": "D\nB\nC\nA",
-          "explanation": "D için MRO: D->B->C->A. Her super() çağrısı bu sırayı takip eder, bu yüzden tüm metotlar bir kez çağrılır."
-        },
-        {
-          "language": "ar",
-          "question": "ما الذي سيطبعه هذا الكود؟\n\n```python\nclass A:\n    def method(self):\n        print(\"A\")\n\nclass B(A):\n    def method(self):\n        print(\"B\")\n        super().method()\n\nclass C(A):\n    def method(self):\n        print(\"C\")\n        super().method()\n\nclass D(B, C):\n    def method(self):\n        print(\"D\")\n        super().method()\n\nD().method()\n```\n\nما الذي سيتم طباعته؟",
-          "answers": ["D\\nB\\nC\\nA", "D\\nB\\nA", "D\\nC\\nA"],
-          "correct_answer": "D\nB\nC\nA",
-          "explanation": "ترتيب حل الطرق لـ D هو D->B->C->A. كل استدعاء super() يتبع هذا الترتيب، لذلك جميع الطرق تستدعى مرة واحدة."
+          "question": "نريد كتابة دالة `apply_twice(f, x)` تقوم بتطبيق الدالة `f` على القيمة `x` مرتين. أي من هذه الخيارات صحيح؟\n\nالخيارات:\n1.\n```python\ndef apply_twice(f, x):\n    return f(x, x)\n```\n2.\n```python\ndef apply_twice(f, x):\n    return f(f(x))\n```\n3.\n```python\ndef apply_twice(f, x):\n    return f(x) + f(x)\n```",
+          "answers": [
+            "الخيار 1",
+            "الخيار 2",
+            "الخيار 3"
+          ],
+          "correct_answer": "الخيار 2",
+          "explanation": "الخيار 2 صحيح لأنه يطبق الدالة على نتيجة نفسها: f(f(x))."
         }
       ]
     }
