@@ -67,8 +67,19 @@ class Topic(models.Model):
         help_text='Видео для карточки темы (макс. 50 МБ). Поддерживаемые форматы: MP4, WEBM, MOV'
     )
     
+    video_poster = models.ImageField(
+        upload_to='topic_cards/posters/',
+        null=True,
+        blank=True,
+        validators=[
+            validate_file_size,
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])
+        ],
+        help_text='Постер для видео (превью перед воспроизведением). Опционально. Поддерживаемые форматы: JPG, PNG'
+    )
+    
     MEDIA_TYPE_CHOICES = [
-        ('default', 'По умолчанию (иконка или picsum)'),
+        ('default', 'По умолчанию (picsum.photos)'),
         ('image', 'Изображение/GIF'),
         ('video', 'Видео'),
     ]

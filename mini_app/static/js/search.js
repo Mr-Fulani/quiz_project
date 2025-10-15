@@ -31,7 +31,8 @@ async function handleSearch(event) {
 async function searchTopics(query) {
     try {
         console.log('🔍 Поиск тем с запросом:', query);
-        const response = await fetch(`/api/topics?search=${encodeURIComponent(query)}`);
+        const language = window.currentLanguage || 'ru';
+        const response = await fetch(`/api/topics?search=${encodeURIComponent(query)}&language=${language}`);
         const data = await response.json();
         
         console.log('📡 Ответ от API поиска:', data);
@@ -88,12 +89,23 @@ function updateGallery(topics) {
         console.log('🎨 Создаем HTML для', topics.length, 'тем');
         container.innerHTML = topics.map((topic, index) => {
             const mediaType = topic.media_type || 'default';
-            const mediaElement = mediaType === 'video' 
-                ? `<video src="${topic.image_url}" alt="${topic.name}" autoplay loop muted playsinline></video>`
-                : `<img src="${topic.image_url}" alt="${topic.name}">`;
+            let mediaElement;
+            if (mediaType === 'video') {
+                if (topic.video_poster_url) {
+                    // Если есть постер, показываем его как изображение
+                    mediaElement = `<img src="${topic.video_poster_url}" alt="${topic.name}" class="video-poster">`;
+                } else {
+                    // Иначе показываем первый кадр видео
+                    mediaElement = `<video src="${topic.image_url}" alt="${topic.name}" muted playsinline preload="metadata"></video>`;
+                }
+            } else {
+                mediaElement = `<img src="${topic.image_url}" alt="${topic.name}">`;
+            }
+            
+            const dataVideoUrl = mediaType === 'video' ? `data-video-url="${topic.image_url}"` : '';
             
             return `
-                <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}" data-media-type="${mediaType}">
+                <span style="--i:${index};" class="topic-card" data-topic-id="${topic.id}" data-media-type="${mediaType}" ${dataVideoUrl}>
                     ${mediaElement}
                     <div class="card-overlay always-visible">
                         <h3>${topic.name}</h3>

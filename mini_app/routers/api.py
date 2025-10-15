@@ -484,13 +484,13 @@ async def change_language(request: LanguageChangeRequest, response: Response):
     }
 
 @router.get("/topics")
-async def get_topics(search: str = None, language: str = 'en', telegram_id: int | None = None):
+async def get_topics(search: str = None, language: str = 'ru', telegram_id: int | None = None):
     """Получение списка тем с поиском и прогрессом пользователя (telegram_id)"""
     from services.django_api_service import django_api_service
     
     try:
         logger.info(f"/api/topics called: search={search}, language={language}, telegram_id={telegram_id}")
-        params = {'language': language}
+        params = {'language': language, 'has_tasks': 'true'}
         if search:
             params['search'] = search
         if telegram_id:

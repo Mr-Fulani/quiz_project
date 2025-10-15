@@ -47,8 +47,8 @@ class TopicAdmin(admin.ModelAdmin):
             'fields': ('name', 'description', 'icon')
         }),
         ('Медиа для карточки в карусели', {
-            'fields': ('media_type', 'card_image', 'card_video'),
-            'description': 'Загрузите изображение, GIF или видео для отображения в карусели мини-приложения. Максимальный размер файла: 50 МБ.'
+            'fields': ('media_type', 'card_image', 'card_video', 'video_poster'),
+            'description': 'Загрузите изображение, GIF или видео для отображения в карусели мини-приложения. Для видео можно загрузить постер (превью). Максимальный размер файла: 50 МБ.'
         }),
     )
 

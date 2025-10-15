@@ -123,6 +123,7 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
     difficulty = serializers.SerializerMethodField()
     questions_count = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    video_poster_url = serializers.SerializerMethodField()
     media_type = serializers.CharField()
 
     class Meta:
@@ -136,6 +137,7 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
             'questions_count',
             'subtopics_count',
             'image_url',
+            'video_poster_url',
             'media_type'
         ]
 
@@ -186,4 +188,15 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
             return f"{settings.MEDIA_URL}{obj.card_video.name}"
         
         # Fallback на красивые изображения (увеличено для Retina-дисплеев)
-        return f"https://picsum.photos/800/800?{obj.id}" 
+        return f"https://picsum.photos/800/800?{obj.id}"
+    
+    def get_video_poster_url(self, obj):
+        """
+        Возвращает URL постера для видео (если есть)
+        """
+        from django.conf import settings
+        
+        if obj.media_type == 'video' and obj.video_poster:
+            return f"{settings.MEDIA_URL}{obj.video_poster.name}"
+        
+        return None 

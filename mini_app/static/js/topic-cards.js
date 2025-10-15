@@ -211,13 +211,22 @@ function initTopicCards() {
             // Получаем медиа-элемент (img или video)
             let mediaElement = '';
             if (mediaType === 'video') {
+                // Для видео всегда показываем само видео в увеличенной карточке
                 const video = topicCard.querySelector('video');
-                if (video) {
-                    mediaElement = `<video src="${video.src}" alt="${title}" autoplay loop muted playsinline></video>`;
+                const poster = topicCard.querySelector('img.video-poster');
+                
+                // Получаем URL видео из data-атрибута или из src видео
+                let videoSrc = topicCard.getAttribute('data-video-url');
+                if (!videoSrc && video) {
+                    videoSrc = video.src;
+                }
+                
+                if (videoSrc) {
+                    mediaElement = `<video src="${videoSrc}" alt="${title}" autoplay loop muted playsinline></video>`;
                 }
             } else {
                 const img = topicCard.querySelector('img');
-                if (img) {
+                if (img && !img.classList.contains('video-poster')) {
                     mediaElement = `<img src="${img.src}" alt="${img.alt}">`;
                 }
             }
@@ -278,6 +287,24 @@ function initTopicCards() {
                     on: {
                         init: function() {
                             console.log('Swiper инициализирован на слайде:', this.activeIndex);
+                            // Автовоспроизведение видео на текущем слайде
+                            const activeSlide = this.slides[this.activeIndex];
+                            if (activeSlide) {
+                                const video = activeSlide.querySelector('video');
+                                if (video) {
+                                    video.play().catch(err => console.log('Autoplay blocked:', err));
+                                }
+                            }
+                        },
+                        slideChange: function() {
+                            // Автовоспроизведение видео при смене слайда
+                            const activeSlide = this.slides[this.activeIndex];
+                            if (activeSlide) {
+                                const video = activeSlide.querySelector('video');
+                                if (video) {
+                                    video.play().catch(err => console.log('Autoplay blocked:', err));
+                                }
+                            }
                         }
                     }
                 });

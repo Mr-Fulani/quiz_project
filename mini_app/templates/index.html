@@ -16,9 +16,15 @@
     <div class="gallery__container">
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
-        <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}" data-media-type="{{ topic.get('media_type', 'default') }}">
+        <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}" data-media-type="{{ topic.get('media_type', 'default') }}" {% if topic.get('media_type') == 'video' %}data-video-url="{{ topic.image_url }}"{% endif %}>
             {% if topic.get('media_type') == 'video' %}
-                <video src="{{ topic.image_url }}" alt="{{ topic.name }}" autoplay loop muted playsinline></video>
+                {% if topic.get('video_poster_url') %}
+                    {# Если есть постер, показываем изображение постера #}
+                    <img src="{{ topic.video_poster_url }}" alt="{{ topic.name }}" class="video-poster">
+                {% else %}
+                    {# Иначе показываем первый кадр видео #}
+                    <video src="{{ topic.image_url }}" alt="{{ topic.name }}" muted playsinline preload="metadata"></video>
+                {% endif %}
             {% else %}
                 <img src="{{ topic.image_url }}" alt="{{ topic.name }}">
             {% endif %}
