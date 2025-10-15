@@ -215,6 +215,11 @@ def topics_simple(request):
             # Fallback на picsum, если что-то пошло не так
             media_url = f'https://picsum.photos/800/800?{topic.id}'
         
+        # Определяем URL постера для видео
+        video_poster_url = None
+        if topic.media_type == 'video' and topic.video_poster:
+            video_poster_url = f"{settings.MEDIA_URL}{topic.video_poster.name}"
+        
         topic_data = {
             'id': topic.id,
             'name': topic.name,
@@ -223,6 +228,7 @@ def topics_simple(request):
             'difficulty': 'Средний',  # Временно статично
             'questions_count': topic.tasks_count, # Используем аннотированное количество
             'image_url': media_url,
+            'video_poster_url': video_poster_url,
             'media_type': topic.media_type,  # Добавляем тип медиа
         }
         if telegram_id:
@@ -273,6 +279,11 @@ def topic_detail_simple(request, topic_id):
             # Fallback на picsum, если что-то пошло не так
             media_url = f'https://picsum.photos/800/800?{topic.id}'
         
+        # Определяем URL постера для видео
+        video_poster_url = None
+        if topic.media_type == 'video' and topic.video_poster:
+            video_poster_url = f"{settings.MEDIA_URL}{topic.video_poster.name}"
+        
         data = {
             'id': topic.id,
             'name': topic.name,
@@ -281,6 +292,7 @@ def topic_detail_simple(request, topic_id):
             'difficulty': 'Средний',  # Временно статично
             'questions_count': tasks_count,
             'image_url': media_url,
+            'video_poster_url': video_poster_url,
             'media_type': topic.media_type,  # Добавляем тип медиа
             'completed_tasks_count': completed_tasks_count
         }
