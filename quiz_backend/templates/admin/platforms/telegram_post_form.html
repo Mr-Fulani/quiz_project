@@ -31,6 +31,9 @@
         font-size: 14px;
         transition: all 0.3s ease;
         box-sizing: border-box;
+        background: #ffffff;
+        color: #2c3e50;
+        font-weight: 500;
     }
     
     .form-row input:focus, .form-row textarea:focus, .form-row select:focus {
@@ -43,6 +46,14 @@
         min-height: 120px;
         resize: vertical;
         font-family: inherit;
+    }
+    
+    /* Placeholder стили для лучшей читаемости */
+    .form-row input::placeholder,
+    .form-row textarea::placeholder {
+        color: #7f8c8d;
+        opacity: 1;
+        font-weight: 400;
     }
     
     .form-row .help {
@@ -195,13 +206,31 @@
     .form-row input[type="file"] {
         padding: 10px;
         border: 2px dashed #bdc3c7;
-        background: #f8f9fa;
+        background: #ffffff;
         cursor: pointer;
+        color: #2c3e50;
+        font-weight: 500;
     }
     
     .form-row input[type="file"]:hover {
         border-color: #3498db;
-        background: #ecf0f1;
+        background: #f8f9fa;
+    }
+    
+    .form-row input[type="file"]::file-selector-button {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        margin-right: 10px;
+        transition: background 0.3s ease;
+    }
+    
+    .form-row input[type="file"]::file-selector-button:hover {
+        background: #2980b9;
     }
     
     /* Стили для множественного выбора каналов */
@@ -211,27 +240,32 @@
         border: 2px solid #e1e8ed;
         border-radius: 8px;
         padding: 12px;
-        background: #fff;
+        background: #ffffff;
         font-size: 14px;
         line-height: 1.4;
+        color: #2c3e50;
+        font-weight: 500;
     }
     
     .channels-select option {
         padding: 8px 12px;
         margin: 2px 0;
         border-radius: 4px;
-        background: #f8f9fa;
+        background: #ffffff;
         border: 1px solid #e1e8ed;
+        color: #2c3e50;
+        font-weight: 500;
     }
     
     .channels-select option:checked {
         background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        color: white;
+        color: #ffffff;
         font-weight: 600;
     }
     
     .channels-select option:hover {
         background: #ecf0f1;
+        color: #2c3e50;
     }
     
     /* Стили для списка выбранных файлов */
@@ -330,8 +364,8 @@
             <!-- Медиафайлы -->
             <div class="media-section">
                 <h3>{% trans 'Медиафайлы' %}</h3>
-                <div class="file-size-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                    <strong>⚠️ Внимание:</strong> Максимальный размер каждого файла: <strong>20 МБ</strong>. 
+                <div class="file-size-warning" style="background: #fff3cd; border: 2px solid #f39c12; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; color: #856404; font-weight: 500;">
+                    <strong style="color: #856404;">⚠️ Внимание:</strong> Максимальный размер каждого файла: <strong style="color: #856404;">20 МБ</strong>. 
                     Большие файлы могут загружаться медленно и вызывать ошибки.
                 </div>
                 
