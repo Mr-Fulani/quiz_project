@@ -208,7 +208,7 @@ def topics_simple(request):
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
             'questions_count': topic.tasks_count, # Используем аннотированное количество
-            'image_url': f'https://picsum.photos/400/400?{topic.id}',
+            'image_url': f'https://picsum.photos/800/800?{topic.id}',  # Увеличено для Retina-дисплеев
         }
         if telegram_id:
             topic_data['completed_tasks_count'] = topic.completed_tasks_count
@@ -251,7 +251,7 @@ def topic_detail_simple(request, topic_id):
             'icon': topic.icon,
             'difficulty': 'Средний',  # Временно статично
             'questions_count': tasks_count,
-            'image_url': f'https://picsum.photos/400/400?{topic.id}',
+            'image_url': f'https://picsum.photos/800/800?{topic.id}',  # Увеличено для Retina-дисплеев
             'completed_tasks_count': completed_tasks_count
         }
         return Response(data)
