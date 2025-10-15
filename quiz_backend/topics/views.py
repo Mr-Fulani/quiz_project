@@ -203,13 +203,17 @@ def topics_simple(request):
     for topic in topics:
         # Определяем URL медиа для карточки
         from django.conf import settings
-        media_url = f'https://picsum.photos/800/800?{topic.id}'  # Fallback
-        if topic.media_type == 'image' and topic.card_image:
+        
+        # Для типа "По умолчанию" всегда используем picsum.photos
+        if topic.media_type == 'default':
+            media_url = f'https://picsum.photos/800/800?{topic.id}'
+        elif topic.media_type == 'image' and topic.card_image:
             media_url = f"{settings.MEDIA_URL}{topic.card_image.name}"
         elif topic.media_type == 'video' and topic.card_video:
             media_url = f"{settings.MEDIA_URL}{topic.card_video.name}"
-        elif topic.icon and topic.icon != '/static/blog/images/icons/default-icon.png':
-            media_url = topic.icon
+        else:
+            # Fallback на picsum, если что-то пошло не так
+            media_url = f'https://picsum.photos/800/800?{topic.id}'
         
         topic_data = {
             'id': topic.id,
@@ -257,13 +261,17 @@ def topic_detail_simple(request, topic_id):
         
         # Определяем URL медиа для карточки
         from django.conf import settings
-        media_url = f'https://picsum.photos/800/800?{topic.id}'  # Fallback
-        if topic.media_type == 'image' and topic.card_image:
+        
+        # Для типа "По умолчанию" всегда используем picsum.photos
+        if topic.media_type == 'default':
+            media_url = f'https://picsum.photos/800/800?{topic.id}'
+        elif topic.media_type == 'image' and topic.card_image:
             media_url = f"{settings.MEDIA_URL}{topic.card_image.name}"
         elif topic.media_type == 'video' and topic.card_video:
             media_url = f"{settings.MEDIA_URL}{topic.card_video.name}"
-        elif topic.icon and topic.icon != '/static/blog/images/icons/default-icon.png':
-            media_url = topic.icon
+        else:
+            # Fallback на picsum, если что-то пошло не так
+            media_url = f'https://picsum.photos/800/800?{topic.id}'
         
         data = {
             'id': topic.id,
