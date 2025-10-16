@@ -280,6 +280,24 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     pointer-events: none !important; /* Не блокирует клики по родителю */
 }
 
+/* Текст "был онлайн X назад" */
+.swiper-slide .last-seen-text {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 10;
+    white-space: nowrap;
+    pointer-events: none !important;
+}
+
 
 /* Информация пользователя */
 .swiper-slide .user-info-container {

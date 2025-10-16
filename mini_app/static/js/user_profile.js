@@ -173,6 +173,55 @@
     }
     
     /**
+     * Форматирование времени "был онлайн X назад"
+     */
+    function formatLastSeen(lastSeenDate) {
+        if (!lastSeenDate) return null;
+        
+        const now = new Date();
+        const lastSeen = new Date(lastSeenDate);
+        const diffMs = now - lastSeen;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        const translations = window.translations || {};
+        
+        if (diffMins < 1) {
+            return translations.just_now || 'только что';
+        } else if (diffMins < 60) {
+            const unit = window.currentLanguage === 'en' ? 
+                (diffMins === 1 ? 'minute' : 'minutes') :
+                (diffMins === 1 ? 'минуту' : diffMins < 5 ? 'минуты' : 'минут');
+            return window.currentLanguage === 'en' ? 
+                `${diffMins} ${unit} ago` : 
+                `${diffMins} ${unit} назад`;
+        } else if (diffHours < 24) {
+            const unit = window.currentLanguage === 'en' ? 
+                (diffHours === 1 ? 'hour' : 'hours') :
+                (diffHours === 1 ? 'час' : diffHours < 5 ? 'часа' : 'часов');
+            return window.currentLanguage === 'en' ? 
+                `${diffHours} ${unit} ago` : 
+                `${diffHours} ${unit} назад`;
+        } else if (diffDays < 7) {
+            const unit = window.currentLanguage === 'en' ? 
+                (diffDays === 1 ? 'day' : 'days') :
+                (diffDays === 1 ? 'день' : diffDays < 5 ? 'дня' : 'дней');
+            return window.currentLanguage === 'en' ? 
+                `${diffDays} ${unit} ago` : 
+                `${diffDays} ${unit} назад`;
+        } else {
+            const weeks = Math.floor(diffDays / 7);
+            const unit = window.currentLanguage === 'en' ? 
+                (weeks === 1 ? 'week' : 'weeks') :
+                (weeks === 1 ? 'неделю' : weeks < 5 ? 'недели' : 'недель');
+            return window.currentLanguage === 'en' ? 
+                `${weeks} ${unit} ago` : 
+                `${weeks} ${unit} назад`;
+        }
+    }
+    
+    /**
      * Обновление заголовка профиля
      */
     function updateProfileHeader(userData) {
@@ -193,6 +242,41 @@
         
         if (username && userData.username) {
             username.textContent = `@${userData.username}`;
+        }
+        
+        // Обновляем статус онлайн
+        const onlineIndicator = document.getElementById('profile-online-indicator');
+        const onlineStatus = document.getElementById('profile-online-status');
+        
+        if (userData.is_online) {
+            // Пользователь онлайн
+            if (onlineIndicator) {
+                onlineIndicator.style.display = 'block';
+            }
+            if (onlineStatus) {
+                const onlineText = window.currentLanguage === 'en' ? 'Online' : 'В сети';
+                onlineStatus.textContent = onlineText;
+                onlineStatus.classList.add('is-online');
+            }
+        } else if (userData.last_seen) {
+            // Пользователь был онлайн недавно
+            if (onlineIndicator) {
+                onlineIndicator.style.display = 'none';
+            }
+            if (onlineStatus) {
+                const lastSeenText = formatLastSeen(userData.last_seen);
+                const prefix = window.currentLanguage === 'en' ? 'Last seen' : 'Был в сети';
+                onlineStatus.textContent = `${prefix} ${lastSeenText}`;
+                onlineStatus.classList.remove('is-online');
+            }
+        } else {
+            // Нет данных об активности
+            if (onlineIndicator) {
+                onlineIndicator.style.display = 'none';
+            }
+            if (onlineStatus) {
+                onlineStatus.textContent = '';
+            }
         }
     }
     

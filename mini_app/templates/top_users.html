@@ -92,6 +92,11 @@ window.openUserProfile = openUserProfile;
                     {% if user.is_online %}
                     <div class="online-indicator"></div>
                     {% endif %}
+                    {% if not user.is_online and user.last_seen_formatted %}
+                    <div class="last-seen-badge" title="{{ translations.get('last_seen', 'Был в сети') }} {{ user.last_seen_formatted }}">
+                        <i class="far fa-clock"></i>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="user-info">
                     <h3 class="user-username">{{ user.username }}</h3>
@@ -177,7 +182,9 @@ window.openUserProfile = openUserProfile;
                         <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
                         {% if user.is_online %}
                         <div class="online-indicator"></div>
-                        <div class="online-status-text">{{ translations.get('online', 'онлайн') }}</div>
+                        <div class="online-status-text" data-translate="online">{{ translations.get('online', 'В сети') }}</div>
+                        {% elif user.last_seen %}
+                        <div class="last-seen-text" data-last-seen="{{ user.last_seen }}" data-translate-prefix="last_seen"></div>
                         {% endif %}
                         
                         <!-- Информация внизу экрана -->

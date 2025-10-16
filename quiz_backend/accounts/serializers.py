@@ -590,7 +590,7 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
-            'avatar_url', 'rating', 'quizzes_completed', 'average_score', 'is_online',
+            'avatar_url', 'rating', 'quizzes_completed', 'average_score', 'is_online', 'last_seen',
             'gender', 'birth_date', 'age', 'grade'
         )
 
@@ -695,6 +695,7 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
     quizzes_completed = serializers.SerializerMethodField()
     average_score = serializers.SerializerMethodField()
     age = serializers.SerializerMethodField()
+    is_online = serializers.SerializerMethodField()
     # Детальная статистика
     total_quizzes = serializers.SerializerMethodField()
     correct_answers = serializers.SerializerMethodField()
@@ -710,6 +711,7 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
             'full_name', 'avatar', 'is_profile_public',
             'grade', 'programming_languages', 'gender', 'birth_date', 'age',
             'social_links', 'rating', 'quizzes_completed', 'average_score',
+            'is_online', 'last_seen',
             # Детальная статистика
             'total_quizzes', 'correct_answers', 'incorrect_answers',
             'success_rate', 'current_streak', 'best_streak'
@@ -851,6 +853,12 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
                     temp_streak = 0
             
             return best_streak
+        return None
+    
+    def get_is_online(self, obj):
+        """Возвращает статус онлайн для публичных профилей."""
+        if obj.is_profile_public:
+            return obj.is_online
         return None
     
     def to_representation(self, instance):
