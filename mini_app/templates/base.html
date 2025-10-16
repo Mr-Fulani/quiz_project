@@ -363,6 +363,42 @@
         // Magic Navigation Menu Script с AJAX навигацией
         const list = document.querySelectorAll('.list');
         
+        // Функция для обновления индикатора навигации
+        function updateNavigationIndicator(url) {
+            const navItems = document.querySelectorAll('.navigation ul li');
+            const currentPath = url.split('?')[0]; // Убираем query параметры
+            
+            // Удаляем активный класс у всех элементов
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            // Определяем активный элемент на основе пути
+            let activeItem = null;
+            
+            if (currentPath.includes('/subtopic/') && currentPath.includes('/tasks')) {
+                activeItem = navItems[0]; // Главная
+            } else if (currentPath.startsWith('/topic/')) {
+                activeItem = navItems[0]; // Главная
+            } else if (currentPath === '/') {
+                activeItem = navItems[0]; // Главная
+            } else if (currentPath.startsWith('/user_profile/')) {
+                activeItem = navItems[2]; // Топ юзеров
+            } else if (currentPath === '/profile') {
+                activeItem = navItems[1]; // Профиль
+            } else if (currentPath === '/top_users') {
+                activeItem = navItems[2]; // Топ юзеров
+            } else if (currentPath === '/statistics') {
+                activeItem = navItems[3]; // Статистика
+            } else if (currentPath === '/settings') {
+                activeItem = navItems[4]; // Настройки
+            }
+            
+            // Устанавливаем активный класс
+            if (activeItem) {
+                activeItem.classList.add('active');
+                console.log('🎯 Активная вкладка обновлена для:', currentPath);
+            }
+        }
+        
         function activeLink(e){
             console.log('activeLink: clicked event', e.currentTarget);
             // Предотвращаем стандартное поведение ссылки
@@ -449,6 +485,9 @@
                             console.log('BASE.HTML: After updateLocalizationFromPage and updateInterface');
                             // Обновляем URL в браузере
                             window.history.pushState({}, '', url);
+                            
+                            // Обновляем активную вкладку навигации
+                            updateNavigationIndicator(url);
                             
                             // Перезапускаем скрипты карточек если они есть
                             if (window.initTopicCards) {
@@ -995,8 +1034,11 @@
             } else if (currentPath === '/') {
                 // Главная страница
                 activeItem = navItems[0];
-            } else if (currentPath.startsWith('/profile')) {
-                // Страница профиля
+            } else if (currentPath.startsWith('/user_profile/')) {
+                // Страница просмотра профиля другого пользователя - активна вкладка "Топ юзеров"
+                activeItem = navItems[2];
+            } else if (currentPath === '/profile') {
+                // Страница собственного профиля
                 activeItem = navItems[1];
             } else if (currentPath === '/top_users') {
                 // Страница топ юзеров
