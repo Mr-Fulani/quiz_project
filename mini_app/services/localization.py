@@ -166,6 +166,10 @@ class LocalizationService:
             "profile_hidden_message": "This user has hidden their profile",
             "write_message": "Write message",
             "viewing_profile": "Viewing profile",
+            "profile_visibility": "Profile Visibility",
+            "public_profile": "Public Profile",
+            "private_profile": "Private Profile",
+            "profile_visibility_description": "When enabled, other users can view your profile information",
             
             # Профессиональная информация
             "professional_info": "Professional Information",
@@ -360,6 +364,10 @@ class LocalizationService:
             "profile_hidden_message": "Этот пользователь скрыл свой профиль",
             "write_message": "Написать",
             "viewing_profile": "Просмотр профиля",
+            "profile_visibility": "Видимость профиля",
+            "public_profile": "Публичный профиль",
+            "private_profile": "Скрытый профиль",
+            "profile_visibility_description": "Когда включено, другие пользователи могут просматривать информацию вашего профиля",
             
             # Профессиональная информация
             "professional_info": "Профессиональная информация",
