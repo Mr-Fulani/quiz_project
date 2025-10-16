@@ -15,10 +15,16 @@
 <script>
 // Функция для открытия профиля пользователя
 function openUserProfile(telegramId) {
-    console.log('👤 Открываем профиль пользователя:', telegramId);
-    // Здесь можно добавить логику для открытия профиля
-    alert('Открываем профиль пользователя: ' + telegramId);
+    console.log('👤 ФУНКЦИЯ openUserProfile ВЫЗВАНА!');
+    console.log('👤 Telegram ID:', telegramId);
+    console.log('👤 Переходим на страницу профиля:', `/user_profile/${telegramId}`);
+    
+    // Переходим на страницу просмотра профиля пользователя
+    window.location.href = `/user_profile/${telegramId}`;
 }
+
+// Делаем функцию глобальной на случай, если она нужна из других скриптов
+window.openUserProfile = openUserProfile;
 </script>
 
 <!-- SVG фильтр перемещен в base.html для глобальной доступности -->
@@ -166,7 +172,7 @@ function openUserProfile(telegramId) {
             {% if top_users %}
             {% for user in top_users %}
                 <div class="swiper-slide">
-                    <div class="user-item" data-telegram-id="{{ user.telegram_id }}" onclick="openUserProfile('{{ user.telegram_id }}')">
+                    <div class="user-item" data-telegram-id="{{ user.telegram_id }}">
                         <!-- Аватарка на весь экран -->
                         <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
                         {% if user.is_online %}

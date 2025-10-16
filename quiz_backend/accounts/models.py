@@ -582,6 +582,11 @@ class MiniAppUser(models.Model):
         verbose_name="Грейд",
         help_text="Уровень разработчика"
     )
+    is_profile_public = models.BooleanField(
+        default=True, 
+        verbose_name="Публичный профиль",
+        help_text="Определяет, доступен ли профиль для просмотра другим пользователям"
+    )
     
     created_at = models.DateTimeField(
         auto_now_add=True, 

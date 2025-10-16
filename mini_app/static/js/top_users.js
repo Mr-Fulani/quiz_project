@@ -165,6 +165,39 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
                                 computedWidth: window.getComputedStyle(carousel).width,
                                 computedHeight: window.getComputedStyle(carousel).height
                             });
+                            
+                            // Добавляем делегированный обработчик кликов на swiper-wrapper
+                            console.log('🔧 Добавляем делегированный обработчик кликов');
+                            const swiperWrapper = carousel.querySelector('.swiper-wrapper');
+                            
+                            if (swiperWrapper) {
+                                // Используем делегирование событий
+                                swiperWrapper.addEventListener('click', function(e) {
+                                    // Ищем ближайший .user-item
+                                    const userItem = e.target.closest('.user-item');
+                                    
+                                    if (userItem) {
+                                        const telegramId = userItem.getAttribute('data-telegram-id');
+                                        console.log('👤👤👤 КЛИК ПО КАРТОЧКЕ ПОЛЬЗОВАТЕЛЯ!', telegramId);
+                                        console.log('👤 Event target:', e.target);
+                                        console.log('👤 Closest user-item:', userItem);
+                                        
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        
+                                        if (telegramId) {
+                                            console.log('✅ Переходим на страницу профиля:', `/user_profile/${telegramId}`);
+                                            window.location.href = `/user_profile/${telegramId}`;
+                                        } else {
+                                            console.error('❌ Не удалось получить telegram_id');
+                                        }
+                                    }
+                                }, true); // Используем capture phase
+                                
+                                console.log('✅ Делегированный обработчик кликов добавлен на swiper-wrapper');
+                            } else {
+                                console.error('❌ swiper-wrapper не найден!');
+                            }
                         }, 50);
                     }
                 }
@@ -280,6 +313,15 @@ window.initCarouselButtons = function() {
 
         // Обработчик клика внутри контейнера (на пустую область)
         carousel.addEventListener('click', function(e) {
+            // Проверяем, был ли клик НЕ по user-item
+            const clickedOnUserItem = e.target.closest('.user-item');
+            
+            if (clickedOnUserItem) {
+                // Если клик по user-item - не закрываем, пусть обработается onclick
+                console.log('🔧 КЛИК ПО КАРТОЧКЕ ПОЛЬЗОВАТЕЛЯ - НЕ ЗАКРЫВАЕМ');
+                return;
+            }
+            
             // Проверяем, был ли клик по контейнеру или по swiper (не по user-item)
             const clickedOnCarousel = e.target === carousel;
             const clickedOnSwiper = e.target.classList.contains('swiper') || 

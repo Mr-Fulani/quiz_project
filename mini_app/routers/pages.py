@@ -87,6 +87,44 @@ async def profile(
         "profile_js_url": get_js_url('profile.js'),
     })
 
+@router.get("/user_profile/{telegram_id}", response_class=HTMLResponse)
+async def user_profile(
+    request: Request,
+    telegram_id: int,
+    lang: str = Query(default=None, description="Language code")
+):
+    """
+    Страница просмотра профиля другого пользователя.
+    
+    Отображает публичный или приватный профиль в зависимости от настроек пользователя.
+    """
+    # Язык уже установлен middleware, но можно переопределить через query параметр
+    if lang:
+        localization_service.set_language(lang)
+    
+    current_language = localization_service.get_language()
+    logger.info(f"Rendering user profile page for telegram_id={telegram_id} with language: {current_language}")
+    
+    # Получаем переводы для текущего языка
+    translations = localization_service.get_all_texts()
+    
+    return templates.TemplateResponse("user_profile.html", {
+        "request": request,
+        "telegram_id": telegram_id,
+        "translations": translations,
+        "current_language": current_language,
+        "supported_languages": localization_service.get_supported_languages(),
+        "tasks_js_url": get_js_url('tasks.js'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
+        "styles_css_url": get_css_url('styles.css'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
+        "user_profile_css_url": get_css_url('user_profile.css'),
+        "user_profile_js_url": get_js_url('user_profile.js'),
+    })
+
 @router.get("/top_users", response_class=HTMLResponse)
 async def top_users(
     request: Request,

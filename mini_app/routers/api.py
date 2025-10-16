@@ -713,3 +713,38 @@ async def submit_task_answer(task_id: int, request: Request):
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+
+@router.get("/user-profile/{telegram_id}")
+async def get_user_public_profile(telegram_id: int):
+    """
+    Получение публичного профиля пользователя Mini App по telegram_id.
+    
+    Если профиль публичный - возвращает полную информацию.
+    Если профиль приватный - возвращает только базовую информацию.
+    
+    Args:
+        telegram_id: Telegram ID пользователя
+        
+    Returns:
+        JSONResponse: Данные профиля пользователя
+    """
+    logger.info(f"📥 Запрос публичного профиля пользователя {telegram_id}")
+    
+    try:
+        # Получаем профиль через django_api_service
+        profile_data = await django_api_service.get_user_public_profile(telegram_id)
+        
+        if profile_data is None:
+            logger.warning(f"⚠️ Профиль пользователя {telegram_id} не найден")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"✅ Профиль пользователя {telegram_id} успешно получен")
+        return JSONResponse(content=profile_data)
+        
+    except HTTPException:
+        # Пробрасываем HTTPException дальше
+        raise
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении профиля пользователя {telegram_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

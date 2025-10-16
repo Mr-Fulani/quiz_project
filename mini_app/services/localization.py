@@ -162,6 +162,10 @@ class LocalizationService:
             "refresh_data": "Refresh Data",
             "refreshing_data": "Refreshing data...",
             "no_statistics_data": "No data available for display.",
+            "profile_hidden": "Profile is hidden",
+            "profile_hidden_message": "This user has hidden their profile",
+            "write_message": "Write message",
+            "viewing_profile": "Viewing profile",
             
             # Профессиональная информация
             "professional_info": "Professional Information",
@@ -352,6 +356,10 @@ class LocalizationService:
             "refresh_data": "Обновить данные",
             "refreshing_data": "Обновление данных...",
             "no_statistics_data": "Пока нет данных для отображения",
+            "profile_hidden": "Профиль скрыт",
+            "profile_hidden_message": "Этот пользователь скрыл свой профиль",
+            "write_message": "Написать",
+            "viewing_profile": "Просмотр профиля",
             
             # Профессиональная информация
             "professional_info": "Профессиональная информация",
