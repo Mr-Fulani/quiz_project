@@ -785,75 +785,90 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
             return age
         return None
     
+    def _get_statistics_data(self, obj):
+        """Кэширование запроса статистики для избежания множественных обращений к БД."""
+        if not hasattr(self, '_stats_cache'):
+            self._stats_cache = {}
+        
+        if obj.id not in self._stats_cache:
+            if obj.is_profile_public:
+                from tasks.models import MiniAppTaskStatistics
+                from django.db.models import Count, Q
+                
+                # Один запрос для агрегированной статистики
+                stats = MiniAppTaskStatistics.objects.filter(mini_app_user=obj).aggregate(
+                    total=Count('id'),
+                    correct=Count('id', filter=Q(successful=True)),
+                    incorrect=Count('id', filter=Q(successful=False))
+                )
+                
+                # Один запрос для серий
+                all_attempts = list(MiniAppTaskStatistics.objects.filter(
+                    mini_app_user=obj
+                ).order_by('-last_attempt_date').values_list('successful', flat=True))
+                
+                # Вычисляем серии
+                current_streak = 0
+                for successful in all_attempts[:20]:
+                    if successful:
+                        current_streak += 1
+                    else:
+                        break
+                
+                best_streak = 0
+                temp_streak = 0
+                for successful in all_attempts:
+                    if successful:
+                        temp_streak += 1
+                        best_streak = max(best_streak, temp_streak)
+                    else:
+                        temp_streak = 0
+                
+                # Процент успешности
+                success_rate = round((stats['correct'] / stats['total']) * 100, 1) if stats['total'] > 0 else 0
+                
+                self._stats_cache[obj.id] = {
+                    'total': stats['total'],
+                    'correct': stats['correct'],
+                    'incorrect': stats['incorrect'],
+                    'success_rate': success_rate,
+                    'current_streak': current_streak,
+                    'best_streak': best_streak
+                }
+            else:
+                self._stats_cache[obj.id] = None
+        
+        return self._stats_cache[obj.id]
+    
     def get_total_quizzes(self, obj):
         """Возвращает общее количество попыток квизов для публичных профилей."""
-        if obj.is_profile_public:
-            from tasks.models import MiniAppTaskStatistics
-            return MiniAppTaskStatistics.objects.filter(mini_app_user=obj).count()
-        return None
+        stats = self._get_statistics_data(obj)
+        return stats['total'] if stats else None
     
     def get_correct_answers(self, obj):
         """Возвращает количество правильных ответов для публичных профилей."""
-        if obj.is_profile_public:
-            from tasks.models import MiniAppTaskStatistics
-            return MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=True).count()
-        return None
+        stats = self._get_statistics_data(obj)
+        return stats['correct'] if stats else None
     
     def get_incorrect_answers(self, obj):
         """Возвращает количество неправильных ответов для публичных профилей."""
-        if obj.is_profile_public:
-            from tasks.models import MiniAppTaskStatistics
-            return MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=False).count()
-        return None
+        stats = self._get_statistics_data(obj)
+        return stats['incorrect'] if stats else None
     
     def get_success_rate(self, obj):
         """Возвращает процент успешности для публичных профилей."""
-        if obj.is_profile_public:
-            from tasks.models import MiniAppTaskStatistics
-            total = MiniAppTaskStatistics.objects.filter(mini_app_user=obj).count()
-            if total > 0:
-                correct = MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=True).count()
-                return round((correct / total) * 100, 1)
-            return 0
-        return None
+        stats = self._get_statistics_data(obj)
+        return stats['success_rate'] if stats else None
     
     def get_current_streak(self, obj):
         """Возвращает текущую серию правильных ответов для публичных профилей."""
-        if obj.is_profile_public:
-            from tasks.models import MiniAppTaskStatistics
-            recent_attempts = MiniAppTaskStatistics.objects.filter(
-                mini_app_user=obj
-            ).order_by('-last_attempt_date')[:20]
-            
-            current_streak = 0
-            for attempt in recent_attempts:
-                if attempt.successful:
-                    current_streak += 1
-                else:
-                    break
-            return current_streak
-        return None
+        stats = self._get_statistics_data(obj)
+        return stats['current_streak'] if stats else None
     
     def get_best_streak(self, obj):
         """Возвращает лучшую серию правильных ответов для публичных профилей."""
-        if obj.is_profile_public:
-            from tasks.models import MiniAppTaskStatistics
-            all_attempts = MiniAppTaskStatistics.objects.filter(
-                mini_app_user=obj
-            ).order_by('-last_attempt_date')
-            
-            best_streak = 0
-            temp_streak = 0
-            
-            for attempt in all_attempts:
-                if attempt.successful:
-                    temp_streak += 1
-                    best_streak = max(best_streak, temp_streak)
-                else:
-                    temp_streak = 0
-            
-            return best_streak
-        return None
+        stats = self._get_statistics_data(obj)
+        return stats['best_streak'] if stats else None
     
     def get_is_online(self, obj):
         """Возвращает статус онлайн для публичных профилей."""

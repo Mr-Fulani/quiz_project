@@ -192,6 +192,27 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
                                         
                                         if (telegramId) {
                                             console.log('✅ Переходим на страницу профиля:', `/user_profile/${telegramId}`);
+                                            
+                                            // Сохраняем текущий индекс слайда из родительского swiper-slide
+                                            const swiperSlide = userItem.closest('.swiper-slide');
+                                            if (swiperSlide && window.userSwiper) {
+                                                const currentIndex = window.userSwiper.activeIndex;
+                                                sessionStorage.setItem('topUsersSwiperIndex', currentIndex);
+                                                sessionStorage.setItem('returnToSwiper', 'true');
+                                                console.log('💾 Сохранен индекс слайда для возврата:', currentIndex);
+                                            } else {
+                                                console.warn('⚠️ Не удалось получить индекс Swiper, сохраняем 0');
+                                                sessionStorage.setItem('topUsersSwiperIndex', '0');
+                                                sessionStorage.setItem('returnToSwiper', 'true');
+                                            }
+                                            
+                                            // Сохраняем текущие фильтры
+                                            if (window.topUsersFilter && window.topUsersFilter.filters) {
+                                                const filters = window.topUsersFilter.filters;
+                                                sessionStorage.setItem('topUsersFilters', JSON.stringify(filters));
+                                                console.log('💾 Сохранены фильтры:', filters);
+                                            }
+                                            
                                             window.location.href = `/user_profile/${telegramId}`;
                                         } else {
                                             console.error('❌ Не удалось получить telegram_id');
@@ -368,8 +389,19 @@ class TopUsersFilter {
 
     init() {
         console.log('🚀 TopUsersFilter: Инициализация');
-        this.bindEvents();
+        
+        // Очищаем сохраненные фильтры из sessionStorage (если есть)
+        // Они уже применены через URL при возврате
+        const savedFilters = sessionStorage.getItem('topUsersFilters');
+        if (savedFilters) {
+            console.log('🧹 Очищаем сохраненные фильтры из sessionStorage');
+            sessionStorage.removeItem('topUsersFilters');
+        }
+        
+        // Загружаем фильтры из URL параметров (они будут там если вернулись с фильтрами)
         this.loadFiltersFromURL();
+        
+        this.bindEvents();
         console.log('✅ TopUsersFilter: Инициализация завершена');
         
         // Тестируем элементы
@@ -473,18 +505,28 @@ class TopUsersFilter {
     }
 
     loadFiltersFromURL() {
+        console.log('🌐🌐🌐 ЗАГРУЗКА ФИЛЬТРОВ ИЗ URL 🌐🌐🌐');
+        console.log('🔍 Текущий URL:', window.location.href);
+        console.log('🔍 Query string:', window.location.search);
+        
         const urlParams = new URLSearchParams(window.location.search);
+        console.log('🔍 URL параметры:', Object.fromEntries(urlParams));
         
         this.filters.gender = urlParams.get('gender') || '';
         this.filters.age = urlParams.get('age') || '';
         this.filters.language = urlParams.get('language_pref') || '';
         this.filters.online = urlParams.get('online_only') || '';
 
+        console.log('📦 Загруженные фильтры:', this.filters);
+
         // Устанавливаем значения в селекты
+        console.log('🎯 Устанавливаем значения в селекты...');
         this.setSelectValue('gender-filter', this.filters.gender);
         this.setSelectValue('age-filter', this.filters.age);
         this.setSelectValue('language-filter', this.filters.language);
         this.setSelectValue('online-filter', this.filters.online);
+        
+        console.log('✅ Фильтры из URL загружены и применены к селектам');
     }
 
     setSelectValue(selectId, value) {
@@ -901,6 +943,27 @@ function updateLastSeenTexts() {
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     updateLastSeenTexts();
+    
+    // Проверяем, нужно ли восстановить модальное окно после возврата
+    const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
+    const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
+    
+    if (shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
+        console.log('🔄 Восстановление модального окна Swiper на слайде:', savedSwiperIndex);
+        
+        // Очищаем флаги
+        sessionStorage.removeItem('returnToSwiper');
+        sessionStorage.removeItem('topUsersSwiperIndex');
+        
+        // Открываем модальное окно на сохраненном слайде с минимальной задержкой
+        setTimeout(() => {
+            const slideIndex = parseInt(savedSwiperIndex, 10);
+            if (typeof window.openSwiperAtIndex === 'function') {
+                window.openSwiperAtIndex(slideIndex);
+                console.log('✅ Модальное окно восстановлено на слайде:', slideIndex);
+            }
+        }, 100);
+    }
 });
 
 // Обновление при смене языка

@@ -469,8 +469,54 @@
      * Возврат назад (к списку топ-пользователей)
      */
     function goBack() {
-        console.log('🔙 Возврат назад');
-        window.location.href = '/top_users';
+        console.log('🔙🔙🔙 GOBACK ВЫЗВАН 🔙🔙🔙');
+        
+        // Проверяем, есть ли сохраненные фильтры
+        const savedFilters = sessionStorage.getItem('topUsersFilters');
+        console.log('🔍 savedFilters из sessionStorage:', savedFilters);
+        
+        const currentLang = window.currentLanguage || 'ru';
+        let targetUrl = `/top_users?lang=${currentLang}`;
+        
+        if (savedFilters) {
+            try {
+                const filters = JSON.parse(savedFilters);
+                console.log('📦 Распарсенные фильтры:', filters);
+                
+                const urlParams = new URLSearchParams();
+                
+                // Добавляем язык
+                urlParams.set('lang', currentLang);
+                
+                // Добавляем фильтры
+                if (filters.gender) {
+                    urlParams.set('gender', filters.gender);
+                    console.log('✅ Добавлен фильтр gender:', filters.gender);
+                }
+                if (filters.age) {
+                    urlParams.set('age', filters.age);
+                    console.log('✅ Добавлен фильтр age:', filters.age);
+                }
+                if (filters.language) {
+                    urlParams.set('language_pref', filters.language);
+                    console.log('✅ Добавлен фильтр language_pref:', filters.language);
+                }
+                if (filters.online) {
+                    urlParams.set('online_only', filters.online);
+                    console.log('✅ Добавлен фильтр online_only:', filters.online);
+                }
+                
+                targetUrl = `/top_users?${urlParams.toString()}`;
+                console.log('🎯 Итоговый URL для возврата:', targetUrl);
+            } catch (e) {
+                console.error('❌ Ошибка при восстановлении URL с фильтрами:', e);
+            }
+        } else {
+            console.log('⚠️ Нет сохраненных фильтров, возврат на чистую страницу');
+        }
+        
+        console.log('🚀 Переход на:', targetUrl);
+        window.location.href = targetUrl;
     }
     
     /**
