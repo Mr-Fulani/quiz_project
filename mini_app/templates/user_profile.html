@@ -9,13 +9,11 @@
 {% endblock %}
 
 {% block content %}
-<!-- Wrapper для изоляции стилей user_profile от profile -->
-<div class="user-profile-page">
-    <div id="loader" class="loader-container">
-        <div class="loader-text" data-translate="loading">{{ translations.get('loading', 'Загрузка профиля...') }}</div>
-    </div>
+<div id="user-profile-loader" class="loader-container">
+    <div class="loader-text" data-translate="loading">{{ translations.get('loading', 'Загрузка профиля...') }}</div>
+</div>
 
-    <!-- Контейнер для приватного профиля -->
+<!-- Контейнер для приватного профиля -->
 <div id="private-profile-container" class="private-profile-container">
     <div class="private-profile-content">
         <div class="profile-header">
@@ -138,7 +136,6 @@
         </button>
     </div>
 </div>
-</div> <!-- /.user-profile-page -->
 {% endblock %}
 
 {% block extra_js %}

@@ -219,7 +219,10 @@
         if (birthDateElement) {
             if (userData.birth_date) {
                 const date = new Date(userData.birth_date);
-                birthDateElement.textContent = date.toLocaleDateString('ru-RU', {
+                const currentLang = window.currentLanguage || 'ru';
+                const locale = currentLang === 'en' ? 'en-US' : 'ru-RU';
+                
+                birthDateElement.textContent = date.toLocaleDateString(locale, {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
@@ -238,8 +241,13 @@
                     'middle': window.translations?.grade_middle || 'Middle',
                     'senior': window.translations?.grade_senior || 'Senior'
                 };
-                gradeElement.textContent = gradeMap[userData.grade] || userData.grade;
+                const gradeText = gradeMap[userData.grade] || userData.grade;
+                
+                // Добавляем классы для эффектов в зависимости от грейда
+                gradeElement.className = `info-value grade-${userData.grade}`;
+                gradeElement.textContent = gradeText;
             } else {
+                gradeElement.className = 'info-value grade-none';
                 gradeElement.textContent = window.translations?.not_specified || 'Не указан';
             }
         }
@@ -249,7 +257,7 @@
         if (technologiesElement) {
             if (userData.programming_languages && userData.programming_languages.length > 0) {
                 technologiesElement.innerHTML = userData.programming_languages
-                    .map(tech => `<span class="tech-badge">${tech}</span>`)
+                    .map(tech => `<span class="technology-tag">${tech}</span>`)
                     .join('');
             } else {
                 technologiesElement.innerHTML = `<span class="no-data">${window.translations?.no_technologies || 'Технологии не указаны'}</span>`;
@@ -386,7 +394,7 @@
      */
     function hideLoader() {
         console.log('🔄 Скрываем лоадер...');
-        const loader = document.getElementById('loader');
+        const loader = document.getElementById('user-profile-loader');
         console.log('🔍 Loader элемент:', loader);
         if (loader) {
             loader.classList.add('hidden');
