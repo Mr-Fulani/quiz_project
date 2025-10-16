@@ -843,6 +843,27 @@
                             // Пробуем инициализировать кнопки
                             tryInitCarouselButtons();
                             
+                            // Проверяем, нужно ли восстановить модальное окно после возврата (SPA-навигация)
+                            const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
+                            const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
+                            
+                            if (shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
+                                console.log('🔄 [SPA] Восстановление модального окна Swiper на слайде:', savedSwiperIndex);
+                                
+                                // Очищаем флаги
+                                sessionStorage.removeItem('returnToSwiper');
+                                sessionStorage.removeItem('topUsersSwiperIndex');
+                                
+                                // Открываем модальное окно на сохраненном слайде с минимальной задержкой
+                                setTimeout(() => {
+                                    const slideIndex = parseInt(savedSwiperIndex, 10);
+                                    if (typeof window.openSwiperAtIndex === 'function') {
+                                        window.openSwiperAtIndex(slideIndex);
+                                        console.log('✅ [SPA] Модальное окно восстановлено на слайде:', slideIndex);
+                                    }
+                                }, 200);
+                            }
+                            
                             // Также вызываем переинициализацию для SPA навигации
                             setTimeout(() => {
                                 if (typeof window.reinitializeTopUsersPage === 'function') {
@@ -998,7 +1019,10 @@
             
             // Проверяем, что это не результат нажатия "назад"
             if (performance.navigation.type !== performance.navigation.TYPE_BACK_FORWARD) {
-                loadPage(window.location.pathname);
+                // Передаем полный URL с query параметрами (например, ?online_only=true)
+                const fullUrl = window.location.pathname + window.location.search;
+                console.log('📍 Loading page with full URL:', fullUrl);
+                loadPage(fullUrl);
             }
         });
     </script>
