@@ -73,7 +73,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 STATIC_VERSIONS = {
     'donation.js': '2.9',  # Установлена английская локаль для Stripe Elements
     'localization.js': '2.3',  # Исправлены переводы для профиля пользователя
-    'share-app.js': '1.9',  # Добавлены кнопки WhatsApp и Instagram с функционалом копирования ссылки
+    'share-app.js': '2.0',  # Улучшено: display flex для корректного отображения модального окна
     'search.js': '2.2',  # Исправлено: добавлен has_tasks в API endpoint и language в запрос
     'tasks.js': '3.12',  # Центрирование toast уведомлений с учетом Safe Areas
     'topic-cards.js': '2.5',  # Добавлено программное воспроизведение видео при открытии увеличенной карточки
@@ -85,7 +85,7 @@ STATIC_VERSIONS = {
     'styles.css': '3.1',  # Исправлено позиционирование: убраны transform и perspective, оставлен только image-rendering
     'donation.css': '1.3',  # Обновлено: добавлена поддержка safe areas для Stripe модального окна
     'profile.css': '8.2',  # Обновлено: добавлена поддержка safe areas для модального окна профиля
-    'share-app.css': '2.1',  # Обновлено: добавлены стили для кнопок WhatsApp и Instagram
+    'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента
     'explanation-modal.css': '1.1',  # Обновлено: добавлена поддержка safe areas
     'profile.js': '5.3',  # Добавлен метод get_programming_languages в сериализатор
     'top_users.css': '31.8',  # Обновлены стили для свайпера со всеми карточками
