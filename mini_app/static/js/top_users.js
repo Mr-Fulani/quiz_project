@@ -140,6 +140,11 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
                     init: function() {
                         console.log('🔧 Swiper инициализирован на слайде:', this.activeIndex);
                         
+                        // Обновляем форматирование last_seen текстов
+                        if (typeof updateLastSeenTexts === 'function') {
+                            setTimeout(() => updateLastSeenTexts(), 100);
+                        }
+                        
                         // Повторно устанавливаем размеры после инициализации Swiper
                         setTimeout(() => {
                             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -570,10 +575,20 @@ class TopUsersFilter {
                 if (newUserList && currentUserList) {
                     currentUserList.innerHTML = newUserList.innerHTML;
                     console.log('✅ Список пользователей обновлен через AJAX');
+                    
+                    // Обновляем форматирование last_seen текстов в топ-5
+                    if (typeof updateLastSeenTexts === 'function') {
+                        updateLastSeenTexts();
+                    }
                 } else {
                     // Fallback - обновляем весь контент
                     currentContent.innerHTML = newContent.innerHTML;
                     console.log('✅ Контент обновлен через AJAX (fallback)');
+                    
+                    // Обновляем форматирование last_seen текстов
+                    if (typeof updateLastSeenTexts === 'function') {
+                        updateLastSeenTexts();
+                    }
                 }
                 
                 // ОБНОВЛЯЕМ МОДАЛЬНОЕ ОКНО СВАЙПЕРА (оно вне контейнера)
@@ -591,6 +606,11 @@ class TopUsersFilter {
                     // Обновляем контент карусели
                     currentCarousel.innerHTML = newCarousel.innerHTML;
                     console.log('✅ Модальное окно свайпера обновлено с учетом фильтров');
+                    
+                    // Обновляем форматирование last_seen текстов
+                    if (typeof updateLastSeenTexts === 'function') {
+                        updateLastSeenTexts();
+                    }
                 }
                 
                 // Восстанавливаем значения фильтров
@@ -727,10 +747,20 @@ class TopUsersFilter {
                 if (newUserList && currentUserList) {
                     currentUserList.innerHTML = newUserList.innerHTML;
                     console.log('✅ Фильтры сброшены, список пользователей обновлен');
+                    
+                    // Обновляем форматирование last_seen текстов в топ-5
+                    if (typeof updateLastSeenTexts === 'function') {
+                        updateLastSeenTexts();
+                    }
                 } else {
                     // Fallback - обновляем весь контент
                     currentContent.innerHTML = newContent.innerHTML;
                     console.log('✅ Фильтры сброшены, контент обновлен (fallback)');
+                    
+                    // Обновляем форматирование last_seen текстов
+                    if (typeof updateLastSeenTexts === 'function') {
+                        updateLastSeenTexts();
+                    }
                 }
                 
                 // ОБНОВЛЯЕМ МОДАЛЬНОЕ ОКНО СВАЙПЕРА при сбросе фильтров
@@ -748,6 +778,11 @@ class TopUsersFilter {
                     // Обновляем контент карусели
                     currentCarousel.innerHTML = newCarousel.innerHTML;
                     console.log('✅ Модальное окно свайпера обновлено после сброса фильтров');
+                    
+                    // Обновляем форматирование last_seen текстов
+                    if (typeof updateLastSeenTexts === 'function') {
+                        updateLastSeenTexts();
+                    }
                 }
                 
                 // Переинициализируем обработчики кнопок карусели после сброса фильтров
@@ -798,3 +833,85 @@ window.reinitializeTopUsersPage = function() {
         console.error('❌ TopUsersFilter class не найден для переинициализации');
     }
 };
+
+// Функция для форматирования времени "был онлайн X назад"
+function formatLastSeen(lastSeenDate) {
+    if (!lastSeenDate) return null;
+    
+    const now = new Date();
+    const lastSeen = new Date(lastSeenDate);
+    const diffMs = now - lastSeen;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    const currentLang = window.currentLanguage || 'ru';
+    
+    if (diffMins < 1) {
+        return currentLang === 'en' ? 'just now' : 'только что';
+    } else if (diffMins < 60) {
+        const unit = currentLang === 'en' ? 
+            (diffMins === 1 ? 'minute' : 'minutes') :
+            (diffMins === 1 ? 'минуту' : diffMins < 5 ? 'минуты' : 'минут');
+        return currentLang === 'en' ? 
+            `${diffMins} ${unit} ago` : 
+            `${diffMins} ${unit} назад`;
+    } else if (diffHours < 24) {
+        const unit = currentLang === 'en' ? 
+            (diffHours === 1 ? 'hour' : 'hours') :
+            (diffHours === 1 ? 'час' : diffHours < 5 ? 'часа' : 'часов');
+        return currentLang === 'en' ? 
+            `${diffHours} ${unit} ago` : 
+            `${diffHours} ${unit} назад`;
+    } else if (diffDays < 7) {
+        const unit = currentLang === 'en' ? 
+            (diffDays === 1 ? 'day' : 'days') :
+            (diffDays === 1 ? 'день' : diffDays < 5 ? 'дня' : 'дней');
+        return currentLang === 'en' ? 
+            `${diffDays} ${unit} ago` : 
+            `${diffDays} ${unit} назад`;
+    } else {
+        const weeks = Math.floor(diffDays / 7);
+        const unit = currentLang === 'en' ? 
+            (weeks === 1 ? 'week' : 'weeks') :
+            (weeks === 1 ? 'неделю' : weeks < 5 ? 'недели' : 'недель');
+        return currentLang === 'en' ? 
+            `${weeks} ${unit} ago` : 
+            `${weeks} ${unit} назад`;
+    }
+}
+
+// Функция для обновления всех last-seen текстов
+function updateLastSeenTexts() {
+    const lastSeenElements = document.querySelectorAll('.last-seen-text[data-last-seen]');
+    const currentLang = window.currentLanguage || 'ru';
+    const prefix = currentLang === 'en' ? 'Last seen' : 'Был в сети';
+    
+    lastSeenElements.forEach(element => {
+        const lastSeenDate = element.getAttribute('data-last-seen');
+        if (lastSeenDate) {
+            const formattedTime = formatLastSeen(lastSeenDate);
+            if (formattedTime) {
+                element.textContent = `${prefix} ${formattedTime}`;
+            }
+        }
+    });
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    updateLastSeenTexts();
+});
+
+// Обновление при смене языка
+if (window.localizationService) {
+    const originalUpdateInterface = window.localizationService.updateInterface;
+    window.localizationService.updateInterface = function() {
+        originalUpdateInterface.call(this);
+        updateLastSeenTexts();
+    };
+}
+
+// Экспортируем функции глобально
+window.formatLastSeen = formatLastSeen;
+window.updateLastSeenTexts = updateLastSeenTexts;
