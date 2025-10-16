@@ -944,11 +944,19 @@ function updateLastSeenTexts() {
 document.addEventListener('DOMContentLoaded', () => {
     updateLastSeenTexts();
     
+    // Проверяем, откуда пришел пользователь
+    const referrer = document.referrer;
+    const cameFromUserProfile = referrer && referrer.includes('/user_profile/');
+    
+    console.log('🔍 Referrer:', referrer);
+    console.log('🔍 Пришел из user_profile?', cameFromUserProfile);
+    
     // Проверяем, нужно ли восстановить модальное окно после возврата
     const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
     const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
     
-    if (shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
+    // Восстанавливаем модальное окно ТОЛЬКО если пришли из user_profile
+    if (cameFromUserProfile && shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
         console.log('🔄 Восстановление модального окна Swiper на слайде:', savedSwiperIndex);
         
         // Очищаем флаги
@@ -963,6 +971,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('✅ Модальное окно восстановлено на слайде:', slideIndex);
             }
         }, 100);
+    } else if (!cameFromUserProfile) {
+        // Если пришли НЕ из user_profile, очищаем флаги
+        console.log('🧹 Очищаем флаги Swiper (обычный переход на вкладку)');
+        sessionStorage.removeItem('returnToSwiper');
+        sessionStorage.removeItem('topUsersSwiperIndex');
+        sessionStorage.removeItem('topUsersFilters');
     }
 });
 
