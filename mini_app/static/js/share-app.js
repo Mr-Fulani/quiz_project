@@ -130,7 +130,7 @@ class ShareApp {
     async showQRCode() {
         console.log('🚀 ShareApp: Showing QR code modal...');
         try {
-            // Показываем модальное окно
+            // Показываем модальное окно с flex для центрирования
             this.modal.style.display = 'flex';
             console.log('✅ ShareApp: Modal displayed');
             

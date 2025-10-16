@@ -58,25 +58,30 @@
     background-color: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     animation: fadeIn 0.3s ease;
+    align-items: center;
+    justify-content: center;
     /* Учитываем safe areas Telegram */
-    padding-top: var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px)));
-    padding-bottom: var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
-    padding-left: var(--tg-safe-area-inset-left, var(--safe-area-left, env(safe-area-inset-left, 0px)));
-    padding-right: var(--tg-safe-area-inset-right, var(--safe-area-right, env(safe-area-inset-right, 0px)));
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom, 0px)));
+    padding-left: max(10px, env(safe-area-inset-left, 0px));
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
 }
 
 .share-modal-content {
     background: rgba(21, 31, 40, 0.95);
     border: 1px solid rgba(0, 255, 0, 0.4);
-    margin: 8% auto;
+    margin: 0;
     padding: 0;
     border-radius: 20px;
     width: 90%;
     max-width: 400px;
+    max-height: 80vh;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
     animation: slideIn 0.3s ease;
     overflow: hidden;
     backdrop-filter: blur(15px);
+    display: flex;
+    flex-direction: column;
 }
 
 .share-modal-header {
@@ -123,29 +128,11 @@
     padding: 20px 25px;
     text-align: center;
     color: rgba(255, 255, 255, 0.9);
-    max-height: calc(80vh - 80px - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))));
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 255, 0, 0.3) rgba(0, 0, 0, 0.3);
-}
-
-/* Стилизация скроллбара для WebKit браузеров */
-.share-modal-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.share-modal-body::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
-}
-
-.share-modal-body::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 0, 0.3);
-    border-radius: 3px;
-}
-
-.share-modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 0, 0.5);
+    overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 /* Превью приложения */
@@ -154,40 +141,41 @@
     align-items: center;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(0, 255, 0, 0.3);
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
+    border-radius: 12px;
+    padding: 12px;
     text-align: left;
     backdrop-filter: blur(10px);
+    flex-shrink: 0;
 }
 
 .app-preview-image {
-    margin-right: 15px;
+    margin-right: 12px;
     flex-shrink: 0;
 }
 
 .app-logo {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
 }
 
 .app-preview-info {
     flex: 1;
+    min-width: 0;
 }
 
 .app-name {
-    margin: 0 0 6px 0;
-    font-size: 16px;
+    margin: 0 0 4px 0;
+    font-size: 14px;
     font-weight: 600;
     color: var(--active-color);
     text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
 .app-description {
-    margin: 0 0 10px 0;
-    font-size: 13px;
+    margin: 0 0 8px 0;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.8);
     line-height: 1.3;
 }
@@ -195,28 +183,28 @@
 .app-features {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
 }
 
 .feature-tag {
     background: rgba(0, 255, 0, 0.2);
     border: 1px solid rgba(0, 255, 0, 0.4);
     color: var(--active-color);
-    padding: 3px 6px;
-    border-radius: 12px;
-    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 10px;
+    font-size: 9px;
     font-weight: 500;
     backdrop-filter: blur(10px);
 }
 
 /* QR-код секция */
 .qr-section {
-    margin-bottom: 20px;
+    flex-shrink: 0;
 }
 
 .qr-section h4 {
-    margin: 0 0 12px 0;
-    font-size: 15px;
+    margin: 0 0 10px 0;
+    font-size: 14px;
     color: var(--active-color);
     font-weight: 600;
     text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
@@ -226,39 +214,43 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 160px;
+    min-height: 140px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(0, 255, 0, 0.3);
-    border-radius: 15px;
-    padding: 15px;
+    border-radius: 12px;
+    padding: 10px;
     backdrop-filter: blur(10px);
 }
 
-#qr-code-container img {
-    border-radius: 12px;
+#qr-code-container img,
+#qr-code-container canvas {
+    border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
     background: white;
+    max-width: 140px;
+    max-height: 140px;
 }
 
 .share-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .share-btn {
-    padding: 10px 20px;
+    padding: 8px 16px;
     border: 1px solid rgba(0, 255, 0, 0.3);
     border-radius: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     transition: all 0.3s ease;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     backdrop-filter: blur(10px);
 }
 
@@ -317,10 +309,10 @@
     justify-content: center;
     animation: fadeIn 0.3s ease;
     /* Учитываем safe areas Telegram */
-    padding-top: var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px)));
-    padding-bottom: var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
-    padding-left: var(--tg-safe-area-inset-left, var(--safe-area-left, env(safe-area-inset-left, 0px)));
-    padding-right: var(--tg-safe-area-inset-right, var(--safe-area-right, env(safe-area-inset-right, 0px)));
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom, 0px)));
+    padding-left: max(10px, env(safe-area-inset-left, 0px));
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
 }
 
 .social-share-content {
@@ -330,11 +322,13 @@
     padding: 0;
     width: 90%;
     max-width: 400px;
-    max-height: calc(80vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))));
+    max-height: 70vh;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
     animation: slideIn 0.3s ease;
     overflow: hidden;
     backdrop-filter: blur(15px);
+    display: flex;
+    flex-direction: column;
 }
 
 .social-share-header {
@@ -378,40 +372,19 @@
 }
 
 .social-share-buttons {
-    padding: 20px;
+    padding: 15px 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-height: calc(80vh - 80px - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))));
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 255, 0, 0.3) rgba(0, 0, 0, 0.3);
-}
-
-/* Стилизация скроллбара для WebKit браузеров */
-.social-share-buttons::-webkit-scrollbar {
-    width: 6px;
-}
-
-.social-share-buttons::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
-}
-
-.social-share-buttons::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 0, 0.3);
-    border-radius: 3px;
-}
-
-.social-share-buttons::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 0, 0.5);
+    gap: 8px;
+    overflow: hidden;
+    flex: 1;
 }
 
 .social-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 18px;
+    gap: 10px;
+    padding: 10px 15px;
     border-radius: 8px;
     text-decoration: none;
     color: var(--active-color);
@@ -419,15 +392,17 @@
     transition: all 0.3s ease;
     border: 1px solid rgba(0, 255, 0, 0.3);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
+    flex-shrink: 0;
 }
 
 .social-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     fill: currentColor;
+    flex-shrink: 0;
 }
 
 .telegram-btn:hover {
@@ -490,18 +465,20 @@
 @media (max-width: 480px) {
     .share-modal-content {
         width: 95%;
-        margin: 5% auto;
-        /* Дополнительный отступ снизу с учетом safe area */
-        margin-bottom: calc(5% + var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))));
+        max-height: 75vh;
     }
     
     .share-modal-header {
-        padding: 12px 20px;
+        padding: 10px 15px;
+    }
+    
+    .share-modal-header h3 {
+        font-size: 16px;
     }
     
     .share-modal-body {
         padding: 15px;
-        padding-bottom: 30px;
+        gap: 12px;
     }
     
     .share-app-btn {
@@ -510,14 +487,36 @@
     }
     
     .social-share-content {
-        margin: 5% auto;
-        /* Дополнительный отступ снизу с учетом safe area */
-        margin-bottom: calc(5% + var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))));
+        width: 95%;
+        max-height: 65vh;
+    }
+    
+    .social-share-header {
+        padding: 10px 15px;
+    }
+    
+    .social-share-header h4 {
+        font-size: 14px;
     }
     
     .social-share-buttons {
-        padding: 20px;
-        padding-bottom: 35px;
+        padding: 12px 15px;
+        gap: 6px;
+    }
+    
+    .social-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    #qr-code-container {
+        min-height: 120px;
+    }
+    
+    #qr-code-container img,
+    #qr-code-container canvas {
+        max-width: 120px;
+        max-height: 120px;
     }
 }
 
