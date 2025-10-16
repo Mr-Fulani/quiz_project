@@ -329,7 +329,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
             'full_name', 'language', 'avatar', 'created_at', 'last_seen',
             'is_admin', 'admin_type', 'grade', 'programming_language', 'programming_languages',
-            'gender', 'birth_date',
+            'gender', 'birth_date', 'is_profile_public',
             'telegram_user_id', 'telegram_admin_id', 'django_admin_username',
             'social_links'
         )
@@ -677,4 +677,191 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
             today = date.today()
             age = today.year - obj.birth_date.year - ((today.month, today.day) < (obj.birth_date.month, obj.birth_date.day))
             return age
-        return None 
+        return None
+
+
+class PublicMiniAppUserSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для просмотра профиля пользователя Mini App другими пользователями.
+    
+    Если профиль публичный - возвращает полную информацию.
+    Если профиль приватный - возвращает только базовую информацию (аватар, имя, username).
+    """
+    full_name = serializers.CharField(read_only=True)
+    avatar = serializers.SerializerMethodField()
+    social_links = serializers.SerializerMethodField()
+    programming_languages = serializers.StringRelatedField(many=True, read_only=True)
+    rating = serializers.SerializerMethodField()
+    quizzes_completed = serializers.SerializerMethodField()
+    average_score = serializers.SerializerMethodField()
+    age = serializers.SerializerMethodField()
+    # Детальная статистика
+    total_quizzes = serializers.SerializerMethodField()
+    correct_answers = serializers.SerializerMethodField()
+    incorrect_answers = serializers.SerializerMethodField()
+    success_rate = serializers.SerializerMethodField()
+    current_streak = serializers.SerializerMethodField()
+    best_streak = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MiniAppUser
+        fields = (
+            'id', 'telegram_id', 'username', 'first_name', 'last_name',
+            'full_name', 'avatar', 'is_profile_public',
+            'grade', 'programming_languages', 'gender', 'birth_date', 'age',
+            'social_links', 'rating', 'quizzes_completed', 'average_score',
+            # Детальная статистика
+            'total_quizzes', 'correct_answers', 'incorrect_answers',
+            'success_rate', 'current_streak', 'best_streak'
+        )
+        read_only_fields = fields
+    
+    def get_avatar(self, obj):
+        """
+        Возвращает абсолютный URL к аватару пользователя.
+        """
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            avatar_url = obj.avatar.url
+            decoded_url = unquote(avatar_url)
+            
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
+
+            request = self.context.get('request')
+            if request:
+                forwarded_host = request.headers.get('X-Forwarded-Host')
+                host_header = request.headers.get('Host')
+                
+                if forwarded_host:
+                    host = forwarded_host
+                elif host_header and not host_header.startswith('localhost'):
+                    host = host_header
+                else:
+                    host = 'mini.quiz-code.com'
+                
+                scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                return f"{scheme}://{host}{avatar_url}"
+            return avatar_url
+        
+        if obj.telegram_photo_url:
+            return obj.telegram_photo_url
+            
+        return None
+    
+    def get_social_links(self, obj):
+        """
+        Возвращает социальные ссылки только для публичных профилей.
+        """
+        if obj.is_profile_public:
+            return obj.get_social_links()
+        return []
+    
+    def get_rating(self, obj):
+        """Возвращает рейтинг только для публичных профилей."""
+        if obj.is_profile_public:
+            return obj.calculate_rating()
+        return None
+    
+    def get_quizzes_completed(self, obj):
+        """Возвращает количество квизов только для публичных профилей."""
+        if obj.is_profile_public:
+            return obj.quizzes_completed
+        return None
+    
+    def get_average_score(self, obj):
+        """Возвращает средний балл только для публичных профилей."""
+        if obj.is_profile_public:
+            return obj.average_score
+        return None
+    
+    def get_age(self, obj):
+        """Возвращает возраст только для публичных профилей."""
+        if obj.is_profile_public and obj.birth_date:
+            from datetime import date
+            today = date.today()
+            age = today.year - obj.birth_date.year - ((today.month, today.day) < (obj.birth_date.month, obj.birth_date.day))
+            return age
+        return None
+    
+    def get_total_quizzes(self, obj):
+        """Возвращает общее количество попыток квизов для публичных профилей."""
+        if obj.is_profile_public:
+            from tasks.models import MiniAppTaskStatistics
+            return MiniAppTaskStatistics.objects.filter(mini_app_user=obj).count()
+        return None
+    
+    def get_correct_answers(self, obj):
+        """Возвращает количество правильных ответов для публичных профилей."""
+        if obj.is_profile_public:
+            from tasks.models import MiniAppTaskStatistics
+            return MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=True).count()
+        return None
+    
+    def get_incorrect_answers(self, obj):
+        """Возвращает количество неправильных ответов для публичных профилей."""
+        if obj.is_profile_public:
+            from tasks.models import MiniAppTaskStatistics
+            return MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=False).count()
+        return None
+    
+    def get_success_rate(self, obj):
+        """Возвращает процент успешности для публичных профилей."""
+        if obj.is_profile_public:
+            from tasks.models import MiniAppTaskStatistics
+            total = MiniAppTaskStatistics.objects.filter(mini_app_user=obj).count()
+            if total > 0:
+                correct = MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=True).count()
+                return round((correct / total) * 100, 1)
+            return 0
+        return None
+    
+    def get_current_streak(self, obj):
+        """Возвращает текущую серию правильных ответов для публичных профилей."""
+        if obj.is_profile_public:
+            from tasks.models import MiniAppTaskStatistics
+            recent_attempts = MiniAppTaskStatistics.objects.filter(
+                mini_app_user=obj
+            ).order_by('-last_attempt_date')[:20]
+            
+            current_streak = 0
+            for attempt in recent_attempts:
+                if attempt.successful:
+                    current_streak += 1
+                else:
+                    break
+            return current_streak
+        return None
+    
+    def get_best_streak(self, obj):
+        """Возвращает лучшую серию правильных ответов для публичных профилей."""
+        if obj.is_profile_public:
+            from tasks.models import MiniAppTaskStatistics
+            all_attempts = MiniAppTaskStatistics.objects.filter(
+                mini_app_user=obj
+            ).order_by('-last_attempt_date')
+            
+            best_streak = 0
+            temp_streak = 0
+            
+            for attempt in all_attempts:
+                if attempt.successful:
+                    temp_streak += 1
+                    best_streak = max(best_streak, temp_streak)
+                else:
+                    temp_streak = 0
+            
+            return best_streak
+        return None
+    
+    def to_representation(self, instance):
+        """
+        Переопределяет представление для скрытия полей приватных профилей.
+        """
+        data = super().to_representation(instance)
+        
+        # Если профиль приватный, оставляем только базовую информацию
+        if not instance.is_profile_public:
+            allowed_fields = ['id', 'telegram_id', 'username', 'first_name', 'last_name', 'full_name', 'avatar', 'is_profile_public']
+            data = {key: value for key, value in data.items() if key in allowed_fields}
+        
+        return data 

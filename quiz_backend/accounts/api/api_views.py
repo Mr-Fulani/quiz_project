@@ -32,7 +32,8 @@ from ..serializers import (
     MiniAppUserSerializer,
     MiniAppUserCreateSerializer,
     MiniAppUserUpdateSerializer,
-    MiniAppTopUserSerializer
+    MiniAppTopUserSerializer,
+    PublicMiniAppUserSerializer
 )
 
 User = get_user_model()
@@ -1275,4 +1276,66 @@ class ProgrammingLanguagesListView(generics.ListAPIView):
             }
             for topic in topics
         ]
-        return Response(languages) 
+        return Response(languages)
+
+
+class MiniAppUserPublicProfileView(APIView):
+    """
+    API для получения публичного профиля пользователя Mini App по telegram_id.
+    
+    Если профиль публичный (is_profile_public=True):
+        - Возвращает полную информацию о пользователе
+    Если профиль приватный (is_profile_public=False):
+        - Возвращает только базовую информацию (аватар, имя, username)
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    @swagger_auto_schema(
+        operation_description="Получение публичного профиля пользователя Mini App по telegram_id.",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_PATH,
+                description="ID пользователя Telegram.",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: PublicMiniAppUserSerializer,
+            404: 'Пользователь не найден'
+        }
+    )
+    def get(self, request, telegram_id):
+        """
+        Получение публичного профиля пользователя по telegram_id.
+        
+        Args:
+            request: HTTP запрос
+            telegram_id: Telegram ID пользователя
+            
+        Returns:
+            Response: JSON с данными профиля (полными или ограниченными в зависимости от is_profile_public)
+        """
+        try:
+            # Получаем пользователя по telegram_id
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Сериализуем данные (сериализатор сам проверит is_profile_public и отфильтрует поля)
+            serializer = PublicMiniAppUserSerializer(user, context={'request': request})
+            
+            logger.info(f"✅ Профиль пользователя {telegram_id} успешно получен. Публичный: {user.is_profile_public}")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except MiniAppUser.DoesNotExist:
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден")
+            return Response(
+                {'error': 'User not found', 'detail': 'Пользователь не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"❌ Ошибка при получении профиля пользователя {telegram_id}: {e}", exc_info=True)
+            return Response(
+                {'error': 'Internal server error', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            ) 

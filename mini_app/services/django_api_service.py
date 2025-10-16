@@ -210,6 +210,33 @@ class DjangoAPIService:
         except Exception as e:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")
             return None
+    
+    async def get_user_public_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Получение публичного профиля пользователя Mini App по telegram_id.
+        
+        Если профиль публичный - возвращает полную информацию.
+        Если профиль приватный - возвращает только базовую информацию.
+        
+        Args:
+            telegram_id: Telegram ID пользователя
+            
+        Returns:
+            Dict с данными профиля или None в случае ошибки
+        """
+        try:
+            data = await self._make_request("GET", f"/api/accounts/miniapp-users/public-profile/{telegram_id}/")
+            logger.info(f"✅ Публичный профиль пользователя {telegram_id} успешно получен")
+            return data
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                logger.warning(f"⚠️ Пользователь с telegram_id={telegram_id} не найден (404)")
+                return None
+            logger.error(f"❌ Ошибка HTTP при получении публичного профиля {telegram_id}: {e.response.status_code}")
+            raise
+        except Exception as e:
+            logger.error(f"❌ Ошибка при получении публичного профиля пользователя {telegram_id}: {e}")
+            return None
 
     async def get_top_users_mini_app(
         self, language: str = 'en', host: str = None, scheme: str = None,

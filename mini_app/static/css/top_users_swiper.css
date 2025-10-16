@@ -81,12 +81,12 @@
 
 /* ========================================
    ПОЛНОЭКРАННАЯ КАРУСЕЛЬ
-   UPDATED: 2025-10-12 - Простое центрирование
+   UPDATED: 2025-10-16 - Центрирование с учетом Safe Areas
    ======================================== */
 .all-users-carousel {
     position: fixed !important;
-    /* Простое центрирование - работает всегда */
-    top: 50% !important;
+    /* Центрирование с учетом Telegram Safe Areas */
+    top: calc(50% + env(safe-area-inset-top) / 2 - env(safe-area-inset-bottom) / 2) !important;
     left: 50% !important;
     right: auto !important;
     bottom: auto !important;
@@ -111,7 +111,7 @@
 .all-users-carousel.all-users-carousel,
 div#all-users-carousel.all-users-carousel {
     position: fixed !important;
-    top: 50% !important;
+    top: calc(50% + env(safe-area-inset-top) / 2 - env(safe-area-inset-bottom) / 2) !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
 }
@@ -213,6 +213,18 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     border: none !important;
     border-radius: 12px !important;
     margin: 0 !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Эффект при наведении на карточку пользователя */
+.all-users-carousel .swiper-slide .user-item:hover {
+    transform: scale(1.02) !important;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4) !important;
+}
+
+/* Эффект при клике на карточку пользователя */
+.all-users-carousel .swiper-slide .user-item:active {
+    transform: scale(0.98) !important;
 }
 
 /* Аватарка пользователя - растянута на весь контейнер */
@@ -230,6 +242,7 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    pointer-events: none !important; /* Не блокирует клики по родителю */
 }
 
 /* Индикатор онлайн статуса */
@@ -245,6 +258,7 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     box-shadow: 0 0 10px var(--active-color);
     animation: pulse 2s infinite;
     z-index: 10;
+    pointer-events: none !important; /* Не блокирует клики по родителю */
 }
 
 /* Текстовый индикатор онлайн статуса */
@@ -263,6 +277,7 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     text-shadow: 0 0 8px var(--active-color);
     z-index: 10;
     white-space: nowrap;
+    pointer-events: none !important; /* Не блокирует клики по родителю */
 }
 
 
@@ -274,6 +289,18 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     padding-top: clamp(0.5rem, 2vw, 1rem); /* Уменьшен верхний отступ */
     padding-bottom: clamp(0.5rem, 2vw, 1rem); /* Уменьшен нижний отступ */
     color: white;
+}
+
+/* Текстовые элементы не блокируют клики */
+.swiper-slide .user-name,
+.swiper-slide .user-username,
+.swiper-slide .user-stats,
+.swiper-slide .user-rating,
+.swiper-slide .user-details,
+.swiper-slide .gender-icon,
+.swiper-slide .age-info,
+.swiper-slide .grade-info {
+    pointer-events: none !important;
 }
 
 .swiper-slide .user-name {

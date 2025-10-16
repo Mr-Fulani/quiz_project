@@ -625,6 +625,28 @@
                     console.error('❌ Failed to load tasks.js');
                 };
                 document.head.appendChild(script);
+            } else if (url.startsWith('/user_profile/')) {
+                console.log('🎯 User profile page detected, loading script...');
+                // Для просмотра чужого профиля загружаем user_profile.js
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '{{ get_js_url("user_profile.js") }}';
+                script.onload = function() {
+                    console.log('✅ User profile script loaded via base template');
+                    // Вызываем переинициализацию профиля для SPA навигации
+                    setTimeout(() => {
+                        console.log('🚀 Calling reinitializeUserProfilePage for SPA navigation');
+                        if (typeof window.reinitializeUserProfilePage === 'function') {
+                            window.reinitializeUserProfilePage();
+                        } else {
+                            console.warn('⚠️ reinitializeUserProfilePage function not found, profile may have auto-initialized');
+                        }
+                    }, 100);
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load user_profile.js');
+                };
+                document.head.appendChild(script);
             } else if (url.startsWith('/profile')) {
                 console.log('🎯 Profile page detected, loading script...');
                 // Для профиля загружаем скрипт и инициализируем
