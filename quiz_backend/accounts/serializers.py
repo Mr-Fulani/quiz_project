@@ -436,6 +436,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'username', 'first_name', 'last_name', 'full_name',
             'language', 'avatar', 'telegram_photo_url', 'photo_url',
             'grade', 'programming_language_ids', 'programming_languages', 'gender', 'birth_date',
+            'is_profile_public',
             'website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'social_links'
         )
         extra_kwargs = {
@@ -615,23 +616,33 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 logger.info(f"[DEBUG AVATAR] all request headers: {dict(request.headers)}")
-                # Приоритет: X-Forwarded-Host > Host заголовок > fallback
                 forwarded_host = request.headers.get('X-Forwarded-Host')
                 host_header = request.headers.get('Host')
+                x_forwarded_port = request.headers.get('X-Forwarded-Port')
                 
-                if forwarded_host:
+                # Для локального окружения используем localhost:8080
+                if forwarded_host and 'localhost' in forwarded_host:
+                    host = 'localhost'
+                    port = x_forwarded_port or '8080'
+                    scheme = 'http'  # Локально используем http
+                    final_url = f"{scheme}://{host}:{port}{avatar_url}"
+                    logger.info(f"[DEBUG AVATAR] Localhost detected, using: {final_url}")
+                elif forwarded_host and 'ngrok' not in forwarded_host:
+                    # Для продакшена используем forwarded_host
                     host = forwarded_host
-                    logger.info(f"[DEBUG AVATAR] Using forwarded_host: {forwarded_host}")
+                    scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                    final_url = f"{scheme}://{host}{avatar_url}"
+                    logger.info(f"[DEBUG AVATAR] Production host, using: {final_url}")
                 elif host_header and not host_header.startswith('localhost'):
                     host = host_header
-                    logger.info(f"[DEBUG AVATAR] Using host_header: {host_header}")
+                    scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                    final_url = f"{scheme}://{host}{avatar_url}"
                 else:
                     # Fallback для продакшена
                     host = 'mini.quiz-code.com'
-                    logger.info(f"[DEBUG AVATAR] Using fallback host: {host}")
+                    scheme = 'https'
+                    final_url = f"{scheme}://{host}{avatar_url}"
                 
-                scheme = request.headers.get('X-Forwarded-Proto', 'https')
-                final_url = f"{scheme}://{host}{avatar_url}"
                 logger.info(f"[DEBUG AVATAR] headers: forwarded_host={forwarded_host}, host_header={host_header}, final_host={host}, scheme={scheme}")
                 logger.info(f"[DEBUG AVATAR] final_url: {final_url}")
                 return final_url
@@ -721,33 +732,61 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         """
         Возвращает абсолютный URL к аватару пользователя.
+        Приоритет: 1) загруженный avatar, 2) telegram_photo_url, 3) None
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Сначала проверяем загруженный аватар
         if obj.avatar and hasattr(obj.avatar, 'url'):
             avatar_url = obj.avatar.url
             decoded_url = unquote(avatar_url)
             
+            logger.info(f"[PUBLIC PROFILE AVATAR] raw avatar_url: {avatar_url}")
+            logger.info(f"[PUBLIC PROFILE AVATAR] decoded_url: {decoded_url}")
+            
             if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                logger.info(f"[PUBLIC PROFILE AVATAR] returning absolute URL: {decoded_url}")
                 return decoded_url
 
             request = self.context.get('request')
             if request:
                 forwarded_host = request.headers.get('X-Forwarded-Host')
                 host_header = request.headers.get('Host')
+                x_forwarded_port = request.headers.get('X-Forwarded-Port')
                 
-                if forwarded_host:
+                # Для локального окружения используем localhost:8080
+                if forwarded_host and 'localhost' in forwarded_host:
+                    host = 'localhost'
+                    port = x_forwarded_port or '8080'
+                    scheme = 'http'  # Локально используем http
+                    final_url = f"{scheme}://{host}:{port}{avatar_url}"
+                elif forwarded_host and 'ngrok' not in forwarded_host:
+                    # Для продакшена используем forwarded_host
                     host = forwarded_host
+                    scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                    final_url = f"{scheme}://{host}{avatar_url}"
                 elif host_header and not host_header.startswith('localhost'):
                     host = host_header
+                    scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                    final_url = f"{scheme}://{host}{avatar_url}"
                 else:
+                    # Fallback для продакшена
                     host = 'mini.quiz-code.com'
+                    scheme = 'https'
+                    final_url = f"{scheme}://{host}{avatar_url}"
                 
-                scheme = request.headers.get('X-Forwarded-Proto', 'https')
-                return f"{scheme}://{host}{avatar_url}"
+                logger.info(f"[PUBLIC PROFILE AVATAR] forwarded_host={forwarded_host}, host_header={host_header}, port={x_forwarded_port}")
+                logger.info(f"[PUBLIC PROFILE AVATAR] final_url: {final_url}")
+                return final_url
             return avatar_url
         
+        # Если загруженного аватара нет, используем URL из Telegram
         if obj.telegram_photo_url:
+            logger.info(f"[PUBLIC PROFILE AVATAR] Using telegram_photo_url: {obj.telegram_photo_url}")
             return obj.telegram_photo_url
-            
+        
+        logger.info(f"[PUBLIC PROFILE AVATAR] No avatar found, returning None")
         return None
     
     def get_social_links(self, obj):
@@ -883,8 +922,11 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         
         # Если профиль приватный, оставляем только базовую информацию
+        # Username скрыт, чтобы нельзя было найти пользователя в Telegram
         if not instance.is_profile_public:
-            allowed_fields = ['id', 'telegram_id', 'username', 'first_name', 'last_name', 'full_name', 'avatar', 'is_profile_public']
+            allowed_fields = ['id', 'telegram_id', 'first_name', 'last_name', 'full_name', 'avatar', 'is_profile_public']
             data = {key: value for key, value in data.items() if key in allowed_fields}
+            # Явно скрываем username
+            data['username'] = None
         
         return data 

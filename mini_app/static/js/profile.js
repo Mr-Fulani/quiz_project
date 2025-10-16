@@ -1137,6 +1137,34 @@
                     elements.telegramInput.value = currentSocialLinks.find(link => link.name === 'Telegram')?.url.replace('https://t.me/', '') || '';
                     elements.githubInput.value = currentSocialLinks.find(link => link.name === 'GitHub')?.url || '';
                     elements.linkedinInput.value = currentSocialLinks.find(link => link.name === 'LinkedIn')?.url || '';
+                    
+                    // Заполняем настройку видимости профиля
+                    const isProfilePublicInput = document.getElementById('is-profile-public-input');
+                    const profileVisibilityStatus = document.getElementById('profile-visibility-status');
+                    if (isProfilePublicInput) {
+                        // Устанавливаем значение из профиля пользователя (по умолчанию true)
+                        isProfilePublicInput.checked = currentUser.is_profile_public !== undefined ? currentUser.is_profile_public : true;
+                        console.log('👁️ Заполнена видимость профиля:', isProfilePublicInput.checked);
+                        
+                        // Устанавливаем текст статуса
+                        if (profileVisibilityStatus) {
+                            const publicText = window.translations?.public_profile || 'Публичный профиль';
+                            const privateText = window.translations?.private_profile || 'Скрытый профиль';
+                            profileVisibilityStatus.textContent = isProfilePublicInput.checked ? publicText : privateText;
+                            profileVisibilityStatus.setAttribute('data-translate', isProfilePublicInput.checked ? 'public_profile' : 'private_profile');
+                        }
+                        
+                        // Добавляем обработчик изменения
+                        isProfilePublicInput.addEventListener('change', function() {
+                            const publicText = window.translations?.public_profile || 'Публичный профиль';
+                            const privateText = window.translations?.private_profile || 'Скрытый профиль';
+                            if (profileVisibilityStatus) {
+                                profileVisibilityStatus.textContent = this.checked ? publicText : privateText;
+                                profileVisibilityStatus.setAttribute('data-translate', this.checked ? 'public_profile' : 'private_profile');
+                            }
+                            console.log('👁️ Видимость профиля изменена на:', this.checked ? 'Публичный' : 'Скрытый');
+                        });
+                    }
                     elements.instagramInput.value = currentSocialLinks.find(link => link.name === 'Instagram')?.url || '';
                     elements.facebookInput.value = currentSocialLinks.find(link => link.name === 'Facebook')?.url || '';
                     elements.youtubeInput.value = currentSocialLinks.find(link => link.name === 'YouTube')?.url || '';
@@ -1308,6 +1336,13 @@
                 formData.append('instagram', elements.instagramInput.value);
                 formData.append('facebook', elements.facebookInput.value);
                 formData.append('youtube', elements.youtubeInput.value);
+                
+                // Добавляем настройку видимости профиля
+                const isProfilePublicInput = document.getElementById('is-profile-public-input');
+                if (isProfilePublicInput) {
+                    formData.append('is_profile_public', isProfilePublicInput.checked);
+                    console.log('👁️ Видимость профиля:', isProfilePublicInput.checked ? 'Публичный' : 'Скрытый');
+                }
 
                 try {
                     const response = await fetch(`/api/accounts/miniapp-users/update/${telegramId}/`, {

@@ -114,12 +114,18 @@
         // Обновляем социальные ссылки
         updateSocialLinks(userData);
         
-        // Показываем кнопку "Написать", если есть username
-        if (userData.username) {
+        // Показываем кнопку "Написать", если профиль публичный и есть username
+        if (userData.is_profile_public && userData.username) {
             const writeBtn = document.getElementById('write-message-btn');
             if (writeBtn) {
                 writeBtn.style.display = 'flex';
                 writeBtn.onclick = () => openTelegramChat(userData.username);
+            }
+        } else {
+            // Скрываем кнопку для приватных профилей или если нет username
+            const writeBtn = document.getElementById('write-message-btn');
+            if (writeBtn) {
+                writeBtn.style.display = 'none';
             }
         }
         
@@ -153,16 +159,34 @@
         const name = document.getElementById('private-name');
         const username = document.getElementById('private-username');
         
-        if (avatar && userData.avatar) {
-            avatar.src = userData.avatar;
+        // Устанавливаем аватар с fallback на default
+        if (avatar) {
+            if (userData.avatar) {
+                console.log('🖼️ [Private] Устанавливаем аватар:', userData.avatar);
+                avatar.src = userData.avatar;
+                avatar.onerror = function() {
+                    console.log('❌ [Private] Ошибка загрузки аватара, используем default');
+                    this.src = '/static/images/default_avatar.png';
+                };
+            } else {
+                console.log('⚠️ [Private] Нет аватара, используем default');
+                avatar.src = '/static/images/default_avatar.png';
+            }
         }
         
         if (name) {
             name.textContent = userData.full_name || `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Пользователь';
         }
         
-        if (username && userData.username) {
-            username.textContent = `@${userData.username}`;
+        // Скрываем username для приватных профилей
+        if (username) {
+            if (userData.username) {
+                username.textContent = `@${userData.username}`;
+                username.style.display = 'block';
+            } else {
+                // Для скрытых профилей не показываем username
+                username.style.display = 'none';
+            }
         }
         
         // Обработчик кнопки "Назад"
@@ -229,19 +253,34 @@
         const name = document.getElementById('profile-name');
         const username = document.getElementById('profile-username');
         
-        if (avatar && userData.avatar) {
-            avatar.src = userData.avatar;
-            avatar.onerror = function() {
-                this.src = '/static/images/default_avatar.png';
-            };
+        // Устанавливаем аватар с fallback на default
+        if (avatar) {
+            if (userData.avatar) {
+                console.log('🖼️ Устанавливаем аватар:', userData.avatar);
+                avatar.src = userData.avatar;
+                avatar.onerror = function() {
+                    console.log('❌ Ошибка загрузки аватара, используем default');
+                    this.src = '/static/images/default_avatar.png';
+                };
+            } else {
+                console.log('⚠️ Нет аватара, используем default');
+                avatar.src = '/static/images/default_avatar.png';
+            }
         }
         
         if (name) {
             name.textContent = userData.full_name || `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Пользователь';
         }
         
-        if (username && userData.username) {
-            username.textContent = `@${userData.username}`;
+        // Скрываем username для приватных профилей
+        if (username) {
+            if (userData.username) {
+                username.textContent = `@${userData.username}`;
+                username.style.display = 'block';
+            } else {
+                // Для скрытых профилей не показываем username
+                username.style.display = 'none';
+            }
         }
         
         // Обновляем статус онлайн
