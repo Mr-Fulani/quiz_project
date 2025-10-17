@@ -1,0 +1,91 @@
+{
+  "tasks": [
+    {
+      "topic": "Python",
+      "subtopic": "Lists",
+      "difficulty": "easy",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "```python\nx = [1, 2, 3]\nprint(x[0])\n```\n\nЧто выведет этот код?",
+          "answers": ["0", "2", "3"],
+          "correct_answer": "1",
+          "explanation": "Индексация в Python начинается с 0, поэтому x[0] возвращает первый элемент списка - число 1.",
+          "external_link": "https://docs.python.org/3/tutorial/introduction.html#lists"
+        },
+        {
+          "language": "en",
+          "question": "```python\nx = [1, 2, 3]\nprint(x[0])\n```\n\nWhat will this code output?",
+          "answers": ["0", "2", "3"],
+          "correct_answer": "1",
+          "explanation": "Python indexing starts from 0, so x[0] returns the first element of the list - number 1.",
+          "external_link": "https://docs.python.org/3/tutorial/introduction.html#lists"
+        }
+      ]
+    },
+    {
+      "topic": "JavaScript",
+      "subtopic": "Arrays",
+      "difficulty": "medium",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "```javascript\nconst arr = [1, 2, 3];\nconsole.log(arr.length);\n```",
+          "answers": ["2", "undefined", "null"],
+          "correct_answer": "3",
+          "explanation": "Свойство length возвращает количество элементов в массиве. В данном случае это 3.",
+          "external_link": "https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Array/length"
+        },
+        {
+          "language": "en",
+          "question": "```javascript\nconst arr = [1, 2, 3];\nconsole.log(arr.length);\n```",
+          "answers": ["2", "undefined", "null"],
+          "correct_answer": "3",
+          "explanation": "The length property returns the number of elements in the array. In this case it's 3.",
+          "external_link": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/length"
+        }
+      ]
+    },
+    {
+      "topic": "SQL",
+      "subtopic": "Basic Queries",
+      "difficulty": "easy",
+      "image_url": "https://example.com/sql-image.png",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "```sql\nSELECT COUNT(*) FROM users;\n```\n\nЧто вернет этот запрос?",
+          "answers": ["Все записи", "Первую запись", "Имена пользователей"],
+          "correct_answer": "Количество пользователей",
+          "explanation": "COUNT(*) возвращает количество строк в таблице users.",
+          "external_link": "https://www.postgresql.org/docs/current/functions-aggregate.html"
+        }
+      ]
+    },
+    {
+      "topic": "Go",
+      "subtopic": "Functions",
+      "difficulty": "hard",
+      "translation_group_id": "550e8400-e29b-41d4-a716-446655440000",
+      "translations": [
+        {
+          "language": "ru",
+          "question": "```go\nfunc main() {\n    defer fmt.Println(\"world\")\n    fmt.Println(\"hello\")\n}\n```\n\nВ каком порядке будет вывод?",
+          "answers": ["world hello", "hello", "world"],
+          "correct_answer": "hello world",
+          "explanation": "defer откладывает выполнение до конца функции. Сначала выведется 'hello', затем 'world'.",
+          "external_link": "https://go.dev/tour/flowcontrol/12"
+        },
+        {
+          "language": "en",
+          "question": "```go\nfunc main() {\n    defer fmt.Println(\"world\")\n    fmt.Println(\"hello\")\n}\n```\n\nWhat will be the output order?",
+          "answers": ["world hello", "hello", "world"],
+          "correct_answer": "hello world",
+          "explanation": "defer postpones execution until the end of the function. First 'hello' is printed, then 'world'.",
+          "external_link": "https://go.dev/tour/flowcontrol/12"
+        }
+      ]
+    }
+  ]
+}
+
