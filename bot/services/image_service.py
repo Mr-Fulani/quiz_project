@@ -5,17 +5,18 @@ import io
 import logging
 import os
 import re
+import subprocess
 import textwrap
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from typing import Optional
+from typing import Optional, Tuple
 
 from PIL import Image, ImageDraw
 from PIL.Image import Resampling
 from dotenv import load_dotenv
 from pygments import highlight
 from pygments.formatters import ImageFormatter
-from pygments.lexers import PythonLexer, JavaLexer, SqlLexer, GoLexer, get_lexer_by_name
+from pygments.lexers import PythonLexer, JavaLexer, SqlLexer, GoLexer, get_lexer_by_name, TextLexer
 from pygments.styles import get_style_by_name
 
 from bot.services.s3_services import save_image_to_storage
@@ -34,6 +35,332 @@ if not logger.handlers:
 
 logo_path = os.getenv('LOGO_PATH', '/default/path/to/logo.png')
 
+
+# ============================================================================
+# ИЗВЛЕЧЕНИЕ КОДА ИЗ MARKDOWN БЛОКОВ
+# ============================================================================
+
+def extract_code_from_markdown(text: str) -> Tuple[str, str]:
+    """
+    Извлекает код из markdown блоков вида ```language\ncode\n```
+    
+    Returns:
+        (code, language) - извлеченный код и определенный язык
+    """
+    # Паттерн для markdown блоков кода (закрытых)
+    pattern = r'```(\w+)?\n(.*?)```'
+    matches = re.findall(pattern, text, re.DOTALL)
+    
+    if matches:
+        # Берем первый блок кода
+        language, code = matches[0]
+        language = language.strip() if language else 'python'
+        code = code.strip()
+        logger.info(f"✅ Извлечен код из markdown блока, язык: {language}")
+        return code, language
+    
+    # Попытка найти незакрытый блок кода
+    open_pattern = r'```(\w+)?\n(.*)'
+    open_matches = re.findall(open_pattern, text, re.DOTALL)
+    
+    if open_matches:
+        # Берем первый незакрытый блок
+        language, code = open_matches[0]
+        language = language.strip() if language else 'python'
+        code = code.strip()
+        logger.info(f"✅ Извлечен код из незакрытого markdown блока, язык: {language}")
+        return code, language
+    
+    # Если markdown блоков нет, возвращаем весь текст
+    logger.debug("Markdown блоки кода не найдены, используется весь текст")
+    return text.strip(), 'python'
+
+
+# ============================================================================
+# УМНОЕ ФОРМАТИРОВАНИЕ КОДА - ГЛАВНОЕ УЛУЧШЕНИЕ
+# ============================================================================
+
+def format_python_code(code: str) -> str:
+    """
+    Форматирование Python с приоритетом: black > autopep8 > базовое
+    """
+    # Попытка 1: black (самый надёжный)
+    try:
+        import black
+        mode = black.Mode(
+            line_length=79,
+            string_normalization=False,
+            is_pyi=False,
+        )
+        formatted = black.format_str(code, mode=mode)
+        logger.info("✅ Использован black для форматирования")
+        return formatted
+    except ImportError:
+        logger.debug("black не установлен")
+    except Exception as e:
+        logger.warning(f"black не смог отформатировать: {e}")
+    
+    # Попытка 2: autopep8
+    try:
+        import autopep8
+        formatted = autopep8.fix_code(
+            code,
+            options={
+                'max_line_length': 79,
+                'aggressive': 2,
+                'experimental': True,
+            }
+        )
+        logger.info("✅ Использован autopep8 для форматирования")
+        return formatted
+    except ImportError:
+        logger.debug("autopep8 не установлен")
+    except Exception as e:
+        logger.warning(f"autopep8 не смог отформатировать: {e}")
+    
+    # Попытка 3: базовое форматирование (безопасное)
+    logger.info("⚠️ Использовано базовое форматирование для Python")
+    return safe_basic_format(code)
+
+
+def format_javascript_typescript(code: str) -> str:
+    """
+    Форматирование JS/TS через prettier или базовое
+    """
+    # Попытка 1: prettier (если установлен Node.js)
+    try:
+        result = subprocess.run(
+            ['npx', '--yes', 'prettier', '--stdin-filepath', 'code.js'],
+            input=code.encode(),
+            capture_output=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            logger.info("✅ Использован prettier для JS/TS")
+            return result.stdout.decode()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        logger.debug("prettier недоступен (npx не найден или timeout)")
+    except Exception as e:
+        logger.warning(f"prettier ошибка: {e}")
+    
+    # Базовое форматирование
+    logger.info("⚠️ Использовано базовое форматирование для JS/TS")
+    return format_curly_braces_language(code)
+
+
+def format_java_code(code: str) -> str:
+    """
+    Форматирование Java через улучшенное базовое форматирование
+    """
+    return format_curly_braces_language(code)
+
+
+def format_csharp_code(code: str) -> str:
+    """
+    Форматирование C# через улучшенное базовое форматирование
+    """
+    return format_curly_braces_language(code)
+
+
+def format_golang_code(code: str) -> str:
+    """
+    Форматирование Go через gofmt
+    """
+    try:
+        result = subprocess.run(
+            ['gofmt'],
+            input=code.encode(),
+            capture_output=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            logger.info("✅ Использован gofmt")
+            return result.stdout.decode()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        logger.debug("gofmt недоступен")
+    except Exception as e:
+        logger.warning(f"gofmt ошибка: {e}")
+    
+    logger.info("⚠️ Использовано базовое форматирование для Go")
+    return format_curly_braces_language(code)
+
+
+def format_rust_code(code: str) -> str:
+    """
+    Форматирование Rust через rustfmt
+    """
+    try:
+        result = subprocess.run(
+            ['rustfmt', '--emit', 'stdout'],
+            input=code.encode(),
+            capture_output=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            logger.info("✅ Использован rustfmt")
+            return result.stdout.decode()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        logger.debug("rustfmt недоступен")
+    except Exception as e:
+        logger.warning(f"rustfmt ошибка: {e}")
+    
+    logger.info("⚠️ Использовано базовое форматирование для Rust")
+    return format_curly_braces_language(code)
+
+
+def format_sql_code(code: str) -> str:
+    """
+    Форматирование SQL через sqlparse
+    """
+    try:
+        import sqlparse
+        formatted = sqlparse.format(
+            code,
+            reindent=True,
+            keyword_case='upper',
+            indent_width=4
+        )
+        logger.info("✅ Использован sqlparse")
+        return formatted
+    except ImportError:
+        logger.debug("sqlparse не установлен")
+    except Exception as e:
+        logger.warning(f"sqlparse ошибка: {e}")
+    
+    logger.info("⚠️ SQL код оставлен без изменений")
+    return code
+
+
+def format_curly_braces_language(code: str) -> str:
+    """
+    УЛУЧШЕННОЕ базовое форматирование для языков со скобками { }
+    Работает для: Java, C++, C#, JavaScript, TypeScript, Go, Swift, Kotlin
+    """
+    lines = code.split('\n')
+    formatted = []
+    indent = 0
+    
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            formatted.append('')
+            continue
+        
+        # Определяем отступ для текущей строки
+        current_indent = indent
+        
+        # Уменьшаем отступ ПЕРЕД строкой с }
+        if stripped.startswith('}'):
+            current_indent = max(0, indent - 1)
+        
+        # Добавляем строку с правильным отступом
+        formatted.append('    ' * current_indent + stripped)
+        
+        # Обновляем отступ для следующих строк
+        # Считаем открывающие и закрывающие скобки
+        opening = stripped.count('{')
+        closing = stripped.count('}')
+        indent += opening - closing
+        indent = max(0, indent)  # Не даём стать отрицательным
+    
+    return '\n'.join(formatted)
+
+
+def safe_basic_format(code: str) -> str:
+    """
+    Безопасное базовое форматирование - не ломает код
+    Просто убирает лишние пробелы, сохраняя структуру
+    """
+    lines = code.split('\n')
+    formatted = []
+    
+    for line in lines:
+        # Убираем trailing пробелы, но сохраняем структуру
+        if line.strip():
+            formatted.append(line.rstrip())
+        else:
+            formatted.append('')
+    
+    return '\n'.join(formatted)
+
+
+# ============================================================================
+# ГЛАВНАЯ ФУНКЦИЯ ФОРМАТИРОВАНИЯ - ВЫБИРАЕТ ЛУЧШИЙ МЕТОД
+# ============================================================================
+
+def smart_format_code(code: str, language: str) -> str:
+    """
+    Умное форматирование кода в зависимости от языка.
+    Динамически выбирает лучший доступный форматтер.
+    """
+    code = code.strip()
+    
+    # Нормализуем название языка
+    lang = language.lower().strip()
+    
+    # Маппинг языков на функции форматирования
+    formatters = {
+        'python': format_python_code,
+        'py': format_python_code,
+        
+        'javascript': format_javascript_typescript,
+        'js': format_javascript_typescript,
+        'typescript': format_javascript_typescript,
+        'ts': format_javascript_typescript,
+        'jsx': format_javascript_typescript,
+        'tsx': format_javascript_typescript,
+        'react': format_javascript_typescript,
+        'vue': format_javascript_typescript,
+        'angular': format_javascript_typescript,
+        
+        'java': format_java_code,
+        
+        'c#': format_csharp_code,
+        'csharp': format_csharp_code,
+        'cs': format_csharp_code,
+        
+        'c++': format_curly_braces_language,
+        'cpp': format_curly_braces_language,
+        'c': format_curly_braces_language,
+        
+        'go': format_golang_code,
+        'golang': format_golang_code,
+        
+        'rust': format_rust_code,
+        'rs': format_rust_code,
+        
+        'php': format_curly_braces_language,
+        
+        'sql': format_sql_code,
+        'mysql': format_sql_code,
+        'postgresql': format_sql_code,
+        'postgres': format_sql_code,
+        
+        'swift': format_curly_braces_language,
+        'kotlin': format_curly_braces_language,
+        'scala': format_curly_braces_language,
+        'dart': format_curly_braces_language,
+    }
+    
+    # Выбираем форматтер
+    formatter_func = formatters.get(lang, safe_basic_format)
+    
+    try:
+        formatted = formatter_func(code)
+        # Проверяем что форматирование сработало
+        if formatted and formatted.strip():
+            return formatted
+    except Exception as e:
+        logger.error(f"Ошибка форматирования {language}: {e}")
+    
+    # Если всё упало - возвращаем безопасную версию
+    logger.warning(f"Использован fallback форматтер для {language}")
+    return safe_basic_format(code)
+
+
+# ============================================================================
+# УСТАРЕВШИЕ ФУНКЦИИ - СОХРАНЕНЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
+# ============================================================================
 
 def fix_python_indentation(code: str) -> str:
     """
@@ -84,223 +411,6 @@ def fix_python_indentation(code: str) -> str:
         fixed_lines.append('    ' * current_indent + stripped)
     
     return '\n'.join(fixed_lines)
-
-
-def format_python_code(code: str) -> str:
-    """
-    Форматирует Python код с помощью autopep8.
-    Сначала исправляет базовые проблемы с отступами, затем применяет autopep8.
-    """
-    try:
-        # Сначала исправляем отступы
-        code = fix_python_indentation(code)
-        
-        import autopep8
-        formatted = autopep8.fix_code(
-            code,
-            options={
-                'max_line_length': 79,
-                'aggressive': 2,
-                'experimental': True,
-            }
-        )
-        return formatted
-    except ImportError:
-        logger.warning("autopep8 не установлен. Используется базовое форматирование.")
-        return fix_python_indentation(code)
-    except Exception as e:
-        logger.error(f"Ошибка форматирования с autopep8: {e}")
-        # Если autopep8 упал, возвращаем хотя бы с исправленными отступами
-        try:
-            return fix_python_indentation(code)
-        except:
-            return code
-
-
-def format_java_code(code: str) -> str:
-    """
-    Базовое форматирование Java кода.
-    """
-    lines = code.split('\n')
-    formatted_lines = []
-    indent_level = 0
-    
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            formatted_lines.append('')
-            continue
-        
-        # Уменьшаем отступ для закрывающих скобок
-        if stripped.startswith('}'):
-            indent_level = max(0, indent_level - 1)
-        elif stripped in ['else', 'else {']:
-            indent_level = max(0, indent_level - 1)
-        
-        # Добавляем отступ
-        formatted_lines.append('    ' * indent_level + stripped)
-        
-        # Увеличиваем отступ после открывающих скобок
-        if stripped.endswith('{'):
-            indent_level += 1
-        elif stripped.endswith('}'):
-            pass  # Уже обработано выше
-        
-    return '\n'.join(formatted_lines)
-
-
-def format_golang_code(code: str) -> str:
-    """
-    Форматирование Go кода с помощью gofmt через subprocess.
-    Если gofmt недоступен, использует базовое форматирование.
-    """
-    try:
-        import subprocess
-        result = subprocess.run(
-            ['gofmt'],
-            input=code.encode(),
-            capture_output=True,
-            timeout=5
-        )
-        if result.returncode == 0:
-            return result.stdout.decode()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        logger.debug("gofmt недоступен, используется базовое форматирование")
-    except Exception as e:
-        logger.error(f"Ошибка форматирования Go: {e}")
-    
-    # Базовое форматирование если gofmt недоступен
-    return basic_brace_format(code)
-
-
-def format_javascript_code(code: str) -> str:
-    """
-    Базовое форматирование JavaScript кода.
-    """
-    return basic_brace_format(code)
-
-
-def format_csharp_code(code: str) -> str:
-    """
-    Базовое форматирование C# кода.
-    """
-    return basic_brace_format(code)
-
-
-def format_cpp_code(code: str) -> str:
-    """
-    Базовое форматирование C++ кода.
-    """
-    return basic_brace_format(code)
-
-
-def format_php_code(code: str) -> str:
-    """
-    Базовое форматирование PHP кода.
-    """
-    return basic_brace_format(code)
-
-
-def format_rust_code(code: str) -> str:
-    """
-    Форматирование Rust кода с помощью rustfmt через subprocess.
-    """
-    try:
-        import subprocess
-        result = subprocess.run(
-            ['rustfmt', '--emit', 'stdout'],
-            input=code.encode(),
-            capture_output=True,
-            timeout=5
-        )
-        if result.returncode == 0:
-            return result.stdout.decode()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        logger.debug("rustfmt недоступен, используется базовое форматирование")
-    except Exception as e:
-        logger.error(f"Ошибка форматирования Rust: {e}")
-    
-    return basic_brace_format(code)
-
-
-def basic_brace_format(code: str) -> str:
-    """
-    Базовое форматирование для языков со скобками (Java, JavaScript, C++, C#, Go, Swift и т.д.)
-    Правильно обрабатывает многострочные конструкции и скобки.
-    """
-    lines = code.split('\n')
-    formatted_lines = []
-    indent_level = 0
-    
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            formatted_lines.append('')
-            continue
-        
-        # Считаем открывающие и закрывающие скобки
-        opening_braces = stripped.count('{')
-        closing_braces = stripped.count('}')
-        
-        # Определяем начальный отступ для текущей строки
-        line_indent = indent_level
-        
-        # Если строка начинается с }, уменьшаем отступ для этой строки
-        if stripped.startswith('}'):
-            line_indent = max(0, indent_level - 1)
-        
-        # Добавляем строку с правильным отступом
-        formatted_lines.append('    ' * line_indent + stripped)
-        
-        # Обновляем уровень отступа для следующих строк
-        # Если есть открывающие скобки, увеличиваем отступ
-        indent_level += opening_braces
-        # Если есть закрывающие скобки, уменьшаем отступ
-        indent_level = max(0, indent_level - closing_braces)
-    
-    return '\n'.join(formatted_lines)
-
-
-def smart_format_code(code: str, language: str) -> str:
-    """
-    Умное форматирование кода в зависимости от языка программирования.
-    Использует специализированные форматтеры для каждого языка.
-    """
-    # Убираем лишние пустые строки в начале и конце
-    code = code.strip()
-    
-    # Маппинг языков на функции форматирования
-    formatters = {
-        'python': format_python_code,
-        'java': format_java_code,
-        'golang': format_golang_code,
-        'go': format_golang_code,
-        'javascript': format_javascript_code,
-        'js': format_javascript_code,
-        'typescript': format_javascript_code,
-        'ts': format_javascript_code,
-        'c++': format_cpp_code,
-        'cpp': format_cpp_code,
-        'c#': format_csharp_code,
-        'csharp': format_csharp_code,
-        'php': format_php_code,
-        'rust': format_rust_code,
-        'sql': format_sql_basic,
-    }
-    
-    formatter = formatters.get(language.lower())
-    
-    if formatter:
-        try:
-            formatted = formatter(code)
-            # Проверяем что форматирование сработало
-            if formatted and formatted.strip():
-                return formatted
-        except Exception as e:
-            logger.error(f"Ошибка форматирования для {language}: {e}")
-    
-    # Если не нашли специальный форматтер или он не сработал
-    return basic_code_format(code)
 
 
 def format_sql_basic(code: str) -> str:
@@ -361,36 +471,48 @@ def wrap_text(task_text: str, max_line_length: int = 79) -> str:
 
 def get_lexer(language: str):
     """
-    Получает лексер для подсветки синтаксиса по названию языка.
+    Автоматическое определение лексера Pygments для любого языка
+    Поддержка alias и популярных вариантов написания
     """
-    lexer_map = {
-        'python': 'python',
-        'java': 'java',
-        'golang': 'go',
-        'go': 'go',
-        'sql': 'sql',
-        'javascript': 'javascript',
+    # Нормализуем название
+    lang = language.lower().strip()
+    
+    # Маппинг популярных названий на имена лексеров Pygments
+    lexer_aliases = {
+        'py': 'python',
         'js': 'javascript',
-        'typescript': 'typescript',
         'ts': 'typescript',
-        'c++': 'cpp',
-        'cpp': 'cpp',
+        'jsx': 'jsx',
+        'tsx': 'tsx',
+        'golang': 'go',
+        'cs': 'csharp',
         'c#': 'csharp',
-        'csharp': 'csharp',
-        'php': 'php',
-        'rust': 'rust',
-        'ruby': 'ruby',
-        'kotlin': 'kotlin',
+        'c++': 'cpp',
+        'rs': 'rust',
+        'rb': 'ruby',
+        'kt': 'kotlin',
+        'react': 'jsx',
+        'vue': 'vue',
+        'angular': 'typescript',
+        'mysql': 'mysql',
+        'postgresql': 'postgresql',
+        'postgres': 'postgresql',
+        'dart': 'dart',
+        'scala': 'scala',
         'swift': 'swift',
+        'php': 'php',
     }
     
-    lexer_name = lexer_map.get(language.lower(), 'python')
+    # Преобразуем alias в название лексера
+    lexer_name = lexer_aliases.get(lang, lang)
     
     try:
-        return get_lexer_by_name(lexer_name)
+        lexer = get_lexer_by_name(lexer_name)
+        logger.debug(f"✅ Найден лексер: {lexer_name}")
+        return lexer
     except Exception as e:
-        logger.warning(f"Не удалось загрузить лексер для {language}, используется Python: {e}")
-        return PythonLexer()
+        logger.warning(f"⚠️ Лексер для {language} не найден, используется text: {e}")
+        return TextLexer()
 
 
 async def generate_image_with_executor(task_text, language, logo_path=None):
@@ -418,9 +540,18 @@ async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Im
             raise ValueError(f"Перевод задачи с ID {task.id} не найден или отсутствует вопрос.")
 
         task_text = translation.question
+        
+        # Извлекаем код из markdown блоков и определяем язык
+        code, detected_language = extract_code_from_markdown(task_text)
+        
+        # Если язык не определён из markdown, используем topic
+        if detected_language == 'python' and task.topic:
+            topic_name = task.topic.name.lower()
+            # Пытаемся использовать topic как fallback для языка
+            detected_language = topic_name if topic_name in ['python', 'java', 'javascript', 'go', 'golang', 'rust', 'sql'] else 'python'
 
-        logger.info(f"Генерация изображения для задачи с ID {task.id}")
-        image = await generate_image_with_executor(task_text, 'python', logo_path)
+        logger.info(f"Генерация изображения для задачи с ID {task.id}, язык: {detected_language}")
+        image = await generate_image_with_executor(code, detected_language, logo_path)
 
         return image
 
@@ -432,8 +563,9 @@ async def generate_image_if_needed(task: Task, user_chat_id: int) -> Optional[Im
 def generate_console_image(task_text: str, language: str, logo_path: Optional[str] = None) -> Image.Image:
     """
     Генерация «консольного» изображения с подсветкой кода/текста и логотипом.
+    Использует умное форматирование и нумерацию строк.
     """
-    # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: используем умное форматирование
+    # 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: используем умное форматирование
     formatted_text = smart_format_code(task_text, language)
     
     # Дополнительно оборачиваем длинные строки если нужно
@@ -452,10 +584,13 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
         formatter = ImageFormatter(
             font_size=font_size,
             style=get_style_by_name('monokai'),
-            line_numbers=False,
+            line_numbers=True,  # 🔥 ВКЛЮЧЕНА НУМЕРАЦИЯ СТРОК
+            line_number_start=1,
+            line_number_fg='#888888',
+            line_number_bg='#272822',  # Цвет фона из темы monokai
             image_pad=20,
             line_pad=10,
-            background_color='transparent'
+            background_color='#272822'  # Цвет фона из темы monokai
         )
         code_image_io = io.BytesIO()
         highlight(formatted_text.strip(), lexer, formatter, outfile=code_image_io)
@@ -470,7 +605,7 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
         if (tmp_code_img.width <= (console_width - 160)
                 and tmp_code_img.height <= (console_height - 240)):
             code_img = tmp_code_img
-            logger.info(f"Selected font size: {font_size}")
+            logger.info(f"✅ Выбран размер шрифта: {font_size}")
             break
 
         font_size -= 2

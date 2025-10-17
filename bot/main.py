@@ -10,7 +10,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import MenuButtonWebApp, WebAppInfo
+from aiogram.types import MenuButtonWebApp, WebAppInfo, MenuButtonDefault
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -127,6 +127,9 @@ async def delete_webhook():
 async def setup_telegram_menu(bot: Bot):
     """
     Настраивает меню Telegram: очищает команды и устанавливает кнопку Web App.
+    
+    Сначала сбрасывает menu button на default, чтобы очистить кэш Telegram,
+    затем устанавливает новую кнопку с актуальным URL.
 
     Args:
         bot (Bot): Экземпляр бота aiogram.
@@ -141,6 +144,17 @@ async def setup_telegram_menu(bot: Bot):
     
     logger.info(f"🔗 Настройка меню Telegram с URL: {profile_url}")
     
+    # Шаг 1: Сбрасываем menu button на default для всех чатов, чтобы очистить кэш Telegram
+    logger.info("🧹 Сброс menu button на default для очистки кэша...")
+    await bot.set_chat_menu_button(
+        menu_button=MenuButtonDefault()
+    )
+    
+    # Небольшая задержка для применения изменений на стороне Telegram
+    await asyncio.sleep(0.5)
+    
+    # Шаг 2: Устанавливаем новый menu button с актуальным URL
+    logger.info("🔧 Установка нового menu button с актуальным URL...")
     await bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(
             text="Профиль", # Изменим текст для ясности
@@ -148,7 +162,17 @@ async def setup_telegram_menu(bot: Bot):
         )
     )
     
+    # Шаг 3: Обновляем описание бота для кнопки "ОТКРЫТЬ" в списке чатов
+    logger.info("📝 Обновление описания бота для кнопки в списке чатов...")
+    try:
+        await bot.set_my_description(description=f"Quiz Bot with Mini App: {WEBAPP_URL}")
+        await bot.set_my_short_description(short_description="Quiz Bot with Mini App")
+        logger.info("✅ Описание бота обновлено")
+    except Exception as e:
+        logger.warning(f"⚠️ Не удалось обновить описание бота: {e}")
+    
     logger.info("✅ Меню Telegram успешно настроено")
+    logger.info(f"💡 Если кнопка не обновилась, перезапустите чат с ботом: /start")
 
 async def start_publication_bot():
     """
