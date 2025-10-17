@@ -102,6 +102,50 @@ class Task(models.Model):
 
     def __str__(self):
         return f"Задача {self.id} ({self.get_difficulty_display()})"
+    
+    def delete_with_related(self):
+        """
+        Удаляет задачу вместе со всеми связанными задачами по translation_group_id
+        и их изображениями из S3.
+        
+        Использует сигналы для автоматической очистки.
+        """
+        # Сигналы автоматически обработают удаление связанных задач и изображений
+        self.delete()
+    
+    def publish_to_telegram(self):
+        """
+        Публикует задачу в Telegram канал.
+        
+        Returns:
+            dict: Результаты публикации
+        """
+        from tasks.services.telegram_service import publish_task_to_telegram
+        
+        if not self.image_url:
+            return {'success': False, 'errors': ['Отсутствует изображение']}
+        
+        # Получаем первый перевод
+        translation = self.translations.first()
+        if not translation:
+            return {'success': False, 'errors': ['Отсутствуют переводы']}
+        
+        # Получаем группу
+        if not self.group:
+            return {'success': False, 'errors': ['Не указана группа для публикации']}
+        
+        result = publish_task_to_telegram(
+            task=self,
+            translation=translation,
+            telegram_group=self.group,
+            external_link=self.external_link
+        )
+        
+        if result['success']:
+            self.published = True
+            self.save(update_fields=['published'])
+        
+        return result
 
 
 class TaskTranslation(models.Model):

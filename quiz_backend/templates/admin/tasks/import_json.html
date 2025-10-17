@@ -1,0 +1,154 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Импорт задач из JSON{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .import-form {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .import-form h1 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #417690;
+        }
+        .import-form .form-group {
+            margin-bottom: 20px;
+        }
+        .import-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        .import-form input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .import-form input[type="file"]:hover {
+            border-color: #417690;
+            background: #f0f0f0;
+        }
+        .import-form .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .import-form .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        .import-form .help-text {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .import-form .btn-submit {
+            padding: 12px 24px;
+            background: #417690;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .import-form .btn-submit:hover {
+            background: #2e5266;
+        }
+        .import-form .btn-cancel {
+            margin-left: 10px;
+            padding: 12px 24px;
+            background: #ccc;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            display: inline-block;
+        }
+        .import-form .btn-cancel:hover {
+            background: #b3b3b3;
+        }
+        .info-box {
+            padding: 15px;
+            background: #e7f3ff;
+            border-left: 4px solid #417690;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #417690;
+        }
+        .info-box ul {
+            margin-bottom: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="import-form">
+    <h1>{% trans "Импорт задач из JSON" %}</h1>
+    
+    <div class="info-box">
+        <h3>ℹ️ Информация</h3>
+        <p>Загрузите JSON файл с задачами. Формат файла должен соответствовать структуре:</p>
+        <ul>
+            <li>Автоматически создаются темы и подтемы</li>
+            <li>Генерируются изображения для задач без image_url</li>
+            <li>Изображения загружаются в AWS S3</li>
+            <li>Можно сразу опубликовать задачи в Telegram</li>
+        </ul>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="json_file">Выберите JSON файл:</label>
+            <input type="file" 
+                   id="json_file" 
+                   name="json_file" 
+                   accept=".json"
+                   required>
+            <div class="help-text">
+                Только файлы .json
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" 
+                       id="publish" 
+                       name="publish">
+                <label for="publish" style="margin-bottom: 0;">
+                    Опубликовать в Telegram сразу после импорта
+                </label>
+            </div>
+            <div class="help-text">
+                ⚠️ Убедитесь, что для задач указаны Telegram группы
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn-submit">
+                📤 Загрузить и импортировать
+            </button>
+            <a href="{% url 'admin:tasks_task_changelist' %}" class="btn-cancel">
+                ← Отмена
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
