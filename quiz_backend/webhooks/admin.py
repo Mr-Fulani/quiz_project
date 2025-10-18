@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.html import format_html
 
-from .models import Webhook
+from .models import Webhook, DefaultLink, MainFallbackLink
 
 logger = logging.getLogger(__name__)
 
@@ -87,3 +87,58 @@ class WebhookAdmin(admin.ModelAdmin):
             "Если протокол не указан, будет автоматически добавлен https://."
         )
         return form
+
+
+@admin.register(DefaultLink)
+class DefaultLinkAdmin(admin.ModelAdmin):
+    """
+    Админка для ссылок по умолчанию в кнопке 'Узнать больше о задаче'.
+    Эта таблица используется и ботом и Django.
+    """
+    list_display = ('language', 'topic', 'link_display', 'id')
+    list_filter = ('language', 'topic')
+    search_fields = ('language', 'topic', 'link')
+    ordering = ('language', 'topic')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('language', 'topic', 'link'),
+            'description': 'Ссылка по умолчанию для кнопки "Узнать больше" в Telegram опросах. Эта таблица используется и ботом и Django.'
+        }),
+    )
+    
+    def link_display(self, obj):
+        """Отображает ссылку как кликабельную"""
+        return format_html(
+            '<a href="{}" target="_blank">{}</a>',
+            obj.link, obj.link[:50] + '...' if len(obj.link) > 50 else obj.link
+        )
+    link_display.short_description = 'Ссылка'
+
+
+@admin.register(MainFallbackLink)
+class MainFallbackLinkAdmin(admin.ModelAdmin):
+    """
+    Админка для главных ссылок по языкам.
+    Эти ссылки используются когда нет специфичной ссылки для топика.
+    Таблица используется и ботом и Django.
+    """
+    list_display = ('language', 'link_display', 'id')
+    list_filter = ('language',)
+    search_fields = ('language', 'link')
+    ordering = ('language',)
+    
+    fieldsets = (
+        (None, {
+            'fields': ('language', 'link'),
+            'description': 'Главная ссылка для языка. Используется когда нет специфичной ссылки для топика. Эта таблица используется и ботом и Django.'
+        }),
+    )
+    
+    def link_display(self, obj):
+        """Отображает ссылку как кликабельную"""
+        return format_html(
+            '<a href="{}" target="_blank">{}</a>',
+            obj.link, obj.link[:50] + '...' if len(obj.link) > 50 else obj.link
+        )
+    link_display.short_description = 'Ссылка'
