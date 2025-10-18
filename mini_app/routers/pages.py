@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from services.django_api_service import django_api_service
 from services.localization import localization_service
 from utils.cache_buster import get_js_url, get_css_url # Импортируем get_js_url и get_css_url
+from core.config import settings as app_settings  # Импортируем настройки с алиасом
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +255,7 @@ async def settings(
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
+        "admin_telegram_id": app_settings.ADMIN_TELEGRAM_ID,
         "tasks_js_url": get_js_url('tasks.js'),
         "localization_js_url": get_js_url('localization.js'),
         "share_app_js_url": get_js_url('share-app.js'),

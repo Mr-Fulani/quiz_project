@@ -101,6 +101,7 @@ services:
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/mini_app
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID:-}
     volumes:
       - ./mini_app:/mini_app
       - ./mini_app/static:/mini_app/static

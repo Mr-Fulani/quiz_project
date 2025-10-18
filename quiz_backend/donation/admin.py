@@ -10,8 +10,8 @@ from .utils import export_donations_csv, send_donation_thank_you_email
 
 @admin.register(Donation)
 class DonationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'amount_formatted', 'currency', 'status_colored', 'payment_method', 'created_at', 'days_ago']
-    list_filter = ['status', 'currency', 'payment_method', 'created_at']
+    list_display = ['name', 'amount_formatted', 'currency', 'source', 'status_colored', 'payment_method', 'created_at', 'days_ago']
+    list_filter = ['status', 'currency', 'payment_method', 'source', 'created_at']
     search_fields = ['name', 'email', 'stripe_payment_intent_id']
     readonly_fields = ['stripe_payment_intent_id', 'created_at', 'updated_at']
     ordering = ['-created_at']
@@ -19,7 +19,7 @@ class DonationAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Информация о донате', {
-            'fields': ('name', 'email', 'amount', 'currency')
+            'fields': ('name', 'email', 'amount', 'currency', 'source')
         }),
         ('Детали платежа', {
             'fields': ('payment_method', 'status', 'stripe_payment_intent_id')
@@ -91,6 +91,21 @@ class DonationAdmin(admin.ModelAdmin):
             created_at__gte=thirty_days_ago
         ).count()
         
+        # Статистика по источникам
+        source_stats = {}
+        for source_code, source_name in Donation.SOURCE_CHOICES:
+            source_donations = Donation.objects.filter(source=source_code)
+            source_completed = source_donations.filter(status='completed')
+            source_recent = source_donations.filter(created_at__gte=thirty_days_ago)
+            
+            source_stats[source_code] = {
+                'name': source_name,
+                'total_donations': source_donations.count(),
+                'completed_donations': source_completed.count(),
+                'total_amount_usd': source_completed.filter(currency='usd').aggregate(total=Sum('amount'))['total'] or 0,
+                'recent_donations': source_recent.count(),
+            }
+        
         # Статистика по валютам
         currency_stats = {}
         for currency_code, currency_name in Donation.CURRENCY_CHOICES:
@@ -122,6 +137,7 @@ class DonationAdmin(admin.ModelAdmin):
                 'failed_donations': Donation.objects.filter(status='failed').count(),
                 'recent_donations': recent_donations,
                 'currency_stats': currency_stats,
+                'source_stats': source_stats,
             }
         
         return response

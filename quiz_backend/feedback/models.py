@@ -7,6 +7,18 @@ from django.conf import settings
 
 
 class FeedbackMessage(models.Model):
+    SOURCE_CHOICES = [
+        ('bot', 'Telegram Bot'),
+        ('mini_app', 'Mini App'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('bug', 'Bug'),
+        ('suggestion', 'Suggestion'),
+        ('complaint', 'Complaint'),
+        ('other', 'Other'),
+    ]
+    
     class Meta:
         db_table = 'feedback_messages'
         verbose_name = 'Сообщение обратной связи'
@@ -15,6 +27,8 @@ class FeedbackMessage(models.Model):
         indexes = [
             models.Index(fields=['created_at']),
             models.Index(fields=['is_processed']),
+            models.Index(fields=['source']),
+            models.Index(fields=['category']),
         ]
 
     id = models.AutoField(primary_key=True)
@@ -37,6 +51,19 @@ class FeedbackMessage(models.Model):
     is_processed = models.BooleanField(
         default=False,
         help_text='Статус обработки сообщения'
+    )
+    source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default='bot',
+        help_text='Источник сообщения (бот или мини-апп)'
+    )
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Категория обратной связи'
     )
 
     def __str__(self):

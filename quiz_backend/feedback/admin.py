@@ -37,8 +37,8 @@ class FeedbackMessageAdmin(admin.ModelAdmin):
     """
     Админка для управления сообщениями обратной связи
     """
-    list_display = ('id', 'user_id', 'username', 'short_message', 'created_at', 'is_processed', 'replies_count', 'status_display')
-    list_filter = ('is_processed', 'created_at')
+    list_display = ('id', 'user_id', 'username', 'short_message', 'source', 'category', 'created_at', 'is_processed', 'replies_count', 'status_display')
+    list_filter = ('is_processed', 'source', 'category', 'created_at')
     search_fields = ('user_id', 'username', 'message')
     readonly_fields = ('created_at', 'replies_count', 'last_reply_info', 'send_all_replies_button')
     ordering = ('-created_at',)
