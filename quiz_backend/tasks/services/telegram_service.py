@@ -405,15 +405,14 @@ def send_message_with_button(chat_id: str, text: str, button_text: str,
     return None
 
 
-def publish_task_to_telegram(task, translation, telegram_group, external_link: str = None) -> Dict:
+def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
     """
     Публикует задачу в Telegram канал.
     
     Args:
         task: Объект Task из Django ORM
         translation: Объект TaskTranslation из Django ORM
-        telegram_group: Объект TelegramGroup из Django ORM  
-        external_link: Внешняя ссылка для кнопки "Подробнее"
+        telegram_group: Объект TelegramGroup из Django ORM
         
     Returns:
         Словарь с результатами публикации
@@ -525,31 +524,47 @@ def publish_task_to_telegram(task, translation, telegram_group, external_link: s
             result['errors'].append("Не удалось отправить опрос")
             result['detailed_logs'].append(f"❌ Не удалось отправить опрос (проверьте длину вопроса: {len(translation.question)} символов, макс: 300)")
         
-        # 4. Отправляем кнопку с ссылкой (если есть)
-        link = external_link or task.external_link
+        # 4. Определяем итоговую ссылку через сервис
+        from .default_link_service import DefaultLinkService
         
-        if link:
-            button_text = lang_trans['learn_more']  # Текст на кнопке
-            button_message_text = lang_trans['learn_more_about_task']  # Текст сообщения с кнопкой
-            
-            result['detailed_logs'].append(f"🔗 Отправка кнопки '{button_text}' с ссылкой: {link[:50]}...")
-            
-            button_result = send_message_with_button(
-                chat_id=chat_id,
-                text=button_message_text,
-                button_text=button_text,
-                button_url=link,
-                parse_mode=None  # Без форматирования
+        final_link, link_source = DefaultLinkService.get_final_link(task, translation)
+        
+        # Проверяем наличие ссылки
+        if final_link is None:
+            error_msg = f"❌ Нет ссылки для публикации! {link_source}"
+            result['errors'].append(error_msg)
+            result['detailed_logs'].append(error_msg)
+            result['detailed_logs'].append(
+                "💡 Решение: Создайте главную ссылку (MainFallbackLink) для языка "
+                f"{translation.language.upper()} в разделе: Webhooks → Main fallback links"
             )
-            
-            if button_result:
-                result['button_sent'] = True
-                result['detailed_logs'].append(f"✅ Кнопка отправлена")
-            else:
-                result['errors'].append("Не удалось отправить кнопку (timeout или ошибка API)")
-                result['detailed_logs'].append(f"❌ Не удалось отправить кнопку (см. логи выше для деталей)")
+            logger.error(f"Задача {task.id}: {error_msg}")
+            return result
+        
+        result['detailed_logs'].append(
+            f"🔗 Ссылка для кнопки ({link_source}): {final_link}"
+        )
+        
+        # Отправляем кнопку с ссылкой
+        button_text = lang_trans['learn_more']  # Текст на кнопке
+        button_message_text = lang_trans['learn_more_about_task']  # Текст сообщения с кнопкой
+        
+        result['detailed_logs'].append(f"🔗 Отправка кнопки '{button_text}'...")
+        
+        button_result = send_message_with_button(
+            chat_id=chat_id,
+            text=button_message_text,
+            button_text=button_text,
+            button_url=final_link,
+            parse_mode=None  # Без форматирования
+        )
+        
+        if button_result:
+            result['button_sent'] = True
+            result['detailed_logs'].append(f"✅ Кнопка отправлена")
         else:
-            result['detailed_logs'].append(f"⏭️ Пропускаем кнопку (external_link не указан)")
+            result['errors'].append("Не удалось отправить кнопку (timeout или ошибка API)")
+            result['detailed_logs'].append(f"❌ Не удалось отправить кнопку")
         
         # Проверяем общий успех
         if result['image_sent'] and result['text_sent'] and result['poll_sent']:

@@ -1,8 +1,10 @@
 import os
+from django import forms
 from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import render, redirect
 from django.conf import settings
+from django.utils.html import format_html
 from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics
 from .services.task_import_service import import_tasks_from_json
 from .services.s3_service import delete_image_from_s3
@@ -25,6 +27,64 @@ class TaskTranslationInline(admin.TabularInline):
     readonly_fields = ('publish_date',)
 
 
+class TaskAdminForm(forms.ModelForm):
+    """
+    Кастомная форма для Task с выпадающим списком ссылок.
+    Подтягивает все DefaultLink из общей БД с ботом.
+    """
+    class Meta:
+        model = Task
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        from .services.default_link_service import DefaultLinkService
+        
+        # Получаем все DefaultLink + текущее значение для выпадающего списка
+        default_links = DefaultLinkService.get_all_default_links()
+        
+        # Формируем choices
+        choices = [('', '---Автоматически---')]
+        
+        # Если у задачи есть перевод, показываем какие ссылки будут использованы
+        if self.instance.pk:
+            translation = self.instance.translations.first()
+            if translation:
+                # Показываем специфичную ссылку для темы (если есть)
+                if self.instance.topic:
+                    topic_link = DefaultLinkService.get_default_link(
+                        translation.language,
+                        self.instance.topic.name
+                    )
+                    if topic_link:
+                        choices.append((topic_link, f'🎯 Для темы {translation.language.upper()} + {self.instance.topic.name}: {topic_link}'))
+                
+                # Показываем главную ссылку для языка (ОБЯЗАТЕЛЬНА!)
+                main_link = DefaultLinkService.get_main_fallback_link(translation.language)
+                if main_link:
+                    choices.append((main_link, f'🌐 Главная для {translation.language.upper()}: {main_link}'))
+                else:
+                    # ПРЕДУПРЕЖДЕНИЕ: нет главной ссылки!
+                    choices.append(('', f'⚠️ НЕТ главной ссылки для {translation.language.upper()}! Создайте в: Webhooks → Main fallback links'))
+        
+        # Добавляем остальные ссылки из общей БД
+        for link in default_links:
+            if not any(link == c[0] for c in choices):
+                choices.append((link, link))
+        
+        # Если есть текущее значение и его нет в списке - добавляем
+        if self.instance.external_link and self.instance.external_link not in [c[0] for c in choices]:
+            choices.append((self.instance.external_link, f'✏️ Текущая: {self.instance.external_link}'))
+        
+        self.fields['external_link'].widget = forms.Select(choices=choices)
+        self.fields['external_link'].required = False
+        self.fields['external_link'].help_text = (
+            'Ссылка для кнопки "Узнать больше о задаче" в Telegram. '
+            'Если не указано, автоматически подбирается: для темы → главная для языка → резервная'
+        )
+
+
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     """
@@ -34,6 +94,7 @@ class TaskAdmin(admin.ModelAdmin):
     - Генерация изображений
     - Умное удаление с очисткой S3
     """
+    form = TaskAdminForm
     change_list_template = 'admin/tasks/task_changelist.html'
     
     list_display = ('id', 'topic', 'subtopic', 'difficulty', 'published', 'create_date', 'publish_date', 'has_image', 'has_external_link')
@@ -50,8 +111,8 @@ class TaskAdmin(admin.ModelAdmin):
             'fields': ('topic', 'subtopic', 'group', 'difficulty')
         }),
         ('Контент', {
-            'fields': ('image_url', 'external_link'),
-            'description': 'External link используется для кнопки "Подробнее" при публикации в Telegram'
+            'fields': ('image_url', 'external_link', 'get_final_link_display'),
+            'description': 'Ссылка используется для кнопки "Узнать больше о задаче" при публикации в Telegram'
         }),
         ('Публикация', {
             'fields': ('published', 'error')
@@ -61,7 +122,7 @@ class TaskAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id')
+    readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display')
     
     # Inline редактирование переводов
     inlines = [TaskTranslationInline]
@@ -83,6 +144,50 @@ class TaskAdmin(admin.ModelAdmin):
         return bool(obj.external_link)
     has_external_link.boolean = True
     has_external_link.short_description = 'Ссылка "Подробнее"'
+    
+    def get_final_link_display(self, obj):
+        """Отображает итоговую ссылку которая будет использована при публикации"""
+        from .services.default_link_service import DefaultLinkService
+        
+        if not obj.pk:
+            return "—"
+        
+        translation = obj.translations.first()
+        final_link, source = DefaultLinkService.get_final_link(obj, translation)
+        
+        # Если ссылки нет - показываем предупреждение
+        if final_link is None:
+            return format_html(
+                '⚠️ <span style="color: #dc3545; font-weight: bold;">НЕТ ССЫЛКИ!</span><br>'
+                '<small style="color: #dc3545;">{}</small><br>'
+                '<small style="color: #666;">Создайте главную ссылку в разделе: Webhooks → Main fallback links</small>',
+                source
+            )
+        
+        # Форматируем вывод с иконками
+        if "вручную" in source:
+            icon = "🔗"
+            color = "#28a745"  # зеленый
+        elif "для темы" in source:
+            icon = "🎯"
+            color = "#007bff"  # синий
+        elif "главная" in source:
+            icon = "🌐"
+            color = "#ffc107"  # желтый
+        else:
+            icon = "❓"
+            color = "#666"
+        
+        return format_html(
+            '{} <a href="{}" target="_blank" style="color: {};">{}</a><br>'
+            '<small style="color: #666;">Источник: {}</small>',
+            icon,
+            final_link,
+            color,
+            final_link[:60] + '...' if len(final_link) > 60 else final_link,
+            source
+        )
+    get_final_link_display.short_description = 'Итоговая ссылка'
     
     def get_urls(self):
         """Добавляем URL для импорта JSON."""
@@ -408,8 +513,7 @@ class TaskAdmin(admin.ModelAdmin):
                 result = publish_task_to_telegram(
                     task=task,
                     translation=translation,
-                    telegram_group=telegram_group,
-                    external_link=task.external_link
+                    telegram_group=telegram_group
                 )
                 
                 # Показываем детальные логи публикации
@@ -641,3 +745,5 @@ class MiniAppTaskStatisticsAdmin(admin.ModelAdmin):
                 self.message_user(request, error, level='ERROR')
 
     merge_to_main_statistics.short_description = "Объединить с основной статистикой"
+
+
