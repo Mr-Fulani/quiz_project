@@ -45,6 +45,18 @@ class Donation(models.Model):
         default='usd',
         verbose_name=_('Currency')
     )
+    
+    SOURCE_CHOICES = [
+        ('website', _('Website')),
+        ('mini_app', _('Mini App')),
+    ]
+    
+    source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default='website',
+        verbose_name=_('Source')
+    )
     payment_method = models.CharField(
         max_length=50,
         verbose_name=_('Payment Method'),

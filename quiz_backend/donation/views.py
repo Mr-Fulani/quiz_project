@@ -55,7 +55,8 @@ def create_payment_intent(request):
         currency = data.get('currency', 'usd')
         email = data.get('email', '')
         name = data.get('name', '')
-        logger.info(f"Payment intent data: amount={amount}, currency={currency}, email={email}, name={name}")
+        source = data.get('source', 'website')  # Получаем источник доната
+        logger.info(f"Payment intent data: amount={amount}, currency={currency}, email={email}, name={name}, source={source}")
         
         # Валидация данных
         if not amount or float(amount) < 1:
@@ -91,6 +92,7 @@ def create_payment_intent(request):
             metadata={
                 'user_email': email,
                 'user_name': name,
+                'source': source,  # Добавляем источник в metadata
             },
             automatic_payment_methods={
                 'enabled': True,
@@ -268,7 +270,8 @@ def confirm_payment(request):
                     'status': 'completed',
                     'name': intent.metadata.get('user_name', 'Anonymous'),
                     'email': intent.metadata.get('user_email', ''),
-                    'payment_method': 'stripe'
+                    'payment_method': 'stripe',
+                    'source': intent.metadata.get('source', 'website')  # Сохраняем источник
                 }
             )
             
@@ -358,7 +361,8 @@ def stripe_webhook(request):
                     'status': 'completed',
                     'name': payment_intent['metadata'].get('user_name', 'Anonymous'),
                     'email': payment_intent['metadata'].get('user_email', ''),
-                    'payment_method': 'stripe'
+                    'payment_method': 'stripe',
+                    'source': payment_intent['metadata'].get('source', 'website')  # Сохраняем источник
                 }
             )
             

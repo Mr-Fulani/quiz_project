@@ -715,6 +715,62 @@ async def submit_task_answer(task_id: int, request: Request):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
+@router.post("/feedback/")
+async def submit_feedback(request: Request):
+    """
+    Отправка обратной связи из мини-аппа в Django API.
+    """
+    logger.info(f"📝 ПОЛУЧЕН ЗАПРОС НА ОТПРАВКУ ОБРАТНОЙ СВЯЗИ")
+    
+    try:
+        # Получаем данные из запроса
+        data = await request.json()
+        telegram_id = data.get('telegram_id')
+        username = data.get('username', '')
+        message = data.get('message', '')
+        category = data.get('category', 'other')
+        
+        logger.info(f"Feedback data: telegram_id={telegram_id}, category={category}, message_length={len(message)}")
+        
+        # Валидация данных
+        if not telegram_id:
+            logger.error("telegram_id is missing")
+            raise HTTPException(status_code=400, detail="telegram_id is required")
+        
+        if not message or len(message) < 3:
+            logger.error("message is missing or too short")
+            raise HTTPException(status_code=400, detail="message is required and must be at least 3 characters")
+        
+        # Отправляем запрос в Django API
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/feedback/submit/"
+        payload = {
+            'user_id': telegram_id,
+            'username': username,
+            'message': message,
+            'category': category,
+            'source': 'mini_app'
+        }
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post(django_url, json=payload, timeout=10.0)
+        
+        if response.status_code == 201 or response.status_code == 200:
+            logger.info(f"✅ Feedback submitted successfully for telegram_id: {telegram_id}")
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"Error from Django API: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except httpx.RequestError as e:
+        logger.error(f"Request error while contacting Django API: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to backend service.")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+
 @router.get("/user-profile/{telegram_id}")
 async def get_user_public_profile(telegram_id: int):
     """

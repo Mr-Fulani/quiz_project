@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Telegram Bot Token
     TELEGRAM_BOT_TOKEN: str
     
+    # Admin Telegram ID для прямой связи
+    ADMIN_TELEGRAM_ID: str = ""
+    
     # Django API
     DJANGO_API_BASE_URL: str = "http://nginx_local:8080"
     DJANGO_API_TOKEN: str

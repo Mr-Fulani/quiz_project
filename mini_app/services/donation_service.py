@@ -43,7 +43,8 @@ class DonationService:
                 'amount': amount,
                 'currency': currency,
                 'email': email,
-                'name': name
+                'name': name,
+                'source': 'mini_app'  # Указываем источник - мини-апп
             }
             
             logger.info(f"Creating payment intent: {amount} {currency}")

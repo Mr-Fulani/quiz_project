@@ -142,6 +142,23 @@ class LocalizationService:
             "donation_enter_name": "Please enter your name",
             "donation_min_amount_error": "Minimum donation amount: $1",
             
+            # Обратная связь
+            "feedback_title": "Feedback",
+            "feedback_description": "Report issues or suggest improvements",
+            "feedback_category_bug": "🐛 Bug",
+            "feedback_category_suggestion": "💡 Suggestion",
+            "feedback_category_complaint": "😞 Complaint",
+            "feedback_category_other": "📝 Other",
+            "feedback_message_placeholder": "Describe your issue or suggestion...",
+            "send_feedback": "Send",
+            "contact_admin": "Contact Admin",
+            "feedback_error_short": "Message must be at least 3 characters",
+            "feedback_sending": "Sending...",
+            "feedback_success": "Thank you! Your message has been sent",
+            "feedback_error": "Error sending message",
+            "feedback_network_error": "Network error",
+            "admin_contact_unavailable": "Admin contact unavailable",
+            
             # Общие
             "loading": "Loading...",
             "error": "Error",
@@ -339,6 +356,23 @@ class LocalizationService:
             "donation_warning": "Внимание",
             "donation_enter_name": "Пожалуйста, введите ваше имя",
             "donation_min_amount_error": "Минимальная сумма доната: $1",
+            
+            # Обратная связь
+            "feedback_title": "Обратная связь",
+            "feedback_description": "Сообщите нам о проблемах или предложите улучшения",
+            "feedback_category_bug": "🐛 Баг",
+            "feedback_category_suggestion": "💡 Предложение",
+            "feedback_category_complaint": "😞 Жалоба",
+            "feedback_category_other": "📝 Другое",
+            "feedback_message_placeholder": "Опишите вашу проблему или предложение...",
+            "send_feedback": "Отправить",
+            "contact_admin": "Написать админу",
+            "feedback_error_short": "Сообщение должно содержать минимум 3 символа",
+            "feedback_sending": "Отправка...",
+            "feedback_success": "Спасибо! Ваше сообщение отправлено",
+            "feedback_error": "Ошибка отправки",
+            "feedback_network_error": "Ошибка сети",
+            "admin_contact_unavailable": "Контакт админа недоступен",
             
             # Общие
             "loading": "Загрузка...",
