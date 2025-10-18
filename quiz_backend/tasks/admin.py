@@ -5,6 +5,7 @@ from django.urls import path
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.utils.html import format_html
+from django.utils import timezone
 from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics
 from .services.task_import_service import import_tasks_from_json
 from .services.s3_service import delete_image_from_s3
@@ -83,6 +84,16 @@ class TaskAdminForm(forms.ModelForm):
             'Ссылка для кнопки "Узнать больше о задаче" в Telegram. '
             'Если не указано, автоматически подбирается: для темы → главная для языка → резервная'
         )
+        
+        # Делаем некоторые поля необязательными при редактировании существующей задачи
+        if self.instance.pk:
+            # При редактировании message_id не обязателен (он заполняется автоматически)
+            if 'message_id' in self.fields:
+                self.fields['message_id'].required = False
+            
+            # group может быть пустым (заполняется при импорте или можно выбрать позже)
+            if 'group' in self.fields:
+                self.fields['group'].required = False
 
 
 @admin.register(Task)
@@ -97,7 +108,7 @@ class TaskAdmin(admin.ModelAdmin):
     form = TaskAdminForm
     change_list_template = 'admin/tasks/task_changelist.html'
     
-    list_display = ('id', 'topic', 'subtopic', 'difficulty', 'published', 'create_date', 'publish_date', 'has_image', 'has_external_link')
+    list_display = ('id', 'topic', 'subtopic', 'difficulty', 'published', 'error_status', 'create_date', 'publish_date', 'has_image', 'has_external_link')
     list_filter = ('published', 'difficulty', 'topic', 'subtopic', 'error')
     search_fields = ('id', 'topic__name', 'subtopic__name', 'translation_group_id', 'external_link')
     raw_id_fields = ('topic', 'subtopic', 'group')
@@ -130,6 +141,7 @@ class TaskAdmin(admin.ModelAdmin):
     actions = [
         'publish_to_telegram',
         'generate_images',
+        'clear_error_flag',
         'delete_with_s3_cleanup'
     ]
     
@@ -144,6 +156,18 @@ class TaskAdmin(admin.ModelAdmin):
         return bool(obj.external_link)
     has_external_link.boolean = True
     has_external_link.short_description = 'Ссылка "Подробнее"'
+    
+    def error_status(self, obj):
+        """Отображение статуса ошибки с цветовой индикацией."""
+        if obj.error:
+            return format_html(
+                '<span style="color: #dc3545; font-weight: bold;">⚠️ Ошибка</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: #28a745;">✅ OK</span>'
+            )
+    error_status.short_description = 'Статус'
     
     def get_final_link_display(self, obj):
         """Отображает итоговую ссылку которая будет использована при публикации"""
@@ -531,8 +555,11 @@ class TaskAdmin(admin.ModelAdmin):
                             self.message_user(request, log, messages.INFO)
                 
                 if result['success']:
+                    # Обновляем флаг публикации и дату для этой задачи
                     task.published = True
-                    task.save(update_fields=['published'])
+                    task.publish_date = timezone.now()
+                    task.error = False  # Сбрасываем ошибку если публикация успешна
+                    task.save(update_fields=['published', 'publish_date', 'error'])
                     published_count += 1
                     
                     # Считаем по языкам
@@ -540,10 +567,16 @@ class TaskAdmin(admin.ModelAdmin):
                         published_by_language[language] = 0
                     published_by_language[language] += 1
                 else:
+                    # Отмечаем ошибку для ЭТОЙ задачи, остальные переводы продолжают публиковаться
+                    task.error = True
+                    task.save(update_fields=['error'])
                     error_details = ', '.join(result['errors'])
                     errors.append(f"Задача {task.id} ({language}): {error_details}")
                     
             except Exception as e:
+                # Отмечаем ошибку при исключении
+                task.error = True
+                task.save(update_fields=['error'])
                 error_msg = f"Задача {task.id} ({language}): {str(e)}"
                 errors.append(error_msg)
                 self.message_user(request, f"❌ {error_msg}", messages.ERROR)
@@ -616,19 +649,26 @@ class TaskAdmin(admin.ModelAdmin):
                     
                     if image_url:
                         task.image_url = image_url
-                        task.save(update_fields=['image_url'])
+                        task.error = False  # Сбрасываем ошибку если генерация успешна
+                        task.save(update_fields=['image_url', 'error'])
                         generated_count += 1
                         self.message_user(request, f"✅ Задача {task.id}: изображение загружено в S3", messages.SUCCESS)
                         self.message_user(request, f"   URL: {image_url}", messages.INFO)
                     else:
+                        task.error = True
+                        task.save(update_fields=['error'])
                         error_msg = f"Задача {task.id}: не удалось загрузить в S3"
                         errors.append(error_msg)
                         self.message_user(request, f"❌ {error_msg}", messages.ERROR)
                 else:
+                    task.error = True
+                    task.save(update_fields=['error'])
                     error_msg = f"Задача {task.id}: не удалось сгенерировать изображение"
                     errors.append(error_msg)
                     self.message_user(request, f"❌ {error_msg}", messages.ERROR)
             except Exception as e:
+                task.error = True
+                task.save(update_fields=['error'])
                 error_msg = f"Задача {task.id}: {str(e)}"
                 errors.append(error_msg)
                 self.message_user(request, f"❌ {error_msg}", messages.ERROR)
@@ -636,6 +676,40 @@ class TaskAdmin(admin.ModelAdmin):
         # Итоговое сообщение
         self.message_user(request, "=" * 60, messages.INFO)
         self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
+    
+    @admin.action(description='Снять флаг ошибки')
+    def clear_error_flag(self, request, queryset):
+        """
+        Снимает флаг ошибки (error = False) для выбранных задач.
+        Полезно когда ошибка исправлена или была ложной.
+        """
+        # Собираем все translation_group_id
+        translation_group_ids = set(
+            queryset.values_list('translation_group_id', flat=True)
+        )
+        
+        # Находим все связанные задачи
+        all_related_tasks = Task.objects.filter(
+            translation_group_id__in=translation_group_ids
+        )
+        
+        # Подсчитываем по языкам
+        languages = []
+        for task in all_related_tasks:
+            translation = task.translations.first()
+            if translation:
+                languages.append(translation.language.upper())
+        
+        # Сбрасываем флаг ошибки для всех связанных задач
+        updated_count = all_related_tasks.update(error=False)
+        
+        lang_info = ", ".join(sorted(set(languages))) if languages else ""
+        
+        self.message_user(
+            request,
+            f"✅ Флаг ошибки сброшен для {updated_count} задач ({lang_info})",
+            messages.SUCCESS
+        )
     
     @admin.action(description='Удалить с очисткой S3')
     def delete_with_s3_cleanup(self, request, queryset):
