@@ -168,31 +168,102 @@ class TaskAdmin(admin.ModelAdmin):
         
         return render(request, 'admin/tasks/import_json.html')
     
+    def get_deleted_objects(self, objs, request):
+        """
+        Переопределяем метод для отображения всех связанных задач, 
+        которые будут удалены вместе с выбранными.
+        """
+        from django.contrib.admin.utils import NestedObjects
+        from django.db import router
+        
+        collector = NestedObjects(using=router.db_for_write(Task))
+        
+        # Для каждого объекта находим все связанные задачи по translation_group_id
+        all_tasks_to_delete = set()
+        for obj in objs:
+            if obj.translation_group_id:
+                related_tasks = Task.objects.filter(
+                    translation_group_id=obj.translation_group_id
+                )
+                all_tasks_to_delete.update(related_tasks)
+            else:
+                all_tasks_to_delete.add(obj)
+        
+        # Собираем все объекты для удаления
+        collector.collect(list(all_tasks_to_delete))
+        
+        # Получаем стандартное представление удаляемых объектов
+        perms_needed = set()
+        protected = []
+        
+        def format_callback(obj):
+            """Форматирование названия объекта для отображения"""
+            opts = obj._meta
+            no_edit_link = f'{opts.verbose_name}: {obj}'
+            
+            # Для задач показываем язык
+            if isinstance(obj, Task):
+                translation = obj.translations.first()
+                if translation:
+                    return f'{opts.verbose_name}: {obj} ({translation.language.upper()})'
+            
+            return no_edit_link
+        
+        to_delete = collector.nested(format_callback)
+        
+        # Считаем количество объектов каждого типа
+        model_count = {
+            model._meta.verbose_name_plural: len(objs_list)
+            for model, objs_list in collector.model_objs.items()
+        }
+        
+        return to_delete, model_count, perms_needed, protected
+    
     def delete_model(self, request, obj):
         """
         Переопределяем удаление одной задачи для очистки связанных ресурсов.
         Удаляет все связанные задачи по translation_group_id и их изображения из S3.
         """
+        from django.db.models.signals import pre_delete
+        from .signals import delete_related_tasks_and_images
+        
         translation_group_id = obj.translation_group_id
         
         if translation_group_id:
             # Находим все связанные задачи
             related_tasks = Task.objects.filter(translation_group_id=translation_group_id)
             
-            # Собираем URL изображений
-            image_urls = [task.image_url for task in related_tasks if task.image_url]
+            # Собираем информацию о языках ДО удаления
+            languages = []
+            for task in related_tasks:
+                translation = task.translations.first()
+                if translation:
+                    languages.append(translation.language.upper())
+            
+            # Собираем URL изображений ОДИН РАЗ
+            image_urls = list(set([task.image_url for task in related_tasks if task.image_url]))
+            
+            count = related_tasks.count()
             
             # Удаляем изображения из S3
             for image_url in image_urls:
                 delete_image_from_s3(image_url)
             
-            # Удаляем все связанные задачи
-            count = related_tasks.count()
-            related_tasks.delete()
+            # ОТКЛЮЧАЕМ СИГНАЛ чтобы избежать дублирования
+            pre_delete.disconnect(delete_related_tasks_and_images, sender=Task)
+            
+            try:
+                # Удаляем все связанные задачи
+                related_tasks.delete()
+            finally:
+                # ВКЛЮЧАЕМ СИГНАЛ обратно
+                pre_delete.connect(delete_related_tasks_and_images, sender=Task)
+            
+            lang_info = ", ".join(languages) if languages else ""
             
             messages.success(
                 request,
-                f"Удалено {count} связанных задач и {len(image_urls)} изображений из S3"
+                f"Удалено {count} связанных задач ({lang_info}) и {len(image_urls)} изображений из S3"
             )
         else:
             # Обычное удаление
@@ -202,6 +273,9 @@ class TaskAdmin(admin.ModelAdmin):
         """
         Переопределяем массовое удаление для очистки связанных ресурсов.
         """
+        from django.db.models.signals import pre_delete
+        from .signals import delete_related_tasks_and_images
+        
         # Собираем все translation_group_id
         translation_group_ids = set(
             queryset.values_list('translation_group_id', flat=True)
@@ -212,8 +286,17 @@ class TaskAdmin(admin.ModelAdmin):
             translation_group_id__in=translation_group_ids
         )
         
-        # Собираем URL изображений
-        image_urls = [task.image_url for task in all_related_tasks if task.image_url]
+        # Собираем информацию о языках ДО удаления
+        languages = []
+        for task in all_related_tasks:
+            translation = task.translations.first()
+            if translation:
+                languages.append(translation.language.upper())
+        
+        # Собираем URL изображений ОДИН РАЗ (используем set для уникальности)
+        image_urls = list(set([task.image_url for task in all_related_tasks if task.image_url]))
+        
+        count = all_related_tasks.count()
         
         # Удаляем изображения из S3
         deleted_images = 0
@@ -221,35 +304,72 @@ class TaskAdmin(admin.ModelAdmin):
             if delete_image_from_s3(image_url):
                 deleted_images += 1
         
-        # Удаляем все связанные задачи
-        count = all_related_tasks.count()
-        all_related_tasks.delete()
+        # ОТКЛЮЧАЕМ СИГНАЛ чтобы избежать дублирования
+        pre_delete.disconnect(delete_related_tasks_and_images, sender=Task)
+        
+        try:
+            # Удаляем все связанные задачи
+            all_related_tasks.delete()
+        finally:
+            # ВКЛЮЧАЕМ СИГНАЛ обратно
+            pre_delete.connect(delete_related_tasks_and_images, sender=Task)
+        
+        lang_info = ", ".join(sorted(set(languages))) if languages else ""
         
         messages.success(
             request,
-            f"Удалено {count} задач и {deleted_images} изображений из S3"
+            f"Удалено {count} задач ({lang_info}) и {deleted_images} изображений из S3"
         )
     
     @admin.action(description='Опубликовать выбранные задачи в Telegram')
     def publish_to_telegram(self, request, queryset):
         """
         Публикует выбранные задачи в Telegram с детальными логами.
+        Автоматически находит и публикует все связанные переводы по translation_group_id.
         """
+        from platforms.models import TelegramGroup
+        
+        # Собираем все translation_group_id
+        translation_group_ids = set(
+            queryset.values_list('translation_group_id', flat=True)
+        )
+        
+        # Находим все связанные задачи
+        all_related_tasks = Task.objects.filter(
+            translation_group_id__in=translation_group_ids
+        ).select_related('topic', 'group').prefetch_related('translations')
+        
+        # Группируем задачи по языкам для информирования
+        tasks_by_language = {}
+        for task in all_related_tasks:
+            translation = task.translations.first()
+            if translation:
+                lang = translation.language.upper()
+                if lang not in tasks_by_language:
+                    tasks_by_language[lang] = []
+                tasks_by_language[lang].append(task)
+        
+        total_tasks = all_related_tasks.count()
+        selected_count = queryset.count()
+        
+        # Информируем пользователя о масштабе операции
+        self.message_user(
+            request,
+            f"📊 Выбрано задач: {selected_count}",
+            messages.INFO
+        )
+        self.message_user(
+            request,
+            f"🌍 Найдено связанных переводов: {total_tasks} задач на языках: {', '.join(sorted(tasks_by_language.keys()))}",
+            messages.INFO
+        )
+        self.message_user(request, "=" * 60, messages.INFO)
+        
         published_count = 0
         errors = []
-        total_tasks = queryset.count()
+        published_by_language = {}
         
-        self.message_user(request, f"📊 Начинаем публикацию {total_tasks} задач...", messages.INFO)
-        
-        for task in queryset:
-            # Проверяем наличие изображения
-            if not task.image_url:
-                error_msg = f"Задача {task.id}: отсутствует изображение"
-                errors.append(error_msg)
-                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                continue
-            
-            # Получаем первый перевод
+        for task in all_related_tasks:
             translation = task.translations.first()
             if not translation:
                 error_msg = f"Задача {task.id}: отсутствуют переводы"
@@ -257,18 +377,38 @@ class TaskAdmin(admin.ModelAdmin):
                 self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
                 continue
             
-            # Получаем группу
-            if not task.group:
-                error_msg = f"Задача {task.id}: не указана группа для публикации"
+            language = translation.language.upper()
+            
+            # Проверяем наличие изображения
+            if not task.image_url:
+                error_msg = f"Задача {task.id} ({language}): отсутствует изображение"
+                errors.append(error_msg)
+                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                continue
+            
+            # Находим группу для этого языка и топика
+            telegram_group = TelegramGroup.objects.filter(
+                topic_id=task.topic,
+                language=translation.language
+            ).first()
+            
+            if not telegram_group:
+                error_msg = f"Задача {task.id} ({language}): не найдена Telegram группа для языка {language}"
                 errors.append(error_msg)
                 self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
                 continue
             
             try:
+                self.message_user(
+                    request,
+                    f"🚀 Публикуем задачу {task.id} ({language}) в канал {telegram_group.group_name}...",
+                    messages.INFO
+                )
+                
                 result = publish_task_to_telegram(
                     task=task,
                     translation=translation,
-                    telegram_group=task.group,
+                    telegram_group=telegram_group,
                     external_link=task.external_link
                 )
                 
@@ -290,20 +430,35 @@ class TaskAdmin(admin.ModelAdmin):
                     task.published = True
                     task.save(update_fields=['published'])
                     published_count += 1
+                    
+                    # Считаем по языкам
+                    if language not in published_by_language:
+                        published_by_language[language] = 0
+                    published_by_language[language] += 1
                 else:
                     error_details = ', '.join(result['errors'])
-                    errors.append(f"Задача {task.id}: {error_details}")
+                    errors.append(f"Задача {task.id} ({language}): {error_details}")
+                    
             except Exception as e:
-                error_msg = f"Задача {task.id}: {str(e)}"
+                error_msg = f"Задача {task.id} ({language}): {str(e)}"
                 errors.append(error_msg)
                 self.message_user(request, f"❌ {error_msg}", messages.ERROR)
         
         # Итоговое сообщение
         self.message_user(request, "=" * 60, messages.INFO)
+        
         if published_count > 0:
+            # Формируем информацию по языкам
+            lang_stats = ", ".join([f"{lang}: {count}" for lang, count in sorted(published_by_language.items())])
+            
             self.message_user(
                 request,
-                f"🎉 УСПЕШНО: Опубликовано задач: {published_count} из {total_tasks}",
+                f"🎉 УСПЕШНО: Опубликовано {published_count} задач из {total_tasks}",
+                messages.SUCCESS
+            )
+            self.message_user(
+                request,
+                f"📊 По языкам: {lang_stats}",
                 messages.SUCCESS
             )
         
