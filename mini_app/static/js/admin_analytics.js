@@ -106,18 +106,41 @@ if (typeof AdminAnalytics === 'undefined') {
         this.hideLoading();
         console.log('✅ Loading indicator hidden');
         
-        // Донаты
-        if (data.donations) {
-            console.log('📊 Processing donations data:', data.donations);
-            this.updateElement('total-donations', data.donations.total_donations);
-            this.updateElement('total-amount', `$${this.formatNumber(data.donations.total_amount)}`);
-            this.updateElement('monthly-donations', data.donations.monthly_donations);
-            this.updateElement('monthly-amount', `$${this.formatNumber(data.donations.monthly_amount)}`);
+        // Донаты (только из мини-аппа) - фильтруем данные на фронтенде
+        if (data.donations && data.donations.by_source && data.donations.by_source.mini_app) {
+            console.log('📊 Processing donations data (mini-app only):', data.donations);
             
-            // Разбивка по источникам
-            if (data.donations.by_source) {
-                this.displaySourceStats(data.donations.by_source);
-            }
+            const miniAppData = data.donations.by_source.mini_app;
+            const miniAppCount = typeof miniAppData === 'object' ? miniAppData.count : miniAppData;
+            const miniAppAmount = typeof miniAppData === 'object' ? miniAppData.amount_usd : 0;
+            
+            // Показываем только данные мини-аппа
+            this.updateElement('total-donations', miniAppCount);
+            this.updateElement('total-amount', `$${this.formatNumber(miniAppAmount)}`);
+            
+            // Для месячных данных используем пропорциональный расчет
+            // (в идеале API должен возвращать месячную статистику по источникам)
+            const totalDonations = data.donations.total_donations || 1;
+            const monthlyRatio = miniAppCount / totalDonations;
+            const monthlyMiniAppDonations = Math.round(data.donations.monthly_donations * monthlyRatio);
+            const monthlyMiniAppAmount = data.donations.monthly_amount * monthlyRatio;
+            
+            this.updateElement('monthly-donations', monthlyMiniAppDonations);
+            this.updateElement('monthly-amount', `$${this.formatNumber(monthlyMiniAppAmount)}`);
+            
+            console.log('✅ Filtered mini-app donations:', {
+                total: miniAppCount,
+                amount: miniAppAmount,
+                monthly: monthlyMiniAppDonations,
+                monthlyAmount: monthlyMiniAppAmount
+            });
+        } else if (data.donations) {
+            // Fallback если нет данных по источникам - показываем нули
+            console.warn('⚠️ No mini-app donation data available');
+            this.updateElement('total-donations', 0);
+            this.updateElement('total-amount', '$0.00');
+            this.updateElement('monthly-donations', 0);
+            this.updateElement('monthly-amount', '$0.00');
         }
         
         // Подписчики
@@ -145,57 +168,6 @@ if (typeof AdminAnalytics === 'undefined') {
         }
         
         console.log('✅ displayAnalytics completed successfully');
-    }
-    
-    displaySourceStats(bySource) {
-        const container = document.getElementById('source-stats');
-        if (!container) {
-            console.warn('⚠️ source-stats container not found');
-            return;
-        }
-        
-        container.innerHTML = '';
-        console.log('📊 Displaying source stats:', bySource);
-        
-        // bySource может быть либо объектом с простыми числами, либо с полными данными
-        for (const [sourceKey, value] of Object.entries(bySource)) {
-            const sourceCard = document.createElement('div');
-            sourceCard.className = 'source-card';
-            
-            const sourceName = sourceKey === 'website' ? 
-                window.t('source_website', 'Сайт') : 
-                window.t('source_mini_app', 'Мини-апп');
-            
-            // Проверяем, является ли value объектом или простым числом
-            const count = typeof value === 'object' ? value.count : value;
-            const amount = typeof value === 'object' ? value.amount_usd : null;
-            
-            let infoHTML = `
-                <div class="source-info">
-                    <span class="label">${window.t('count', 'Количество')}:</span>
-                    <span class="value">${count}</span>
-                </div>
-            `;
-            
-            // Добавляем сумму если она есть
-            if (amount !== null && amount !== undefined) {
-                infoHTML += `
-                    <div class="source-info">
-                        <span class="label">${window.t('amount', 'Сумма')}:</span>
-                        <span class="value">$${this.formatNumber(amount)}</span>
-                    </div>
-                `;
-            }
-            
-            sourceCard.innerHTML = `
-                <div class="source-name">${sourceName}</div>
-                ${infoHTML}
-            `;
-            
-            container.appendChild(sourceCard);
-        }
-        
-        console.log('✅ Source stats displayed');
     }
     
     updateElement(id, value) {

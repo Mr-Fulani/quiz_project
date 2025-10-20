@@ -34,6 +34,12 @@
     backdrop-filter: blur(20px);
     box-sizing: border-box;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
+    
+    /* Safe Area Insets для Telegram Mini App */
+    padding-top: max(30px, env(safe-area-inset-top, 30px));
+    padding-bottom: max(30px, env(safe-area-inset-bottom, 30px));
+    padding-left: max(30px, env(safe-area-inset-left, 30px));
+    padding-right: max(30px, env(safe-area-inset-right, 30px));
 }
 
 .profile-header {
@@ -657,11 +663,36 @@
 }
 
 /* Адаптивность */
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 20px;
+        margin: 10px;
+        border-radius: 15px;
+        
+        /* Safe Area Insets для мобильных */
+        padding-top: max(20px, env(safe-area-inset-top, 20px));
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+        padding-left: max(15px, env(safe-area-inset-left, 15px));
+        padding-right: max(15px, env(safe-area-inset-right, 15px));
+        margin-left: max(10px, env(safe-area-inset-left, 10px));
+        margin-right: max(10px, env(safe-area-inset-right, 10px));
+    }
+    
+    .profile-avatar-container {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .profile-avatar {
+        width: 250px;
+        height: 250px;
+        font-size: 60px;
+    }
+}
+
 @media (max-width: 600px) {
     .profile-container {
         max-width: 95%;
-        padding: 20px;
-        margin: 10px auto;
     }
     
     .profile-avatar-container {
@@ -699,6 +730,20 @@
 }
 
 @media (max-width: 480px) {
+    .profile-container {
+        padding: 15px;
+        margin: 5px;
+        border-radius: 12px;
+        
+        /* Safe Area Insets для очень маленьких экранов */
+        padding-top: max(15px, env(safe-area-inset-top, 15px));
+        padding-bottom: max(15px, env(safe-area-inset-bottom, 15px));
+        padding-left: max(10px, env(safe-area-inset-left, 10px));
+        padding-right: max(10px, env(safe-area-inset-right, 10px));
+        margin-left: max(5px, env(safe-area-inset-left, 5px));
+        margin-right: max(5px, env(safe-area-inset-right, 5px));
+    }
+    
     .profile-avatar-container {
         width: 200px;
         height: 200px;
