@@ -232,12 +232,10 @@ if (typeof FeedbackSystem === 'undefined') {
         
         statusDiv.textContent = message;
         
-        // Автоматически скрываем через 5 секунд для успеха
-        if (type === 'success') {
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 5000);
-        }
+        // Автоматически скрываем через 2 секунды для всех типов сообщений
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 2000);
     }
 };
 } else {
@@ -245,7 +243,9 @@ if (typeof FeedbackSystem === 'undefined') {
 }
 
 // Глобальная переменная для доступа к системе обратной связи
-let feedbackSystem;
+if (typeof feedbackSystem === 'undefined') {
+    var feedbackSystem;
+}
 
 // Надежная инициализация при загрузке DOM
 function initFeedbackSystem() {

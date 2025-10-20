@@ -5,7 +5,10 @@
 {% endblock %}
 
 {% block extra_css %}
+<!-- CSS загружается динамически через base.html при SPA-навигации -->
+{% if not request.headers.get('X-Requested-With') %}
 <link rel="stylesheet" href="{{ get_css_url('statistics.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -103,5 +106,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- JS загружается динамически через base.html при SPA-навигации -->
+{% if not request.headers.get('X-Requested-With') %}
 <script src="{{ statistics_js_url }}"></script>
+{% endif %}
 {% endblock %}

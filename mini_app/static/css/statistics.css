@@ -9,13 +9,19 @@
 
 .statistics-container {
     padding: 30px;
-    max-width: 1000px;
-    margin: 0 auto;
+    max-width: 600px;  /* Восстанавливаем нормальную ширину для пользовательской страницы */
+    margin: 0 auto;    /* Восстанавливаем центрирование */
     background: rgba(21, 31, 40, 0.95);
     border: 1px solid rgba(0, 255, 0, 0.4);
-    border-radius: 25px;
+    border-radius: 15px;  /* Как у админ-страницы статистики */
     backdrop-filter: blur(20px);
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
+    
+    /* Safe Area Insets для Telegram Mini App */
+    padding-top: max(30px, env(safe-area-inset-top, 30px));
+    padding-bottom: max(30px, env(safe-area-inset-bottom, 30px));
+    padding-left: max(30px, env(safe-area-inset-left, 30px));
+    padding-right: max(30px, env(safe-area-inset-right, 30px));
 }
 
 .statistics-container h1 {
@@ -166,8 +172,16 @@
 @media (max-width: 768px) {
     .statistics-container {
         padding: 20px;
-        margin: 10px;
-        border-radius: 20px;
+        margin: 10px;  /* Восстанавливаем margin */
+        border-radius: 15px;  /* Как у админ-страницы */
+        
+        /* Safe Area Insets для мобильных */
+        padding-top: max(20px, env(safe-area-inset-top, 20px));
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+        padding-left: max(15px, env(safe-area-inset-left, 15px));
+        padding-right: max(15px, env(safe-area-inset-right, 15px));
+        margin-left: max(10px, env(safe-area-inset-left, 10px));
+        margin-right: max(10px, env(safe-area-inset-right, 10px));
     }
     
     .statistics-container h1 {
@@ -223,7 +237,16 @@
 @media (max-width: 480px) {
     .statistics-container {
         padding: 15px;
-        margin: 5px;
+        margin: 5px;  /* Восстанавливаем margin */
+        border-radius: 12px;  /* Как у админ-страницы для маленьких экранов */
+        
+        /* Safe Area Insets для очень маленьких экранов */
+        padding-top: max(15px, env(safe-area-inset-top, 15px));
+        padding-bottom: max(15px, env(safe-area-inset-bottom, 15px));
+        padding-left: max(10px, env(safe-area-inset-left, 10px));
+        padding-right: max(10px, env(safe-area-inset-right, 10px));
+        margin-left: max(5px, env(safe-area-inset-left, 5px));
+        margin-right: max(5px, env(safe-area-inset-right, 5px));
     }
     
     .statistics-container h1 {

@@ -155,24 +155,39 @@ class StatisticsManager {
 
 
 
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('StatisticsManager: DOMContentLoaded - Загрузка страницы статистики');
+// Глобальная функция для инициализации статистики
+window.initStatistics = function() {
+    console.log('📊 StatisticsManager: initStatistics called');
+    console.log('📊 window.statisticsManagerInstance:', window.statisticsManagerInstance);
+    console.log('📊 document.readyState:', document.readyState);
     
     // Проверяем, что мы на странице статистики
-    if (window.location.pathname === '/statistics') {
-        console.log('StatisticsManager: Создание StatisticsManager');
-        const statisticsManager = new StatisticsManager();
-        statisticsManager.init();
+    const isStatisticsPage = window.location.pathname === '/statistics' || 
+                             window.location.pathname.startsWith('/statistics');
+    
+    if (!isStatisticsPage) {
+        console.log('⚠️ Not on statistics page, skipping initialization');
+        return;
     }
-});
-
-// Глобальная функция для инициализации статистики (вызывается из base.html)
-window.initStatistics = function() {
-    console.log('StatisticsManager: initStatistics вызван');
-    const statisticsManager = new StatisticsManager();
-    statisticsManager.init();
+    
+    // Предотвращаем повторную инициализацию
+    if (window.statisticsManagerInstance) {
+        console.log('⚠️ StatisticsManager already initialized, skipping...');
+        return;
+    }
+    
+    console.log('🚀 Creating new StatisticsManager instance...');
+    window.statisticsManagerInstance = new StatisticsManager();
 };
+
+// Проверяем состояние документа для автоинициализации
+if (document.readyState === 'loading') {
+    console.log('📊 StatisticsManager: DOM loading, adding DOMContentLoaded listener');
+    document.addEventListener('DOMContentLoaded', window.initStatistics);
+} else {
+    console.log('📊 StatisticsManager: DOM already loaded, initializing immediately');
+    window.initStatistics();
+}
 
 // Экспорт для использования в других модулях
 window.StatisticsManager = StatisticsManager;

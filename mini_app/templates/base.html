@@ -322,6 +322,43 @@
                 
                 if (!initData) {
                     console.log('❌ No initData available');
+                    
+                    // МОКОВЫЕ ДАННЫЕ для тестирования в браузере
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        console.log('═══════════════════════════════════════════════════');
+                        console.log('🔧 [MOCK] Создаем моковые данные для браузера...');
+                        window.currentUser = {
+                            id: 1,
+                            telegram_id: 999999999,
+                            username: 'BrowserTestUser',
+                            first_name: 'Browser',
+                            last_name: 'TestAdmin',
+                            full_name: 'Browser TestAdmin',
+                            language: 'ru',
+                            avatar: '/static/images/logo.png',
+                            is_admin: true,  // ← МОКОВЫЙ АДМИН
+                            admin_type: 'Mock Admin',
+                            grade: 'senior',
+                            programming_language: 'JavaScript',
+                            programming_languages: ['JavaScript', 'Python'],
+                            gender: 'male',
+                            birth_date: '1990-01-01',
+                            is_profile_public: true,
+                            telegram_user_id: 999999999,
+                            social_links: []
+                        };
+                        window.isUserInitialized = true;
+                        console.log('✅ [MOCK] window.currentUser создан:', window.currentUser);
+                        console.log('✅ [MOCK] is_admin:', window.currentUser.is_admin);
+                        console.log('═══════════════════════════════════════════════════');
+                        
+                        // Генерируем событие для других компонентов
+                        if (!window.__userAuthenticatedDispatched) {
+                            const event = new CustomEvent('userAuthenticated', { detail: window.currentUser });
+                            document.dispatchEvent(event);
+                            window.__userAuthenticatedDispatched = true;
+                        }
+                    }
                     return;
                 }
                 
@@ -380,7 +417,12 @@
         // Функция для обновления индикатора навигации
         function updateNavigationIndicator(url) {
             const navItems = document.querySelectorAll('.navigation ul li');
-            const currentPath = url.split('?')[0]; // Убираем query параметры
+            let currentPath = url.split('?')[0]; // Убираем query параметры
+            
+            // Убираем trailing slash для единообразия
+            if (currentPath.endsWith('/') && currentPath !== '/') {
+                currentPath = currentPath.slice(0, -1);
+            }
             
             // Удаляем активный класс у всех элементов
             navItems.forEach(item => item.classList.remove('active'));
@@ -392,24 +434,28 @@
                 activeItem = navItems[0]; // Главная
             } else if (currentPath.startsWith('/topic/')) {
                 activeItem = navItems[0]; // Главная
-            } else if (currentPath === '/') {
+            } else if (currentPath === '/' || currentPath === '') {
                 activeItem = navItems[0]; // Главная
             } else if (currentPath.startsWith('/user_profile/')) {
                 activeItem = navItems[2]; // Топ юзеров
-            } else if (currentPath === '/profile') {
+            } else if (currentPath === '/profile' || currentPath.startsWith('/profile')) {
                 activeItem = navItems[1]; // Профиль
-            } else if (currentPath === '/top_users') {
+            } else if (currentPath === '/top_users' || currentPath.startsWith('/top_users')) {
                 activeItem = navItems[2]; // Топ юзеров
-            } else if (currentPath === '/statistics') {
+            } else if (currentPath === '/statistics' || currentPath.startsWith('/statistics')) {
                 activeItem = navItems[3]; // Статистика
-            } else if (currentPath === '/settings') {
+            } else if (currentPath === '/settings' || currentPath.startsWith('/settings')) {
                 activeItem = navItems[4]; // Настройки
+            } else if (currentPath.startsWith('/admin-analytics')) {
+                activeItem = navItems[4]; // Настройки (админ-панель открывается из настроек)
             }
             
             // Устанавливаем активный класс
             if (activeItem) {
                 activeItem.classList.add('active');
                 console.log('🎯 Активная вкладка обновлена для:', currentPath);
+            } else {
+                console.warn('⚠️ Не найден активный элемент для:', currentPath);
             }
         }
         
@@ -419,20 +465,12 @@
             e.preventDefault();
             e.stopPropagation();
             
-            // Убираем активный класс со всех элементов навигации
-            list.forEach((item) => item.classList.remove('active'));
-            
-            // Добавляем активный класс к родительскому li
-            const parentLi = this.closest('.list');
-            if (parentLi) {
-                parentLi.classList.add('active');
-            }
-            
             // Получаем URL из href
             const href = this.getAttribute('href');
             console.log('activeLink: href ->', href);
             
             // Загружаем контент через AJAX
+            // updateNavigationIndicator вызовется автоматически внутри loadPage
             loadPage(href);
         }
         
@@ -571,6 +609,9 @@
         function loadPageSpecificScripts(url) {
             console.log('📜 Loading page-specific scripts for:', url);
             console.log('📜 URL starts with /profile:', url.startsWith('/profile'));
+            
+            // Убираем класс админ-страницы если он был установлен
+            document.body.classList.remove('admin-analytics-page');
             
             // Удаляем все динамические скрипты
             const dynamicScripts = document.querySelectorAll('script[data-dynamic="true"]');
@@ -824,7 +865,13 @@
                     console.error('❌ Failed to load feedback.js');
                 };
                 document.head.appendChild(feedbackScript);
-            } else if (url === '/statistics') {
+            } else if (url === '/statistics' || url.startsWith('/statistics?')) {
+                console.log('🎯 Statistics page detected, loading resources...');
+                
+                // Сбрасываем старый instance для переинициализации
+                console.log('🧹 Clearing old statisticsManagerInstance...');
+                window.statisticsManagerInstance = null;
+                
                 // Загружаем CSS для статистики
                 const statisticsCSS = document.createElement('link');
                 statisticsCSS.rel = 'stylesheet';
@@ -832,22 +879,13 @@
                 statisticsCSS.setAttribute('data-dynamic', 'true');
                 document.head.appendChild(statisticsCSS);
                 
-                console.log('🎯 Statistics page detected, loading script...');
                 // Для статистики загружаем скрипт
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
                 script.src = '{{ get_js_url("statistics.js") }}';
                 script.onload = function() {
                     console.log('✅ Statistics script loaded via base template');
-                    // Вызываем инициализацию статистики после загрузки скрипта
-                    setTimeout(() => {
-                        console.log('🚀 Calling initStatistics after script load');
-                        if (typeof window.initStatistics === 'function') {
-                            window.initStatistics();
-                        } else {
-                            console.error('❌ initStatistics function not found!');
-                        }
-                    }, 100);
+                    console.log('🔄 Statistics will auto-initialize');
                 };
                 script.onerror = function() {
                     console.error('❌ Failed to load statistics.js');
@@ -976,6 +1014,9 @@
                 });
             } else if (url.startsWith('/admin-analytics')) {
                 console.log('🎯 Admin analytics page detected, loading resources...');
+                
+                // Добавляем класс для админ-страницы чтобы убрать центрирование
+                document.body.classList.add('admin-analytics-page');
                 
                 // Сбрасываем старый instance для переинициализации
                 console.log('🧹 Clearing old adminAnalyticsInstance...');

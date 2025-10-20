@@ -10,11 +10,16 @@
     --active-color: #29fd53;
 }
 
+/* Переопределяем .content для страницы админ-аналитики */
+.admin-analytics-page .content {
+    align-items: stretch !important;  /* Убираем центрирование для полной ширины */
+}
+
 /* Основной контейнер */
 .admin-analytics-container {
     padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;  /* Во всю ширину экрана */
+    margin: 0;    /* Убираем центрирование */
     min-height: 100vh;
 }
 
