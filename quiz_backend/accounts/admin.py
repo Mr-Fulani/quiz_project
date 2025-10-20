@@ -2,6 +2,7 @@ import sys
 import logging
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db.models import Q
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser
 
 logger = logging.getLogger(__name__)
@@ -1546,13 +1547,36 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     promote_to_admin.short_description = "👑 Назначить админом"
 
 
+class IsAdminFilter(admin.SimpleListFilter):
+    """
+    Кастомный фильтр для фильтрации админов мини-аппа.
+    """
+    title = 'Является админом'
+    parameter_name = 'is_admin'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.filter(
+                Q(telegram_admin__isnull=False) | Q(django_admin__isnull=False)
+            )
+        if self.value() == 'no':
+            return queryset.filter(telegram_admin__isnull=True, django_admin__isnull=True)
+        return queryset
+
+
 class MiniAppUserAdmin(admin.ModelAdmin):
     """
     Админ-панель для MiniAppUser.
     """
     list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'is_admin', 'admin_type', 'created_at', 'last_seen']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
-    list_filter = ['language', 'grade', 'created_at', 'last_seen']
+    list_filter = ['language', 'grade', IsAdminFilter, 'created_at', 'last_seen']
     readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name']
     raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin', 'programming_language']
     filter_horizontal = ['programming_languages']

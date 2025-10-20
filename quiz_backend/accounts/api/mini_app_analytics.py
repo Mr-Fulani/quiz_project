@@ -23,16 +23,21 @@ def check_admin_access(telegram_id):
     Проверяет, является ли пользователь администратором.
     
     Args:
-        telegram_id: Telegram ID пользователя
+        telegram_id: Telegram ID пользователя (int или str)
         
     Returns:
         bool: True если пользователь является админом, иначе False
     """
     try:
+        # Конвертируем в int если нужно
+        if isinstance(telegram_id, str):
+            telegram_id = int(telegram_id)
+        
         # Проверяем, есть ли пользователь в MiniAppUser
         mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
         
         if not mini_app_user:
+            logger.warning(f"⚠️ User {telegram_id} not found in MiniAppUser")
             return False
         
         # Проверяем связи с админами
@@ -44,6 +49,11 @@ def check_admin_access(telegram_id):
         # 2. Проверяем связь с Telegram админом
         if mini_app_user.telegram_admin and mini_app_user.telegram_admin.is_active:
             logger.info(f"✅ User {telegram_id} is Telegram admin")
+            return True
+        
+        # 3. Проверяем is_admin поле напрямую
+        if mini_app_user.is_admin:
+            logger.info(f"✅ User {telegram_id} is admin (is_admin=True)")
             return True
         
         logger.warning(f"⚠️ User {telegram_id} is not an admin")
@@ -79,7 +89,7 @@ def donations_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(int(telegram_id)):
+    if not check_admin_access(telegram_id):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -153,7 +163,7 @@ def subscriptions_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(int(telegram_id)):
+    if not check_admin_access(telegram_id):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -213,7 +223,7 @@ def activity_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(int(telegram_id)):
+    if not check_admin_access(telegram_id):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -274,17 +284,22 @@ def overview_analytics(request):
         )
     
     # Проверка прав доступа
-    if not check_admin_access(int(telegram_id)):
+    if not check_admin_access(telegram_id):
         return Response(
             {'error': 'Access denied. Admin privileges required.'},
             status=status.HTTP_403_FORBIDDEN
         )
     
     try:
-        # Получаем данные из всех методов
-        donations_data = donations_analytics(request).data
-        subscriptions_data = subscriptions_analytics(request).data
-        activity_data = activity_analytics(request).data
+        # Получаем данные напрямую, без вызова других view функций
+        # Донаты
+        donations_data = get_donations_data()
+        
+        # Подписки
+        subscriptions_data = get_subscriptions_data()
+        
+        # Активность
+        activity_data = get_activity_data()
         
         return Response({
             'success': True,
@@ -300,4 +315,88 @@ def overview_analytics(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+def get_donations_data():
+    """Получение данных о донатах"""
+    try:
+        # Общая статистика донатов
+        total_donations = Donation.objects.filter(status='completed').count()
+        total_amount = Donation.objects.filter(status='completed').aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+        
+        # За последний месяц
+        month_ago = timezone.now() - timedelta(days=30)
+        monthly_donations = Donation.objects.filter(
+            status='completed',
+            created_at__gte=month_ago
+        ).count()
+        monthly_amount = Donation.objects.filter(
+            status='completed',
+            created_at__gte=month_ago
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # По источникам
+        website_donations = Donation.objects.filter(
+            status='completed',
+            source='website'
+        ).count()
+        mini_app_donations = Donation.objects.filter(
+            status='completed',
+            source='mini_app'
+        ).count()
+        
+        return {
+            'total_donations': total_donations,
+            'total_amount': float(total_amount),
+            'monthly_donations': monthly_donations,
+            'monthly_amount': float(monthly_amount),
+            'by_source': {
+                'website': website_donations,
+                'mini_app': mini_app_donations
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting donations data: {e}")
+        return {}
+
+
+def get_subscriptions_data():
+    """Получение данных о подписках"""
+    try:
+        # Новые пользователи за последний месяц
+        month_ago = timezone.now() - timedelta(days=30)
+        new_users = MiniAppUser.objects.filter(created_at__gte=month_ago).count()
+        
+        # Общее количество пользователей
+        total_users = MiniAppUser.objects.count()
+        
+        return {
+            'new_users_month': new_users,
+            'total_users': total_users
+        }
+    except Exception as e:
+        logger.error(f"Error getting subscriptions data: {e}")
+        return {}
+
+
+def get_activity_data():
+    """Получение данных об активности"""
+    try:
+        # Активные пользователи за 7 дней
+        week_ago = timezone.now() - timedelta(days=7)
+        active_week = MiniAppUser.objects.filter(last_seen__gte=week_ago).count()
+        
+        # Активные пользователи за 30 дней
+        month_ago = timezone.now() - timedelta(days=30)
+        active_month = MiniAppUser.objects.filter(last_seen__gte=month_ago).count()
+        
+        return {
+            'active_week': active_week,
+            'active_month': active_month
+        }
+    except Exception as e:
+        logger.error(f"Error getting activity data: {e}")
+        return {}
 

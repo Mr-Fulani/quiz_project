@@ -715,6 +715,18 @@ async def submit_task_answer(task_id: int, request: Request):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
+@router.get("/get-config/")
+async def get_config():
+    """
+    Возвращает конфигурационные данные для клиента (FastAPI mini_app)
+    """
+    from core.config import settings as app_settings
+    
+    return JSONResponse(content={
+        "admin_telegram_id": app_settings.ADMIN_TELEGRAM_ID
+    })
+
+
 @router.post("/feedback/")
 async def submit_feedback(request: Request):
     """
@@ -742,7 +754,7 @@ async def submit_feedback(request: Request):
             raise HTTPException(status_code=400, detail="message is required and must be at least 3 characters")
         
         # Отправляем запрос в Django API
-        django_url = f"{settings.DJANGO_API_BASE_URL}/api/feedback/submit/"
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/submit/"
         payload = {
             'user_id': telegram_id,
             'username': username,
@@ -751,8 +763,13 @@ async def submit_feedback(request: Request):
             'source': 'mini_app'
         }
         
+        # Устанавливаем правильный Host header для Django
+        headers = {
+            'Host': 'localhost',  # Django ожидает localhost, а не nginx_local
+        }
+        
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.post(django_url, json=payload, timeout=10.0)
+            response = await client.post(django_url, json=payload, headers=headers, timeout=10.0)
         
         if response.status_code == 201 or response.status_code == 200:
             logger.info(f"✅ Feedback submitted successfully for telegram_id: {telegram_id}")
@@ -780,11 +797,20 @@ async def get_admin_analytics_overview(telegram_id: int):
     logger.info(f"📊 Получение статистики для telegram_id: {telegram_id}")
     
     try:
+        # Правильный URL с /accounts/ в пути
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/mini-app-analytics/overview/"
         params = {'telegram_id': telegram_id}
         
+        logger.info(f"📊 Proxy request to: {django_url} with params: {params}")
+        
+        headers = {
+            'Host': 'localhost',
+            'X-Forwarded-For': '127.0.0.1',
+            'X-Forwarded-Proto': 'http'
+        }
+        
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(django_url, params=params, timeout=10.0)
+            response = await client.get(django_url, params=params, headers=headers, timeout=10.0)
         
         if response.status_code == 200:
             logger.info(f"✅ Статистика получена для telegram_id: {telegram_id}")

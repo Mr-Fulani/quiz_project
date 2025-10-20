@@ -17,52 +17,7 @@
     <!-- Font Awesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Слой 1: Тёмный полупрозрачный фон -->
-    <div class="background-layer"></div>
-
-    <!-- Слой 2: Основной контент -->
-    <div class="content">
-        {% block content %}
-        <!-- содержимое страницы -->
-        {% endblock %}
-    </div>
-
-    <!-- Фиксированное нижнее меню -->
-    <nav class="navigation">
-        <ul>
-            <li class="list {% if request.url.path == '/' or request.url.path.startswith('/topic/') %}active{% endif %}" data-href="/">
-                <a href="/?lang={{ current_language or 'en' }}">
-                    <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
-                    <span class="text" data-translate="home">{{ translations.get('home', 'Главная') }}</span>
-                </a>
-            </li>
-            <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}" data-href="/profile">
-                <a href="/profile?lang={{ current_language or 'en' }}">
-                    <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
-                    <span class="text" data-translate="profile">{{ translations.get('profile', 'Профиль') }}</span>
-                </a>
-            </li>
-            <li class="list {% if request.url.path == '/top_users' %}active{% endif %}" data-href="/top_users">
-                <a href="/top_users?lang={{ current_language or 'en' }}">
-                    <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
-                    <span class="text" data-translate="top_users">{{ translations.get('top_users', 'Топ юзеров') }}</span>
-                </a>
-            </li>
-            <li class="list {% if request.url.path == '/statistics' %}active{% endif %}" data-href="/statistics">
-                <a href="/statistics?lang={{ current_language or 'en' }}">
-                    <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
-                    <span class="text" data-translate="statistics">{{ translations.get('statistics', 'Статистика') }}</span>
-                </a>
-            </li>
-            <li class="list {% if request.url.path == '/settings' %}active{% endif %}" data-href="/settings">
-                <a href="/settings?lang={{ current_language or 'en' }}">
-                    <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
-                    <span class="text" data-translate="settings">{{ translations.get('settings', 'Настройки') }}</span>
-                </a>
-            </li>
-            <div class="indicator"></div>
-        </ul>
-    </nav>
+    
     
     <!-- Подключаем стили -->
                <link rel="stylesheet" href="{{ styles_css_url }}">
@@ -117,6 +72,52 @@
            <script src="{{ localization_js_url }}"></script>
 </head>
 <body>
+    <!-- Слой 1: Тёмный полупрозрачный фон -->
+    <div class="background-layer"></div>
+
+    <!-- Слой 2: Основной контент -->
+    <div class="content">
+        {% block content %}
+        <!-- содержимое страницы -->
+        {% endblock %}
+    </div>
+
+    <!-- Фиксированное нижнее меню -->
+    <nav class="navigation">
+        <ul>
+            <li class="list {% if request.url.path == '/' or request.url.path.startswith('/topic/') %}active{% endif %}" data-href="/">
+                <a href="/?lang={{ current_language or 'en' }}">
+                    <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
+                    <span class="text" data-translate="home">{{ translations.get('home', 'Главная') }}</span>
+                </a>
+            </li>
+            <li class="list {% if request.url.path.startswith('/profile') %}active{% endif %}" data-href="/profile">
+                <a href="/profile?lang={{ current_language or 'en' }}">
+                    <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
+                    <span class="text" data-translate="profile">{{ translations.get('profile', 'Профиль') }}</span>
+                </a>
+            </li>
+            <li class="list {% if request.url.path == '/top_users' %}active{% endif %}" data-href="/top_users">
+                <a href="/top_users?lang={{ current_language or 'en' }}">
+                    <span class="icon"><ion-icon name="trophy-outline"></ion-icon></span>
+                    <span class="text" data-translate="top_users">{{ translations.get('top_users', 'Топ юзеров') }}</span>
+                </a>
+            </li>
+            <li class="list {% if request.url.path == '/statistics' %}active{% endif %}" data-href="/statistics">
+                <a href="/statistics?lang={{ current_language or 'en' }}">
+                    <span class="icon"><ion-icon name="stats-chart-outline"></ion-icon></span>
+                    <span class="text" data-translate="statistics">{{ translations.get('statistics', 'Статистика') }}</span>
+                </a>
+            </li>
+            <li class="list {% if request.url.path == '/settings' %}active{% endif %}" data-href="/settings">
+                <a href="/settings?lang={{ current_language or 'en' }}">
+                    <span class="icon"><ion-icon name="settings-outline"></ion-icon></span>
+                    <span class="text" data-translate="settings">{{ translations.get('settings', 'Настройки') }}</span>
+                </a>
+            </li>
+            <div class="indicator"></div>
+        </ul>
+    </nav>
     <!-- SVG фильтры для эффектов (всегда доступны) -->
     <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
         <defs>
@@ -251,6 +252,12 @@
 
         // Инициализация пользователя при загрузке приложения
         async function initializeUser() {
+            if (window.userInitialized) {
+                console.log('✅ User already initialized, skipping...');
+                return;
+            }
+            window.userInitialized = true;
+            
             console.log('🚀 Initializing user...');
             console.log('🔍 Telegram WebApp проверка:', {
                 hasTelegram: typeof window.Telegram !== 'undefined',
@@ -340,7 +347,14 @@
                     console.log('✅ window.isUserInitialized установлен:', window.isUserInitialized);
                     console.log('✅ window.currentUser.telegram_id:', window.currentUser.telegram_id);
                     
-                    // Вызываем callback если он установлен
+                    // Генерируем событие для других компонентов (один раз)
+                    if (!window.__userAuthenticatedDispatched) {
+                        const event = new CustomEvent('userAuthenticated', { detail: userData });
+                        document.dispatchEvent(event);
+                        window.__userAuthenticatedDispatched = true;
+                    }
+                    
+                    // Вызываем callback если он установлен (для обратной совместимости)
                     if (window.onUserInitialized) {
                         window.onUserInitialized(userData);
                     }
@@ -454,6 +468,23 @@
                     // Парсим HTML и извлекаем контент
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Извлекаем и обновляем глобальные переменные локализации из загруженного HTML
+                    const newTranslationsScript = doc.querySelector('script[data-is-translations="true"]');
+                    if (newTranslationsScript) {
+                        const scriptContent = newTranslationsScript.textContent;
+                        // Извлекаем JSON из скрипта
+                        const translationsMatch = scriptContent.match(/window\.translations = (.*);/);
+                        if (translationsMatch && translationsMatch[1]) {
+                            try {
+                                window.translations = JSON.parse(translationsMatch[1]);
+                                console.log('✅ Translations updated from loaded page');
+                            } catch (e) {
+                                console.error('❌ Error parsing new translations:', e);
+                            }
+                        }
+                    }
+
                     const newContent = doc.querySelector('.content');
                     
                     if (newContent) {
@@ -469,20 +500,9 @@
                                 contentContainer.style.opacity = '1';
                             }
                             
-                            // Обновляем глобальные переменные локализации из нового контента
-                            updateLocalizationFromPage().then(() => {
-                                // Обновляем интерфейс с новыми переводами
-                                if (window.localizationService) {
-                                    window.localizationService.updateInterface();
-                                }
-                                
-                                // Обновляем профессиональную информацию если мы на странице профиля
-                                if (window.updateProfessionalInfoOnLanguageChange) {
-                                    window.updateProfessionalInfoOnLanguageChange();
-                                }
-                            });
+                            // БЕЗ updateLocalizationFromPage() - она вызывается только один раз при старте
                             
-                            console.log('BASE.HTML: After updateLocalizationFromPage and updateInterface');
+                            console.log('BASE.HTML: After content update (without localization call)');
                             // Обновляем URL в браузере
                             window.history.pushState({}, '', url);
                             
@@ -534,7 +554,7 @@
                             }, 100);
                             
                             // Повторная инициализация пользователя после загрузки новой страницы
-                            initializeUser();
+                            // initializeUser(); // Удалено: вызывается только один раз в DOMContentLoaded
                         }, 300); // Увеличили задержку для лучшей загрузки стилей
                     }
                 } else {
@@ -556,13 +576,22 @@
             const dynamicScripts = document.querySelectorAll('script[data-dynamic="true"]');
             dynamicScripts.forEach(script => script.remove());
             
-            // НЕ удаляем CSS файлы - они остаются в DOM для предотвращения сброса стилей
-            // Проверка наличия будет при загрузке новых CSS
-            console.log('🧹 Cleaned up dynamic scripts (CSS сохранены для стабильности)');
+            // Удаляем динамические CSS
+            const dynamicCSS = document.querySelectorAll('link[data-dynamic="true"]');
+            dynamicCSS.forEach(css => css.remove());
+            
+            console.log('🧹 Cleaned up dynamic scripts and CSS');
             
             // Загружаем стили и скрипты в зависимости от страницы
             if (url === '/' || url === '/index' || url.startsWith('/?') || url.startsWith('/index?')) {
-                console.log('🎯 Home page detected, loading scripts...');
+                console.log('🎯 Home page detected, loading resources...');
+                
+                // Загружаем CSS для карточек тем
+                const topicCardsCSS = document.createElement('link');
+                topicCardsCSS.rel = 'stylesheet';
+                topicCardsCSS.href = '{{ get_css_url("topic_cards_swiper.css") }}';
+                topicCardsCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(topicCardsCSS);
                 
                 // Загружаем Swiper JS из CDN если еще не загружен (для свайпа карточек)
                 const loadSwiperJS = new Promise((resolve) => {
@@ -621,6 +650,13 @@
                     document.head.appendChild(topicCardsScript);
                 });
             } else if (url.startsWith('/topic/')) {
+                // Загружаем CSS для страницы подтем
+                const topicDetailCSS = document.createElement('link');
+                topicDetailCSS.rel = 'stylesheet';
+                topicDetailCSS.href = '{{ get_css_url("topic_detail.css") }}';
+                topicDetailCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(topicDetailCSS);
+                
                 // Загружаем скрипт для страницы подтем
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
@@ -640,6 +676,13 @@
                 };
                 document.head.appendChild(script);
             } else if (url.startsWith('/subtopic/') && url.includes('/tasks')) {
+                // Загружаем CSS для страницы задач
+                const tasksCSS = document.createElement('link');
+                tasksCSS.rel = 'stylesheet';
+                tasksCSS.href = '{{ get_css_url("tasks.css") }}';
+                tasksCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(tasksCSS);
+                
                 console.log('🎯 Subtopic tasks page detected, loading script...');
                 
                 // Загружаем скрипт для страницы задач
@@ -665,6 +708,13 @@
                 };
                 document.head.appendChild(script);
             } else if (url.startsWith('/user_profile/')) {
+                // Загружаем CSS для просмотра профиля
+                const profileCSS = document.createElement('link');
+                profileCSS.rel = 'stylesheet';
+                profileCSS.href = '{{ get_css_url("profile.css") }}';
+                profileCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(profileCSS);
+                
                 console.log('🎯 User profile page detected, loading script...');
                 // Для просмотра чужого профиля загружаем user_profile.js
                 const script = document.createElement('script');
@@ -687,6 +737,13 @@
                 };
                 document.head.appendChild(script);
             } else if (url.startsWith('/profile')) {
+                // Загружаем CSS для собственного профиля
+                const profileCSS = document.createElement('link');
+                profileCSS.rel = 'stylesheet';
+                profileCSS.href = '{{ get_css_url("profile.css") }}';
+                profileCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(profileCSS);
+                
                 console.log('🎯 Profile page detected, loading script...');
                 // Для профиля загружаем скрипт и инициализируем
                 const script = document.createElement('script');
@@ -717,20 +774,64 @@
                     console.error('❌ Failed to load profile.js');
                 };
                 document.head.appendChild(script);
-            } else if (url === '/settings') {
-                console.log('🎯 Settings page detected, loading script...');
-                // Для настроек загружаем скрипт
-                const script = document.createElement('script');
-                script.setAttribute('data-dynamic', 'true');
-                script.src = '{{ get_js_url("settings.js") }}';
-                script.onload = function() {
-                    console.log('✅ Settings script loaded via base template');
+            } else if (url === '/settings' || url.startsWith('/settings?')) {
+                console.log('🎯 Settings page detected, loading scripts...');
+                
+                // Сбрасываем старый instance для переинициализации
+                console.log('🧹 Clearing old settingsPageInstance...');
+                window.settingsPageInstance = null;
+                
+                // Загружаем конфиг с сервера для получения ADMIN_TELEGRAM_ID
+                fetch('/api/get-config/')
+                    .then(response => response.json())
+                    .then(config => {
+                        window.ADMIN_TELEGRAM_ID = config.admin_telegram_id;
+                        console.log('📧 [SPA] window.ADMIN_TELEGRAM_ID loaded:', window.ADMIN_TELEGRAM_ID);
+                    })
+                    .catch(error => {
+                        console.error('❌ Failed to load config:', error);
+                        window.ADMIN_TELEGRAM_ID = '';
+                    });
+                
+                // Загружаем CSS для настроек
+                const settingsCSS = document.createElement('link');
+                settingsCSS.rel = 'stylesheet';
+                settingsCSS.href = '{{ get_css_url("settings.css") }}';
+                settingsCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(settingsCSS);
+                
+                // Загружаем feedback.js ДО settings.js
+                const feedbackScript = document.createElement('script');
+                feedbackScript.setAttribute('data-dynamic', 'true');
+                feedbackScript.src = '{{ get_js_url("feedback.js") }}';
+                feedbackScript.onload = function() {
+                    console.log('✅ Feedback script loaded via base template');
+                    
+                    // После загрузки feedback.js загружаем settings.js
+                    const settingsScript = document.createElement('script');
+                    settingsScript.setAttribute('data-dynamic', 'true');
+                    settingsScript.src = '{{ get_js_url("settings.js") }}';
+                    settingsScript.onload = function() {
+                        console.log('✅ Settings script loaded via base template');
+                        console.log('🔄 Settings and Feedback should auto-initialize');
+                    };
+                    settingsScript.onerror = function() {
+                        console.error('❌ Failed to load settings.js');
+                    };
+                    document.head.appendChild(settingsScript);
                 };
-                script.onerror = function() {
-                    console.error('❌ Failed to load settings.js');
+                feedbackScript.onerror = function() {
+                    console.error('❌ Failed to load feedback.js');
                 };
-                document.head.appendChild(script);
+                document.head.appendChild(feedbackScript);
             } else if (url === '/statistics') {
+                // Загружаем CSS для статистики
+                const statisticsCSS = document.createElement('link');
+                statisticsCSS.rel = 'stylesheet';
+                statisticsCSS.href = '{{ get_css_url("statistics.css") }}';
+                statisticsCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(statisticsCSS);
+                
                 console.log('🎯 Statistics page detected, loading script...');
                 // Для статистики загружаем скрипт
                 const script = document.createElement('script');
@@ -753,36 +854,18 @@
                 };
                 document.head.appendChild(script);
             } else if (url === '/top_users' || url.startsWith('/top_users')) {
-                console.log('🎯 Top users page detected, loading resources...');
+                // Загружаем CSS для топ пользователей
+                const topUsersCSS = document.createElement('link');
+                topUsersCSS.rel = 'stylesheet';
+                topUsersCSS.href = '{{ get_css_url("top_users.css") }}';
+                topUsersCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(topUsersCSS);
                 
-                // CSS файлы уже загружены в base.html как постоянные
-                // Проверяем их наличие для отладки
-                const swiperCDNCSS = document.querySelector('link[href*="swiper-bundle.min.css"]');
-                const customSwiperCSS = document.querySelector('link[href*="top_users_swiper.css"]');
-                
-                console.log('🔍 Swiper CSS status:', {
-                    cdnCSS: swiperCDNCSS ? 'loaded' : 'missing',
-                    customCSS: customSwiperCSS ? 'loaded' : 'missing'
-                });
-                
-                // Если CSS отсутствуют (не должно происходить), загружаем их динамически
-                if (!swiperCDNCSS) {
-                    console.warn('⚠️ Swiper CDN CSS отсутствует, загружаем динамически...');
-                    const swiperCSS = document.createElement('link');
-                    swiperCSS.rel = 'stylesheet';
-                    swiperCSS.href = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css';
-                    swiperCSS.setAttribute('data-permanent', 'true');
-                    document.head.appendChild(swiperCSS);
-                }
-                
-                if (!customSwiperCSS) {
-                    console.warn('⚠️ Custom Swiper CSS отсутствует, загружаем динамически...');
-                    const customCSS = document.createElement('link');
-                    customCSS.rel = 'stylesheet';
-                    customCSS.href = '{{ get_css_url("top_users_swiper.css") }}';
-                    customCSS.setAttribute('data-permanent', 'true');
-                    document.head.appendChild(customCSS);
-                }
+                const topUsersSwiperCSS = document.createElement('link');
+                topUsersSwiperCSS.rel = 'stylesheet';
+                topUsersSwiperCSS.href = '{{ get_css_url("top_users_swiper.css") }}';
+                topUsersSwiperCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(topUsersSwiperCSS);
                 
                 // 3. Загружаем Swiper JS из CDN (если еще не загружен)
                 const loadSwiperJS = new Promise((resolve) => {
@@ -891,6 +974,32 @@
                     };
                     document.head.appendChild(script);
                 });
+            } else if (url.startsWith('/admin-analytics')) {
+                console.log('🎯 Admin analytics page detected, loading resources...');
+                
+                // Сбрасываем старый instance для переинициализации
+                console.log('🧹 Clearing old adminAnalyticsInstance...');
+                window.adminAnalyticsInstance = null;
+                
+                // Загружаем CSS для админ-аналитики
+                const adminAnalyticsCSS = document.createElement('link');
+                adminAnalyticsCSS.rel = 'stylesheet';
+                adminAnalyticsCSS.href = '{{ get_css_url("admin_analytics.css") }}';
+                adminAnalyticsCSS.setAttribute('data-dynamic', 'true');
+                document.head.appendChild(adminAnalyticsCSS);
+                
+                // Загружаем JS для админ-аналитики
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.src = '{{ get_js_url("admin_analytics.js") }}';
+                script.onload = function() {
+                    console.log('✅ Admin analytics script loaded via base template');
+                    console.log('🔄 Admin analytics will auto-initialize');
+                };
+                script.onerror = function() {
+                    console.error('❌ Failed to load admin_analytics.js');
+                };
+                document.head.appendChild(script);
             }
         }
         
@@ -906,6 +1015,11 @@
 
         // Функция для обновления локализации из загруженной страницы
         async function updateLocalizationFromPage() {
+            if (window.localizationInitialized) {
+                console.log('✅ Localization already initialized');
+                return;
+            }
+            window.localizationInitialized = true;
             console.log('BASE.HTML: updateLocalizationFromPage called.');
             
             // Получаем текущий язык
@@ -994,12 +1108,19 @@
                             if (window.updateProfessionalInfoOnLanguageChange) {
                                 window.updateProfessionalInfoOnLanguageChange();
                             }
+                            
+                            // Обновляем страницу через AJAX с новым языком
+                            const currentUrl = new URL(window.location.href);
+                            currentUrl.searchParams.set('lang', lang);
+                            loadPage(currentUrl.pathname + currentUrl.search);
                         }, 100);
                         
                     } else {
                         console.error('❌ Failed to change language via service');
-                        // Fallback к перезагрузке страницы
-                        window.location.reload();
+                        // Fallback: обновляем через loadPage
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('lang', lang);
+                        loadPage(currentUrl.pathname + currentUrl.search);
                     }
                 } catch (error) {
                     console.error('❌ Error in changeLanguage:', error);
@@ -1012,8 +1133,10 @@
                 localStorage.setItem('selectedLanguage', lang);
                 window.currentLanguage = lang;
                 
-                // Принудительно перезагружаем страницу для надежности
-                window.location.reload();
+                // Обновляем через loadPage вместо reload
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('lang', lang);
+                loadPage(currentUrl.pathname + currentUrl.search);
             }
         }
         
@@ -1028,7 +1151,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOMContentLoaded: Инициализация приложения...');
             // contentContainer уже определен глобально
-            initializeUser(); // Сначала инициализируем пользователя
+            initializeUser();  // Один раз
+            updateLocalizationFromPage();  // Один раз при старте
             
             // Проверяем, что это не результат нажатия "назад"
             if (performance.navigation.type !== performance.navigation.TYPE_BACK_FORWARD) {

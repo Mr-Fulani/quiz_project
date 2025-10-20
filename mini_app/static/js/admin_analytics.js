@@ -3,10 +3,15 @@
  * Загружает и отображает ключевые метрики
  */
 
+console.log('🟢 admin_analytics.js LOADED!');
+
 class AdminAnalytics {
     constructor() {
         this.telegramId = null;
         this.isLoading = false;
+        
+        console.log('🏗️ AdminAnalytics constructor called');
+        console.log('🏗️ Current instance:', window.adminAnalyticsInstance);
         
         this.init();
     }
@@ -45,8 +50,11 @@ class AdminAnalytics {
         this.showLoading();
         
         try {
+            console.log(`📊 Loading analytics for telegram_id: ${this.telegramId}`);
             const response = await fetch(`/api/admin-analytics/overview?telegram_id=${this.telegramId}`);
+            console.log(`📊 Response status: ${response.status}`);
             const data = await response.json();
+            console.log(`📊 Response data:`, data);
             
             if (response.status === 403) {
                 // Доступ запрещен
@@ -67,28 +75,36 @@ class AdminAnalytics {
             }
         } catch (error) {
             console.error('❌ Error loading analytics:', error);
-            this.showError(window.t('analytics_load_error', 'Ошибка загрузки статистики'));
+            this.showError(window.t('analytics_load_error', 'Ошибка загрузки статистики') + ': ' + error.message);
         } finally {
             this.isLoading = false;
+            this.hideLoading();  // Всегда скрываем loading в finally
         }
     }
     
     displayAnalytics(data) {
+        console.log('📊 displayAnalytics called with data:', data);
+        
         // Скрываем индикатор загрузки
         this.hideLoading();
+        console.log('✅ Loading indicator hidden');
         
         // Показываем контент
         const contentDiv = document.getElementById('analytics-content');
         if (contentDiv) {
             contentDiv.style.display = 'block';
+            console.log('✅ Analytics content displayed');
+        } else {
+            console.error('❌ analytics-content div not found!');
         }
         
         // Донаты
         if (data.donations) {
+            console.log('📊 Processing donations data:', data.donations);
             this.updateElement('total-donations', data.donations.total_donations);
-            this.updateElement('total-amount', `$${this.formatNumber(data.donations.total_amount_usd)}`);
+            this.updateElement('total-amount', `$${this.formatNumber(data.donations.total_amount)}`);
             this.updateElement('monthly-donations', data.donations.monthly_donations);
-            this.updateElement('monthly-amount', `$${this.formatNumber(data.donations.monthly_amount_usd)}`);
+            this.updateElement('monthly-amount', `$${this.formatNumber(data.donations.monthly_amount)}`);
             
             // Разбивка по источникам
             if (data.donations.by_source) {
@@ -98,16 +114,16 @@ class AdminAnalytics {
         
         // Подписчики
         if (data.subscriptions) {
+            console.log('👥 Processing subscriptions data:', data.subscriptions);
             this.updateElement('total-users', data.subscriptions.total_users);
-            this.updateElement('monthly-users', data.subscriptions.monthly_new_users);
-            this.updateElement('weekly-users', data.subscriptions.weekly_new_users);
+            this.updateElement('monthly-users', data.subscriptions.new_users_month);
         }
         
         // Активность
         if (data.activity) {
-            this.updateElement('active-7-days', data.activity.active_7_days);
-            this.updateElement('active-30-days', data.activity.active_30_days);
-            this.updateElement('online-now', data.activity.online_now);
+            console.log('📈 Processing activity data:', data.activity);
+            this.updateElement('active-week', data.activity.active_week);
+            this.updateElement('active-month', data.activity.active_month);
         }
         
         // Время обновления
@@ -119,15 +135,22 @@ class AdminAnalytics {
             });
             this.updateElement('last-updated-time', timeStr);
         }
+        
+        console.log('✅ displayAnalytics completed successfully');
     }
     
     displaySourceStats(bySource) {
         const container = document.getElementById('source-stats');
-        if (!container) return;
+        if (!container) {
+            console.warn('⚠️ source-stats container not found');
+            return;
+        }
         
         container.innerHTML = '';
+        console.log('📊 Displaying source stats:', bySource);
         
-        for (const [sourceKey, sourceData] of Object.entries(bySource)) {
+        // bySource может быть либо объектом с простыми числами, либо с полными данными
+        for (const [sourceKey, value] of Object.entries(bySource)) {
             const sourceCard = document.createElement('div');
             sourceCard.className = 'source-card';
             
@@ -135,20 +158,36 @@ class AdminAnalytics {
                 window.t('source_website', 'Сайт') : 
                 window.t('source_mini_app', 'Мини-апп');
             
-            sourceCard.innerHTML = `
-                <div class="source-name">${sourceName}</div>
+            // Проверяем, является ли value объектом или простым числом
+            const count = typeof value === 'object' ? value.count : value;
+            const amount = typeof value === 'object' ? value.amount_usd : null;
+            
+            let infoHTML = `
                 <div class="source-info">
                     <span class="label">${window.t('count', 'Количество')}:</span>
-                    <span class="value">${sourceData.count}</span>
+                    <span class="value">${count}</span>
                 </div>
-                <div class="source-info">
-                    <span class="label">${window.t('amount', 'Сумма')}:</span>
-                    <span class="value">$${this.formatNumber(sourceData.amount_usd)}</span>
-                </div>
+            `;
+            
+            // Добавляем сумму если она есть
+            if (amount !== null && amount !== undefined) {
+                infoHTML += `
+                    <div class="source-info">
+                        <span class="label">${window.t('amount', 'Сумма')}:</span>
+                        <span class="value">$${this.formatNumber(amount)}</span>
+                    </div>
+                `;
+            }
+            
+            sourceCard.innerHTML = `
+                <div class="source-name">${sourceName}</div>
+                ${infoHTML}
             `;
             
             container.appendChild(sourceCard);
         }
+        
+        console.log('✅ Source stats displayed');
     }
     
     updateElement(id, value) {
@@ -178,8 +217,21 @@ class AdminAnalytics {
     }
     
     hideLoading() {
+        console.log('🔄 hideLoading called');
         const loadingDiv = document.getElementById('loading-indicator');
-        if (loadingDiv) loadingDiv.style.display = 'none';
+        const contentDiv = document.getElementById('analytics-content');
+        
+        console.log('🔍 loading-indicator element:', loadingDiv);
+        console.log('🔍 analytics-content element:', contentDiv);
+        
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
+            console.log('✅ Loading indicator hidden');
+        }
+        if (contentDiv) {
+            contentDiv.style.display = 'block';
+            console.log('✅ Analytics content shown');
+        }
     }
     
     showAccessDenied() {
@@ -204,17 +256,29 @@ class AdminAnalytics {
     }
 }
 
-// Глобальная переменная
-let adminAnalytics;
+// Глобальная функция для инициализации (вызывается из base.html или при DOMContentLoaded)
+function initAdminAnalytics() {
+    console.log('📊 AdminAnalytics: initAdminAnalytics called');
+    console.log('📊 window.adminAnalyticsInstance:', window.adminAnalyticsInstance);
+    console.log('📊 document.readyState:', document.readyState);
+    
+    if (window.adminAnalyticsInstance) {
+        console.log('⚠️ AdminAnalytics already initialized, skipping...');
+        return;
+    }
+    
+    console.log('🚀 Creating new AdminAnalytics instance...');
+    window.adminAnalyticsInstance = new AdminAnalytics();
+}
 
-// Инициализация при загрузке DOM
+// Проверяем состояние документа
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('📊 AdminAnalytics: DOM loaded, initializing...');
-        adminAnalytics = new AdminAnalytics();
-    });
+    // DOM еще загружается - ждем DOMContentLoaded
+    console.log('📊 AdminAnalytics: DOM loading, adding DOMContentLoaded listener');
+    document.addEventListener('DOMContentLoaded', initAdminAnalytics);
 } else {
-    console.log('📊 AdminAnalytics: DOM already loaded, initializing...');
-    adminAnalytics = new AdminAnalytics();
+    // DOM уже загружен (SPA-навигация) - инициализируем сразу
+    console.log('📊 AdminAnalytics: DOM already loaded, initializing immediately');
+    initAdminAnalytics();
 }
 

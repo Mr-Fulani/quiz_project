@@ -47,7 +47,9 @@ async def save_feedback_message(message: types.Message):
             username=message.from_user.username,
             message=message.text,
             created_at=datetime.utcnow(),
-            is_processed=False
+            is_processed=False,
+            source='bot',  # Указываем источник сообщения
+            category='other'  # Категория по умолчанию
         )
         session.add(feedback)
         await session.commit()

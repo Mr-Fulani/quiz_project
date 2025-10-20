@@ -82,7 +82,7 @@ STATIC_VERSIONS = {
     'top_users_swiper.js': '1.3',  # Отключен для избежания конфликтов (инициализация теперь в top_users.html)
     'statistics.js': '3.6',  # Обновлено: исправлен mini_app API service для правильных заголовков
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
-    'styles.css': '3.1',  # Исправлено позиционирование: убраны transform и perspective, оставлен только image-rendering
+    'styles.css': '3.2',  # Перенос контента из <head> в <body> (фикc скрытий)
     'donation.css': '1.3',  # Обновлено: добавлена поддержка safe areas для Stripe модального окна
     'profile.css': '8.2',  # Обновлено: добавлена поддержка safe areas для модального окна профиля
     'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента
@@ -97,7 +97,11 @@ STATIC_VERSIONS = {
     # Добавляем недостающие CSS файлы для единообразного кэширования
     'topic_detail.css': '1.1',  # Убрана анимация для мгновенного отображения прогресса при загрузке
     'tasks.css': '1.0',  # Унификация кэширования
-    'settings.css': '1.0',  # Унификация кэширования
+    'settings.css': '2.2',  # FIX: улучшена видимость выбранной категории feedback
+    'feedback.js': '2.1',  # FIX: категория не выбрана по умолчанию + убран selected из HTML
+    'admin_analytics.js': '3.5',  # DEBUG: добавлены логи в hideLoading для диагностики
+    'settings.js': '2.0',  # NEW: переработана логика checkAdminAccess в отдельный класс
+    'admin_analytics.css': '1.2',  # Обновление для фикса загрузки
 }
 
 

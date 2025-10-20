@@ -5,11 +5,17 @@
 {% endblock %}
 
 {% block extra_css %}
+<!-- CSS загружается динамически через base.html при SPA-навигации -->
+{% if not request.headers.get('X-Requested-With') %}
 <link rel="stylesheet" href="{{ get_css_url('admin_analytics.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+<!-- JS загружается динамически через base.html при SPA-навигации -->
+{% if not request.headers.get('X-Requested-With') %}
 <script src="{{ get_js_url('admin_analytics.js') }}"></script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -99,12 +105,6 @@
                         {{ translations.get('monthly_new_users', 'Новых за месяц') }}
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="weekly-users">-</div>
-                    <div class="stat-label" data-translate="weekly_new_users">
-                        {{ translations.get('weekly_new_users', 'Новых за неделю') }}
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -113,21 +113,15 @@
             <h2 data-translate="activity_title">{{ translations.get('activity_title', '📊 Активность') }}</h2>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="active-7-days">-</div>
-                    <div class="stat-label" data-translate="active_7_days">
-                        {{ translations.get('active_7_days', 'Активных за 7 дней') }}
+                    <div class="stat-value" id="active-week">-</div>
+                    <div class="stat-label" data-translate="active_week">
+                        {{ translations.get('active_week', 'Активных за 7 дней') }}
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="active-30-days">-</div>
-                    <div class="stat-label" data-translate="active_30_days">
-                        {{ translations.get('active_30_days', 'Активных за 30 дней') }}
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="online-now">-</div>
-                    <div class="stat-label" data-translate="online_now">
-                        {{ translations.get('online_now', 'Онлайн сейчас') }}
+                    <div class="stat-value" id="active-month">-</div>
+                    <div class="stat-label" data-translate="active_month">
+                        {{ translations.get('active_month', 'Активных за 30 дней') }}
                     </div>
                 </div>
             </div>
