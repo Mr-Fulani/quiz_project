@@ -303,6 +303,8 @@ class FeedbackMessage(Base):
     message = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     is_processed = Column(Boolean, default=False)
+    source = Column(String(20), nullable=True, default='bot')  # Источник: bot или mini_app
+    category = Column(String(20), nullable=True, default='other')  # Категория: bug, suggestion, complaint, other
 
     # Связь с ответами
     replies = relationship('FeedbackReply', back_populates='feedback', cascade='all, delete-orphan')

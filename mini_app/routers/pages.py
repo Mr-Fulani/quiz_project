@@ -255,6 +255,17 @@ async def admin_analytics(
         "translations": translations,
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
+        # Добавляем функции для генерации URL с cache buster
+        "get_css_url": get_css_url,
+        "get_js_url": get_js_url,
+        # Добавляем общие ресурсы, чтобы base.html корректно подключал стили и локализацию
+        "styles_css_url": get_css_url('styles.css'),
+        "localization_js_url": get_js_url('localization.js'),
+        "share_app_css_url": get_css_url('share-app.css'),
+        "donation_css_url": get_css_url('donation.css'),
+        "tasks_js_url": get_js_url('tasks.js'),
+        "share_app_js_url": get_js_url('share-app.js'),
+        "donation_js_url": get_js_url('donation.js'),
     })
 
 
@@ -269,6 +280,7 @@ async def settings(
     
     current_language = localization_service.get_language()
     logger.info(f"Rendering settings page with language: {current_language}")
+    logger.info(f"📧 ADMIN_TELEGRAM_ID value: [{app_settings.ADMIN_TELEGRAM_ID}]")
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
@@ -279,6 +291,9 @@ async def settings(
         "current_language": current_language,
         "supported_languages": localization_service.get_supported_languages(),
         "admin_telegram_id": app_settings.ADMIN_TELEGRAM_ID,
+        # Добавляем функции для генерации URL с cache buster
+        "get_css_url": get_css_url,
+        "get_js_url": get_js_url,
         "tasks_js_url": get_js_url('tasks.js'),
         "localization_js_url": get_js_url('localization.js'),
         "share_app_js_url": get_js_url('share-app.js'),

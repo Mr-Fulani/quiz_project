@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # Telegram Bot Token
     TELEGRAM_BOT_TOKEN: str
     
-    # Admin Telegram ID для прямой связи
+    # Admin Telegram ID для прямой связи (username без @)
     ADMIN_TELEGRAM_ID: str = ""
     
     # Django API

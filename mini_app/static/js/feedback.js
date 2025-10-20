@@ -3,10 +3,15 @@
  * Интегрируется с Django API для отправки сообщений
  */
 
-class FeedbackSystem {
+console.log('🟢 feedback.js LOADED!');
+
+// Предотвращаем повторное объявление класса при SPA-навигации
+if (typeof FeedbackSystem === 'undefined') {
+    window.FeedbackSystem = class FeedbackSystem {
     constructor() {
-        this.selectedCategory = 'bug';  // По умолчанию
+        this.selectedCategory = null;  // Не выбрана по умолчанию - пользователь должен выбрать сам
         this.isSubmitting = false;
+        this.eventHandlers = []; // Для отслеживания обработчиков
         
         this.init();
     }
@@ -14,12 +19,21 @@ class FeedbackSystem {
     init() {
         console.log('🔧 FeedbackSystem: Initializing...');
         
-        // Ожидаем загрузки DOM
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.setupEventListeners());
-        } else {
-            this.setupEventListeners();
-        }
+        // Очищаем старые обработчики если они есть
+        this.cleanup();
+        
+        // Немедленно настраиваем обработчики (DOM уже загружен, т.к. скрипт в конце)
+        this.setupEventListeners();
+    }
+    
+    cleanup() {
+        // Удаляем все старые обработчики событий
+        this.eventHandlers.forEach(({element, event, handler}) => {
+            if (element) {
+                element.removeEventListener(event, handler);
+            }
+        });
+        this.eventHandlers = [];
     }
     
     setupEventListeners() {
@@ -27,26 +41,42 @@ class FeedbackSystem {
         
         // Обработчики для выбора категории
         const categoryOptions = document.querySelectorAll('.category-option');
+        console.log(`Found ${categoryOptions.length} category options`);
         categoryOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
+            const handler = (e) => {
+                console.log('Category clicked:', e.target.dataset.category);
                 this.selectCategory(e.target);
-            });
+            };
+            option.addEventListener('click', handler);
+            this.eventHandlers.push({element: option, event: 'click', handler});
         });
         
         // Обработчик для кнопки отправки
         const sendBtn = document.querySelector('.send-feedback-btn');
+        console.log('Send feedback button:', sendBtn);
         if (sendBtn) {
-            sendBtn.addEventListener('click', () => {
+            const handler = () => {
+                console.log('Send feedback button clicked');
                 this.submitFeedback();
-            });
+            };
+            sendBtn.addEventListener('click', handler);
+            this.eventHandlers.push({element: sendBtn, event: 'click', handler});
+        } else {
+            console.warn('⚠️ Send feedback button not found');
         }
         
         // Обработчик для кнопки "Написать админу"
         const contactBtn = document.querySelector('.contact-admin-btn');
+        console.log('Contact admin button:', contactBtn);
         if (contactBtn) {
-            contactBtn.addEventListener('click', () => {
+            const handler = () => {
+                console.log('Contact admin button clicked');
                 this.contactAdmin();
-            });
+            };
+            contactBtn.addEventListener('click', handler);
+            this.eventHandlers.push({element: contactBtn, event: 'click', handler});
+        } else {
+            console.warn('⚠️ Contact admin button not found');
         }
         
         console.log('✅ FeedbackSystem: Event listeners set up');
@@ -68,6 +98,12 @@ class FeedbackSystem {
     async submitFeedback() {
         if (this.isSubmitting) {
             console.log('⏳ Already submitting...');
+            return;
+        }
+        
+        // Проверяем, что категория выбрана
+        if (!this.selectedCategory) {
+            this.showStatus('error', window.t('feedback_error_category', 'Пожалуйста, выберите категорию'));
             return;
         }
         
@@ -127,14 +163,11 @@ class FeedbackSystem {
                     messageTextarea.value = '';
                 }
                 
-                // Сбрасываем категорию на "bug"
+                // Сбрасываем категорию (ничего не выбрано)
                 document.querySelectorAll('.category-option').forEach(option => {
                     option.classList.remove('selected');
-                    if (option.dataset.category === 'bug') {
-                        option.classList.add('selected');
-                    }
                 });
-                this.selectedCategory = 'bug';
+                this.selectedCategory = null;
                 
                 console.log('✅ Feedback submitted successfully');
             } else {
@@ -155,19 +188,32 @@ class FeedbackSystem {
     
     contactAdmin() {
         console.log('📧 Opening admin contact...');
+        console.log('📧 window.ADMIN_TELEGRAM_ID:', window.ADMIN_TELEGRAM_ID);
+        console.log('📧 typeof window.ADMIN_TELEGRAM_ID:', typeof window.ADMIN_TELEGRAM_ID);
         
         // Получаем Telegram ID админа из переменных окружения или конфигурации
-        // Пока используем placeholder - нужно будет добавить в конфиг
-        const adminTelegramId = window.ADMIN_TELEGRAM_ID || '';
+        const adminTelegramId = (window.ADMIN_TELEGRAM_ID || '').trim();
+        console.log('📧 adminTelegramId after trim:', `[${adminTelegramId}]`);
+        console.log('📧 adminTelegramId length:', adminTelegramId.length);
+        console.log('📧 Boolean check:', !!adminTelegramId);
         
-        if (adminTelegramId) {
+        if (adminTelegramId && adminTelegramId.length > 0) {
             // Открываем чат с админом через Telegram
             const telegramUrl = `https://t.me/${adminTelegramId}`;
-            window.open(telegramUrl, '_blank');
+            console.log('✅ Opening Telegram URL:', telegramUrl);
+            
+            // Используем Telegram.WebApp.openTelegramLink если доступно
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+                console.log('✅ Using Telegram.WebApp.openTelegramLink');
+                window.Telegram.WebApp.openTelegramLink(telegramUrl);
+            } else {
+                console.log('✅ Using window.open as fallback');
+                window.open(telegramUrl, '_blank');
+            }
         } else {
             // Если ID не задан, показываем сообщение
+            console.warn('⚠️ Admin Telegram ID not configured or empty');
             this.showStatus('error', window.t('admin_contact_unavailable', 'Контакт админа недоступен'));
-            console.warn('⚠️ Admin Telegram ID not configured');
         }
     }
     
@@ -193,19 +239,47 @@ class FeedbackSystem {
             }, 5000);
         }
     }
+};
+} else {
+    console.log('⚠️ FeedbackSystem class already defined, skipping redefinition');
 }
 
 // Глобальная переменная для доступа к системе обратной связи
 let feedbackSystem;
 
-// Инициализация при загрузке DOM
+// Надежная инициализация при загрузке DOM
+function initFeedbackSystem() {
+    console.log('🔧 FeedbackSystem: Starting initialization...');
+    console.log('🔧 Document readyState:', document.readyState);
+    
+    // Проверяем, есть ли форма feedback на странице
+    const feedbackForm = document.querySelector('.feedback-container');
+    if (!feedbackForm) {
+        console.log('⚠️ FeedbackSystem: No feedback form found on this page, skipping initialization');
+        return;
+    }
+    
+    console.log('✅ FeedbackSystem: Feedback form found, initializing...');
+    
+    // Если система уже инициализирована, очищаем старый экземпляр
+    if (feedbackSystem) {
+        console.log('🧹 FeedbackSystem: Cleaning up old instance...');
+        feedbackSystem.cleanup();
+    }
+    
+    // Создаем новый экземпляр используя глобальный класс
+    feedbackSystem = new window.FeedbackSystem();
+}
+
+// Проверяем состояние документа и инициализируем
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔧 FeedbackSystem: DOM loaded, initializing...');
-        feedbackSystem = new FeedbackSystem();
-    });
+    // DOM еще загружается
+    console.log('🔧 FeedbackSystem: DOM loading, adding DOMContentLoaded listener');
+    document.addEventListener('DOMContentLoaded', initFeedbackSystem);
 } else {
-    console.log('🔧 FeedbackSystem: DOM already loaded, initializing...');
-    feedbackSystem = new FeedbackSystem();
+    // DOM уже загружен (SPA-навигация или обычная загрузка)
+    console.log('🔧 FeedbackSystem: DOM already loaded, initializing immediately');
+    // Для SPA нужна задержка, чтобы элементы успели вставиться в DOM
+    setTimeout(initFeedbackSystem, 200);
 }
 

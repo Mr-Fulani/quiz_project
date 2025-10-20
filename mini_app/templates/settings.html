@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ get_js_url('feedback.js') }}"></script>
+<!-- feedback.js будет загружен в конце после base.html скриптов -->
 {% endblock %}
 
 {% block content %}
@@ -133,7 +133,7 @@
             </div>
             
             <!-- Кнопка админ-панели (только для админов) -->
-            <div class="admin-panel-container" id="admin-panel-container" style="display: none;">
+            <div class="admin-panel-container" id="admin-panel-container">
                 <button class="admin-panel-btn" type="button" onclick="window.location.href='/admin-analytics'">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                         <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
@@ -154,7 +154,7 @@
             
             <!-- Выбор категории -->
             <div class="feedback-category-selector">
-                <span class="category-option selected" data-category="bug" data-translate="feedback_category_bug">
+                <span class="category-option" data-category="bug" data-translate="feedback_category_bug">
                     🐛 {{ translations.get('feedback_category_bug', 'Баг') }}
                 </span>
                 <span class="category-option" data-category="suggestion" data-translate="feedback_category_suggestion">
@@ -196,6 +196,7 @@
 <script>
 // Передаем admin_telegram_id в JavaScript
 window.ADMIN_TELEGRAM_ID = "{{ admin_telegram_id }}";
+console.log('📧 [Settings Template] window.ADMIN_TELEGRAM_ID set to:', window.ADMIN_TELEGRAM_ID);
 
 // Проверяем, запущено ли приложение в Telegram Web App
 function isTelegramWebApp() {
@@ -239,28 +240,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Проверяем права админа и показываем кнопку админ-панели
-    checkAdminAccess();
+    // Логика проверки админа теперь обрабатывается в settings.js
+    console.log('✅ [Settings Template] Admin check logic moved to settings.js');
 });
-
-// Проверка прав админа
-async function checkAdminAccess() {
-    try {
-        // Получаем профиль пользователя из window (уже загружен в base.html)
-        const profileData = window.userProfileData;
-        
-        if (profileData && profileData.is_admin) {
-            console.log('✅ User is admin, showing admin panel button');
-            const adminPanelContainer = document.getElementById('admin-panel-container');
-            if (adminPanelContainer) {
-                adminPanelContainer.style.display = 'block';
-            }
-        } else {
-            console.log('⚠️ User is not admin, hiding admin panel button');
-        }
-    } catch (error) {
-        console.error('❌ Error checking admin access:', error);
-    }
-}
 </script>
+
+<!-- feedback.js загружается автоматически через base.html при SPA-навигации -->
+<!-- При прямом рендере загружаем его здесь -->
+{% if not request.headers.get('X-Requested-With') %}
+<script src="{{ get_js_url('feedback.js') }}"></script>
+{% endif %}
 {% endblock %}

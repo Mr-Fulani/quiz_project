@@ -199,6 +199,7 @@ input:checked + .slider:before {
 .admin-panel-container {
     margin-top: 25px;
     text-align: center;
+    display: none; /* Скрыта по умолчанию, показывается только для админов */
 }
 
 /* Кнопка "Админ-панель" */
@@ -216,6 +217,7 @@ input:checked + .slider:before {
     align-items: center;
     gap: 10px;
     backdrop-filter: blur(10px);
+    visibility: visible !important; /* гарантия видимости */
 }
 
 .admin-panel-btn:hover {
@@ -519,29 +521,31 @@ input:checked + .slider:before {
 
 .category-option {
     padding: 8px 16px;
-    border: 1px solid rgba(0, 255, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.2);  /* Более тонкая граница для неактивных */
     border-radius: 6px;
-    background: rgba(0, 0, 0, 0.3) !important;
-    color: #fff;
+    background: rgba(0, 0, 0, 0.2) !important;  /* Более темный фон для неактивных */
+    color: rgba(255, 255, 255, 0.7);  /* Более тусклый цвет текста */
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;  /* Меньший вес шрифта для неактивных */
     backdrop-filter: blur(10px);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .category-option:hover {
-    border-color: var(--active-color);
-    background: rgba(0, 255, 0, 0.15) !important;
-    color: var(--active-color);
+    border-color: rgba(0, 255, 0, 0.5);
+    background: rgba(0, 255, 0, 0.1) !important;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .category-option.selected {
-    border-color: var(--active-color);
-    background: rgba(0, 255, 0, 0.25) !important;
-    color: #fff;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+    border-color: var(--active-color);  /* Яркая зеленая граница */
+    background: rgba(0, 255, 0, 0.3) !important;  /* Более яркий фон */
+    color: #fff;  /* Белый текст */
+    font-weight: 700;  /* Жирный шрифт */
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);  /* Яркое свечение */
+    transform: scale(1.05);  /* Немного увеличиваем */
 }
 
 /* Текстовое поле сообщения */

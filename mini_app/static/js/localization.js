@@ -47,7 +47,14 @@ class LocalizationService {
         if (!this.supportedLanguages.includes(language)) {
             return false;
         }
-        
+
+        if (this.isChangingLanguage) {
+            console.warn('⚠️ Language change already in progress, skipping...');
+            return false;
+        }
+
+        this.isChangingLanguage = true;
+
         try {
             // Отправляем запрос на сервер
             const response = await fetch('/api/change-language', {
@@ -89,7 +96,10 @@ class LocalizationService {
             }
             
         } catch (error) {
+            console.error('Error changing language:', error);
             return false;
+        } finally {
+            this.isChangingLanguage = false;
         }
     }
     
