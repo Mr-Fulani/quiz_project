@@ -658,24 +658,56 @@ input:checked + .slider:before {
 
 /* Статус отправки */
 .feedback-status {
-    margin-top: 15px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 14px;
+    position: fixed;
+    /* Позиция выше центра, чтобы не перекрывать поле ввода */
+    top: 35%;  /* Выше центра (было 50%) чтобы не перекрывать textarea */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Учитываем Safe Areas для корректного позиционирования */
+    margin-top: calc((env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2);
+    max-width: min(350px, calc(100vw - env(safe-area-inset-left, 20px) - env(safe-area-inset-right, 20px) - 40px));
+    width: 90%;
+    padding: 20px 24px;
+    border-radius: 12px;
+    font-size: 16px;
     font-weight: 600;
     text-align: center;
+    z-index: 3000;
+    /* Стиль как на других страницах */
+    background: rgba(0, 0, 0, 0.8) !important;  /* Как в других элементах */
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: #fff;  /* Белый текст для читаемости */
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    animation: fadeInScale 0.2s ease;
 }
 
 .feedback-status.success {
-    background: rgba(0, 255, 0, 0.2) !important;
-    border: 1px solid var(--active-color);
-    color: var(--active-color);
+    background: rgba(0, 0, 0, 0.9) !important;  /* Темный фон как на других страницах */
+    border: 2px solid var(--active-color);
+    color: var(--active-color);  /* Зеленый текст */
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 255, 0, 0.3);
 }
 
 .feedback-status.error {
-    background: rgba(255, 0, 0, 0.2) !important;
-    border: 1px solid #ff0000;
-    color: #ff6666;
+    background: rgba(0, 0, 0, 0.9) !important;  /* Темный фон как на других страницах */
+    border: 2px solid #ff0000;
+    color: #ff6666;  /* Красный текст */
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(255, 0, 0, 0.3);
+}
+
+/* Анимация появления для уведомлений */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 /* Адаптивность для мобильных устройств */

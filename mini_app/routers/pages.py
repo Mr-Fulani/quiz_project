@@ -225,6 +225,8 @@ async def statistics(
         "supported_languages": localization_service.get_supported_languages(),
         "user_statistics": user_statistics,
         "telegram_id": telegram_id,
+        "get_css_url": get_css_url,
+        "get_js_url": get_js_url,
         "tasks_js_url": get_js_url('tasks.js'),
         "localization_js_url": get_js_url('localization.js'),
         "share_app_js_url": get_js_url('share-app.js'),
