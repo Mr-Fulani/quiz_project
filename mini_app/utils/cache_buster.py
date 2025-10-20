@@ -84,22 +84,23 @@ STATIC_VERSIONS = {
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
     'styles.css': '3.2',  # Перенос контента из <head> в <body> (фикc скрытий)
     'donation.css': '1.3',  # Обновлено: добавлена поддержка safe areas для Stripe модального окна
-    'profile.css': '8.2',  # Обновлено: добавлена поддержка safe areas для модального окна профиля
+    'profile.css': '9.0',  # FIX: Единообразные отступы (padding/margin) с Safe Area Insets на всех разрешениях
+    'user_profile.css': '2.0',  # FIX: Единообразные отступы (padding/margin) с Safe Area Insets на всех разрешениях
     'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента
     'explanation-modal.css': '1.1',  # Обновлено: добавлена поддержка safe areas
     'profile.js': '5.3',  # Добавлен метод get_programming_languages в сериализатор
-    'top_users.css': '31.8',  # Обновлены стили для свайпера со всеми карточками
+    'top_users.css': '32.0',  # FIX: Единообразные отступы (padding/margin) с Safe Area Insets на всех разрешениях
     'top_users_swiper.css': '30.3',  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Убран inset:unset который переопределял top/left
     'topic_cards_swiper.css': '1.1',  # Добавлены стили для video в увеличенной карточке  # Стили для Swiper карточек тем (аналогично top_users_swiper.css)
-    'statistics.css': '3.5',  # FIX: border-radius как у админ-страницы статистики (15px)
+    'statistics.css': '3.6',  # FIX: Единообразные отступы (padding/margin) с Safe Area Insets на всех разрешениях
     # Принудительное обновление кэша для Django статических файлов
     'global.css': '2.0',  # Принудительное обновление кэша для исправления стилей
     # Добавляем недостающие CSS файлы для единообразного кэширования
     'topic_detail.css': '1.1',  # Убрана анимация для мгновенного отображения прогресса при загрузке
     'tasks.css': '1.0',  # Унификация кэширования
-    'settings.css': '2.6',  # FIX: стиль уведомлений как на других страницах - темный фон + белый текст
+    'settings.css': '3.0',  # FIX: Единообразные отступы (padding/margin) с Safe Area Insets на всех разрешениях
     'feedback.js': '2.4',  # FIX: красные сообщения ошибки тоже исчезают через 2 секунды
-    'admin_analytics.js': '4.1',  # FIX: предотвращена повторная декларация класса при SPA
+    'admin_analytics.js': '4.4',  # FIX: фильтрация донатов мини-аппа на фронтенде из by_source
     'settings.js': '3.1',  # FIX: предотвращена повторная декларация класса при SPA
     'admin_analytics.css': '1.3',  # FIX: убрано центрирование для админ-страницы - полная ширина
 }
