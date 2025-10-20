@@ -1,5 +1,6 @@
 from django.urls import path
 from . import api_views
+from . import mini_app_analytics
 
 app_name = 'accounts_api'
 
@@ -58,4 +59,10 @@ urlpatterns = [
     path('miniapp-users/statistics/', api_views.MiniAppUserStatisticsView.as_view(), name='miniapp-user-statistics'), # Статистика пользователя Mini App
     path('miniapp-users/public-profile/<int:telegram_id>/', api_views.MiniAppUserPublicProfileView.as_view(), name='miniapp-user-public-profile'), # Публичный профиль пользователя Mini App
     path('programming-languages/', api_views.ProgrammingLanguagesListView.as_view(), name='programming-languages'), # Языки программирования для фильтрации
+    
+    # Аналитика Mini App (только для админов)
+    path('mini-app-analytics/donations/', mini_app_analytics.donations_analytics, name='mini-app-analytics-donations'),
+    path('mini-app-analytics/subscriptions/', mini_app_analytics.subscriptions_analytics, name='mini-app-analytics-subscriptions'),
+    path('mini-app-analytics/activity/', mini_app_analytics.activity_analytics, name='mini-app-analytics-activity'),
+    path('mini-app-analytics/overview/', mini_app_analytics.overview_analytics, name='mini-app-analytics-overview'),
 ] 

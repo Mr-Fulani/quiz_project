@@ -771,6 +771,41 @@ async def submit_feedback(request: Request):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
+@router.get("/admin-analytics/overview")
+async def get_admin_analytics_overview(telegram_id: int):
+    """
+    Получение общей статистики для админ-панели.
+    Проксирует запрос к Django API с проверкой прав доступа.
+    """
+    logger.info(f"📊 Получение статистики для telegram_id: {telegram_id}")
+    
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/mini-app-analytics/overview/"
+        params = {'telegram_id': telegram_id}
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(django_url, params=params, timeout=10.0)
+        
+        if response.status_code == 200:
+            logger.info(f"✅ Статистика получена для telegram_id: {telegram_id}")
+            return JSONResponse(content=response.json())
+        elif response.status_code == 403:
+            logger.warning(f"⚠️ Доступ запрещен для telegram_id: {telegram_id}")
+            raise HTTPException(status_code=403, detail="Access denied. Admin privileges required.")
+        else:
+            logger.error(f"Error from Django API: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except httpx.RequestError as e:
+        logger.error(f"Request error while contacting Django API: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to backend service.")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+
 @router.get("/user-profile/{telegram_id}")
 async def get_user_public_profile(telegram_id: int):
     """

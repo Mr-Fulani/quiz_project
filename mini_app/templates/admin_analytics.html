@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ translations.get('admin_analytics_title', 'Админ-панель') }}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ get_css_url('admin_analytics.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ get_js_url('admin_analytics.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="admin-analytics-container">
+    
+    <!-- Заголовок -->
+    <div class="analytics-header">
+        <h1 data-translate="admin_analytics_title">{{ translations.get('admin_analytics_title', 'Админ-панель') }}</h1>
+        <p class="analytics-subtitle" data-translate="admin_analytics_subtitle">
+            {{ translations.get('admin_analytics_subtitle', 'Ключевые метрики мини-приложения') }}
+        </p>
+    </div>
+    
+    <!-- Индикатор загрузки -->
+    <div class="loading-indicator" id="loading-indicator">
+        <div class="loading-spinner"></div>
+        <p data-translate="loading">{{ translations.get('loading', 'Загрузка...') }}</p>
+    </div>
+    
+    <!-- Сообщение об ошибке доступа -->
+    <div class="access-denied" id="access-denied" style="display: none;">
+        <div class="error-icon">🔒</div>
+        <h2 data-translate="access_denied_title">{{ translations.get('access_denied_title', 'Доступ запрещен') }}</h2>
+        <p data-translate="access_denied_message">
+            {{ translations.get('access_denied_message', 'Эта страница доступна только администраторам') }}
+        </p>
+        <button class="back-button" onclick="window.history.back()">
+            <span data-translate="back">{{ translations.get('back', 'Назад') }}</span>
+        </button>
+    </div>
+    
+    <!-- Контент аналитики -->
+    <div class="analytics-content" id="analytics-content" style="display: none;">
+        
+        <!-- Донаты -->
+        <div class="analytics-section">
+            <h2 data-translate="donations_title">{{ translations.get('donations_title', '💰 Донаты') }}</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-donations">-</div>
+                    <div class="stat-label" data-translate="total_donations">
+                        {{ translations.get('total_donations', 'Всего донатов') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-amount">$-</div>
+                    <div class="stat-label" data-translate="total_amount">
+                        {{ translations.get('total_amount', 'Общая сумма') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthly-donations">-</div>
+                    <div class="stat-label" data-translate="monthly_donations">
+                        {{ translations.get('monthly_donations', 'За месяц') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthly-amount">$-</div>
+                    <div class="stat-label" data-translate="monthly_amount">
+                        {{ translations.get('monthly_amount', 'Сумма за месяц') }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Разбивка по источникам -->
+            <div class="source-breakdown">
+                <h3 data-translate="by_source">{{ translations.get('by_source', 'По источникам') }}</h3>
+                <div class="source-stats" id="source-stats">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Подписчики -->
+        <div class="analytics-section">
+            <h2 data-translate="subscriptions_title">{{ translations.get('subscriptions_title', '👥 Подписчики') }}</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-users">-</div>
+                    <div class="stat-label" data-translate="total_users">
+                        {{ translations.get('total_users', 'Всего пользователей') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthly-users">-</div>
+                    <div class="stat-label" data-translate="monthly_new_users">
+                        {{ translations.get('monthly_new_users', 'Новых за месяц') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="weekly-users">-</div>
+                    <div class="stat-label" data-translate="weekly_new_users">
+                        {{ translations.get('weekly_new_users', 'Новых за неделю') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Активность -->
+        <div class="analytics-section">
+            <h2 data-translate="activity_title">{{ translations.get('activity_title', '📊 Активность') }}</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="active-7-days">-</div>
+                    <div class="stat-label" data-translate="active_7_days">
+                        {{ translations.get('active_7_days', 'Активных за 7 дней') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-30-days">-</div>
+                    <div class="stat-label" data-translate="active_30_days">
+                        {{ translations.get('active_30_days', 'Активных за 30 дней') }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="online-now">-</div>
+                    <div class="stat-label" data-translate="online_now">
+                        {{ translations.get('online_now', 'Онлайн сейчас') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Время последнего обновления -->
+        <div class="last-updated">
+            <span data-translate="last_updated">{{ translations.get('last_updated', 'Обновлено:') }}</span>
+            <span id="last-updated-time">-</span>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}
+

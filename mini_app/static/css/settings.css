@@ -195,6 +195,41 @@ input:checked + .slider:before {
     margin-top: 10px;
 }
 
+/* Контейнер админ-панели */
+.admin-panel-container {
+    margin-top: 25px;
+    text-align: center;
+}
+
+/* Кнопка "Админ-панель" */
+.admin-panel-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: var(--active-color);
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.admin-panel-btn:hover {
+    background: rgba(0, 255, 0, 0.2);
+    border-color: var(--active-color);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.admin-panel-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 /* Кнопка "Поделиться приложением" */
 .share-app-btn {
     background: rgba(0, 0, 0, 0.3);
