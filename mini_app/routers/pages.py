@@ -235,6 +235,29 @@ async def statistics(
         "statistics_js_url": get_js_url('statistics.js'),
     })
 
+@router.get("/admin-analytics", response_class=HTMLResponse)
+async def admin_analytics(
+    request: Request,
+    lang: str = Query(default=None, description="Language code")
+):
+    """Страница админ-панели с аналитикой (только для админов)"""
+    if lang:
+        localization_service.set_language(lang)
+    
+    current_language = localization_service.get_language()
+    logger.info(f"Rendering admin analytics page with language: {current_language}")
+    
+    # Получаем переводы для текущего языка
+    translations = localization_service.get_all_texts()
+    
+    return templates.TemplateResponse("admin_analytics.html", {
+        "request": request,
+        "translations": translations,
+        "current_language": current_language,
+        "supported_languages": localization_service.get_supported_languages(),
+    })
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings(
     request: Request,

@@ -1,0 +1,313 @@
+/**
+ * Стили для админ-панели аналитики в mini-app
+ * Матричная тема с зелеными акцентами
+ */
+
+/* CSS переменные */
+:root {
+    --base-bg: #151F28;
+    --matrix-color: #00ff00;
+    --active-color: #29fd53;
+}
+
+/* Основной контейнер */
+.admin-analytics-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+}
+
+/* Заголовок */
+.analytics-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.analytics-header h1 {
+    color: var(--active-color);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+.analytics-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Индикатор загрузки */
+.loading-indicator {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 20px;
+    border: 4px solid rgba(0, 255, 0, 0.2);
+    border-top: 4px solid var(--active-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-indicator p {
+    color: var(--active-color);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Сообщение об отказе в доступе */
+.access-denied {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 0, 0, 0.1);
+    border: 2px solid rgba(255, 0, 0, 0.3);
+    border-radius: 15px;
+    margin: 40px auto;
+    max-width: 500px;
+}
+
+.error-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.access-denied h2 {
+    color: #ff6666;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.access-denied p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 16px;
+    margin-bottom: 25px;
+}
+
+.back-button {
+    padding: 12px 30px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 0, 0, 0.3);
+    border-radius: 8px;
+    color: #ff6666;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: #ff6666;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+}
+
+/* Контент аналитики */
+.analytics-content {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Секции аналитики */
+.analytics-section {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.analytics-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(0, 255, 0, 0.3);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.analytics-section h2 {
+    color: var(--active-color);
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+.analytics-section h3 {
+    color: var(--active-color);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 20px 0 15px;
+}
+
+/* Сетка статистики */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* Карточка статистики */
+.stat-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 0, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.stat-card:hover {
+    border-color: var(--active-color);
+    background: rgba(0, 255, 0, 0.1);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    transform: translateY(-3px);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--active-color);
+    margin-bottom: 10px;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    font-family: 'Courier New', monospace;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Разбивка по источникам */
+.source-breakdown {
+    margin-top: 20px;
+}
+
+.source-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.source-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.source-card:hover {
+    border-color: var(--active-color);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.source-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--active-color);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.source-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.source-info .label {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.source-info .value {
+    color: var(--active-color);
+    font-weight: 700;
+}
+
+/* Время последнего обновления */
+.last-updated {
+    text-align: center;
+    margin-top: 30px;
+    padding: 15px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-style: italic;
+}
+
+#last-updated-time {
+    color: var(--active-color);
+    font-weight: 600;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .admin-analytics-container {
+        padding: 15px;
+    }
+    
+    .analytics-header h1 {
+        font-size: 24px;
+    }
+    
+    .analytics-subtitle {
+        font-size: 14px;
+    }
+    
+    .analytics-section {
+        padding: 20px;
+    }
+    
+    .analytics-section h2 {
+        font-size: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+    }
+    
+    .source-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

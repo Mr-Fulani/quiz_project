@@ -131,6 +131,16 @@
                     {{ translations.get('share_app_description', 'Поделитесь приложением с друзьями') }}
                 </p>
             </div>
+            
+            <!-- Кнопка админ-панели (только для админов) -->
+            <div class="admin-panel-container" id="admin-panel-container" style="display: none;">
+                <button class="admin-panel-btn" type="button" onclick="window.location.href='/admin-analytics'">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                    </svg>
+                    <span data-translate="admin_panel">{{ translations.get('admin_panel', 'Админ-панель') }}</span>
+                </button>
+            </div>
         </div>
     </div>
     
@@ -228,6 +238,29 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('notifications', e.target.checked);
         });
     }
+    
+    // Проверяем права админа и показываем кнопку админ-панели
+    checkAdminAccess();
 });
+
+// Проверка прав админа
+async function checkAdminAccess() {
+    try {
+        // Получаем профиль пользователя из window (уже загружен в base.html)
+        const profileData = window.userProfileData;
+        
+        if (profileData && profileData.is_admin) {
+            console.log('✅ User is admin, showing admin panel button');
+            const adminPanelContainer = document.getElementById('admin-panel-container');
+            if (adminPanelContainer) {
+                adminPanelContainer.style.display = 'block';
+            }
+        } else {
+            console.log('⚠️ User is not admin, hiding admin panel button');
+        }
+    } catch (error) {
+        console.error('❌ Error checking admin access:', error);
+    }
+}
 </script>
 {% endblock %}
