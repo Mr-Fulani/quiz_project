@@ -3,7 +3,7 @@ import logging
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Q
-from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser
+from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar
 
 logger = logging.getLogger(__name__)
 
@@ -1570,19 +1570,289 @@ class IsAdminFilter(admin.SimpleListFilter):
         return queryset
 
 
+class UserAvatarInline(admin.TabularInline):
+    """
+    Inline-форма для отображения аватарок пользователя Mini App.
+    
+    Позволяет просматривать, редактировать и удалять аватарки
+    прямо из админки пользователя.
+    """
+    model = UserAvatar
+    extra = 0
+    max_num = 3
+    verbose_name = "Аватарка"
+    verbose_name_plural = "Аватарки пользователя (до 3)"
+    
+    fields = ['avatar_preview', 'image', 'order', 'is_gif', 'created_at']
+    readonly_fields = ['avatar_preview', 'is_gif', 'created_at']
+    ordering = ['order']
+    
+    def avatar_preview(self, obj):
+        """
+        Отображает миниатюру аватарки в inline.
+        
+        Returns:
+            HTML с тегом img для миниатюры
+        """
+        from django.utils.safestring import mark_safe
+        
+        if obj.image:
+            # Для GIF показываем анимированную версию
+            if obj.is_gif:
+                return mark_safe(
+                    f'<img src="{obj.image.url}" '
+                    f'style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #00ff00;" '
+                    f'alt="Avatar" />'
+                )
+            else:
+                return mark_safe(
+                    f'<img src="{obj.image.url}" '
+                    f'style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #4CAF50;" '
+                    f'alt="Avatar" />'
+                )
+        return mark_safe('<span style="color: #999;">Нет изображения</span>')
+    
+    avatar_preview.short_description = 'Миниатюра'
+
+
+class UserAvatarAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для управления аватарками пользователей Mini App.
+    
+    Позволяет модераторам просматривать, редактировать и удалять
+    аватарки всех пользователей.
+    """
+    list_display = ['id', 'avatar_thumbnail', 'user_link', 'order', 'file_type', 'file_size_display', 'created_at']
+    list_display_links = ['id', 'avatar_thumbnail']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'user__telegram_id']
+    list_filter = ['created_at', 'order']
+    readonly_fields = ['avatar_large_preview', 'is_gif', 'file_size_display', 'created_at', 'image_dimensions']
+    raw_id_fields = ['user']
+    ordering = ['-created_at', 'user', 'order']
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('user', 'image', 'avatar_large_preview')
+        }),
+        ('Настройки', {
+            'fields': ('order',)
+        }),
+        ('Информация о файле', {
+            'fields': ('is_gif', 'file_size_display', 'image_dimensions', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['reorder_avatars', 'delete_selected_avatars']
+    
+    def avatar_thumbnail(self, obj):
+        """
+        Отображает миниатюру аватарки в списке.
+        
+        Args:
+            obj: Объект UserAvatar
+            
+        Returns:
+            HTML с тегом img для миниатюры
+        """
+        from django.utils.safestring import mark_safe
+        
+        if obj.image:
+            gif_badge = '🎬 ' if obj.is_gif else ''
+            border_color = '#00ff00' if obj.is_gif else '#4CAF50'
+            
+            return mark_safe(
+                f'{gif_badge}<img src="{obj.image.url}" '
+                f'style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid {border_color};" '
+                f'alt="Avatar" />'
+            )
+        return mark_safe('<span style="color: #999;">—</span>')
+    
+    avatar_thumbnail.short_description = 'Аватарка'
+    
+    def avatar_large_preview(self, obj):
+        """
+        Отображает большую превью аватарки в форме редактирования.
+        
+        Args:
+            obj: Объект UserAvatar
+            
+        Returns:
+            HTML с большим изображением
+        """
+        from django.utils.safestring import mark_safe
+        
+        if obj.image:
+            file_type = 'GIF' if obj.is_gif else 'Изображение'
+            return mark_safe(
+                f'<div style="margin: 10px 0;">'
+                f'<p style="margin: 5px 0; font-weight: bold;">Тип: {file_type}</p>'
+                f'<img src="{obj.image.url}" '
+                f'style="max-width: 300px; max-height: 300px; border-radius: 12px; border: 3px solid #00ff00; box-shadow: 0 4px 8px rgba(0,255,0,0.2);" '
+                f'alt="Avatar Preview" />'
+                f'</div>'
+            )
+        return mark_safe('<p style="color: #999;">Изображение не загружено</p>')
+    
+    avatar_large_preview.short_description = 'Предпросмотр'
+    
+    def user_link(self, obj):
+        """
+        Отображает ссылку на пользователя.
+        
+        Args:
+            obj: Объект UserAvatar
+            
+        Returns:
+            HTML со ссылкой на пользователя
+        """
+        from django.utils.safestring import mark_safe
+        from django.urls import reverse
+        
+        if obj.user:
+            url = reverse('admin:accounts_miniappuser_change', args=[obj.user.id])
+            display_name = obj.user.username or obj.user.full_name or f'ID: {obj.user.telegram_id}'
+            return mark_safe(f'<a href="{url}">{display_name}</a>')
+        return mark_safe('<span style="color: #999;">—</span>')
+    
+    user_link.short_description = 'Пользователь'
+    
+    def file_type(self, obj):
+        """
+        Отображает тип файла с иконкой.
+        
+        Args:
+            obj: Объект UserAvatar
+            
+        Returns:
+            Строка с типом файла
+        """
+        if obj.is_gif:
+            return '🎬 GIF'
+        return '🖼️ Изображение'
+    
+    file_type.short_description = 'Тип'
+    
+    def file_size_display(self, obj):
+        """
+        Отображает размер файла в человеко-читаемом формате.
+        
+        Args:
+            obj: Объект UserAvatar
+            
+        Returns:
+            Строка с размером файла
+        """
+        if obj.image:
+            try:
+                size = obj.image.size
+                # Конвертируем в KB или MB
+                if size < 1024:
+                    return f'{size} B'
+                elif size < 1024 * 1024:
+                    return f'{size / 1024:.1f} KB'
+                else:
+                    return f'{size / (1024 * 1024):.1f} MB'
+            except Exception:
+                return '—'
+        return '—'
+    
+    file_size_display.short_description = 'Размер файла'
+    
+    def image_dimensions(self, obj):
+        """
+        Отображает размеры изображения.
+        
+        Args:
+            obj: Объект UserAvatar
+            
+        Returns:
+            Строка с размерами изображения
+        """
+        if obj.image:
+            try:
+                from PIL import Image
+                img = Image.open(obj.image.path)
+                return f'{img.width} × {img.height} px'
+            except Exception:
+                return '—'
+        return '—'
+    
+    image_dimensions.short_description = 'Размеры'
+    
+    def reorder_avatars(self, request, queryset):
+        """
+        Автоматически переупорядочивает аватарки для каждого пользователя.
+        
+        Args:
+            request: HTTP запрос
+            queryset: Выбранные аватарки
+        """
+        # Группируем аватарки по пользователям
+        users_avatars = {}
+        for avatar in queryset:
+            if avatar.user_id not in users_avatars:
+                users_avatars[avatar.user_id] = []
+            users_avatars[avatar.user_id].append(avatar)
+        
+        updated_count = 0
+        for user_id, avatars in users_avatars.items():
+            # Сортируем по текущему порядку
+            avatars.sort(key=lambda x: x.order)
+            # Переупорядочиваем
+            for i, avatar in enumerate(avatars):
+                if avatar.order != i:
+                    avatar.order = i
+                    avatar.save()
+                    updated_count += 1
+        
+        self.message_user(
+            request,
+            f'Переупорядочено {updated_count} аватарок для {len(users_avatars)} пользователей.',
+            level='SUCCESS'
+        )
+    
+    reorder_avatars.short_description = '🔢 Переупорядочить аватарки (0, 1, 2)'
+    
+    def delete_selected_avatars(self, request, queryset):
+        """
+        Удаляет выбранные аватарки с подтверждением.
+        
+        Args:
+            request: HTTP запрос
+            queryset: Выбранные аватарки
+        """
+        count = queryset.count()
+        queryset.delete()
+        
+        self.message_user(
+            request,
+            f'Удалено {count} аватарок.',
+            level='SUCCESS'
+        )
+    
+    delete_selected_avatars.short_description = '🗑️ Удалить выбранные аватарки'
+
+
 class MiniAppUserAdmin(admin.ModelAdmin):
     """
     Админ-панель для MiniAppUser.
     """
-    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'is_admin', 'admin_type', 'created_at', 'last_seen']
+    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'avatars_count', 'is_admin', 'admin_type', 'created_at', 'last_seen']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
     list_filter = ['language', 'grade', IsAdminFilter, 'created_at', 'last_seen']
-    readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name']
+    readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name', 'avatars_preview']
     raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin', 'programming_language']
     filter_horizontal = ['programming_languages']
+    inlines = [UserAvatarInline]
+    
     fieldsets = (
         ('Основная информация', {
             'fields': ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url')
+        }),
+        ('Аватарки (до 3)', {
+            'fields': ('avatars_preview',),
+            'description': 'Галерея аватарок пользователя. Редактировать можно в секции "Аватарки пользователя" ниже.'
         }),
         ('Профессиональная информация', {
             'fields': ('grade', 'programming_language', 'programming_languages', 'gender', 'birth_date')
@@ -1601,6 +1871,66 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         }),
     )
     actions = ['update_last_seen', 'link_to_existing_users', 'merge_statistics_with_custom_user']
+    
+    def avatars_count(self, obj):
+        """
+        Отображает количество аватарок пользователя.
+        
+        Args:
+            obj: Объект MiniAppUser
+            
+        Returns:
+            Строка с количеством аватарок
+        """
+        from django.utils.safestring import mark_safe
+        
+        count = obj.avatars.count()
+        if count == 0:
+            return mark_safe('<span style="color: #999;">—</span>')
+        elif count < 3:
+            return mark_safe(f'<span style="color: #ff9800;">{count} / 3</span>')
+        else:
+            return mark_safe(f'<span style="color: #4CAF50;">{count} / 3</span>')
+    
+    avatars_count.short_description = 'Аватарки'
+    
+    def avatars_preview(self, obj):
+        """
+        Отображает превью всех аватарок пользователя.
+        
+        Args:
+            obj: Объект MiniAppUser
+            
+        Returns:
+            HTML с превью аватарок
+        """
+        from django.utils.safestring import mark_safe
+        
+        avatars = obj.avatars.all().order_by('order')
+        
+        if not avatars:
+            return mark_safe('<p style="color: #999;">Аватарки не загружены</p>')
+        
+        html = '<div style="display: flex; gap: 10px; flex-wrap: wrap;">'
+        
+        for avatar in avatars:
+            gif_badge = '🎬 GIF' if avatar.is_gif else f'#{avatar.order + 1}'
+            border_color = '#00ff00' if avatar.is_gif else '#4CAF50'
+            
+            html += f'''
+                <div style="text-align: center;">
+                    <img src="{avatar.image.url}" 
+                         style="width: 100px; height: 100px; object-fit: cover; border-radius: 12px; 
+                                border: 3px solid {border_color}; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" 
+                         alt="Avatar {avatar.order + 1}" />
+                    <p style="margin: 5px 0; font-size: 12px; color: #666;">{gif_badge}</p>
+                </div>
+            '''
+        
+        html += '</div>'
+        return mark_safe(html)
+    
+    avatars_preview.short_description = 'Галерея аватарок'
 
     def update_last_seen(self, request, queryset):
         """
@@ -1682,3 +2012,4 @@ admin.site.register(TelegramAdmin, TelegramAdminAdmin)
 admin.site.register(DjangoAdmin, DjangoAdminAdmin)
 admin.site.register(UserChannelSubscription, UserChannelSubscriptionAdmin)
 admin.site.register(MiniAppUser, MiniAppUserAdmin)
+admin.site.register(UserAvatar, UserAvatarAdmin)
