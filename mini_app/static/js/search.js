@@ -96,7 +96,7 @@ function updateGallery(topics) {
                     mediaElement = `<img src="${topic.video_poster_url}" alt="${topic.name}" class="video-poster">`;
                 } else {
                     // Иначе показываем первый кадр видео
-                    mediaElement = `<video src="${topic.image_url}" alt="${topic.name}" muted playsinline preload="metadata"></video>`;
+                    mediaElement = `<video src="${topic.image_url}" alt="${topic.name}" controls playsinline preload="metadata"></video>`;
                 }
             } else {
                 mediaElement = `<img src="${topic.image_url}" alt="${topic.name}">`;
