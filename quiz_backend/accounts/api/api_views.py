@@ -1066,6 +1066,8 @@ class MiniAppUserStatisticsView(APIView):
                                 'total_points': openapi.Schema(type=openapi.TYPE_INTEGER),
                                 'current_streak': openapi.Schema(type=openapi.TYPE_INTEGER),
                                 'best_streak': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'favorite_topic': openapi.Schema(type=openapi.TYPE_STRING, description='Любимая тема пользователя'),
+                                'favorite_topic_percentage': openapi.Schema(type=openapi.TYPE_INTEGER, description='Процент успеха в любимой теме'),
                             }
                         ),
                         'topic_progress': openapi.Schema(
@@ -1212,7 +1214,9 @@ class MiniAppUserStatisticsView(APIView):
                     'success_rate': int(success_rate),
                     'total_points': total_points,
                     'current_streak': current_streak,
-                    'best_streak': best_streak
+                    'best_streak': best_streak,
+                    'favorite_topic': best_specialization or 'Не определена',
+                    'favorite_topic_percentage': int(best_percentage) if best_percentage > 0 else 0
                 },
                 'topic_progress': topic_progress,
                 'achievements': achievements

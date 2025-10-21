@@ -131,11 +131,17 @@ class StatisticsManager {
         // Обновляем основные показатели
         this.updateStatCard('.stat-card:nth-child(1) .stat-number', data.stats.total_quizzes || 0);
         this.updateStatCard('.stat-card:nth-child(2) .stat-number', data.stats.completed_quizzes || 0);
-        this.updateStatCard('.stat-card:nth-child(3) .stat-number', `${data.stats.success_rate || 0}%`);
-        this.updateStatCard('.stat-card:nth-child(4) .stat-number', data.stats.current_streak || 0);
-        this.updateStatCard('.stat-card:nth-child(5) .stat-number', data.stats.best_streak || 0);
-
-
+        this.updateStatCard('.stat-card:nth-child(3) .stat-number', data.stats.failed_quizzes || 0);
+        this.updateStatCard('.stat-card:nth-child(4) .stat-number', `${data.stats.success_rate || 0}%`);
+        this.updateStatCard('.stat-card:nth-child(5) .stat-number', data.stats.current_streak || 0);
+        this.updateStatCard('.stat-card:nth-child(6) .stat-number', data.stats.best_streak || 0);
+        this.updateStatCard('.stat-card:nth-child(7) .stat-number', data.stats.total_points || 0);
+        
+        // Обновляем любимую тему (без анимации числа, так как это текст)
+        const favoriteTopicElement = document.querySelector('.stat-card:nth-child(8) .stat-number');
+        if (favoriteTopicElement && data.stats.favorite_topic) {
+            favoriteTopicElement.textContent = data.stats.favorite_topic;
+        }
     }
 
     /**

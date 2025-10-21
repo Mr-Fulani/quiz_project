@@ -58,6 +58,12 @@
             <div class="stat-number">{{ user_statistics.stats.total_points or 0 }}</div>
             <div class="stat-label" data-translate="total_points">{{ translations.get('total_points', 'Всего очков') }}</div>
         </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">💪</div>
+            <div class="stat-number">{{ user_statistics.stats.favorite_topic or 'Не определена' }}</div>
+            <div class="stat-label" data-translate="favorite_topic">{{ translations.get('favorite_topic', 'Любимая тема') }}</div>
+        </div>
     </div>
     
     <!-- Прогресс по темам -->
@@ -140,6 +146,12 @@
             <div class="stat-icon">💎</div>
             <div class="stat-number">0</div>
             <div class="stat-label" data-translate="total_points">{{ translations.get('total_points', 'Всего очков') }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">💪</div>
+            <div class="stat-number" style="font-size: 14px;">Не определена</div>
+            <div class="stat-label" data-translate="favorite_topic">{{ translations.get('favorite_topic', 'Любимая тема') }}</div>
         </div>
     </div>
     

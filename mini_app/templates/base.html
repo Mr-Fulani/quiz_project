@@ -526,8 +526,17 @@
                     const newContent = doc.querySelector('.content');
                     
                     if (newContent) {
-                        // Плавно заменяем контент
-                        setTimeout(() => {
+                        // Проверяем загрузку всех CSS перед показом контента
+                        const checkCSSLoaded = () => {
+                            const allStylesheets = document.querySelectorAll('link[rel="stylesheet"]');
+                            return Array.from(allStylesheets).every(link => {
+                                // Проверяем что stylesheet загружен
+                                return link.sheet !== null;
+                            });
+                        };
+                        
+                        // Плавно заменяем контент после загрузки CSS
+                        const insertContent = () => {
                             // ВАЖНО: Сбрасываем состояние карточек перед загрузкой новой страницы
                             if (window.galleryController) {
                                 window.galleryController.resetState();
@@ -561,7 +570,7 @@
                             setTimeout(() => {
                                 console.log('🔄 DOM updated, loading page-specific scripts...');
                                 loadPageSpecificScripts(url);
-                            }, 50);
+                            }, 100);
                             
                             // Сбрасываем флаги переинициализации при загрузке новой страницы
                             if (window.tasksScriptReinitialized) {
@@ -593,7 +602,20 @@
                             
                             // Повторная инициализация пользователя после загрузки новой страницы
                             // initializeUser(); // Удалено: вызывается только один раз в DOMContentLoaded
-                        }, 300); // Увеличили задержку для лучшей загрузки стилей
+                        };
+                        
+                        // Ждем загрузки CSS с несколькими попытками
+                        let attempts = 0;
+                        const maxAttempts = 20;
+                        const checkInterval = setInterval(() => {
+                            attempts++;
+                            if (checkCSSLoaded() || attempts >= maxAttempts) {
+                                clearInterval(checkInterval);
+                                console.log(`✅ CSS loaded after ${attempts} attempts`);
+                                // Дополнительная задержка для стабилизации
+                                setTimeout(insertContent, 100);
+                            }
+                        }, 50);
                     }
                 } else {
                     // Если AJAX не сработал, выводим ошибку
@@ -872,14 +894,8 @@
                 console.log('🧹 Clearing old statisticsManagerInstance...');
                 window.statisticsManagerInstance = null;
                 
-                // Загружаем CSS для статистики
-                const statisticsCSS = document.createElement('link');
-                statisticsCSS.rel = 'stylesheet';
-                statisticsCSS.href = '{{ get_css_url("statistics.css") }}';
-                statisticsCSS.setAttribute('data-dynamic', 'true');
-                document.head.appendChild(statisticsCSS);
-                
-                // Для статистики загружаем скрипт
+                // CSS для статистики уже загружен в base.html head, не дублируем
+                // Для статистики загружаем только скрипт
                 const script = document.createElement('script');
                 script.setAttribute('data-dynamic', 'true');
                 script.src = '{{ get_js_url("statistics.js") }}';
