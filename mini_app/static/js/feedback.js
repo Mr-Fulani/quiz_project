@@ -186,15 +186,35 @@ if (typeof FeedbackSystem === 'undefined') {
         }
     }
     
-    contactAdmin() {
+    async contactAdmin() {
         console.log('📧 Opening admin contact...');
         console.log('📧 window.ADMIN_TELEGRAM_ID:', window.ADMIN_TELEGRAM_ID);
         console.log('📧 typeof window.ADMIN_TELEGRAM_ID:', typeof window.ADMIN_TELEGRAM_ID);
         
         // Получаем Telegram ID админа из переменных окружения или конфигурации
-        const adminTelegramId = (window.ADMIN_TELEGRAM_ID || '').trim();
+        let adminTelegramId = (window.ADMIN_TELEGRAM_ID || '').trim();
         console.log('📧 adminTelegramId after trim:', `[${adminTelegramId}]`);
         console.log('📧 adminTelegramId length:', adminTelegramId.length);
+        
+        // Если ID не загружен, пытаемся загрузить его из API
+        if (!adminTelegramId || adminTelegramId.length === 0) {
+            console.log('⏳ Admin ID not loaded yet, fetching from API...');
+            try {
+                const response = await fetch('/api/get-config/');
+                if (response.ok) {
+                    const config = await response.json();
+                    adminTelegramId = (config.admin_telegram_id || '').trim();
+                    window.ADMIN_TELEGRAM_ID = adminTelegramId;
+                    console.log('✅ Admin ID loaded from API:', adminTelegramId);
+                } else {
+                    console.error('❌ Failed to load config from API:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ Error loading config:', error);
+            }
+        }
+        
+        console.log('📧 Final adminTelegramId:', `[${adminTelegramId}]`);
         console.log('📧 Boolean check:', !!adminTelegramId);
         
         if (adminTelegramId && adminTelegramId.length > 0) {
