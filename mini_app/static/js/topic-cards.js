@@ -222,7 +222,7 @@ function initTopicCards() {
                 }
                 
                 if (videoSrc) {
-                    mediaElement = `<video src="${videoSrc}" alt="${title}" autoplay loop muted playsinline></video>`;
+                    mediaElement = `<video src="${videoSrc}" alt="${title}" controls playsinline></video>`;
                 }
             } else {
                 const img = topicCard.querySelector('img');
