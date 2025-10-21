@@ -60,6 +60,11 @@ urlpatterns = [
     path('miniapp-users/public-profile/<int:telegram_id>/', api_views.MiniAppUserPublicProfileView.as_view(), name='miniapp-user-public-profile'), # Публичный профиль пользователя Mini App
     path('programming-languages/', api_views.ProgrammingLanguagesListView.as_view(), name='programming-languages'), # Языки программирования для фильтрации
     
+    # Аватарки пользователей Mini App
+    path('miniapp-users/<int:telegram_id>/avatars/', api_views.UserAvatarUploadView.as_view(), name='miniapp-user-avatar-upload'),
+    path('miniapp-users/<int:telegram_id>/avatars/<int:avatar_id>/', api_views.UserAvatarDeleteView.as_view(), name='miniapp-user-avatar-delete'),
+    path('miniapp-users/<int:telegram_id>/avatars/reorder/', api_views.UserAvatarReorderView.as_view(), name='miniapp-user-avatar-reorder'),
+    
     # Аналитика Mini App (только для админов)
     path('mini-app-analytics/donations/', mini_app_analytics.donations_analytics, name='mini-app-analytics-donations'),
     path('mini-app-analytics/subscriptions/', mini_app_analytics.subscriptions_analytics, name='mini-app-analytics-subscriptions'),

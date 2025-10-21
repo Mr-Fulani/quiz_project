@@ -972,3 +972,76 @@ class MiniAppUser(models.Model):
             return False
         return timezone.now() - self.last_seen < timedelta(minutes=5)
 
+
+class UserAvatar(models.Model):
+    """
+    Модель для хранения нескольких аватарок пользователя Mini App.
+    
+    Пользователь может иметь до 3 аватарок (изображения или GIF),
+    которые отображаются в виде галереи со свайпером.
+    """
+    user = models.ForeignKey(
+        'MiniAppUser',
+        on_delete=models.CASCADE,
+        related_name='avatars',
+        verbose_name="Пользователь"
+    )
+    image = models.ImageField(
+        upload_to='mini_app_avatars/',
+        verbose_name="Изображение аватарки",
+        help_text="Поддерживаются изображения и GIF файлы"
+    )
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Порядок отображения",
+        help_text="Порядок отображения в галерее (0, 1, 2)"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания"
+    )
+    
+    class Meta:
+        db_table = 'user_avatars'
+        verbose_name = 'Аватарка пользователя'
+        verbose_name_plural = 'Аватарки пользователей'
+        ordering = ['order']
+        unique_together = [['user', 'order']]
+        indexes = [
+            models.Index(fields=['user', 'order']),
+        ]
+    
+    def __str__(self):
+        """
+        Строковое представление объекта UserAvatar.
+        
+        Returns:
+            str: Username пользователя и порядковый номер аватарки
+        """
+        return f"{self.user.username or self.user.telegram_id} - Avatar {self.order + 1}"
+    
+    def save(self, *args, **kwargs):
+        """
+        Переопределяем save для валидации количества аватарок.
+        Максимум 3 аватарки на пользователя.
+        """
+        # Проверяем количество существующих аватарок
+        if not self.pk:  # Только при создании новой аватарки
+            existing_count = UserAvatar.objects.filter(user=self.user).count()
+            if existing_count >= 3:
+                raise ValueError("Пользователь может иметь максимум 3 аватарки")
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_gif(self):
+        """
+        Проверяет, является ли аватарка GIF файлом.
+        
+        Returns:
+            bool: True если файл имеет расширение .gif
+        """
+        if self.image:
+            return self.image.name.lower().endswith('.gif')
+        return False
+

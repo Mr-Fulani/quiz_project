@@ -881,6 +881,9 @@
                     console.log('🔧 Исправление видимости профиля в updateProfileDOM');
                 }
             }
+            
+            // Настраиваем обработчики для аватарок
+            setupAvatarHandlers();
         }, 50);
     }
 
@@ -1231,16 +1234,51 @@
             };
         }
 
-        // Обработка предварительного просмотра аватара
+        // Обработка предварительного просмотра множественных аватарок
         if (elements.avatarInput) {
             elements.avatarInput.onchange = (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        elements.avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Avatar Preview" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
-                    };
-                    reader.readAsDataURL(file);
+                const files = event.target.files;
+                if (files && files.length > 0) {
+                    console.log(`📸 Выбрано файлов для preview: ${files.length}`);
+                    
+                    // Очищаем предыдущий preview
+                    elements.avatarPreview.innerHTML = '';
+                    
+                    // Проверяем лимит
+                    if (files.length > 3) {
+                        elements.avatarPreview.innerHTML = '<p style="color: red;">⚠️ Максимум 3 аватарки!</p>';
+                        return;
+                    }
+                    
+                    // Создаем preview для каждого файла
+                    Array.from(files).forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const previewItem = document.createElement('div');
+                            previewItem.style.display = 'inline-block';
+                            previewItem.style.margin = '5px';
+                            previewItem.style.textAlign = 'center';
+                            
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.alt = `Avatar Preview ${index + 1}`;
+                            img.style.maxWidth = '80px';
+                            img.style.maxHeight = '80px';
+                            img.style.borderRadius = '50%';
+                            img.style.objectFit = 'cover';
+                            img.style.border = '2px solid #007bff';
+                            
+                            const label = document.createElement('div');
+                            label.textContent = `#${index + 1}`;
+                            label.style.fontSize = '12px';
+                            label.style.marginTop = '4px';
+                            
+                            previewItem.appendChild(img);
+                            previewItem.appendChild(label);
+                            elements.avatarPreview.appendChild(previewItem);
+                        };
+                        reader.readAsDataURL(file);
+                    });
                 } else {
                     elements.avatarPreview.innerHTML = '';
                 }
@@ -1263,14 +1301,70 @@
             return;
         }
 
-                const formData = new FormData();
-                // Добавляем файл аватара, если он выбран
-                if (elements.avatarInput.files && elements.avatarInput.files[0]) {
-                    console.log('📁 Добавляем файл аватара:', elements.avatarInput.files[0].name);
-                    formData.append('avatar', elements.avatarInput.files[0]);
+                // Обработка множественных аватарок (до 3)
+                const avatarFiles = elements.avatarInput.files;
+                if (avatarFiles && avatarFiles.length > 0) {
+                    console.log(`📁 Выбрано аватарок: ${avatarFiles.length}`);
+                    
+                    // Проверяем лимит
+                    if (avatarFiles.length > 3) {
+                        showNotification('error_too_many_avatars', 'error', null, getTranslation('error_too_many_avatars', 'Максимум 3 аватарки'));
+                        return;
+                    }
+                    
+                    // ВАЖНО: Удаляем все старые аватарки перед загрузкой новых
+                    console.log('🗑️ Удаление старых аватарок...');
+                    if (window.currentUser?.avatars && window.currentUser.avatars.length > 0) {
+                        for (const avatar of window.currentUser.avatars) {
+                            try {
+                                const deleteResponse = await fetch(`/api/accounts/miniapp-users/${telegramId}/avatars/${avatar.id}/`, {
+                                    method: 'DELETE'
+                                });
+                                if (deleteResponse.ok) {
+                                    console.log(`✅ Удалена старая аватарка ID=${avatar.id}`);
+                                } else {
+                                    console.warn(`⚠️ Не удалось удалить аватарку ID=${avatar.id}`);
+                                }
+                            } catch (error) {
+                                console.error(`❌ Ошибка удаления аватарки ID=${avatar.id}:`, error);
+                            }
+                        }
+                    }
+                    
+                    // Загружаем каждую аватарку отдельным запросом
+                    for (let i = 0; i < avatarFiles.length; i++) {
+                        const file = avatarFiles[i];
+                        console.log(`📤 Загрузка аватарки ${i + 1}/${avatarFiles.length}: ${file.name}`);
+                        
+                        const avatarFormData = new FormData();
+                        avatarFormData.append('image', file);
+                        avatarFormData.append('order', i);
+                        
+                        try {
+                            const avatarResponse = await fetch(`/api/accounts/miniapp-users/${telegramId}/avatars/`, {
+                                method: 'POST',
+                                body: avatarFormData
+                            });
+                            
+                            if (avatarResponse.ok) {
+                                const avatarData = await avatarResponse.json();
+                                console.log(`✅ Аватарка ${i + 1} успешно загружена:`, avatarData);
+                            } else {
+                                const errorData = await avatarResponse.json();
+                                console.error(`❌ Ошибка загрузки аватарки ${i + 1}:`, errorData);
+                                showNotification('error_avatar_upload', 'error', null, getTranslation('error_avatar_upload', `Ошибка загрузки аватарки: ${errorData.detail || 'Неизвестная ошибка'}`));
+                            }
+                        } catch (error) {
+                            console.error(`❌ Ошибка при загрузке аватарки ${i + 1}:`, error);
+                            showNotification('error_avatar_upload', 'error', null, getTranslation('error_avatar_upload', 'Ошибка при загрузке аватарки'));
+                        }
+                    }
                 } else {
-                    console.log('📁 Файл аватара не выбран');
+                    console.log('📁 Аватарки не выбраны');
                 }
+                
+                const formData = new FormData();
+                // Не добавляем avatar в formData, так как уже загрузили через отдельный API
                 
                 // Добавляем поля имени и фамилии
                 if (elements.firstNameInput) {
@@ -1677,5 +1771,202 @@
         
         console.log('✅ Profile page переинициализирован для SPA навигации');
     };
+
+    /**
+     * Открытие модального окна с галереей аватарок
+     */
+    function openAvatarModal(avatars, startIndex = 0) {
+        console.log('🖼️ Открытие модального окна с аватарками, startIndex:', startIndex);
+        
+        if (!avatars || avatars.length === 0) {
+            console.log('⚠️ Нет аватарок для отображения');
+            return;
+        }
+        
+        const backdrop = document.getElementById('avatar-modal-backdrop');
+        const modal = document.getElementById('avatar-modal');
+        const swiperWrapper = document.getElementById('avatar-swiper-wrapper');
+        
+        if (!backdrop || !modal || !swiperWrapper) {
+            console.error('❌ Элементы модального окна не найдены');
+            return;
+        }
+        
+        // Очищаем предыдущие слайды
+        swiperWrapper.innerHTML = '';
+        
+        // Создаем слайды для каждой аватарки
+        avatars.forEach((avatar, index) => {
+            const slide = document.createElement('div');
+            slide.className = 'swiper-slide';
+            
+            const img = document.createElement('img');
+            img.className = 'avatar-image';
+            img.src = avatar.image_url || avatar.image;
+            img.alt = `Avatar ${index + 1}`;
+            
+            // Добавляем класс для GIF
+            if (avatar.is_gif) {
+                img.classList.add('gif');
+            }
+            
+            slide.appendChild(img);
+            swiperWrapper.appendChild(slide);
+        });
+        
+        // Блокируем скролл body
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        window.scrollPositionBeforeAvatarModal = scrollY;
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        
+        // Показываем backdrop и модальное окно
+        backdrop.classList.add('active');
+        modal.classList.add('active');
+        
+        // Инициализируем Swiper
+        setTimeout(() => {
+            if (typeof Swiper !== 'undefined') {
+                // Уничтожаем предыдущий экземпляр Swiper если есть
+                if (window.avatarSwiper) {
+                    window.avatarSwiper.destroy(true, true);
+                }
+                
+                window.avatarSwiper = new Swiper('#avatar-swiper', {
+                    slidesPerView: 1,
+                    spaceBetween: 0,
+                    centeredSlides: true,
+                    loop: avatars.length > 1,
+                    effect: 'slide',
+                    speed: 300,
+                    initialSlide: startIndex,
+                    navigation: {
+                        nextEl: '.swiper-button-next',
+                        prevEl: '.swiper-button-prev',
+                    },
+                    pagination: {
+                        el: '.swiper-pagination',
+                        clickable: true,
+                    },
+                    on: {
+                        init: function() {
+                            console.log('✅ Avatar Swiper инициализирован на слайде:', this.activeIndex);
+                        }
+                    }
+                });
+                
+                console.log('✅ Avatar Swiper создан');
+            } else {
+                console.error('❌ Swiper library not found');
+            }
+        }, 100);
+    }
+    
+    /**
+     * Закрытие модального окна с аватарками
+     */
+    function closeAvatarModal() {
+        console.log('🚪 Закрытие модального окна с аватарками');
+        
+        const backdrop = document.getElementById('avatar-modal-backdrop');
+        const modal = document.getElementById('avatar-modal');
+        
+        if (backdrop) {
+            backdrop.classList.remove('active');
+        }
+        
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        
+        // Уничтожаем Swiper
+        if (window.avatarSwiper) {
+            window.avatarSwiper.destroy(true, true);
+            window.avatarSwiper = null;
+        }
+        
+        // Восстанавливаем скролл body
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        
+        if (window.scrollPositionBeforeAvatarModal !== undefined) {
+            window.scrollTo(0, window.scrollPositionBeforeAvatarModal);
+        }
+    }
+    
+    /**
+     * Настройка обработчиков для аватарки
+     */
+    function setupAvatarHandlers() {
+        console.log('🖼️ Настройка обработчиков для аватарки');
+        
+        const avatar = document.getElementById('profile-avatar');
+        
+        // Проверяем наличие аватарок в currentUser
+        let avatars = window.currentUser?.avatars || [];
+        
+        // Если нет аватарок в новой модели, но есть старое поле avatar, используем его
+        if (avatars.length === 0 && window.currentUser?.avatar) {
+            console.log('📸 Используем старое поле avatar:', window.currentUser.avatar);
+            avatars = [{
+                id: 0,
+                image_url: window.currentUser.avatar,
+                image: window.currentUser.avatar,
+                order: 0,
+                is_gif: window.currentUser.avatar.toLowerCase().endsWith('.gif')
+            }];
+        }
+        
+        console.log('📸 Количество аватарок для отображения:', avatars.length);
+        
+        if (avatars.length > 0) {
+            // Делаем аватарку кликабельной
+            if (avatar) {
+                avatar.style.cursor = 'pointer';
+                // Удаляем предыдущие обработчики
+                const newAvatar = avatar.cloneNode(true);
+                avatar.parentNode.replaceChild(newAvatar, avatar);
+                
+                newAvatar.addEventListener('click', () => {
+                    console.log('🖱️ Клик по аватарке');
+                    openAvatarModal(avatars, 0);
+                });
+            }
+        }
+        
+        // Настраиваем кнопку закрытия модального окна
+        const closeBtn = document.getElementById('avatar-modal-close');
+        const backdrop = document.getElementById('avatar-modal-backdrop');
+        
+        if (closeBtn) {
+            // Удаляем предыдущие обработчики
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+            
+            newCloseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAvatarModal();
+            });
+        }
+        
+        if (backdrop) {
+            // Удаляем предыдущие обработчики
+            const newBackdrop = backdrop.cloneNode(true);
+            backdrop.parentNode.replaceChild(newBackdrop, backdrop);
+            
+            newBackdrop.addEventListener('click', closeAvatarModal);
+        }
+    }
+    
+    // Экспортируем функцию для использования после обновления профиля
+    window.setupAvatarHandlers = setupAvatarHandlers;
 
 })(window);

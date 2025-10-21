@@ -211,7 +211,7 @@ class DjangoAPIService:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")
             return None
     
-    async def get_user_public_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user_public_profile(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """
         Получение публичного профиля пользователя Mini App по telegram_id.
         
@@ -220,12 +220,23 @@ class DjangoAPIService:
         
         Args:
             telegram_id: Telegram ID пользователя
+            host: Хост из оригинального запроса (для правильных URL аватарок)
+            scheme: Схема из оригинального запроса (http/https)
             
         Returns:
             Dict с данными профиля или None в случае ошибки
         """
         try:
-            data = await self._make_request("GET", f"/api/accounts/miniapp-users/public-profile/{telegram_id}/")
+            headers = {}
+            if host:
+                headers['X-Forwarded-Host'] = host
+                headers['Host'] = host
+                logger.info(f"[DEBUG API] Setting X-Forwarded-Host for public profile: {host}")
+            if scheme:
+                headers['X-Forwarded-Proto'] = scheme
+                logger.info(f"[DEBUG API] Setting X-Forwarded-Proto for public profile: {scheme}")
+                
+            data = await self._make_request("GET", f"/api/accounts/miniapp-users/public-profile/{telegram_id}/", headers=headers)
             logger.info(f"✅ Публичный профиль пользователя {telegram_id} успешно получен")
             return data
         except httpx.HTTPStatusError as e:

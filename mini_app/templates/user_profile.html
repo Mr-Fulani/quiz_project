@@ -138,6 +138,24 @@
         </button>
     </div>
 </div>
+
+<!-- Backdrop для модального окна с аватарками -->
+<div class="avatar-modal-backdrop" id="avatar-modal-backdrop"></div>
+
+<!-- Модальное окно с галереей аватарок -->
+<div class="avatar-modal" id="avatar-modal">
+    <button class="avatar-modal-close" id="avatar-modal-close">&times;</button>
+    <div class="swiper" id="avatar-swiper">
+        <div class="swiper-wrapper" id="avatar-swiper-wrapper">
+            <!-- Slides будут добавлены динамически через JavaScript -->
+        </div>
+        <!-- Навигация -->
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
+        <!-- Pagination -->
+        <div class="swiper-pagination"></div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

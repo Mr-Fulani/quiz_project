@@ -3,7 +3,7 @@ import logging
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db.models import Count, Q
-from .models import CustomUser, UserChannelSubscription, TelegramAdmin, DjangoAdmin, MiniAppUser, TelegramUser
+from .models import CustomUser, UserChannelSubscription, TelegramAdmin, DjangoAdmin, MiniAppUser, TelegramUser, UserAvatar
 
 logger = logging.getLogger(__name__)
 
@@ -303,6 +303,53 @@ class AdminSerializer(serializers.ModelSerializer):
         return data
 
 
+class UserAvatarSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для аватарок пользователя.
+    
+    Возвращает URL изображения аватарки с правильным хостом.
+    """
+    image_url = serializers.SerializerMethodField()
+    is_gif = serializers.BooleanField(read_only=True)
+    
+    class Meta:
+        model = UserAvatar
+        fields = ('id', 'image', 'image_url', 'order', 'is_gif', 'created_at')
+        read_only_fields = ('id', 'created_at', 'is_gif', 'image_url')
+    
+    def get_image_url(self, obj):
+        """
+        Возвращает абсолютный URL к изображению аватарки.
+        """
+        if obj.image and hasattr(obj.image, 'url'):
+            image_url = obj.image.url
+            # Декодируем URL
+            decoded_url = unquote(image_url)
+            
+            if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                return decoded_url
+            
+            request = self.context.get('request')
+            if request:
+                # Приоритет: X-Forwarded-Host > Host заголовок > fallback
+                forwarded_host = request.headers.get('X-Forwarded-Host')
+                host_header = request.headers.get('Host')
+                
+                if forwarded_host:
+                    host = forwarded_host
+                elif host_header and not host_header.startswith('localhost'):
+                    host = host_header
+                else:
+                    # Fallback для продакшена
+                    host = 'mini.quiz-code.com'
+                
+                scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                return f"{scheme}://{host}{image_url}"
+            return image_url
+        
+        return None
+
+
 class MiniAppUserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для пользователей Mini App.
@@ -314,6 +361,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     is_admin = serializers.BooleanField(read_only=True)
     admin_type = serializers.CharField(read_only=True)
     avatar = serializers.SerializerMethodField()
+    avatars = serializers.SerializerMethodField()
     social_links = serializers.SerializerMethodField()
     programming_languages = serializers.StringRelatedField(many=True, read_only=True)
     programming_language = serializers.StringRelatedField(read_only=True)
@@ -327,13 +375,13 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
-            'full_name', 'language', 'avatar', 'created_at', 'last_seen',
+            'full_name', 'language', 'avatar', 'avatars', 'created_at', 'last_seen',
             'is_admin', 'admin_type', 'grade', 'programming_language', 'programming_languages',
             'gender', 'birth_date', 'is_profile_public',
             'telegram_user_id', 'telegram_admin_id', 'django_admin_username',
             'social_links'
         )
-        read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type', 'avatar', 'social_links')
+        read_only_fields = ('id', 'created_at', 'last_seen', 'full_name', 'is_admin', 'admin_type', 'avatar', 'avatars', 'social_links')
     
     def get_avatar(self, obj):
         """
@@ -377,6 +425,16 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         """Возвращает социальные ссылки пользователя Mini App."""
         # Используем метод из модели MiniAppUser
         return obj.get_social_links()
+    
+    def get_avatars(self, obj):
+        """
+        Возвращает список всех аватарок пользователя.
+        
+        Returns:
+            list: Список сериализованных аватарок
+        """
+        avatars = obj.avatars.all().order_by('order')
+        return UserAvatarSerializer(avatars, many=True, context=self.context).data
 
 
 class ProgrammingLanguageIdsField(serializers.Field):
@@ -627,12 +685,12 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
                     scheme = 'http'  # Локально используем http
                     final_url = f"{scheme}://{host}:{port}{avatar_url}"
                     logger.info(f"[DEBUG AVATAR] Localhost detected, using: {final_url}")
-                elif forwarded_host and 'ngrok' not in forwarded_host:
-                    # Для продакшена используем forwarded_host
+                elif forwarded_host:
+                    # Для продакшена и ngrok используем forwarded_host
                     host = forwarded_host
                     scheme = request.headers.get('X-Forwarded-Proto', 'https')
                     final_url = f"{scheme}://{host}{avatar_url}"
-                    logger.info(f"[DEBUG AVATAR] Production host, using: {final_url}")
+                    logger.info(f"[DEBUG AVATAR] Using forwarded host: {final_url}")
                 elif host_header and not host_header.startswith('localhost'):
                     host = host_header
                     scheme = request.headers.get('X-Forwarded-Proto', 'https')
@@ -700,6 +758,7 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
     """
     full_name = serializers.CharField(read_only=True)
     avatar = serializers.SerializerMethodField()
+    avatars = serializers.SerializerMethodField()
     social_links = serializers.SerializerMethodField()
     programming_languages = serializers.StringRelatedField(many=True, read_only=True)
     rating = serializers.SerializerMethodField()
@@ -719,7 +778,7 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
-            'full_name', 'avatar', 'is_profile_public',
+            'full_name', 'avatar', 'avatars', 'is_profile_public',
             'grade', 'programming_languages', 'gender', 'birth_date', 'age',
             'social_links', 'rating', 'quizzes_completed', 'average_score',
             'is_online', 'last_seen',
@@ -761,8 +820,8 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
                     port = x_forwarded_port or '8080'
                     scheme = 'http'  # Локально используем http
                     final_url = f"{scheme}://{host}:{port}{avatar_url}"
-                elif forwarded_host and 'ngrok' not in forwarded_host:
-                    # Для продакшена используем forwarded_host
+                elif forwarded_host:
+                    # Для продакшена и ngrok используем forwarded_host
                     host = forwarded_host
                     scheme = request.headers.get('X-Forwarded-Proto', 'https')
                     final_url = f"{scheme}://{host}{avatar_url}"
@@ -915,6 +974,18 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
             return obj.is_online
         return None
     
+    def get_avatars(self, obj):
+        """
+        Возвращает список всех аватарок пользователя для публичных профилей.
+        
+        Returns:
+            list: Список сериализованных аватарок или пустой список
+        """
+        if obj.is_profile_public:
+            avatars = obj.avatars.all().order_by('order')
+            return UserAvatarSerializer(avatars, many=True, context=self.context).data
+        return []
+    
     def to_representation(self, instance):
         """
         Переопределяет представление для скрытия полей приватных профилей.
@@ -924,7 +995,7 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
         # Если профиль приватный, оставляем только базовую информацию
         # Username скрыт, чтобы нельзя было найти пользователя в Telegram
         if not instance.is_profile_public:
-            allowed_fields = ['id', 'telegram_id', 'first_name', 'last_name', 'full_name', 'avatar', 'is_profile_public']
+            allowed_fields = ['id', 'telegram_id', 'first_name', 'last_name', 'full_name', 'avatar', 'avatars', 'is_profile_public']
             data = {key: value for key, value in data.items() if key in allowed_fields}
             # Явно скрываем username
             data['username'] = None
