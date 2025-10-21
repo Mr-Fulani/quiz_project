@@ -807,20 +807,26 @@ def contact_form_submit(request):
             }
         )
 
-        # Отправляем письмо
-        subject = f'Новое сообщение от {fullname} ({email})'
-        message = f'Имя: {fullname}\nEmail: {email}\nСообщение:\n{message_text}'
-        from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = settings.EMAIL_ADMIN
+        # Отправляем письмо (только если настроены email настройки)
+        try:
+            subject = f'Новое сообщение от {fullname} ({email})'
+            message = f'Имя: {fullname}\nEmail: {email}\nСообщение:\n{message_text}'
+            from_email = settings.DEFAULT_FROM_EMAIL
+            recipient_list = settings.EMAIL_ADMIN
 
-        logger.info(f"Отправка письма на {recipient_list}")
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=from_email,
-            recipient_list=recipient_list,
-            fail_silently=False,
-        )
+            logger.info(f"Отправка письма на {recipient_list}")
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+            logger.info(f"Письмо успешно отправлено на {recipient_list}")
+        except Exception as email_error:
+            # Логируем ошибку, но не прерываем выполнение - сообщение всё равно сохранится в БД
+            logger.error(f"Ошибка отправки email: {str(email_error)}")
+            logger.error(f"Email настройки: HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}, FROM={settings.DEFAULT_FROM_EMAIL}")
 
         # Сохраняем сообщение в базе
         message_obj = Message.objects.create(

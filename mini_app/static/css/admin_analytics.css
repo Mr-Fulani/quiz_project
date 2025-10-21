@@ -21,6 +21,12 @@
     width: 100%;  /* Во всю ширину экрана */
     margin: 0;    /* Убираем центрирование */
     min-height: 100vh;
+    
+    /* Safe Area Insets для Telegram Mini App */
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
 }
 
 /* Заголовок */
@@ -269,7 +275,25 @@
 /* Адаптивность */
 @media (max-width: 768px) {
     .admin-analytics-container {
+        padding: 20px;
+        
+        /* Safe Area Insets для мобильных */
+        padding-top: max(20px, env(safe-area-inset-top));
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-analytics-container {
         padding: 15px;
+        
+        /* Safe Area Insets для очень маленьких экранов */
+        padding-top: max(15px, env(safe-area-inset-top));
+        padding-bottom: max(15px, env(safe-area-inset-bottom));
+        padding-left: max(15px, env(safe-area-inset-left));
+        padding-right: max(15px, env(safe-area-inset-right));
     }
     
     .analytics-header h1 {

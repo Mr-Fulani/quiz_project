@@ -15,11 +15,13 @@
     --gradient-dark: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(21, 31, 40, 0.9));
 }
 
+/* Убираем переопределение глобальных стилей .content */
+
 .top-users-container {
     max-width: 1200px;
     width: 100%;
     margin: 0 auto;
-    padding: 30px;
+    padding: 20px;
     background: rgba(21, 31, 40, 0.95);
     border: 1px solid var(--border-color);
     border-radius: 25px;
@@ -28,10 +30,10 @@
     box-sizing: border-box;
     
     /* Safe Area Insets для Telegram Mini App */
-    padding-top: max(30px, env(safe-area-inset-top, 30px));
-    padding-bottom: max(30px, env(safe-area-inset-bottom, 30px));
-    padding-left: max(30px, env(safe-area-inset-left, 30px));
-    padding-right: max(30px, env(safe-area-inset-right, 30px));
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
 }
 
 .filter-section {
@@ -438,16 +440,12 @@
 @media (max-width: 768px) {
     .top-users-container {
         padding: 20px;
-        margin: 10px;
-        border-radius: 15px;
         
         /* Safe Area Insets для мобильных */
-        padding-top: max(20px, env(safe-area-inset-top, 20px));
-        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
-        padding-left: max(15px, env(safe-area-inset-left, 15px));
-        padding-right: max(15px, env(safe-area-inset-right, 15px));
-        margin-left: max(10px, env(safe-area-inset-left, 10px));
-        margin-right: max(10px, env(safe-area-inset-right, 10px));
+        padding-top: max(20px, env(safe-area-inset-top));
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
     }
 
     .filter-controls {
@@ -496,16 +494,12 @@
 @media (max-width: 480px) {
     .top-users-container {
         padding: 15px;
-        margin: 5px;
-        border-radius: 12px;
         
         /* Safe Area Insets для очень маленьких экранов */
-        padding-top: max(15px, env(safe-area-inset-top, 15px));
-        padding-bottom: max(15px, env(safe-area-inset-bottom, 15px));
-        padding-left: max(10px, env(safe-area-inset-left, 10px));
-        padding-right: max(10px, env(safe-area-inset-right, 10px));
-        margin-left: max(5px, env(safe-area-inset-left, 5px));
-        margin-right: max(5px, env(safe-area-inset-right, 5px));
+        padding-top: max(15px, env(safe-area-inset-top));
+        padding-bottom: max(15px, env(safe-area-inset-bottom));
+        padding-left: max(15px, env(safe-area-inset-left));
+        padding-right: max(15px, env(safe-area-inset-right));
     }
 
     .filter-controls {

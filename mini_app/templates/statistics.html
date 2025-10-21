@@ -52,9 +52,51 @@
             <div class="stat-number">{{ user_statistics.stats.best_streak or 0 }}</div>
             <div class="stat-label" data-translate="best_streak">{{ translations.get('best_streak', 'Лучшая серия') }}</div>
         </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">💎</div>
+            <div class="stat-number">{{ user_statistics.stats.total_points or 0 }}</div>
+            <div class="stat-label" data-translate="total_points">{{ translations.get('total_points', 'Всего очков') }}</div>
+        </div>
     </div>
     
+    <!-- Прогресс по темам -->
+    {% if user_statistics.topic_progress %}
+    <div class="topic-progress-section">
+        <h2 data-translate="topic_progress_title">{{ translations.get('topic_progress_title', 'Прогресс по темам') }}</h2>
+        <div class="topic-progress-list">
+            {% for topic in user_statistics.topic_progress %}
+            <div class="topic-progress-item">
+                <div class="topic-name">{{ topic.name }}</div>
+                <div class="topic-progress-bar">
+                    <div class="topic-progress-fill" style="width: {{ topic.percentage }}%"></div>
+                    <span class="topic-progress-text">{{ topic.completed }}/{{ topic.total }} ({{ topic.percentage }}%)</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
     
+    <!-- Достижения -->
+    {% if user_statistics.achievements %}
+    <div class="achievements-section">
+        <h2 data-translate="achievements_title">{{ translations.get('achievements_title', 'Достижения') }}</h2>
+        <div class="achievements-grid">
+            {% for achievement in user_statistics.achievements %}
+            <div class="achievement-card {% if achievement.unlocked %}unlocked{% else %}locked{% endif %}">
+                <div class="achievement-icon">{{ achievement.icon }}</div>
+                <div class="achievement-name" data-achievement-id="{{ achievement.id }}">{{ achievement.name }}</div>
+                {% if achievement.unlocked %}
+                <div class="achievement-status">✓</div>
+                {% else %}
+                <div class="achievement-status">🔒</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
     
     {% else %}
     <div class="stats-grid">
@@ -93,13 +135,18 @@
             <div class="stat-number">0</div>
             <div class="stat-label" data-translate="best_streak">{{ translations.get('best_streak', 'Лучшая серия') }}</div>
         </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">💎</div>
+            <div class="stat-number">0</div>
+            <div class="stat-label" data-translate="total_points">{{ translations.get('total_points', 'Всего очков') }}</div>
+        </div>
     </div>
     
-    <div class="chart-container">
-        <h2 data-translate="statistics_title">{{ translations.get('statistics_title', 'Статистика') }}</h2>
-        <div class="chart-placeholder">
-            <p data-translate="no_statistics_data">{{ translations.get('no_statistics_data', 'Пока нет данных для отображения') }}</p>
-        </div>
+    <div class="empty-state-container">
+        <div class="empty-icon">📊</div>
+        <p data-translate="no_statistics_data">{{ translations.get('no_statistics_data', 'Пока нет данных для отображения') }}</p>
+        <p class="empty-hint">{{ translations.get('start_solving', 'Начните решать задачи, чтобы увидеть статистику') }}</p>
     </div>
     {% endif %}
 </div>

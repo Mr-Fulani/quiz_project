@@ -78,6 +78,19 @@ class LocalizationService:
             "accuracy": "Accuracy",
             "streak": "Current Streak",
             "best_streak": "Best Streak",
+            "total_points": "Total Points",
+            "topic_progress_title": "Topic Progress",
+            "achievements_title": "Achievements",
+            "no_statistics_data": "No data to display yet",
+            "start_solving": "Start solving tasks to see statistics",
+            
+            # Достижения
+            "achievement_1": "First Step",
+            "achievement_2": "Swift Expert", 
+            "achievement_3": "Webmaster",
+            "achievement_4": "Streak",
+            "achievement_5": "Expert",
+            "achievement_6": "Speed",
             
             
             # Настройки
@@ -321,6 +334,19 @@ class LocalizationService:
             "accuracy": "Точность",
             "streak": "Текущая серия",
             "best_streak": "Лучшая серия",
+            "total_points": "Всего очков",
+            "topic_progress_title": "Прогресс по темам",
+            "achievements_title": "Достижения",
+            "no_statistics_data": "Пока нет данных для отображения",
+            "start_solving": "Начните решать задачи, чтобы увидеть статистику",
+            
+            # Достижения
+            "achievement_1": "Первый шаг",
+            "achievement_2": "Знаток Swift",
+            "achievement_3": "Веб-мастер", 
+            "achievement_4": "Серия",
+            "achievement_5": "Эксперт",
+            "achievement_6": "Скорость",
             
             
             # Настройки
