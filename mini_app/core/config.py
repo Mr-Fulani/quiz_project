@@ -29,8 +29,17 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'
+        # Важно: сначала загружаем из переменных окружения, потом из .env файла
+        # В Docker переменные окружения имеют приоритет
+        case_sensitive = True
 
 settings = Settings()
+
+# Логирование для отладки
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"✅ Settings loaded: ADMIN_TELEGRAM_ID=[{settings.ADMIN_TELEGRAM_ID}]")
+logger.info(f"✅ Settings loaded: TELEGRAM_BOT_TOKEN={'*' * 10 if settings.TELEGRAM_BOT_TOKEN else 'NOT SET'}")
 
 # Настройки для подключения к Django API
 DJANGO_TOPICS_ENDPOINT = f"{settings.DJANGO_API_BASE_URL}/api/simple/" 

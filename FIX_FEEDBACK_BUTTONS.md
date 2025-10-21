@@ -14,25 +14,64 @@
 ## Исправления
 
 ### 1. Обновлен `nginx/nginx-prod.conf`
-Добавлены недостающие маршруты для мини-аппа (аналогично локальной конфигурации).
+Добавлены недостающие маршруты для мини-аппа (аналогично локальной конфигурации):
+- `/api/feedback/` → mini_app
+- `/api/admin-analytics/` → mini_app  
+- `/api/get-config/` → mini_app
 
 ### 2. Улучшена обработка ошибок в `quiz_backend/blog/views.py`
 Форма обратной связи теперь сохраняет сообщения в БД, даже если отправка email не удалась.
 
+### 3. Обновлен `mini_app/core/config.py`
+- Добавлено логирование загрузки переменных окружения
+- Улучшена загрузка `ADMIN_TELEGRAM_ID` из Docker environment
+
+### 4. Улучшен `mini_app/static/js/feedback.js`
+- Функция `contactAdmin()` теперь асинхронная
+- Автоматически загружает `ADMIN_TELEGRAM_ID` из API, если он не установлен
+- Более подробное логирование для отладки
+
 ## Деплой на продакшен
 
-### Шаг 1: Проверить переменную окружения
+### Вариант 1: Автоматический деплой (Рекомендуется)
+
+```bash
+# На локальной машине:
+git add .
+git commit -m "Fix feedback and contact admin buttons on production"
+git push origin main
+
+# На продакшен сервере:
+cd /opt/quiz_project/quiz_project
+git pull origin main
+
+# Запускаем скрипт автоматического деплоя
+./deploy_feedback_fix.sh
+```
+
+Скрипт автоматически:
+- ✅ Проверит наличие `ADMIN_TELEGRAM_ID` в `.env`
+- ✅ Проверит наличие исправлений в `nginx-prod.conf`
+- ✅ Пересоберет nginx и mini_app
+- ✅ Перезапустит контейнеры
+- ✅ Проверит загрузку переменных
+- ✅ Протестирует API `/api/get-config/`
+
+### Вариант 2: Ручной деплой
+
+#### Шаг 1: Проверить переменную окружения
 На продакшен сервере убедитесь, что в `.env` файле есть:
 ```bash
 ADMIN_TELEGRAM_ID=your_telegram_username  # без символа @
 ```
 
-Например:
+Проверка:
 ```bash
-ADMIN_TELEGRAM_ID=mr_fulani
+cat .env | grep ADMIN_TELEGRAM_ID
+# Должно быть: ADMIN_TELEGRAM_ID=Mr_Fulani
 ```
 
-### Шаг 2: Загрузить изменения на сервер
+#### Шаг 2: Загрузить изменения на сервер
 ```bash
 # На локальной машине:
 git add .
@@ -40,35 +79,45 @@ git commit -m "Fix feedback and contact admin buttons on production"
 git push origin main
 ```
 
-### Шаг 3: Обновить код на сервере
+#### Шаг 3: Обновить код на сервере
 ```bash
 # На продакшен сервере:
-cd /opt/quiz_project/quiz_project  # или ваш путь
+cd /opt/quiz_project/quiz_project
 git pull origin main
+
+# Проверяем, что изменения попали в nginx-prod.conf
+grep "api/get-config/" nginx/nginx-prod.conf
+grep "api/feedback/" nginx/nginx-prod.conf
+# Обе команды должны найти совпадения
 ```
 
-### Шаг 4: Пересобрать и перезапустить контейнеры
+#### Шаг 4: Пересобрать и перезапустить контейнеры
 ```bash
 # Останавливаем контейнеры
 docker compose down
 
-# Пересобираем nginx с новой конфигурацией
-docker compose build nginx
+# Пересобираем nginx и mini_app с новой конфигурацией
+docker compose build nginx mini_app
 
 # Запускаем все контейнеры
 docker compose up -d
 ```
 
-### Шаг 5: Проверить логи
+#### Шаг 5: Проверить логи и переменные
 ```bash
-# Проверяем, что nginx запустился корректно
-docker compose logs nginx --tail=50
+# Ждем запуска контейнеров
+sleep 10
 
-# Проверяем mini_app
-docker compose logs mini_app --tail=50
+# Проверяем логи mini_app
+docker compose logs mini_app | grep "ADMIN_TELEGRAM_ID"
+# Должно быть: ✅ Settings loaded: ADMIN_TELEGRAM_ID=[Mr_Fulani]
 
-# Проверяем, что ADMIN_TELEGRAM_ID передался
-docker compose exec mini_app env | grep ADMIN_TELEGRAM_ID
+# Проверяем статус контейнеров
+docker compose ps
+
+# Тестируем API
+curl http://localhost/api/get-config/
+# Должен вернуть: {"admin_telegram_id":"Mr_Fulani"}
 ```
 
 ## Проверка работы
@@ -129,6 +178,31 @@ docker compose exec quiz_backend env | grep EMAIL
 curl -X POST https://mini.quiz-code.com/api/feedback/ \
   -H "Content-Type: application/json" \
   -d '{"telegram_id": 123456, "username": "test", "message": "test message", "category": "other"}'
+
+# Проверка get-config:
+curl https://mini.quiz-code.com/api/get-config/
+# Должен вернуть: {"admin_telegram_id":"Mr_Fulani"}
+```
+
+### 5. Проверка логов mini_app
+```bash
+# Смотрим логи при запуске mini_app
+docker compose logs mini_app | grep "ADMIN_TELEGRAM_ID"
+
+# Должно быть:
+# ✅ Settings loaded: ADMIN_TELEGRAM_ID=[Mr_Fulani]
+```
+
+### 6. Проверка в браузере (Developer Console)
+Откройте Developer Tools (F12) и перейдите в Console:
+```javascript
+// Проверяем, загружен ли ADMIN_TELEGRAM_ID
+console.log(window.ADMIN_TELEGRAM_ID);
+
+// Проверяем API напрямую
+fetch('/api/get-config/')
+  .then(r => r.json())
+  .then(d => console.log('Config:', d));
 ```
 
 ## Примечания
