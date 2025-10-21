@@ -33,13 +33,43 @@ class StatisticsManager {
         // Анимация появления карточек
         this.animateCards();
         
-        
-        
+        // Перевод названий достижений
+        this.translateAchievements();
         
         // Обновление статистики каждые 30 секунд
         if (this.telegramId) {
             setInterval(() => this.refreshStatistics(), 30000);
         }
+        
+        // Слушаем изменения языка
+        this.setupLanguageListener();
+    }
+
+    /**
+     * Перевод названий достижений
+     */
+    translateAchievements() {
+        const achievementElements = document.querySelectorAll('[data-achievement-id]');
+        achievementElements.forEach(element => {
+            const achievementId = element.getAttribute('data-achievement-id');
+            const translationKey = `achievement_${achievementId}`;
+            
+            // Используем глобальную функцию t() для получения перевода
+            if (window.t) {
+                const translatedName = window.t(translationKey, element.textContent);
+                element.textContent = translatedName;
+            }
+        });
+    }
+
+    /**
+     * Настройка слушателя изменений языка
+     */
+    setupLanguageListener() {
+        // Слушаем события изменения языка от системы локализации
+        document.addEventListener('languageChanged', () => {
+            this.translateAchievements();
+        });
     }
 
     /**
