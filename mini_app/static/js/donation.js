@@ -13,6 +13,13 @@ class DonationSystem {
         this.selectedCurrency = 'usd';
         this.isProcessing = false;
         
+        // Крипто-платежи
+        this.paymentMethod = 'card'; // 'card' или 'crypto'
+        this.selectedCryptoCurrency = 'USDT';
+        this.currentCryptoOrderId = null;
+        this.statusCheckInterval = null;
+        this.cryptoCurrencies = [];
+        
         this.init();
     }
     
@@ -21,6 +28,9 @@ class DonationSystem {
         
         // Инициализируем Stripe
         await this.initStripe();
+        
+        // Загружаем криптовалюты
+        await this.loadCryptoCurrencies();
         
         // Привязываем события
         this.bindEvents();
@@ -69,7 +79,23 @@ class DonationSystem {
             if (e.target.closest('.donate-btn')) {
                 console.log('💳 Donate button clicked');
                 e.preventDefault();
-                this.showPaymentModal();
+                if (this.paymentMethod === 'crypto') {
+                    this.processCryptoPayment();
+                } else {
+                    this.showPaymentModal();
+                }
+            }
+            
+            // Обработчик переключения способа оплаты
+            if (e.target.name === 'payment-method') {
+                console.log('🔄 Payment method changed:', e.target.value);
+                this.switchPaymentMethod(e.target.value);
+            }
+            
+            // Обработчик копирования адреса
+            if (e.target.closest('.copy-address-btn')) {
+                e.preventDefault();
+                this.copyAddressToClipboard();
             }
         });
         
@@ -79,6 +105,12 @@ class DonationSystem {
                 console.log('📝 Amount input changed:', e.target.value);
                 this.selectedAmount = parseFloat(e.target.value) || 0;
                 this.updateAmountSelection();
+            }
+            
+            // Обработчик выбора криптовалюты
+            if (e.target.classList.contains('crypto-currency-select')) {
+                console.log('🪙 Crypto currency changed:', e.target.value);
+                this.selectedCryptoCurrency = e.target.value;
             }
         });
         
@@ -530,6 +562,366 @@ class DonationSystem {
                 });
             }
         }
+    }
+    
+    // ==================== Крипто-платежи ====================
+    
+    async loadCryptoCurrencies() {
+        try {
+            console.log('🪙 Loading crypto currencies...');
+            const response = await fetch('/api/donation/crypto-currencies');
+            const data = await response.json();
+            
+            if (data.success && data.currencies) {
+                this.cryptoCurrencies = data.currencies;
+                console.log('✅ Crypto currencies loaded:', this.cryptoCurrencies);
+            } else {
+                console.warn('⚠️ Failed to load crypto currencies');
+            }
+        } catch (error) {
+            console.error('❌ Error loading crypto currencies:', error);
+        }
+    }
+    
+    switchPaymentMethod(method) {
+        console.log('🔄 Switching payment method to:', method);
+        this.paymentMethod = method;
+        
+        // Обновляем UI
+        const cryptoSelector = document.querySelector('.crypto-currency-selector');
+        const cryptoDetails = document.querySelector('.crypto-payment-details');
+        
+        // Обновляем визуальное выделение радио-кнопок
+        document.querySelectorAll('.payment-method-option').forEach(option => {
+            const radio = option.querySelector('input[type="radio"]');
+            if (radio && radio.value === method) {
+                option.classList.add('selected');
+            } else {
+                option.classList.remove('selected');
+            }
+        });
+        
+        if (method === 'crypto') {
+            if (cryptoSelector) cryptoSelector.style.display = 'block';
+            // Скрываем детали до создания платежа
+            if (cryptoDetails) cryptoDetails.style.display = 'none';
+        } else {
+            if (cryptoSelector) cryptoSelector.style.display = 'none';
+            if (cryptoDetails) cryptoDetails.style.display = 'none';
+            // Останавливаем polling если был запущен
+            this.stopStatusPolling();
+        }
+        
+        console.log('✅ Payment method switched to:', method);
+    }
+    
+    async processCryptoPayment() {
+        if (this.isProcessing) return;
+        
+        // Валидация
+        if (!this.validateForm()) {
+            return;
+        }
+        
+        this.isProcessing = true;
+        console.log('🪙 Processing crypto payment...');
+        
+        try {
+            // Показываем статус создания
+            this.showNotification('info', 
+                window.t('donation_processing', 'Обработка...'),
+                window.t('donation_creating_payment', 'Создание платежа...')
+            );
+            
+            // Получаем данные формы
+            const formData = {
+                amount: this.selectedAmount,
+                crypto_currency: this.selectedCryptoCurrency,
+                name: document.querySelector('.donation-name').value.trim(),
+                email: document.querySelector('.donation-email').value.trim(),
+                initData: window.Telegram?.WebApp?.initData || ''
+            };
+            
+            console.log('📡 Creating crypto payment with data:', formData);
+            
+            // Создаем крипто-платеж
+            const response = await fetch('/api/donation/crypto-create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            console.log('📊 Crypto payment response:', data);
+            
+            if (data.success) {
+                this.currentCryptoOrderId = data.order_id;
+                
+                // Показываем детали платежа
+                this.displayCryptoPaymentDetails(data);
+                
+                // Запускаем проверку статуса
+                this.startStatusPolling();
+                
+                this.showNotification('success',
+                    window.t('crypto_donation_created', 'Крипто-платеж создан'),
+                    window.t('send_crypto_to_address', 'Отправьте криптовалюту на указанный адрес')
+                );
+            } else {
+                throw new Error(data.message || 'Failed to create crypto payment');
+            }
+        } catch (error) {
+            console.error('❌ Error processing crypto payment:', error);
+            this.showNotification('error',
+                window.t('donation_payment_error', 'Ошибка платежа'),
+                error.message || window.t('donation_network_error', 'Ошибка сети')
+            );
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+    
+    displayCryptoPaymentDetails(data) {
+        console.log('📊 Displaying crypto payment details:', data);
+        
+        const detailsContainer = document.querySelector('.crypto-payment-details');
+        if (!detailsContainer) {
+            console.error('❌ Crypto payment details container not found');
+            return;
+        }
+        
+        // Показываем контейнер
+        detailsContainer.style.display = 'block';
+        
+        // Обновляем сумму
+        const amountValue = detailsContainer.querySelector('.crypto-amount-value');
+        if (amountValue) {
+            amountValue.textContent = `${data.crypto_amount} ${data.crypto_currency}`;
+        }
+        
+        // Обновляем адрес
+        const addressInput = detailsContainer.querySelector('.crypto-address-input');
+        if (addressInput) {
+            addressInput.value = data.payment_address;
+        }
+        
+        // Генерируем QR-код
+        this.generateQRCode(data.payment_address);
+        
+        // Устанавливаем начальный статус
+        this.updateCryptoStatus('waiting', window.t('waiting_for_payment', 'Ожидание оплаты...'));
+        
+        // Прокручиваем к деталям
+        detailsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        console.log('✅ Crypto payment details displayed');
+    }
+    
+    generateQRCode(address) {
+        console.log('📱 Generating QR code for address:', address);
+        
+        const canvas = document.querySelector('.qr-code-canvas');
+        if (!canvas) {
+            console.error('❌ QR code canvas not found');
+            return;
+        }
+        
+        // Проверяем наличие библиотеки QRCode
+        if (typeof QRCode === 'undefined') {
+            console.error('❌ QRCode library not loaded');
+            // Скрываем контейнер QR-кода если библиотека не загружена
+            const qrContainer = document.querySelector('.qr-code-container');
+            if (qrContainer) qrContainer.style.display = 'none';
+            return;
+        }
+        
+        try {
+            // Очищаем canvas
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Генерируем QR-код
+            QRCode.toCanvas(canvas, address, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, (error) => {
+                if (error) {
+                    console.error('❌ Error generating QR code:', error);
+                } else {
+                    console.log('✅ QR code generated successfully');
+                }
+            });
+        } catch (error) {
+            console.error('❌ Error in QR code generation:', error);
+        }
+    }
+    
+    copyAddressToClipboard() {
+        const addressInput = document.querySelector('.crypto-address-input');
+        if (!addressInput) {
+            console.error('❌ Address input not found');
+            return;
+        }
+        
+        const address = addressInput.value;
+        console.log('📋 Copying address to clipboard:', address);
+        
+        // Копируем в буфер обмена
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(address)
+                .then(() => {
+                    console.log('✅ Address copied to clipboard');
+                    this.showNotification('success',
+                        window.t('address_copied', 'Адрес скопирован!'),
+                        window.t('address_copied', 'Адрес скопирован в буфер обмена')
+                    );
+                })
+                .catch(err => {
+                    console.error('❌ Failed to copy address:', err);
+                    // Fallback: выделяем текст
+                    addressInput.select();
+                    document.execCommand('copy');
+                });
+        } else {
+            // Fallback для старых браузеров
+            addressInput.select();
+            addressInput.setSelectionRange(0, 99999); // Для мобильных
+            document.execCommand('copy');
+            console.log('✅ Address copied using fallback method');
+            this.showNotification('success',
+                window.t('address_copied', 'Адрес скопирован!'),
+                ''
+            );
+        }
+    }
+    
+    startStatusPolling() {
+        console.log('🔄 Starting status polling for order:', this.currentCryptoOrderId);
+        
+        // Останавливаем предыдущий polling если был
+        this.stopStatusPolling();
+        
+        // Проверяем статус каждые 15 секунд
+        this.statusCheckInterval = setInterval(() => {
+            this.checkCryptoPaymentStatus();
+        }, 15000);
+        
+        // Первая проверка сразу
+        this.checkCryptoPaymentStatus();
+    }
+    
+    stopStatusPolling() {
+        if (this.statusCheckInterval) {
+            console.log('⏹️ Stopping status polling');
+            clearInterval(this.statusCheckInterval);
+            this.statusCheckInterval = null;
+        }
+    }
+    
+    async checkCryptoPaymentStatus() {
+        if (!this.currentCryptoOrderId) {
+            console.warn('⚠️ No crypto order ID to check');
+            return;
+        }
+        
+        try {
+            console.log('🔍 Checking crypto payment status for:', this.currentCryptoOrderId);
+            
+            const response = await fetch(`/api/donation/crypto-status/${this.currentCryptoOrderId}`);
+            const data = await response.json();
+            
+            console.log('📊 Status check response:', data);
+            
+            if (data.success) {
+                const status = data.status;
+                const coingateStatus = data.coingate_status;
+                
+                console.log(`📊 Payment status: ${status}, CoinGate status: ${coingateStatus}`);
+                
+                // Обновляем UI в зависимости от статуса
+                if (status === 'completed') {
+                    this.updateCryptoStatus('completed', window.t('payment_confirmed', 'Оплата подтверждена!'));
+                    this.stopStatusPolling();
+                    
+                    // Показываем уведомление об успехе
+                    this.showNotification('success',
+                        window.t('donation_payment_successful', 'Платеж успешен!'),
+                        window.t('donation_thanks_support', 'Спасибо за поддержку!')
+                    );
+                    
+                    // Сбрасываем форму через 3 секунды
+                    setTimeout(() => {
+                        this.resetCryptoPayment();
+                        this.resetForm();
+                    }, 3000);
+                    
+                } else if (status === 'failed' || coingateStatus === 'invalid' || coingateStatus === 'expired') {
+                    this.updateCryptoStatus('failed', window.t('payment_failed', 'Платеж не выполнен'));
+                    this.stopStatusPolling();
+                    
+                    this.showNotification('error',
+                        window.t('donation_payment_error', 'Ошибка платежа'),
+                        window.t('payment_expired', 'Платеж истек или недействителен')
+                    );
+                    
+                } else if (coingateStatus === 'pending' || coingateStatus === 'confirming') {
+                    this.updateCryptoStatus('confirming', window.t('payment_pending', 'Ожидание подтверждения в блокчейне...'));
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error checking crypto payment status:', error);
+        }
+    }
+    
+    updateCryptoStatus(status, text) {
+        console.log(`📊 Updating crypto status: ${status} - ${text}`);
+        
+        const statusIndicator = document.querySelector('.status-indicator');
+        const statusText = document.querySelector('.status-text');
+        
+        if (statusIndicator) {
+            // Удаляем все классы статуса
+            statusIndicator.classList.remove('waiting', 'confirming', 'completed', 'failed');
+            // Добавляем новый класс
+            statusIndicator.classList.add(status);
+        }
+        
+        if (statusText) {
+            statusText.textContent = text;
+        }
+        
+        console.log('✅ Crypto status updated');
+    }
+    
+    resetCryptoPayment() {
+        console.log('🔄 Resetting crypto payment');
+        
+        // Останавливаем polling
+        this.stopStatusPolling();
+        
+        // Скрываем детали платежа
+        const detailsContainer = document.querySelector('.crypto-payment-details');
+        if (detailsContainer) {
+            detailsContainer.style.display = 'none';
+        }
+        
+        // Очищаем данные
+        this.currentCryptoOrderId = null;
+        
+        // Очищаем QR-код
+        const canvas = document.querySelector('.qr-code-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        console.log('✅ Crypto payment reset');
     }
 }
 

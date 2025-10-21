@@ -57,6 +57,19 @@ class Donation(models.Model):
         default='website',
         verbose_name=_('Source')
     )
+    
+    PAYMENT_TYPE_CHOICES = [
+        ('fiat', _('Fiat (Card)')),
+        ('crypto', _('Cryptocurrency')),
+    ]
+    
+    payment_type = models.CharField(
+        max_length=10,
+        choices=PAYMENT_TYPE_CHOICES,
+        default='fiat',
+        verbose_name=_('Payment Type')
+    )
+    
     payment_method = models.CharField(
         max_length=50,
         verbose_name=_('Payment Method'),
@@ -75,6 +88,49 @@ class Donation(models.Model):
         blank=True,
         verbose_name=_('Stripe Payment Intent ID')
     )
+    
+    # Крипто-платеж поля (CoinGate)
+    crypto_currency = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+        verbose_name=_('Crypto Currency'),
+        help_text=_('USDT, USDC, BUSD, DAI')
+    )
+    crypto_payment_address = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name=_('Crypto Payment Address')
+    )
+    crypto_amount = models.DecimalField(
+        max_digits=20,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        verbose_name=_('Crypto Amount')
+    )
+    coingate_order_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        unique=True,
+        verbose_name=_('CoinGate Order ID')
+    )
+    crypto_transaction_hash = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name=_('Transaction Hash')
+    )
+    coingate_status = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_('CoinGate Status'),
+        help_text=_('new, pending, confirming, paid, invalid, expired, canceled')
+    )
+    
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name=_('Created At')
@@ -90,4 +146,6 @@ class Donation(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
+        if self.payment_type == 'crypto' and self.crypto_currency:
+            return f"{self.name} - {self.crypto_amount} {self.crypto_currency} ({self.status})"
         return f"{self.name} - ${self.amount} ({self.status})" 

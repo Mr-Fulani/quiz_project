@@ -450,4 +450,330 @@
         padding: 8px 15px 12px 15px;
         font-size: 13px;
     }
+}
+
+/* ==================== Крипто-платежи ==================== */
+
+/* Выбор способа оплаты */
+.payment-method-selector {
+    margin: 20px 0;
+}
+
+.payment-method-selector h3 {
+    font-size: 15px;
+    color: var(--active-color);
+    margin-bottom: 12px;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.payment-methods {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.payment-method-option {
+    flex: 1;
+    padding: 14px 12px;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: block;
+    backdrop-filter: blur(10px);
+}
+
+.payment-method-option input[type="radio"] {
+    display: none;
+}
+
+.payment-method-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+}
+
+.payment-icon {
+    font-size: 20px;
+}
+
+.payment-method-option:hover {
+    border-color: var(--active-color);
+    background: rgba(0, 255, 0, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.payment-method-option.selected {
+    border-color: var(--active-color);
+    background: rgba(0, 255, 0, 0.2);
+    color: var(--active-color);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+}
+
+.payment-method-option.selected .payment-method-label {
+    color: var(--active-color);
+}
+
+/* Выбор криптовалюты */
+.crypto-currency-selector {
+    margin: 15px 0;
+}
+
+.crypto-currency-selector h3 {
+    font-size: 15px;
+    color: var(--active-color);
+    margin-bottom: 10px;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.crypto-currency-select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 10px;
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.crypto-currency-select option {
+    background: var(--base-bg);
+    color: #fff;
+}
+
+.crypto-currency-select:hover {
+    border-color: var(--active-color);
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.crypto-currency-select:focus {
+    outline: none;
+    border-color: var(--active-color);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+    background: rgba(0, 255, 0, 0.15);
+}
+
+/* Детали крипто-платежа */
+.crypto-payment-details {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 255, 0, 0.2);
+}
+
+/* Статус крипто-платежа */
+.crypto-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--active-color);
+    box-shadow: 0 0 10px var(--active-color);
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.waiting {
+    background: #ffc107;
+    box-shadow: 0 0 10px #ffc107;
+}
+
+.status-indicator.confirming {
+    background: #17a2b8;
+    box-shadow: 0 0 10px #17a2b8;
+}
+
+.status-indicator.completed {
+    background: var(--active-color);
+    box-shadow: 0 0 15px var(--active-color);
+    animation: none;
+}
+
+.status-indicator.failed {
+    background: #dc3545;
+    box-shadow: 0 0 10px #dc3545;
+    animation: none;
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.2);
+    }
+}
+
+/* Отображение суммы в крипте */
+.crypto-amount-display {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.crypto-amount-display p:first-child {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+}
+
+.crypto-amount-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--active-color);
+    margin: 0;
+    word-break: break-word;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+/* Контейнер адреса */
+.crypto-address-container {
+    margin-bottom: 15px;
+}
+
+.crypto-address-container > p:first-child {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+    text-align: left;
+}
+
+.address-display {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.crypto-address-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--active-color);
+    word-break: break-all;
+    transition: all 0.3s ease;
+}
+
+.crypto-address-input:focus {
+    outline: none;
+    border-color: var(--active-color);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.copy-address-btn {
+    padding: 10px 15px;
+    background: linear-gradient(135deg, var(--active-color), #00ff00);
+    color: var(--base-bg);
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(0, 255, 0, 0.3);
+}
+
+.copy-address-btn:hover {
+    background: linear-gradient(135deg, #00ff00, var(--active-color));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 0, 0.5);
+}
+
+.copy-address-btn:active {
+    transform: translateY(0);
+}
+
+/* QR-код */
+.qr-code-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.qr-code-canvas {
+    max-width: 200px;
+    max-height: 200px;
+    border: 2px solid var(--active-color);
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+/* Инструкции */
+.crypto-instructions {
+    text-align: center;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 10px;
+    line-height: 1.4;
+}
+
+/* Адаптивность для крипто */
+@media (max-width: 480px) {
+    .payment-methods {
+        flex-direction: column;
+    }
+    
+    .crypto-payment-details {
+        padding: 15px;
+    }
+    
+    .crypto-amount-value {
+        font-size: 20px;
+    }
+    
+    .address-display {
+        flex-direction: column;
+    }
+    
+    .crypto-address-input {
+        font-size: 11px;
+    }
+    
+    .qr-code-canvas {
+        max-width: 180px;
+        max-height: 180px;
+    }
 } 

@@ -8,6 +8,10 @@ from django.conf import settings
 import json
 import logging
 import stripe
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.decorators import api_view
+
 
 from .forms import DonationForm
 from .models import Donation
@@ -444,4 +448,386 @@ def get_stripe_publishable_key(request):
             'success': False,
             'message': 'Error getting Stripe key'
         }, status=500)
+
+
+# ==================== Крипто-платежи (CoinGate) ====================
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Получение списка поддерживаемых криптовалют (стейблкоинов) для донатов",
+    responses={
+        200: openapi.Response(
+            description="Список криптовалют",
+            examples={
+                'application/json': {
+                    'success': True,
+                    'currencies': [
+                        {'code': 'USDT', 'name': 'USDT (Tether)'},
+                        {'code': 'USDC', 'name': 'USDC (USD Coin)'},
+                        {'code': 'BUSD', 'name': 'BUSD (Binance USD)'},
+                        {'code': 'DAI', 'name': 'DAI'}
+                    ]
+                }
+            }
+        ),
+        500: openapi.Response(description="Ошибка сервера")
+    }
+)
+@api_view(['GET'])
+def get_crypto_currencies(request):
+    """
+    Получение списка поддерживаемых криптовалют (стейблкоинов)
+    """
+    try:
+        from .coingate_service import CoinGateService
+        
+        service = CoinGateService()
+        currencies = service.get_available_currencies()
+        
+        return JsonResponse({
+            'success': True,
+            'currencies': currencies
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting crypto currencies: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Error getting crypto currencies'
+        }, status=500)
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Создание крипто-платежа через CoinGate",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['amount', 'name'],
+        properties={
+            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Сумма доната в USD (минимум $1)'),
+            'crypto_currency': openapi.Schema(type=openapi.TYPE_STRING, description='Криптовалюта (USDT, USDC, BUSD, DAI)', default='USDT'),
+            'name': openapi.Schema(type=openapi.TYPE_STRING, description='Имя донатера'),
+            'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email для уведомлений (опционально)'),
+            'source': openapi.Schema(type=openapi.TYPE_STRING, description='Источник (website или mini_app)', default='website'),
+        },
+    ),
+    responses={
+        200: openapi.Response(
+            description="Платеж создан успешно",
+            examples={
+                'application/json': {
+                    'success': True,
+                    'order_id': '12345',
+                    'payment_address': '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                    'crypto_amount': '10.5',
+                    'crypto_currency': 'USDT',
+                    'amount_usd': '10.00',
+                    'payment_url': 'https://coingate.com/pay/...',
+                    'expire_at': '2024-01-01T12:00:00Z',
+                    'donation_id': 123
+                }
+            }
+        ),
+        400: openapi.Response(description="Ошибка валидации данных"),
+        500: openapi.Response(description="Ошибка сервера")
+    }
+)
+@api_view(['POST'])
+@csrf_exempt
+def create_crypto_payment(request):
+    """
+    Создание крипто-платежа через CoinGate
+    """
+    logger.info(f"Create crypto payment request received: {request.body}")
+    try:
+        from .coingate_service import CoinGateService
+        
+        data = json.loads(request.body)
+        amount = data.get('amount')
+        crypto_currency = data.get('crypto_currency', 'USDT')
+        email = data.get('email', '')
+        name = data.get('name', 'Anonymous')
+        source = data.get('source', 'website')
+        
+        logger.info(f"Crypto payment data: amount={amount}, currency={crypto_currency}, email={email}, name={name}, source={source}")
+        
+        # Валидация данных
+        if not amount or float(amount) < 1:
+            return JsonResponse({
+                'success': False,
+                'message': _('Invalid amount. Minimum amount is $1.00')
+            }, status=400)
+        
+        if not name or not name.strip():
+            return JsonResponse({
+                'success': False,
+                'message': _('Name is required')
+            }, status=400)
+        
+        # Создаем запись в БД со статусом pending
+        donation = Donation.objects.create(
+            name=name,
+            email=email,
+            amount=amount,
+            currency='usd',  # Цена всегда в USD
+            payment_type='crypto',
+            crypto_currency=crypto_currency.upper(),
+            status='pending',
+            payment_method='coingate',
+            source=source
+        )
+        
+        # Генерируем уникальный order_id
+        order_id = f"donation_{donation.id}_{int(donation.created_at.timestamp())}"
+        
+        # Формируем URLs для callback
+        if request.is_secure():
+            protocol = 'https'
+        else:
+            protocol = 'http'
+        
+        host = request.get_host()
+        callback_url = f"{protocol}://{host}/donation/crypto/callback/"
+        cancel_url = f"{protocol}://{host}/donation/"
+        success_url = f"{protocol}://{host}/donation/?payment=success"
+        
+        # Создаем заказ в CoinGate
+        service = CoinGateService()
+        result = service.create_order(
+            amount_usd=amount,
+            crypto_currency=crypto_currency,
+            order_id=order_id,
+            callback_url=callback_url,
+            cancel_url=cancel_url,
+            success_url=success_url,
+            title=f"Donation from {name}",
+            description=f"Donation #{donation.id}"
+        )
+        
+        if not result.get('success'):
+            # Удаляем donation при ошибке
+            donation.delete()
+            return JsonResponse({
+                'success': False,
+                'message': result.get('error', 'Failed to create payment')
+            }, status=400)
+        
+        # Обновляем donation данными от CoinGate
+        donation.coingate_order_id = result.get('order_id')
+        donation.crypto_payment_address = result.get('payment_address')
+        donation.crypto_amount = result.get('pay_amount')
+        donation.coingate_status = result.get('status')
+        donation.save()
+        
+        logger.info(f"Crypto payment created successfully: {donation.coingate_order_id}")
+        
+        return JsonResponse({
+            'success': True,
+            'order_id': donation.coingate_order_id,
+            'payment_address': donation.crypto_payment_address,
+            'crypto_amount': str(donation.crypto_amount),
+            'crypto_currency': donation.crypto_currency,
+            'amount_usd': str(donation.amount),
+            'payment_url': result.get('payment_url'),
+            'expire_at': result.get('expire_at'),
+            'donation_id': donation.id
+        })
+        
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in request body")
+        return JsonResponse({
+            'success': False,
+            'message': _('Invalid request format')
+        }, status=400)
+        
+    except Exception as e:
+        logger.error(f"Unexpected error creating crypto payment: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': _('An unexpected error occurred. Please try again.')
+        }, status=500)
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Получение статуса крипто-платежа по ID заказа CoinGate",
+    manual_parameters=[
+        openapi.Parameter(
+            'order_id',
+            openapi.IN_PATH,
+            description="ID заказа CoinGate",
+            type=openapi.TYPE_STRING,
+            required=True
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Статус платежа",
+            examples={
+                'application/json': {
+                    'success': True,
+                    'order_id': '12345',
+                    'status': 'completed',
+                    'coingate_status': 'paid',
+                    'payment_address': '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+                    'crypto_amount': '10.5',
+                    'crypto_currency': 'USDT'
+                }
+            }
+        ),
+        404: openapi.Response(description="Платеж не найден"),
+        500: openapi.Response(description="Ошибка сервера")
+    }
+)
+@api_view(['GET'])
+def get_crypto_payment_status(request, order_id):
+    """
+    Получение статуса крипто-платежа
+    """
+    try:
+        from .coingate_service import CoinGateService
+        
+        logger.info(f"Getting crypto payment status for order: {order_id}")
+        
+        # Находим donation по coingate_order_id
+        try:
+            donation = Donation.objects.get(coingate_order_id=order_id)
+        except Donation.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Payment not found'
+            }, status=404)
+        
+        # Получаем актуальный статус от CoinGate
+        service = CoinGateService()
+        result = service.get_order(order_id)
+        
+        if not result.get('success'):
+            return JsonResponse({
+                'success': False,
+                'message': result.get('error', 'Failed to get payment status')
+            }, status=400)
+        
+        # Обновляем статус в БД
+        coingate_status = result.get('status')
+        donation.coingate_status = coingate_status
+        
+        # Маппинг статусов CoinGate на наши статусы
+        if coingate_status == 'paid':
+            donation.status = 'completed'
+            # Отправляем email благодарности
+            try:
+                send_donation_thank_you_email(donation)
+                logger.info(f"Thank you email sent for donation {donation.id}")
+            except Exception as e:
+                logger.error(f"Failed to send thank you email: {str(e)}")
+        elif coingate_status in ['invalid', 'expired', 'canceled']:
+            donation.status = 'failed'
+        elif coingate_status in ['pending', 'confirming']:
+            donation.status = 'pending'
+        
+        donation.save()
+        
+        logger.info(f"Crypto payment status updated: {order_id} -> {donation.status}")
+        
+        return JsonResponse({
+            'success': True,
+            'order_id': order_id,
+            'status': donation.status,
+            'coingate_status': coingate_status,
+            'payment_address': donation.crypto_payment_address,
+            'crypto_amount': str(donation.crypto_amount) if donation.crypto_amount else None,
+            'crypto_currency': donation.crypto_currency
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting crypto payment status: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': 'Error getting payment status'
+        }, status=500)
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Webhook callback от CoinGate для обновления статуса платежа (только для CoinGate сервера)",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(type=openapi.TYPE_STRING, description='ID заказа'),
+            'status': openapi.Schema(type=openapi.TYPE_STRING, description='Статус: new, pending, confirming, paid, invalid, expired, canceled'),
+            'token': openapi.Schema(type=openapi.TYPE_STRING, description='Токен для верификации'),
+        },
+    ),
+    responses={
+        200: openapi.Response(
+            description="Callback обработан успешно",
+            examples={'application/json': {'status': 'success'}}
+        ),
+        400: openapi.Response(description="Некорректные данные"),
+        404: openapi.Response(description="Платеж не найден"),
+        500: openapi.Response(description="Ошибка сервера")
+    }
+)
+@api_view(['POST'])
+@csrf_exempt
+def coingate_callback(request):
+    """
+    Webhook callback от CoinGate для обновления статуса платежа
+    """
+    logger.info(f"CoinGate callback received: {request.body}")
+    try:
+        from .coingate_service import CoinGateService
+        
+        # CoinGate отправляет данные в POST параметрах
+        order_id = request.POST.get('id') or request.GET.get('id')
+        status = request.POST.get('status') or request.GET.get('status')
+        token = request.POST.get('token') or request.GET.get('token')
+        
+        if not order_id:
+            logger.error("No order_id in callback")
+            return JsonResponse({'status': 'error', 'message': 'No order_id'}, status=400)
+        
+        logger.info(f"CoinGate callback: order={order_id}, status={status}")
+        
+        # Находим donation
+        try:
+            donation = Donation.objects.get(coingate_order_id=order_id)
+        except Donation.DoesNotExist:
+            logger.error(f"Donation not found for order_id: {order_id}")
+            return JsonResponse({'status': 'error', 'message': 'Donation not found'}, status=404)
+        
+        # Верификация callback (опционально, для дополнительной безопасности)
+        # service = CoinGateService()
+        # if not service.verify_callback(order_id, token):
+        #     logger.error(f"Invalid callback token for order: {order_id}")
+        #     return JsonResponse({'status': 'error', 'message': 'Invalid token'}, status=403)
+        
+        # Обновляем статус
+        old_status = donation.status
+        donation.coingate_status = status
+        
+        # Маппинг статусов
+        if status == 'paid':
+            donation.status = 'completed'
+            # Отправляем email благодарности
+            try:
+                send_donation_thank_you_email(donation)
+                logger.info(f"Thank you email sent for donation {donation.id}")
+            except Exception as e:
+                logger.error(f"Failed to send thank you email: {str(e)}")
+        elif status in ['invalid', 'expired', 'canceled']:
+            donation.status = 'failed'
+        elif status in ['pending', 'confirming']:
+            donation.status = 'pending'
+        
+        donation.save()
+        
+        logger.info(f"Donation {donation.id} status updated: {old_status} -> {donation.status}")
+        
+        return JsonResponse({'status': 'success'})
+        
+    except Exception as e:
+        logger.error(f"Error processing CoinGate callback: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
  
