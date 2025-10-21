@@ -1342,4 +1342,331 @@ class MiniAppUserPublicProfileView(APIView):
             return Response(
                 {'error': 'Internal server error', 'detail': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class UserAvatarUploadView(APIView):
+    """
+    API для загрузки аватарок пользователя Mini App.
+    Поддерживает загрузку до 3 аватарок на пользователя.
+    """
+    permission_classes = [permissions.AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    @swagger_auto_schema(
+        operation_description="Загрузка новой аватарки для пользователя Mini App (макс. 3)",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_PATH,
+                description="ID пользователя Telegram",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+            openapi.Parameter(
+                'image',
+                openapi.IN_FORM,
+                description="Файл изображения аватарки (поддерживаются изображения и GIF)",
+                type=openapi.TYPE_FILE,
+                required=True
+            ),
+            openapi.Parameter(
+                'order',
+                openapi.IN_FORM,
+                description="Порядок отображения (0, 1, 2). Если не указан, будет автоматически присвоен следующий доступный",
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+        ],
+        responses={
+            201: 'Аватарка успешно загружена',
+            400: 'Неверные данные или превышен лимит аватарок',
+            404: 'Пользователь не найден'
+        }
+    )
+    def post(self, request, telegram_id):
+        """
+        Загрузка новой аватарки для пользователя.
+        
+        Args:
+            request: HTTP запрос с файлом изображения
+            telegram_id: Telegram ID пользователя
+            
+        Returns:
+            Response: JSON с данными созданной аватарки
+        """
+        try:
+            from ..models import UserAvatar
+            from ..serializers import UserAvatarSerializer
+            
+            # Получаем пользователя
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Проверяем количество существующих аватарок
+            existing_count = UserAvatar.objects.filter(user=user).count()
+            if existing_count >= 3:
+                return Response(
+                    {'error': 'Maximum avatars limit reached', 'detail': 'Пользователь может иметь максимум 3 аватарки'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Получаем файл изображения
+            image = request.FILES.get('image')
+            if not image:
+                return Response(
+                    {'error': 'Image file is required', 'detail': 'Необходимо предоставить файл изображения'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Определяем порядок
+            order = request.data.get('order')
+            if order is not None:
+                try:
+                    order = int(order)
+                    # Проверяем, что такой порядок не занят
+                    if UserAvatar.objects.filter(user=user, order=order).exists():
+                        return Response(
+                            {'error': 'Order already exists', 'detail': f'Аватарка с порядком {order} уже существует'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                except (ValueError, TypeError):
+                    return Response(
+                        {'error': 'Invalid order value', 'detail': 'Порядок должен быть числом'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                # Автоматически определяем следующий свободный порядок
+                used_orders = UserAvatar.objects.filter(user=user).values_list('order', flat=True)
+                for i in range(3):
+                    if i not in used_orders:
+                        order = i
+                        break
+            
+            # Создаем аватарку
+            avatar = UserAvatar.objects.create(
+                user=user,
+                image=image,
+                order=order
+            )
+            
+            # Сериализуем и возвращаем
+            serializer = UserAvatarSerializer(avatar, context={'request': request})
+            logger.info(f"✅ Аватарка успешно загружена для пользователя {telegram_id}, order={order}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except MiniAppUser.DoesNotExist:
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден")
+            return Response(
+                {'error': 'User not found', 'detail': 'Пользователь не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            logger.error(f"❌ Ошибка валидации: {e}")
+            return Response(
+                {'error': 'Validation error', 'detail': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"❌ Ошибка при загрузке аватарки: {e}", exc_info=True)
+            return Response(
+                {'error': 'Internal server error', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class UserAvatarDeleteView(APIView):
+    """
+    API для удаления аватарки пользователя Mini App.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    @swagger_auto_schema(
+        operation_description="Удаление аватарки пользователя Mini App",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_PATH,
+                description="ID пользователя Telegram",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+            openapi.Parameter(
+                'avatar_id',
+                openapi.IN_PATH,
+                description="ID аватарки для удаления",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+        ],
+        responses={
+            204: 'Аватарка успешно удалена',
+            403: 'Аватарка не принадлежит пользователю',
+            404: 'Пользователь или аватарка не найдены'
+        }
+    )
+    def delete(self, request, telegram_id, avatar_id):
+        """
+        Удаление аватарки пользователя.
+        
+        Args:
+            request: HTTP запрос
+            telegram_id: Telegram ID пользователя
+            avatar_id: ID аватарки для удаления
+            
+        Returns:
+            Response: Пустой ответ с кодом 204
+        """
+        try:
+            from ..models import UserAvatar
+            
+            # Получаем пользователя
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Получаем аватарку
+            avatar = UserAvatar.objects.get(id=avatar_id)
+            
+            # Проверяем, что аватарка принадлежит этому пользователю
+            if avatar.user != user:
+                return Response(
+                    {'error': 'Permission denied', 'detail': 'Аватарка не принадлежит пользователю'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Удаляем аватарку (файл удалится автоматически благодаря Django)
+            avatar.delete()
+            
+            logger.info(f"✅ Аватарка {avatar_id} успешно удалена для пользователя {telegram_id}")
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except MiniAppUser.DoesNotExist:
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден")
+            return Response(
+                {'error': 'User not found', 'detail': 'Пользователь не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except UserAvatar.DoesNotExist:
+            logger.warning(f"❌ Аватарка с id={avatar_id} не найдена")
+            return Response(
+                {'error': 'Avatar not found', 'detail': 'Аватарка не найдена'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"❌ Ошибка при удалении аватарки: {e}", exc_info=True)
+            return Response(
+                {'error': 'Internal server error', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class UserAvatarReorderView(APIView):
+    """
+    API для изменения порядка аватарок пользователя Mini App.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    @swagger_auto_schema(
+        operation_description="Изменение порядка аватарок пользователя Mini App",
+        manual_parameters=[
+            openapi.Parameter(
+                'telegram_id',
+                openapi.IN_PATH,
+                description="ID пользователя Telegram",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'avatar_orders': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID аватарки'),
+                            'order': openapi.Schema(type=openapi.TYPE_INTEGER, description='Новый порядок (0, 1, 2)')
+                        }
+                    ),
+                    description='Массив объектов с ID аватарки и новым порядком'
+                )
+            },
+            example={'avatar_orders': [{'id': 1, 'order': 0}, {'id': 2, 'order': 1}, {'id': 3, 'order': 2}]}
+        ),
+        responses={
+            200: 'Порядок аватарок успешно обновлен',
+            400: 'Неверные данные',
+            403: 'Аватарка не принадлежит пользователю',
+            404: 'Пользователь не найден'
+        }
+    )
+    def patch(self, request, telegram_id):
+        """
+        Изменение порядка аватарок пользователя.
+        
+        Args:
+            request: HTTP запрос с данными о новом порядке
+            telegram_id: Telegram ID пользователя
+            
+        Returns:
+            Response: JSON с обновленными данными аватарок
+        """
+        try:
+            from ..models import UserAvatar
+            from ..serializers import UserAvatarSerializer
+            
+            # Получаем пользователя
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Получаем данные о новом порядке
+            avatar_orders = request.data.get('avatar_orders', [])
+            if not avatar_orders:
+                return Response(
+                    {'error': 'avatar_orders is required', 'detail': 'Необходимо предоставить массив с порядком аватарок'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Обновляем порядок каждой аватарки
+            updated_avatars = []
+            for item in avatar_orders:
+                avatar_id = item.get('id')
+                new_order = item.get('order')
+                
+                if avatar_id is None or new_order is None:
+                    continue
+                
+                try:
+                    avatar = UserAvatar.objects.get(id=avatar_id)
+                    
+                    # Проверяем, что аватарка принадлежит этому пользователю
+                    if avatar.user != user:
+                        return Response(
+                            {'error': 'Permission denied', 'detail': f'Аватарка {avatar_id} не принадлежит пользователю'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                    
+                    # Обновляем порядок
+                    avatar.order = new_order
+                    avatar.save()
+                    updated_avatars.append(avatar)
+                    
+                except UserAvatar.DoesNotExist:
+                    logger.warning(f"⚠️ Аватарка с id={avatar_id} не найдена, пропускаем")
+                    continue
+            
+            # Сериализуем и возвращаем обновленные аватарки
+            serializer = UserAvatarSerializer(updated_avatars, many=True, context={'request': request})
+            logger.info(f"✅ Порядок аватарок успешно обновлен для пользователя {telegram_id}")
+            return Response({'avatars': serializer.data}, status=status.HTTP_200_OK)
+            
+        except MiniAppUser.DoesNotExist:
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден")
+            return Response(
+                {'error': 'User not found', 'detail': 'Пользователь не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"❌ Ошибка при изменении порядка аватарок: {e}", exc_info=True)
+            return Response(
+                {'error': 'Internal server error', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) 

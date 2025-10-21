@@ -9,7 +9,7 @@ import json
 import hmac
 import hashlib
 
-from fastapi import APIRouter, Request, Response, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, Request, Response, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field, ValidationError
 from telegram_webapp_auth.auth import TelegramAuthenticator
@@ -833,7 +833,7 @@ async def get_admin_analytics_overview(telegram_id: int):
 
 
 @router.get("/user-profile/{telegram_id}")
-async def get_user_public_profile(telegram_id: int):
+async def get_user_public_profile(telegram_id: int, request: Request):
     """
     Получение публичного профиля пользователя Mini App по telegram_id.
     
@@ -842,6 +842,7 @@ async def get_user_public_profile(telegram_id: int):
     
     Args:
         telegram_id: Telegram ID пользователя
+        request: Request объект для получения host/scheme
         
     Returns:
         JSONResponse: Данные профиля пользователя
@@ -849,8 +850,14 @@ async def get_user_public_profile(telegram_id: int):
     logger.info(f"📥 Запрос публичного профиля пользователя {telegram_id}")
     
     try:
+        # Получаем хост и схему из оригинального запроса
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+        
+        logger.info(f"🔍 PUBLIC PROFILE - HOST: {host}, SCHEME: {scheme}")
+        
         # Получаем профиль через django_api_service
-        profile_data = await django_api_service.get_user_public_profile(telegram_id)
+        profile_data = await django_api_service.get_user_public_profile(telegram_id, host=host, scheme=scheme)
         
         if profile_data is None:
             logger.warning(f"⚠️ Профиль пользователя {telegram_id} не найден")
@@ -967,4 +974,130 @@ async def get_crypto_payment_status(order_id: str):
         raise
     except Exception as e:
         logger.error(f"Error getting crypto payment status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ========================================
+# АВАТАРКИ ПОЛЬЗОВАТЕЛЕЙ
+# ========================================
+
+@router.post("/accounts/miniapp-users/{telegram_id}/avatars/")
+async def upload_user_avatar(
+    telegram_id: int,
+    image: UploadFile = File(...),
+    order: int = Form(None)
+):
+    """
+    Загрузка новой аватарки для пользователя Mini App.
+    
+    Args:
+        telegram_id: Telegram ID пользователя
+        image: Файл изображения аватарки (фото или GIF)
+        order: Порядок отображения (0, 1, 2). Если не указан, будет автоматически присвоен
+        
+    Returns:
+        JSONResponse: Данные загруженной аватарки
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/"
+        
+        # Читаем файл
+        file_content = await image.read()
+        
+        # Подготавливаем файл для отправки
+        files = {'image': (image.filename, file_content, image.content_type)}
+        data = {}
+        if order is not None:
+            data['order'] = order
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post(
+                django_url,
+                files=files,
+                data=data,
+                timeout=30.0
+            )
+        
+        if response.status_code == 201:
+            logger.info(f"✅ Avatar uploaded successfully for user {telegram_id}")
+            return JSONResponse(content=response.json(), status_code=201)
+        else:
+            logger.error(f"❌ Error uploading avatar: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in upload_user_avatar proxy: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/accounts/miniapp-users/{telegram_id}/avatars/{avatar_id}/")
+async def delete_user_avatar(telegram_id: int, avatar_id: int):
+    """
+    Удаление аватарки пользователя Mini App.
+    
+    Args:
+        telegram_id: Telegram ID пользователя
+        avatar_id: ID аватарки для удаления
+        
+    Returns:
+        Response: Пустой ответ с кодом 204
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/{avatar_id}/"
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.delete(django_url, timeout=30.0)
+        
+        if response.status_code == 204:
+            logger.info(f"✅ Avatar {avatar_id} deleted successfully for user {telegram_id}")
+            return Response(status_code=204)
+        else:
+            logger.error(f"❌ Error deleting avatar: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in delete_user_avatar proxy: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.patch("/accounts/miniapp-users/{telegram_id}/avatars/reorder/")
+async def reorder_user_avatars(telegram_id: int, request: Request):
+    """
+    Изменение порядка аватарок пользователя Mini App.
+    
+    Args:
+        telegram_id: Telegram ID пользователя
+        request: Запрос с данными о новом порядке аватарок
+        
+    Returns:
+        JSONResponse: Обновленные данные аватарок
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/reorder/"
+        
+        # Получаем данные из запроса
+        body = await request.json()
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.patch(
+                django_url,
+                json=body,
+                timeout=30.0
+            )
+        
+        if response.status_code == 200:
+            logger.info(f"✅ Avatars reordered successfully for user {telegram_id}")
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"❌ Error reordering avatars: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in reorder_user_avatars proxy: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

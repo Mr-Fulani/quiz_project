@@ -135,6 +135,9 @@
             backBtn.onclick = () => goBack();
         }
         
+        // Настраиваем обработчики для аватарок
+        setupAvatarHandlers(userData);
+        
         console.log('✅✅✅ ПУБЛИЧНЫЙ ПРОФИЛЬ ОТРИСОВАН УСПЕШНО!');
     }
     
@@ -194,6 +197,9 @@
         if (backBtn) {
             backBtn.onclick = () => goBack();
         }
+        
+        // Настраиваем обработчики для аватарок
+        setupAvatarHandlers(userData);
     }
     
     /**
@@ -580,6 +586,260 @@
         alert(message);
         // Возвращаемся назад после ошибки
         setTimeout(() => goBack(), 2000);
+    }
+    
+    /**
+     * Открытие модального окна с галереей аватарок
+     */
+    function openAvatarModal(avatars, startIndex = 0) {
+        console.log('🖼️ Открытие модального окна с аватарками, startIndex:', startIndex);
+        
+        if (!avatars || avatars.length === 0) {
+            console.log('⚠️ Нет аватарок для отображения');
+            return;
+        }
+        
+        const backdrop = document.getElementById('avatar-modal-backdrop');
+        const modal = document.getElementById('avatar-modal');
+        const swiperWrapper = document.getElementById('avatar-swiper-wrapper');
+        
+        if (!backdrop || !modal || !swiperWrapper) {
+            console.error('❌ Элементы модального окна не найдены');
+            return;
+        }
+        
+        // Очищаем предыдущие слайды
+        swiperWrapper.innerHTML = '';
+        
+        // Создаем слайды для каждой аватарки
+        avatars.forEach((avatar, index) => {
+            const slide = document.createElement('div');
+            slide.className = 'swiper-slide';
+            
+            const img = document.createElement('img');
+            img.className = 'avatar-image';
+            img.src = avatar.image_url || avatar.image;
+            img.alt = `Avatar ${index + 1}`;
+            
+            // Добавляем класс для GIF
+            if (avatar.is_gif) {
+                img.classList.add('gif');
+            }
+            
+            slide.appendChild(img);
+            swiperWrapper.appendChild(slide);
+        });
+        
+        // Блокируем скролл body
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        window.scrollPositionBeforeAvatarModal = scrollY;
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        
+        // Показываем backdrop и модальное окно
+        backdrop.classList.add('active');
+        modal.classList.add('active');
+        
+        // Инициализируем Swiper с увеличенной задержкой
+        setTimeout(() => {
+            if (typeof Swiper !== 'undefined') {
+                console.log('🔧 Начинаем инициализацию Avatar Swiper...');
+                console.log('📊 Количество слайдов:', swiperWrapper.children.length);
+                console.log('📍 Начальный индекс:', startIndex);
+                
+                // Уничтожаем предыдущий экземпляр Swiper если есть
+                if (window.avatarSwiper) {
+                    console.log('🗑️ Уничтожаем предыдущий Swiper');
+                    window.avatarSwiper.destroy(true, true);
+                    window.avatarSwiper = null;
+                }
+                
+                // Проверяем что элементы существуют
+                const swiperEl = document.getElementById('avatar-swiper');
+                if (!swiperEl) {
+                    console.error('❌ Swiper элемент не найден!');
+                    return;
+                }
+                
+                console.log('✅ Swiper элемент найден, создаем экземпляр...');
+                
+                window.avatarSwiper = new Swiper('#avatar-swiper', {
+                    slidesPerView: 1,
+                    spaceBetween: 0,
+                    centeredSlides: true,
+                    loop: false, // Отключаем loop для отладки
+                    effect: 'slide',
+                    speed: 300,
+                    initialSlide: startIndex,
+                    observer: true,
+                    observeParents: true,
+                    watchOverflow: true,
+                    touchRatio: 1,
+                    touchAngle: 45,
+                    simulateTouch: true,
+                    allowTouchMove: true,
+                    navigation: {
+                        nextEl: '#avatar-swiper .swiper-button-next',
+                        prevEl: '#avatar-swiper .swiper-button-prev',
+                    },
+                    pagination: {
+                        el: '#avatar-swiper .swiper-pagination',
+                        clickable: true,
+                        type: 'bullets',
+                    },
+                    on: {
+                        init: function() {
+                            console.log('✅ Avatar Swiper инициализирован');
+                            console.log('   - Активный слайд:', this.activeIndex);
+                            console.log('   - Всего слайдов:', this.slides.length);
+                            console.log('   - Размеры:', {
+                                width: this.width,
+                                height: this.height
+                            });
+                        },
+                        slideChange: function() {
+                            console.log('🔄 Переключение слайда:', this.activeIndex);
+                        },
+                        touchStart: function() {
+                            console.log('👆 Touch start');
+                        },
+                        touchMove: function() {
+                            console.log('👆 Touch move');
+                        },
+                        touchEnd: function() {
+                            console.log('👆 Touch end');
+                        }
+                    }
+                });
+                
+                // Принудительное обновление размеров
+                requestAnimationFrame(() => {
+                    if (window.avatarSwiper) {
+                        console.log('🔄 Обновляем Swiper...');
+                        window.avatarSwiper.update();
+                        window.avatarSwiper.updateSize();
+                        window.avatarSwiper.updateSlides();
+                        window.avatarSwiper.updateProgress();
+                        
+                        console.log('✅ Avatar Swiper полностью обновлен');
+                        console.log('   - Финальный слайд:', window.avatarSwiper.activeIndex);
+                        console.log('   - allowTouchMove:', window.avatarSwiper.params.allowTouchMove);
+                    }
+                });
+                
+            } else {
+                console.error('❌ Swiper library not found');
+            }
+        }, 200);
+    }
+    
+    /**
+     * Закрытие модального окна с аватарками
+     */
+    function closeAvatarModal() {
+        console.log('🚪 Закрытие модального окна с аватарками');
+        
+        const backdrop = document.getElementById('avatar-modal-backdrop');
+        const modal = document.getElementById('avatar-modal');
+        
+        if (backdrop) {
+            backdrop.classList.remove('active');
+        }
+        
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        
+        // Уничтожаем Swiper
+        if (window.avatarSwiper) {
+            window.avatarSwiper.destroy(true, true);
+            window.avatarSwiper = null;
+        }
+        
+        // Восстанавливаем скролл body
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        
+        if (window.scrollPositionBeforeAvatarModal !== undefined) {
+            window.scrollTo(0, window.scrollPositionBeforeAvatarModal);
+        }
+    }
+    
+    /**
+     * Настройка обработчиков для аватарки
+     */
+    function setupAvatarHandlers(userData) {
+        console.log('🖼️ Настройка обработчиков для аватарки');
+        
+        const avatar = document.getElementById('profile-avatar');
+        const privateAvatar = document.getElementById('private-avatar');
+        
+        // Проверяем наличие аватарок
+        let avatars = userData.avatars || [];
+        
+        // Если нет аватарок в новой модели, но есть старое поле avatar, используем его
+        if (avatars.length === 0 && userData.avatar) {
+            console.log('📸 Используем старое поле avatar:', userData.avatar);
+            avatars = [{
+                id: 0,
+                image_url: userData.avatar,
+                image: userData.avatar,
+                order: 0,
+                is_gif: userData.avatar.toLowerCase().endsWith('.gif')
+            }];
+        }
+        
+        console.log('📸 Количество аватарок для отображения:', avatars.length);
+        
+        if (avatars.length > 0) {
+            // Делаем аватарку кликабельной
+            if (avatar) {
+                avatar.style.cursor = 'pointer';
+                // Удаляем предыдущие обработчики
+                const newAvatar = avatar.cloneNode(true);
+                avatar.parentNode.replaceChild(newAvatar, avatar);
+                
+                newAvatar.addEventListener('click', () => {
+                    console.log('🖱️ Клик по аватарке');
+                    openAvatarModal(avatars, 0);
+                });
+            }
+            
+            if (privateAvatar) {
+                privateAvatar.style.cursor = 'pointer';
+                // Удаляем предыдущие обработчики
+                const newPrivateAvatar = privateAvatar.cloneNode(true);
+                privateAvatar.parentNode.replaceChild(newPrivateAvatar, privateAvatar);
+                
+                newPrivateAvatar.addEventListener('click', () => {
+                    console.log('🖱️ Клик по приватной аватарке');
+                    openAvatarModal(avatars, 0);
+                });
+            }
+        }
+        
+        // Настраиваем кнопку закрытия модального окна
+        const closeBtn = document.getElementById('avatar-modal-close');
+        const backdrop = document.getElementById('avatar-modal-backdrop');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAvatarModal();
+            });
+        }
+        
+        if (backdrop) {
+            backdrop.addEventListener('click', closeAvatarModal);
+        }
     }
     
     /**
