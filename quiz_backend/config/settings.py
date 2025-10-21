@@ -571,6 +571,11 @@ STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', 'pk_test_...')  # �
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_...')  # Тестовый ключ
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_...')  # Для webhook
 
+# CoinGate настройки для крипто-донатов
+COINGATE_API_TOKEN = os.getenv('COINGATE_API_TOKEN', '')  # API токен CoinGate
+COINGATE_ENVIRONMENT = os.getenv('COINGATE_ENVIRONMENT', 'sandbox')  # 'sandbox' или 'live'
+COINGATE_RECEIVE_CURRENCY = os.getenv('COINGATE_RECEIVE_CURRENCY', 'DO_NOT_CONVERT')  # или 'USD', 'EUR'
+
 
 
 

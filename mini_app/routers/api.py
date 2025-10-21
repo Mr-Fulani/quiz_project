@@ -865,3 +865,106 @@ async def get_user_public_profile(telegram_id: int):
     except Exception as e:
         logger.error(f"❌ Ошибка при получении профиля пользователя {telegram_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ==================== Donation Crypto Endpoints ====================
+
+class CryptoPaymentRequest(BaseModel):
+    """Модель запроса для создания крипто-платежа"""
+    amount: float = Field(..., description="Сумма доната в USD")
+    crypto_currency: str = Field(..., description="Криптовалюта (USDT, USDC, BUSD, DAI)")
+    email: str = Field(default="", description="Email для уведомлений")
+    name: str = Field(..., description="Имя донатера")
+    initData: str = Field(..., description="Telegram init data")
+
+
+@router.get("/donation/crypto-currencies")
+async def get_crypto_currencies():
+    """
+    Получение списка поддерживаемых криптовалют для донатов
+    """
+    try:
+        from services.donation_service import DonationService
+        
+        donation_service = DonationService()
+        result = await donation_service.get_crypto_currencies()
+        
+        if result.get('success'):
+            return JSONResponse(content=result)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=result.get('message', 'Failed to get crypto currencies')
+            )
+            
+    except Exception as e:
+        logger.error(f"Error getting crypto currencies: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/donation/crypto-create")
+async def create_crypto_donation(request: CryptoPaymentRequest):
+    """
+    Создание крипто-платежа через CoinGate
+    """
+    try:
+        from services.donation_service import DonationService
+        
+        # Валидация Telegram init data
+        try:
+            authenticator = TelegramAuthenticator(settings.TELEGRAM_BOT_TOKEN)
+            user_data = authenticator.validate(request.initData)
+            logger.info(f"Validated user for crypto donation: {user_data.user.id}")
+        except (InvalidInitDataError, ExpiredInitDataError) as e:
+            logger.error(f"Invalid init data for crypto donation: {str(e)}")
+            raise HTTPException(status_code=401, detail="Invalid init data")
+        
+        # Создаем крипто-платеж
+        donation_service = DonationService()
+        result = await donation_service.create_crypto_payment(
+            amount=request.amount,
+            crypto_currency=request.crypto_currency,
+            email=request.email,
+            name=request.name
+        )
+        
+        if result.get('success'):
+            logger.info(f"Crypto donation created: {result.get('order_id')}")
+            return JSONResponse(content=result)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=result.get('message', 'Failed to create crypto payment')
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating crypto donation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/donation/crypto-status/{order_id}")
+async def get_crypto_payment_status(order_id: str):
+    """
+    Проверка статуса крипто-платежа
+    """
+    try:
+        from services.donation_service import DonationService
+        
+        donation_service = DonationService()
+        result = await donation_service.check_crypto_payment_status(order_id)
+        
+        if result.get('success'):
+            return JSONResponse(content=result)
+        else:
+            raise HTTPException(
+                status_code=404 if 'not found' in result.get('message', '').lower() else 400,
+                detail=result.get('message', 'Failed to get payment status')
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting crypto payment status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")

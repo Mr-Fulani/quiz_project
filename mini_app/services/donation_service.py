@@ -146,4 +146,105 @@ class DonationService:
         Returns:
             List с суммами в долларах
         """
-        return [1, 3, 5, 10, 25, 50] 
+        return [1, 3, 5, 10, 25, 50]
+    
+    async def get_crypto_currencies(self) -> Dict[str, Any]:
+        """
+        Получение списка поддерживаемых криптовалют
+        
+        Returns:
+            Dict со списком криптовалют или ошибкой
+        """
+        try:
+            url = "/donation/crypto/currencies/"
+            logger.info("Getting crypto currencies list")
+            response = await self.api_service._make_request("GET", url)
+            
+            if response.get('success'):
+                logger.info(f"Crypto currencies retrieved successfully")
+                return response
+            else:
+                logger.error(f"Failed to get crypto currencies: {response.get('message', 'Unknown error')}")
+                return response
+                
+        except Exception as e:
+            logger.error(f"Error getting crypto currencies: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Ошибка получения списка криптовалют: {str(e)}'
+            }
+    
+    async def create_crypto_payment(
+        self,
+        amount: float,
+        crypto_currency: str,
+        email: str = '',
+        name: str = ''
+    ) -> Dict[str, Any]:
+        """
+        Создание крипто-платежа через CoinGate
+        
+        Args:
+            amount: Сумма доната в USD
+            crypto_currency: Криптовалюта (USDT, USDC, BUSD, DAI)
+            email: Email донатера
+            name: Имя донатера
+            
+        Returns:
+            Dict с данными платежа или ошибкой
+        """
+        try:
+            url = "/donation/crypto/create-payment/"
+            data = {
+                'amount': amount,
+                'crypto_currency': crypto_currency,
+                'email': email,
+                'name': name,
+                'source': 'mini_app'
+            }
+            
+            logger.info(f"Creating crypto payment: {amount} USD -> {crypto_currency}")
+            response = await self.api_service._make_request("POST", url, json=data)
+            
+            if response.get('success'):
+                logger.info(f"Crypto payment created successfully: {response.get('order_id', '')}")
+                return response
+            else:
+                logger.error(f"Failed to create crypto payment: {response.get('message', 'Unknown error')}")
+                return response
+                
+        except Exception as e:
+            logger.error(f"Error creating crypto payment: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Ошибка создания крипто-платежа: {str(e)}'
+            }
+    
+    async def check_crypto_payment_status(self, order_id: str) -> Dict[str, Any]:
+        """
+        Проверка статуса крипто-платежа
+        
+        Args:
+            order_id: ID заказа CoinGate
+            
+        Returns:
+            Dict со статусом платежа или ошибкой
+        """
+        try:
+            url = f"/donation/crypto/status/{order_id}/"
+            logger.info(f"Checking crypto payment status: {order_id}")
+            response = await self.api_service._make_request("GET", url)
+            
+            if response.get('success'):
+                logger.info(f"Crypto payment status: {response.get('status', 'unknown')}")
+                return response
+            else:
+                logger.error(f"Failed to get crypto payment status: {response.get('message', 'Unknown error')}")
+                return response
+                
+        except Exception as e:
+            logger.error(f"Error checking crypto payment status: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Ошибка проверки статуса: {str(e)}'
+            } 

@@ -10,22 +10,45 @@ from .utils import export_donations_csv, send_donation_thank_you_email
 
 @admin.register(Donation)
 class DonationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'amount_formatted', 'currency', 'source', 'status_colored', 'payment_method', 'created_at', 'days_ago']
-    list_filter = ['status', 'currency', 'payment_method', 'source', 'created_at']
-    search_fields = ['name', 'email', 'stripe_payment_intent_id']
-    readonly_fields = ['stripe_payment_intent_id', 'created_at', 'updated_at']
+    list_display = [
+        'name', 'amount_formatted', 'currency', 'payment_type_display', 
+        'crypto_currency', 'source', 'status_colored', 'payment_method', 
+        'created_at', 'days_ago'
+    ]
+    list_filter = [
+        'status', 'payment_type', 'currency', 'crypto_currency', 
+        'payment_method', 'source', 'created_at', 'coingate_status'
+    ]
+    search_fields = [
+        'name', 'email', 'stripe_payment_intent_id', 
+        'coingate_order_id', 'crypto_transaction_hash', 'crypto_payment_address'
+    ]
+    readonly_fields = [
+        'stripe_payment_intent_id', 'coingate_order_id', 'coingate_status',
+        'crypto_payment_address', 'crypto_transaction_hash', 'crypto_amount',
+        'created_at', 'updated_at', 'coingate_order_link'
+    ]
     ordering = ['-created_at']
     actions = ['mark_as_completed', 'mark_as_failed', 'export_to_csv', 'send_thank_you_emails']
     
     fieldsets = (
-        ('Информация о донате', {
-            'fields': ('name', 'email', 'amount', 'currency', 'source')
+        ('Общая информация', {
+            'fields': ('name', 'email', 'amount', 'currency', 'source', 'user')
         }),
-        ('Детали платежа', {
-            'fields': ('payment_method', 'status', 'stripe_payment_intent_id')
+        ('Тип платежа', {
+            'fields': ('payment_type', 'payment_method', 'status')
         }),
-        ('Информация о пользователе', {
-            'fields': ('user',)
+        ('Fiat платеж (Stripe)', {
+            'fields': ('stripe_payment_intent_id',),
+            'classes': ('collapse',)
+        }),
+        ('Крипто-платеж (CoinGate)', {
+            'fields': (
+                'crypto_currency', 'crypto_amount', 'crypto_payment_address',
+                'coingate_order_id', 'coingate_order_link', 'coingate_status',
+                'crypto_transaction_hash'
+            ),
+            'classes': ('collapse',)
         }),
         ('Временные метки', {
             'fields': ('created_at', 'updated_at'),
@@ -44,9 +67,35 @@ class DonationAdmin(admin.ModelAdmin):
     
     def amount_formatted(self, obj):
         """Форматированная сумма доната"""
-        return f"{obj.amount} {obj.currency.upper()}"
+        if obj.payment_type == 'crypto' and obj.crypto_amount:
+            return f"{obj.crypto_amount} {obj.crypto_currency} (≈${obj.amount})"
+        return f"${obj.amount} {obj.currency.upper()}"
     amount_formatted.short_description = 'Сумма'
     amount_formatted.admin_order_field = 'amount'
+    
+    def payment_type_display(self, obj):
+        """Отображение типа платежа с иконкой"""
+        if obj.payment_type == 'crypto':
+            return format_html('<span style="color: #f7931a;">🪙 Crypto</span>')
+        return format_html('<span style="color: #635bff;">💳 Card</span>')
+    payment_type_display.short_description = 'Тип'
+    payment_type_display.admin_order_field = 'payment_type'
+    
+    def coingate_order_link(self, obj):
+        """Ссылка на заказ в CoinGate"""
+        if obj.coingate_order_id and obj.payment_type == 'crypto':
+            from django.conf import settings
+            env = settings.COINGATE_ENVIRONMENT
+            if env == 'sandbox':
+                url = f'https://sandbox.coingate.com/orders/{obj.coingate_order_id}'
+            else:
+                url = f'https://coingate.com/orders/{obj.coingate_order_id}'
+            return format_html(
+                '<a href="{}" target="_blank">Открыть в CoinGate ↗</a>',
+                url
+            )
+        return '-'
+    coingate_order_link.short_description = 'Заказ CoinGate'
     
     def status_colored(self, obj):
         """Цветной статус"""
@@ -129,6 +178,36 @@ class DonationAdmin(admin.ModelAdmin):
                 'recent_amount': currency_recent_completed.aggregate(total=Sum('amount'))['total'] or 0,
             }
         
+        # Статистика по типам платежей
+        payment_type_stats = {}
+        for payment_type_code, payment_type_name in Donation.PAYMENT_TYPE_CHOICES:
+            type_donations = Donation.objects.filter(payment_type=payment_type_code)
+            type_completed = type_donations.filter(status='completed')
+            type_recent = type_donations.filter(created_at__gte=thirty_days_ago)
+            
+            payment_type_stats[payment_type_code] = {
+                'name': payment_type_name,
+                'total_donations': type_donations.count(),
+                'completed_donations': type_completed.count(),
+                'total_amount_usd': type_completed.aggregate(total=Sum('amount'))['total'] or 0,
+                'recent_donations': type_recent.count(),
+            }
+        
+        # Статистика по криптовалютам
+        crypto_stats = {}
+        crypto_donations = Donation.objects.filter(payment_type='crypto')
+        if crypto_donations.exists():
+            for currency in crypto_donations.values_list('crypto_currency', flat=True).distinct():
+                if currency:
+                    currency_donations = crypto_donations.filter(crypto_currency=currency)
+                    currency_completed = currency_donations.filter(status='completed')
+                    
+                    crypto_stats[currency] = {
+                        'total_donations': currency_donations.count(),
+                        'completed_donations': currency_completed.count(),
+                        'total_amount_usd': currency_completed.aggregate(total=Sum('amount'))['total'] or 0,
+                    }
+        
         if hasattr(response, 'context_data'):
             response.context_data['donation_stats'] = {
                 'total_donations': total_donations,
@@ -138,6 +217,8 @@ class DonationAdmin(admin.ModelAdmin):
                 'recent_donations': recent_donations,
                 'currency_stats': currency_stats,
                 'source_stats': source_stats,
+                'payment_type_stats': payment_type_stats,
+                'crypto_stats': crypto_stats,
             }
         
         return response

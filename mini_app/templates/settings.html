@@ -8,6 +8,13 @@
 <link rel="stylesheet" href="{{ get_css_url('settings.css') }}">
 {% endblock %}
 
+{% block extra_head %}
+<!-- Stripe.js для оплаты картой -->
+<script src="https://js.stripe.com/v3/"></script>
+<!-- QRCode.js для генерации QR-кодов крипто-платежей -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+{% endblock %}
+
 {% block extra_js %}
 <!-- feedback.js будет загружен в конце после base.html скриптов -->
 {% endblock %}
@@ -83,6 +90,69 @@
                     <span class="currency-option" data-currency="rub" data-translate="donation_currency_rub">
                         {{ translations.get('donation_currency_rub', 'RUB (₽)') }}
                     </span>
+                </div>
+                
+                <!-- Выбор способа оплаты -->
+                <div class="payment-method-selector">
+                    <h3 data-translate="payment_method">{{ translations.get('payment_method', 'Способ оплаты') }}</h3>
+                    <div class="payment-methods">
+                        <label class="payment-method-option selected">
+                            <input type="radio" name="payment-method" value="card" checked>
+                            <span class="payment-method-label">
+                                <span class="payment-icon">💳</span>
+                                <span data-translate="card_payment">{{ translations.get('card_payment', 'Банковская карта') }}</span>
+                            </span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="payment-method" value="crypto">
+                            <span class="payment-method-label">
+                                <span class="payment-icon">🪙</span>
+                                <span data-translate="crypto_payment">{{ translations.get('crypto_payment', 'Криптовалюта') }}</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Выбор криптовалюты (скрыт по умолчанию) -->
+                <div class="crypto-currency-selector" style="display: none;">
+                    <h3 data-translate="select_cryptocurrency">{{ translations.get('select_cryptocurrency', 'Выберите криптовалюту') }}</h3>
+                    <select class="crypto-currency-select">
+                        <option value="USDT" data-translate="usdt">{{ translations.get('usdt', 'USDT (Tether)') }}</option>
+                        <option value="USDC" data-translate="usdc">{{ translations.get('usdc', 'USDC (USD Coin)') }}</option>
+                        <option value="BUSD" data-translate="busd">{{ translations.get('busd', 'BUSD (Binance USD)') }}</option>
+                        <option value="DAI" data-translate="dai">{{ translations.get('dai', 'DAI') }}</option>
+                    </select>
+                </div>
+                
+                <!-- Детали крипто-платежа (скрыт по умолчанию) -->
+                <div class="crypto-payment-details" style="display: none;">
+                    <div class="crypto-status">
+                        <span class="status-indicator"></span>
+                        <span class="status-text" data-translate="waiting_for_payment">{{ translations.get('waiting_for_payment', 'Ожидание оплаты...') }}</span>
+                    </div>
+                    
+                    <div class="crypto-amount-display">
+                        <p data-translate="amount_to_send">{{ translations.get('amount_to_send', 'Сумма к отправке') }}:</p>
+                        <p class="crypto-amount-value">-</p>
+                    </div>
+                    
+                    <div class="crypto-address-container">
+                        <p data-translate="payment_address">{{ translations.get('payment_address', 'Адрес для оплаты') }}:</p>
+                        <div class="address-display">
+                            <input type="text" class="crypto-address-input" readonly>
+                            <button class="copy-address-btn" type="button">
+                                <span data-translate="copy_address">{{ translations.get('copy_address', 'Копировать') }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-code-container">
+                        <canvas class="qr-code-canvas"></canvas>
+                    </div>
+                    
+                    <p class="crypto-instructions" data-translate="scan_qr_or_copy">
+                        {{ translations.get('scan_qr_or_copy', 'Отсканируйте QR-код или скопируйте адрес') }}
+                    </p>
                 </div>
                 
                 <!-- Поля ввода -->
