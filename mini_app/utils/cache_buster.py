@@ -109,6 +109,8 @@ STATIC_VERSIONS = {
     'admin_analytics.js': '4.4',  # FIX: фильтрация донатов мини-аппа на фронтенде из by_source
     'settings.js': '3.1',  # FIX: предотвращена повторная декларация класса при SPA
     'admin_analytics.css': '1.4',  # FIX: Добавлены Safe Area Insets для единообразия с другими страницами
+    'share-topic.js': '1.0',
+    'share-topic.css': '1.0',
 }
 
 

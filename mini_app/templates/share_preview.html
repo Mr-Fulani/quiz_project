@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:image" content="{{ image_url }}" />
+    <meta property="og:type" content="website" />
+    <meta http-equiv="refresh" content="0;url={{ redirect_url }}" />
+</head>
+<body>
+    <p>Redirecting to the topic...</p>
+    <script>
+        window.location.href = "{{ redirect_url }}";
+    </script>
+</body>
+</html>

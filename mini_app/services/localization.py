@@ -289,6 +289,9 @@ class LocalizationService:
         "clear_all": "Clear all",
         "select_all": "Select all",
         "technologies_help": "Click on the list to select multiple technologies. The field can be left empty.",
+        "share_topic": "Share Topic",
+        "share_link_copied": "Share link copied!",
+        "share_topic_with_friends": "Share this topic with your friends!",
         },
         "ru": {
             # Навигация
@@ -570,6 +573,9 @@ class LocalizationService:
         "clear_all": "Очистить все",
         "select_all": "Выбрать все",
         "technologies_help": "Нажмите на список, чтобы выбрать несколько технологий. Поле можно оставить пустым.",
+        "share_topic": "Поделиться темой",
+        "share_link_copied": "Ссылка для шаринга скопирована!",
+        "share_topic_with_friends": "Поделитесь этой темой с друзьями!",
         }
     }
     

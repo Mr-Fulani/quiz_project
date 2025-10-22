@@ -118,7 +118,7 @@ function initTopicCards() {
         console.log('🎯 CARD FOUND!', clickedCard.getAttribute('data-topic-id'));
         
         // Если клик был на кнопке - игнорируем
-        if (e.target.tagName === 'BUTTON') {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('.share-topic-btn')) {
             console.log('Button clicked, ignoring...');
             return;
         }
@@ -623,7 +623,7 @@ document.addEventListener('click', function(e) {
         }
         
         // Если клик на кнопке - игнорируем
-        if (e.target.tagName === 'BUTTON') {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('.share-topic-btn')) {
             console.log('Button clicked, ignoring...');
             return;
         }

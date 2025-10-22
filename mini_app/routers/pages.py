@@ -2,7 +2,7 @@ import logging
 import time
 
 from fastapi import APIRouter, Request, UploadFile, File, Query, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from services.django_api_service import django_api_service
@@ -19,8 +19,21 @@ templates = Jinja2Templates(directory="templates")
 async def index(
     request: Request, 
     search: str = None,
-    lang: str = Query(default=None, description="Language code")
+    lang: str = Query(default=None, description="Language code"),
+    tgWebAppStartParam: str = Query(default=None, alias="tgWebAppStartParam")
 ):
+    # Обработка deep link
+    if tgWebAppStartParam and tgWebAppStartParam.startswith("topic_"):
+        try:
+            topic_id = int(tgWebAppStartParam.split("_")[1])
+            # Устанавливаем язык перед редиректом
+            if lang:
+                localization_service.set_language(lang)
+            current_language = localization_service.get_language()
+            return RedirectResponse(url=f"/topic/{topic_id}?lang={current_language}")
+        except (ValueError, IndexError):
+            logger.warning(f"Некорректный параметр deep link: {tgWebAppStartParam}")
+
     # Язык уже установлен middleware, но можно переопределить через query параметр
     if lang:
         localization_service.set_language(lang)
@@ -56,6 +69,8 @@ async def index(
         "donation_css_url": get_css_url('donation.css'),
         "search_js_url": get_js_url('search.js'),
         "topic_cards_js_url": get_js_url('topic-cards.js'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 @router.get("/profile", response_class=HTMLResponse)
@@ -86,6 +101,8 @@ async def profile(
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
         "profile_js_url": get_js_url('profile.js'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 @router.get("/user_profile/{telegram_id}", response_class=HTMLResponse)
@@ -124,6 +141,8 @@ async def user_profile(
         "donation_css_url": get_css_url('donation.css'),
         "user_profile_css_url": get_css_url('user_profile.css'),
         "user_profile_js_url": get_js_url('user_profile.js'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 @router.get("/top_users", response_class=HTMLResponse)
@@ -181,6 +200,8 @@ async def top_users(
             "share_app_css_url": get_css_url('share-app.css'),
             "donation_css_url": get_css_url('donation.css'),
             "top_users_js_url": get_js_url('top_users.js'),
+            "share_topic_js_url": get_js_url('share-topic.js'),
+            "share_topic_css_url": get_css_url('share-topic.css'),
         })
     except Exception as e:
         logger.error(f"Ошибка при рендеринге страницы топ-пользователей: {e}", exc_info=True)
@@ -235,6 +256,8 @@ async def statistics(
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
         "statistics_js_url": get_js_url('statistics.js'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 @router.get("/admin-analytics", response_class=HTMLResponse)
@@ -268,6 +291,8 @@ async def admin_analytics(
         "tasks_js_url": get_js_url('tasks.js'),
         "share_app_js_url": get_js_url('share-app.js'),
         "donation_js_url": get_js_url('donation.js'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 
@@ -303,6 +328,8 @@ async def settings(
         "styles_css_url": get_css_url('styles.css'),
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 @router.get("/topic/{topic_id}", response_class=HTMLResponse)
@@ -348,6 +375,8 @@ async def topic_detail(
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
         "topic_detail_js_url": get_js_url('topic-detail.js'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
 
 @router.get("/subtopic/{subtopic_id}/tasks", response_class=HTMLResponse)
@@ -422,8 +451,40 @@ async def subtopic_tasks(
         "styles_css_url": get_css_url('styles.css'),
         "share_app_css_url": get_css_url('share-app.css'),
         "donation_css_url": get_css_url('donation.css'),
+        "share_topic_js_url": get_js_url('share-topic.js'),
+        "share_topic_css_url": get_css_url('share-topic.css'),
     })
     # Сбрасываем временную cookie уровня, чтобы не влияла на последующие переходы
+    return response
+
+@router.get("/share/topic/{topic_id}", response_class=HTMLResponse)
+async def share_topic_preview(request: Request, topic_id: int):
+    topic_data = await django_api_service.get_topic_detail(topic_id=topic_id)
+    if not topic_data:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    # Формируем абсолютный URL для изображения
+    base_url = str(request.base_url)
+    if "127.0.0.1" in base_url or "localhost" in base_url:
+        # Для локальной разработки используем ngrok URL или другой публичный адрес
+        base_url = "https://untracked-nonradiant-hattie.ngrok-free.dev/" # ЗАМЕНИТЕ НА ВАШ АДРЕС
+    else:
+        # Для продакшена используем URL из настроек
+        base_url = app_settings.MINI_APP_BASE_URL
+
+    image_url = f"{base_url.strip('/')}{topic_data.get('image_url', '')}"
+    if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url'):
+        image_url = f"{base_url.strip('/')}{topic_data.get('video_poster_url', '')}"
+
+    context = {
+        "request": request,
+        "title": topic_data.get("name", "Quiz Topic"),
+        "description": topic_data.get("description", "Check out this interesting topic!"),
+        "image_url": image_url,
+        "redirect_url": f"https://t.me/mr_proger_bot/quiz?startapp=topic_{topic_id}"
+    }
+    response = templates.TemplateResponse("share_preview.html", context)
+    response.headers["ngrok-skip-browser-warning"] = "true"
     return response
 
 # Загрузка аватара останется здесь, так как она связана со страницей профиля
