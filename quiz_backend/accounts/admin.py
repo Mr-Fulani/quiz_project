@@ -1850,9 +1850,9 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         ('Основная информация', {
             'fields': ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'avatar', 'telegram_photo_url')
         }),
-        ('Аватарки (до 3)', {
+        ('Аватарки (до 4: 1 главный + 3 дополнительных)', {
             'fields': ('avatars_preview',),
-            'description': 'Галерея аватарок пользователя. Редактировать можно в секции "Аватарки пользователя" ниже.'
+            'description': 'Главный аватар (оранжевая рамка) + галерея дополнительных аватарок. Редактировать можно в секции "Аватарки пользователя" ниже.'
         }),
         ('Профессиональная информация', {
             'fields': ('grade', 'programming_language', 'programming_languages', 'gender', 'birth_date')
@@ -1875,6 +1875,7 @@ class MiniAppUserAdmin(admin.ModelAdmin):
     def avatars_count(self, obj):
         """
         Отображает количество аватарок пользователя.
+        Учитывает главный аватар и дополнительные аватарки из галереи.
         
         Args:
             obj: Объект MiniAppUser
@@ -1884,19 +1885,23 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         """
         from django.utils.safestring import mark_safe
         
-        count = obj.avatars.count()
-        if count == 0:
+        main_avatar = 1 if obj.avatar else 0
+        gallery_count = obj.avatars.count()
+        total_count = main_avatar + gallery_count
+        
+        if total_count == 0:
             return mark_safe('<span style="color: #999;">—</span>')
-        elif count < 3:
-            return mark_safe(f'<span style="color: #ff9800;">{count} / 3</span>')
+        elif total_count < 4:  # Максимум 4: 1 главный + 3 дополнительных
+            return mark_safe(f'<span style="color: #ff9800;">{total_count} / 4</span>')
         else:
-            return mark_safe(f'<span style="color: #4CAF50;">{count} / 3</span>')
+            return mark_safe(f'<span style="color: #4CAF50;">{total_count} / 4</span>')
     
     avatars_count.short_description = 'Аватарки'
     
     def avatars_preview(self, obj):
         """
         Отображает превью всех аватарок пользователя.
+        Главный аватар отображается первым с пометкой "ГЛАВНЫЙ".
         
         Args:
             obj: Объект MiniAppUser
@@ -1906,13 +1911,29 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         """
         from django.utils.safestring import mark_safe
         
-        avatars = obj.avatars.all().order_by('order')
-        
-        if not avatars:
-            return mark_safe('<p style="color: #999;">Аватарки не загружены</p>')
-        
         html = '<div style="display: flex; gap: 10px; flex-wrap: wrap;">'
         
+        # 1. Главный аватар (если есть)
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            is_main_gif = obj.avatar.name.lower().endswith('.gif') if obj.avatar.name else False
+            gif_badge = '🎬 GIF' if is_main_gif else '👑 ГЛАВНЫЙ'
+            border_color = '#ff6b35' if is_main_gif else '#ff9800'  # Оранжевый для главного
+            
+            html += f'''
+                <div style="text-align: center; position: relative;">
+                    <img src="{obj.avatar.url}" 
+                         style="width: 100px; height: 100px; object-fit: cover; border-radius: 12px; 
+                                border: 3px solid {border_color}; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" 
+                         alt="Main Avatar" />
+                    <p style="margin: 5px 0; font-size: 12px; color: #ff9800; font-weight: bold;">{gif_badge}</p>
+                    <div style="position: absolute; top: -5px; right: -5px; background: #ff9800; color: white; 
+                                border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; 
+                                justify-content: center; font-size: 10px; font-weight: bold;">★</div>
+                </div>
+            '''
+        
+        # 2. Дополнительные аватарки из галереи
+        avatars = obj.avatars.all().order_by('order')
         for avatar in avatars:
             gif_badge = '🎬 GIF' if avatar.is_gif else f'#{avatar.order + 1}'
             border_color = '#00ff00' if avatar.is_gif else '#4CAF50'
@@ -1926,6 +1947,10 @@ class MiniAppUserAdmin(admin.ModelAdmin):
                     <p style="margin: 5px 0; font-size: 12px; color: #666;">{gif_badge}</p>
                 </div>
             '''
+        
+        # Если нет ни главного, ни дополнительных аватарок
+        if not obj.avatar and not avatars:
+            html += '<p style="color: #999; margin: 20px 0;">Аватарки не загружены</p>'
         
         html += '</div>'
         return mark_safe(html)
