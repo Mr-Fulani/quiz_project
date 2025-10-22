@@ -60,6 +60,12 @@ services:
         condition: service_healthy
     networks:
       - quiz_network_local_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   mini_app:
     container_name: mini_app_local_prod
@@ -104,8 +110,10 @@ services:
       - ./certbot/www:/var/www/certbot/
       - ./certbot/conf/:/etc/letsencrypt/
     depends_on:
-      - quiz_backend
-      - mini_app
+      quiz_backend:
+        condition: service_healthy
+      mini_app:
+        condition: service_started # mini_app простой, ждем только старта
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
