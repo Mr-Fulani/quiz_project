@@ -21,7 +21,11 @@ from social_auth.views import TelegramAuthView
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
 
+# Health check endpoint
+from django.http import HttpResponse
 
+def health_check(request):
+    return HttpResponse("OK", status=200)
 
 
 # Настройки Swagger
@@ -89,6 +93,7 @@ urlpatterns = [
 
     # Кастомный переключатель языка (вне языковых паттернов для работы с любым языком)
     path('set-language/', custom_set_language, name='custom_set_language'),
+    path('health/', health_check, name='health_check'),  # Health check endpoint
 ] + i18n_patterns(
     # path('admin/', admin.site.urls), -> Перенесено выше
     #   -> Админ-панель Django
