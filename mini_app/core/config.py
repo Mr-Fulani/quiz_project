@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     UPLOAD_FOLDER: str = UPLOAD_FOLDER
     
+    # URL для генерации превью ссылок в продакшене
+    MINI_APP_BASE_URL: str = "http://localhost:8080"
+
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'

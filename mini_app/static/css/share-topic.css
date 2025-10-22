@@ -1,0 +1,49 @@
+/* Стили для кнопки "Поделиться темой" */
+
+/* Общие стили для кнопки "Поделиться" */
+.share-topic-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: #00ff00;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    z-index: 5;
+}
+
+.share-topic-btn:hover {
+    background: rgba(0, 255, 0, 0.2);
+    border-color: #00ff00;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.share-topic-btn ion-icon {
+    font-size: 20px;
+}
+
+/* Стили для кнопки в детальном списке тем */
+.topic-item {
+    position: relative; /* Необходимо для позиционирования кнопки */
+}
+
+.topic-item .share-topic-btn {
+    top: 40%; /* Поднимаем кнопку, чтобы не перекрывать прогресс-бар */
+    right: 20px; /* Двигаем левее от края */
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+}
+
+.topic-item .share-topic-btn ion-icon {
+    font-size: 22px;
+}

@@ -17,6 +17,9 @@
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
         <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}" data-media-type="{{ topic.get('media_type', 'default') }}" {% if topic.get('media_type') == 'video' %}data-video-url="{{ topic.image_url }}"{% endif %}>
+            <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}">
+                <ion-icon name="share-social-outline"></ion-icon>
+            </button>
             {% if topic.get('media_type') == 'video' %}
                 {% if topic.get('video_poster_url') %}
                     {# Если есть постер, показываем изображение постера #}
@@ -56,6 +59,9 @@
                 <p class="progress-text" data-translate="not_started">{{ translations.get('not_started', 'Не начато') }}</p>
             {% endif %}
         </div>
+        <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}">
+            <ion-icon name="share-social-outline"></ion-icon>
+        </button>
     </div>
     {% endfor %}
 </div>
@@ -165,6 +171,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // Глобальная функция для обработки клика на кнопку "Начать"
 function handleStartTopic(event, topicId) {
+    // Если клик произошел на кнопке "Поделиться", ничего не делаем
+    if (event && event.target.closest('.share-topic-btn')) {
+        return;
+    }
+
     console.log('🚀 handleStartTopic called with topicId:', topicId);
     
     if (event) {
