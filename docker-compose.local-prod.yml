@@ -63,8 +63,10 @@ services:
 
   mini_app:
     container_name: mini_app_local_prod
+    command: uvicorn app:app --host 0.0.0.0 --port 8080
     build:
       context: ./mini_app
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     networks:
@@ -82,7 +84,6 @@ services:
     volumes:
       - ./mini_app:/mini_app
       - ./mini_app/static:/mini_app/static
-    command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
     depends_on:
       - quiz_backend
 
