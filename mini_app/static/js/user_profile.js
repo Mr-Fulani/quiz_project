@@ -646,6 +646,10 @@
         
         // Инициализируем Swiper с увеличенной задержкой
         setTimeout(() => {
+            console.log('🔧 Проверяем доступность Swiper...');
+            console.log('🔧 typeof Swiper:', typeof Swiper);
+            console.log('🔧 window.Swiper:', window.Swiper);
+            
             if (typeof Swiper !== 'undefined') {
                 console.log('🔧 Начинаем инициализацию Avatar Swiper...');
                 console.log('📊 Количество слайдов:', swiperWrapper.children.length);
@@ -733,6 +737,53 @@
                 
             } else {
                 console.error('❌ Swiper library not found');
+                console.log('🔄 Попытка загрузить Swiper из CDN...');
+                
+                // Пытаемся загрузить Swiper из CDN
+                const swiperScript = document.createElement('script');
+                swiperScript.src = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js';
+                swiperScript.onload = () => {
+                    console.log('✅ Swiper загружен из CDN, повторная инициализация...');
+                    // Повторяем инициализацию после загрузки
+                    setTimeout(() => {
+                        if (typeof Swiper !== 'undefined') {
+                            window.avatarSwiper = new Swiper('#avatar-swiper', {
+                                slidesPerView: 1,
+                                spaceBetween: 0,
+                                centeredSlides: true,
+                                loop: false,
+                                effect: 'slide',
+                                speed: 300,
+                                initialSlide: startIndex,
+                                observer: true,
+                                observeParents: true,
+                                watchOverflow: true,
+                                touchRatio: 1,
+                                touchAngle: 45,
+                                simulateTouch: true,
+                                allowTouchMove: true,
+                                navigation: {
+                                    nextEl: '#avatar-swiper .swiper-button-next',
+                                    prevEl: '#avatar-swiper .swiper-button-prev',
+                                },
+                                pagination: {
+                                    el: '#avatar-swiper .swiper-pagination',
+                                    clickable: true,
+                                    type: 'bullets',
+                                },
+                                on: {
+                                    init: function() {
+                                        console.log('✅ Avatar Swiper инициализирован после загрузки CDN');
+                                    }
+                                }
+                            });
+                        }
+                    }, 100);
+                };
+                swiperScript.onerror = () => {
+                    console.error('❌ Не удалось загрузить Swiper из CDN');
+                };
+                document.head.appendChild(swiperScript);
             }
         }, 200);
     }

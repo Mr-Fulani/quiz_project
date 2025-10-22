@@ -429,12 +429,33 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
     def get_avatars(self, obj):
         """
         Возвращает список всех аватарок пользователя.
+        Главный аватар (obj.avatar) всегда идет первым, затем дополнительные аватарки из галереи.
         
         Returns:
-            list: Список сериализованных аватарок
+            list: Список сериализованных аватарок с главным аватаром первым
         """
-        avatars = obj.avatars.all().order_by('order')
-        return UserAvatarSerializer(avatars, many=True, context=self.context).data
+        avatars_data = []
+        
+        # 1. Добавляем главный аватар первым (если есть)
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            main_avatar_data = {
+                'id': 'main_avatar',  # Специальный ID для главного аватара
+                'image_url': self.get_avatar(obj),  # Используем существующий метод
+                'order': -1,  # Главный аватар всегда имеет order = -1
+                'is_gif': obj.avatar.name.lower().endswith('.gif') if obj.avatar.name else False,
+                'created_at': obj.created_at,
+                'is_main': True  # Флаг для фронтенда
+            }
+            avatars_data.append(main_avatar_data)
+        
+        # 2. Добавляем дополнительные аватарки из галереи
+        gallery_avatars = obj.avatars.all().order_by('order')
+        for avatar in gallery_avatars:
+            avatar_data = UserAvatarSerializer(avatar, context=self.context).data
+            avatar_data['is_main'] = False  # Флаг для фронтенда
+            avatars_data.append(avatar_data)
+        
+        return avatars_data
 
 
 class ProgrammingLanguageIdsField(serializers.Field):
@@ -977,13 +998,34 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
     def get_avatars(self, obj):
         """
         Возвращает список всех аватарок пользователя для публичных профилей.
+        Главный аватар (obj.avatar) всегда идет первым, затем дополнительные аватарки из галереи.
         
         Returns:
-            list: Список сериализованных аватарок или пустой список
+            list: Список сериализованных аватарок с главным аватаром первым или пустой список
         """
         if obj.is_profile_public:
-            avatars = obj.avatars.all().order_by('order')
-            return UserAvatarSerializer(avatars, many=True, context=self.context).data
+            avatars_data = []
+            
+            # 1. Добавляем главный аватар первым (если есть)
+            if obj.avatar and hasattr(obj.avatar, 'url'):
+                main_avatar_data = {
+                    'id': 'main_avatar',  # Специальный ID для главного аватара
+                    'image_url': self.get_avatar(obj),  # Используем существующий метод
+                    'order': -1,  # Главный аватар всегда имеет order = -1
+                    'is_gif': obj.avatar.name.lower().endswith('.gif') if obj.avatar.name else False,
+                    'created_at': obj.created_at,
+                    'is_main': True  # Флаг для фронтенда
+                }
+                avatars_data.append(main_avatar_data)
+            
+            # 2. Добавляем дополнительные аватарки из галереи
+            gallery_avatars = obj.avatars.all().order_by('order')
+            for avatar in gallery_avatars:
+                avatar_data = UserAvatarSerializer(avatar, context=self.context).data
+                avatar_data['is_main'] = False  # Флаг для фронтенда
+                avatars_data.append(avatar_data)
+            
+            return avatars_data
         return []
     
     def to_representation(self, instance):

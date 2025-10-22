@@ -1,11 +1,14 @@
 # accounts/models.py
 import logging
+import os
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.db.models import Q, Count
 from django.utils import timezone
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
 
@@ -1033,6 +1036,21 @@ class UserAvatar(models.Model):
         
         super().save(*args, **kwargs)
     
+    def delete(self, *args, **kwargs):
+        """
+        Переопределяем delete для автоматического удаления файлов.
+        """
+        # Удаляем физический файл
+        if self.image:
+            try:
+                if os.path.isfile(self.image.path):
+                    os.remove(self.image.path)
+            except (ValueError, OSError):
+                # Игнорируем ошибки удаления файлов
+                pass
+        
+        super().delete(*args, **kwargs)
+    
     @property
     def is_gif(self):
         """
@@ -1044,4 +1062,18 @@ class UserAvatar(models.Model):
         if self.image:
             return self.image.name.lower().endswith('.gif')
         return False
+
+
+@receiver(post_delete, sender=UserAvatar)
+def delete_user_avatar_file(sender, instance, **kwargs):
+    """
+    Сигнал для автоматического удаления файла аватарки при удалении записи.
+    """
+    if instance.image:
+        try:
+            if os.path.isfile(instance.image.path):
+                os.remove(instance.image.path)
+                logger.info(f"Удален файл аватарки: {instance.image.path}")
+        except (ValueError, OSError) as e:
+            logger.warning(f"Не удалось удалить файл аватарки {instance.image.path}: {e}")
 
