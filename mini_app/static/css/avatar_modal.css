@@ -38,13 +38,13 @@
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    width: 90vw !important;
-    max-width: 500px !important;
-    height: 70vh !important;
-    max-height: 600px !important;
-    background: rgba(21, 31, 40, 0.95) !important;
+    width: 90% !important;
+    max-width: 700px !important;
+    height: auto !important;
+    max-height: 80vh !important;
+    background: #1e1e1e !important;
     border: 2px solid rgba(0, 255, 0, 0.4) !important;
-    border-radius: 20px !important;
+    border-radius: 12px !important;
     backdrop-filter: blur(20px) !important;
     box-shadow: 
         0 0 30px rgba(0, 255, 0, 0.3),
@@ -52,8 +52,8 @@
     z-index: 100001 !important;
     display: none !important;
     overflow: hidden !important;
-    /* Safe Area для Telegram */
-    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)) !important;
+    padding: 20px !important;
+    margin: 20px auto !important;
 }
 
 .avatar-modal.active {
@@ -170,8 +170,12 @@
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .avatar-modal {
-        width: 95vw !important;
-        height: 80vh !important;
+        width: 95% !important;
+        max-width: 500px !important;
+        height: auto !important;
+        max-height: 85vh !important;
+        padding: 15px !important;
+        margin: 10px auto !important;
     }
     
     .avatar-modal-close {
@@ -194,6 +198,36 @@
     }
 }
 
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 480px) {
+    .avatar-modal {
+        width: 98% !important;
+        max-width: 350px !important;
+        padding: 10px !important;
+        margin: 5px auto !important;
+        border-radius: 10px !important;
+    }
+    
+    .avatar-modal-close {
+        top: 8px !important;
+        right: 8px !important;
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 16px !important;
+    }
+    
+    .avatar-modal .swiper-button-next,
+    .avatar-modal .swiper-button-prev {
+        width: 35px !important;
+        height: 35px !important;
+    }
+    
+    .avatar-modal .swiper-button-next::after,
+    .avatar-modal .swiper-button-prev::after {
+        font-size: 16px !important;
+    }
+}
+
 /* Анимация появления */
 @keyframes avatarModalFadeIn {
     from {
@@ -208,11 +242,14 @@
 
 .avatar-modal.active {
     animation: avatarModalFadeIn 0.3s ease !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    transition: transform 0.3s ease, opacity 0.3s ease !important;
 }
 
 /* Поддержка GIF */
 .avatar-modal .avatar-image.gif {
     /* GIF отображаются так же, как и обычные изображения */
+    object-fit: contain !important;
 }
 
 /* Индикатор загрузки */

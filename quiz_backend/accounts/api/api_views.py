@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.http import HttpResponseRedirect
 from django.db import transaction, IntegrityError
 from django.db.models import Count, Q
+from django.utils.translation import activate, gettext_lazy as _
 import logging
 
 from ..models import CustomUser, TelegramAdmin, DjangoAdmin, UserChannelSubscription, TelegramUser, MiniAppUser
@@ -1113,6 +1114,11 @@ class MiniAppUserStatisticsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Получаем и активируем язык, если он передан
+        language = request.query_params.get('language')
+        if language:
+            activate(language)
+        
         try:
             # Получаем пользователя Mini App
             mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
@@ -1197,12 +1203,12 @@ class MiniAppUserStatisticsView(APIView):
             
             # Достижения с динамической специализацией
             achievements = [
-                {'id': 1, 'name': 'Первый шаг', 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
-                {'id': 2, 'name': f'Знаток {best_specialization or "Программирования"}', 'icon': '💻', 'unlocked': success_rate > 60, 'specialization': best_specialization},
-                {'id': 3, 'name': 'Веб-мастер', 'icon': '🌐', 'unlocked': False},
-                {'id': 4, 'name': 'Серия', 'icon': '🔥', 'unlocked': current_streak >= 3},
-                {'id': 5, 'name': 'Эксперт', 'icon': '⭐', 'unlocked': success_rate > 90},
-                {'id': 6, 'name': 'Скорость', 'icon': '⚡', 'unlocked': False}
+                {'id': 1, 'name': _('Первый шаг'), 'icon': '🏆', 'unlocked': user_stats['total_attempts'] > 0},
+                {'id': 2, 'name': _('Знаток {}').format(best_specialization or _("Программирования")), 'icon': '💻', 'unlocked': success_rate > 60, 'specialization': best_specialization},
+                {'id': 3, 'name': _('Веб-мастер'), 'icon': '🌐', 'unlocked': False},
+                {'id': 4, 'name': _('Серия'), 'icon': '🔥', 'unlocked': current_streak >= 3},
+                {'id': 5, 'name': _('Эксперт'), 'icon': '⭐', 'unlocked': success_rate > 90},
+                {'id': 6, 'name': _('Скорость'), 'icon': '⚡', 'unlocked': False}
             ]
             
             statistics_data = {

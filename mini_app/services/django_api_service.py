@@ -300,12 +300,12 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении языков программирования: {e}")
             return []
 
-    async def get_user_statistics(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
+    async def get_user_statistics(self, telegram_id: int, host: str = None, scheme: str = None, language: str = 'en') -> Optional[Dict[str, Any]]:
         """
         Получение статистики пользователя Mini App по telegram_id.
         """
         try:
-            params = {'telegram_id': telegram_id}
+            params = {'telegram_id': telegram_id, 'language': language}
             headers = {}
             if host:
                 headers['X-Forwarded-Host'] = host

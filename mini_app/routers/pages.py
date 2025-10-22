@@ -209,7 +209,7 @@ async def statistics(
             host = request.headers.get('x-forwarded-host') or request.headers.get('host')
             scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
             user_statistics = await django_api_service.get_user_statistics(
-                telegram_id, host=host, scheme=scheme
+                telegram_id, host=host, scheme=scheme, language=current_language
             )
             logger.info(f"Получена статистика для пользователя {telegram_id}: {user_statistics}")
         except Exception as e:
