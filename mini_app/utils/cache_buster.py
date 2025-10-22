@@ -90,7 +90,7 @@ STATIC_VERSIONS = {
     'explanation-modal.css': '1.1',  # Обновлено: добавлена поддержка safe areas
     'profile.js': '7.1',  # FIX: Автоматическое удаление старых аватарок перед загрузкой новых
     'user_profile.js': '2.4',  # DEBUG: Детальное логирование и настройка touch событий Swiper
-    'avatar_modal.css': '1.0',  # NEW: Стили для модального окна с галереей аватарок
+    'avatar_modal.css': '2.0',  # UPDATED: Унифицированы стили модального окна аватарок с карточками пользователей
     'top_users.css': '35.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'top_users_swiper.css': '30.3',  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Убран inset:unset который переопределял top/left
     'topic_cards_swiper.css': '1.1',  # Добавлены стили для video в увеличенной карточке  # Стили для Swiper карточек тем (аналогично top_users_swiper.css)

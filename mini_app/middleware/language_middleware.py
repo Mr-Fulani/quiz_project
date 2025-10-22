@@ -36,7 +36,12 @@ class LanguageMiddleware(BaseHTTPMiddleware):
         if lang_param and lang_param in localization_service.get_supported_languages():
             return lang_param
         
-        # 2. Из заголовка Accept-Language (приоритет 2)
+        # 2. Из cookie (приоритет 2)
+        lang_cookie = request.cookies.get('selected_language')
+        if lang_cookie and lang_cookie in localization_service.get_supported_languages():
+            return lang_cookie
+        
+        # 3. Из заголовка Accept-Language (приоритет 3)
         accept_language = request.headers.get('accept-language', '')
         if accept_language:
             # Парсим Accept-Language заголовок
@@ -48,11 +53,6 @@ class LanguageMiddleware(BaseHTTPMiddleware):
                 lang_base = lang_code.split('-')[0]
                 if lang_base in localization_service.get_supported_languages():
                     return lang_base
-        
-        # 3. Из cookie (приоритет 3)
-        lang_cookie = request.cookies.get('selected_language')
-        if lang_cookie and lang_cookie in localization_service.get_supported_languages():
-            return lang_cookie
         
         # 4. По умолчанию
         return localization_service.default_language 
