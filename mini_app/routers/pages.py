@@ -463,28 +463,29 @@ async def share_topic_preview(request: Request, topic_id: int):
     if not topic_data:
         raise HTTPException(status_code=404, detail="Topic not found")
     
-    # Формируем абсолютный URL для изображения
-    base_url = str(request.base_url)
-    if "127.0.0.1" in base_url or "localhost" in base_url:
-        # Для локальной разработки используем ngrok URL или другой публичный адрес
-        base_url = "https://untracked-nonradiant-hattie.ngrok-free.dev/" # ЗАМЕНИТЕ НА ВАШ АДРЕС
+    # Построим базовый URL на основе заголовков запроса (работает за прокси и локально)
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host') or request.url.hostname
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    if host:
+        base_url = f"{scheme}://{host}"
     else:
-        # Для продакшена используем URL из настроек
+        # fallback к настройкам, если хост не определен
         base_url = app_settings.MINI_APP_BASE_URL
 
-    image_url = f"{base_url.strip('/')}{topic_data.get('image_url', '')}"
-    if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url'):
-        image_url = f"{base_url.strip('/')}{topic_data.get('video_poster_url', '')}"
+    # Конструируем абсолютный путь к изображению аккуратно, чтобы не получилось двойного слэша
+    image_path = topic_data.get('video_poster_url') if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url') else topic_data.get('image_url', '')
+    image_url = f"{base_url.rstrip('/')}/{image_path.lstrip('/')}" if image_path else ''
 
     context = {
         "request": request,
         "title": topic_data.get("name", "Quiz Topic"),
         "description": topic_data.get("description", "Check out this interesting topic!"),
         "image_url": image_url,
+        # redirect_url оставляем для клика/кнопки на странице, но НЕ делаем автоматический редирект
         "redirect_url": f"https://t.me/mr_proger_bot/quiz?startapp=topic_{topic_id}"
     }
+    # Возвращаем страницу с OG-мета — НЕ редиректим, чтобы мессенджеры могли считать превью
     response = templates.TemplateResponse("share_preview.html", context)
-    response.headers["ngrok-skip-browser-warning"] = "true"
     return response
 
 # Загрузка аватара останется здесь, так как она связана со страницей профиля
@@ -494,4 +495,4 @@ async def update_profile(request: Request, telegram_id: int, avatar: UploadFile 
     # Оставим ее пока здесь для простоты, но в идеале ее надо переделать.
     logger.info(f"Updating profile for telegram_id: {telegram_id}")
     # ... (логика проксирования на Django)
-    pass 
+    pass
