@@ -298,37 +298,55 @@
             <h1 class="title">{{ title }}</h1>
             <p class="description">{{ description }}</p>
             
-            <div class="share-buttons">
-                <button onclick="openApp('{{ redirect_url }}')" class="share-btn telegram-btn">
-                    <i class="fab fa-telegram"></i> {% if language == 'ru' %}Запустить приложение{% else %}Launch App{% endif %}
-                </button>
-                <a href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn telegram-share-btn" target="_blank" rel="noopener noreferrer">
-                    <i class="fas fa-share-alt"></i> {% if language == 'ru' %}Телеграм{% else %}Telegram{% endif %}
-                </a>
-                <a href="https://wa.me/?text={{ title|urlencode }}%20{{ share_url|urlencode }}" class="share-btn whatsapp-btn" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-whatsapp"></i> WhatsApp
-                </a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" class="share-btn facebook-btn" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-facebook"></i> Facebook
-                </a>
-                <a href="https://twitter.com/intent/tweet?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn twitter-btn" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-twitter"></i> Twitter
-                </a>
-                <a href="https://vk.com/share.php?url={{ share_url|urlencode }}&title={{ title|urlencode }}" class="share-btn vk-btn" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-vk"></i> VK
-                </a>
-                <button onclick="copyToClipboard()" class="share-btn copy-btn">
-                    <i class="fas fa-copy"></i> {% if language == 'ru' %}Копировать{% else %}Copy{% endif %}
-                </button>
-            </div>
-            
-            <div class="footer">
-                {% if language == 'ru' %}
-                    Поделитесь этой темой с друзьями!
-                {% else %}
-                    Share this topic with friends!
-                {% endif %}
-            </div>
+            {% if from_app %}
+                {# Пользователь открыл из мини-апп - показываем все кнопки соцсетей #}
+                <div class="share-buttons">
+                    <button onclick="openApp('{{ redirect_url }}')" class="share-btn telegram-btn">
+                        <i class="fab fa-telegram"></i> {% if language == 'ru' %}Запустить приложение{% else %}Launch App{% endif %}
+                    </button>
+                    <a href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn telegram-share-btn" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-share-alt"></i> {% if language == 'ru' %}Телеграм{% else %}Telegram{% endif %}
+                    </a>
+                    <a href="https://wa.me/?text={{ title|urlencode }}%20{{ share_url|urlencode }}" class="share-btn whatsapp-btn" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" class="share-btn facebook-btn" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-facebook"></i> Facebook
+                    </a>
+                    <a href="https://twitter.com/intent/tweet?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn twitter-btn" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-twitter"></i> Twitter
+                    </a>
+                    <a href="https://vk.com/share.php?url={{ share_url|urlencode }}&title={{ title|urlencode }}" class="share-btn vk-btn" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-vk"></i> VK
+                    </a>
+                    <button onclick="copyToClipboard()" class="share-btn copy-btn">
+                        <i class="fas fa-copy"></i> {% if language == 'ru' %}Копировать{% else %}Copy{% endif %}
+                    </button>
+                </div>
+                
+                <div class="footer">
+                    {% if language == 'ru' %}
+                        Поделитесь этой темой с друзьями!
+                    {% else %}
+                        Share this topic with friends!
+                    {% endif %}
+                </div>
+            {% else %}
+                {# Пользователь пришел по внешней ссылке - показываем только кнопку запуска #}
+                <div class="share-buttons" style="grid-template-columns: 1fr;">
+                    <button onclick="openApp('{{ redirect_url }}')" class="share-btn telegram-btn">
+                        <i class="fab fa-telegram"></i> {% if language == 'ru' %}Запустить приложение{% else %}Launch App{% endif %}
+                    </button>
+                </div>
+                
+                <div class="footer">
+                    {% if language == 'ru' %}
+                        Нажмите кнопку чтобы открыть тему в боте!
+                    {% else %}
+                        Click the button to open topic in bot!
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -342,6 +360,14 @@
         function openApp(url) {
             // Открываем Telegram-ссылку в новом окне
             window.open(url, '_blank');
+        }
+        
+        // Автоматический редирект для внешних пользователей
+        var fromApp = {{ 'true' if from_app else 'false' }};
+        if (!fromApp) {
+            setTimeout(function() {
+                window.location.href = '{{ redirect_url }}';
+            }, 1000);
         }
         
         function copyToClipboard() {

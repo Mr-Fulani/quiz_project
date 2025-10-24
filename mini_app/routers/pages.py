@@ -466,11 +466,15 @@ async def share_topic_preview(request: Request, topic_id: int):
     # Построим базовый URL на основе заголовков запроса (работает за прокси и локально)
     host = request.headers.get('x-forwarded-host') or request.headers.get('host') or request.url.hostname
     scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    # Принудительно используем https для share_url (для корректной работы соцсетей)
+    share_scheme = 'https' if scheme in ['https', 'http'] else scheme
     if host:
         base_url = f"{scheme}://{host}"
+        share_base_url = f"{share_scheme}://{host}"
     else:
         # fallback к настройкам, если хост не определен
         base_url = app_settings.MINI_APP_BASE_URL
+        share_base_url = app_settings.MINI_APP_BASE_URL
 
     # Конструируем абсолютный путь к изображению аккуратно, чтобы не получилось двойного слэша
     image_path = topic_data.get('video_poster_url') if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url') else topic_data.get('image_url', '')
@@ -481,11 +485,14 @@ async def share_topic_preview(request: Request, topic_id: int):
     if language not in ['ru', 'en']:
         language = 'en'
     
+    # Проверяем откуда пришел пользователь (из мини-апп или по внешней ссылке)
+    from_app = request.query_params.get('from', '') == 'app'
+    
     # URL для редиректа в бота (прямая ссылка на мини-апп)
     bot_url = f"https://t.me/mr_proger_bot/quiz?startapp=topic_{topic_id}"
     
-    # URL для шаринга (текущая страница превью для OG meta tags)
-    share_url = str(request.url)
+    # URL для шаринга БЕЗ параметра from=app (для внешних ссылок)
+    share_url = f"{share_base_url}/share/topic/{topic_id}?lang={language}"
     
     context = {
         "request": request,
@@ -494,7 +501,8 @@ async def share_topic_preview(request: Request, topic_id: int):
         "image_url": image_url,
         "redirect_url": bot_url,
         "share_url": share_url,
-        "language": language
+        "language": language,
+        "from_app": from_app
     }
     # Возвращаем страницу с кнопками соцсетей для всех пользователей
     response = templates.TemplateResponse("share_preview.html", context)
