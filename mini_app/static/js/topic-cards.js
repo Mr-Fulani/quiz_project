@@ -8,6 +8,9 @@ console.log('DOM ready state:', document.readyState);
 function initTopicCards() {
     console.log('🚀 Topic cards script initialized');
     
+    // Определяем текущий язык из window (устанавливается в шаблоне)
+    const currentLang = (typeof window.currentLanguage !== 'undefined') ? window.currentLanguage : (document.documentElement && document.documentElement.getAttribute('data-lang')) || 'en';
+
     // Проверяем DOM
     console.log('DOM ready state:', document.readyState);
     console.log('Current URL:', window.location.pathname);
@@ -234,6 +237,9 @@ function initTopicCards() {
             swiperHTML += `
                 <div class="swiper-slide">
                     <div class="topic-card-enlarged">
+                        <button class="share-topic-btn" data-topic-id="${topicId}" data-topic-name="${title}" data-lang="${currentLang}">
+                            <ion-icon name="share-social-outline"></ion-icon>
+                        </button>
                         ${mediaElement}
                         <div class="card-overlay always-visible">
                             <h3>${title}</h3>
@@ -673,4 +679,4 @@ if (document.readyState === 'loading') {
     initTopicCards();
 }
 
-console.log('🔥 TOPIC-CARDS.JS SCRIPT END REACHED!'); 
+console.log('🔥 TOPIC-CARDS.JS SCRIPT END REACHED!');

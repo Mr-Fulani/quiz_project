@@ -2,16 +2,25 @@
 <html>
 <head>
     <title>{{ title }}</title>
+    <!-- Open Graph / Facebook -->
     <meta property="og:title" content="{{ title }}" />
     <meta property="og:description" content="{{ description }}" />
     <meta property="og:image" content="{{ image_url }}" />
     <meta property="og:type" content="website" />
-    <meta http-equiv="refresh" content="0;url={{ redirect_url }}" />
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ title }}" />
+    <meta name="twitter:description" content="{{ description }}" />
+    <meta name="twitter:image" content="{{ image_url }}" />
+    <meta name="robots" content="index,follow" />
 </head>
 <body>
-    <p>Redirecting to the topic...</p>
-    <script>
-        window.location.href = "{{ redirect_url }}";
-    </script>
+    <div style="max-width:720px;margin:40px auto;font-family:Arial,Helvetica,sans-serif;text-align:center;">
+        <img src="{{ image_url }}" alt="{{ title }}" style="width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"/>
+        <h1 style="font-size:24px;margin:16px 0 8px;">{{ title }}</h1>
+        <p style="color:#555;margin:0 0 20px;">{{ description }}</p>
+        <a href="{{ redirect_url }}" style="display:inline-block;padding:12px 20px;background:#0088cc;color:#fff;border-radius:8px;text-decoration:none;">Открыть в боте</a>
+        <p style="margin-top:12px;color:#888;font-size:13px;">Если превью не отображается в мессенджере — убедитесь, что URL публично доступен и у изображения корректный absolute URL.</p>
+    </div>
 </body>
 </html>

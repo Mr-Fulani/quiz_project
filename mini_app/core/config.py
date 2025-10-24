@@ -27,7 +27,8 @@ class Settings(BaseSettings):
     UPLOAD_FOLDER: str = UPLOAD_FOLDER
     
     # URL для генерации превью ссылок в продакшене
-    MINI_APP_BASE_URL: str = "http://localhost:8080"
+    # По возможности используем переменную окружения WEBAPP_URL (устанавливается в .env / docker-compose)
+    MINI_APP_BASE_URL: str = os.getenv('WEBAPP_URL', "http://localhost:8080")
 
     class Config:
         env_file = ".env"
@@ -43,6 +44,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.info(f"✅ Settings loaded: ADMIN_TELEGRAM_ID=[{settings.ADMIN_TELEGRAM_ID}]")
 logger.info(f"✅ Settings loaded: TELEGRAM_BOT_TOKEN={'*' * 10 if settings.TELEGRAM_BOT_TOKEN else 'NOT SET'}")
+logger.info(f"✅ Settings loaded: MINI_APP_BASE_URL=[{settings.MINI_APP_BASE_URL}]")
 
 # Настройки для подключения к Django API
-DJANGO_TOPICS_ENDPOINT = f"{settings.DJANGO_API_BASE_URL}/api/simple/" 
+DJANGO_TOPICS_ENDPOINT = f"{settings.DJANGO_API_BASE_URL}/api/simple/"

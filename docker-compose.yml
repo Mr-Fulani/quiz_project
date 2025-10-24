@@ -99,6 +99,7 @@ services:
       - DJANGO_API_TOKEN=${DJANGO_API_TOKEN:-your-api-token}
       - DJANGO_API_BASE_URL=http://nginx_local:8080
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
+      - MINI_APP_BASE_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/mini_app
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID:-}

@@ -1,6 +1,6 @@
 /* Стили для кнопки "Поделиться темой" */
 
-/* Общие стили для кнопки "Поделиться" */
+/* Убедимся, что кнопка находится поверх всех элементов модального окна */
 .share-topic-btn {
     position: absolute;
     top: 10px;
@@ -17,7 +17,25 @@
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(5px);
-    z-index: 5;
+    z-index: 1000001; /* Выше всех модальных окон */
+    pointer-events: auto; /* Важно для кликабельности */
+}
+
+/* Скрываем кнопку в галерее по умолчанию (маленькие карточки) */
+.gallery__container .share-topic-btn {
+    display: none;
+}
+
+/* Показываем кнопки шаринга если установлена helper-класс (например в Telegram WebApp или на мобильных) */
+.show-share-buttons .gallery__container .share-topic-btn {
+    display: flex !important;
+}
+
+/* Увеличиваем z-index для кнопки в развернутых карточках */
+.gallery__container .topic-card.selected .share-topic-btn {
+    display: flex !important;
+    z-index: 1000001 !important; /* Выше всех модальных окон */
+    position: absolute !important;
 }
 
 .share-topic-btn:hover {

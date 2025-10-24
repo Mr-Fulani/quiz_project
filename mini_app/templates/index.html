@@ -17,7 +17,7 @@
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
         <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}" data-media-type="{{ topic.get('media_type', 'default') }}" {% if topic.get('media_type') == 'video' %}data-video-url="{{ topic.image_url }}"{% endif %}>
-            <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}">
+            <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}" data-lang="{{ current_language }}">
                 <ion-icon name="share-social-outline"></ion-icon>
             </button>
             {% if topic.get('media_type') == 'video' %}
@@ -59,7 +59,7 @@
                 <p class="progress-text" data-translate="not_started">{{ translations.get('not_started', 'Не начато') }}</p>
             {% endif %}
         </div>
-        <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}">
+        <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}" data-lang="{{ current_language }}">
             <ion-icon name="share-social-outline"></ion-icon>
         </button>
     </div>
@@ -207,5 +207,44 @@ function handleStartTopic(event, topicId) {
 
 // Экспортируем функцию глобально
 window.handleStartTopic = handleStartTopic;
+
+// Показываем кнопки шаринга в mini app (Telegram WebApp) и на мобильных устройствах
+(function() {
+    function isMobile() {
+        return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+    function isTelegramWebApp() {
+        return typeof window.Telegram !== 'undefined' && window.Telegram.WebApp;
+    }
+
+    // Если Telegram WebApp, ждём его инициализации, затем добавляем класс
+    if (isTelegramWebApp()) {
+        try {
+            // Telegram.WebApp.ready may be sync; but ensure we call to be safe
+            window.Telegram.WebApp.ready();
+            document.documentElement.classList.add('show-share-buttons');
+        } catch (e) {
+            // Если ready не доступен, повесим listener и таймаут
+            var added = false;
+            var tryAdd = function() {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    document.documentElement.classList.add('show-share-buttons');
+                    added = true;
+                }
+            };
+            // Попробуем несколько раз с интервалом
+            var tries = 0;
+            var intervalId = setInterval(function() {
+                tries++;
+                tryAdd();
+                if (added || tries > 10) clearInterval(intervalId);
+            }, 200);
+            // На всякий случай добавляем по таймауту
+            setTimeout(function() { if (!added && isMobile()) document.documentElement.classList.add('show-share-buttons'); }, 2500);
+        }
+    } else if (isMobile()) {
+        document.documentElement.classList.add('show-share-buttons');
+    }
+})();
 </script>
 {% endblock %}
