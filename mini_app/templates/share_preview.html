@@ -1,26 +1,362 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{ language }}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{{ title }}</title>
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:title" content="{{ title }}" />
     <meta property="og:description" content="{{ description }}" />
     <meta property="og:image" content="{{ image_url }}" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ current_url }}" />
+    
     <!-- Twitter card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="{{ title }}" />
     <meta name="twitter:description" content="{{ description }}" />
     <meta name="twitter:image" content="{{ image_url }}" />
+    
+    <!-- Additional meta tags -->
     <meta name="robots" content="index,follow" />
+    <meta name="description" content="{{ description }}" />
+    
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --base-bg: #151F28;
+            --matrix-color: #00ff00;
+            --matrix-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 15px #00ff00;
+            --active-color: #29fd53;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--base-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px);
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Фоновый слой с эффектом матрицы */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--base-bg);
+            opacity: 0.3;
+            z-index: 0;
+        }
+        
+        .container {
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            border-radius: 20px;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 0, 0.2),
+                inset 0 0 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+        
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+        }
+        
+        .topic-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            display: block;
+            filter: brightness(0.9) contrast(1.1);
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--matrix-color);
+            margin-bottom: 15px;
+            line-height: 1.3;
+            text-shadow: var(--matrix-shadow);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+            }
+            to {
+                text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+            }
+        }
+        
+        .description {
+            font-size: 15px;
+            color: rgba(0, 255, 0, 0.7);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .open-button {
+            display: inline-block;
+            background: rgba(0, 255, 0, 0.1);
+            color: var(--matrix-color);
+            padding: 15px 35px;
+            border-radius: 10px;
+            border: 2px solid var(--matrix-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.3),
+                inset 0 0 10px rgba(0, 255, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .open-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .open-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.6),
+                0 0 40px rgba(0, 255, 0, 0.3),
+                inset 0 0 20px rgba(0, 255, 0, 0.2);
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        .open-button:hover::before {
+            left: 100%;
+        }
+        
+        .share-buttons {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.2),
+                inset 0 0 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .share-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 255, 0, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+        
+        .share-btn:hover::before {
+            width: 200%;
+            height: 200%;
+        }
+        
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.4),
+                inset 0 0 15px rgba(0, 255, 0, 0.1);
+            border-color: rgba(0, 255, 0, 0.6);
+        }
+        
+        .telegram-btn, .telegram-share-btn, .whatsapp-btn, .facebook-btn, 
+        .twitter-btn, .vk-btn, .copy-btn {
+            color: var(--matrix-color);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .telegram-btn i, .telegram-share-btn i, .whatsapp-btn i, .facebook-btn i,
+        .twitter-btn i, .vk-btn i, .copy-btn i {
+            filter: drop-shadow(0 0 3px rgba(0, 255, 0, 0.8));
+        }
+        
+        .copy-btn {
+            cursor: pointer;
+        }
+        
+        .footer {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 255, 0, 0.2);
+            font-size: 12px;
+            color: rgba(0, 255, 0, 0.5);
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: env(safe-area-inset-top, 10px) env(safe-area-inset-right, 10px) env(safe-area-inset-bottom, 10px) env(safe-area-inset-left, 10px);
+            }
+            
+            .container {
+                border-radius: 15px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 22px;
+            }
+            
+            .description {
+                font-size: 14px;
+            }
+            
+            .open-button {
+                padding: 12px 25px;
+                font-size: 14px;
+            }
+            
+            .share-buttons {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .share-btn {
+                width: 100%;
+                font-size: 14px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div style="max-width:720px;margin:40px auto;font-family:Arial,Helvetica,sans-serif;text-align:center;">
-        <img src="{{ image_url }}" alt="{{ title }}" style="width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"/>
-        <h1 style="font-size:24px;margin:16px 0 8px;">{{ title }}</h1>
-        <p style="color:#555;margin:0 0 20px;">{{ description }}</p>
-        <a href="{{ redirect_url }}" style="display:inline-block;padding:12px 20px;background:#0088cc;color:#fff;border-radius:8px;text-decoration:none;">Открыть в боте</a>
-        <p style="margin-top:12px;color:#888;font-size:13px;">Если превью не отображается в мессенджере — убедитесь, что URL публично доступен и у изображения корректный absolute URL.</p>
+    <div class="container">
+        <div class="image-container">
+            <img src="{{ image_url }}" alt="{{ title }}" class="topic-image" />
+        </div>
+        
+        <div class="content">
+            <h1 class="title">{{ title }}</h1>
+            <p class="description">{{ description }}</p>
+            
+            <div class="share-buttons">
+                <a href="{{ redirect_url }}" class="share-btn telegram-btn" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-telegram"></i> {% if language == 'ru' %}Запустить приложение{% else %}Launch App{% endif %}
+                </a>
+                <a href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn telegram-share-btn" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-share-alt"></i> {% if language == 'ru' %}Телеграм{% else %}Telegram{% endif %}
+                </a>
+                <a href="https://wa.me/?text={{ title|urlencode }}%20{{ share_url|urlencode }}" class="share-btn whatsapp-btn" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" class="share-btn facebook-btn" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-facebook"></i> Facebook
+                </a>
+                <a href="https://twitter.com/intent/tweet?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn twitter-btn" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-twitter"></i> Twitter
+                </a>
+                <a href="https://vk.com/share.php?url={{ share_url|urlencode }}&title={{ title|urlencode }}" class="share-btn vk-btn" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-vk"></i> VK
+                </a>
+                <button onclick="copyToClipboard()" class="share-btn copy-btn">
+                    <i class="fas fa-copy"></i> {% if language == 'ru' %}Копировать{% else %}Copy{% endif %}
+                </button>
+            </div>
+            
+            <div class="footer">
+                {% if language == 'ru' %}
+                    Поделитесь этой темой с друзьями!
+                {% else %}
+                    Share this topic with friends!
+                {% endif %}
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Статические переводы для JavaScript
+        window.shareTranslations = {
+            copied: "{% if language == 'ru' %}Скопировано!{% else %}Copied!{% endif %}",
+            copyFailed: "{% if language == 'ru' %}Не удалось скопировать{% else %}Failed to copy{% endif %}"
+        };
+        
+        function copyToClipboard() {
+            const url = window.location.href;
+            const btn = event.target.closest('.copy-btn');
+            
+            navigator.clipboard.writeText(url).then(() => {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> ' + window.shareTranslations.copied;
+                btn.style.background = 'rgba(0, 255, 0, 0.3)';
+                btn.style.borderColor = 'var(--active-color)';
+                btn.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.8)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.boxShadow = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert(window.shareTranslations.copyFailed);
+            });
+        }
+    </script>
 </body>
 </html>

@@ -31,8 +31,13 @@
     display: none !important;
 }
 
-/* Увеличиваем z-index для кнопки в развернутых карточках */
-.gallery__container .topic-card.selected .share-topic-btn {
+/* Скрываем кнопки поделиться в обычных карточках галереи (не развернутых) */
+.gallery__container .topic-card:not(.selected) .share-topic-btn {
+    display: none !important;
+}
+
+/* Показываем кнопку поделиться только в развернутых карточках (модальных окнах) */
+.selected-card-overlay .share-topic-btn {
     display: flex !important;
     z-index: 1000001 !important; /* Выше всех модальных окон */
     position: absolute !important;
