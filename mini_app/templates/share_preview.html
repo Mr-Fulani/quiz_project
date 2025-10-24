@@ -234,6 +234,10 @@
             filter: drop-shadow(0 0 3px rgba(0, 255, 0, 0.8));
         }
         
+        .telegram-btn.share-btn {
+            cursor: pointer;
+        }
+        
         .copy-btn {
             cursor: pointer;
         }
@@ -295,9 +299,9 @@
             <p class="description">{{ description }}</p>
             
             <div class="share-buttons">
-                <a href="{{ redirect_url }}" class="share-btn telegram-btn" target="_blank" rel="noopener noreferrer">
+                <button onclick="openApp('{{ redirect_url }}')" class="share-btn telegram-btn">
                     <i class="fab fa-telegram"></i> {% if language == 'ru' %}Запустить приложение{% else %}Launch App{% endif %}
-                </a>
+                </button>
                 <a href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ title|urlencode }}" class="share-btn telegram-share-btn" target="_blank" rel="noopener noreferrer">
                     <i class="fas fa-share-alt"></i> {% if language == 'ru' %}Телеграм{% else %}Telegram{% endif %}
                 </a>
@@ -334,6 +338,17 @@
             copied: "{% if language == 'ru' %}Скопировано!{% else %}Copied!{% endif %}",
             copyFailed: "{% if language == 'ru' %}Не удалось скопировать{% else %}Failed to copy{% endif %}"
         };
+        
+        function openApp(url) {
+            // Пытаемся открыть через window.location для прямого перехода в Telegram
+            try {
+                window.location.href = url;
+            } catch (e) {
+                console.error('Failed to open app:', e);
+                // Fallback: открываем в новой вкладке
+                window.open(url, '_blank');
+            }
+        }
         
         function copyToClipboard() {
             const url = window.location.href;
