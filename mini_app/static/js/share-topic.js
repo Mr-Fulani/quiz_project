@@ -37,8 +37,8 @@ class ShareTopic {
         // Получаем текущий язык из window.currentLanguage или используем переданный
         const currentLang = window.currentLanguage || lang || 'en';
         
-        // Ссылка на страницу превью с языком (показывает картинку и заголовок темы + кнопки соцсетей)
-        const previewUrl = `${window.location.origin}/share/topic/${topicId}?lang=${currentLang}`;
+        // Ссылка на страницу превью с языком и параметром from=app (показывает кнопки соцсетей)
+        const previewUrl = `${window.location.origin}/share/topic/${topicId}?lang=${currentLang}&from=app`;
         
         const texts = this._t[currentLang] || this._t['en'];
 
