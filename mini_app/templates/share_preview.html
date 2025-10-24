@@ -340,14 +340,8 @@
         };
         
         function openApp(url) {
-            // Пытаемся открыть через window.location для прямого перехода в Telegram
-            try {
-                window.location.href = url;
-            } catch (e) {
-                console.error('Failed to open app:', e);
-                // Fallback: открываем в новой вкладке
-                window.open(url, '_blank');
-            }
+            // Открываем Telegram-ссылку в новом окне
+            window.open(url, '_blank');
         }
         
         function copyToClipboard() {
