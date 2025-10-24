@@ -21,14 +21,14 @@
     pointer-events: auto; /* Важно для кликабельности */
 }
 
-/* Скрываем кнопку в галерее по умолчанию (маленькие карточки) */
+/* Скрываем кнопку в галерее навсегда (маленькие карточки) */
 .gallery__container .share-topic-btn {
-    display: none;
+    display: none !important;
 }
 
-/* Показываем кнопки шаринга если установлена helper-класс (например в Telegram WebApp или на мобильных) */
+/* Убираем показ кнопок шаринга в галерее даже с helper-классом */
 .show-share-buttons .gallery__container .share-topic-btn {
-    display: flex !important;
+    display: none !important;
 }
 
 /* Увеличиваем z-index для кнопки в развернутых карточках */
