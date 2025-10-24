@@ -17,9 +17,6 @@
         <!-- Каждый span представляет собой кликабельную карточку темы -->
         {% for topic in topics %}
         <span class="topic-card" data-topic-id="{{ topic.id }}" data-i="{{ loop.index0 }}" data-media-type="{{ topic.get('media_type', 'default') }}" {% if topic.get('media_type') == 'video' %}data-video-url="{{ topic.image_url }}"{% endif %}>
-            <button class="share-topic-btn" data-topic-id="{{ topic.id }}" data-topic-name="{{ topic.name }}" data-lang="{{ current_language }}">
-                <ion-icon name="share-social-outline"></ion-icon>
-            </button>
             {% if topic.get('media_type') == 'video' %}
                 {% if topic.get('video_poster_url') %}
                     {# Если есть постер, показываем изображение постера #}
