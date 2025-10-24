@@ -476,15 +476,27 @@ async def share_topic_preview(request: Request, topic_id: int):
     image_path = topic_data.get('video_poster_url') if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url') else topic_data.get('image_url', '')
     image_url = f"{base_url.rstrip('/')}/{image_path.lstrip('/')}" if image_path else ''
 
+    # Получаем язык из параметров запроса или используем английский по умолчанию
+    language = request.query_params.get('lang', 'en')
+    if language not in ['ru', 'en']:
+        language = 'en'
+    
+    # URL для редиректа в бота (прямая ссылка на мини-апп)
+    bot_url = f"https://t.me/mr_proger_bot/quiz?startapp=topic_{topic_id}"
+    
+    # URL для шаринга (текущая страница превью для OG meta tags)
+    share_url = str(request.url)
+    
     context = {
         "request": request,
         "title": topic_data.get("name", "Quiz Topic"),
         "description": topic_data.get("description", "Check out this interesting topic!"),
         "image_url": image_url,
-        # redirect_url оставляем для клика/кнопки на странице, но НЕ делаем автоматический редирект
-        "redirect_url": f"https://t.me/mr_proger_bot/quiz?startapp=topic_{topic_id}"
+        "redirect_url": bot_url,
+        "share_url": share_url,
+        "language": language
     }
-    # Возвращаем страницу с OG-мета — НЕ редиректим, чтобы мессенджеры могли считать превью
+    # Возвращаем страницу с кнопками соцсетей для всех пользователей
     response = templates.TemplateResponse("share_preview.html", context)
     return response
 

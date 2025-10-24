@@ -34,61 +34,46 @@ class ShareTopic {
     }
 
     shareTopic(topicId, topicName, lang = 'en', buttonEl = null) {
-        // Формируем ссылку на страницу с превью
-        const previewUrl = `${window.location.origin}/share/topic/${topicId}`;
+        // Получаем текущий язык из window.currentLanguage или используем переданный
+        const currentLang = window.currentLanguage || lang || 'en';
+        
+        // Ссылка на страницу превью с языком (показывает картинку и заголовок темы + кнопки соцсетей)
+        const previewUrl = `${window.location.origin}/share/topic/${topicId}?lang=${currentLang}`;
+        
+        const texts = this._t[currentLang] || this._t['en'];
 
-        const texts = this._t[lang] || this._t['en'];
-        const shareText = texts.share_text.replace('{name}', topicName || '');
-
-        // Если Telegram WebApp доступен, пробуем разные API
+        // Открываем страницу превью с кнопками соцсетей
         if (window.Telegram && window.Telegram.WebApp) {
-            // Try openTelegramLink (trusted) -> openUrl -> fallback to share via t.me/share/url
+            // Пробуем открыть через Telegram WebApp API
+            try {
+                if (window.Telegram.WebApp.openLink) {
+                    window.Telegram.WebApp.openLink(previewUrl);
+                    return;
+                }
+            } catch (e) {
+                console.warn('openLink failed', e);
+            }
+
             try {
                 if (window.Telegram.WebApp.openTelegramLink) {
-                    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(shareText)}`;
-                    window.Telegram.WebApp.openTelegramLink(shareUrl);
+                    window.Telegram.WebApp.openTelegramLink(previewUrl);
                     return;
                 }
             } catch (e) {
                 console.warn('openTelegramLink failed', e);
             }
-
-            try {
-                if (window.Telegram.WebApp.openUrl) {
-                    window.Telegram.WebApp.openUrl(previewUrl);
-                    return;
-                }
-            } catch (e) {
-                console.warn('openUrl failed', e);
-            }
         }
 
-        // Попытка использовать Web Share API (мобильные браузеры)
-        if (navigator.share) {
-            navigator.share({
-                title: topicName,
-                text: shareText,
-                url: previewUrl
-            }).catch(err => {
-                console.warn('navigator.share failed', err);
-                // fallback to t.me/share/url
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(shareText)}`;
-                window.open(shareUrl, '_blank');
-            });
-            return;
-        }
-
-        // Открываем t.me/share/url в новой вкладке как fallback
+        // Fallback: открываем страницу превью в новом окне/вкладке
         try {
-            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(shareText)}`;
-            window.open(shareUrl, '_blank');
+            window.open(previewUrl, '_blank');
             return;
         } catch (e) {
-            console.warn('window.open shareUrl failed', e);
+            console.warn('window.open failed', e);
         }
 
-        // В крайнем случае копируем в буфер
-        this.copyToClipboard(previewUrl, texts.copied);
+        // В крайнем случае открываем в текущем окне
+        window.location.href = previewUrl;
     }
 
     copyToClipboard(text, successMessage) {
