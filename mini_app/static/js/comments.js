@@ -209,10 +209,33 @@ class CommentsManager {
     previewImages(input, form) {
         const files = Array.from(input.files);
         
+        // Валидация количества
         if (files.length > 3) {
             alert('Максимум 3 изображения');
             input.value = '';
             return;
+        }
+
+        // Валидация размера и типа файлов
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+        const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            
+            // Проверка размера
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`Изображение "${file.name}" слишком большое!\nМаксимум: 5 MB\nТекущий размер: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+                input.value = '';
+                return;
+            }
+            
+            // Проверка типа
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                alert(`Недопустимый формат "${file.name}": ${file.type}\nРазрешены: JPEG, PNG, GIF, WebP`);
+                input.value = '';
+                return;
+            }
         }
 
         // Удаляем старый превью
@@ -232,8 +255,17 @@ class CommentsManager {
             reader.onload = (e) => {
                 const preview = document.createElement('div');
                 preview.className = 'comment-image-preview';
+                
+                // Форматируем размер файла
+                const sizeKB = (file.size / 1024).toFixed(1);
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                const sizeText = file.size < 1024 * 1024 ? `${sizeKB} KB` : `${sizeMB} MB`;
+                
                 preview.innerHTML = `
                     <img src="${e.target.result}" alt="Preview">
+                    <div style="position: absolute; bottom: 25px; left: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">
+                        📦 ${sizeText}
+                    </div>
                     <button class="comment-image-remove" data-action="remove-image" data-image-index="${index}" data-translation-id="${this.translationId}">×</button>
                 `;
                 previewContainer.appendChild(preview);
