@@ -46,6 +46,9 @@ class CommentsManager {
 
             const data = await response.json();
             
+            console.log(`📥 Loaded comments for translation ${this.translationId}:`, data);
+            console.log(`📊 Comments count: ${data.results?.length || 0}`);
+            
             if (page === 1) {
                 this.comments = data.results || [];
                 container.innerHTML = '';
@@ -56,9 +59,12 @@ class CommentsManager {
             this.currentPage = page;
             this.hasMore = !!data.next;
 
+            console.log(`📋 Total comments in memory: ${this.comments.length}`);
+
             if (this.comments.length === 0 && page === 1) {
                 container.innerHTML = '<div class="comments-list empty">Комментариев пока нет. Будьте первым!</div>';
             } else {
+                console.log(`🎨 Rendering ${this.comments.length} comments...`);
                 this.renderComments();
             }
 
@@ -92,16 +98,29 @@ class CommentsManager {
      */
     renderComments() {
         const container = document.getElementById(`comments-list-${this.translationId}`);
-        if (!container) return;
+        console.log(`🔍 Container found:`, container);
+        console.log(`🔍 Container ID:`, `comments-list-${this.translationId}`);
+        
+        if (!container) {
+            console.error(`❌ Container not found: comments-list-${this.translationId}`);
+            return;
+        }
 
         container.innerHTML = '';
+        
+        // Подсчитываем корневые комментарии
+        const rootComments = this.comments.filter(c => !c.parent_comment);
+        console.log(`📊 Root comments to render: ${rootComments.length} из ${this.comments.length}`);
 
         // Рендерим корневые комментарии
-        this.comments.forEach(comment => {
-            if (!comment.parent_comment) {
-                container.appendChild(this.createCommentElement(comment, 0));
-            }
+        rootComments.forEach((comment, index) => {
+            console.log(`🎨 Rendering comment ${index + 1}/${rootComments.length}:`, comment);
+            const element = this.createCommentElement(comment, 0);
+            console.log(`✅ Created element:`, element);
+            container.appendChild(element);
         });
+
+        console.log(`✅ Rendered ${rootComments.length} comments to DOM`);
 
         // Добавляем кнопку "Загрузить ещё"
         if (this.hasMore) {
@@ -215,7 +234,7 @@ class CommentsManager {
                 preview.className = 'comment-image-preview';
                 preview.innerHTML = `
                     <img src="${e.target.result}" alt="Preview">
-                    <button class="comment-image-remove" onclick="commentsManager.removeImage(${index})">×</button>
+                    <button class="comment-image-remove" data-action="remove-image" data-image-index="${index}" data-translation-id="${this.translationId}">×</button>
                 `;
                 previewContainer.appendChild(preview);
             };
@@ -351,17 +370,12 @@ class CommentsManager {
         commentElement.appendChild(form);
         this.replyingTo = commentId;
 
-        // Настраиваем обработчики
+        // Обработчики уже настроены через глобальное делегирование событий
+        // Нужен только обработчик для кнопки "Отмена"
         const textarea = form.querySelector('textarea');
-        const imageInput = form.querySelector('.comment-image-input');
-        const imageBtn = form.querySelector('.comment-image-btn');
-        const submitBtn = form.querySelector('.comment-submit-btn');
         const cancelBtn = form.querySelector('.comment-cancel-btn');
 
         const self = this;
-        imageBtn.onclick = () => imageInput.click();
-        imageInput.onchange = () => self.previewImages(imageInput, form);
-        submitBtn.onclick = () => self.submitComment(form, commentId);
         cancelBtn.onclick = () => {
             form.remove();
             self.replyingTo = null;
@@ -544,6 +558,12 @@ document.addEventListener('click', (e) => {
                     manager.submitReport(commentId, modal);
                 }
                 break;
+            case 'remove-image':
+                if (manager) {
+                    const imageIndex = parseInt(btn.dataset.imageIndex);
+                    manager.removeImage(imageIndex);
+                }
+                break;
         }
         return;
     }
@@ -565,7 +585,17 @@ document.addEventListener('click', (e) => {
         console.log('📤 Submit button clicked via delegation');
         const form = submitBtn.closest('.comment-form');
         if (form) {
-            const section = form.closest('.comments-section');
+            // Ищем comments-section (может быть выше для reply-формы)
+            let section = form.closest('.comments-section');
+            
+            // Если не нашли (reply-форма), ищем через родительский comment-item
+            if (!section) {
+                const commentItem = form.closest('.comment-item');
+                if (commentItem) {
+                    section = commentItem.closest('.comments-section');
+                }
+            }
+            
             if (section) {
                 const translationId = parseInt(section.dataset.translationId);
                 const manager = window.commentManagers && window.commentManagers[translationId];
@@ -582,6 +612,8 @@ document.addEventListener('click', (e) => {
                 } else {
                     console.error('Manager not found for translation', translationId);
                 }
+            } else {
+                console.error('Comments section not found for submit');
             }
         }
         return;
@@ -595,13 +627,28 @@ document.addEventListener('change', (e) => {
         console.log('📸 Image input changed');
         const form = imageInput.closest('.comment-form');
         if (form) {
-            const section = form.closest('.comments-section');
+            // Ищем comments-section (может быть выше для reply-формы)
+            let section = form.closest('.comments-section');
+            
+            // Если не нашли (reply-форма), ищем через родительский comment-item
+            if (!section) {
+                const commentItem = form.closest('.comment-item');
+                if (commentItem) {
+                    section = commentItem.closest('.comments-section');
+                }
+            }
+            
             if (section) {
                 const translationId = parseInt(section.dataset.translationId);
                 const manager = window.commentManagers && window.commentManagers[translationId];
                 if (manager) {
+                    console.log('📸 Calling previewImages for translation', translationId);
                     manager.previewImages(imageInput, form);
+                } else {
+                    console.error('Manager not found for translation', translationId);
                 }
+            } else {
+                console.error('Comments section not found');
             }
         }
     }
