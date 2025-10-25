@@ -1,31 +1,68 @@
 /**
  * Стили для системы комментариев к задачам
- * Поддержка древовидной структуры с изображениями
+ * Матричный дизайн с неоновым свечением
  */
 
 /* Основной контейнер комментариев */
 .comments-section {
     margin-top: 30px;
     padding: 20px;
-    background: var(--tg-theme-bg-color, #ffffff);
+    background: rgba(21, 31, 40, 0.8);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.comments-section.collapsed {
+    padding: 15px 20px;
 }
 
 .comments-section h4 {
     font-size: 18px;
     font-weight: 600;
     margin-bottom: 15px;
-    color: var(--tg-theme-text-color, #000000);
+    color: var(--matrix-color);
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+    transition: all 0.3s ease;
+}
+
+.comments-section h4:hover {
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.9);
+    transform: translateX(5px);
+}
+
+.comments-section h4::before {
+    content: '▼';
+    font-size: 14px;
+    transition: transform 0.3s ease;
+    color: var(--active-color);
+}
+
+.comments-section.collapsed h4::before {
+    transform: rotate(-90deg);
+}
+
+.comments-section.collapsed h4 {
+    margin-bottom: 0;
 }
 
 .comments-count {
     font-size: 14px;
     font-weight: normal;
-    color: var(--tg-theme-hint-color, #999999);
+    color: var(--active-color);
+    text-shadow: 0 0 8px rgba(41, 253, 83, 0.6);
+}
+
+/* Скрытие контента при collapse */
+.comments-section.collapsed .comments-list,
+.comments-section.collapsed .comment-form {
+    display: none;
 }
 
 /* Список комментариев */
@@ -36,22 +73,32 @@
 .comments-list.empty {
     text-align: center;
     padding: 30px;
-    color: var(--tg-theme-hint-color, #999999);
+    color: rgba(0, 255, 0, 0.5);
+    font-style: italic;
 }
 
 /* Отдельный комментарий */
 .comment-item {
-    padding: 12px;
+    padding: 12px 15px;
     margin-bottom: 12px;
-    background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 10px;
-    border-left: 3px solid var(--tg-theme-button-color, #3390ec);
+    border-left: 3px solid var(--matrix-color);
     position: relative;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.comment-item:hover {
+    background: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    border-left-color: var(--active-color);
 }
 
 .comment-item.deleted {
-    opacity: 0.6;
-    border-left-color: #999;
+    opacity: 0.5;
+    border-left-color: #666;
+    background: rgba(0, 0, 0, 0.2);
 }
 
 /* Вложенные комментарии */
@@ -59,24 +106,22 @@
     margin-top: 12px;
     margin-left: 20px;
     padding-left: 12px;
-    border-left: 2px solid var(--tg-theme-hint-color, #e0e0e0);
+    border-left: 2px solid rgba(0, 255, 0, 0.2);
 }
 
 .comment-item.level-1 {
     margin-left: 0;
+    border-left-width: 2px;
 }
 
 .comment-item.level-2 {
-    margin-left: 25px;
-    font-size: 0.95em;
+    margin-left: 0;
+    font-size: 14px;
+    border-left-width: 2px;
+    border-left-color: rgba(41, 253, 83, 0.5);
 }
 
-.comment-item.level-3 {
-    margin-left: 25px;
-    font-size: 0.9em;
-}
-
-/* Шапка комментария */
+/* Заголовок комментария */
 .comment-header {
     display: flex;
     justify-content: space-between;
@@ -86,23 +131,24 @@
 
 .comment-author {
     font-weight: 600;
+    color: var(--matrix-color);
     font-size: 14px;
-    color: var(--tg-theme-text-color, #000000);
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
 }
 
 .comment-date {
     font-size: 12px;
-    color: var(--tg-theme-hint-color, #999999);
+    color: rgba(0, 255, 0, 0.6);
 }
 
 /* Текст комментария */
 .comment-text {
+    color: rgba(255, 255, 255, 0.9);
     font-size: 14px;
     line-height: 1.5;
-    color: var(--tg-theme-text-color, #000000);
     margin-bottom: 10px;
-    word-wrap: break-word;
     white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 /* Изображения в комментарии */
@@ -119,11 +165,14 @@
     object-fit: cover;
     border-radius: 8px;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.3s;
+    border: 2px solid rgba(0, 255, 0, 0.3);
 }
 
 .comment-image:hover {
     transform: scale(1.05);
+    border-color: var(--active-color);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
 }
 
 /* Действия с комментарием */
@@ -137,60 +186,77 @@
     background: none;
     border: none;
     padding: 0;
-    color: var(--tg-theme-link-color, #3390ec);
+    color: var(--matrix-color);
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
     display: flex;
     align-items: center;
     gap: 4px;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
 }
 
 .comment-action:hover {
-    opacity: 0.7;
+    color: var(--active-color);
+    text-shadow: 0 0 10px rgba(41, 253, 83, 0.6);
+    transform: translateX(3px);
 }
 
 .comment-action:disabled {
-    color: var(--tg-theme-hint-color, #999999);
+    color: rgba(0, 255, 0, 0.3);
     cursor: not-allowed;
+    text-shadow: none;
 }
 
 .comment-action.danger {
-    color: #e53935;
+    color: #ff3333;
+    text-shadow: 0 0 5px rgba(255, 51, 51, 0.3);
+}
+
+.comment-action.danger:hover {
+    color: #ff6666;
+    text-shadow: 0 0 10px rgba(255, 51, 51, 0.6);
 }
 
 /* Форма комментария */
 .comment-form {
-    background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+    background: rgba(0, 0, 0, 0.5);
     padding: 15px;
     border-radius: 10px;
     margin-bottom: 15px;
+    border: 1px solid rgba(0, 255, 0, 0.2);
 }
 
 .comment-form.reply-form {
     margin-left: 25px;
     margin-top: 10px;
-    background: var(--tg-theme-bg-color, #ffffff);
-    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(41, 253, 83, 0.3);
 }
 
 .comment-form textarea {
     width: 100%;
     min-height: 80px;
     padding: 12px;
-    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    border: 1px solid rgba(0, 255, 0, 0.3);
     border-radius: 8px;
     font-size: 14px;
     resize: vertical;
-    background: var(--tg-theme-bg-color, #ffffff);
-    color: var(--tg-theme-text-color, #000000);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: rgba(0, 0, 0, 0.7);
+    color: rgba(255, 255, 255, 0.9);
+    font-family: var(--primary-font);
+    transition: all 0.3s ease;
 }
 
 .comment-form textarea:focus {
     outline: none;
-    border-color: var(--tg-theme-button-color, #3390ec);
+    border-color: var(--active-color);
+    box-shadow: 0 0 10px rgba(41, 253, 83, 0.3);
+}
+
+.comment-form textarea::placeholder {
+    color: rgba(0, 255, 0, 0.4);
 }
 
 .comment-form-actions {
@@ -212,8 +278,8 @@
 }
 
 .comment-image-btn {
-    background: none;
-    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 255, 0, 0.4);
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
@@ -221,12 +287,15 @@
     align-items: center;
     gap: 5px;
     font-size: 13px;
-    color: var(--tg-theme-text-color, #000000);
-    transition: all 0.2s;
+    color: var(--matrix-color);
+    transition: all 0.3s;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
 }
 
 .comment-image-btn:hover {
-    background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    background: rgba(0, 255, 0, 0.1);
+    border-color: var(--active-color);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
 .comment-images-preview {
@@ -247,13 +316,14 @@
     height: 100%;
     object-fit: cover;
     border-radius: 8px;
+    border: 2px solid rgba(0, 255, 0, 0.4);
 }
 
 .comment-image-remove {
     position: absolute;
     top: -6px;
     right: -6px;
-    background: #e53935;
+    background: #ff3333;
     color: white;
     border: none;
     border-radius: 50%;
@@ -265,6 +335,14 @@
     cursor: pointer;
     font-size: 12px;
     line-height: 1;
+    box-shadow: 0 0 8px rgba(255, 51, 51, 0.6);
+    transition: all 0.2s;
+}
+
+.comment-image-remove:hover {
+    background: #ff6666;
+    box-shadow: 0 0 12px rgba(255, 51, 51, 0.8);
+    transform: scale(1.1);
 }
 
 .comment-submit-btn, .comment-cancel-btn {
@@ -274,31 +352,38 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
 }
 
 .comment-submit-btn {
-    background: var(--tg-theme-button-color, #3390ec);
-    color: var(--tg-theme-button-text-color, #ffffff);
+    background: linear-gradient(135deg, var(--matrix-color), var(--active-color));
+    color: #000;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
 }
 
 .comment-submit-btn:hover:not(:disabled) {
-    opacity: 0.9;
+    box-shadow: 0 0 15px rgba(41, 253, 83, 0.6);
+    transform: translateY(-2px);
 }
 
 .comment-submit-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 .comment-cancel-btn {
-    background: transparent;
-    color: var(--tg-theme-text-color, #000000);
-    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 255, 0, 0.3);
 }
 
 .comment-cancel-btn:hover {
-    background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    background: rgba(0, 255, 0, 0.1);
+    border-color: var(--matrix-color);
+    color: var(--matrix-color);
 }
 
 /* Модальное окно для жалоб */
@@ -308,27 +393,31 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    backdrop-filter: blur(5px);
 }
 
 .report-modal-content {
-    background: var(--tg-theme-bg-color, #ffffff);
+    background: rgba(21, 31, 40, 0.95);
     border-radius: 12px;
     padding: 20px;
     max-width: 400px;
     width: 100%;
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
 }
 
 .report-modal h3 {
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 18px;
-    color: var(--tg-theme-text-color, #000000);
+    color: var(--matrix-color);
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
 .report-reason-group {
@@ -339,32 +428,46 @@
     display: flex;
     align-items: center;
     padding: 10px;
-    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    border: 1px solid rgba(0, 255, 0, 0.3);
     border-radius: 8px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .report-reason-label:hover {
-    background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    background: rgba(0, 255, 0, 0.1);
+    border-color: var(--active-color);
 }
 
 .report-reason-label input[type="radio"] {
     margin-right: 10px;
+    accent-color: var(--active-color);
 }
 
 .report-description {
     width: 100%;
     min-height: 60px;
     padding: 10px;
-    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    border: 1px solid rgba(0, 255, 0, 0.3);
     border-radius: 8px;
     font-size: 14px;
     margin-bottom: 15px;
     resize: vertical;
-    background: var(--tg-theme-bg-color, #ffffff);
-    color: var(--tg-theme-text-color, #000000);
+    background: rgba(0, 0, 0, 0.7);
+    color: rgba(255, 255, 255, 0.9);
+    font-family: var(--primary-font);
+}
+
+.report-description:focus {
+    outline: none;
+    border-color: var(--active-color);
+    box-shadow: 0 0 10px rgba(41, 253, 83, 0.3);
+}
+
+.report-description::placeholder {
+    color: rgba(0, 255, 0, 0.4);
 }
 
 .report-modal-actions {
@@ -377,7 +480,7 @@
 .comments-loading {
     text-align: center;
     padding: 20px;
-    color: var(--tg-theme-hint-color, #999999);
+    color: var(--matrix-color);
 }
 
 .comments-loading::after {
@@ -399,18 +502,20 @@
 
 .load-more-btn {
     padding: 10px 20px;
-    background: var(--tg-theme-button-color, #3390ec);
-    color: var(--tg-theme-button-text-color, #ffffff);
+    background: linear-gradient(135deg, var(--matrix-color), var(--active-color));
+    color: #000;
+    font-weight: bold;
     border: none;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.3s;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
 }
 
 .load-more-btn:hover {
-    opacity: 0.9;
+    box-shadow: 0 0 15px rgba(41, 253, 83, 0.6);
+    transform: translateY(-2px);
 }
 
 /* Адаптивность */
@@ -419,9 +524,8 @@
         padding: 15px;
     }
     
-    .comment-item.level-2,
-    .comment-item.level-3 {
-        margin-left: 15px;
+    .comment-item.level-2 {
+        margin-left: 0;
     }
     
     .comment-replies {
@@ -437,4 +541,3 @@
         height: 80px;
     }
 }
-
