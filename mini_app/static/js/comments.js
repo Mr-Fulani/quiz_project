@@ -19,8 +19,34 @@ class CommentsManager {
      */
     async init() {
         this.setupEventListeners();
+        this.setupToggle();
         await this.loadComments();
         await this.loadCommentsCount();
+    }
+
+    /**
+     * Настройка сворачивания/разворачивания секции
+     */
+    setupToggle() {
+        const section = document.getElementById(`comments-${this.translationId}`);
+        const header = section?.querySelector('h4');
+        
+        if (!header) return;
+        
+        // Обработчик клика по заголовку
+        header.addEventListener('click', () => {
+            section.classList.toggle('collapsed');
+            
+            // Сохраняем состояние в localStorage
+            const isCollapsed = section.classList.contains('collapsed');
+            localStorage.setItem(`comments-collapsed-${this.translationId}`, isCollapsed);
+        });
+        
+        // Восстанавливаем сохранённое состояние
+        const savedState = localStorage.getItem(`comments-collapsed-${this.translationId}`);
+        if (savedState === 'true') {
+            section.classList.add('collapsed');
+        }
     }
 
     /**
@@ -62,7 +88,8 @@ class CommentsManager {
             console.log(`📋 Total comments in memory: ${this.comments.length}`);
 
             if (this.comments.length === 0 && page === 1) {
-                container.innerHTML = '<div class="comments-list empty">Комментариев пока нет. Будьте первым!</div>';
+                const emptyText = window.translations?.no_comments_yet || 'Комментариев пока нет. Будьте первым!';
+                container.innerHTML = `<div class="comments-list empty">${emptyText}</div>`;
             } else {
                 console.log(`🎨 Rendering ${this.comments.length} comments...`);
                 this.renderComments();
@@ -124,11 +151,12 @@ class CommentsManager {
 
         // Добавляем кнопку "Загрузить ещё"
         if (this.hasMore) {
+            const loadMoreText = window.translations?.load_more || 'Загрузить ещё';
             const loadMoreBtn = document.createElement('div');
             loadMoreBtn.className = 'comments-load-more';
             loadMoreBtn.innerHTML = `
                 <button class="load-more-btn" data-action="load-more" data-translation-id="${this.translationId}">
-                    Загрузить ещё
+                    ${loadMoreText}
                 </button>
             `;
             container.appendChild(loadMoreBtn);
@@ -167,17 +195,17 @@ class CommentsManager {
             <div class="comment-actions">
                 ${level < 2 && !comment.is_deleted ? `
                     <button class="comment-action" data-action="reply" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        💬 Ответить
+                        💬 ${t.reply || 'Ответить'}
                     </button>
                 ` : ''}
                 ${canDelete && !comment.is_deleted ? `
                     <button class="comment-action danger" data-action="delete" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        🗑️ Удалить
+                        🗑️ ${t.delete || 'Удалить'}
                     </button>
                 ` : ''}
                 ${!comment.is_deleted && comment.author_telegram_id != this.telegramId ? `
                     <button class="comment-action" data-action="report" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        ⚠️ Пожаловаться
+                        ⚠️ ${t.report || 'Пожаловаться'}
                     </button>
                 ` : ''}
             </div>
@@ -211,7 +239,8 @@ class CommentsManager {
         
         // Валидация количества
         if (files.length > 3) {
-            alert('Максимум 3 изображения');
+            const maxImagesError = window.translations?.max_images_error || 'Максимум 3 изображения';
+            alert(maxImagesError);
             input.value = '';
             return;
         }
@@ -225,14 +254,16 @@ class CommentsManager {
             
             // Проверка размера
             if (file.size > MAX_FILE_SIZE) {
-                alert(`Изображение "${file.name}" слишком большое!\nМаксимум: 5 MB\nТекущий размер: ${(file.size / (1024 * 1024)).toFixed(2)} MB`);
+                const tooLargeText = window.translations?.image_too_large || 'Изображение слишком большое!\nМаксимум: 5 MB\nТекущий размер:';
+                alert(`${tooLargeText} ${(file.size / (1024 * 1024)).toFixed(2)} MB\n"${file.name}"`);
                 input.value = '';
                 return;
             }
             
             // Проверка типа
             if (!ALLOWED_TYPES.includes(file.type)) {
-                alert(`Недопустимый формат "${file.name}": ${file.type}\nРазрешены: JPEG, PNG, GIF, WebP`);
+                const invalidFormatText = window.translations?.invalid_format || 'Недопустимый формат. Разрешены: JPEG, PNG, GIF, WebP';
+                alert(`"${file.name}": ${file.type}\n\n${invalidFormatText}`);
                 input.value = '';
                 return;
             }
@@ -308,7 +339,8 @@ class CommentsManager {
         const text = textarea.value.trim();
         
         if (text.length < 3) {
-            alert('Комментарий должен содержать минимум 3 символа');
+            const minTextError = window.translations?.min_text_error || 'Комментарий должен содержать минимум 3 символа';
+            alert(minTextError);
             return;
         }
 
@@ -383,18 +415,23 @@ class CommentsManager {
         const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
         if (!commentElement) return;
 
+        const replyPlaceholder = window.translations?.reply_placeholder || 'Напишите ответ...';
+        const photoText = window.translations?.photo || 'Фото';
+        const cancelText = window.translations?.cancel || 'Отмена';
+        const replyText = window.translations?.reply || 'Ответить';
+        
         const form = document.createElement('div');
         form.className = 'comment-form reply-form';
         form.innerHTML = `
-            <textarea placeholder="Напишите ответ..."></textarea>
+            <textarea placeholder="${replyPlaceholder}"></textarea>
             <div class="comment-form-actions">
                 <div class="comment-form-left">
                     <input type="file" class="comment-image-input" accept="image/*" multiple>
-                    <button class="comment-image-btn">📷 Фото</button>
+                    <button class="comment-image-btn">📷 ${photoText}</button>
                 </div>
                 <div>
-                    <button class="comment-cancel-btn">Отмена</button>
-                    <button class="comment-submit-btn">Ответить</button>
+                    <button class="comment-cancel-btn">${cancelText}</button>
+                    <button class="comment-submit-btn">${replyText}</button>
                 </div>
             </div>
         `;
@@ -420,7 +457,8 @@ class CommentsManager {
      * Удаление комментария
      */
     async deleteComment(commentId) {
-        if (!confirm('Вы уверены, что хотите удалить комментарий?')) {
+        const confirmText = window.translations?.confirm_delete_comment || 'Вы уверены, что хотите удалить комментарий?';
+        if (!confirm(confirmText)) {
             return;
         }
 
@@ -448,38 +486,40 @@ class CommentsManager {
      * Показать модальное окно жалобы
      */
     showReportModal(commentId) {
+        const t = window.translations || {};
+        
         const modal = document.createElement('div');
         modal.className = 'report-modal';
         modal.dataset.commentId = commentId;
         modal.dataset.translationId = this.translationId;
         modal.innerHTML = `
             <div class="report-modal-content">
-                <h3>Пожаловаться на комментарий</h3>
+                <h3>${t.report_comment || 'Пожаловаться на комментарий'}</h3>
                 <div class="report-reason-group">
                     <label class="report-reason-label">
                         <input type="radio" name="reason" value="spam" checked>
-                        Спам
+                        ${t.report_reason_spam || 'Спам'}
                     </label>
                     <label class="report-reason-label">
                         <input type="radio" name="reason" value="offensive">
-                        Оскорбительный контент
+                        ${t.report_reason_offensive || 'Оскорбительный контент'}
                     </label>
                     <label class="report-reason-label">
                         <input type="radio" name="reason" value="inappropriate">
-                        Неуместный контент
+                        ${t.report_reason_inappropriate || 'Неуместный контент'}
                     </label>
                     <label class="report-reason-label">
                         <input type="radio" name="reason" value="other">
-                        Другое
+                        ${t.report_reason_other || 'Другое'}
                     </label>
                 </div>
-                <textarea class="report-description" placeholder="Дополнительное описание (необязательно)"></textarea>
+                <textarea class="report-description" placeholder="${t.report_description_placeholder || 'Дополнительное описание (необязательно)'}"></textarea>
                 <div class="report-modal-actions">
                     <button class="comment-cancel-btn" data-action="close-modal">
-                        Отмена
+                        ${t.cancel || 'Отмена'}
                     </button>
                     <button class="comment-submit-btn" data-action="submit-report" data-comment-id="${commentId}" data-translation-id="${this.translationId}">
-                        Отправить
+                        ${t.send || 'Отправить'}
                     </button>
                 </div>
             </div>
