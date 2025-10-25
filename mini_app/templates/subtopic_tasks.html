@@ -81,8 +81,8 @@
 
 <script src="{{ get_js_url('comments.js') }}"></script>
 <script>
-// Инициализация комментариев для каждой задачи
-function initializeComments() {
+// Инициализация комментариев для каждой задачи (глобальная функция)
+window.initializeComments = function() {
     console.log('🔧 Initializing comments...');
     
     // Ждём создания currentUser (максимум 5 секунд)
@@ -129,11 +129,7 @@ function initializeComments() {
     }, 5000);
 }
 
-// Запускаем после загрузки DOM
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeComments);
-} else {
-    initializeComments();
-}
+// НЕ запускаем автоматически - будет вызвано из base.html после загрузки контента
+// Это решает проблему затирания комментариев при SPA навигации
 </script>
 {% endblock %} 

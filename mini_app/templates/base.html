@@ -768,6 +768,14 @@
                         } else {
                             console.log('⚠️ Функция reinitializeBackButton не найдена или уже выполнена');
                         }
+                        
+                        // Инициализируем комментарии после загрузки tasks.js
+                        console.log('🔄 Вызов initializeComments после загрузки tasks.js...');
+                        if (typeof window.initializeComments === 'function') {
+                            window.initializeComments();
+                        } else {
+                            console.log('⚠️ Функция initializeComments не найдена');
+                        }
                     }, 100);
                 };
                 script.onerror = function() {
