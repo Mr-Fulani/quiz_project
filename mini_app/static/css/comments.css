@@ -59,9 +59,8 @@
     text-shadow: 0 0 8px rgba(41, 253, 83, 0.6);
 }
 
-/* Скрытие контента при collapse */
-.comments-section.collapsed .comments-list,
-.comments-section.collapsed .comment-form {
+/* Скрытие только списка комментариев при collapse */
+.comments-section.collapsed .comments-list {
     display: none;
 }
 
