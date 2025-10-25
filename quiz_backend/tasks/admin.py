@@ -8,6 +8,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics, TaskComment, TaskCommentImage, TaskCommentReport
 from .services.task_import_service import import_tasks_from_json
+from accounts.models import MiniAppUser
 from .services.s3_service import delete_image_from_s3
 from .services.telegram_service import publish_task_to_telegram
 from .services.image_generation_service import generate_image_for_task
@@ -832,20 +833,20 @@ class TaskCommentImageInline(admin.TabularInline):
 @admin.register(TaskComment)
 class TaskCommentAdmin(admin.ModelAdmin):
     """Админка для модерации комментариев к задачам."""
-    list_display = ('id', 'author_username', 'task_translation', 'text_preview', 'parent_comment', 'created_at', 'is_deleted', 'reports_count_display')
-    list_filter = ('is_deleted', 'created_at', 'reports_count')
+    list_display = ('id', 'author_display', 'task_display', 'text_preview', 'images_count_display', 'replies_count_display', 'created_at', 'is_deleted', 'reports_count_display')
+    list_filter = ('is_deleted', 'created_at', 'reports_count', 'task_translation__language')
     search_fields = ('author_username', 'author_telegram_id', 'text', 'task_translation__question')
     raw_id_fields = ('task_translation', 'parent_comment')
     date_hierarchy = 'created_at'
     list_per_page = 20
-    readonly_fields = ('created_at', 'updated_at', 'reports_count', 'get_depth', 'get_replies_count')
+    readonly_fields = ('created_at', 'updated_at', 'reports_count', 'get_depth', 'get_replies_count', 'author_profile_link', 'images_preview')
     
     fieldsets = (
         ('Автор', {
-            'fields': ('author_telegram_id', 'author_username')
+            'fields': ('author_telegram_id', 'author_username', 'author_profile_link')
         }),
         ('Содержание', {
-            'fields': ('task_translation', 'text', 'parent_comment')
+            'fields': ('task_translation', 'text', 'parent_comment', 'images_preview')
         }),
         ('Статус', {
             'fields': ('is_deleted', 'reports_count', 'get_depth', 'get_replies_count')
@@ -886,6 +887,84 @@ class TaskCommentAdmin(admin.ModelAdmin):
         return obj.get_replies_count()
     get_replies_count.short_description = 'Ответов'
     
+    def author_display(self, obj):
+        """Красивое отображение автора с username из MiniAppUser."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.author_telegram_id)
+            return format_html(
+                '<strong>{}</strong><br><small style="color: #666;">@{} (ID: {})</small>',
+                user.first_name or user.username or 'Без имени',
+                user.username or 'нет',
+                obj.author_telegram_id
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">{}</span><br><small>(ID: {})</small>',
+                obj.author_username,
+                obj.author_telegram_id
+            )
+    author_display.short_description = 'Автор'
+    
+    def task_display(self, obj):
+        """Красивое отображение задачи с языком."""
+        lang_emoji = '🇷🇺' if obj.task_translation.language == 'ru' else '🇬🇧'
+        question_preview = obj.task_translation.question[:40] + '...' if len(obj.task_translation.question) > 40 else obj.task_translation.question
+        return format_html(
+            '{} <strong>Задача #{}</strong><br><small>{}</small>',
+            lang_emoji,
+            obj.task_translation.task_id,
+            question_preview
+        )
+    task_display.short_description = 'Задача'
+    
+    def images_count_display(self, obj):
+        """Количество изображений в комментарии."""
+        count = obj.images.count()
+        if count > 0:
+            return format_html('<span style="color: #007bff;">📷 {}</span>', count)
+        return '—'
+    images_count_display.short_description = 'Фото'
+    
+    def replies_count_display(self, obj):
+        """Количество ответов на комментарий."""
+        count = obj.get_replies_count()
+        if count > 0:
+            return format_html('<span style="color: #17a2b8;">💬 {}</span>', count)
+        return '—'
+    replies_count_display.short_description = 'Ответы'
+    
+    def author_profile_link(self, obj):
+        """Ссылка на профиль пользователя."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.author_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">👤 Открыть профиль: {} (@{})</a>',
+                user.id,
+                user.first_name or user.username,
+                user.username or 'нет'
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html('<span style="color: #dc3545;">❌ Пользователь не найден (Telegram ID: {})</span>', obj.author_telegram_id)
+    author_profile_link.short_description = 'Профиль автора'
+    
+    def images_preview(self, obj):
+        """Превью изображений комментария."""
+        images = obj.images.all()
+        if not images:
+            return 'Нет изображений'
+        
+        html = '<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">'
+        for img in images:
+            html += f'''
+                <div style="border: 2px solid #007bff; padding: 8px; border-radius: 8px; background: #f8f9fa;">
+                    <img src="{img.image.url}" style="max-width: 200px; max-height: 200px; display: block; border-radius: 4px;" />
+                    <small style="color: #666; font-size: 11px; display: block; margin-top: 5px;">📅 {img.uploaded_at.strftime("%d.%m.%Y %H:%M")}</small>
+                </div>
+            '''
+        html += '</div>'
+        return format_html(html)
+    images_preview.short_description = 'Превью изображений'
+    
     @admin.action(description='Пометить как удалённые')
     def mark_as_deleted(self, request, queryset):
         """Мягкое удаление выбранных комментариев."""
@@ -902,17 +981,23 @@ class TaskCommentAdmin(admin.ModelAdmin):
 @admin.register(TaskCommentReport)
 class TaskCommentReportAdmin(admin.ModelAdmin):
     """Админка для жалоб на комментарии."""
-    list_display = ('id', 'comment_preview', 'reporter_telegram_id', 'reason', 'created_at', 'is_reviewed')
+    list_display = ('id', 'reporter_display', 'comment_preview', 'reason_display', 'created_at', 'is_reviewed_display')
     list_filter = ('is_reviewed', 'reason', 'created_at')
-    search_fields = ('comment__text', 'reporter_telegram_id', 'description')
+    search_fields = ('comment__text', 'reporter_telegram_id', 'description', 'comment__author_username')
     raw_id_fields = ('comment',)
     date_hierarchy = 'created_at'
     list_per_page = 20
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'reporter_profile_link', 'comment_author_link', 'comment_full_text')
     
     fieldsets = (
-        ('Жалоба', {
-            'fields': ('comment', 'reporter_telegram_id', 'reason', 'description')
+        ('Кто пожаловался', {
+            'fields': ('reporter_telegram_id', 'reporter_profile_link')
+        }),
+        ('На что жалоба', {
+            'fields': ('comment', 'comment_author_link', 'comment_full_text')
+        }),
+        ('Причина жалобы', {
+            'fields': ('reason', 'description')
         }),
         ('Модерация', {
             'fields': ('is_reviewed', 'created_at')
@@ -923,13 +1008,113 @@ class TaskCommentReportAdmin(admin.ModelAdmin):
     
     def comment_preview(self, obj):
         """Превью комментария."""
-        text = obj.comment.text[:50] + ('...' if len(obj.comment.text) > 50 else '')
+        text = obj.comment.text[:60] + ('...' if len(obj.comment.text) > 60 else '')
+        img_count = obj.comment.images.count()
+        img_badge = f' 📷{img_count}' if img_count > 0 else ''
+        
         return format_html(
-            '<a href="/admin/tasks/taskcomment/{}/change/">{}</a>',
+            '<a href="/admin/tasks/taskcomment/{}/change/" style="text-decoration: none;"><div style="padding: 8px; background: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px;"><strong>💬 Комментарий #{}</strong>{}<br><small style="color: #666;">{}</small></div></a>',
             obj.comment.id,
+            obj.comment.id,
+            img_badge,
             text
         )
     comment_preview.short_description = 'Комментарий'
+    
+    def reporter_display(self, obj):
+        """Красивое отображение репортера с username."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.reporter_telegram_id)
+            return format_html(
+                '<strong>🚨 {}</strong><br><small style="color: #666;">@{} (ID: {})</small>',
+                user.first_name or user.username or 'Без имени',
+                user.username or 'нет',
+                obj.reporter_telegram_id
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">❌ Пользователь не найден</span><br><small>(ID: {})</small>',
+                obj.reporter_telegram_id
+            )
+    reporter_display.short_description = 'Кто пожаловался'
+    
+    def reason_display(self, obj):
+        """Красивое отображение причины жалобы."""
+        reason_colors = {
+            'spam': '#ffc107',
+            'offensive': '#dc3545',
+            'inappropriate': '#fd7e14',
+            'other': '#6c757d'
+        }
+        reason_icons = {
+            'spam': '📧',
+            'offensive': '⚠️',
+            'inappropriate': '🚫',
+            'other': '❓'
+        }
+        color = reason_colors.get(obj.reason, '#6c757d')
+        icon = reason_icons.get(obj.reason, '❓')
+        
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} {}</span>',
+            color,
+            icon,
+            obj.get_reason_display()
+        )
+    reason_display.short_description = 'Причина'
+    
+    def is_reviewed_display(self, obj):
+        """Красивое отображение статуса проверки."""
+        if obj.is_reviewed:
+            return format_html('<span style="color: #28a745; font-weight: bold;">✅ Проверено</span>')
+        else:
+            return format_html('<span style="color: #dc3545; font-weight: bold;">🔴 Новая</span>')
+    is_reviewed_display.short_description = 'Статус'
+    
+    def reporter_profile_link(self, obj):
+        """Ссылка на профиль репортера."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.reporter_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="padding: 8px 16px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">🚨 Профиль пожаловавшегося: {} (@{})</a>',
+                user.id,
+                user.first_name or user.username,
+                user.username or 'нет'
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html('<span style="color: #dc3545;">❌ Пользователь не найден (Telegram ID: {})</span>', obj.reporter_telegram_id)
+    reporter_profile_link.short_description = 'Профиль репортера'
+    
+    def comment_author_link(self, obj):
+        """Ссылка на профиль автора комментария."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.comment.author_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">👤 Профиль автора комментария: {} (@{})</a>',
+                user.id,
+                user.first_name or user.username,
+                user.username or 'нет'
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html('<span style="color: #dc3545;">❌ Пользователь не найден (Telegram ID: {})</span>', obj.comment.author_telegram_id)
+    comment_author_link.short_description = 'Автор комментария'
+    
+    def comment_full_text(self, obj):
+        """Полный текст комментария."""
+        images = obj.comment.images.all()
+        img_html = ''
+        if images:
+            img_html = '<div style="margin-top: 10px;"><strong>Изображения в комментарии:</strong><div style="display: flex; gap: 10px; margin-top: 5px;">'
+            for img in images:
+                img_html += f'<img src="{img.image.url}" style="max-width: 150px; max-height: 150px; border-radius: 4px; border: 1px solid #ddd;" />'
+            img_html += '</div></div>'
+        
+        return format_html(
+            '<div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;"><pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">{}</pre>{}</div>',
+            obj.comment.text,
+            img_html
+        )
+    comment_full_text.short_description = 'Полный текст комментария'
     
     @admin.action(description='Отметить как проверенные')
     def mark_as_reviewed(self, request, queryset):
