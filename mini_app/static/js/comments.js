@@ -33,6 +33,9 @@ class CommentsManager {
         
         if (!header) return;
         
+        // По умолчанию свернуто
+        section.classList.add('collapsed');
+        
         // Обработчик клика по заголовку
         header.addEventListener('click', () => {
             section.classList.toggle('collapsed');
@@ -42,10 +45,10 @@ class CommentsManager {
             localStorage.setItem(`comments-collapsed-${this.translationId}`, isCollapsed);
         });
         
-        // Восстанавливаем сохранённое состояние
+        // Восстанавливаем сохранённое состояние (если было развернуто)
         const savedState = localStorage.getItem(`comments-collapsed-${this.translationId}`);
-        if (savedState === 'true') {
-            section.classList.add('collapsed');
+        if (savedState === 'false') {
+            section.classList.remove('collapsed');
         }
     }
 
@@ -58,7 +61,8 @@ class CommentsManager {
 
         // Показываем индикатор загрузки
         if (page === 1) {
-            container.innerHTML = '<div class="comments-loading">Загрузка комментариев</div>';
+            const loadingText = window.translations?.loading_comments || 'Загрузка комментариев';
+            container.innerHTML = `<div class="comments-loading">${loadingText}</div>`;
         }
 
         try {
@@ -97,7 +101,8 @@ class CommentsManager {
 
         } catch (error) {
             console.error('Ошибка загрузки комментариев:', error);
-            container.innerHTML = '<div class="comments-list empty">Ошибка загрузки комментариев</div>';
+            const errorText = window.translations?.error_loading_comments || 'Ошибка загрузки комментариев';
+            container.innerHTML = `<div class="comments-list empty">${errorText}</div>`;
         }
     }
 
