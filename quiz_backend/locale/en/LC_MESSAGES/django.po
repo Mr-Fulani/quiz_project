@@ -2708,3 +2708,19 @@ msgstr ""
 #: templates/registration/password_reset_form.html:212
 msgid "Enter your email address"
 msgstr ""
+
+#: tasks/comment_serializers.py:111
+msgid "только что"
+msgstr "just now"
+
+#: tasks/comment_serializers.py:114
+msgid "%(minutes)s мин. назад"
+msgstr "%(minutes)s min. ago"
+
+#: tasks/comment_serializers.py:117
+msgid "%(hours)s ч. назад"
+msgstr "%(hours)s h. ago"
+
+#: tasks/comment_serializers.py:120
+msgid "%(days)s дн. назад"
+msgstr "%(days)s d. ago"
