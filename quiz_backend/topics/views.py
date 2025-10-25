@@ -410,7 +410,8 @@ def subtopic_detail_simple(request, subtopic_id):
                     'answers': answers,
                     'correct_answer': translation.correct_answer,
                     'explanation': translation.explanation,
-                    'is_solved': is_solved
+                    'is_solved': is_solved,
+                    'translation_id': translation.id  # Для системы комментариев
                 }
                 tasks_data.append(task_data)
         

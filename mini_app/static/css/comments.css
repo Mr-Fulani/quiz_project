@@ -1,0 +1,440 @@
+/**
+ * Стили для системы комментариев к задачам
+ * Поддержка древовидной структуры с изображениями
+ */
+
+/* Основной контейнер комментариев */
+.comments-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: var(--tg-theme-bg-color, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.comments-section h4 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--tg-theme-text-color, #000000);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comments-count {
+    font-size: 14px;
+    font-weight: normal;
+    color: var(--tg-theme-hint-color, #999999);
+}
+
+/* Список комментариев */
+.comments-list {
+    margin-bottom: 20px;
+}
+
+.comments-list.empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--tg-theme-hint-color, #999999);
+}
+
+/* Отдельный комментарий */
+.comment-item {
+    padding: 12px;
+    margin-bottom: 12px;
+    background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    border-radius: 10px;
+    border-left: 3px solid var(--tg-theme-button-color, #3390ec);
+    position: relative;
+}
+
+.comment-item.deleted {
+    opacity: 0.6;
+    border-left-color: #999;
+}
+
+/* Вложенные комментарии */
+.comment-replies {
+    margin-top: 12px;
+    margin-left: 20px;
+    padding-left: 12px;
+    border-left: 2px solid var(--tg-theme-hint-color, #e0e0e0);
+}
+
+.comment-item.level-1 {
+    margin-left: 0;
+}
+
+.comment-item.level-2 {
+    margin-left: 25px;
+    font-size: 0.95em;
+}
+
+.comment-item.level-3 {
+    margin-left: 25px;
+    font-size: 0.9em;
+}
+
+/* Шапка комментария */
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.comment-author {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tg-theme-text-color, #000000);
+}
+
+.comment-date {
+    font-size: 12px;
+    color: var(--tg-theme-hint-color, #999999);
+}
+
+/* Текст комментария */
+.comment-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--tg-theme-text-color, #000000);
+    margin-bottom: 10px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Изображения в комментарии */
+.comment-images {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.comment-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.comment-image:hover {
+    transform: scale(1.05);
+}
+
+/* Действия с комментарием */
+.comment-actions {
+    display: flex;
+    gap: 15px;
+    font-size: 13px;
+}
+
+.comment-action {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--tg-theme-link-color, #3390ec);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 0.2s;
+}
+
+.comment-action:hover {
+    opacity: 0.7;
+}
+
+.comment-action:disabled {
+    color: var(--tg-theme-hint-color, #999999);
+    cursor: not-allowed;
+}
+
+.comment-action.danger {
+    color: #e53935;
+}
+
+/* Форма комментария */
+.comment-form {
+    background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.comment-form.reply-form {
+    margin-left: 25px;
+    margin-top: 10px;
+    background: var(--tg-theme-bg-color, #ffffff);
+    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+}
+
+.comment-form textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    border-radius: 8px;
+    font-size: 14px;
+    resize: vertical;
+    background: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.comment-form textarea:focus {
+    outline: none;
+    border-color: var(--tg-theme-button-color, #3390ec);
+}
+
+.comment-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 10px;
+}
+
+.comment-form-left {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.comment-image-input {
+    display: none;
+}
+
+.comment-image-btn {
+    background: none;
+    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: var(--tg-theme-text-color, #000000);
+    transition: all 0.2s;
+}
+
+.comment-image-btn:hover {
+    background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+}
+
+.comment-images-preview {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.comment-image-preview {
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.comment-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.comment-image-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #e53935;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.comment-submit-btn, .comment-cancel-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comment-submit-btn {
+    background: var(--tg-theme-button-color, #3390ec);
+    color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.comment-submit-btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.comment-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.comment-cancel-btn {
+    background: transparent;
+    color: var(--tg-theme-text-color, #000000);
+    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+}
+
+.comment-cancel-btn:hover {
+    background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+}
+
+/* Модальное окно для жалоб */
+.report-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.report-modal-content {
+    background: var(--tg-theme-bg-color, #ffffff);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 400px;
+    width: 100%;
+}
+
+.report-modal h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: var(--tg-theme-text-color, #000000);
+}
+
+.report-reason-group {
+    margin-bottom: 15px;
+}
+
+.report-reason-label {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.report-reason-label:hover {
+    background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+}
+
+.report-reason-label input[type="radio"] {
+    margin-right: 10px;
+}
+
+.report-description {
+    width: 100%;
+    min-height: 60px;
+    padding: 10px;
+    border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 15px;
+    resize: vertical;
+    background: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+}
+
+.report-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Загрузка */
+.comments-loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--tg-theme-hint-color, #999999);
+}
+
+.comments-loading::after {
+    content: '...';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+/* Кнопка "Загрузить ещё" */
+.comments-load-more {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.load-more-btn {
+    padding: 10px 20px;
+    background: var(--tg-theme-button-color, #3390ec);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.load-more-btn:hover {
+    opacity: 0.9;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+    .comments-section {
+        padding: 15px;
+    }
+    
+    .comment-item.level-2,
+    .comment-item.level-3 {
+        margin-left: 15px;
+    }
+    
+    .comment-replies {
+        margin-left: 15px;
+    }
+    
+    .comment-form.reply-form {
+        margin-left: 15px;
+    }
+    
+    .comment-image {
+        width: 80px;
+        height: 80px;
+    }
+}
+

@@ -6,7 +6,7 @@ class TaskTranslationSerializer(serializers.ModelSerializer):
     """Сериализатор для переводов задач."""
     class Meta:
         model = TaskTranslation
-        fields = ['language', 'question', 'answers', 'correct_answer', 'explanation']
+        fields = ['id', 'language', 'question', 'answers', 'correct_answer', 'explanation']
 
 class TaskSerializer(serializers.ModelSerializer):
     """
@@ -66,6 +66,12 @@ class TaskSerializer(serializers.ModelSerializer):
             data['success_rate'] = (successful / total) * 100
         else:
             data['success_rate'] = 0
+        
+        # Добавляем translation_id для системы комментариев
+        if instance.translations.exists():
+            translation = instance.translations.first()
+            data['translation_id'] = translation.id
+        
         return data
 
     def create(self, validated_data):
