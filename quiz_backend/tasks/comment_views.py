@@ -152,11 +152,36 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         
         # Обрабатываем изображения отдельно
         images = request.FILES.getlist('images')
-        if images and len(images) > 3:
-            return Response(
-                {'error': 'Максимум 3 изображения'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        
+        # Валидация изображений
+        if images:
+            # Проверка количества
+            if len(images) > 3:
+                return Response(
+                    {'error': 'Максимум 3 изображения'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Проверка размера и типа каждого файла
+            MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+            ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+            
+            for idx, image in enumerate(images):
+                # Проверка размера
+                if image.size > MAX_FILE_SIZE:
+                    return Response(
+                        {'error': f'Изображение {idx + 1}: размер не должен превышать 5 MB (текущий: {image.size / (1024*1024):.2f} MB)'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Проверка типа
+                if image.content_type not in ALLOWED_TYPES:
+                    return Response(
+                        {'error': f'Изображение {idx + 1}: недопустимый формат ({image.content_type}). Разрешены: JPEG, PNG, GIF, WebP'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                logger.info(f"Валидация изображения {idx + 1}: размер={image.size / 1024:.1f}KB, тип={image.content_type}")
         
         # Удаляем images из data для сериализатора
         if 'images' in data:

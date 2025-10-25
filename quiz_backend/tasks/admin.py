@@ -826,8 +826,131 @@ class TaskCommentImageInline(admin.TabularInline):
     """Inline для изображений комментариев."""
     model = TaskCommentImage
     extra = 0
-    fields = ('image', 'uploaded_at')
-    readonly_fields = ('uploaded_at',)
+    fields = ('image_preview', 'image', 'file_size_display', 'uploaded_at')
+    readonly_fields = ('uploaded_at', 'image_preview', 'file_size_display')
+    
+    def image_preview(self, obj):
+        """Превью изображения."""
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 150px; max-height: 150px; border-radius: 4px; border: 2px solid #007bff;" />',
+                obj.image.url
+            )
+        return '—'
+    image_preview.short_description = 'Превью'
+    
+    def file_size_display(self, obj):
+        """Размер файла."""
+        if obj.image:
+            size_bytes = obj.image.size
+            if size_bytes < 1024:
+                return f'{size_bytes} B'
+            elif size_bytes < 1024 * 1024:
+                return f'{size_bytes / 1024:.1f} KB'
+            else:
+                return f'{size_bytes / (1024 * 1024):.2f} MB'
+        return '—'
+    file_size_display.short_description = 'Размер'
+
+
+@admin.register(TaskCommentImage)
+class TaskCommentImageAdmin(admin.ModelAdmin):
+    """Админка для управления изображениями комментариев."""
+    list_display = ('id', 'image_preview_list', 'comment_link', 'file_size_display', 'uploaded_at')
+    list_filter = ('uploaded_at',)
+    search_fields = ('comment__text', 'comment__author_username')
+    raw_id_fields = ('comment',)
+    date_hierarchy = 'uploaded_at'
+    list_per_page = 30
+    readonly_fields = ('uploaded_at', 'image_preview_large', 'file_info')
+    
+    fieldsets = (
+        ('Изображение', {
+            'fields': ('image', 'image_preview_large', 'file_info')
+        }),
+        ('Связанный комментарий', {
+            'fields': ('comment', 'uploaded_at')
+        }),
+    )
+    
+    def image_preview_list(self, obj):
+        """Превью изображения в списке."""
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width: 80px; max-height: 80px; border-radius: 4px; border: 2px solid #007bff; cursor: pointer;" onclick="window.open(\'{}\', \'_blank\')" title="Кликните для открытия в полном размере" />',
+                obj.image.url,
+                obj.image.url
+            )
+        return '—'
+    image_preview_list.short_description = 'Превью'
+    
+    def image_preview_large(self, obj):
+        """Большое превью изображения."""
+        if obj.image:
+            return format_html(
+                '<div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;"><img src="{}" style="max-width: 600px; max-height: 600px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" /><br><a href="{}" target="_blank" style="margin-top: 10px; display: inline-block; padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">🔗 Открыть в полном размере</a></div>',
+                obj.image.url,
+                obj.image.url
+            )
+        return '—'
+    image_preview_large.short_description = 'Изображение'
+    
+    def comment_link(self, obj):
+        """Ссылка на комментарий."""
+        text_preview = obj.comment.text[:30] + '...' if len(obj.comment.text) > 30 else obj.comment.text
+        return format_html(
+            '<a href="/admin/tasks/taskcomment/{}/change/" target="_blank">💬 {}</a>',
+            obj.comment.id,
+            text_preview
+        )
+    comment_link.short_description = 'Комментарий'
+    
+    def file_size_display(self, obj):
+        """Размер файла с цветовой индикацией."""
+        if obj.image:
+            size_bytes = obj.image.size
+            
+            if size_bytes < 1024 * 1024:  # < 1 MB
+                size_str = f'{size_bytes / 1024:.1f} KB'
+                color = '#28a745'  # зеленый
+            elif size_bytes < 5 * 1024 * 1024:  # < 5 MB
+                size_str = f'{size_bytes / (1024 * 1024):.2f} MB'
+                color = '#ffc107'  # желтый
+            else:  # >= 5 MB
+                size_str = f'{size_bytes / (1024 * 1024):.2f} MB'
+                color = '#dc3545'  # красный
+            
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">📦 {}</span>',
+                color,
+                size_str
+            )
+        return '—'
+    file_size_display.short_description = 'Размер'
+    
+    def file_info(self, obj):
+        """Полная информация о файле."""
+        if obj.image:
+            size_bytes = obj.image.size
+            size_mb = size_bytes / (1024 * 1024)
+            
+            return format_html(
+                '<div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">'
+                '<strong>📊 Информация о файле:</strong><br>'
+                '<table style="margin-top: 10px; border-collapse: collapse;">'
+                '<tr><td style="padding: 5px; font-weight: bold;">Размер:</td><td style="padding: 5px;">{:.2f} MB ({} bytes)</td></tr>'
+                '<tr><td style="padding: 5px; font-weight: bold;">Имя файла:</td><td style="padding: 5px;">{}</td></tr>'
+                '<tr><td style="padding: 5px; font-weight: bold;">URL:</td><td style="padding: 5px;"><a href="{}" target="_blank">{}</a></td></tr>'
+                '</table>'
+                '</div>',
+                size_mb,
+                size_bytes,
+                obj.image.name.split('/')[-1],
+                obj.image.url,
+                obj.image.url
+            )
+        return '—'
+    file_info.short_description = 'Информация о файле'
 
 
 @admin.register(TaskComment)
