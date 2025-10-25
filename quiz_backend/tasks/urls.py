@@ -1,7 +1,19 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
+from .comment_views import TaskCommentViewSet
 
 app_name = 'tasks'
+
+# Роутер для комментариев
+router = DefaultRouter()
+# Регистрация ViewSet с поддержкой nested routing
+# URL будет: /api/tasks/translations/<translation_id>/comments/
+router.register(
+    r'translations/(?P<translation_id>\d+)/comments',
+    TaskCommentViewSet,
+    basename='translation-comments'
+)
 
 urlpatterns = [
     # Задачи
@@ -24,4 +36,7 @@ urlpatterns = [
     path('<int:pk>/submit/', views.TaskSubmitView.as_view(), name='task-submit'),
     path('<int:pk>/skip/', views.TaskSkipView.as_view(), name='task-skip'),
     path('next/', views.NextTaskView.as_view(), name='next-task'),
+    
+    # Комментарии (через роутер)
+    path('', include(router.urls)),
 ] 

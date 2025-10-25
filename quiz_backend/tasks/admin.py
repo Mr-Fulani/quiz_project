@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics
+from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics, TaskComment, TaskCommentImage, TaskCommentReport
 from .services.task_import_service import import_tasks_from_json
 from .services.s3_service import delete_image_from_s3
 from .services.telegram_service import publish_task_to_telegram
@@ -819,5 +819,131 @@ class MiniAppTaskStatisticsAdmin(admin.ModelAdmin):
                 self.message_user(request, error, level='ERROR')
 
     merge_to_main_statistics.short_description = "Объединить с основной статистикой"
+
+
+class TaskCommentImageInline(admin.TabularInline):
+    """Inline для изображений комментариев."""
+    model = TaskCommentImage
+    extra = 0
+    fields = ('image', 'uploaded_at')
+    readonly_fields = ('uploaded_at',)
+
+
+@admin.register(TaskComment)
+class TaskCommentAdmin(admin.ModelAdmin):
+    """Админка для модерации комментариев к задачам."""
+    list_display = ('id', 'author_username', 'task_translation', 'text_preview', 'parent_comment', 'created_at', 'is_deleted', 'reports_count_display')
+    list_filter = ('is_deleted', 'created_at', 'reports_count')
+    search_fields = ('author_username', 'author_telegram_id', 'text', 'task_translation__question')
+    raw_id_fields = ('task_translation', 'parent_comment')
+    date_hierarchy = 'created_at'
+    list_per_page = 20
+    readonly_fields = ('created_at', 'updated_at', 'reports_count', 'get_depth', 'get_replies_count')
+    
+    fieldsets = (
+        ('Автор', {
+            'fields': ('author_telegram_id', 'author_username')
+        }),
+        ('Содержание', {
+            'fields': ('task_translation', 'text', 'parent_comment')
+        }),
+        ('Статус', {
+            'fields': ('is_deleted', 'reports_count', 'get_depth', 'get_replies_count')
+        }),
+        ('Даты', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    inlines = [TaskCommentImageInline]
+    
+    actions = ['mark_as_deleted', 'restore_comments']
+    
+    def text_preview(self, obj):
+        """Превью текста комментария."""
+        return obj.text[:50] + ('...' if len(obj.text) > 50 else '')
+    text_preview.short_description = 'Текст (превью)'
+    
+    def reports_count_display(self, obj):
+        """Отображение количества жалоб с цветовой индикацией."""
+        if obj.reports_count == 0:
+            return format_html('<span style="color: #28a745;">0</span>')
+        elif obj.reports_count < 3:
+            return format_html('<span style="color: #ffc107; font-weight: bold;">{}</span>', obj.reports_count)
+        else:
+            return format_html('<span style="color: #dc3545; font-weight: bold;">⚠️ {}</span>', obj.reports_count)
+    reports_count_display.short_description = 'Жалобы'
+    
+    def get_depth(self, obj):
+        """Отображение глубины вложенности."""
+        depth = obj.get_depth()
+        return f"Уровень {depth}"
+    get_depth.short_description = 'Глубина'
+    
+    def get_replies_count(self, obj):
+        """Отображение количества ответов."""
+        return obj.get_replies_count()
+    get_replies_count.short_description = 'Ответов'
+    
+    @admin.action(description='Пометить как удалённые')
+    def mark_as_deleted(self, request, queryset):
+        """Мягкое удаление выбранных комментариев."""
+        updated = queryset.update(is_deleted=True, text='[Комментарий удалён модератором]')
+        self.message_user(request, f'Удалено {updated} комментариев', messages.SUCCESS)
+    
+    @admin.action(description='Восстановить комментарии')
+    def restore_comments(self, request, queryset):
+        """Восстановление удалённых комментариев."""
+        updated = queryset.update(is_deleted=False)
+        self.message_user(request, f'Восстановлено {updated} комментариев', messages.SUCCESS)
+
+
+@admin.register(TaskCommentReport)
+class TaskCommentReportAdmin(admin.ModelAdmin):
+    """Админка для жалоб на комментарии."""
+    list_display = ('id', 'comment_preview', 'reporter_telegram_id', 'reason', 'created_at', 'is_reviewed')
+    list_filter = ('is_reviewed', 'reason', 'created_at')
+    search_fields = ('comment__text', 'reporter_telegram_id', 'description')
+    raw_id_fields = ('comment',)
+    date_hierarchy = 'created_at'
+    list_per_page = 20
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Жалоба', {
+            'fields': ('comment', 'reporter_telegram_id', 'reason', 'description')
+        }),
+        ('Модерация', {
+            'fields': ('is_reviewed', 'created_at')
+        }),
+    )
+    
+    actions = ['mark_as_reviewed', 'delete_reported_comments']
+    
+    def comment_preview(self, obj):
+        """Превью комментария."""
+        text = obj.comment.text[:50] + ('...' if len(obj.comment.text) > 50 else '')
+        return format_html(
+            '<a href="/admin/tasks/taskcomment/{}/change/">{}</a>',
+            obj.comment.id,
+            text
+        )
+    comment_preview.short_description = 'Комментарий'
+    
+    @admin.action(description='Отметить как проверенные')
+    def mark_as_reviewed(self, request, queryset):
+        """Отметить жалобы как проверенные."""
+        updated = queryset.update(is_reviewed=True)
+        self.message_user(request, f'Отмечено {updated} жалоб как проверенные', messages.SUCCESS)
+    
+    @admin.action(description='Удалить комментарии с жалобами')
+    def delete_reported_comments(self, request, queryset):
+        """Удаление комментариев, на которые поступили жалобы."""
+        comments = TaskComment.objects.filter(id__in=queryset.values_list('comment_id', flat=True))
+        count = comments.count()
+        comments.update(is_deleted=True, text='[Комментарий удалён модератором]')
+        queryset.update(is_reviewed=True)
+        self.message_user(request, f'Удалено {count} комментариев', messages.SUCCESS)
 
 

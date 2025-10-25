@@ -1101,3 +1101,261 @@ async def reorder_user_avatars(telegram_id: int, request: Request):
     except Exception as e:
         logger.error(f"❌ Error in reorder_user_avatars proxy: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ========================================
+# КОММЕНТАРИИ К ЗАДАЧАМ
+# ========================================
+
+@router.get("/tasks/translations/{translation_id}/comments/")
+async def get_task_comments(translation_id: int, page: int = 1, ordering: str = '-created_at'):
+    """
+    Получение комментариев для перевода задачи.
+    
+    Args:
+        translation_id: ID перевода задачи
+        page: Номер страницы для пагинации
+        ordering: Сортировка (created_at, -created_at, reports_count, -reports_count)
+        
+    Returns:
+        JSONResponse: Список комментариев с пагинацией
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/"
+        params = {'page': page, 'ordering': ordering}
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(django_url, params=params, timeout=10.0)
+        
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"❌ Error fetching comments: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in get_task_comments: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/tasks/translations/{translation_id}/comments/count/")
+async def get_comments_count(translation_id: int):
+    """
+    Получение количества комментариев для перевода задачи.
+    
+    Args:
+        translation_id: ID перевода задачи
+        
+    Returns:
+        JSONResponse: Количество комментариев
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/count/"
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(django_url, timeout=10.0)
+        
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"❌ Error fetching comments count: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in get_comments_count: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/tasks/translations/{translation_id}/comments/")
+async def create_task_comment(translation_id: int, request: Request):
+    """
+    Создание нового комментария или ответа на комментарий.
+    
+    Args:
+        translation_id: ID перевода задачи
+        request: Запрос с данными комментария (text, author_telegram_id, author_username, parent_comment, images)
+        
+    Returns:
+        JSONResponse: Созданный комментарий
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/"
+        
+        # Проверяем тип контента
+        content_type = request.headers.get("content-type", "")
+        
+        if "multipart/form-data" in content_type:
+            # Обрабатываем загрузку с изображениями
+            form_data = await request.form()
+            
+            # Подготавливаем данные и файлы
+            data = {}
+            files = []
+            
+            for key, value in form_data.items():
+                if key == 'images':
+                    # Обрабатываем изображения
+                    if hasattr(value, 'read'):
+                        file_content = await value.read()
+                        files.append(('images', (value.filename, file_content, value.content_type)))
+                else:
+                    data[key] = value
+            
+            # Получаем все изображения из form_data
+            images = form_data.getlist('images')
+            if images:
+                files = []
+                for img in images:
+                    if hasattr(img, 'read'):
+                        file_content = await img.read()
+                        files.append(('images', (img.filename, file_content, img.content_type)))
+            
+            async with httpx.AsyncClient(follow_redirects=True) as client:
+                response = await client.post(
+                    django_url,
+                    data=data,
+                    files=files if files else None,
+                    timeout=30.0
+                )
+        else:
+            # JSON данные
+            body = await request.json()
+            
+            async with httpx.AsyncClient(follow_redirects=True) as client:
+                response = await client.post(
+                    django_url,
+                    json=body,
+                    timeout=30.0
+                )
+        
+        if response.status_code == 201:
+            logger.info(f"✅ Comment created for translation {translation_id}")
+            return JSONResponse(content=response.json(), status_code=201)
+        else:
+            logger.error(f"❌ Error creating comment: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in create_task_comment: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.patch("/tasks/translations/{translation_id}/comments/{comment_id}/")
+async def update_task_comment(translation_id: int, comment_id: int, request: Request, telegram_id: int):
+    """
+    Обновление текста комментария.
+    
+    Args:
+        translation_id: ID перевода задачи
+        comment_id: ID комментария
+        request: Запрос с новым текстом
+        telegram_id: Telegram ID пользователя для проверки прав
+        
+    Returns:
+        JSONResponse: Обновленный комментарий
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/{comment_id}/"
+        params = {'telegram_id': telegram_id}
+        
+        body = await request.json()
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.patch(
+                django_url,
+                json=body,
+                params=params,
+                timeout=10.0
+            )
+        
+        if response.status_code == 200:
+            logger.info(f"✅ Comment {comment_id} updated")
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"❌ Error updating comment: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in update_task_comment: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/tasks/translations/{translation_id}/comments/{comment_id}/")
+async def delete_task_comment(translation_id: int, comment_id: int, telegram_id: int):
+    """
+    Удаление комментария (мягкое удаление).
+    
+    Args:
+        translation_id: ID перевода задачи
+        comment_id: ID комментария
+        telegram_id: Telegram ID пользователя для проверки прав
+        
+    Returns:
+        Response: Пустой ответ с кодом 204
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/{comment_id}/"
+        params = {'telegram_id': telegram_id}
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.delete(django_url, params=params, timeout=10.0)
+        
+        if response.status_code == 204:
+            logger.info(f"✅ Comment {comment_id} deleted")
+            return Response(status_code=204)
+        else:
+            logger.error(f"❌ Error deleting comment: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in delete_task_comment: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/tasks/translations/{translation_id}/comments/{comment_id}/report/")
+async def report_task_comment(translation_id: int, comment_id: int, request: Request):
+    """
+    Отправка жалобы на комментарий.
+    
+    Args:
+        translation_id: ID перевода задачи
+        comment_id: ID комментария
+        request: Запрос с данными жалобы (reporter_telegram_id, reason, description)
+        
+    Returns:
+        JSONResponse: Созданная жалоба
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/{comment_id}/report/"
+        
+        body = await request.json()
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post(
+                django_url,
+                json=body,
+                timeout=10.0
+            )
+        
+        if response.status_code == 201:
+            logger.info(f"✅ Report submitted for comment {comment_id}")
+            return JSONResponse(content=response.json(), status_code=201)
+        else:
+            logger.error(f"❌ Error reporting comment: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in report_task_comment: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -3,6 +3,7 @@
 {% block title %}{{ subtopic.name }} - {{ translations.get('tasks', 'Задачи') }}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ get_css_url('comments.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -45,6 +46,29 @@
                         <p>{{ task.explanation }}</p>
                     </div>
                 </div>
+
+                <!-- Секция комментариев -->
+                <div class="comments-section" id="comments-{{ task.translation_id }}" data-translation-id="{{ task.translation_id }}">
+                    <h4>
+                        {{ translations.get('comments', 'Комментарии') }}
+                        <span class="comments-count">(0)</span>
+                    </h4>
+                    
+                    <div class="comments-list" id="comments-list-{{ task.translation_id }}">
+                        <div class="comments-loading">{{ translations.get('loading', 'Загрузка') }}...</div>
+                    </div>
+                    
+                    <div class="comment-form" id="comment-form-{{ task.translation_id }}">
+                        <textarea placeholder="{{ translations.get('add_comment', 'Добавить комментарий') }}..."></textarea>
+                        <div class="comment-form-actions">
+                            <div class="comment-form-left">
+                                <input type="file" class="comment-image-input" accept="image/*" multiple>
+                                <button class="comment-image-btn">📷 {{ translations.get('photo', 'Фото') }}</button>
+                            </div>
+                            <button class="comment-submit-btn">{{ translations.get('send', 'Отправить') }}</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         {% else %}
@@ -54,4 +78,62 @@
         {% endif %}
     </div>
 </div>
+
+<script src="{{ get_js_url('comments.js') }}"></script>
+<script>
+// Инициализация комментариев для каждой задачи
+function initializeComments() {
+    console.log('🔧 Initializing comments...');
+    
+    // Ждём создания currentUser (максимум 5 секунд)
+    const waitForUser = setInterval(() => {
+        if (window.currentUser && window.currentUser.telegram_id) {
+            clearInterval(waitForUser);
+            
+            const telegramId = window.currentUser.telegram_id;
+            const username = window.currentUser.first_name || window.currentUser.username || 'User';
+            
+            console.log('✅ Got user - Telegram ID:', telegramId, 'Username:', username);
+            
+            // Инициализируем комментарии для каждой задачи
+            const sections = document.querySelectorAll('.comments-section');
+            console.log('📝 Found comment sections:', sections.length);
+            
+            sections.forEach(section => {
+                const translationId = section.dataset.translationId;
+                console.log('🔍 Section translation ID:', translationId);
+                
+                if (translationId && telegramId) {
+                    const manager = new CommentsManager(translationId, telegramId, username);
+                    manager.init();
+                    
+                    // Сохраняем менеджер для доступа из HTML
+                    if (!window.commentManagers) {
+                        window.commentManagers = {};
+                    }
+                    window.commentManagers[translationId] = manager;
+                    console.log('✅ Initialized manager for translation:', translationId);
+                } else {
+                    console.warn('⚠️ Missing translation ID or telegram ID for section');
+                }
+            });
+        }
+    }, 100);
+    
+    // Таймаут через 5 секунд
+    setTimeout(() => {
+        clearInterval(waitForUser);
+        if (!window.currentUser || !window.currentUser.telegram_id) {
+            console.error('❌ Failed to initialize comments: currentUser not found');
+        }
+    }, 5000);
+}
+
+// Запускаем после загрузки DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeComments);
+} else {
+    initializeComments();
+}
+</script>
 {% endblock %} 

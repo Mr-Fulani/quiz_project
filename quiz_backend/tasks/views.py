@@ -176,7 +176,8 @@ def tasks_by_subtopic(request, subtopic_id):
                     'answers': shuffled_answers,
                     'correct_answer': translation.correct_answer,
                     'explanation': translation.explanation or '',
-                    'is_solved': False  # Для мини-приложения пока всегда False
+                    'is_solved': False,  # Для мини-приложения пока всегда False
+                    'translation_id': translation.id  # Для системы комментариев
                 }
                 tasks_data.append(task_data)
         

@@ -641,3 +641,177 @@ class TaskPoll(models.Model):
 
     def __str__(self):
         return f"Опрос для задачи {self.task_id}"
+
+
+class TaskComment(models.Model):
+    """
+    Модель комментария к переводу задачи.
+    Поддерживает древовидную структуру (комментарии и ответы на них).
+    """
+    class Meta:
+        db_table = 'task_comments'
+        verbose_name = 'Комментарий к задаче'
+        verbose_name_plural = 'Комментарии к задачам'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['task_translation', 'parent_comment']),
+            models.Index(fields=['author_telegram_id']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['is_deleted']),
+        ]
+
+    id = models.AutoField(primary_key=True)
+    task_translation = models.ForeignKey(
+        TaskTranslation,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        help_text='Перевод задачи, к которому относится комментарий'
+    )
+    author_telegram_id = models.BigIntegerField(
+        help_text='Telegram ID автора комментария'
+    )
+    author_username = models.CharField(
+        max_length=255,
+        help_text='Имя пользователя для отображения'
+    )
+    text = models.TextField(
+        help_text='Текст комментария'
+    )
+    parent_comment = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='replies',
+        help_text='Родительский комментарий для древовидной структуры'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Дата и время создания комментария'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text='Дата и время последнего обновления'
+    )
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text='Мягкое удаление комментария'
+    )
+    reports_count = models.IntegerField(
+        default=0,
+        help_text='Количество жалоб на комментарий'
+    )
+
+    def __str__(self):
+        return f"Комментарий {self.id} от {self.author_username}"
+    
+    def get_replies_count(self):
+        """Возвращает количество ответов на комментарий"""
+        return self.replies.filter(is_deleted=False).count()
+    
+    def get_depth(self):
+        """Возвращает глубину вложенности комментария"""
+        depth = 0
+        current = self.parent_comment
+        while current is not None:
+            depth += 1
+            current = current.parent_comment
+        return depth
+
+
+class TaskCommentImage(models.Model):
+    """
+    Модель для хранения изображений, прикрепленных к комментариям.
+    """
+    class Meta:
+        db_table = 'task_comment_images'
+        verbose_name = 'Изображение комментария'
+        verbose_name_plural = 'Изображения комментариев'
+        ordering = ['id']
+
+    id = models.AutoField(primary_key=True)
+    comment = models.ForeignKey(
+        TaskComment,
+        on_delete=models.CASCADE,
+        related_name='images',
+        help_text='Комментарий, к которому относится изображение'
+    )
+    image = models.ImageField(
+        upload_to='task_comments/',
+        help_text='Изображение комментария'
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Дата и время загрузки изображения'
+    )
+
+    def __str__(self):
+        return f"Изображение для комментария {self.comment_id}"
+
+
+class TaskCommentReport(models.Model):
+    """
+    Модель для хранения жалоб на комментарии.
+    Используется для модерации контента.
+    """
+    
+    REASON_CHOICES = [
+        ('spam', 'Спам'),
+        ('offensive', 'Оскорбительный контент'),
+        ('inappropriate', 'Неуместный контент'),
+        ('other', 'Другое'),
+    ]
+    
+    class Meta:
+        db_table = 'task_comment_reports'
+        verbose_name = 'Жалоба на комментарий'
+        verbose_name_plural = 'Жалобы на комментарии'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['comment', 'is_reviewed']),
+            models.Index(fields=['reporter_telegram_id']),
+            models.Index(fields=['created_at']),
+        ]
+        unique_together = ('comment', 'reporter_telegram_id')  # Один пользователь - одна жалоба
+
+    id = models.AutoField(primary_key=True)
+    comment = models.ForeignKey(
+        TaskComment,
+        on_delete=models.CASCADE,
+        related_name='reports',
+        help_text='Комментарий, на который подана жалоба'
+    )
+    reporter_telegram_id = models.BigIntegerField(
+        help_text='Telegram ID пользователя, подавшего жалобу'
+    )
+    reason = models.CharField(
+        max_length=20,
+        choices=REASON_CHOICES,
+        help_text='Причина жалобы'
+    )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Дополнительное описание жалобы'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Дата и время подачи жалобы'
+    )
+    is_reviewed = models.BooleanField(
+        default=False,
+        help_text='Проверена ли жалоба модератором'
+    )
+
+    def __str__(self):
+        return f"Жалоба на комментарий {self.comment_id} от пользователя {self.reporter_telegram_id}"
+    
+    def save(self, *args, **kwargs):
+        """При сохранении жалобы увеличиваем счётчик в комментарии"""
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        if is_new:
+            # Увеличиваем счётчик жалоб
+            self.comment.reports_count = self.comment.reports.count()
+            self.comment.save(update_fields=['reports_count'])
