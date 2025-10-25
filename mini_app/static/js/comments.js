@@ -33,23 +33,10 @@ class CommentsManager {
         
         if (!header) return;
         
-        // По умолчанию свернуто
-        section.classList.add('collapsed');
-        
         // Обработчик клика по заголовку
         header.addEventListener('click', () => {
             section.classList.toggle('collapsed');
-            
-            // Сохраняем состояние в localStorage
-            const isCollapsed = section.classList.contains('collapsed');
-            localStorage.setItem(`comments-collapsed-${this.translationId}`, isCollapsed);
         });
-        
-        // Восстанавливаем сохранённое состояние (если было развернуто)
-        const savedState = localStorage.getItem(`comments-collapsed-${this.translationId}`);
-        if (savedState === 'false') {
-            section.classList.remove('collapsed');
-        }
     }
 
     /**
