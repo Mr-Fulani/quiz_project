@@ -200,17 +200,17 @@ class CommentsManager {
             <div class="comment-actions">
                 ${level < 2 && !comment.is_deleted ? `
                     <button class="comment-action" data-action="reply" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        💬 ${t.reply || 'Ответить'}
+                        💬 ${window.translations?.reply || 'Ответить'}
                     </button>
                 ` : ''}
                 ${canDelete && !comment.is_deleted ? `
                     <button class="comment-action danger" data-action="delete" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        🗑️ ${t.delete || 'Удалить'}
+                        🗑️ ${window.translations?.delete || 'Удалить'}
                     </button>
                 ` : ''}
                 ${!comment.is_deleted && comment.author_telegram_id != this.telegramId ? `
                     <button class="comment-action" data-action="report" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        ⚠️ ${t.report || 'Пожаловаться'}
+                        ⚠️ ${window.translations?.report || 'Пожаловаться'}
                     </button>
                 ` : ''}
             </div>

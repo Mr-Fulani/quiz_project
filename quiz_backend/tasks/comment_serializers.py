@@ -102,21 +102,22 @@ class TaskCommentSerializer(serializers.ModelSerializer):
         """Возвращает отформатированное время создания"""
         from django.utils import timezone
         from datetime import timedelta
+        from django.utils.translation import gettext as _
         
         now = timezone.now()
         diff = now - obj.created_at
         
         if diff < timedelta(minutes=1):
-            return "только что"
+            return _("только что")
         elif diff < timedelta(hours=1):
             minutes = int(diff.total_seconds() / 60)
-            return f"{minutes} мин. назад"
+            return _("%(minutes)s мин. назад") % {'minutes': minutes}
         elif diff < timedelta(days=1):
             hours = int(diff.total_seconds() / 3600)
-            return f"{hours} ч. назад"
+            return _("%(hours)s ч. назад") % {'hours': hours}
         elif diff < timedelta(days=30):
             days = diff.days
-            return f"{days} дн. назад"
+            return _("%(days)s дн. назад") % {'days': days}
         else:
             return obj.created_at.strftime('%d.%m.%Y')
 
