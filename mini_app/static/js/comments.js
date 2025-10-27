@@ -433,23 +433,20 @@ class CommentsManager {
 
         const replyPlaceholder = window.translations?.reply_placeholder || 'Напишите ответ...';
         const photoText = window.translations?.photo || 'Фото';
-        const cancelText = window.translations?.cancel || 'Отмена';
         const replyText = window.translations?.reply || 'Ответить';
         
         const form = document.createElement('div');
         form.className = 'comment-form reply-form';
         form.dataset.replyingTo = commentId;
         form.innerHTML = `
+            <button class="comment-close-btn" data-action="close-reply-form" data-translation-id="${this.translationId}">✕</button>
             <textarea placeholder="${replyPlaceholder}"></textarea>
             <div class="comment-form-actions">
                 <div class="comment-form-left">
                     <input type="file" class="comment-image-input" accept="image/*" multiple>
                     <button class="comment-image-btn">📷 ${photoText}</button>
                 </div>
-                <div>
-                    <button class="comment-cancel-btn">${cancelText}</button>
-                    <button class="comment-submit-btn">${replyText}</button>
-                </div>
+                <button class="comment-submit-btn">${replyText}</button>
             </div>
         `;
 
@@ -457,18 +454,14 @@ class CommentsManager {
         commentElement.insertAdjacentElement('afterend', form);
         this.replyingTo = commentId;
 
-        // Обработчики уже настроены через глобальное делегирование событий
-        // Нужен только обработчик для кнопки "Отмена"
+        // Скроллим к форме плавно без агрессивного позиционирования
+        setTimeout(() => {
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+
+        // Фокусируем textarea
         const textarea = form.querySelector('textarea');
-        const cancelBtn = form.querySelector('.comment-cancel-btn');
-
-        const self = this;
-        cancelBtn.onclick = () => {
-            form.remove();
-            self.replyingTo = null;
-        };
-
-        textarea.focus();
+        setTimeout(() => textarea.focus(), 200);
     }
 
     /**
@@ -663,6 +656,14 @@ document.addEventListener('click', (e) => {
                     manager.removeImage(imageIndex);
                 }
                 break;
+            case 'close-reply-form':
+                // Закрытие формы ответа через крестик
+                const form = btn.closest('.reply-form');
+                if (form && manager) {
+                    manager.replyingTo = null;
+                    form.remove();
+                }
+                break;
         }
         e.stopPropagation();
         return;
@@ -743,8 +744,6 @@ document.addEventListener('change', (e) => {
 });
 
 // Обработчик для автоматического скролла при фокусе на textarea комментариев
-let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-
 document.addEventListener('focusin', (e) => {
     const textarea = e.target.closest('.comment-form textarea');
     if (textarea) {
@@ -754,71 +753,8 @@ document.addEventListener('focusin', (e) => {
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.expand();
         }
-        
-        // Сохраняем элемент для последующего использования
-        window.activeCommentTextarea = textarea;
-        
-        // Подписываемся на изменение viewport (появление клавиатуры)
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', handleViewportResize);
-            window.visualViewport.addEventListener('scroll', handleViewportScroll);
-        }
     }
 });
-
-document.addEventListener('focusout', (e) => {
-    const textarea = e.target.closest('.comment-form textarea');
-    if (textarea) {
-        console.log('⌨️ Textarea blurred');
-        
-        // Отписываемся от событий viewport
-        if (window.visualViewport) {
-            window.visualViewport.removeEventListener('resize', handleViewportResize);
-            window.visualViewport.removeEventListener('scroll', handleViewportScroll);
-        }
-        
-        window.activeCommentTextarea = null;
-    }
-});
-
-function handleViewportResize() {
-    if (!window.activeCommentTextarea) return;
-    
-    const currentHeight = window.visualViewport.height;
-    const heightDiff = initialViewportHeight - currentHeight;
-    
-    console.log('📐 Viewport resized:', currentHeight, 'diff:', heightDiff);
-    
-    // Если viewport уменьшился (появилась клавиатура)
-    if (heightDiff > 100) {
-        const form = window.activeCommentTextarea.closest('.comment-form');
-        if (form) {
-            // Прокручиваем к форме с учетом клавиатуры
-            setTimeout(() => {
-                const formRect = form.getBoundingClientRect();
-                const scrollTop = window.scrollY + formRect.top - 20;
-                
-                window.scrollTo({
-                    top: scrollTop,
-                    behavior: 'smooth'
-                });
-            }, 100);
-        }
-    }
-}
-
-function handleViewportScroll() {
-    // Дополнительная синхронизация при скролле viewport
-    if (window.activeCommentTextarea) {
-        const form = window.activeCommentTextarea.closest('.comment-form');
-        if (form) {
-            form.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    }
-}
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
