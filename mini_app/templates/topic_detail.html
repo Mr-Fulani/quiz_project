@@ -34,13 +34,14 @@ div.topic-detail-container div.subtopics-grid {
 
 {% block content %}
 <div class="topic-detail-container">
-    <!-- Кнопка "Назад" для возврата на главную страницу -->
-    <div class="back-button-container">
-        <button class="back-button" onclick="goBackToMain()">
+    <!-- Заголовок с кнопкой "Назад" и названием темы -->
+    <header class="page-header">
+        <div class="back-button" onclick="goBackToMain()">
             <i class="fas fa-arrow-left"></i>
             <span>{{ translations.get('back_button', 'Назад') }}</span>
-        </button>
-    </div>
+        </div>
+        <h1>{{ topic.name }}</h1>
+    </header>
     
     <div class="subtopics-grid" style="display: grid !important; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important; gap: 20px !important;">
         {% for subtopic in subtopics %}
