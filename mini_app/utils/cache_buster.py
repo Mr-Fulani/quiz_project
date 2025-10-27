@@ -72,7 +72,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 # Версии для критически важных файлов
 STATIC_VERSIONS = {
     'donation.js': '2.9',  # Установлена английская локаль для Stripe Elements
-    'localization.js': '2.4',  # CRITICAL FIX: Удалены \n символы из переводов (ломали JSON.parse)
+    'localization.js': '2.6',  # Добавлен перевод image_hint для подсказки о фото
     'share-app.js': '2.0',  # Улучшено: display flex для корректного отображения модального окна
     'search.js': '2.2',  # Исправлено: добавлен has_tasks в API endpoint и language в запрос
     'tasks.js': '3.12',  # Центрирование toast уведомлений с учетом Safe Areas
@@ -104,8 +104,8 @@ STATIC_VERSIONS = {
     # Добавляем недостающие CSS файлы для единообразного кэширования
     'topic_detail.css': '1.1',  # Убрана анимация для мгновенного отображения прогресса при загрузке
     'tasks.css': '1.0',  # Унификация кэширования
-    'settings.css': '6.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
-    'feedback.js': '2.5',  # CRITICAL FIX: Заменен window.t() на window.translations для совместимости
+    'settings.css': '6.2',  # Добавлена подсказка об изображениях
+    'feedback.js': '2.6',  # Добавлена поддержка загрузки изображений (до 3 шт, макс 5MB)
     'admin_analytics.js': '4.4',  # FIX: фильтрация донатов мини-аппа на фронтенде из by_source
     'settings.js': '3.1',  # FIX: предотвращена повторная декларация класса при SPA
     'admin_analytics.css': '1.4',  # FIX: Добавлены Safe Area Insets для единообразия с другими страницами

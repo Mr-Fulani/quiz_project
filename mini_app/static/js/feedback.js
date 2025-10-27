@@ -12,6 +12,7 @@ if (typeof FeedbackSystem === 'undefined') {
         this.selectedCategory = null;  // Не выбрана по умолчанию - пользователь должен выбрать сам
         this.isSubmitting = false;
         this.eventHandlers = []; // Для отслеживания обработчиков
+        this.selectedImages = []; // Массив выбранных изображений
         
         this.init();
     }
@@ -79,7 +80,131 @@ if (typeof FeedbackSystem === 'undefined') {
             console.warn('⚠️ Contact admin button not found');
         }
         
+        // Обработчик для кнопки прикрепления изображений
+        const imageBtn = document.querySelector('.feedback-image-btn');
+        console.log('Image button:', imageBtn);
+        if (imageBtn) {
+            const handler = () => {
+                console.log('Image button clicked');
+                const imageInput = document.querySelector('.feedback-image-input');
+                if (imageInput) imageInput.click();
+            };
+            imageBtn.addEventListener('click', handler);
+            this.eventHandlers.push({element: imageBtn, event: 'click', handler});
+        }
+        
+        // Обработчик для выбора файлов
+        const imageInput = document.querySelector('.feedback-image-input');
+        console.log('Image input:', imageInput);
+        if (imageInput) {
+            const handler = (e) => {
+                console.log('Image input changed');
+                this.previewImages(e.target.files);
+            };
+            imageInput.addEventListener('change', handler);
+            this.eventHandlers.push({element: imageInput, event: 'change', handler});
+        }
+        
         console.log('✅ FeedbackSystem: Event listeners set up');
+    }
+    
+    /**
+     * Превью выбранных изображений
+     */
+    previewImages(files) {
+        const filesArray = Array.from(files);
+        
+        // Валидация количества
+        if (filesArray.length > 3) {
+            const maxImagesError = window.translations?.max_images_error || 'Максимум 3 изображения';
+            alert(maxImagesError);
+            const imageInput = document.querySelector('.feedback-image-input');
+            if (imageInput) imageInput.value = '';
+            return;
+        }
+
+        // Валидация размера и типа файлов
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+        const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        
+        for (let i = 0; i < filesArray.length; i++) {
+            const file = filesArray[i];
+            
+            // Проверка размера
+            if (file.size > MAX_FILE_SIZE) {
+                const tooLargeText = window.translations?.image_too_large || 'Изображение слишком большое! Максимум: 5 MB. Текущий размер:';
+                alert(`${tooLargeText} ${(file.size / (1024 * 1024)).toFixed(2)} MB\n"${file.name}"`);
+                const imageInput = document.querySelector('.feedback-image-input');
+                if (imageInput) imageInput.value = '';
+                return;
+            }
+            
+            // Проверка типа
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                const invalidFormatText = window.translations?.invalid_format || 'Недопустимый формат. Разрешены: JPEG, PNG, GIF, WebP';
+                alert(`"${file.name}": ${file.type}\n\n${invalidFormatText}`);
+                const imageInput = document.querySelector('.feedback-image-input');
+                if (imageInput) imageInput.value = '';
+                return;
+            }
+        }
+
+        this.selectedImages = filesArray;
+        
+        // Удаляем старый превью
+        let previewContainer = document.querySelector('.feedback-images-preview');
+        if (previewContainer) {
+            previewContainer.innerHTML = '';
+        }
+
+        if (filesArray.length === 0) return;
+
+        filesArray.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.createElement('div');
+                preview.className = 'feedback-image-preview';
+                
+                // Форматируем размер файла
+                const sizeKB = (file.size / 1024).toFixed(1);
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                const sizeText = file.size < 1024 * 1024 ? `${sizeKB} KB` : `${sizeMB} MB`;
+                
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <div style="position: absolute; bottom: 25px; left: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">
+                        📦 ${sizeText}
+                    </div>
+                    <button class="feedback-image-remove" data-image-index="${index}">×</button>
+                `;
+                previewContainer.appendChild(preview);
+                
+                // Обработчик удаления
+                const removeBtn = preview.querySelector('.feedback-image-remove');
+                removeBtn.addEventListener('click', () => this.removeImage(index));
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    /**
+     * Удаление изображения из превью
+     */
+    removeImage(index) {
+        const imageInput = document.querySelector('.feedback-image-input');
+        if (!imageInput) return;
+
+        const dt = new DataTransfer();
+        const files = Array.from(imageInput.files);
+        
+        files.forEach((file, i) => {
+            if (i !== index) dt.items.add(file);
+        });
+
+        imageInput.files = dt.files;
+        
+        // Обновляем превью
+        this.previewImages(imageInput.files);
     }
     
     selectCategory(element) {
@@ -143,17 +268,27 @@ if (typeof FeedbackSystem === 'undefined') {
         this.showStatus('info', sendingMsg);
         
         try {
+            // Используем FormData для отправки с изображениями
+            const formData = new FormData();
+            formData.append('telegram_id', user.id);
+            formData.append('username', user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim());
+            formData.append('message', message);
+            formData.append('category', this.selectedCategory);
+            formData.append('source', 'mini_app');
+            
+            // Добавляем изображения
+            const imageInput = document.querySelector('.feedback-image-input');
+            if (imageInput && imageInput.files.length > 0) {
+                Array.from(imageInput.files).forEach(file => {
+                    formData.append('images', file);
+                });
+                console.log(`📷 Прикреплено ${imageInput.files.length} изображений`);
+            }
+            
             const response = await fetch('/api/feedback/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    telegram_id: user.id,
-                    username: user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-                    message: message,
-                    category: this.selectedCategory
-                })
+                body: formData
+                // НЕ указываем Content-Type - браузер сам установит multipart/form-data с boundary
             });
             
             const data = await response.json();
@@ -172,6 +307,17 @@ if (typeof FeedbackSystem === 'undefined') {
                     option.classList.remove('selected');
                 });
                 this.selectedCategory = null;
+                
+                // Очищаем изображения
+                const imageInput = document.querySelector('.feedback-image-input');
+                if (imageInput) {
+                    imageInput.value = '';
+                }
+                const previewContainer = document.querySelector('.feedback-images-preview');
+                if (previewContainer) {
+                    previewContainer.innerHTML = '';
+                }
+                this.selectedImages = [];
                 
                 console.log('✅ Feedback submitted successfully');
             } else {

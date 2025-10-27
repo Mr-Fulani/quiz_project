@@ -731,18 +731,24 @@ async def get_config():
 async def submit_feedback(request: Request):
     """
     Отправка обратной связи из мини-аппа в Django API.
+    Поддерживает multipart/form-data для загрузки изображений.
     """
     logger.info(f"📝 ПОЛУЧЕН ЗАПРОС НА ОТПРАВКУ ОБРАТНОЙ СВЯЗИ")
     
     try:
-        # Получаем данные из запроса
-        data = await request.json()
-        telegram_id = data.get('telegram_id')
-        username = data.get('username', '')
-        message = data.get('message', '')
-        category = data.get('category', 'other')
+        # Проверяем тип контента
+        content_type = request.headers.get("content-type", "")
+        logger.info(f"Content-Type: {content_type}")
         
-        logger.info(f"Feedback data: telegram_id={telegram_id}, category={category}, message_length={len(message)}")
+        # Получаем данные формы
+        form_data = await request.form()
+        
+        telegram_id = form_data.get('telegram_id')
+        username = form_data.get('username', '')
+        message = form_data.get('message', '')
+        category = form_data.get('category', 'other')
+        
+        logger.info(f"Feedback data: telegram_id={telegram_id}, category={category}, message_length={len(message) if message else 0}")
         
         # Валидация данных
         if not telegram_id:
@@ -753,23 +759,54 @@ async def submit_feedback(request: Request):
             logger.error("message is missing or too short")
             raise HTTPException(status_code=400, detail="message is required and must be at least 3 characters")
         
-        # Отправляем запрос в Django API
+        # Подготавливаем данные для отправки в Django
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/submit/"
-        payload = {
-            'user_id': telegram_id,
+        
+        # Создаем FormData для отправки
+        files = []
+        data_dict = {
+            'user_id': str(telegram_id),
             'username': username,
             'message': message,
             'category': category,
             'source': 'mini_app'
         }
         
+        # Собираем изображения если есть
+        image_files = []
+        for key in form_data.keys():
+            if key == 'images':
+                # Получаем все файлы с именем 'images'
+                images_list = form_data.getlist('images')
+                logger.info(f"📷 Найдено {len(images_list)} изображений")
+                for img_file in images_list:
+                    if hasattr(img_file, 'file'):
+                        # Читаем содержимое файла
+                        content = await img_file.read()
+                        image_files.append(
+                            ('images', (img_file.filename, content, img_file.content_type))
+                        )
+                        logger.info(f"📷 Добавлено изображение: {img_file.filename}, размер: {len(content)} байт")
+        
         # Устанавливаем правильный Host header для Django
         headers = {
             'Host': 'localhost',  # Django ожидает localhost, а не nginx_local
         }
         
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.post(django_url, json=payload, headers=headers, timeout=10.0)
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+            if image_files:
+                # Отправляем multipart/form-data с файлами
+                logger.info(f"📤 Отправляем данные с {len(image_files)} изображениями")
+                response = await client.post(
+                    django_url,
+                    data=data_dict,
+                    files=image_files,
+                    headers=headers
+                )
+            else:
+                # Отправляем обычный JSON
+                logger.info(f"📤 Отправляем данные без изображений")
+                response = await client.post(django_url, json=data_dict, headers=headers)
         
         if response.status_code == 201 or response.status_code == 200:
             logger.info(f"✅ Feedback submitted successfully for telegram_id: {telegram_id}")

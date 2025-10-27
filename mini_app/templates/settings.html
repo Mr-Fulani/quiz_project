@@ -244,8 +244,22 @@
                       placeholder="{{ translations.get('feedback_message_placeholder', 'Опишите вашу проблему или предложение...') }}" 
                       rows="5"></textarea>
             
+            <!-- Превью изображений (будет добавлено динамически) -->
+            <div class="feedback-images-preview"></div>
+            
+            <!-- Скрытый input для выбора файлов -->
+            <input type="file" class="feedback-image-input" accept="image/*" multiple style="display: none;">
+            
+            <!-- Подсказка об изображениях -->
+            <div class="feedback-image-hint" data-translate="image_hint">
+                {{ translations.get('image_hint', 'Можно прикрепить до 3 фото (макс. 5MB каждое)') }}
+            </div>
+            
             <!-- Кнопки отправки -->
             <div class="feedback-actions">
+                <button class="feedback-image-btn" type="button">
+                    📷 <span data-translate="attach_images">{{ translations.get('attach_images', 'Прикрепить фото') }}</span>
+                </button>
                 <button class="send-feedback-btn" type="button">
                     <span data-translate="send_feedback">{{ translations.get('send_feedback', 'Отправить') }}</span>
                 </button>
