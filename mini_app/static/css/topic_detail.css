@@ -159,36 +159,51 @@
 .difficulty-bars {
     margin-top: 20px;
     display: grid;
-    gap: 14px;
+    gap: 16px;
 }
 
 .diff-row {
     display: grid;
-    grid-template-columns: 70px 1fr;
+    grid-template-columns: 70px 1fr 30px;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .diff-label {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     text-align: left;
     font-weight: 600;
+    text-transform: capitalize;
 }
 
 .diff-bar {
     position: relative;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 0, 0.4);
-    border-radius: 12px;
-    overflow: hidden;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(0, 255, 0, 0.5);
+    border-radius: 16px;
+    overflow: visible;
     cursor: pointer;
     transition: all 0.3s ease;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Иконка для кликабельности */
+.diff-bar::after {
+    content: '▶';
+    position: absolute;
+    right: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--active-color);
+    opacity: 0.6;
+    transition: all 0.3s ease;
 }
 
 .subtopic-card .diff-bar {
@@ -196,14 +211,22 @@
 }
 
 .diff-bar:hover {
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
     border-color: var(--active-color);
-    background: rgba(0, 255, 0, 0.1);
+    background: rgba(0, 255, 0, 0.15);
+    transform: translateX(2px);
+    border-width: 2px;
+}
+
+.diff-bar:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(3px);
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
 }
 
 .diff-bar:active {
-    transform: scale(0.985);
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+    transform: scale(0.985) translateX(2px);
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .diff-fill {
@@ -211,9 +234,9 @@
     left: 0;
     top: 0;
     height: 100%;
-    border-radius: 12px;
+    border-radius: 14px;
     width: 100%;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .diff-solved {
@@ -221,52 +244,94 @@
     left: 0;
     top: 0;
     height: 100%;
-    border-radius: 12px;
-    transition: width 0.25s ease;
+    border-radius: 14px;
+    transition: width 0.4s ease;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.85;
+    }
 }
 
 .diff-solved.easy {
-    background: linear-gradient(90deg, #16a34a, #22c55e);
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    background: linear-gradient(90deg, #16a34a, #22c55e, #16a34a);
+    background-size: 200% 100%;
+    animation: pulse-glow 2s ease-in-out infinite, gradient-shift 3s ease infinite;
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .diff-solved.medium {
-    background: linear-gradient(90deg, #d97706, #f59e0b);
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    background: linear-gradient(90deg, #d97706, #f59e0b, #d97706);
+    background-size: 200% 100%;
+    animation: pulse-glow 2s ease-in-out infinite, gradient-shift 3s ease infinite;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .diff-solved.hard {
-    background: linear-gradient(90deg, #dc2626, #ef4444);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    background: linear-gradient(90deg, #dc2626, #ef4444, #dc2626);
+    background-size: 200% 100%;
+    animation: pulse-glow 2s ease-in-out infinite, gradient-shift 3s ease infinite;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .diff-solved.all {
-    background: linear-gradient(90deg, #2563eb, #3b82f6);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb);
+    background-size: 200% 100%;
+    animation: pulse-glow 2s ease-in-out infinite, gradient-shift 3s ease infinite;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 .diff-bar.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.diff-bar.disabled::after {
+    content: '🔒';
+    opacity: 0.3;
 }
 
 .diff-bar.disabled:hover,
 .diff-bar.disabled:active {
-    box-shadow: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     transform: none;
-    border-color: rgba(0, 255, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.diff-bar.disabled:hover::after {
+    opacity: 0.3;
+    transform: translateY(-50%);
+    text-shadow: none;
 }
 
 .diff-text {
     position: absolute;
-    right: 10px;
+    right: 35px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 13px;
+    font-size: 14px;
     color: #ffffff;
     font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    pointer-events: none;
 }
 
 /* Сообщение об отсутствии подтем */
@@ -333,6 +398,19 @@
 }
 
 @media (max-width: 480px) {
+    .page-header {
+        gap: 10px;
+    }
+    
+    .page-header h1 {
+        font-size: 18px;
+    }
+    
+    .back-button {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+    
     .subtopics-grid {
         grid-template-columns: 1fr !important;
         gap: 15px !important;
@@ -340,5 +418,24 @@
     
     .subtopic-card {
         padding: 15px;
+    }
+    
+    .diff-row {
+        grid-template-columns: 60px 1fr 25px;
+        gap: 8px;
+    }
+    
+    .diff-bar {
+        height: 28px;
+    }
+    
+    .diff-bar::after {
+        right: -22px;
+        font-size: 12px;
+    }
+    
+    .diff-text {
+        font-size: 12px;
+        right: 30px;
     }
 }
