@@ -4,10 +4,11 @@
  */
 
 class CommentsManager {
-    constructor(translationId, telegramId, username) {
+    constructor(translationId, telegramId, username, language = 'en') {
         this.translationId = translationId;
         this.telegramId = telegramId;
         this.username = username;
+        this.language = language || 'en';
         this.currentPage = 1;
         this.hasMore = false;
         this.comments = [];
@@ -54,7 +55,7 @@ class CommentsManager {
 
         try {
             const response = await fetch(
-                `/api/tasks/translations/${this.translationId}/comments/?page=${page}&ordering=-created_at`
+                `/api/tasks/translations/${this.translationId}/comments/?page=${page}&ordering=-created_at&language=${this.language}`
             );
 
             if (!response.ok) {
