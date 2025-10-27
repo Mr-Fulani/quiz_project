@@ -2302,20 +2302,21 @@ msgstr "Квизов"
 msgid "success_rate"
 msgstr "Успешность"
 
-msgid "top_users"
-msgstr "Топ юзеров"
-
-msgid "top_users_title"
-msgstr "Топ юзеров"
-
-msgid "no_top_users"
-msgstr "Пока нет лучших пользователей"
-
-msgid "keep_playing"
-msgstr "Продолжайте играть, чтобы попасть в топ!"
-
-msgid "Last 30 Days"
-msgstr "За 30 дней"
-
 msgid "top_users_description"
 msgstr "Лучшие игроки по рейтингу"
+
+# Переводы времени для комментариев к задачам
+msgid "только что"
+msgstr "только что"
+
+#, python-format
+msgid "%(minutes)s мин. назад"
+msgstr "%(minutes)s мин. назад"
+
+#, python-format
+msgid "%(hours)s ч. назад"
+msgstr "%(hours)s ч. назад"
+
+#, python-format
+msgid "%(days)s дн. назад"
+msgstr "%(days)s дн. назад"

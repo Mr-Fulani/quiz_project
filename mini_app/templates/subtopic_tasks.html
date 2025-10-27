@@ -99,12 +99,15 @@ window.initializeComments = function() {
             const sections = document.querySelectorAll('.comments-section');
             console.log('📝 Found comment sections:', sections.length);
             
+            // Получаем текущий язык приложения
+            const currentLanguage = document.getElementById('tasks-root')?.dataset.language || 'en';
+            
             sections.forEach(section => {
                 const translationId = section.dataset.translationId;
                 console.log('🔍 Section translation ID:', translationId);
                 
                 if (translationId && telegramId) {
-                    const manager = new CommentsManager(translationId, telegramId, username);
+                    const manager = new CommentsManager(translationId, telegramId, username, currentLanguage);
                     manager.init();
                     
                     // Сохраняем менеджер для доступа из HTML
@@ -112,7 +115,7 @@ window.initializeComments = function() {
                         window.commentManagers = {};
                     }
                     window.commentManagers[translationId] = manager;
-                    console.log('✅ Initialized manager for translation:', translationId);
+                    console.log('✅ Initialized manager for translation:', translationId, 'with language:', currentLanguage);
                 } else {
                     console.warn('⚠️ Missing translation ID or telegram ID for section');
                 }
