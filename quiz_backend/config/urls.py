@@ -16,7 +16,16 @@ from django.views.generic.base import RedirectView
 
 from blog.api.api_views import tinymce_image_upload
 from blog.views import custom_set_language
-from donation.views import create_payment_intent, create_payment_method, confirm_payment, stripe_webhook, get_stripe_publishable_key
+from donation.views import (
+    create_payment_intent, 
+    create_payment_method, 
+    confirm_payment, 
+    stripe_webhook, 
+    get_stripe_publishable_key,
+    get_crypto_currencies,
+    create_crypto_payment,
+    get_crypto_payment_status,
+)
 from social_auth.views import TelegramAuthView
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
@@ -82,6 +91,11 @@ urlpatterns = [
     path('donation/confirm-payment/', confirm_payment, name='confirm_payment'),
     path('donation/stripe-webhook/', stripe_webhook, name='stripe_webhook'),
     path('api/stripe-publishable-key/', get_stripe_publishable_key, name='get_stripe_publishable_key'),
+    
+    # Crypto donation API endpoints
+    path('api/donation/crypto-currencies/', get_crypto_currencies, name='api_crypto_currencies'),
+    path('api/donation/crypto/create-payment/', create_crypto_payment, name='api_create_crypto_payment'),
+    path('api/donation/crypto/status/<str:order_id>/', get_crypto_payment_status, name='api_crypto_payment_status'),
     
     # Редирект с корневого URL на английский язык (язык по умолчанию)
     path('', RedirectView.as_view(url='/en/', permanent=False), name='root-redirect'),
