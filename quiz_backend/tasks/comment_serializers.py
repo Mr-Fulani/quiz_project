@@ -165,12 +165,6 @@ class TaskCommentCreateSerializer(serializers.ModelSerializer):
     def validate_parent_comment(self, value):
         """Валидация родительского комментария"""
         if value:
-            # Проверяем глубину вложенности (максимум 3 уровня)
-            if value.get_depth() >= 2:
-                raise serializers.ValidationError(
-                    "Достигнут максимальный уровень вложенности комментариев"
-                )
-            
             # Проверяем, что родительский комментарий не удалён
             if value.is_deleted:
                 raise serializers.ValidationError(

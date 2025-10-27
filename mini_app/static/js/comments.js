@@ -114,7 +114,7 @@ class CommentsManager {
     }
 
     /**
-     * Рендеринг списка комментариев
+     * Рендеринг списка комментариев в плоской структуре (как в Instagram)
      */
     renderComments() {
         const container = document.getElementById(`comments-list-${this.translationId}`);
@@ -132,12 +132,19 @@ class CommentsManager {
         const rootComments = this.comments.filter(c => !c.parent_comment);
         console.log(`📊 Root comments to render: ${rootComments.length} из ${this.comments.length}`);
 
-        // Рендерим корневые комментарии
+        // Рендерим корневые комментарии и их ответы в плоской структуре
         rootComments.forEach((comment, index) => {
             console.log(`🎨 Rendering comment ${index + 1}/${rootComments.length}:`, comment);
-            const element = this.createCommentElement(comment, 0);
+            
+            // Добавляем основной комментарий
+            const element = this.createCommentElement(comment, null, null);
             console.log(`✅ Created element:`, element);
             container.appendChild(element);
+            
+            // Добавляем все ответы линейно (не вложенно)
+            if (comment.replies && comment.replies.length > 0) {
+                this.renderRepliesFlat(comment, container);
+            }
         });
 
         console.log(`✅ Rendered ${rootComments.length} comments to DOM`);
@@ -155,13 +162,33 @@ class CommentsManager {
             container.appendChild(loadMoreBtn);
         }
     }
+    
+    /**
+     * Рекурсивный рендеринг ответов в плоской структуре
+     */
+    renderRepliesFlat(comment, container) {
+        if (!comment.replies || comment.replies.length === 0) return;
+        
+        comment.replies.forEach(reply => {
+            // Создаем элемент ответа с указанием автора родительского комментария
+            const replyElement = this.createCommentElement(reply, comment.author_username, null);
+            container.appendChild(replyElement);
+            
+            // Рекурсивно добавляем ответы на этот ответ
+            if (reply.replies && reply.replies.length > 0) {
+                this.renderRepliesFlat(reply, container);
+            }
+        });
+    }
 
     /**
-     * Создание HTML элемента комментария
+     * Создание HTML элемента комментария (плоская структура)
      */
-    createCommentElement(comment, level) {
+    createCommentElement(comment, parentAuthor = null) {
         const div = document.createElement('div');
-        div.className = `comment-item level-${level}`;
+        // Определяем класс: reply если есть parent_comment, иначе root
+        const commentClass = comment.parent_comment ? 'comment-item comment-reply' : 'comment-item comment-root';
+        div.className = commentClass;
         div.dataset.commentId = comment.id;
         div.dataset.translationId = this.translationId;
         
@@ -170,12 +197,17 @@ class CommentsManager {
         }
 
         const canDelete = comment.author_telegram_id == this.telegramId;
+        
+        // Если это ответ и есть информация о родительском авторе
+        const replyToHtml = parentAuthor ? 
+            `<div class="reply-to">↳ ${window.translations?.reply_to || 'в ответ'} <span class="reply-to-author">@${this.escapeHtml(parentAuthor)}</span></div>` : '';
 
         div.innerHTML = `
             <div class="comment-header">
                 <span class="comment-author">${this.escapeHtml(comment.author_username)}</span>
                 <span class="comment-date">${comment.created_at_formatted}</span>
             </div>
+            ${replyToHtml}
             <div class="comment-text">${this.escapeHtml(comment.text)}</div>
             ${comment.images && comment.images.length > 0 ? `
                 <div class="comment-images">
@@ -186,7 +218,7 @@ class CommentsManager {
                 </div>
             ` : ''}
             <div class="comment-actions">
-                ${level < 2 && !comment.is_deleted ? `
+                ${!comment.is_deleted ? `
                     <button class="comment-action" data-action="reply" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
                         💬 ${window.translations?.reply || 'Ответить'}
                     </button>
@@ -202,16 +234,7 @@ class CommentsManager {
                     </button>
                 ` : ''}
             </div>
-            <div class="comment-replies" id="replies-${comment.id}"></div>
         `;
-
-        // Рендерим ответы
-        if (comment.replies && comment.replies.length > 0) {
-            const repliesContainer = div.querySelector(`#replies-${comment.id}`);
-            comment.replies.forEach(reply => {
-                repliesContainer.appendChild(this.createCommentElement(reply, level + 1));
-            });
-        }
 
         return div;
     }
@@ -398,7 +421,7 @@ class CommentsManager {
     }
 
     /**
-     * Показать форму ответа на комментарий
+     * Показать форму ответа на комментарий (Instagram-style)
      */
     showReplyForm(commentId) {
         // Удаляем предыдущую форму ответа
@@ -415,6 +438,7 @@ class CommentsManager {
         
         const form = document.createElement('div');
         form.className = 'comment-form reply-form';
+        form.dataset.replyingTo = commentId;
         form.innerHTML = `
             <textarea placeholder="${replyPlaceholder}"></textarea>
             <div class="comment-form-actions">
@@ -429,7 +453,8 @@ class CommentsManager {
             </div>
         `;
 
-        commentElement.appendChild(form);
+        // Вставляем форму ПОСЛЕ комментария (не внутри)
+        commentElement.insertAdjacentElement('afterend', form);
         this.replyingTo = commentId;
 
         // Обработчики уже настроены через глобальное делегирование событий
@@ -667,8 +692,8 @@ document.addEventListener('click', (e) => {
                 // Проверяем, это reply-форма или основная
                 const isReplyForm = form.classList.contains('reply-form');
                 if (isReplyForm) {
-                    const commentElement = form.closest('.comment-item');
-                    const parentCommentId = commentElement ? parseInt(commentElement.dataset.commentId) : null;
+                    // Получаем parentCommentId из data-атрибута формы
+                    const parentCommentId = form.dataset.replyingTo ? parseInt(form.dataset.replyingTo) : null;
                     manager.submitComment(form, parentCommentId);
                 } else {
                     manager.submitComment(form);
