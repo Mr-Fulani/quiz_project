@@ -103,7 +103,8 @@ if (typeof FeedbackSystem === 'undefined') {
         
         // Проверяем, что категория выбрана
         if (!this.selectedCategory) {
-            this.showStatus('error', window.t('feedback_error_category', 'Пожалуйста, выберите категорию'));
+            const errorMsg = window.translations?.feedback_error_category || 'Пожалуйста, выберите категорию';
+            this.showStatus('error', errorMsg);
             return;
         }
         
@@ -112,7 +113,8 @@ if (typeof FeedbackSystem === 'undefined') {
         
         // Валидация
         if (!message || message.length < 3) {
-            this.showStatus('error', window.t('feedback_error_short', 'Сообщение должно содержать минимум 3 символа'));
+            const errorMsg = window.translations?.feedback_error_short || 'Сообщение должно содержать минимум 3 символа';
+            this.showStatus('error', errorMsg);
             return;
         }
         
@@ -137,7 +139,8 @@ if (typeof FeedbackSystem === 'undefined') {
             sendBtn.style.opacity = '0.5';
         }
         
-        this.showStatus('info', window.t('feedback_sending', 'Отправка...'));
+        const sendingMsg = window.translations?.feedback_sending || 'Отправка...';
+        this.showStatus('info', sendingMsg);
         
         try {
             const response = await fetch('/api/feedback/', {
@@ -156,7 +159,8 @@ if (typeof FeedbackSystem === 'undefined') {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                this.showStatus('success', window.t('feedback_success', 'Спасибо! Ваше сообщение отправлено'));
+                const successMsg = window.translations?.feedback_success || 'Спасибо! Ваше сообщение отправлено';
+                this.showStatus('success', successMsg);
                 
                 // Очищаем форму
                 if (messageTextarea) {
@@ -171,11 +175,13 @@ if (typeof FeedbackSystem === 'undefined') {
                 
                 console.log('✅ Feedback submitted successfully');
             } else {
-                this.showStatus('error', data.error || window.t('feedback_error', 'Ошибка отправки'));
+                const errorMsg = data.error || window.translations?.feedback_error || 'Ошибка отправки';
+                this.showStatus('error', errorMsg);
                 console.error('❌ Feedback submission failed:', data);
             }
         } catch (error) {
-            this.showStatus('error', window.t('feedback_network_error', 'Ошибка сети'));
+            const networkErrorMsg = window.translations?.feedback_network_error || 'Ошибка сети';
+            this.showStatus('error', networkErrorMsg);
             console.error('❌ Error submitting feedback:', error);
         } finally {
             this.isSubmitting = false;
@@ -233,7 +239,8 @@ if (typeof FeedbackSystem === 'undefined') {
         } else {
             // Если ID не задан, показываем сообщение
             console.warn('⚠️ Admin Telegram ID not configured or empty');
-            this.showStatus('error', window.t('admin_contact_unavailable', 'Контакт админа недоступен'));
+            const unavailableMsg = window.translations?.admin_contact_unavailable || 'Контакт админа недоступен';
+            this.showStatus('error', unavailableMsg);
         }
     }
     

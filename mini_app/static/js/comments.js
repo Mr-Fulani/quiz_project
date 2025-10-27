@@ -582,6 +582,14 @@ let commentsManager = null;
 
 // Глобальный обработчик событий для кнопок комментариев
 document.addEventListener('click', (e) => {
+    // КРИТИЧЕСКИ ВАЖНО: Обрабатываем только элементы внутри .comments-section
+    // чтобы не мешать другим компонентам (навигация, feedback и т.д.)
+    const commentsSection = e.target.closest('.comments-section');
+    if (!commentsSection) {
+        // Клик вне секции комментариев - игнорируем
+        return;
+    }
+    
     // Обработка кнопок с data-action
     const btn = e.target.closest('[data-action]');
     if (btn) {
@@ -593,6 +601,7 @@ document.addEventListener('click', (e) => {
         if (action === 'close-modal') {
             const modal = btn.closest('.report-modal');
             if (modal) modal.remove();
+            e.stopPropagation();
             return;
         }
         
@@ -629,6 +638,7 @@ document.addEventListener('click', (e) => {
                 }
                 break;
         }
+        e.stopPropagation();
         return;
     }
     
@@ -641,6 +651,7 @@ document.addEventListener('click', (e) => {
             const imageInput = form.querySelector('.comment-image-input');
             if (imageInput) imageInput.click();
         }
+        e.stopPropagation();
         return;
     }
     
@@ -649,37 +660,23 @@ document.addEventListener('click', (e) => {
         console.log('📤 Submit button clicked via delegation');
         const form = submitBtn.closest('.comment-form');
         if (form) {
-            // Ищем comments-section (может быть выше для reply-формы)
-            let section = form.closest('.comments-section');
-            
-            // Если не нашли (reply-форма), ищем через родительский comment-item
-            if (!section) {
-                const commentItem = form.closest('.comment-item');
-                if (commentItem) {
-                    section = commentItem.closest('.comments-section');
-                }
-            }
-            
-            if (section) {
-                const translationId = parseInt(section.dataset.translationId);
-                const manager = window.commentManagers && window.commentManagers[translationId];
-                if (manager) {
-                    // Проверяем, это reply-форма или основная
-                    const isReplyForm = form.classList.contains('reply-form');
-                    if (isReplyForm) {
-                        const commentElement = form.closest('.comment-item');
-                        const parentCommentId = commentElement ? parseInt(commentElement.dataset.commentId) : null;
-                        manager.submitComment(form, parentCommentId);
-                    } else {
-                        manager.submitComment(form);
-                    }
+            const translationId = parseInt(commentsSection.dataset.translationId);
+            const manager = window.commentManagers && window.commentManagers[translationId];
+            if (manager) {
+                // Проверяем, это reply-форма или основная
+                const isReplyForm = form.classList.contains('reply-form');
+                if (isReplyForm) {
+                    const commentElement = form.closest('.comment-item');
+                    const parentCommentId = commentElement ? parseInt(commentElement.dataset.commentId) : null;
+                    manager.submitComment(form, parentCommentId);
                 } else {
-                    console.error('Manager not found for translation', translationId);
+                    manager.submitComment(form);
                 }
             } else {
-                console.error('Comments section not found for submit');
+                console.error('Manager not found for translation', translationId);
             }
         }
+        e.stopPropagation();
         return;
     }
 });
@@ -715,6 +712,7 @@ document.addEventListener('change', (e) => {
                 console.error('Comments section not found');
             }
         }
+        e.stopPropagation();
     }
 });
 

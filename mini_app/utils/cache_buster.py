@@ -72,7 +72,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 # Версии для критически важных файлов
 STATIC_VERSIONS = {
     'donation.js': '2.9',  # Установлена английская локаль для Stripe Elements
-    'localization.js': '2.3',  # Исправлены переводы для профиля пользователя
+    'localization.js': '2.4',  # CRITICAL FIX: Удалены \n символы из переводов (ломали JSON.parse)
     'share-app.js': '2.0',  # Улучшено: display flex для корректного отображения модального окна
     'search.js': '2.2',  # Исправлено: добавлен has_tasks в API endpoint и language в запрос
     'tasks.js': '3.12',  # Центрирование toast уведомлений с учетом Safe Areas
@@ -105,14 +105,14 @@ STATIC_VERSIONS = {
     'topic_detail.css': '1.1',  # Убрана анимация для мгновенного отображения прогресса при загрузке
     'tasks.css': '1.0',  # Унификация кэширования
     'settings.css': '6.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
-    'feedback.js': '2.4',  # FIX: красные сообщения ошибки тоже исчезают через 2 секунды
+    'feedback.js': '2.5',  # CRITICAL FIX: Заменен window.t() на window.translations для совместимости
     'admin_analytics.js': '4.4',  # FIX: фильтрация донатов мини-аппа на фронтенде из by_source
     'settings.js': '3.1',  # FIX: предотвращена повторная декларация класса при SPA
     'admin_analytics.css': '1.4',  # FIX: Добавлены Safe Area Insets для единообразия с другими страницами
     'share-topic.js': '4.2',  # FIX: Исправлен синтаксис для линтера
     'share-topic.css': '1.8',  # FIX: Улучшены CSS правила для скрытия кнопок в неразвернутых карточках
     'topic-cards.js': '2.8',  # FIX: Улучшена логика отображения кнопок поделиться
-    'comments.js': '2.5',  # По умолчанию секция свернута (без localStorage)
+    'comments.js': '2.6',  # CRITICAL FIX: Ограничены глобальные обработчики только .comments-section
     'comments.css': '2.1',  # Скрывается ВСЁ при сворачивании (список + форма) с !important
 }
 

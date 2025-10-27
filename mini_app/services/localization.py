@@ -60,7 +60,7 @@ class LocalizationService:
             "min_text_error": "Comment must contain at least 3 characters",
             "comment_sent": "Comment sent",
             "report_sent": "Report sent. Thank you!",
-            "image_too_large": "Image is too large!\nMaximum: 5 MB\nCurrent size:",
+            "image_too_large": "Image is too large! Maximum: 5 MB. Current size:",
             "invalid_format": "Invalid format. Allowed: JPEG, PNG, GIF, WebP",
             
             # Профиль
@@ -373,7 +373,7 @@ class LocalizationService:
             "min_text_error": "Комментарий должен содержать минимум 3 символа",
             "comment_sent": "Комментарий отправлен",
             "report_sent": "Жалоба отправлена. Спасибо!",
-            "image_too_large": "Изображение слишком большое!\nМаксимум: 5 MB\nТекущий размер:",
+            "image_too_large": "Изображение слишком большое! Максимум: 5 MB. Текущий размер:",
             "invalid_format": "Недопустимый формат. Разрешены: JPEG, PNG, GIF, WebP",
             
             # Профиль
