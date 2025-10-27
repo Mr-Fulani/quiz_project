@@ -645,7 +645,7 @@ class DonationSystem {
             console.log('📡 Creating crypto payment with data:', formData);
             
             // Создаем крипто-платеж
-            const response = await fetch('/api/donation/crypto-create', {
+            const response = await fetch('/api/donation/crypto/create-payment/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -833,7 +833,7 @@ class DonationSystem {
         try {
             console.log('🔍 Checking crypto payment status for:', this.currentCryptoOrderId);
             
-            const response = await fetch(`/api/donation/crypto-status/${this.currentCryptoOrderId}`);
+            const response = await fetch(`/api/donation/crypto/status/${this.currentCryptoOrderId}/`);
             const data = await response.json();
             
             console.log('📊 Status check response:', data);
