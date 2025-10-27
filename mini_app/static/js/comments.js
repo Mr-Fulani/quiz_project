@@ -742,6 +742,84 @@ document.addEventListener('change', (e) => {
     }
 });
 
+// Обработчик для автоматического скролла при фокусе на textarea комментариев
+let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+document.addEventListener('focusin', (e) => {
+    const textarea = e.target.closest('.comment-form textarea');
+    if (textarea) {
+        console.log('⌨️ Textarea focused');
+        
+        // Expand Telegram WebApp для полного использования viewport
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.expand();
+        }
+        
+        // Сохраняем элемент для последующего использования
+        window.activeCommentTextarea = textarea;
+        
+        // Подписываемся на изменение viewport (появление клавиатуры)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleViewportResize);
+            window.visualViewport.addEventListener('scroll', handleViewportScroll);
+        }
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    const textarea = e.target.closest('.comment-form textarea');
+    if (textarea) {
+        console.log('⌨️ Textarea blurred');
+        
+        // Отписываемся от событий viewport
+        if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', handleViewportResize);
+            window.visualViewport.removeEventListener('scroll', handleViewportScroll);
+        }
+        
+        window.activeCommentTextarea = null;
+    }
+});
+
+function handleViewportResize() {
+    if (!window.activeCommentTextarea) return;
+    
+    const currentHeight = window.visualViewport.height;
+    const heightDiff = initialViewportHeight - currentHeight;
+    
+    console.log('📐 Viewport resized:', currentHeight, 'diff:', heightDiff);
+    
+    // Если viewport уменьшился (появилась клавиатура)
+    if (heightDiff > 100) {
+        const form = window.activeCommentTextarea.closest('.comment-form');
+        if (form) {
+            // Прокручиваем к форме с учетом клавиатуры
+            setTimeout(() => {
+                const formRect = form.getBoundingClientRect();
+                const scrollTop = window.scrollY + formRect.top - 20;
+                
+                window.scrollTo({
+                    top: scrollTop,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    }
+}
+
+function handleViewportScroll() {
+    // Дополнительная синхронизация при скролле viewport
+    if (window.activeCommentTextarea) {
+        const form = window.activeCommentTextarea.closest('.comment-form');
+        if (form) {
+            form.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }
+}
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     // Будет инициализирована для каждой задачи отдельно

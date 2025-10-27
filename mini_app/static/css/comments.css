@@ -7,6 +7,7 @@
 .comments-section {
     margin-top: 30px;
     padding: 20px;
+    padding-bottom: 120px; /* Дополнительное пространство для навигации */
     background: rgba(21, 31, 40, 0.8);
     border-radius: 12px;
     border: 1px solid rgba(0, 255, 0, 0.3);
@@ -274,11 +275,14 @@
     border-radius: 10px;
     margin-bottom: 15px;
     border: 1px solid rgba(0, 255, 0, 0.2);
+    position: relative;
+    z-index: 1;
 }
 
 .comment-form.reply-form {
-    margin-left: 25px;
+    margin-left: 0;
     margin-top: 10px;
+    margin-bottom: 12px;
     background: rgba(0, 0, 0, 0.6);
     border: 1px solid rgba(41, 253, 83, 0.3);
 }
