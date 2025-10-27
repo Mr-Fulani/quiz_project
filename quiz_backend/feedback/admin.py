@@ -4,21 +4,158 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.contrib import messages
 from django.http import HttpResponseRedirect
-from .models import FeedbackMessage, FeedbackReply
+from django import forms
+from .models import FeedbackMessage, FeedbackReply, FeedbackImage, FeedbackReplyImage
 from .services import send_feedback_reply_to_telegram
 
 
-class FeedbackReplyInline(admin.TabularInline):
+class FeedbackReplyAdminForm(forms.ModelForm):
+    """
+    Кастомная форма для FeedbackReply с возможностью загрузки изображения
+    """
+    attach_image = forms.ImageField(
+        required=False,
+        label='Прикрепить изображение к ответу',
+        help_text='Одно изображение (макс. 5MB, форматы: JPEG, PNG, GIF, WebP)',
+        widget=forms.ClearableFileInput(attrs={'accept': 'image/*'})
+    )
+    
+    class Meta:
+        model = FeedbackReply
+        fields = '__all__'
+    
+    def save(self, commit=True):
+        """Сохраняем ответ и прикрепленное изображение"""
+        instance = super().save(commit=commit)
+        
+        if commit and self.cleaned_data.get('attach_image'):
+            # Создаем запись изображения
+            FeedbackReplyImage.objects.create(
+                reply=instance,
+                image=self.cleaned_data['attach_image']
+            )
+        
+        return instance
+
+
+class FeedbackImageInline(admin.TabularInline):
+    """
+    Inline для отображения изображений к сообщению обратной связи
+    """
+    model = FeedbackImage
+    extra = 0
+    readonly_fields = ('image_preview', 'file_size_display', 'created_at')
+    fields = ('image_preview', 'image', 'file_size_display', 'created_at')
+    
+    def image_preview(self, obj):
+        """Превью изображения"""
+        if obj.image:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-height: 100px; max-width: 200px; border: 1px solid #ddd; border-radius: 4px;"/></a>',
+                obj.image.url,
+                obj.image.url
+            )
+        return "Нет изображения"
+    image_preview.short_description = 'Превью'
+    
+    def file_size_display(self, obj):
+        """Отображение размера файла"""
+        if obj.file_size:
+            size_mb = obj.file_size_mb
+            color = '#dc3545' if size_mb > 5 else '#28a745' if size_mb < 2 else '#ffc107'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} MB</span>',
+                color,
+                size_mb
+            )
+        return "—"
+    file_size_display.short_description = 'Размер'
+
+
+class FeedbackReplyImageInline(admin.TabularInline):
+    """
+    Inline для отображения изображений к ответу админа
+    """
+    model = FeedbackReplyImage
+    extra = 0
+    readonly_fields = ('image_preview', 'file_size_display', 'created_at')
+    fields = ('image_preview', 'image', 'file_size_display', 'created_at')
+    
+    def image_preview(self, obj):
+        """Превью изображения"""
+        if obj.image:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-height: 100px; max-width: 200px; border: 1px solid #ddd; border-radius: 4px;"/></a>',
+                obj.image.url,
+                obj.image.url
+            )
+        return "Нет изображения"
+    image_preview.short_description = 'Превью'
+    
+    def file_size_display(self, obj):
+        """Отображение размера файла"""
+        if obj.file_size:
+            size_mb = obj.file_size_mb
+            color = '#dc3545' if size_mb > 5 else '#28a745' if size_mb < 2 else '#ffc107'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} MB</span>',
+                color,
+                size_mb
+            )
+        return "—"
+    file_size_display.short_description = 'Размер'
+
+
+class FeedbackReplyInline(admin.StackedInline):
     """
     Inline для отображения ответов на сообщения поддержки
     """
     model = FeedbackReply
+    form = FeedbackReplyAdminForm
     extra = 1  # Показываем одну пустую форму для добавления
-    readonly_fields = ('admin', 'admin_telegram_id', 'admin_username', 'created_at', 'is_sent_to_user', 'sent_at', 'send_error', 'send_reply_button')
-    fields = ('admin', 'admin_telegram_id', 'admin_username', 'reply_text', 'send_reply_button', 'created_at', 'is_sent_to_user', 'sent_at', 'send_error')
+    readonly_fields = ('admin', 'admin_telegram_id', 'admin_username', 'created_at', 'is_sent_to_user', 'sent_at', 'send_error', 'send_reply_button', 'images_count_display', 'attached_images_preview')
+    fields = ('reply_text', 'attach_image', 'attached_images_preview', 'images_count_display', 'send_reply_button', 'admin', 'admin_telegram_id', 'admin_username', 'created_at', 'is_sent_to_user', 'sent_at', 'send_error')
+    inlines = []  # Изображения ответов будут редактироваться отдельно
     
     def has_delete_permission(self, request, obj=None):
         return False  # Запрещаем удаление ответов
+    
+    def attached_images_preview(self, obj):
+        """Превью уже прикрепленных изображений"""
+        if obj and obj.id:
+            images = obj.images.all()
+            if images:
+                html = '<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">'
+                for img in images:
+                    html += format_html(
+                        '<div style="text-align: center;">'
+                        '<a href="{}" target="_blank">'
+                        '<img src="{}" style="max-height: 80px; max-width: 100px; border: 1px solid #ddd; border-radius: 4px;"/>'
+                        '</a>'
+                        '<div style="font-size: 10px; color: #666;">📦 {} MB</div>'
+                        '</div>',
+                        img.image.url,
+                        img.image.url,
+                        img.file_size_mb
+                    )
+                html += '</div>'
+                return mark_safe(html)
+            return "—"
+        return "Сохраните ответ, чтобы прикрепить изображения"
+    attached_images_preview.short_description = 'Прикрепленные изображения'
+    
+    def images_count_display(self, obj):
+        """Отображение количества изображений"""
+        if obj and obj.id:
+            count = obj.images_count
+            if count > 0:
+                return format_html(
+                    '<span style="color: #28a745; font-weight: bold;">📷 {} изобр.</span>',
+                    count
+                )
+            return "Нет изображений"
+        return "—"
+    images_count_display.short_description = 'Изображения'
 
     def send_reply_button(self, obj):
         """Кнопка для отправки ответа"""
@@ -37,13 +174,43 @@ class FeedbackMessageAdmin(admin.ModelAdmin):
     """
     Админка для управления сообщениями обратной связи
     """
-    list_display = ('id', 'user_id', 'username', 'short_message', 'source', 'category', 'created_at', 'is_processed', 'replies_count', 'status_display')
+    list_display = ('id', 'user_id', 'username', 'short_message', 'source', 'category', 'images_count_display', 'created_at', 'is_processed', 'replies_count', 'status_display')
     list_filter = ('is_processed', 'source', 'category', 'created_at')
     search_fields = ('user_id', 'username', 'message')
-    readonly_fields = ('created_at', 'replies_count', 'last_reply_info', 'send_all_replies_button')
+    readonly_fields = ('created_at', 'replies_count', 'last_reply_info', 'send_all_replies_button', 'images_preview')
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
-    inlines = [FeedbackReplyInline]
+    inlines = [FeedbackImageInline, FeedbackReplyInline]
+    
+    def images_count_display(self, obj):
+        """Отображение количества изображений в списке"""
+        count = obj.images_count
+        if count > 0:
+            return format_html('<span style="color: #28a745;">📷 {}</span>', count)
+        return "—"
+    images_count_display.short_description = '📷'
+    
+    def images_preview(self, obj):
+        """Превью всех изображений"""
+        images = obj.images.all()
+        if images:
+            html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">'
+            for img in images:
+                html += format_html(
+                    '<div style="text-align: center;">'
+                    '<a href="{}" target="_blank">'
+                    '<img src="{}" style="max-height: 150px; max-width: 200px; border: 2px solid #ddd; border-radius: 8px;"/>'
+                    '</a>'
+                    '<div style="font-size: 11px; color: #666; margin-top: 5px;">📦 {} MB</div>'
+                    '</div>',
+                    img.image.url,
+                    img.image.url,
+                    img.file_size_mb
+                )
+            html += '</div>'
+            return mark_safe(html)
+        return "Нет изображений"
+    images_preview.short_description = 'Прикрепленные изображения'
 
     def save_formset(self, request, form, formset, change):
         """Автоматически заполняем поле admin при сохранении ответа и отмечаем сообщение как обработанное"""
@@ -191,17 +358,154 @@ class FeedbackMessageAdmin(admin.ModelAdmin):
     send_all_replies_button.short_description = 'Отправить ответы'
 
 
+@admin.register(FeedbackImage)
+class FeedbackImageAdmin(admin.ModelAdmin):
+    """
+    Админка для управления изображениями к обратной связи
+    """
+    list_display = ('id', 'feedback_link', 'image_thumbnail', 'file_size_display', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('feedback__user_id', 'feedback__username', 'feedback__message')
+    readonly_fields = ('image_large_preview', 'file_size_display', 'created_at')
+    ordering = ('-created_at',)
+    
+    def feedback_link(self, obj):
+        """Ссылка на сообщение"""
+        url = reverse('admin:feedback_feedbackmessage_change', args=[obj.feedback.id])
+        return format_html('<a href="{}">Сообщение #{}</a>', url, obj.feedback.id)
+    feedback_link.short_description = 'Сообщение'
+    
+    def image_thumbnail(self, obj):
+        """Миниатюра изображения"""
+        if obj.image:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-height: 50px; max-width: 100px;"/></a>',
+                obj.image.url,
+                obj.image.url
+            )
+        return "—"
+    image_thumbnail.short_description = 'Превью'
+    
+    def image_large_preview(self, obj):
+        """Большое превью изображения"""
+        if obj.image:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-width: 600px; border: 2px solid #ddd; border-radius: 8px;"/></a>',
+                obj.image.url,
+                obj.image.url
+            )
+        return "Нет изображения"
+    image_large_preview.short_description = 'Изображение'
+    
+    def file_size_display(self, obj):
+        """Отображение размера файла"""
+        if obj.file_size:
+            size_mb = obj.file_size_mb
+            color = '#dc3545' if size_mb > 5 else '#28a745' if size_mb < 2 else '#ffc107'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} MB</span>',
+                color,
+                size_mb
+            )
+        return "—"
+    file_size_display.short_description = 'Размер'
+
+
+@admin.register(FeedbackReplyImage)
+class FeedbackReplyImageAdmin(admin.ModelAdmin):
+    """
+    Админка для управления изображениями к ответам админа
+    """
+    list_display = ('id', 'reply_link', 'image_thumbnail', 'file_size_display', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('reply__reply_text', 'reply__admin__username')
+    readonly_fields = ('image_large_preview', 'file_size_display', 'created_at')
+    ordering = ('-created_at',)
+    
+    def reply_link(self, obj):
+        """Ссылка на ответ"""
+        url = reverse('admin:feedback_feedbackreply_change', args=[obj.reply.id])
+        return format_html('<a href="{}">Ответ #{}</a>', url, obj.reply.id)
+    reply_link.short_description = 'Ответ'
+    
+    def image_thumbnail(self, obj):
+        """Миниатюра изображения"""
+        if obj.image:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-height: 50px; max-width: 100px;"/></a>',
+                obj.image.url,
+                obj.image.url
+            )
+        return "—"
+    image_thumbnail.short_description = 'Превью'
+    
+    def image_large_preview(self, obj):
+        """Большое превью изображения"""
+        if obj.image:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-width: 600px; border: 2px solid #ddd; border-radius: 8px;"/></a>',
+                obj.image.url,
+                obj.image.url
+            )
+        return "Нет изображения"
+    image_large_preview.short_description = 'Изображение'
+    
+    def file_size_display(self, obj):
+        """Отображение размера файла"""
+        if obj.file_size:
+            size_mb = obj.file_size_mb
+            color = '#dc3545' if size_mb > 5 else '#28a745' if size_mb < 2 else '#ffc107'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{} MB</span>',
+                color,
+                size_mb
+            )
+        return "—"
+    file_size_display.short_description = 'Размер'
+
+
 @admin.register(FeedbackReply)
 class FeedbackReplyAdmin(admin.ModelAdmin):
     """
     Админка для управления ответами на сообщения поддержки
     """
-    list_display = ('id', 'feedback_link', 'admin', 'short_reply', 'created_at', 'is_sent_to_user', 'sent_at', 'send_reply_link')
+    list_display = ('id', 'feedback_link', 'admin', 'short_reply', 'images_count_display', 'created_at', 'is_sent_to_user', 'sent_at', 'send_reply_link')
     list_filter = ('is_sent_to_user', 'created_at', 'admin')
     search_fields = ('reply_text', 'admin__username', 'feedback__message')
-    readonly_fields = ('created_at', 'sent_at', 'send_error')
+    readonly_fields = ('created_at', 'sent_at', 'send_error', 'images_preview')
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
+    inlines = [FeedbackReplyImageInline]
+    
+    def images_count_display(self, obj):
+        """Отображение количества изображений в списке"""
+        count = obj.images_count
+        if count > 0:
+            return format_html('<span style="color: #28a745;">📷 {}</span>', count)
+        return "—"
+    images_count_display.short_description = '📷'
+    
+    def images_preview(self, obj):
+        """Превью всех изображений"""
+        images = obj.images.all()
+        if images:
+            html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">'
+            for img in images:
+                html += format_html(
+                    '<div style="text-align: center;">'
+                    '<a href="{}" target="_blank">'
+                    '<img src="{}" style="max-height: 150px; max-width: 200px; border: 2px solid #ddd; border-radius: 8px;"/>'
+                    '</a>'
+                    '<div style="font-size: 11px; color: #666; margin-top: 5px;">📦 {} MB</div>'
+                    '</div>',
+                    img.image.url,
+                    img.image.url,
+                    img.file_size_mb
+                )
+            html += '</div>'
+            return mark_safe(html)
+        return "Нет изображений"
+    images_preview.short_description = 'Прикрепленные изображения'
 
     def feedback_link(self, obj):
         """Ссылка на сообщение поддержки"""

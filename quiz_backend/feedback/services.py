@@ -58,9 +58,95 @@ class TelegramService:
             logger.error(f"Неожиданная ошибка при отправке сообщения пользователю {chat_id}: {e}")
             return None
     
+    def send_photo(self, chat_id, photo_url, caption=None, parse_mode='HTML'):
+        """
+        Отправляет фото пользователю через Telegram Bot API
+        
+        Args:
+            chat_id (int): Telegram ID пользователя
+            photo_url (str): URL или file_id фотографии
+            caption (str): Подпись к фото
+            parse_mode (str): Режим парсинга подписи
+            
+        Returns:
+            dict: Ответ от Telegram API или None в случае ошибки
+        """
+        try:
+            url = f"{self.api_base_url}/sendPhoto"
+            data = {
+                'chat_id': chat_id,
+                'photo': photo_url,
+            }
+            
+            if caption:
+                data['caption'] = caption
+                data['parse_mode'] = parse_mode
+            
+            response = requests.post(url, data=data, timeout=30)
+            response.raise_for_status()
+            
+            result = response.json()
+            if result.get('ok'):
+                logger.info(f"Фото успешно отправлено пользователю {chat_id}")
+                return result
+            else:
+                logger.error(f"Ошибка отправки фото пользователю {chat_id}: {result}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ошибка сети при отправке фото пользователю {chat_id}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при отправке фото пользователю {chat_id}: {e}")
+            return None
+    
+    def send_photo_file(self, chat_id, photo_path, caption=None, parse_mode='HTML'):
+        """
+        Отправляет фото из файловой системы пользователю
+        
+        Args:
+            chat_id (int): Telegram ID пользователя
+            photo_path (str): Путь к файлу фотографии
+            caption (str): Подпись к фото
+            parse_mode (str): Режим парсинга подписи
+            
+        Returns:
+            dict: Ответ от Telegram API или None в случае ошибки
+        """
+        try:
+            url = f"{self.api_base_url}/sendPhoto"
+            data = {
+                'chat_id': chat_id,
+            }
+            
+            if caption:
+                data['caption'] = caption
+                data['parse_mode'] = parse_mode
+            
+            with open(photo_path, 'rb') as photo_file:
+                files = {'photo': photo_file}
+                response = requests.post(url, data=data, files=files, timeout=30)
+                response.raise_for_status()
+            
+            result = response.json()
+            if result.get('ok'):
+                logger.info(f"Фото из файла успешно отправлено пользователю {chat_id}")
+                return result
+            else:
+                logger.error(f"Ошибка отправки фото из файла пользователю {chat_id}: {result}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ошибка сети при отправке фото из файла пользователю {chat_id}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при отправке фото из файла пользователю {chat_id}: {e}")
+            return None
+    
     def send_feedback_reply(self, feedback_reply):
         """
-        Отправляет ответ на сообщение поддержки пользователю
+        Отправляет ответ на сообщение поддержки пользователю.
+        Если есть изображения - отправляет их вместе с текстом.
         
         Args:
             feedback_reply (FeedbackReply): Объект ответа
@@ -86,11 +172,46 @@ class TelegramService:
 <i>Спасибо за обращение!</i>
             """.strip()
             
-            # Отправляем сообщение
-            result = self.send_message(
-                chat_id=feedback_reply.feedback.user_id,
-                text=message_text
-            )
+            # Проверяем наличие изображений
+            images = feedback_reply.images.all()
+            
+            if images.exists():
+                # Отправляем изображения с текстом
+                logger.info(f"📷 Найдено {images.count()} изображений для отправки")
+                
+                # Берем первое изображение
+                first_image = images.first()
+                
+                # Получаем полный путь к файлу
+                if first_image.image:
+                    image_path = first_image.image.path
+                    logger.info(f"📷 Отправляем изображение: {image_path}")
+                    
+                    # Отправляем фото с подписью
+                    result = self.send_photo_file(
+                        chat_id=feedback_reply.feedback.user_id,
+                        photo_path=image_path,
+                        caption=message_text
+                    )
+                    
+                    if not result:
+                        logger.error("Ошибка отправки фото, отправляем только текст")
+                        result = self.send_message(
+                            chat_id=feedback_reply.feedback.user_id,
+                            text=message_text
+                        )
+                else:
+                    # Если нет файла, отправляем только текст
+                    result = self.send_message(
+                        chat_id=feedback_reply.feedback.user_id,
+                        text=message_text
+                    )
+            else:
+                # Нет изображений - отправляем только текст
+                result = self.send_message(
+                    chat_id=feedback_reply.feedback.user_id,
+                    text=message_text
+                )
             
             if result:
                 # Отмечаем как отправленное

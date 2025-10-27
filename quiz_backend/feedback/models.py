@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils import timezone
-from django.core.validators import MinLengthValidator
+from django.core.validators import MinLengthValidator, FileExtensionValidator
 from django.conf import settings
+import os
 
 
 
@@ -88,6 +89,67 @@ class FeedbackMessage(models.Model):
     def last_reply(self):
         """Возвращает последний ответ на сообщение"""
         return self.feedbackreply_set.order_by('-created_at').first()
+    
+    @property
+    def images_count(self):
+        """Возвращает количество прикрепленных изображений"""
+        return self.images.count()
+
+
+class FeedbackImage(models.Model):
+    """
+    Модель для хранения изображений к сообщениям обратной связи.
+    """
+    class Meta:
+        db_table = 'feedback_images'
+        verbose_name = 'Изображение к обратной связи'
+        verbose_name_plural = 'Изображения к обратной связи'
+        ordering = ['id']
+    
+    feedback = models.ForeignKey(
+        FeedbackMessage,
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name='Сообщение',
+        help_text='Сообщение обратной связи'
+    )
+    image = models.ImageField(
+        upload_to='feedback_images/',
+        validators=[
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'])
+        ],
+        verbose_name='Изображение',
+        help_text='Изображение (макс. 5MB, форматы: JPEG, PNG, GIF, WebP)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата загрузки',
+        help_text='Дата и время загрузки изображения'
+    )
+    
+    def __str__(self):
+        return f"Изображение к сообщению #{self.feedback.id}"
+    
+    def delete(self, *args, **kwargs):
+        """Удаляем файл изображения при удалении записи"""
+        if self.image and os.path.isfile(self.image.path):
+            os.remove(self.image.path)
+        super().delete(*args, **kwargs)
+    
+    @property
+    def file_size(self):
+        """Возвращает размер файла в байтах"""
+        if self.image:
+            try:
+                return self.image.size
+            except:
+                return 0
+        return 0
+    
+    @property
+    def file_size_mb(self):
+        """Возвращает размер файла в MB"""
+        return round(self.file_size / (1024 * 1024), 2)
 
 
 class FeedbackReply(models.Model):
@@ -179,3 +241,64 @@ class FeedbackReply(models.Model):
     def short_reply(self):
         """Возвращает сокращенную версию ответа для отображения"""
         return (self.reply_text[:50] + '...') if len(self.reply_text) > 50 else self.reply_text
+    
+    @property
+    def images_count(self):
+        """Возвращает количество прикрепленных изображений"""
+        return self.images.count()
+
+
+class FeedbackReplyImage(models.Model):
+    """
+    Модель для хранения изображений к ответам админа.
+    """
+    class Meta:
+        db_table = 'feedback_reply_images'
+        verbose_name = 'Изображение к ответу админа'
+        verbose_name_plural = 'Изображения к ответам админа'
+        ordering = ['id']
+    
+    reply = models.ForeignKey(
+        FeedbackReply,
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name='Ответ',
+        help_text='Ответ администратора'
+    )
+    image = models.ImageField(
+        upload_to='feedback_reply_images/',
+        validators=[
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'])
+        ],
+        verbose_name='Изображение',
+        help_text='Изображение (макс. 5MB, форматы: JPEG, PNG, GIF, WebP)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата загрузки',
+        help_text='Дата и время загрузки изображения'
+    )
+    
+    def __str__(self):
+        return f"Изображение к ответу #{self.reply.id}"
+    
+    def delete(self, *args, **kwargs):
+        """Удаляем файл изображения при удалении записи"""
+        if self.image and os.path.isfile(self.image.path):
+            os.remove(self.image.path)
+        super().delete(*args, **kwargs)
+    
+    @property
+    def file_size(self):
+        """Возвращает размер файла в байтах"""
+        if self.image:
+            try:
+                return self.image.size
+            except:
+                return 0
+        return 0
+    
+    @property
+    def file_size_mb(self):
+        """Возвращает размер файла в MB"""
+        return round(self.file_size / (1024 * 1024), 2)

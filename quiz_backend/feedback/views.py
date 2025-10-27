@@ -2,14 +2,18 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, AllowAny
+import logging
 
-from .models import FeedbackMessage
+from .models import FeedbackMessage, FeedbackImage
 from .serializers import FeedbackSerializer
 from .filters import FeedbackFilter
+
+logger = logging.getLogger(__name__)
 
 
 # Create your views here.
@@ -89,17 +93,22 @@ def submit_feedback_from_mini_app(request):
     """
     API endpoint для отправки обратной связи из мини-аппа.
     
-    Принимает данные в формате:
-    {
-        "user_id": 123456789,
-        "username": "user_name",
-        "message": "Текст сообщения",
-        "category": "bug",  # опционально
-        "source": "mini_app"
-    }
+    Принимает данные в формате multipart/form-data:
+    - user_id: Telegram ID пользователя
+    - username: Имя пользователя
+    - message: Текст сообщения
+    - category: Категория (bug, suggestion, complaint, other)
+    - source: Источник (mini_app)
+    - images: Массив изображений (до 3 файлов, макс 5MB каждый)
     """
     try:
-        user_id = request.data.get('user_id')
+        logger.info("=" * 50)
+        logger.info("Получен запрос на создание feedback")
+        logger.info(f"Content-Type: {request.content_type}")
+        logger.info(f"Request data: {request.data}")
+        logger.info(f"Request FILES: {request.FILES}")
+        
+        user_id = request.data.get('user_id') or request.data.get('telegram_id')
         username = request.data.get('username', '')
         message = request.data.get('message', '')
         category = request.data.get('category', 'other')
@@ -108,7 +117,7 @@ def submit_feedback_from_mini_app(request):
         # Валидация данных
         if not user_id:
             return Response(
-                {'error': 'user_id is required'},
+                {'error': 'user_id or telegram_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -117,6 +126,39 @@ def submit_feedback_from_mini_app(request):
                 {'error': 'message is required and must be at least 3 characters'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Обрабатываем изображения
+        images = request.FILES.getlist('images')
+        
+        # Валидация изображений
+        if images:
+            # Проверка количества
+            if len(images) > 3:
+                return Response(
+                    {'error': 'Максимум 3 изображения'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Проверка размера и типа каждого файла
+            MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+            ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+            
+            for idx, image in enumerate(images):
+                # Проверка размера
+                if image.size > MAX_FILE_SIZE:
+                    return Response(
+                        {'error': f'Изображение {idx + 1}: размер не должен превышать 5 MB (текущий: {image.size / (1024*1024):.2f} MB)'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Проверка типа
+                if image.content_type not in ALLOWED_TYPES:
+                    return Response(
+                        {'error': f'Изображение {idx + 1}: недопустимый формат ({image.content_type}). Разрешены: JPEG, PNG, GIF, WebP'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                logger.info(f"Валидация изображения {idx + 1}: размер={image.size / 1024:.1f}KB, тип={image.content_type}")
         
         # Создаем сообщение обратной связи
         feedback = FeedbackMessage.objects.create(
@@ -128,16 +170,28 @@ def submit_feedback_from_mini_app(request):
             is_processed=False
         )
         
+        logger.info(f"✅ Создано сообщение обратной связи ID={feedback.id}")
+        
+        # Сохраняем изображения
+        for image in images:
+            FeedbackImage.objects.create(
+                feedback=feedback,
+                image=image
+            )
+            logger.info(f"✅ Сохранено изображение для feedback ID={feedback.id}")
+        
         return Response(
             {
                 'success': True,
                 'message': 'Feedback submitted successfully',
-                'feedback_id': feedback.id
+                'feedback_id': feedback.id,
+                'images_count': len(images)
             },
             status=status.HTTP_201_CREATED
         )
         
     except Exception as e:
+        logger.error(f"❌ Ошибка создания feedback: {str(e)}", exc_info=True)
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
