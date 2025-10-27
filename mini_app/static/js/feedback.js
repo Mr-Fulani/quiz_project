@@ -456,3 +456,78 @@ if (document.readyState === 'loading') {
     setTimeout(initFeedbackSystem, 200);
 }
 
+// Обработчик для позиционирования формы обратной связи при появлении клавиатуры
+let activeFeedbackForm = null;
+let feedbackViewportResizeHandler = null;
+
+document.addEventListener('focusin', (e) => {
+    const textarea = e.target.closest('.feedback-message');
+    if (textarea) {
+        console.log('⌨️ Feedback textarea focused');
+        
+        // Expand Telegram WebApp для полного использования viewport
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.expand();
+        }
+        
+        const form = textarea.closest('.feedback-container');
+        activeFeedbackForm = form;
+        
+        // Подписываемся на изменение viewport (появление клавиатуры)
+        if (window.visualViewport) {
+            // Удаляем предыдущий обработчик если есть
+            if (feedbackViewportResizeHandler) {
+                window.visualViewport.removeEventListener('resize', feedbackViewportResizeHandler);
+            }
+            
+            const initialHeight = window.visualViewport.height;
+            
+            feedbackViewportResizeHandler = () => {
+                if (!activeFeedbackForm) return;
+                
+                const currentHeight = window.visualViewport.height;
+                const keyboardHeight = initialHeight - currentHeight;
+                
+                console.log('📐 Feedback Viewport changed:', { initialHeight, currentHeight, keyboardHeight });
+                
+                // Если клавиатура появилась (viewport уменьшился > 100px)
+                if (keyboardHeight > 100) {
+                    // Вычисляем положение формы
+                    const formRect = activeFeedbackForm.getBoundingClientRect();
+                    const viewportBottom = window.visualViewport.height;
+                    const formBottom = formRect.bottom;
+                    
+                    // Если форма ниже видимой области
+                    if (formBottom > viewportBottom) {
+                        const scrollAmount = formBottom - viewportBottom + 20; // +20px запас
+                        window.scrollBy({
+                            top: scrollAmount,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            };
+            
+            window.visualViewport.addEventListener('resize', feedbackViewportResizeHandler);
+            
+            // Вызываем обработчик сразу после небольшой задержки
+            setTimeout(feedbackViewportResizeHandler, 300);
+        }
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    const textarea = e.target.closest('.feedback-message');
+    if (textarea) {
+        console.log('⌨️ Feedback textarea blurred');
+        
+        // Отписываемся от событий viewport
+        if (window.visualViewport && feedbackViewportResizeHandler) {
+            window.visualViewport.removeEventListener('resize', feedbackViewportResizeHandler);
+            feedbackViewportResizeHandler = null;
+        }
+        
+        activeFeedbackForm = null;
+    }
+});
+

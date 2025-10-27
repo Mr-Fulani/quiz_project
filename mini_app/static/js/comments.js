@@ -743,7 +743,10 @@ document.addEventListener('change', (e) => {
     }
 });
 
-// Обработчик для автоматического скролла при фокусе на textarea комментариев
+// Обработчик для позиционирования формы при появлении клавиатуры
+let activeForm = null;
+let viewportResizeHandler = null;
+
 document.addEventListener('focusin', (e) => {
     const textarea = e.target.closest('.comment-form textarea');
     if (textarea) {
@@ -753,6 +756,65 @@ document.addEventListener('focusin', (e) => {
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.expand();
         }
+        
+        const form = textarea.closest('.comment-form');
+        activeForm = form;
+        
+        // Подписываемся на изменение viewport (появление клавиатуры)
+        if (window.visualViewport) {
+            // Удаляем предыдущий обработчик если есть
+            if (viewportResizeHandler) {
+                window.visualViewport.removeEventListener('resize', viewportResizeHandler);
+            }
+            
+            const initialHeight = window.visualViewport.height;
+            
+            viewportResizeHandler = () => {
+                if (!activeForm) return;
+                
+                const currentHeight = window.visualViewport.height;
+                const keyboardHeight = initialHeight - currentHeight;
+                
+                console.log('📐 Viewport changed:', { initialHeight, currentHeight, keyboardHeight });
+                
+                // Если клавиатура появилась (viewport уменьшился > 100px)
+                if (keyboardHeight > 100) {
+                    // Добавляем padding-bottom к форме чтобы она была видна над клавиатурой
+                    const formRect = activeForm.getBoundingClientRect();
+                    const viewportBottom = window.visualViewport.height;
+                    const formBottom = formRect.bottom;
+                    
+                    // Если форма ниже видимой области
+                    if (formBottom > viewportBottom) {
+                        const scrollAmount = formBottom - viewportBottom + 20; // +20px запас
+                        window.scrollBy({
+                            top: scrollAmount,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            };
+            
+            window.visualViewport.addEventListener('resize', viewportResizeHandler);
+            
+            // Вызываем обработчик сразу после небольшой задержки
+            setTimeout(viewportResizeHandler, 300);
+        }
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    const textarea = e.target.closest('.comment-form textarea');
+    if (textarea) {
+        console.log('⌨️ Textarea blurred');
+        
+        // Отписываемся от событий viewport
+        if (window.visualViewport && viewportResizeHandler) {
+            window.visualViewport.removeEventListener('resize', viewportResizeHandler);
+            viewportResizeHandler = null;
+        }
+        
+        activeForm = null;
     }
 });
 
