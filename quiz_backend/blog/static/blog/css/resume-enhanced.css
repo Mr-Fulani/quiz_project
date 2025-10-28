@@ -343,28 +343,233 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
 }
 
 /*
- * Стили для печати
- * Скрываем интерактивные элементы и адаптируем под печать
+ * Стили для печати и PDF
+ * Оптимизированы для размещения на одной странице A4
  */
 @media print {
+    /* Скрываем ненужные элементы */
     .resume-actions,
-    .language-switcher {
+    .language-switcher,
+    .info-more-btn,
+    .sidebar,
+    nav,
+    .navbar,
+    header.navigation,
+    footer {
         display: none !important;
     }
-    .resume {
-        padding: 0.5in;
-        margin: 0;
-        background: var(--white1);
-        color: var(--smoky-black);
-        max-width: 8.5in;
-        box-shadow: none;
-        border: none;
+    
+    /* Настройка страницы - минимальные отступы */
+    @page {
+        size: A4;
+        margin: 8mm 10mm;
     }
-    .skills-list {
-        column-count: 1;
+    
+    /* Основной контейнер */
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    .skills-progress-bg {
-        display: none;
+    
+    main {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Резюме - небольшие отступы от краёв */
+    .resume,
+    article.resume {
+        padding: 4mm 6mm !important;
+        margin: 0 !important;
+        background: white !important;
+        color: #000 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        font-size: 10pt !important;
+        line-height: 1.3 !important;
+    }
+    
+    /* Скрываем заголовок "Resume", оставляем только имя */
+    .resume [data-lang-key="resume_title"] {
+        display: none !important;
+    }
+    
+    /* Имя - начало резюме, делаем его первым заголовком */
+    .resume [data-lang-key="personal_info.name"] {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Заголовок резюме - компактно */
+    .resume > header {
+        margin-bottom: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    
+    /* Заголовки - уменьшенные размеры */
+    .resume h1,
+    .resume .h1 {
+        font-size: 18pt !important;
+        margin: 0 0 6px 0 !important;
+        color: #000 !important;
+        page-break-after: avoid;
+    }
+    
+    .resume h2,
+    .resume .h2 {
+        font-size: 16pt !important;
+        margin: 0 0 6px 0 !important;
+        color: #000 !important;
+        page-break-after: avoid;
+    }
+    
+    .resume h3,
+    .resume .h3 {
+        font-size: 11pt !important;
+        margin: 8px 0 4px 0 !important;
+        color: #000 !important;
+        page-break-after: avoid;
+    }
+    
+    .resume h4,
+    .resume .h4 {
+        font-size: 10pt !important;
+        margin: 4px 0 2px 0 !important;
+        color: #000 !important;
+        page-break-after: avoid;
+    }
+    
+    /* Текст */
+    .resume p,
+    .resume li,
+    .resume span {
+        color: #333 !important;
+        font-size: 9pt !important;
+        line-height: 1.3 !important;
+        margin: 0 0 3px 0 !important;
+    }
+    
+    /* Ссылки */
+    .resume a {
+        text-decoration: none;
+        color: #0066cc !important;
+        font-size: 9pt !important;
+    }
+    
+    /* Списки навыков - 3 колонки для компактности */
+    .resume .skills-list {
+        column-count: 3 !important;
+        column-gap: 12px !important;
+        margin: 4px 0 !important;
+        padding-left: 0 !important;
+    }
+    
+    .resume .skills-list li {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 2px !important;
+        padding: 0 !important;
+        font-size: 9pt !important;
+    }
+    
+    /* Прогресс-бары и декоративные элементы */
+    .skills-progress-bg,
+    .skills-progress-fill,
+    .progress-bar {
+        display: none !important;
+    }
+    
+    /* Иконки - меньший размер */
+    .icon-box {
+        color: #666 !important;
+        font-size: 14pt !important;
+        margin-right: 6px !important;
+    }
+    
+    /* Секции - минимальные отступы */
+    .timeline {
+        margin-bottom: 10px !important;
+        padding-bottom: 6px !important;
+    }
+    
+    .timeline-item {
+        page-break-inside: avoid;
+        margin-bottom: 8px !important;
+        padding-bottom: 4px !important;
+    }
+    
+    .timeline-list {
+        margin: 4px 0 !important;
+        padding-left: 0 !important;
+    }
+    
+    /* Контактная информация - компактно */
+    .contact-info {
+        page-break-after: avoid;
+        margin-bottom: 8px !important;
+    }
+    
+    .contact-info p {
+        margin: 2px 0 !important;
+        font-size: 9pt !important;
+    }
+    
+    /* Обязанности и списки */
+    .responsibilities {
+        margin: 3px 0 !important;
+        padding-left: 15px !important;
+    }
+    
+    .responsibilities li {
+        margin-bottom: 2px !important;
+    }
+    
+    /* Убираем лишние пустоты */
+    .resume-content {
+        margin-top: 0 !important;
+    }
+    
+    /* Языки - в строку */
+    .languages-container {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    
+    .language-item {
+        flex: 1 1 45% !important;
+        margin-bottom: 4px !important;
+        page-break-inside: avoid;
+        font-size: 9pt !important;
+    }
+    
+    .language-item span {
+        font-size: 9pt !important;
+    }
+    
+    /* Wrapper для title */
+    .title-wrapper {
+        display: flex !important;
+        align-items: center !important;
+        margin-bottom: 4px !important;
+    }
+    
+    /* Контактная timeline - минимальные отступы */
+    .contact-timeline {
+        margin-bottom: 4px !important;
+    }
+    
+    .location-phone-wrapper {
+        margin: 0 !important;
+    }
+    
+    .location-phone {
+        position: static !important;
+        margin: 2px 0 !important;
+        font-size: 9pt !important;
     }
 }
 
