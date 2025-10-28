@@ -22,6 +22,24 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Отключаем переходы/анимации при разворачивании блоков (для wallet) */
+.donation-form.no-transitions *,
+.donation-form.no-transitions {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Более агрессивное отключение трансформаций для вложенных элементов */
+.donation-form.no-transitions .payment-method-option,
+.donation-form.no-transitions .crypto-payment-details,
+.donation-form.no-transitions .unified-currency-selector,
+.donation-form.no-transitions .telegram-wallet-form,
+.donation-form.no-transitions .crypto-currency-select {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+}
+
 .donation-form h3 {
     margin-bottom: 15px;
     color: #333;
@@ -777,3 +795,85 @@
         max-height: 180px;
     }
 } 
+
+/* Стили для Telegram Wallet формы */
+.telegram-wallet-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 10px 0 0 0;
+    padding: 8px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    width: auto;
+    position: relative;
+    z-index: 2500; /* чтобы выпадение селекта было видно поверх других слоёв */
+}
+
+.telegram-wallet-form .wallet-currency {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.telegram-wallet-form .wallet-currency:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(0,123,255,0.2);
+}
+
+.telegram-wallet-form .telegram-wallet-btn {
+    width: auto;
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+
+/* Ограничиваем ширину большого .donate-btn внутри этой формы */
+.telegram-wallet-form .donate-btn {
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Скрываем устаревший отдельный telegram-wallet-btn если он ещё где-то присутствует */
+.telegram-wallet-btn {
+    display: none !important;
+}
+
+/* Стили для unified селектора валют */
+.unified-currency-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 8px 0;
+}
+.unified-currency-selector .unified-currency-select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.35);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.08);
+    min-width: 120px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    z-index: 3000;
+}
+
+/* раскрытие списка не перекрывается другими блоками */
+.unified-currency-selector { position: relative; z-index: 3000; }
+
+/* Скрываем legacy селектор криптовалют если он ещё есть */
+.crypto-currency-selector {
+    display: none !important;
+}

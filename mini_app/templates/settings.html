@@ -10,9 +10,9 @@
 
 {% block extra_head %}
 <!-- Stripe.js для оплаты картой -->
-<script src="https://js.stripe.com/v3/"></script>
+<script src="https://js.stripe.com/v3/" crossorigin="anonymous"></script>
 <!-- QRCode.js для генерации QR-кодов крипто-платежей -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js" crossorigin="anonymous"></script>
 {% endblock %}
 
 {% block extra_js %}
@@ -113,15 +113,12 @@
                     </div>
                 </div>
                 
-                <!-- Выбор криптовалюты (скрыт по умолчанию) -->
-                <div class="crypto-currency-selector" style="display: none;">
-                    <h3 data-translate="select_cryptocurrency">{{ translations.get('select_cryptocurrency', 'Выберите криптовалюту') }}</h3>
-                    <select class="crypto-currency-select">
-                        <option value="USDT" data-translate="usdt">{{ translations.get('usdt', 'USDT (Tether)') }}</option>
-                        <option value="USDC" data-translate="usdc">{{ translations.get('usdc', 'USDC (USD Coin)') }}</option>
-                        <option value="BUSD" data-translate="busd">{{ translations.get('busd', 'BUSD (Binance USD)') }}</option>
-                        <option value="DAI" data-translate="dai">{{ translations.get('dai', 'DAI') }}</option>
-                    </select>
+                <!-- Единый контейнер выбора валюты для crypto и Telegram Wallet -->
+                <div id="unified-currency-container" class="unified-currency-container" style="display: none;">
+                    <h3 data-translate="select_cryptocurrency">{{ translations.get('select_cryptocurrency', 'Выберите валюту:') }}</h3>
+                    <div class="unified-currency-selector">
+                        <select class="unified-currency-select"></select>
+                    </div>
                 </div>
                 
                 <!-- Детали крипто-платежа (скрыт по умолчанию) -->

@@ -131,6 +131,14 @@ class Donation(models.Model):
         help_text=_('new, pending, confirming, paid, invalid, expired, canceled')
     )
     
+    # Wallet Pay (Telegram) - идентификатор заказа
+    wallet_pay_order_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name=_('Wallet Pay Order ID')
+    )
+    
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name=_('Created At')

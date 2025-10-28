@@ -71,7 +71,7 @@ def get_versioned_url(static_path: str, filename: str) -> str:
 
 # Версии для критически важных файлов
 STATIC_VERSIONS = {
-    'donation.js': '3.0',  # FIX: Исправлены пути для крипто API endpoints (/api/donation/crypto/...)
+    'donation.js': '3.9',  # FIX: Исправлена двойная обёртка когда перевод уже содержит код
     'localization.js': '2.7',  # Добавлен перевод reply_to для индикации ответов в комментариях
     'share-app.js': '2.0',  # Улучшено: display flex для корректного отображения модального окна
     'search.js': '2.2',  # Исправлено: добавлен has_tasks в API endpoint и language в запрос
@@ -83,7 +83,7 @@ STATIC_VERSIONS = {
     'statistics.js': '3.7',  # FIX: улучшена инициализация при SPA-навигации, предотвращена двойная загрузка
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
     'styles.css': '3.2',  # Перенос контента из <head> в <body> (фикc скрытий)
-    'donation.css': '1.3',  # Обновлено: добавлена поддержка safe areas для Stripe модального окна
+    'donation.css': '1.4',  # FIX: Отключены анимации для crypto/wallet, z-index селектора
     'profile.css': '12.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'user_profile.css': '5.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента

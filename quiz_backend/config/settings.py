@@ -577,6 +577,12 @@ COINGATE_ENVIRONMENT = os.getenv('COINGATE_ENVIRONMENT', 'sandbox')  # 'sandbox'
 COINGATE_RECEIVE_CURRENCY = os.getenv('COINGATE_RECEIVE_CURRENCY', 'DO_NOT_CONVERT')  # или 'USD', 'EUR'
 
 
+# Wallet Pay (Telegram) настройки
+# Используется для приема платежей через Telegram Wallet Pay API
+WALLET_PAY_API_KEY = os.getenv('WALLET_PAY_API_KEY', '')
+WALLET_PAY_STORE_ID = os.getenv('WALLET_PAY_STORE_ID', '')
+
+
 
 
 

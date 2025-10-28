@@ -16,6 +16,8 @@ from rest_framework.decorators import api_view
 from .forms import DonationForm
 from .models import Donation
 from .utils import send_donation_thank_you_email
+from .wallet_pay_service import WalletPayService
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -312,6 +314,148 @@ def confirm_payment(request):
             'success': False,
             'message': _('An error occurred')
         }, status=500)
+
+
+# ====================== Wallet Pay (Telegram) ======================
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Создание платежа через Telegram Wallet Pay",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['amount', 'name'],
+        properties={
+            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Сумма доната в USD (минимум $1)'),
+            'currency': openapi.Schema(type=openapi.TYPE_STRING, description='Валюта (TON, USDT, BTC)', default='USDT'),
+            'name': openapi.Schema(type=openapi.TYPE_STRING, description='Имя донатера'),
+            'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email (опционально)'),
+            'telegram_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Telegram ID пользователя (опционально)'),
+            'source': openapi.Schema(type=openapi.TYPE_STRING, description='Источник (website/mini_app)', default='mini_app'),
+        },
+    ),
+    responses={
+        200: openapi.Response(
+            description="Заказ создан",
+            examples={'application/json': {'success': True, 'order_id': '...', 'pay_link': '...', 'direct_pay_link': '...'}},
+        ),
+        400: openapi.Response(description="Ошибка валидации"),
+        500: openapi.Response(description="Ошибка сервера"),
+    }
+)
+@api_view(['POST'])
+@csrf_exempt
+def create_wallet_pay_payment(request):
+    """Создаёт заказ для оплаты через Telegram Wallet Pay."""
+    try:
+        data = json.loads(request.body)
+        amount = data.get('amount')
+        currency = data.get('currency', 'USDT')
+        email = data.get('email', '')
+        name = data.get('name', 'Anonymous')
+        source = data.get('source', 'mini_app')
+        telegram_id = data.get('telegram_id')
+
+        if not amount or float(amount) < 1:
+            return JsonResponse({'success': False, 'message': _('Invalid amount. Minimum amount is $1.00')}, status=400)
+        if not name or not name.strip():
+            return JsonResponse({'success': False, 'message': _('Name is required')}, status=400)
+
+        # Создаем запись Donation со статусом pending
+        donation = Donation.objects.create(
+            name=name,
+            email=email or None,
+            amount=amount,
+            currency='usd',  # Wallet Pay конвертирует по своей логике
+            status='pending',
+            payment_type='crypto',
+            payment_method='wallet_pay',
+            source=source,
+        )
+
+        # ТЕСТОВАЯ ЗАГЛУШКА: если в окружении указан dev-ключ, возвращаем фиктивную успешную ссылку
+        if getattr(settings, 'WALLET_PAY_API_KEY', '') and 'dev' in settings.WALLET_PAY_API_KEY.lower():
+            logger.info("Wallet Pay DEV mode detected — returning fake direct_pay_link for local testing")
+            order_id = f"dev_{donation.id}_{int(time.time())}"
+            result = {
+                'success': True,
+                'order_id': order_id,
+                'pay_link': f'https://example.test/wallet-pay/{order_id}',
+                'direct_pay_link': f'https://t.me/test-pay?order={order_id}'
+            }
+        else:
+            service = WalletPayService()
+            result = service.create_order(
+                amount=str(amount),
+                currency=currency,
+                description=f'Donation #{donation.id}',
+                external_id=str(donation.id),
+                customer_telegram_id=telegram_id,
+            )
+
+        if result.get('success'):
+            donation.wallet_pay_order_id = result.get('order_id')
+            donation.save(update_fields=['wallet_pay_order_id'])
+            return JsonResponse({
+                'success': True,
+                'order_id': result.get('order_id'),
+                'pay_link': result.get('pay_link'),
+                'direct_pay_link': result.get('direct_pay_link'),
+                'donation_id': donation.id,
+            })
+
+        donation.status = 'failed'
+        donation.save(update_fields=['status'])
+        return JsonResponse({'success': False, 'message': result.get('error', 'Failed to create payment')}, status=400)
+
+    except Exception as e:
+        logger.error(f"Error creating Wallet Pay payment: {e}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@csrf_exempt
+def wallet_pay_webhook(request):
+    """Webhook для уведомлений от Wallet Pay. Обновляет статус Donation."""
+    try:
+        signature = request.headers.get('X-Wallet-Pay-Signature', '')
+        body = request.body.decode('utf-8')
+
+        service = WalletPayService()
+        if not service.verify_webhook(signature, body):
+            logger.warning("Invalid Wallet Pay webhook signature")
+            return JsonResponse({'error': 'Invalid signature'}, status=400)
+
+        payload = json.loads(body)
+        order = payload.get('order', {})
+        external_id = order.get('externalId')
+        status = order.get('status')
+
+        if not external_id:
+            return JsonResponse({'status': 'ignored'})
+
+        try:
+            donation = Donation.objects.get(id=int(external_id))
+        except Donation.DoesNotExist:
+            logger.error(f"Donation not found for externalId={external_id}")
+            return JsonResponse({'status': 'not_found'}, status=404)
+
+        if status == 'PAID':
+            donation.status = 'completed'
+            donation.save(update_fields=['status'])
+            if donation.email:
+                try:
+                    send_donation_thank_you_email(donation)
+                except Exception as mail_err:  # noqa: BLE001
+                    logger.warning(f"Email send failed: {mail_err}")
+        elif status in {'EXPIRED', 'CANCELLED'}:
+            donation.status = 'failed'
+            donation.save(update_fields=['status'])
+
+        return JsonResponse({'status': 'ok'})
+
+    except Exception as e:
+        logger.error(f"Error processing Wallet Pay webhook: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 def test_stripe(request):

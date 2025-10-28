@@ -25,6 +25,8 @@ from donation.views import (
     get_crypto_currencies,
     create_crypto_payment,
     get_crypto_payment_status,
+    create_wallet_pay_payment,
+    wallet_pay_webhook,
 )
 from social_auth.views import TelegramAuthView
 
@@ -96,6 +98,10 @@ urlpatterns = [
     path('api/donation/crypto-currencies/', get_crypto_currencies, name='api_crypto_currencies'),
     path('api/donation/crypto/create-payment/', create_crypto_payment, name='api_create_crypto_payment'),
     path('api/donation/crypto/status/<str:order_id>/', get_crypto_payment_status, name='api_crypto_payment_status'),
+    
+    # Wallet Pay donation API endpoints
+    path('api/donation/wallet-pay/create-payment/', create_wallet_pay_payment, name='wallet_pay_create'),
+    path('api/donation/wallet-pay/webhook/', wallet_pay_webhook, name='wallet_pay_webhook'),
     
     # Редирект с корневого URL на английский язык (язык по умолчанию)
     path('', RedirectView.as_view(url='/en/', permanent=False), name='root-redirect'),
