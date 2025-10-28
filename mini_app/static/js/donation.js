@@ -3,6 +3,11 @@
  * Интегрируется с Django API и Stripe для обработки платежей
  */
 
+// Создаем глобальный объект-контейнер для всей логики, чтобы избежать конфликтов и повторных объявлений.
+// Этот блок выполнится только один раз, даже если скрипт будет загружен на страницу несколько раз.
+if (!window.donationSystemGlobal) {
+    window.donationSystemGlobal = {};
+
 class DonationSystem {
     constructor() {
         this.stripe = null;
@@ -14,8 +19,9 @@ class DonationSystem {
         this.isProcessing = false;
         
         // Крипто-платежи
-        this.paymentMethod = 'card'; // 'card' или 'crypto'
+        this.paymentMethod = 'card'; // 'card' | 'crypto' | 'wallet'
         this.selectedCryptoCurrency = 'USDT';
+        this.selectedWalletCurrency = 'USDT';
         this.currentCryptoOrderId = null;
         this.statusCheckInterval = null;
         this.cryptoCurrencies = [];
@@ -26,36 +32,249 @@ class DonationSystem {
     async init() {
         console.log('🔧 DonationSystem: Initializing...');
         
-        // Инициализируем Stripe
-        await this.initStripe();
-        
-        // Загружаем криптовалюты
-        await this.loadCryptoCurrencies();
-        
-        // Привязываем события
-        this.bindEvents();
-        
-        // Устанавливаем начальные значения
-        this.setInitialValues();
-        
-        console.log('✅ DonationSystem: Initialized successfully');
-    }
-    
-    async initStripe() {
-        try {
-            // Получаем публичный ключ Stripe с сервера через мини-апп API
-            const response = await fetch('/api/stripe-publishable-key');
-            const data = await response.json();
+            // 1. Fetch all data in parallel to avoid race conditions
+            const [stripeKeyData, appConfig, cryptoCurrencies] = await Promise.all([
+                this.fetchStripeKey(),
+                this.fetchAppConfig(),
+                this.fetchCryptoCurrencies()
+            ]);
+
+            // 2. Initialize services and set properties
+            this.initializeStripe(stripeKeyData);
+            this.walletPayEnabled = !!(appConfig && appConfig.wallet_pay_enabled);
+            this.cryptoCurrencies = cryptoCurrencies || [];
             
-            if (data.publishable_key) {
-                this.stripe = Stripe(data.publishable_key);
-                console.log('✅ Stripe initialized with key:', data.publishable_key.substring(0, 20) + '...');
+            // 3. Build the UI with all data available
+            this.buildInitialUI();
+            
+            // 4. Bind events and set initial values
+            this.bindEvents();
+            this.setInitialValues();
+            
+            // Final UI translation update, as localization might load asynchronously
+            this.updateTranslations();
+            this.localizeCurrencyOptions(document.querySelector('.unified-currency-select'));
+
+            console.log('✅ DonationSystem: Initialized successfully');
+        }
+
+        buildInitialUI() {
+            console.log('🎨 Building initial UI...');
+            if (this.walletPayEnabled) {
+                this.ensureWalletPayUI();
+            }
+            this.ensureUnifiedCurrencySelector();
+        this.removeLegacyCurrencySelectors();
+            console.log('✅ Initial UI built.');
+        }
+
+        async fetchStripeKey() {
+            try {
+                const response = await fetch('/api/stripe-publishable-key');
+                return await response.json();
+            } catch (error) {
+                console.error('❌ Error fetching Stripe key:', error);
+                return null;
+            }
+        }
+
+        initializeStripe(keyData) {
+            if (keyData && keyData.publishable_key) {
+                this.stripe = Stripe(keyData.publishable_key);
+                console.log('✅ Stripe initialized with key:', keyData.publishable_key.substring(0, 20) + '...');
             } else {
                 console.warn('⚠️ Stripe publishable key not available');
             }
-        } catch (error) {
-            console.error('❌ Error initializing Stripe:', error);
         }
+
+        async fetchAppConfig() {
+            try {
+                const res = await fetch('/api/get-config/');
+                const cfg = await res.json();
+                console.log('⚙️ App config loaded:', cfg);
+                return cfg;
+            } catch (e) {
+                console.warn('⚠️ Failed to load app config:', e);
+                return { wallet_pay_enabled: false };
+            }
+        }
+        
+        async fetchCryptoCurrencies() {
+            try {
+                console.log('🪙 Loading crypto currencies...');
+                const response = await fetch('/api/donation/crypto-currencies');
+                const data = await response.json();
+                if (data.success && data.currencies) {
+                    console.log('✅ Crypto currencies loaded:', data.currencies);
+                    return data.currencies;
+                }
+                console.warn('⚠️ Failed to load crypto currencies');
+                return [];
+            } catch (error) {
+                console.error('❌ Error loading crypto currencies:', error);
+                return [];
+            }
+    }
+
+    ensureUnifiedCurrencySelector() {
+        // Используем контейнер из шаблона
+        const container = document.getElementById('unified-currency-container');
+        if (!container) return;
+        const selectEl = container.querySelector('.unified-currency-select');
+        if (!selectEl) return;
+
+        // Назначаем обработчик один раз
+        if (!selectEl.dataset.bound) {
+            selectEl.addEventListener('change', (ev) => {
+                this.selectedCryptoCurrency = ev.target.value;
+                this.selectedWalletCurrency = ev.target.value;
+                console.log('💱 Unified currency selected (ensure):', ev.target.value);
+            });
+            selectEl.dataset.bound = '1';
+        }
+
+        // Наполним опциями исходя из текущего состояния
+        this.updateUnifiedCurrencyOptions();
+
+        // Обновляем переводы (если есть) для label unified селектора
+        this.updateTranslations();
+
+        // Если на странице есть legacy h3 (например в шаблоне), скрываем его — используем unified label
+        const legacyCrypto = document.querySelector('.crypto-currency-selector');
+        if (legacyCrypto) {
+            const legacyH3 = legacyCrypto.querySelector('h3');
+            if (legacyH3) {
+                legacyH3.style.display = 'none';
+            }
+        }
+    }
+
+    updateUnifiedCurrencyOptions() {
+        const container = document.getElementById('unified-currency-container');
+        if (!container) return;
+        const selectEl = container.querySelector('.unified-currency-select');
+        if (!selectEl) return;
+
+        // Составляем список доступных валют: из загруженных crypto + дефолт
+        const fallback = ['USDT', 'TON', 'BTC', 'DAI'];
+        const available = (this.cryptoCurrencies && this.cryptoCurrencies.length)
+            ? Array.from(new Set([...this.cryptoCurrencies.map(c => c.code), ...fallback]))
+            : fallback;
+
+        // Очистим и добавим
+        selectEl.innerHTML = '';
+        available.forEach(code => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = code;
+            selectEl.appendChild(opt);
+        });
+
+        // Если есть ранее выбранная валюта — установим её
+        const preferred = this.selectedCryptoCurrency || this.selectedWalletCurrency;
+        if (preferred) selectEl.value = preferred;
+
+        // Попытка локализовать опции (ключи: usdt, usdc, busd, dai и т.д.)
+        try {
+            this.localizeCurrencyOptions(selectEl);
+        } catch (err) {
+            console.warn('⚠️ localizeCurrencyOptions failed:', err);
+        }
+
+        // Показываем контейнер, когда есть что выбирать
+        container.style.display = 'block';
+    }
+
+    localizeCurrencyOptions(selectEl) {
+        if (!selectEl) return;
+        const options = Array.from(selectEl.options);
+        options.forEach(opt => {
+            const code = opt.value && opt.value.toLowerCase();
+            if (!code) return;
+            
+            // Ключи переводов: usdt, usdc, busd, dai, ton, btc и т.д.
+            const key = code;
+            let text = null;
+            
+            // Пытаемся получить перевод
+            if (window.t && typeof window.t === 'function') {
+                try { text = window.t(key); } catch (e) { /* ignore */ }
+            }
+            if (!text && window.localizationService && typeof window.localizationService.getText === 'function') {
+                text = window.localizationService.getText(key);
+            }
+            
+            // Проверяем, что у нас есть перевод и он не совпадает с кодом
+            if (text && text.toLowerCase() !== code && text !== opt.value) {
+                // Если перевод уже содержит код в начале (например "USDT (Tether)"), используем его как есть
+                if (text.toUpperCase().startsWith(opt.value.toUpperCase())) {
+                    opt.textContent = text;
+                } else {
+                    // Иначе добавляем код в начало
+                    opt.textContent = `${opt.value} (${text})`;
+                }
+            } else {
+                // Если перевода нет или он совпадает с кодом - показываем только код
+                opt.textContent = opt.value;
+            }
+        });
+    }
+
+    removeLegacyCurrencySelectors() {
+        // Удаляем или скрываем старые селекторы, чтобы не было двух полей выбора валюты
+        const legacy1 = document.querySelector('.crypto-currency-selector');
+        if (legacy1 && legacy1.parentElement) {
+            legacy1.parentElement.removeChild(legacy1);
+            console.log('🧹 Removed legacy crypto-currency-selector');
+        }
+
+        const legacy2 = document.querySelector('.telegram-wallet-form .wallet-currency');
+        if (legacy2 && legacy2.parentElement) {
+            const parent = legacy2.parentElement;
+            parent.removeChild(legacy2);
+            // если контейнер currency-selector остался пустым — удалим и его label
+            const currencyContainer = document.querySelector('.telegram-wallet-form .currency-selector');
+            if (currencyContainer && currencyContainer.parentElement) {
+                currencyContainer.parentElement.removeChild(currencyContainer);
+                console.log('🧹 Removed legacy currency-selector container inside wallet form');
+            }
+            console.log('🧹 Removed legacy wallet-currency select inside wallet form');
+        }
+    }
+
+    ensureWalletPayUI() {
+        // Добавляем опцию метода оплаты "Telegram Wallet", если её ещё нет в DOM
+        const methodsContainer = document.querySelector('.payment-methods');
+            
+        // Если контейнера ещё нет (динамический рендер), ждём его появление через MutationObserver
+        if (!methodsContainer) {
+            const observer = new MutationObserver((mutations, obs) => {
+                const container = document.querySelector('.payment-methods');
+                if (container) {
+                    obs.disconnect();
+                    // Немного даём времени на завершение рендера и затем повторяем установку UI
+                    setTimeout(() => this.ensureWalletPayUI(), 50);
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            return;
+        }
+            
+            // Добавляем радиокнопку для Telegram Wallet
+        const exists = methodsContainer.querySelector('input[name="payment-method"][value="wallet"]');
+        if (!exists) {
+            const label = document.createElement('label');
+            label.className = 'payment-method-option';
+            label.innerHTML = `
+                <input type="radio" name="payment-method" value="wallet">
+                <span>💎 Telegram Wallet</span>
+            `;
+            methodsContainer.appendChild(label);
+                console.log('✅ Telegram Wallet payment option added');
+            }
+            
+            // ВАЖНО: Больше не создаём отдельную .telegram-wallet-form
+            // Wallet и Crypto используют один и тот же unified-currency-container
     }
     
     bindEvents() {
@@ -63,6 +282,15 @@ class DonationSystem {
         
         // Используем делегирование событий для динамически созданных элементов
         document.addEventListener('click', (e) => {
+            // Явный делегированный обработчик для кнопки Wallet (на случай, если локальный обработчик не сработал)
+            if (e.target.closest('[data-wallet-btn]')) {
+                e.preventDefault();
+                console.log('💎 Wallet button (delegated) clicked');
+                this.paymentMethod = 'wallet';
+                this.switchPaymentMethod('wallet');
+                this.processTelegramWalletPayment();
+                return;
+            }
             // Обработчики для выбора суммы
             if (e.target.classList.contains('amount-option')) {
                 console.log('💰 Amount option clicked:', e.target.dataset.amount);
@@ -75,12 +303,17 @@ class DonationSystem {
                 this.selectCurrency(e.target.dataset.currency);
             }
             
-            // Обработчик для кнопки доната
+            // Обработчик для единственной primary кнопки доната
             if (e.target.closest('.donate-btn')) {
-                console.log('💳 Donate button clicked');
+                console.log('💳 Primary donate button clicked');
                 e.preventDefault();
+                // Визуально скрываем/прячем дополнительные кнопки при обработке
+                const walletForm = document.querySelector('.telegram-wallet-form');
                 if (this.paymentMethod === 'crypto') {
                     this.processCryptoPayment();
+                } else if (this.paymentMethod === 'wallet') {
+                    // Если Wallet выбран — используем основной donate-btn как триггер
+                    this.processTelegramWalletPayment();
                 } else {
                     this.showPaymentModal();
                 }
@@ -223,7 +456,20 @@ class DonationSystem {
         const amount = this.selectedAmount;
         
         if (!name) {
-            this.showError(window.t('donation_enter_name', 'Пожалуйста, введите ваше имя'));
+            // показываем сообщение один раз
+            if (!document.querySelector('.donation-name-error')) {
+                this.showError(window.t('donation_enter_name', 'Пожалуйста, введите ваше имя'));
+                // пометка, чтобы не дублировать alert при повторных вызовах
+                const marker = document.createElement('div');
+                marker.className = 'donation-name-error';
+                marker.style.display = 'none';
+                document.body.appendChild(marker);
+                // удалим маркер через 3 секунды
+                setTimeout(() => {
+                    const m = document.querySelector('.donation-name-error');
+                    if (m) m.remove();
+                }, 3000);
+            }
             return false;
         }
         
@@ -493,8 +739,23 @@ class DonationSystem {
     }
     
     showError(message) {
-        // Простое уведомление об ошибке
-        alert(message);
+        // Дедупликация одинаковых ошибок в течение 2 секунд и отображение через красивый нотификатор
+        try {
+            const now = Date.now();
+            if (!this._lastErrorMessage) this._lastErrorMessage = '';
+            if (!this._lastErrorTime) this._lastErrorTime = 0;
+            if (this._lastErrorMessage === message && (now - this._lastErrorTime) < 2000) {
+                console.log('⚠️ Duplicate error suppressed:', message);
+                return;
+            }
+            this._lastErrorMessage = message;
+            this._lastErrorTime = now;
+        } catch (err) {
+            // ignore
+        }
+
+        // Показываем нотификацию вместо alert — не блокирует поток и меньше шансов на дубли
+        this.showNotification('error', window.t ? window.t('donation_error', 'Ошибка') : 'Ошибка', message);
     }
     
     showNotification(type, title, message) {
@@ -550,46 +811,43 @@ class DonationSystem {
     
     // Метод для обновления переводов
     updateTranslations() {
-        if (window.localizationService) {
-            const elements = this.modal?.querySelectorAll('[data-translate]');
-            if (elements) {
-                elements.forEach(element => {
-                    const key = element.getAttribute('data-translate');
-                    const translation = window.localizationService.getText(key);
-                    if (translation) {
-                        element.textContent = translation;
+        // Обновляем переводы у всех динамически созданных элементов на странице
+        try {
+            const elements = document.querySelectorAll('[data-translate]');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (!key) return;
+                // Сначала пытаемся использовать window.t (если подключена функция), затем localizationService
+                if (window.t && typeof window.t === 'function') {
+                    try {
+                        const translated = window.t(key);
+                        if (translated) element.textContent = translated;
+                        return;
+                    } catch (e) {
+                        // ignore
                     }
-                });
-            }
+                }
+
+                if (window.localizationService && typeof window.localizationService.getText === 'function') {
+                    const translation = window.localizationService.getText(key);
+                    if (translation) element.textContent = translation;
+                }
+            });
+        } catch (err) {
+            console.warn('⚠️ updateTranslations failed:', err);
         }
     }
     
     // ==================== Крипто-платежи ====================
-    
-    async loadCryptoCurrencies() {
-        try {
-            console.log('🪙 Loading crypto currencies...');
-            const response = await fetch('/api/donation/crypto-currencies');
-            const data = await response.json();
-            
-            if (data.success && data.currencies) {
-                this.cryptoCurrencies = data.currencies;
-                console.log('✅ Crypto currencies loaded:', this.cryptoCurrencies);
-            } else {
-                console.warn('⚠️ Failed to load crypto currencies');
-            }
-        } catch (error) {
-            console.error('❌ Error loading crypto currencies:', error);
-        }
-    }
     
     switchPaymentMethod(method) {
         console.log('🔄 Switching payment method to:', method);
         this.paymentMethod = method;
         
         // Обновляем UI
-        const cryptoSelector = document.querySelector('.crypto-currency-selector');
+        const unifiedContainer = document.getElementById('unified-currency-container');
         const cryptoDetails = document.querySelector('.crypto-payment-details');
+        const walletForm = document.querySelector('.telegram-wallet-form');
         
         // Обновляем визуальное выделение радио-кнопок
         document.querySelectorAll('.payment-method-option').forEach(option => {
@@ -601,18 +859,62 @@ class DonationSystem {
             }
         });
         
-        if (method === 'crypto') {
-            if (cryptoSelector) cryptoSelector.style.display = 'block';
-            // Скрываем детали до создания платежа
+            // Для crypto и wallet показываем ТОЛЬКО unified-currency-container
+            // Разница только в том, какая кнопка будет обрабатывать платёж
+            if (method === 'crypto' || method === 'wallet') {
+                // Показываем селектор валюты для обоих методов
+            if (unifiedContainer) unifiedContainer.style.display = 'block';
+                // Скрываем детали платежа до его создания
             if (cryptoDetails) cryptoDetails.style.display = 'none';
+                // Telegram Wallet форма не нужна - используем unified контейнер
+            if (walletForm) walletForm.style.display = 'none';
         } else {
-            if (cryptoSelector) cryptoSelector.style.display = 'none';
+                // Card payment - прячем всё крипто-специфичное
+            if (unifiedContainer) unifiedContainer.style.display = 'none';
             if (cryptoDetails) cryptoDetails.style.display = 'none';
+            if (walletForm) walletForm.style.display = 'none';
             // Останавливаем polling если был запущен
             this.stopStatusPolling();
         }
         
         console.log('✅ Payment method switched to:', method);
+    }
+
+    async processTelegramWalletPayment() {
+        if (this.isProcessing) return;
+        if (!this.validateForm()) return;
+        this.isProcessing = true;
+        try {
+            const formData = {
+                amount: this.selectedAmount,
+                currency: 'USDT',
+                name: document.querySelector('.donation-name').value.trim(),
+                telegram_id: window.currentUser?.telegram_id,
+                source: 'mini_app'
+            };
+
+            const response = await fetch('/api/donation/wallet-pay/create-payment/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const data = await response.json();
+            if (data.success) {
+                if (window.Telegram?.WebApp && data.direct_pay_link) {
+                    window.Telegram.WebApp.openTelegramLink(data.direct_pay_link);
+                } else if (data.pay_link) {
+                    window.open(data.pay_link, '_blank');
+                }
+                this.showNotification('info', 'Ожидание оплаты', 'Завершите оплату в Telegram Wallet');
+            } else {
+                throw new Error(data.message || 'Failed to create Wallet Pay payment');
+            }
+        } catch (e) {
+            console.error('❌ Wallet Pay error:', e);
+            this.showNotification('error', 'Ошибка', e.message || 'Wallet Pay недоступен');
+        } finally {
+            this.isProcessing = false;
+        }
     }
     
     async processCryptoPayment() {
@@ -925,22 +1227,74 @@ class DonationSystem {
     }
 }
 
-// Глобальная переменная для доступа к системе донатов
-let donationSystem;
+    // Функция-инициализатор, которую можно безопасно вызывать многократно.
+    // Она будет создавать новый экземпляр DonationSystem при каждой загрузке страницы.
+    window.donationSystemGlobal.initialize = function() {
+        // Проверяем, что мы на странице с донатами, прежде чем что-либо делать.
+        if (document.querySelector('.donation-container')) {
+            console.log('🔧 DonationSystem: DOM loaded or changed, initializing new instance...');
+            // Создаем новый экземпляр, который проведет всю необходимую настройку.
+            window.donationSystemGlobal.instance = new DonationSystem();
+        } else {
+            console.log('🧐 Donation container not found, skipping initialization.');
+        }
+    };
 
-// Инициализация при загрузке DOM
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 DonationSystem: DOM loaded, initializing...');
-    donationSystem = new DonationSystem();
-});
+    // --- НАСТРОЙКА ГЛОБАЛЬНЫХ ОБРАБОТЧИКОВ (выполняется один раз) ---
+    
+    // 1. Инициализация при первой загрузке страницы.
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("🚀 DOMContentLoaded -> Initializing Donation System");
+        window.donationSystemGlobal.initialize();
+    });
 
-// Интеграция с системой локализации
+    // 2. Отслеживание изменений DOM для SPA-навигации.
+    // Перехватываем момент после замены контента в loadPage().
+    // Это более надежный подход, чем MutationObserver.
+    
+    // Сохраняем оригинальный loadPage
+    if (window.loadPage) {
+        const originalLoadPage = window.loadPage;
+        window.loadPage = function(...args) {
+            console.log('🔄 [DonationSystem] loadPage intercepted, will re-init after completion');
+            
+            // Вызываем оригинальную функцию
+            const result = originalLoadPage.apply(this, args);
+            
+            // После loadPage проверяем, нужно ли переинициализировать donation system
+            // Используем Promise.resolve для обработки как синхронных, так и асинхронных результатов
+            Promise.resolve(result).then(() => {
+                // Даем время на полную загрузку и рендеринг
+                setTimeout(() => {
+                    if (document.querySelector('.donation-container')) {
+                        console.log('✅ [DonationSystem] Donation container found after page load, re-initializing...');
+                        window.donationSystemGlobal.initialize();
+                    }
+                }, 300);
+            });
+            
+            return result;
+        };
+        console.log('✅ loadPage intercepted for donation system re-initialization');
+    }
+
+    // 3. Интеграция с системой локализации (перехват смены языка).
+    // Это запасной вариант, если loadPage не сработает
 if (window.onLanguageChanged) {
     const originalOnLanguageChanged = window.onLanguageChanged;
     window.onLanguageChanged = function() {
+            console.log('🌐 [DonationSystem] Language change detected');
         originalOnLanguageChanged();
-        if (donationSystem) {
-            donationSystem.updateTranslations();
-        }
-    };
+            
+            // Переинициализируем через небольшую задержку
+            setTimeout(() => {
+                if (document.querySelector('.donation-container')) {
+                    console.log('✅ [DonationSystem] Re-initializing after language change');
+                    window.donationSystemGlobal.initialize();
+                }
+            }, 400);
+        };
+    }
+
+    console.log('✅ DonationSystemGlobal setup complete. Listeners are active.');
 } 
