@@ -974,4 +974,121 @@ def coingate_callback(request):
     except Exception as e:
         logger.error(f"Error processing CoinGate callback: {str(e)}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Создание инвойса для оплаты через Telegram Stars",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['amount', 'name'],
+        properties={
+            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Сумма доната в USD'),
+            'name': openapi.Schema(type=openapi.TYPE_STRING, description='Имя донатера'),
+            'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email (опционально)'),
+            'telegram_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Telegram ID пользователя (опционально)'),
+            'source': openapi.Schema(type=openapi.TYPE_STRING, description='Источник: mini_app или website'),
+        },
+    ),
+    responses={
+        200: openapi.Response(
+            description="Инвойс успешно создан",
+            examples={'application/json': {
+                'success': True,
+                'invoice_link': 'https://t.me/$abc123...',
+                'donation_id': 123,
+                'stars_amount': 100
+            }}
+        ),
+        400: openapi.Response(description="Некорректные данные"),
+        500: openapi.Response(description="Ошибка сервера")
+    }
+)
+@api_view(['POST'])
+@csrf_exempt
+def create_telegram_stars_invoice(request):
+    """
+    Создание инвойса для оплаты через Telegram Stars
+    """
+    logger.info(f"Telegram Stars invoice request received: {request.body}")
+    try:
+        from .telegram_stars_service import TelegramStarsService
+        
+        data = json.loads(request.body)
+        amount = data.get('amount')  # Сумма в USD
+        name = data.get('name', 'Anonymous')
+        email = data.get('email', '')
+        telegram_id = data.get('telegram_id')
+        source = data.get('source', 'mini_app')
+        
+        # Валидация
+        if not amount or float(amount) < 1:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid amount. Minimum is $1'
+            }, status=400)
+        
+        # Конвертируем USD в Stars (примерный курс: 1 Star ≈ $0.01, т.е. $1 = 100 Stars)
+        # Реальный курс может отличаться, уточните актуальный
+        stars_amount = int(float(amount) * 100)
+        
+        # Создаем запись donation БЕЗ payload (добавим после получения ID)
+        donation = Donation.objects.create(
+            name=name,
+            email=email,
+            amount=amount,
+            currency='usd',
+            status='pending',
+            payment_type='crypto',  # Stars тоже относятся к цифровым валютам
+            payment_method='telegram_stars',
+            source=source,
+            stars_amount=stars_amount,
+        )
+        
+        # Обновляем payload с актуальным ID после создания
+        donation.telegram_invoice_payload = f'donation_{donation.id}'
+        donation.save(update_fields=['telegram_invoice_payload'])
+        
+        # Создаем инвойс через Telegram Bot API
+        service = TelegramStarsService()
+        
+        # Обрезаем имя для description (максимум 255 символов для description)
+        safe_name = name[:200] if len(name) > 200 else name
+        
+        result = service.create_invoice_link(
+            title='Quiz App Donation',  # Простой заголовок (максимум 32 символа)
+            description=f'Support educational project - {safe_name}',
+            payload=donation.telegram_invoice_payload,
+            currency='XTR',  # Telegram Stars currency code
+            prices=[{
+                'label': 'Donation',
+                'amount': stars_amount
+            }],
+        )
+        
+        if result.get('success'):
+            logger.info(f"Telegram Stars invoice created for donation {donation.id}")
+            return JsonResponse({
+                'success': True,
+                'invoice_link': result['invoice_link'],
+                'donation_id': donation.id,
+                'stars_amount': stars_amount,
+                'payload': donation.telegram_invoice_payload,
+            })
+        else:
+            # Если не удалось создать инвойс, помечаем donation как failed
+            donation.status = 'failed'
+            donation.save()
+            logger.error(f"Failed to create Stars invoice: {result.get('error')}")
+            return JsonResponse({
+                'success': False,
+                'message': result.get('error', 'Failed to create invoice')
+            }, status=500)
+            
+    except Exception as e:
+        logger.error(f"Error creating Telegram Stars invoice: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }, status=500)
  

@@ -11,9 +11,8 @@ from .utils import export_donations_csv, send_donation_thank_you_email
 @admin.register(Donation)
 class DonationAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'amount_formatted', 'currency', 'payment_type_display', 
-        'crypto_currency', 'source', 'status_colored', 'payment_method', 
-        'created_at', 'days_ago'
+        'name', 'amount_formatted', 'payment_type_display', 
+        'source', 'status_colored', 'created_at', 'days_ago'
     ]
     list_filter = [
         'status', 'payment_type', 'currency', 'crypto_currency', 
@@ -21,15 +20,21 @@ class DonationAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'name', 'email', 'stripe_payment_intent_id', 
-        'coingate_order_id', 'crypto_transaction_hash', 'crypto_payment_address'
+        'coingate_order_id', 'crypto_transaction_hash', 'crypto_payment_address',
+        'telegram_payment_charge_id', 'telegram_invoice_payload', 'wallet_pay_order_id'
     ]
     readonly_fields = [
         'stripe_payment_intent_id', 'coingate_order_id', 'coingate_status',
         'crypto_payment_address', 'crypto_transaction_hash', 'crypto_amount',
+        'telegram_payment_charge_id', 'stars_amount', 'telegram_invoice_payload',
+        'telegram_stars_info', 'wallet_pay_order_id', 
         'created_at', 'updated_at', 'coingate_order_link'
     ]
     ordering = ['-created_at']
-    actions = ['mark_as_completed', 'mark_as_failed', 'export_to_csv', 'send_thank_you_emails']
+    actions = [
+        'mark_as_completed', 'mark_as_failed', 'export_to_csv', 
+        'send_thank_you_emails', 'refund_telegram_stars'
+    ]
     
     fieldsets = (
         ('Общая информация', {
@@ -50,6 +55,17 @@ class DonationAdmin(admin.ModelAdmin):
             ),
             'classes': ('collapse',)
         }),
+        ('Telegram Stars ⭐️', {
+            'fields': (
+                'stars_amount', 'telegram_payment_charge_id', 
+                'telegram_invoice_payload', 'telegram_stars_info'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Telegram Wallet Pay 💎', {
+            'fields': ('wallet_pay_order_id',),
+            'classes': ('collapse',)
+        }),
         ('Временные метки', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -67,16 +83,33 @@ class DonationAdmin(admin.ModelAdmin):
     
     def amount_formatted(self, obj):
         """Форматированная сумма доната"""
+        # Telegram Stars
+        if obj.payment_method == 'telegram_stars' and obj.stars_amount:
+            return format_html(
+                '<span style="color: #f2a73d;">⭐️ {} Stars (≈${})</span>',
+                obj.stars_amount,
+                obj.amount
+            )
+        # Крипто-платежи
         if obj.payment_type == 'crypto' and obj.crypto_amount:
             return f"{obj.crypto_amount} {obj.crypto_currency} (≈${obj.amount})"
+        # Фиатные платежи
         return f"${obj.amount} {obj.currency.upper()}"
     amount_formatted.short_description = 'Сумма'
     amount_formatted.admin_order_field = 'amount'
     
     def payment_type_display(self, obj):
         """Отображение типа платежа с иконкой"""
+        # Telegram Stars
+        if obj.payment_method == 'telegram_stars':
+            return format_html('<span style="color: #f2a73d;">⭐️ Stars</span>')
+        # Wallet Pay
+        if obj.payment_method == 'wallet_pay':
+            return format_html('<span style="color: #229ed9;">💎 Wallet</span>')
+        # Крипто (CoinGate)
         if obj.payment_type == 'crypto':
             return format_html('<span style="color: #f7931a;">🪙 Crypto</span>')
+        # Fiat (Stripe)
         return format_html('<span style="color: #635bff;">💳 Card</span>')
     payment_type_display.short_description = 'Тип'
     payment_type_display.admin_order_field = 'payment_type'
@@ -96,6 +129,29 @@ class DonationAdmin(admin.ModelAdmin):
             )
         return '-'
     coingate_order_link.short_description = 'Заказ CoinGate'
+    
+    def telegram_stars_info(self, obj):
+        """Информация о Telegram Stars платеже"""
+        if obj.payment_method == 'telegram_stars':
+            info_parts = []
+            
+            if obj.stars_amount:
+                info_parts.append(f'⭐️ <b>{obj.stars_amount} Stars</b>')
+            
+            if obj.telegram_payment_charge_id:
+                info_parts.append(f'ID платежа: <code>{obj.telegram_payment_charge_id}</code>')
+            
+            if obj.telegram_invoice_payload:
+                info_parts.append(f'Payload: <code>{obj.telegram_invoice_payload}</code>')
+            
+            if obj.status == 'completed':
+                info_parts.append('<span style="color: #28a745;">✅ Оплачено</span>')
+            elif obj.status == 'pending':
+                info_parts.append('<span style="color: #ffc107;">⏳ Ожидание оплаты</span>')
+            
+            return format_html('<br>'.join(info_parts))
+        return '-'
+    telegram_stars_info.short_description = 'Информация Stars'
     
     def status_colored(self, obj):
         """Цветной статус"""
@@ -208,6 +264,17 @@ class DonationAdmin(admin.ModelAdmin):
                         'total_amount_usd': currency_completed.aggregate(total=Sum('amount'))['total'] or 0,
                     }
         
+        # Статистика по Telegram Stars
+        stars_donations = Donation.objects.filter(payment_method='telegram_stars')
+        stars_completed = stars_donations.filter(status='completed')
+        stars_stats = {
+            'total_donations': stars_donations.count(),
+            'completed_donations': stars_completed.count(),
+            'pending_donations': stars_donations.filter(status='pending').count(),
+            'total_amount_usd': stars_completed.aggregate(total=Sum('amount'))['total'] or 0,
+            'total_stars': stars_completed.aggregate(total=Sum('stars_amount'))['total'] or 0,
+        }
+        
         if hasattr(response, 'context_data'):
             response.context_data['donation_stats'] = {
                 'total_donations': total_donations,
@@ -219,6 +286,7 @@ class DonationAdmin(admin.ModelAdmin):
                 'source_stats': source_stats,
                 'payment_type_stats': payment_type_stats,
                 'crypto_stats': crypto_stats,
+                'stars_stats': stars_stats,
             }
         
         return response
@@ -260,4 +328,74 @@ class DonationAdmin(admin.ModelAdmin):
             request,
             f'Отправлено {sent_count} благодарственных писем из {completed_donations.count()} завершенных донатов.'
         )
-    send_thank_you_emails.short_description = 'Отправить благодарственные письма завершенным донатам' 
+    send_thank_you_emails.short_description = 'Отправить благодарственные письма завершенным донатам'
+    
+    def refund_telegram_stars(self, request, queryset):
+        """Возврат платежей через Telegram Stars"""
+        from .telegram_stars_service import TelegramStarsService
+        from accounts.models import MiniAppUser
+        
+        # Фильтруем только Stars платежи с статусом completed
+        stars_donations = queryset.filter(
+            payment_method='telegram_stars',
+            status='completed',
+            telegram_payment_charge_id__isnull=False
+        )
+        
+        if not stars_donations.exists():
+            self.message_user(
+                request,
+                'Нет подходящих платежей для возврата. Возврат доступен только для завершенных Stars платежей.',
+                level='warning'
+            )
+            return
+        
+        service = TelegramStarsService()
+        refunded_count = 0
+        error_count = 0
+        
+        for donation in stars_donations:
+            # Получаем telegram_id из source или связанного пользователя
+            telegram_id = None
+            
+            # Пытаемся найти telegram_id через связанного пользователя
+            if donation.user:
+                try:
+                    mini_user = MiniAppUser.objects.get(user=donation.user)
+                    telegram_id = mini_user.telegram_id
+                except MiniAppUser.DoesNotExist:
+                    pass
+            
+            # Если не нашли, можно попробовать извлечь из других источников
+            # Но для возврата telegram_id обязателен
+            if not telegram_id:
+                error_count += 1
+                continue
+            
+            # Выполняем возврат
+            result = service.refund_star_payment(
+                user_id=telegram_id,
+                telegram_payment_charge_id=donation.telegram_payment_charge_id
+            )
+            
+            if result.get('success'):
+                # Обновляем статус
+                donation.status = 'cancelled'
+                donation.save()
+                refunded_count += 1
+            else:
+                error_count += 1
+        
+        # Сообщение пользователю
+        if refunded_count > 0:
+            self.message_user(
+                request,
+                f'Успешно возвращено {refunded_count} Stars платежей.'
+            )
+        if error_count > 0:
+            self.message_user(
+                request,
+                f'Не удалось вернуть {error_count} платежей. Проверьте логи для деталей.',
+                level='warning'
+            )
+    refund_telegram_stars.short_description = '⭐️ Возврат Telegram Stars платежей' 

@@ -1022,6 +1022,64 @@ async def get_crypto_payment_status(order_id: str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.post("/donation/telegram-stars/create-invoice/")
+async def create_telegram_stars_invoice(request: Request):
+    """
+    Создание инвойса для оплаты через Telegram Stars
+    """
+    try:
+        logger.info("Creating Telegram Stars invoice...")
+        
+        # Получаем данные запроса
+        body = await request.json()
+        amount = body.get('amount')
+        name = body.get('name', 'Anonymous')
+        email = body.get('email', '')
+        telegram_id = body.get('telegram_id')
+        source = body.get('source', 'mini_app')
+        
+        logger.info(f"Stars invoice request: amount={amount}, name={name}, telegram_id={telegram_id}")
+        
+        # Валидация
+        if not amount or float(amount) < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid amount. Minimum is $1"
+            )
+        
+        # Проксируем запрос к Django API
+        django_url = f"{settings.DJANGO_API_BASE_URL}/donation/stars/create-invoice/"
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.post(
+                django_url,
+                json={
+                    'amount': amount,
+                    'name': name,
+                    'email': email,
+                    'telegram_id': telegram_id,
+                    'source': source
+                },
+                timeout=30.0
+            )
+        
+        if response.status_code == 200:
+            logger.info(f"✅ Telegram Stars invoice created successfully")
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"❌ Error creating Stars invoice: {response.status_code} - {response.text}")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=response.json().get('message', 'Failed to create invoice')
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in create_telegram_stars_invoice: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 # ========================================
 # АВАТАРКИ ПОЛЬЗОВАТЕЛЕЙ
 # ========================================
