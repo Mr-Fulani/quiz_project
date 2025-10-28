@@ -224,23 +224,45 @@ class TaskAdmin(admin.ModelAdmin):
     
     def import_json_view(self, request):
         """
-        Представление для импорта задач из JSON файла.
+        Представление для импорта задач из JSON файла или текста.
         """
         if request.method == 'POST':
             json_file = request.FILES.get('json_file')
+            json_text = request.POST.get('json_text', '').strip()
             publish = request.POST.get('publish') == 'on'
             
-            if not json_file:
-                messages.error(request, 'Пожалуйста, выберите JSON файл.')
+            # Проверяем, что хотя бы один источник данных указан
+            if not json_file and not json_text:
+                messages.error(request, 'Пожалуйста, выберите JSON файл или вставьте текст.')
                 return render(request, 'admin/tasks/import_json.html')
             
-            # Сохраняем файл временно
-            temp_path = os.path.join(settings.MEDIA_ROOT, 'temp', json_file.name)
-            os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+            # Определяем источник и создаем временный файл
+            temp_path = None
             
-            with open(temp_path, 'wb+') as destination:
-                for chunk in json_file.chunks():
-                    destination.write(chunk)
+            if json_text:
+                # Импорт из текста
+                import json
+                # Валидируем JSON
+                try:
+                    json.loads(json_text)
+                except json.JSONDecodeError as e:
+                    messages.error(request, f'Некорректный JSON: {str(e)}')
+                    return render(request, 'admin/tasks/import_json.html')
+                
+                # Сохраняем текст во временный файл
+                temp_path = os.path.join(settings.MEDIA_ROOT, 'temp', f'json_text_{uuid.uuid4()}.json')
+                os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+                
+                with open(temp_path, 'w', encoding='utf-8') as f:
+                    f.write(json_text)
+            else:
+                # Импорт из файла
+                temp_path = os.path.join(settings.MEDIA_ROOT, 'temp', json_file.name)
+                os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+                
+                with open(temp_path, 'wb+') as destination:
+                    for chunk in json_file.chunks():
+                        destination.write(chunk)
             
             try:
                 # Импортируем задачи
