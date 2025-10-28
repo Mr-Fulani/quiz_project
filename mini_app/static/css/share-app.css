@@ -75,7 +75,7 @@
     border-radius: 20px;
     width: 90%;
     max-width: 400px;
-    max-height: 80vh;
+    max-height: 88vh;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
     animation: slideIn 0.3s ease;
     overflow: hidden;
@@ -465,7 +465,7 @@
 @media (max-width: 480px) {
     .share-modal-content {
         width: 95%;
-        max-height: 75vh;
+        max-height: 82vh;
     }
     
     .share-modal-header {
