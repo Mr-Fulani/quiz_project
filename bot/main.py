@@ -25,6 +25,7 @@ from bot.handlers.upload_json import router as upload_json_router
 from bot.handlers.user_handler import router as user_router
 from bot.handlers.webhook_handler import router as webhook_router
 from bot.handlers.webhook import router as webhook_handler_router
+from bot.handlers.payment_handler import router as payment_router
 from bot.middlewares.db_session import DbSessionMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
 from bot.handlers.feedback import router as feedback_router
@@ -74,6 +75,7 @@ publication_dp.include_router(delete_task_router)
 publication_dp.include_router(upload_json_router)
 publication_dp.include_router(webhook_router)
 publication_dp.include_router(webhook_handler_router)
+publication_dp.include_router(payment_router)  # Telegram Stars payments
 publication_dp.include_router(test_router)
 publication_dp.include_router(admin_router)
 publication_dp.include_router(user_router)

@@ -19,4 +19,7 @@ urlpatterns = [
     path('crypto/create-payment/', views.create_crypto_payment, name='create_crypto_payment'),
     path('crypto/status/<str:order_id>/', views.get_crypto_payment_status, name='crypto_payment_status'),
     path('crypto/callback/', views.coingate_callback, name='coingate_callback'),
+    
+    # Telegram Stars API
+    path('stars/create-invoice/', views.create_telegram_stars_invoice, name='create_telegram_stars_invoice'),
 ] 

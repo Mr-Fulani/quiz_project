@@ -88,6 +88,40 @@
         </div>
     </div>
     {% endfor %}
+    
+    <!-- Статистика по Telegram Stars -->
+    {% if donation_stats.stars_stats %}
+    <h4 style="color: #333; margin: 20px 0 10px 0;">⭐️ Telegram Stars</h4>
+    <div style="background: white; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #f2a73d 0%, #d68910 100%); color: white; padding: 12px 20px;">
+            <h4 style="margin: 0; font-size: 18px;">⭐️ Telegram Stars</h4>
+        </div>
+        <div style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;">
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ВСЕГО ДОНАТОВ</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #007cba;">{{ donation_stats.stars_stats.total_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ЗАВЕРШЕНО</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #28a745;">{{ donation_stats.stars_stats.completed_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ОЖИДАЕТ</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #ffc107;">{{ donation_stats.stars_stats.pending_donations }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">ВСЕГО ⭐️ STARS</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #f2a73d;">{{ donation_stats.stars_stats.total_stars|default:0|intcomma }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">СУММА USD</p>
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #28a745;">${{ donation_stats.stars_stats.total_amount_usd|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %} 

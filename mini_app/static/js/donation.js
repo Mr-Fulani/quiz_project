@@ -19,7 +19,7 @@ class DonationSystem {
         this.isProcessing = false;
         
         // Крипто-платежи
-        this.paymentMethod = 'card'; // 'card' | 'crypto' | 'wallet'
+        this.paymentMethod = 'card'; // 'card' | 'crypto' | 'wallet' | 'stars'
         this.selectedCryptoCurrency = 'USDT';
         this.selectedWalletCurrency = 'USDT';
         this.currentCryptoOrderId = null;
@@ -32,6 +32,7 @@ class DonationSystem {
     async init() {
         console.log('🔧 DonationSystem: Initializing...');
         
+        try {
             // 1. Fetch all data in parallel to avoid race conditions
             const [stripeKeyData, appConfig, cryptoCurrencies] = await Promise.all([
                 this.fetchStripeKey(),
@@ -39,10 +40,14 @@ class DonationSystem {
                 this.fetchCryptoCurrencies()
             ]);
 
+            console.log('📦 Config loaded:', appConfig);
+
             // 2. Initialize services and set properties
             this.initializeStripe(stripeKeyData);
             this.walletPayEnabled = !!(appConfig && appConfig.wallet_pay_enabled);
             this.cryptoCurrencies = cryptoCurrencies || [];
+            
+            console.log(`✅ walletPayEnabled set to: ${this.walletPayEnabled}`);
             
             // 3. Build the UI with all data available
             this.buildInitialUI();
@@ -56,17 +61,27 @@ class DonationSystem {
             this.localizeCurrencyOptions(document.querySelector('.unified-currency-select'));
 
             console.log('✅ DonationSystem: Initialized successfully');
+        } catch (error) {
+            console.error('❌ Error during DonationSystem initialization:', error);
+            // Продолжаем работу даже при ошибке, но с ограниченным функционалом
+            this.bindEvents();
+            this.setInitialValues();
         }
+    }
 
-        buildInitialUI() {
-            console.log('🎨 Building initial UI...');
-            if (this.walletPayEnabled) {
-                this.ensureWalletPayUI();
-            }
-            this.ensureUnifiedCurrencySelector();
-        this.removeLegacyCurrencySelectors();
-            console.log('✅ Initial UI built.');
+    buildInitialUI() {
+        console.log('🎨 Building initial UI...');
+        console.log(`🔍 walletPayEnabled: ${this.walletPayEnabled}`);
+        if (this.walletPayEnabled) {
+            console.log('💎 Calling ensureWalletPayUI()...');
+            this.ensureWalletPayUI();
+        } else {
+            console.log('⚠️ Wallet Pay disabled, skipping UI');
         }
+        this.ensureUnifiedCurrencySelector();
+        this.removeLegacyCurrencySelectors();
+        console.log('✅ Initial UI built.');
+    }
 
         async fetchStripeKey() {
             try {
@@ -267,11 +282,14 @@ class DonationSystem {
             label.className = 'payment-method-option';
             label.innerHTML = `
                 <input type="radio" name="payment-method" value="wallet">
-                <span>💎 Telegram Wallet</span>
+                <span class="payment-method-label">
+                    <span class="payment-icon">💎</span>
+                    <span data-translate="wallet_payment">Telegram Wallet</span>
+                </span>
             `;
             methodsContainer.appendChild(label);
-                console.log('✅ Telegram Wallet payment option added');
-            }
+            console.log('✅ Telegram Wallet payment option added');
+        }
             
             // ВАЖНО: Больше не создаём отдельную .telegram-wallet-form
             // Wallet и Crypto используют один и тот же unified-currency-container
@@ -314,6 +332,9 @@ class DonationSystem {
                 } else if (this.paymentMethod === 'wallet') {
                     // Если Wallet выбран — используем основной donate-btn как триггер
                     this.processTelegramWalletPayment();
+                } else if (this.paymentMethod === 'stars') {
+                    // Если Telegram Stars выбран
+                    this.processTelegramStarsPayment();
                 } else {
                     this.showPaymentModal();
                 }
@@ -912,6 +933,92 @@ class DonationSystem {
         } catch (e) {
             console.error('❌ Wallet Pay error:', e);
             this.showNotification('error', 'Ошибка', e.message || 'Wallet Pay недоступен');
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+    
+    async processTelegramStarsPayment() {
+        if (this.isProcessing) return;
+        if (!this.validateForm()) return;
+        
+        this.isProcessing = true;
+        console.log('⭐️ Processing Telegram Stars payment...');
+        
+        try {
+            // Проверяем, что мы в Telegram WebApp
+            if (!window.Telegram?.WebApp) {
+                throw new Error('Telegram Stars доступны только в Telegram приложении');
+            }
+            
+            // Показываем статус создания
+            this.showNotification('info', 
+                window.t('donation_processing', 'Обработка...'),
+                window.t('donation_creating_payment', 'Создание платежа...')
+            );
+            
+            // Получаем данные формы
+            const formData = {
+                amount: this.selectedAmount,
+                name: document.querySelector('.donation-name').value.trim(),
+                email: document.querySelector('.donation-email').value.trim(),
+                telegram_id: window.currentUser?.telegram_id,
+                source: 'mini_app'
+            };
+            
+            console.log('📡 Creating Telegram Stars invoice with data:', formData);
+            
+            // Создаем инвойс
+            const response = await fetch('/api/donation/telegram-stars/create-invoice/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            console.log('📊 Stars invoice response:', data);
+            
+            if (data.success && data.invoice_link) {
+                console.log('✅ Stars invoice created:', data.invoice_link);
+                
+                // Открываем инвойс через Telegram WebApp API
+                window.Telegram.WebApp.openInvoice(data.invoice_link, (status) => {
+                    console.log('💳 Invoice status:', status);
+                    
+                    if (status === 'paid') {
+                        this.showNotification('success',
+                            window.t('donation_payment_successful', 'Платеж успешен!'),
+                            window.t('donation_thanks_support', 'Спасибо за поддержку!')
+                        );
+                        
+                        // Сбрасываем форму через 2 секунды
+                        setTimeout(() => {
+                            this.resetForm();
+                        }, 2000);
+                    } else if (status === 'cancelled') {
+                        this.showNotification('info',
+                            window.t('donation_cancel', 'Отменено'),
+                            'Платеж был отменен'
+                        );
+                    } else if (status === 'failed') {
+                        this.showNotification('error',
+                            window.t('donation_payment_error', 'Ошибка платежа'),
+                            'Не удалось завершить платеж'
+                        );
+                    }
+                });
+                
+            } else {
+                throw new Error(data.message || 'Failed to create Stars invoice');
+            }
+        } catch (error) {
+            console.error('❌ Error processing Telegram Stars payment:', error);
+            this.showNotification('error',
+                window.t('donation_payment_error', 'Ошибка платежа'),
+                error.message || window.t('donation_network_error', 'Ошибка сети')
+            );
         } finally {
             this.isProcessing = false;
         }

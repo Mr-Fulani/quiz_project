@@ -139,6 +139,28 @@ class Donation(models.Model):
         verbose_name=_('Wallet Pay Order ID')
     )
     
+    # Telegram Stars - встроенная валюта Telegram
+    telegram_payment_charge_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name=_('Telegram Payment Charge ID'),
+        help_text=_('Telegram Stars payment charge ID')
+    )
+    stars_amount = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Stars Amount'),
+        help_text=_('Amount in Telegram Stars (XTR)')
+    )
+    telegram_invoice_payload = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name=_('Invoice Payload'),
+        help_text=_('Custom payload for invoice identification')
+    )
+    
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name=_('Created At')
