@@ -98,6 +98,8 @@ services:
       - APP_PORT=8080
       - DJANGO_API_TOKEN=${DJANGO_API_TOKEN:-your-api-token}
       - DJANGO_API_BASE_URL=http://nginx_local:8080
+      - WALLET_PAY_API_KEY=${WALLET_PAY_API_KEY:-}
+      - WALLET_PAY_STORE_ID=${WALLET_PAY_STORE_ID:-}
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - MINI_APP_BASE_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/mini_app

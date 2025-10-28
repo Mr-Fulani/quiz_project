@@ -723,7 +723,11 @@ async def get_config():
     from core.config import settings as app_settings
     
     # Флаг доступности Wallet Pay выводим на фронтенд (по наличию API ключа)
-    wallet_pay_enabled = bool(os.getenv("WALLET_PAY_API_KEY", ""))
+    wallet_pay_api_key = os.getenv("WALLET_PAY_API_KEY", "")
+    wallet_pay_enabled = bool(wallet_pay_api_key)
+    
+    # Логируем для отладки (первые 10 символов ключа)
+    logger.info(f"🔑 WALLET_PAY_API_KEY present: {bool(wallet_pay_api_key)}, enabled: {wallet_pay_enabled}")
     
     return JSONResponse(content={
         "admin_telegram_id": app_settings.ADMIN_TELEGRAM_ID,
