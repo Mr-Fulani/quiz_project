@@ -9,7 +9,7 @@
 <article class="resume active" data-page="resume" id="resume-content">
     <header>
         <h1 class="h2 article-title page-title lang-text" data-lang-key="resume_title">Resume</h1>
-        <h2 class="h2 article-title lang-text" data-lang-key="personal_info.name">Anvar Sharipov</h2>
+        <h2 class="h2 article-title lang-text" data-lang-key="personal_info.name">{{ resume.name|default:'Anvar Sharipov' }}</h2>
         <div class="language-switcher">
             <button class="lang-btn active" data-lang="en">EN</button>
             <button class="lang-btn" data-lang="ru">RU</button>
@@ -24,12 +24,18 @@
                 </div>
             </div>
             <div class="location-phone-wrapper">
-                <p class="location-phone lang-text" data-lang="en">Istanbul, Turkey 34520 | +905525821497</p>
-                <p class="location-phone lang-text" data-lang="ru">Стамбул, Турция 34520 | +905525821497</p>
+                <p class="location-phone lang-text" data-lang="en">{{ resume.contact_info_en|default:'Istanbul, Turkey 34520 | +905525821497' }}</p>
+                <p class="location-phone lang-text" data-lang="ru">{{ resume.contact_info_ru|default:'Стамбул, Турция 34520 | +905525821497' }}</p>
             </div>
-            <p class="email"><a href="mailto:fulani.dev@gmail.com">fulani.dev@gmail.com</a></p>
+            <p class="email"><a href="mailto:{{ resume.email|default:'fulani.dev@gmail.com' }}">{{ resume.email|default:'fulani.dev@gmail.com' }}</a></p>
+            {% if websites %}
+                {% for website in websites %}
+                <p><a href="{{ website.url }}" target="_blank">{{ website.url }}</a></p>
+                {% endfor %}
+            {% else %}
             <p><a href="https://github.com/Mr-Fulani" target="_blank">https://github.com/Mr-Fulani</a></p>
             <p><a href="https://t.me/Mr_Fulani" target="_blank">https://t.me/Mr_Fulani</a></p>
+            {% endif %}
         </div>
     </header>
 
@@ -42,10 +48,10 @@
                 <h3 class="h3 lang-text" data-lang-key="summary_title">Professional Summary</h3>
             </div>
             <p class="timeline-text lang-text" data-lang="en">
-                Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.
+                {{ resume.summary_en|default:'Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.' }}
             </p>
             <p class="timeline-text lang-text" data-lang="ru">
-                Организованный и надёжный кандидат, успешно справляющийся с несколькими задачами с позитивным настроем. Готов брать на себя дополнительные обязанности для достижения командных целей.
+                {{ resume.summary_ru|default:'Организованный и надёжный кандидат, успешно справляющийся с несколькими задачами с позитивным настроем. Готов брать на себя дополнительные обязанности для достижения командных целей.' }}
             </p>
         </div>
 
@@ -57,6 +63,11 @@
                 <h3 class="h3 lang-text" data-lang-key="skills_title">Skills</h3>
             </div>
             <ul class="timeline-list skills-list">
+                {% if skills %}
+                    {% for skill in skills %}
+                    <li>{{ skill.name }}</li>
+                    {% endfor %}
+                {% else %}
                 <li>Linux Environments</li>
                 <li>Python</li>
                 <li>Django (DRF)</li>
@@ -65,6 +76,7 @@
                 <li>Docker</li>
                 <li>API Development</li>
                 <li>SQLAlchemy</li>
+                {% endif %}
             </ul>
         </div>
 
@@ -235,67 +247,67 @@
         <form id="resume-form">
             <div class="form-group">
                 <label for="edit-name">Name</label>
-                <input type="text" id="edit-name" name="name" value="Anvar Sharipov">
+                <input type="text" id="edit-name" name="name" value="{{ resume.name|default:'Anvar Sharipov' }}">
             </div>
             <div class="form-group">
                 <label for="edit-contact-en">Contact Info (EN)</label>
-                <input type="text" id="edit-contact-en" name="contact-en" value="Istanbul, Turkey 34520 | 05525821497">
+                <input type="text" id="edit-contact-en" name="contact-en" value="{{ resume.contact_info_en|default:'Istanbul, Turkey 34520 | +905525821497' }}">
             </div>
             <div class="form-group">
                 <label for="edit-contact-ru">Contact Info (RU)</label>
-                <input type="text" id="edit-contact-ru" name="contact-ru" value="Стамбул, Турция 34520 | 05525821497">
+                <input type="text" id="edit-contact-ru" name="contact-ru" value="{{ resume.contact_info_ru|default:'Стамбул, Турция 34520 | +905525821497' }}">
             </div>
             <div class="form-group">
                 <label for="edit-email">Email</label>
-                <input type="text" id="edit-email" name="email" value="fulani.dev@gmail.com">
+                <input type="text" id="edit-email" name="email" value="{{ resume.email|default:'fulani.dev@gmail.com' }}">
             </div>
             <div class="form-group">
                 <label for="edit-websites">Websites (separated by , )</label>
-                <input type="text" id="edit-websites" name="websites" value="https://github.com/Mr-Fulani, https://t.me/Mr_Fulani">
+                <input type="text" id="edit-websites" name="websites" value="{% if websites %}{% for website in websites %}{{ website.url }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}https://github.com/Mr-Fulani, https://t.me/Mr_Fulani{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-summary-en">Summary (EN)</label>
-                <textarea id="edit-summary-en" name="summary-en">Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.</textarea>
+                <textarea id="edit-summary-en" name="summary-en">{{ resume.summary_en|default:'Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.' }}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-summary-ru">Summary (RU)</label>
-                <textarea id="edit-summary-ru" name="summary-ru">Организованный и надёжный кандидат, успешно справляющийся с несколькими задачами с позитивным настроем. Готов брать на себя дополнительные обязанности для достижения командных целей.</textarea>
+                <textarea id="edit-summary-ru" name="summary-ru">{{ resume.summary_ru|default:'Организованный и надёжный кандидат, успешно справляющийся с несколькими задачами с позитивным настроем. Готов брать на себя дополнительные обязанности для достижения командных целей.' }}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-skills">Skills (separated by , )</label>
-                <textarea id="edit-skills" name="skills">Linux Environments, Django REST framework (DRF), Problem-Solving, API Development, JIRA</textarea>
+                <textarea id="edit-skills" name="skills">{% if skills %}{% for skill in skills %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Linux Environments, Python, Django (DRF), FastAPI, Flask, Docker, API Development, SQLAlchemy{% endif %}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-job1-title-en">Work History 1 Title (EN)</label>
-                <input type="text" id="edit-job1-title-en" name="job1-title-en" value="Private Practice / Freelancing Remote">
+                <input type="text" id="edit-job1-title-en" name="job1-title-en" value="{% if work_history.0 %}{{ work_history.0.title_en }}{% else %}Private Practice / Freelancing Remote{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-title-ru">Work History 1 Title (RU)</label>
-                <input type="text" id="edit-job1-title-ru" name="job1-title-ru" value="Частная практика / Фриланс удалённо">
+                <input type="text" id="edit-job1-title-ru" name="job1-title-ru" value="{% if work_history.0 %}{{ work_history.0.title_ru }}{% else %}Частная практика / Фриланс удалённо{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-period-en">Work History 1 Period (EN)</label>
-                <input type="text" id="edit-job1-period-en" name="job1-period-en" value="01/2023 to Current">
+                <input type="text" id="edit-job1-period-en" name="job1-period-en" value="{% if work_history.0 %}{{ work_history.0.period_en }}{% else %}01/2023 to Current{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-period-ru">Work History 1 Period (RU)</label>
-                <input type="text" id="edit-job1-period-ru" name="job1-period-ru" value="01/2023 по настоящее время">
+                <input type="text" id="edit-job1-period-ru" name="job1-period-ru" value="{% if work_history.0 %}{{ work_history.0.period_ru }}{% else %}01/2023 по настоящее время{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-company-en">Work History 1 Company (EN)</label>
-                <input type="text" id="edit-job1-company-en" name="job1-company-en" value="Upwork.com">
+                <input type="text" id="edit-job1-company-en" name="job1-company-en" value="{% if work_history.0 %}{{ work_history.0.company_en }}{% else %}Upwork.com{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-company-ru">Work History 1 Company (RU)</label>
-                <input type="text" id="edit-job1-company-ru" name="job1-company-ru" value="Upwork.com">
+                <input type="text" id="edit-job1-company-ru" name="job1-company-ru" value="{% if work_history.0 %}{{ work_history.0.company_ru }}{% else %}Upwork.com{% endif %}">
             </div>
             <div class="form-group">
                 <label for="edit-job1-responsibilities-en">Work History 1 Responsibilities (EN, separated by ; )</label>
-                <textarea id="edit-job1-responsibilities-en" name="job1-responsibilities-en">Self-motivated, with a strong sense of personal responsibility.; Skilled at working independently and collaboratively in a team environment.</textarea>
+                <textarea id="edit-job1-responsibilities-en" name="job1-responsibilities-en">{% if work_history.0 %}{% for resp in work_history.0.responsibilities.all %}{{ resp.text_en }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}Self-motivated, with a strong sense of personal responsibility.; Skilled at working independently and collaboratively in a team environment.{% endif %}</textarea>
             </div>
             <div class="form-group">
                 <label for="edit-job1-responsibilities-ru">Work History 1 Responsibilities (RU, separated by ; )</label>
-                <textarea id="edit-job1-responsibilities-ru" name="job1-responsibilities-ru">Самомотивирован, с сильным чувством личной ответственности.; Умение работать самостоятельно и в команде.</textarea>
+                <textarea id="edit-job1-responsibilities-ru" name="job1-responsibilities-ru">{% if work_history.0 %}{% for resp in work_history.0.responsibilities.all %}{{ resp.text_ru }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}Самомотивирован, с сильным чувством личной ответственности.; Умение работать самостоятельно и в команде.{% endif %}</textarea>
             </div>
             <div class="form-actions">
                 <button type="submit" class="save-btn">Save Changes</button>

@@ -128,4 +128,62 @@ def social_links_api(request):
                 })
             return Response({'success': False, 'errors': serializer.errors}, status=400)
         except Exception as e:
-            return Response({'error': str(e)}, status=500) 
+            return Response({'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def save_resume_api(request):
+    """
+    API для сохранения данных резюме (только для администраторов).
+    Сохраняет данные из формы редактирования в БД.
+    """
+    from blog.models import Resume
+    
+    try:
+        # Получаем или создаем активное резюме
+        resume, created = Resume.objects.get_or_create(
+            is_active=True,
+            defaults={
+                'name': request.data.get('name', ''),
+                'contact_info_en': request.data.get('contact_info_en', ''),
+                'contact_info_ru': request.data.get('contact_info_ru', ''),
+                'email': request.data.get('email', ''),
+                'websites': request.data.get('websites', []),
+                'summary_en': request.data.get('summary_en', ''),
+                'summary_ru': request.data.get('summary_ru', ''),
+                'skills': request.data.get('skills', []),
+                'work_history': request.data.get('work_history', []),
+                'education': request.data.get('education', []),
+                'languages': request.data.get('languages', []),
+            }
+        )
+        
+        if not created:
+            # Обновляем существующее резюме
+            resume.name = request.data.get('name', resume.name)
+            resume.contact_info_en = request.data.get('contact_info_en', resume.contact_info_en)
+            resume.contact_info_ru = request.data.get('contact_info_ru', resume.contact_info_ru)
+            resume.email = request.data.get('email', resume.email)
+            resume.websites = request.data.get('websites', resume.websites)
+            resume.summary_en = request.data.get('summary_en', resume.summary_en)
+            resume.summary_ru = request.data.get('summary_ru', resume.summary_ru)
+            resume.skills = request.data.get('skills', resume.skills)
+            resume.work_history = request.data.get('work_history', resume.work_history)
+            resume.education = request.data.get('education', resume.education)
+            resume.languages = request.data.get('languages', resume.languages)
+            resume.save()
+        
+        logger.info(f"Резюме успешно сохранено пользователем {request.user.username}")
+        return Response({
+            'success': True,
+            'message': 'Резюме успешно сохранено',
+            'resume_id': resume.id
+        })
+        
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении резюме: {e}")
+        return Response({
+            'success': False,
+            'error': f'Ошибка при сохранении: {str(e)}'
+        }, status=500) 

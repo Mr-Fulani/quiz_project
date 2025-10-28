@@ -1,0 +1,240 @@
+/**
+ * Стили для улучшения админ-панели редактирования резюме
+ * Фокус на читаемости текста
+ */
+
+/* Улучшаем отображение заголовков fieldsets с эмодзи */
+.module h2, 
+fieldset.module h2,
+.aligned h2 {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 16px;
+    background: linear-gradient(to right, #417690, #5b9ab4);
+    color: #fff;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+/* Делаем inline формы более компактными */
+.tabular.inline-related tbody tr td {
+    padding: 10px;
+}
+
+/* Улучшаем читаемость всех текстовых полей */
+.tabular.inline-related tbody tr td input[type="text"],
+.tabular.inline-related tbody tr td input[type="url"],
+.tabular.inline-related tbody tr td input[type="number"],
+.tabular.inline-related tbody tr td input[type="email"],
+input[type="text"],
+input[type="url"],
+input[type="email"],
+textarea {
+    width: 100%;
+    min-width: 200px;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    padding: 8px 12px !important;
+    color: #333 !important;
+    background-color: #fff !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Фокус на полях */
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+    outline: none !important;
+    border-color: #417690 !important;
+    box-shadow: 0 0 0 3px rgba(65, 118, 144, 0.1) !important;
+}
+
+/* Улучшаем отображение пар полей EN/RU */
+.form-row {
+    overflow: hidden;
+}
+
+.form-row.field-title_en.field-title_ru,
+.form-row.field-period_en.field-period_ru,
+.form-row.field-company_en.field-company_ru,
+.form-row.field-name_en.field-name_ru,
+.form-row.field-contact_info_en.field-contact_info_ru {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row.field-title_en.field-title_ru > div,
+.form-row.field-period_en.field-period_ru > div,
+.form-row.field-company_en.field-company_ru > div,
+.form-row.field-name_en.field-name_ru > div,
+.form-row.field-contact_info_en.field-contact_info_ru > div {
+    flex: 1;
+}
+
+/* Стили для полей с языками */
+.form-row.field-text_en.field-text_ru {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row.field-text_en.field-text_ru > div {
+    flex: 1;
+}
+
+/* Выделяем активное резюме зеленым */
+#id_is_active:checked + label {
+    color: #00a862;
+    font-weight: bold;
+}
+
+/* Улучшаем inline формы для stacked layout */
+.inline-related fieldset.module {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.inline-related h3 {
+    background: #417690;
+    color: white;
+    padding: 8px 12px;
+    margin: -16px -16px 16px -16px;
+    border-radius: 6px 6px 0 0;
+    font-weight: 600;
+}
+
+/* Выделяем порядок */
+.field-order input {
+    width: 80px !important;
+    text-align: center;
+    font-weight: bold;
+    background: #fff9e6;
+    border: 2px solid #ffc107;
+}
+
+/* Делаем уровень языка более визуальным, но читаемым */
+.field-level input {
+    background: #fff !important;
+    color: #333 !important;
+    font-weight: bold;
+    text-align: center;
+    font-size: 16px !important;
+    border: 2px solid #4caf50 !important;
+}
+
+/* Коллапсированные секции */
+.collapse {
+    background: #f5f5f5;
+    border-left: 3px solid #ccc;
+}
+
+/* Помощь */
+.help {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Описание fieldset */
+.description {
+    background: #e7f4f9;
+    border-left: 4px solid #417690;
+    padding: 10px 15px;
+    margin: 10px 0 15px 0;
+    font-size: 13px;
+    color: #333;
+    border-radius: 4px;
+}
+
+/* Кнопки добавления inline */
+.add-row a {
+    background: #417690 !important;
+    color: white !important;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.add-row a:hover {
+    background: #2e5d75 !important;
+}
+
+/* Табличные inline формы */
+.tabular thead th {
+    background: #417690;
+    color: white;
+    font-weight: 600;
+}
+
+/* Делаем URL поля шире */
+.field-url input {
+    min-width: 400px !important;
+}
+
+/* Textarea для обязанностей */
+.field-text_en textarea,
+.field-text_ru textarea {
+    width: 100%;
+    min-height: 80px;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    padding: 10px !important;
+    color: #333 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Поля summary - большие текстовые поля */
+#id_summary_en,
+#id_summary_ru,
+#id_contact_info_en,
+#id_contact_info_ru {
+    width: 100%;
+    min-height: 120px;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+    padding: 12px !important;
+    color: #333 !important;
+    background-color: #fff !important;
+    border: 1px solid #ccc !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Поле имени - делаем крупнее */
+#id_name {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    padding: 10px !important;
+}
+
+/* Поле email */
+#id_email {
+    font-size: 14px !important;
+    padding: 10px !important;
+    color: #333 !important;
+}
+
+/* Все label делаем читаемыми */
+label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    margin-bottom: 6px !important;
+    display: inline-block;
+}
+
+/* Заголовки в табличных inline */
+.tabular thead th {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 10px !important;
+}
+
