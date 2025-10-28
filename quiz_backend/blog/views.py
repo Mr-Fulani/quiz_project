@@ -683,7 +683,7 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
 class ResumeView(BreadcrumbsMixin, TemplateView):
     """
     Отображает страницу "Резюме".
-    Использует шаблон blog/resume.html, предоставляет информацию об админских правах.
+    Загружает данные из БД (активное резюме) и передает в шаблон.
     """
     template_name = 'blog/resume.html'
     breadcrumbs = [
@@ -692,10 +692,31 @@ class ResumeView(BreadcrumbsMixin, TemplateView):
     ]
 
     def get_context_data(self, **kwargs):
+        from .models import Resume
         context = super().get_context_data(**kwargs)
         context['is_admin'] = self.request.user.is_staff if self.request.user.is_authenticated else False
         context['meta_description'] = _('My professional resume with experience and skills.')
         context['meta_keywords'] = _('resume, programmer, portfolio')
+        
+        # Загружаем активное резюме из БД с prefetch related объектами
+        resume = Resume.objects.filter(is_active=True).prefetch_related(
+            'website_links',
+            'skill_list',
+            'work_history_items__responsibilities',
+            'education_items',
+            'language_skills'
+        ).first()
+        context['resume'] = resume
+        
+        # Если есть резюме, подготавливаем данные для удобного отображения
+        if resume:
+            # Преобразуем в формат для обратной совместимости с шаблоном
+            context['websites'] = list(resume.website_links.all())
+            context['skills'] = list(resume.skill_list.all())
+            context['work_history'] = list(resume.work_history_items.all())
+            context['education'] = list(resume.education_items.all())
+            context['languages'] = list(resume.language_skills.all())
+        
         return context
 
 

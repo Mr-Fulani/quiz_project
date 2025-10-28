@@ -15,7 +15,8 @@ from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
     MessageAttachment, MarqueeText, CustomURLValidator, PostLike, ProjectLike, PostShare, ProjectShare, \
-    PostView, ProjectView
+    PostView, ProjectView, Resume, ResumeWebsite, ResumeSkill, ResumeWorkHistory, ResumeResponsibility, \
+    ResumeEducation, ResumeLanguage
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1044,6 +1045,153 @@ class ProjectViewAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user', 'project')
+
+
+class ResumeWebsiteInline(admin.TabularInline):
+    """Inline редактирование веб-сайтов"""
+    model = ResumeWebsite
+    extra = 1
+    fields = ('url', 'order')
+    verbose_name = "Веб-сайт"
+    verbose_name_plural = "Веб-сайты"
+
+
+class ResumeSkillInline(admin.TabularInline):
+    """Inline редактирование навыков"""
+    model = ResumeSkill
+    extra = 1
+    fields = ('name', 'order')
+    verbose_name = "Навык"
+    verbose_name_plural = "Навыки"
+
+
+class ResumeResponsibilityInline(admin.TabularInline):
+    """Inline редактирование обязанностей"""
+    model = ResumeResponsibility
+    extra = 1
+    fields = ('text_en', 'text_ru', 'order')
+    verbose_name = "Обязанность"
+    verbose_name_plural = "Обязанности"
+
+
+class ResumeWorkHistoryInline(admin.StackedInline):
+    """Inline редактирование истории работы"""
+    model = ResumeWorkHistory
+    extra = 0
+    fields = (
+        ('title_en', 'title_ru'),
+        ('period_en', 'period_ru'),
+        ('company_en', 'company_ru'),
+        'order'
+    )
+    verbose_name = "Запись истории работы"
+    verbose_name_plural = "История работы"
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        """Добавляем inline для обязанностей внутри истории работы"""
+        formset = super().get_formset(request, obj, **kwargs)
+        return formset
+
+
+class ResumeEducationInline(admin.StackedInline):
+    """Inline редактирование образования"""
+    model = ResumeEducation
+    extra = 0
+    fields = (
+        ('title_en', 'title_ru'),
+        ('period_en', 'period_ru'),
+        ('institution_en', 'institution_ru'),
+        'order'
+    )
+    verbose_name = "Запись об образовании"
+    verbose_name_plural = "Образование"
+
+
+class ResumeLanguageInline(admin.TabularInline):
+    """Inline редактирование языков"""
+    model = ResumeLanguage
+    extra = 1
+    fields = ('name_en', 'name_ru', 'level', 'order')
+    verbose_name = "Язык"
+    verbose_name_plural = "Языки"
+
+
+@admin.register(Resume)
+class ResumeAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для управления резюме.
+    Удобное редактирование всех полей с inline-формами вместо JSON.
+    """
+    list_display = ('name', 'email', 'is_active', 'updated_at', 'created_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('name', 'email', 'summary_en', 'summary_ru')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-is_active', '-updated_at')
+    
+    inlines = [
+        ResumeWebsiteInline,
+        ResumeSkillInline,
+        ResumeWorkHistoryInline,
+        ResumeEducationInline,
+        ResumeLanguageInline,
+    ]
+    
+    fieldsets = (
+        ('✏️ Основная информация', {
+            'fields': ('name', 'is_active'),
+            'description': 'Имя и статус активности резюме'
+        }),
+        ('📞 Контактная информация', {
+            'fields': (
+                ('contact_info_en', 'contact_info_ru'),
+                'email'
+            ),
+            'description': 'Контактные данные на двух языках'
+        }),
+        ('📝 Профессиональное резюме', {
+            'fields': ('summary_en', 'summary_ru'),
+            'description': 'Краткое описание профессиональных качеств'
+        }),
+        ('⚠️ Устаревшие JSON поля (не использовать)', {
+            'fields': ('websites', 'skills', 'work_history', 'education', 'languages'),
+            'classes': ('collapse',),
+            'description': 'Эти поля оставлены для обратной совместимости. Используйте секции ниже для редактирования.'
+        }),
+        ('📅 Служебная информация', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    class Media:
+        css = {
+            'all': ('admin/css/resume_admin.css',)
+        }
+
+
+@admin.register(ResumeWorkHistory)
+class ResumeWorkHistoryAdmin(admin.ModelAdmin):
+    """Админка для редактирования истории работы отдельно"""
+    list_display = ('resume', 'title_en', 'period_en', 'company_en', 'order')
+    list_filter = ('resume',)
+    search_fields = ('title_en', 'title_ru', 'company_en', 'company_ru')
+    ordering = ('resume', 'order')
+    inlines = [ResumeResponsibilityInline]
+    
+    fieldsets = (
+        ('Должность', {
+            'fields': (('title_en', 'title_ru'),)
+        }),
+        ('Период работы', {
+            'fields': (('period_en', 'period_ru'),)
+        }),
+        ('Компания', {
+            'fields': (('company_en', 'company_ru'),)
+        }),
+        ('Порядок отображения', {
+            'fields': ('resume', 'order')
+        }),
+    )
 
 
 

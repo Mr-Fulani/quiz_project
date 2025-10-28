@@ -1046,3 +1046,189 @@ class ProjectView(models.Model):
 
     def __str__(self):
         return f"Просмотр {self.project.title} от {self.user or self.ip_address}"
+
+
+class Resume(models.Model):
+    """
+    Модель для хранения данных резюме.
+    Поддерживает английскую и русскую версии.
+    """
+    # Основная информация
+    name = models.CharField(max_length=200, verbose_name="Имя")
+    
+    # Контактная информация (EN)
+    contact_info_en = models.CharField(max_length=500, verbose_name="Контактная информация (EN)")
+    # Контактная информация (RU)
+    contact_info_ru = models.CharField(max_length=500, verbose_name="Контактная информация (RU)")
+    
+    email = models.EmailField(verbose_name="Email")
+    websites = models.JSONField(default=list, verbose_name="Веб-сайты", help_text="Список ссылок")
+    
+    # Профессиональное резюме
+    summary_en = models.TextField(verbose_name="Профессиональное резюме (EN)")
+    summary_ru = models.TextField(verbose_name="Профессиональное резюме (RU)")
+    
+    # Навыки
+    skills = models.JSONField(default=list, verbose_name="Навыки", help_text="Список навыков")
+    
+    # История работы
+    work_history = models.JSONField(
+        default=list, 
+        verbose_name="История работы",
+        help_text="Список объектов с полями: title_en, title_ru, period_en, period_ru, company_en, company_ru, responsibilities_en, responsibilities_ru"
+    )
+    
+    # Образование
+    education = models.JSONField(
+        default=list,
+        verbose_name="Образование",
+        help_text="Список объектов с полями: title_en, title_ru, period_en, period_ru, institution_en, institution_ru"
+    )
+    
+    # Языки
+    languages = models.JSONField(
+        default=list,
+        verbose_name="Языки",
+        help_text="Список объектов с полями: name_en, name_ru, level (в процентах)"
+    )
+    
+    # Служебные поля
+    is_active = models.BooleanField(default=True, verbose_name="Активно", help_text="Только одно резюме может быть активным")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    
+    class Meta:
+        verbose_name = "Резюме"
+        verbose_name_plural = "Резюме"
+        ordering = ["-is_active", "-updated_at"]
+    
+    def __str__(self):
+        return f"{self.name} ({'Активно' if self.is_active else 'Неактивно'})"
+    
+    def save(self, *args, **kwargs):
+        """Если это резюме активно, деактивируем все остальные"""
+        if self.is_active:
+            Resume.objects.exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+
+
+class ResumeWebsite(models.Model):
+    """Веб-сайты для резюме"""
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='website_links', verbose_name="Резюме")
+    url = models.URLField(max_length=500, verbose_name="Ссылка")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    
+    class Meta:
+        verbose_name = "Веб-сайт"
+        verbose_name_plural = "Веб-сайты"
+        ordering = ['order']
+    
+    def __str__(self):
+        return self.url
+
+
+class ResumeSkill(models.Model):
+    """Навыки для резюме"""
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='skill_list', verbose_name="Резюме")
+    name = models.CharField(max_length=200, verbose_name="Навык")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    
+    class Meta:
+        verbose_name = "Навык"
+        verbose_name_plural = "Навыки"
+        ordering = ['order']
+    
+    def __str__(self):
+        return self.name
+
+
+class ResumeWorkHistory(models.Model):
+    """История работы для резюме"""
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='work_history_items', verbose_name="Резюме")
+    
+    # Заголовок должности
+    title_en = models.CharField(max_length=300, verbose_name="Должность (EN)")
+    title_ru = models.CharField(max_length=300, verbose_name="Должность (RU)")
+    
+    # Период работы
+    period_en = models.CharField(max_length=100, verbose_name="Период (EN)")
+    period_ru = models.CharField(max_length=100, verbose_name="Период (RU)")
+    
+    # Компания
+    company_en = models.CharField(max_length=300, verbose_name="Компания (EN)")
+    company_ru = models.CharField(max_length=300, verbose_name="Компания (RU)")
+    
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    
+    class Meta:
+        verbose_name = "Запись истории работы"
+        verbose_name_plural = "История работы"
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.title_en} ({self.period_en})"
+
+
+class ResumeResponsibility(models.Model):
+    """Обязанности для записи в истории работы"""
+    work_history = models.ForeignKey(ResumeWorkHistory, on_delete=models.CASCADE, related_name='responsibilities', verbose_name="История работы")
+    text_en = models.TextField(verbose_name="Обязанность (EN)")
+    text_ru = models.TextField(verbose_name="Обязанность (RU)")
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    
+    class Meta:
+        verbose_name = "Обязанность"
+        verbose_name_plural = "Обязанности"
+        ordering = ['order']
+    
+    def __str__(self):
+        return self.text_en[:50]
+
+
+class ResumeEducation(models.Model):
+    """Образование для резюме"""
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='education_items', verbose_name="Резюме")
+    
+    # Степень/специальность
+    title_en = models.CharField(max_length=300, verbose_name="Степень (EN)")
+    title_ru = models.CharField(max_length=300, verbose_name="Степень (RU)")
+    
+    # Период обучения
+    period_en = models.CharField(max_length=100, verbose_name="Период (EN)")
+    period_ru = models.CharField(max_length=100, verbose_name="Период (RU)")
+    
+    # Учебное заведение
+    institution_en = models.CharField(max_length=500, verbose_name="Учебное заведение (EN)")
+    institution_ru = models.CharField(max_length=500, verbose_name="Учебное заведение (RU)")
+    
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    
+    class Meta:
+        verbose_name = "Запись об образовании"
+        verbose_name_plural = "Образование"
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.title_en} ({self.period_en})"
+
+
+class ResumeLanguage(models.Model):
+    """Языки для резюме"""
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='language_skills', verbose_name="Резюме")
+    
+    name_en = models.CharField(max_length=200, verbose_name="Язык (EN)")
+    name_ru = models.CharField(max_length=200, verbose_name="Язык (RU)")
+    level = models.PositiveIntegerField(
+        default=50,
+        verbose_name="Уровень владения (%)",
+        help_text="От 0 до 100"
+    )
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    
+    class Meta:
+        verbose_name = "Язык"
+        verbose_name_plural = "Языки"
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.name_en} ({self.level}%)"

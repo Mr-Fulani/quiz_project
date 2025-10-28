@@ -63,35 +63,103 @@ document.addEventListener('DOMContentLoaded', function () {
         resumeForm.addEventListener('submit', function (e) {
             e.preventDefault();
             console.log('Form submitted');
-            // Name
-            document.querySelector('.h2.article-title').textContent = document.getElementById('edit-name').value;
-            // Contact Info
-            document.querySelector('.contact-info .location-phone.lang-text[data-lang="en"]').textContent = document.getElementById('edit-contact-en').value;
-            document.querySelector('.contact-info .location-phone.lang-text[data-lang="ru"]').textContent = document.getElementById('edit-contact-ru').value;
-            document.querySelector('.contact-info .email').innerHTML = `<a href="mailto:${document.getElementById('edit-email').value}">${document.getElementById('edit-email').value}</a>`;
-            const websites = document.getElementById('edit-websites').value.split(',').map(w => w.trim());
-            document.querySelector('.contact-info p:nth-child(3)').innerHTML = `<a href="${websites[0]}" target="_blank">${websites[0]}</a>`;
-            document.querySelector('.contact-info p:nth-child(4)').innerHTML = `<a href="${websites[1]}" target="_blank">${websites[1]}</a>`;
-            // Summary
-            document.querySelector('.timeline-text.lang-text[data-lang="en"]').textContent = document.getElementById('edit-summary-en').value;
-            document.querySelector('.timeline-text.lang-text[data-lang="ru"]').textContent = document.getElementById('edit-summary-ru').value;
-            // Skills
-            const skills = document.getElementById('edit-skills').value.split(',').map(s => s.trim());
-            document.querySelector('.skills-list').innerHTML = skills.map(s => `<li>${s}</li>`).join('');
-            // Work History (пример для первой записи)
-            document.querySelector('.timeline-list li:nth-child(1) .h4.lang-text[data-lang="en"]').textContent = document.getElementById('edit-job1-title-en').value;
-            document.querySelector('.timeline-list li:nth-child(1) .h4.lang-text[data-lang="ru"]').textContent = document.getElementById('edit-job1-title-ru').value;
-            document.querySelector('.timeline-list li:nth-child(1) span.lang-text[data-lang="en"]').textContent = document.getElementById('edit-job1-period-en').value;
-            document.querySelector('.timeline-list li:nth-child(1) span.lang-text[data-lang="ru"]').textContent = document.getElementById('edit-job1-period-ru').value;
-            document.querySelector('.timeline-list li:nth-child(1) p.lang-text[data-lang="en"]').textContent = document.getElementById('edit-job1-company-en').value;
-            document.querySelector('.timeline-list li:nth-child(1) p.lang-text[data-lang="ru"]').textContent = document.getElementById('edit-job1-company-ru').value;
-            const respEn = document.getElementById('edit-job1-responsibilities-en').value.split(';').map(r => r.trim());
-            const respRu = document.getElementById('edit-job1-responsibilities-ru').value.split(';').map(r => r.trim());
-            document.querySelector('.timeline-list li:nth-child(1) .responsibilities').innerHTML = respEn.map((r, i) => `<li class="lang-text" data-lang="en">${r}</li><li class="lang-text" data-lang="ru">${respRu[i]}</li>`).join('');
-
-            editModal.style.display = 'none';
-            setLanguage(currentLang);
+            
+            // Собираем данные для отправки на сервер
+            const websites = document.getElementById('edit-websites').value.split(',').map(w => w.trim()).filter(w => w);
+            const skills = document.getElementById('edit-skills').value.split(',').map(s => s.trim()).filter(s => s);
+            const respEn = document.getElementById('edit-job1-responsibilities-en').value.split(';').map(r => r.trim()).filter(r => r);
+            const respRu = document.getElementById('edit-job1-responsibilities-ru').value.split(';').map(r => r.trim()).filter(r => r);
+            
+            const formData = {
+                name: document.getElementById('edit-name').value,
+                contact_info_en: document.getElementById('edit-contact-en').value,
+                contact_info_ru: document.getElementById('edit-contact-ru').value,
+                email: document.getElementById('edit-email').value,
+                websites: websites,
+                summary_en: document.getElementById('edit-summary-en').value,
+                summary_ru: document.getElementById('edit-summary-ru').value,
+                skills: skills,
+                work_history: [{
+                    title_en: document.getElementById('edit-job1-title-en').value,
+                    title_ru: document.getElementById('edit-job1-title-ru').value,
+                    period_en: document.getElementById('edit-job1-period-en').value,
+                    period_ru: document.getElementById('edit-job1-period-ru').value,
+                    company_en: document.getElementById('edit-job1-company-en').value,
+                    company_ru: document.getElementById('edit-job1-company-ru').value,
+                    responsibilities_en: respEn,
+                    responsibilities_ru: respRu
+                }]
+            };
+            
+            // Получаем CSRF токен
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                              document.querySelector('meta[name="csrf-token"]')?.content ||
+                              getCookie('csrftoken');
+            
+            // Отправляем данные на сервер
+            fetch('/api/resume/save/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Резюме успешно сохранено:', data);
+                    
+                    // Обновляем DOM после успешного сохранения
+                    document.querySelector('.h2.article-title[data-lang-key="personal_info.name"]').textContent = formData.name;
+                    document.querySelector('.contact-info .location-phone.lang-text[data-lang="en"]').textContent = formData.contact_info_en;
+                    document.querySelector('.contact-info .location-phone.lang-text[data-lang="ru"]').textContent = formData.contact_info_ru;
+                    document.querySelector('.contact-info .email').innerHTML = `<a href="mailto:${formData.email}">${formData.email}</a>`;
+                    if (websites[0]) document.querySelector('.contact-info p:nth-child(3)').innerHTML = `<a href="${websites[0]}" target="_blank">${websites[0]}</a>`;
+                    if (websites[1]) document.querySelector('.contact-info p:nth-child(4)').innerHTML = `<a href="${websites[1]}" target="_blank">${websites[1]}</a>`;
+                    document.querySelector('.timeline-text.lang-text[data-lang="en"]').textContent = formData.summary_en;
+                    document.querySelector('.timeline-text.lang-text[data-lang="ru"]').textContent = formData.summary_ru;
+                    document.querySelector('.skills-list').innerHTML = skills.map(s => `<li>${s}</li>`).join('');
+                    document.querySelector('.timeline-list li:nth-child(1) .h4.lang-text[data-lang="en"]').textContent = formData.work_history[0].title_en;
+                    document.querySelector('.timeline-list li:nth-child(1) .h4.lang-text[data-lang="ru"]').textContent = formData.work_history[0].title_ru;
+                    document.querySelector('.timeline-list li:nth-child(1) span.lang-text[data-lang="en"]').textContent = formData.work_history[0].period_en;
+                    document.querySelector('.timeline-list li:nth-child(1) span.lang-text[data-lang="ru"]').textContent = formData.work_history[0].period_ru;
+                    document.querySelector('.timeline-list li:nth-child(1) p.lang-text[data-lang="en"]').textContent = formData.work_history[0].company_en;
+                    document.querySelector('.timeline-list li:nth-child(1) p.lang-text[data-lang="ru"]').textContent = formData.work_history[0].company_ru;
+                    document.querySelector('.timeline-list li:nth-child(1) .responsibilities').innerHTML = respEn.map((r, i) => 
+                        `<li class="lang-text" data-lang="en">${r}</li><li class="lang-text" data-lang="ru">${respRu[i] || ''}</li>`
+                    ).join('');
+                    
+                    editModal.style.display = 'none';
+                    setLanguage(currentLang);
+                    
+                    alert('Резюме успешно сохранено!');
+                } else {
+                    console.error('Ошибка сохранения:', data);
+                    alert('Ошибка при сохранении резюме: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при отправке:', error);
+                alert('Ошибка при сохранении резюме. Проверьте консоль для деталей.');
+            });
         });
+    }
+    
+    // Функция для получения CSRF токена из cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 
     // Скачивание PDF
