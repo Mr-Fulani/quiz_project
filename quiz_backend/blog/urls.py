@@ -7,7 +7,7 @@ from .views import (
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, submit_task_answer,
     MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
-    quiz_difficulty, reset_subtopic_stats, check_auth
+    quiz_difficulty, reset_subtopic_stats, check_auth, download_resume_pdf
 )
 from django.shortcuts import redirect, render
 
@@ -36,6 +36,9 @@ urlpatterns = [
 
     path('resume/', ResumeView.as_view(), name='resume'),
     #   -> Страница резюме
+    
+    path('resume/download/', download_resume_pdf, name='download_resume_pdf'),
+    #   -> Скачивание PDF резюме
 
     path('portfolio/', PortfolioView.as_view(), name='portfolio'),
     #   -> Страница портфолио
