@@ -95,7 +95,7 @@ services:
       context: ./quiz_backend
       dockerfile: Dockerfile
     container_name: celery_worker_prod
-    command: celery -A config worker --loglevel=info --concurrency=4
+    command: python -m celery -A config worker --loglevel=info --concurrency=4
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
@@ -127,7 +127,7 @@ services:
       context: ./quiz_backend
       dockerfile: Dockerfile
     container_name: celery_beat_prod
-    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: python -m celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
