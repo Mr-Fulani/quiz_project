@@ -355,7 +355,9 @@ h2.article-title.lang-text[data-lang-key="personal_info.name"] {
     nav,
     .navbar,
     header.navigation,
-    footer {
+    footer,
+    #bee-container,
+    .bee-container {
         display: none !important;
     }
     
