@@ -720,6 +720,57 @@ class ResumeView(BreadcrumbsMixin, TemplateView):
         return context
 
 
+def download_resume_pdf(request):
+    """
+    Генерирует и отдаёт PDF резюме на сервере через weasyprint.
+    Без проблем с JavaScript и Shadow DOM.
+    """
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    from weasyprint import HTML, CSS
+    from .models import Resume
+    import io
+    
+    # Получаем язык из параметров или используем по умолчанию
+    lang = request.GET.get('lang', 'en')
+    
+    # Загружаем резюме
+    resume = Resume.objects.filter(is_active=True).prefetch_related(
+        'website_links',
+        'skill_list',
+        'work_history_items__responsibilities',
+        'education_items',
+        'language_skills'
+    ).first()
+    
+    if not resume:
+        return HttpResponse('Резюме не найдено', status=404)
+    
+    # Готовим контекст для шаблона
+    context = {
+        'resume': resume,
+        'websites': list(resume.website_links.all()),
+        'skills': list(resume.skill_list.all()),
+        'work_history': list(resume.work_history_items.all()),
+        'education': list(resume.education_items.all()),
+        'languages': list(resume.language_skills.all()),
+        'current_lang': lang,
+        'for_pdf': True  # Флаг для шаблона
+    }
+    
+    # Рендерим HTML
+    html_string = render_to_string('blog/resume_pdf.html', context)
+    
+    # Генерируем PDF
+    pdf_file = HTML(string=html_string).write_pdf()
+    
+    # Отдаём файл
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Resume_{lang.upper()}.pdf"'
+    
+    return response
+
+
 
 class PortfolioView(BreadcrumbsMixin, TemplateView):
     """

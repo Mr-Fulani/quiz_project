@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (websites[1]) document.querySelector('.contact-info p:nth-child(4)').innerHTML = `<a href="${websites[1]}" target="_blank">${websites[1]}</a>`;
                     document.querySelector('.timeline-text.lang-text[data-lang="en"]').textContent = formData.summary_en;
                     document.querySelector('.timeline-text.lang-text[data-lang="ru"]').textContent = formData.summary_ru;
-                    document.querySelector('.skills-list').innerHTML = skills.map(s => `<li>${s}</li>`).join('');
+            document.querySelector('.skills-list').innerHTML = skills.map(s => `<li>${s}</li>`).join('');
                     document.querySelector('.timeline-list li:nth-child(1) .h4.lang-text[data-lang="en"]').textContent = formData.work_history[0].title_en;
                     document.querySelector('.timeline-list li:nth-child(1) .h4.lang-text[data-lang="ru"]').textContent = formData.work_history[0].title_ru;
                     document.querySelector('.timeline-list li:nth-child(1) span.lang-text[data-lang="en"]').textContent = formData.work_history[0].period_en;
@@ -129,9 +129,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.querySelector('.timeline-list li:nth-child(1) .responsibilities').innerHTML = respEn.map((r, i) => 
                         `<li class="lang-text" data-lang="en">${r}</li><li class="lang-text" data-lang="ru">${respRu[i] || ''}</li>`
                     ).join('');
-                    
-                    editModal.style.display = 'none';
-                    setLanguage(currentLang);
+
+            editModal.style.display = 'none';
+            setLanguage(currentLang);
                     
                     alert('Резюме успешно сохранено!');
                 } else {
@@ -162,119 +162,17 @@ document.addEventListener('DOMContentLoaded', function () {
         return cookieValue;
     }
 
-    // Скачивание PDF
+    // Скачивание PDF - серверная генерация (надёжно!)
     const downloadBtn = document.getElementById('download-pdf');
+    console.log('Download PDF button found:', downloadBtn);
     if (downloadBtn) {
-        downloadBtn.addEventListener('click', function () {
-            console.log('Download PDF button clicked');
+        downloadBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Download PDF - server-side generation');
             
-            // Клонируем весь контейнер резюме
-            const originalResume = document.querySelector('article.resume');
-            if (!originalResume) {
-                console.error('Resume article not found');
-                alert('Ошибка: не найден контейнер резюме');
-                return;
-            }
-            
-            const resumeElement = originalResume.cloneNode(true);
-            
-            // Удаляем ненужные элементы
-            const elementsToRemove = resumeElement.querySelectorAll('.resume-actions, .language-switcher');
-            elementsToRemove.forEach(el => el.remove());
-            
-            // Показываем только текущий язык
-            resumeElement.querySelectorAll('.lang-text').forEach(el => {
-                const lang = el.getAttribute('data-lang');
-                if (lang && lang !== currentLang) {
-                    el.remove();
-                } else {
-                    el.style.display = 'block';
-                }
-            });
-            
-            // Убираем прогресс-бары и декоративные элементы
-            const progressBars = resumeElement.querySelectorAll('.skills-progress-bg, .skills-progress-fill, .progress-bar');
-            progressBars.forEach(bar => bar.remove());
-            
-            // Применяем стили для печати
-            resumeElement.style.background = '#fff';
-            resumeElement.style.color = '#000';
-            resumeElement.style.padding = '40px';
-            resumeElement.style.boxShadow = 'none';
-            resumeElement.style.border = 'none';
-            resumeElement.style.borderRadius = '0';
-            resumeElement.style.maxWidth = '900px';
-            resumeElement.style.margin = '0 auto';
-            
-            // Меняем цвета текста на темные
-            resumeElement.querySelectorAll('h1, h2, h3, h4, .h2, .h3, .h4').forEach(el => {
-                el.style.color = '#000';
-            });
-            
-            resumeElement.querySelectorAll('p, li, span, a').forEach(el => {
-                el.style.color = '#333';
-            });
-            
-            resumeElement.querySelectorAll('a').forEach(el => {
-                el.style.color = '#0066cc';
-                el.style.textDecoration = 'underline';
-            });
-            
-            // Создаем контейнер для PDF
-            const printContainer = document.createElement('div');
-            printContainer.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 210mm;
-                min-height: 100vh;
-                background: #ffffff;
-                padding: 15mm;
-                box-sizing: border-box;
-                z-index: 9999;
-                visibility: hidden;
-            `;
-            printContainer.appendChild(resumeElement);
-            document.body.appendChild(printContainer);
-
-            // Ждем немного чтобы стили применились
-            setTimeout(() => {
-                printContainer.style.visibility = 'visible';
-                
-                const options = {
-                    margin: [10, 10, 10, 10],
-                    filename: `Resume_${currentLang.toUpperCase()}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2,
-                        useCORS: true,
-                        logging: true,
-                        backgroundColor: '#ffffff',
-                        letterRendering: true,
-                        windowWidth: 794,  // A4 width in pixels at 96 DPI
-                        windowHeight: 1123 // A4 height in pixels at 96 DPI
-                    },
-                    jsPDF: { 
-                        unit: 'mm',
-                        format: 'a4',
-                        orientation: 'portrait'
-                    }
-                };
-
-                console.log('Starting PDF generation...');
-                console.log('Container dimensions:', printContainer.offsetWidth, printContainer.offsetHeight);
-                
-                html2pdf().set(options).from(printContainer).save().then(() => {
-                    document.body.removeChild(printContainer);
-                    console.log('PDF saved and temporary element removed');
-                }).catch(error => {
-                    console.error('PDF generation failed:', error);
-                    if (printContainer.parentNode) {
-                        document.body.removeChild(printContainer);
-                    }
-                    alert('Ошибка при создании PDF: ' + error.message);
-                });
-            }, 100);
+            // Просто редиректим на серверный endpoint
+            window.location.href = `/resume/download/?lang=${currentLang}`;
         });
     } else {
         console.warn('Download PDF button not found');
@@ -282,9 +180,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Печать резюме
     const printBtn = document.getElementById('print-resume');
+    console.log('Print button found:', printBtn);
     if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            console.log('Print button clicked');
+        printBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Print button clicked - opening print dialog');
             
             // Временно скрываем элементы, которые не нужны при печати
             const hideElements = document.querySelectorAll('.resume-actions, .language-switcher');
@@ -299,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             
             // Печатаем
-            window.print();
+        window.print();
             
             // Возвращаем элементы обратно
             setTimeout(() => {

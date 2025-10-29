@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Resume - {{ resume.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm 12mm;
+        }
+        
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 4mm 6mm;
+        }
+        
+        h1 { font-size: 18pt; margin: 0 0 6px 0; color: #000; }
+        h2 { 
+            font-size: 18pt; 
+            margin: 0 0 8px 0; 
+            color: #000; 
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        h2.name {
+            border-bottom: 2px solid #417690;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        h3 { font-size: 12pt; margin: 8px 0 4px 0; color: #000; font-weight: bold; }
+        h4 { font-size: 10pt; margin: 4px 0 2px 0; color: #000; font-weight: bold; }
+        
+        p, li, span { font-size: 9pt; line-height: 1.3; margin: 0 0 3px 0; }
+        a { color: #0066cc; text-decoration: none; }
+        
+        .contact-info { 
+            margin-bottom: 16px; 
+            text-align: center;
+        }
+        .contact-info p { margin: 2px 0; }
+        
+        .section { margin-bottom: 16px; page-break-inside: avoid; }
+        .section-title { border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px; }
+        
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            list-style: none;
+            padding: 0;
+            margin: 4px 0;
+        }
+        .skills-list li {
+            flex: 0 0 33%;
+            margin-bottom: 2px;
+        }
+        
+        .work-item, .edu-item {
+            margin-bottom: 8px;
+            page-break-inside: avoid;
+        }
+        
+        .work-item h4, .edu-item h4 { margin-bottom: 2px; }
+        .work-item .period, .edu-item .period { font-size: 9pt; color: #666; font-style: italic; }
+        .work-item .company, .edu-item .institution { font-size: 9pt; color: #333; margin: 2px 0; }
+        
+        .responsibilities {
+            margin: 3px 0;
+            padding-left: 15px;
+        }
+        .responsibilities li { margin-bottom: 2px; }
+        
+        .languages {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .language-item {
+            flex: 1 1 45%;
+            font-size: 9pt;
+        }
+    </style>
+</head>
+<body>
+    <h2 class="name">{{ resume.name }}</h2>
+    
+    <div class="contact-info">
+        <p>{% if current_lang == 'en' %}{{ resume.contact_info_en }}{% else %}{{ resume.contact_info_ru }}{% endif %}</p>
+        <p>{{ resume.email }}</p>
+        {% for website in websites %}
+        <p><a href="{{ website.url }}">{{ website.url }}</a></p>
+        {% endfor %}
+    </div>
+    
+    <div class="section">
+        <h3 class="section-title">{% if current_lang == 'en' %}Professional Summary{% else %}Профессиональное резюме{% endif %}</h3>
+        <p>{% if current_lang == 'en' %}{{ resume.summary_en }}{% else %}{{ resume.summary_ru }}{% endif %}</p>
+    </div>
+    
+    <div class="section">
+        <h3 class="section-title">{% if current_lang == 'en' %}Skills{% else %}Навыки{% endif %}</h3>
+        <ul class="skills-list">
+            {% for skill in skills %}
+            <li>{{ skill.name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h3 class="section-title">{% if current_lang == 'en' %}Work History{% else %}Опыт работы{% endif %}</h3>
+        {% for work in work_history %}
+        <div class="work-item">
+            <h4>{% if current_lang == 'en' %}{{ work.title_en }}{% else %}{{ work.title_ru }}{% endif %}</h4>
+            <p class="period">{% if current_lang == 'en' %}{{ work.period_en }}{% else %}{{ work.period_ru }}{% endif %}</p>
+            <p class="company">{% if current_lang == 'en' %}{{ work.company_en }}{% else %}{{ work.company_ru }}{% endif %}</p>
+            {% if work.responsibilities.all %}
+            <ul class="responsibilities">
+                {% for resp in work.responsibilities.all %}
+                <li>{% if current_lang == 'en' %}{{ resp.text_en }}{% else %}{{ resp.text_ru }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="section">
+        <h3 class="section-title">{% if current_lang == 'en' %}Education{% else %}Образование{% endif %}</h3>
+        {% for edu in education %}
+        <div class="edu-item">
+            <h4>{% if current_lang == 'en' %}{{ edu.title_en }}{% else %}{{ edu.title_ru }}{% endif %}</h4>
+            <p class="period">{% if current_lang == 'en' %}{{ edu.period_en }}{% else %}{{ edu.period_ru }}{% endif %}</p>
+            <p class="institution">{% if current_lang == 'en' %}{{ edu.institution_en }}{% else %}{{ edu.institution_ru }}{% endif %}</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="section">
+        <h3 class="section-title">{% if current_lang == 'en' %}Languages{% else %}Языки{% endif %}</h3>
+        <div class="languages">
+            {% for language in languages %}
+            <div class="language-item">
+                <span>{% if current_lang == 'en' %}{{ language.name_en }}{% else %}{{ language.name_ru }}{% endif %} ({{ language.level }}%)</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
+
