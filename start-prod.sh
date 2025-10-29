@@ -26,6 +26,12 @@ docker rm $(docker ps -aq --filter "name=quiz_project") 2>/dev/null || true
 echo "🧹 Очистка неиспользуемых Docker-образов..."
 docker image prune -f
 
+echo "🧹 Принудительная очистка Docker кэша..."
+# Удаляем все неиспользуемые образы (включая промежуточные)
+docker image prune -a -f
+# Очищаем кэш сборки
+docker builder prune -f
+
 echo "🧹 Проверка и подготовка конфигураций Certbot..."
 # Проверяем, есть ли уже сертификаты
 if [ -d "./certbot/conf/live/quiz-code.com" ]; then
@@ -41,15 +47,15 @@ fi
 
 if [ "$SKIP_CERTBOT" = true ]; then
     echo "🚀 Запуск всех сервисов с существующими SSL сертификатами..."
-    # Если сертификаты уже есть, сразу запускаем все с SSL
-    docker compose -f docker-compose.local-prod.yml up -d --build
+    # Если сертификаты уже есть, сразу запускаем все с SSL (принудительная пересборка)
+    docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
     
     echo "⏳ Ожидание полного запуска всех сервисов..."
     sleep 15
 else
     echo "🚀 Запуск базовых сервисов (без SSL)..."
-    # Запускаем только базовые сервисы без SSL
-    docker compose -f docker-compose.local-prod.yml up -d postgres_db quiz_backend mini_app
+    # Запускаем только базовые сервисы без SSL (включая Redis и Celery)
+    docker compose -f docker-compose.local-prod.yml up -d postgres_db redis quiz_backend celery_worker celery_beat mini_app
 
     echo "⏳ Ожидание готовности сервисов..."
     sleep 10
@@ -85,9 +91,9 @@ else
     done
 
     echo "🔄 Перезапуск всех сервисов с SSL..."
-    # Перезапускаем все сервисы с SSL сертификатами
+    # Перезапускаем все сервисы с SSL сертификатами (принудительная пересборка)
     docker compose -f docker-compose.local-prod.yml down
-    docker compose -f docker-compose.local-prod.yml up -d --build
+    docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
     
     echo "⏳ Ожидание полного запуска всех сервисов..."
     sleep 15
