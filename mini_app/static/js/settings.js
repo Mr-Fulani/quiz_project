@@ -26,6 +26,8 @@ if (typeof SettingsPage === 'undefined') {
         console.log('🔧 [SETTINGS] window.currentUser:', window.currentUser);
         // Проверяем админ доступ с задержкой для загрузки window.currentUser
         this.checkAdminAccessWithRetry();
+        // Применяем локальные пользовательские настройки и навешиваем обработчики
+        this.applyLocalSettings();
     }
     
     checkAdminAccess() {
@@ -95,6 +97,32 @@ if (typeof SettingsPage === 'undefined') {
             setTimeout(() => this.checkAdminAccessWithRetry(), 300);
         } else {
             console.log('⚠️ [SETTINGS-RETRY] Max retries reached, giving up');
+        }
+    }
+    
+    applyLocalSettings() {
+        try {
+            // Восстанавливаем состояние переключателя уведомлений
+            const notificationsEnabled = localStorage.getItem('notifications') !== 'false';
+            const notificationsToggle = document.getElementById('notifications-toggle');
+            if (notificationsToggle) {
+                notificationsToggle.checked = notificationsEnabled;
+                notificationsToggle.addEventListener('change', function(e) {
+                    localStorage.setItem('notifications', e.target.checked);
+                });
+            }
+
+            // Восстанавливаем выбранный язык и активное состояние кнопки
+            const savedLanguage = localStorage.getItem('selectedLanguage');
+            if (savedLanguage && savedLanguage !== window.currentLanguage) {
+                document.querySelectorAll('.language-btn').forEach(btn => btn.classList.remove('active'));
+                const activeBtn = document.querySelector(`[data-lang="${savedLanguage}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [SETTINGS] Failed to apply local settings:', e);
         }
     }
     };

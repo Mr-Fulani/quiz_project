@@ -889,6 +889,15 @@
                     settingsScript.onload = function() {
                         console.log('✅ Settings script loaded via base template');
                         console.log('🔄 Settings and Feedback should auto-initialize');
+                        // Явно инициализируем систему донатов для первого захода на страницу настроек
+                        setTimeout(() => {
+                            if (window.donationSystemGlobal && typeof window.donationSystemGlobal.initialize === 'function') {
+                                console.log('🚀 Calling donationSystemGlobal.initialize() after settings load');
+                                try { window.donationSystemGlobal.initialize(); } catch (e) { console.warn('⚠️ donation initialize failed:', e); }
+                            } else {
+                                console.log('ℹ️ donationSystemGlobal not ready yet');
+                            }
+                        }, 150);
                     };
                     settingsScript.onerror = function() {
                         console.error('❌ Failed to load settings.js');
