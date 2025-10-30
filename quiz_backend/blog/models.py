@@ -1056,17 +1056,17 @@ class Resume(models.Model):
     # Основная информация
     name = models.CharField(max_length=200, verbose_name="Имя")
     
-    # Контактная информация (EN)
-    contact_info_en = models.CharField(max_length=500, verbose_name="Контактная информация (EN)")
-    # Контактная информация (RU)
-    contact_info_ru = models.CharField(max_length=500, verbose_name="Контактная информация (RU)")
+    # Контактная информация (EN) - необязательное
+    contact_info_en = models.CharField(max_length=500, blank=True, verbose_name="Контактная информация (EN)")
+    # Контактная информация (RU) - необязательное
+    contact_info_ru = models.CharField(max_length=500, blank=True, verbose_name="Контактная информация (RU)")
     
-    email = models.EmailField(verbose_name="Email")
+    email = models.EmailField(blank=True, verbose_name="Email")
     websites = models.JSONField(default=list, verbose_name="Веб-сайты", help_text="Список ссылок")
     
-    # Профессиональное резюме
-    summary_en = models.TextField(verbose_name="Профессиональное резюме (EN)")
-    summary_ru = models.TextField(verbose_name="Профессиональное резюме (RU)")
+    # Профессиональное резюме - необязательное
+    summary_en = models.TextField(blank=True, verbose_name="Профессиональное резюме (EN)")
+    summary_ru = models.TextField(blank=True, verbose_name="Профессиональное резюме (RU)")
     
     # Навыки
     skills = models.JSONField(default=list, verbose_name="Навыки", help_text="Список навыков")
@@ -1146,17 +1146,17 @@ class ResumeWorkHistory(models.Model):
     """История работы для резюме"""
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='work_history_items', verbose_name="Резюме")
     
-    # Заголовок должности
-    title_en = models.CharField(max_length=300, verbose_name="Должность (EN)")
-    title_ru = models.CharField(max_length=300, verbose_name="Должность (RU)")
+    # Заголовок должности - необязательные
+    title_en = models.CharField(max_length=300, blank=True, verbose_name="Должность (EN)")
+    title_ru = models.CharField(max_length=300, blank=True, verbose_name="Должность (RU)")
     
-    # Период работы
-    period_en = models.CharField(max_length=100, verbose_name="Период (EN)")
-    period_ru = models.CharField(max_length=100, verbose_name="Период (RU)")
+    # Период работы - необязательные
+    period_en = models.CharField(max_length=100, blank=True, verbose_name="Период (EN)")
+    period_ru = models.CharField(max_length=100, blank=True, verbose_name="Период (RU)")
     
-    # Компания
-    company_en = models.CharField(max_length=300, verbose_name="Компания (EN)")
-    company_ru = models.CharField(max_length=300, verbose_name="Компания (RU)")
+    # Компания - необязательные
+    company_en = models.CharField(max_length=300, blank=True, verbose_name="Компания (EN)")
+    company_ru = models.CharField(max_length=300, blank=True, verbose_name="Компания (RU)")
     
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     
@@ -1172,8 +1172,8 @@ class ResumeWorkHistory(models.Model):
 class ResumeResponsibility(models.Model):
     """Обязанности для записи в истории работы"""
     work_history = models.ForeignKey(ResumeWorkHistory, on_delete=models.CASCADE, related_name='responsibilities', verbose_name="История работы")
-    text_en = models.TextField(verbose_name="Обязанность (EN)")
-    text_ru = models.TextField(verbose_name="Обязанность (RU)")
+    text_en = models.TextField(blank=True, verbose_name="Обязанность (EN)")
+    text_ru = models.TextField(blank=True, verbose_name="Обязанность (RU)")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     
     class Meta:
@@ -1186,20 +1186,20 @@ class ResumeResponsibility(models.Model):
 
 
 class ResumeEducation(models.Model):
-    """Образование для резюме"""
+    """Образование для резюме - необязательное"""
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='education_items', verbose_name="Резюме")
     
-    # Степень/специальность
-    title_en = models.CharField(max_length=300, verbose_name="Степень (EN)")
-    title_ru = models.CharField(max_length=300, verbose_name="Степень (RU)")
+    # Степень/специальность - необязательные
+    title_en = models.CharField(max_length=300, blank=True, verbose_name="Степень (EN)")
+    title_ru = models.CharField(max_length=300, blank=True, verbose_name="Степень (RU)")
     
-    # Период обучения
-    period_en = models.CharField(max_length=100, verbose_name="Период (EN)")
-    period_ru = models.CharField(max_length=100, verbose_name="Период (RU)")
+    # Период обучения - необязательные
+    period_en = models.CharField(max_length=100, blank=True, verbose_name="Период (EN)")
+    period_ru = models.CharField(max_length=100, blank=True, verbose_name="Период (RU)")
     
-    # Учебное заведение
-    institution_en = models.CharField(max_length=500, verbose_name="Учебное заведение (EN)")
-    institution_ru = models.CharField(max_length=500, verbose_name="Учебное заведение (RU)")
+    # Учебное заведение - необязательные
+    institution_en = models.CharField(max_length=500, blank=True, verbose_name="Учебное заведение (EN)")
+    institution_ru = models.CharField(max_length=500, blank=True, verbose_name="Учебное заведение (RU)")
     
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     
@@ -1213,11 +1213,11 @@ class ResumeEducation(models.Model):
 
 
 class ResumeLanguage(models.Model):
-    """Языки для резюме"""
+    """Языки для резюме - необязательные"""
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='language_skills', verbose_name="Резюме")
     
-    name_en = models.CharField(max_length=200, verbose_name="Язык (EN)")
-    name_ru = models.CharField(max_length=200, verbose_name="Язык (RU)")
+    name_en = models.CharField(max_length=200, blank=True, verbose_name="Язык (EN)")
+    name_ru = models.CharField(max_length=200, blank=True, verbose_name="Язык (RU)")
     level = models.PositiveIntegerField(
         default=50,
         verbose_name="Уровень владения (%)",
