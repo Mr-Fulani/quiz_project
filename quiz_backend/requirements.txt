@@ -5,6 +5,11 @@ MarkupSafe==2.1.5
 PyYAML==6.0.2
 Pygments==2.18.0
 SQLAlchemy==2.0.35
+# Celery и Redis для фоновых задач и кэширования
+celery==5.3.4
+redis==5.0.1
+django-redis==5.4.0
+django-celery-beat==2.7.0
 aiogram==3.22.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.14

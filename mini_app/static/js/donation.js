@@ -33,6 +33,9 @@ class DonationSystem {
         console.log('🔧 DonationSystem: Initializing...');
         
         try {
+            // Предзагружаем необходимые внешние библиотеки
+            await this.ensureExternalScripts();
+            
             // 1. Fetch all data in parallel to avoid race conditions
             const [stripeKeyData, appConfig, cryptoCurrencies] = await Promise.all([
                 this.fetchStripeKey(),
@@ -43,7 +46,7 @@ class DonationSystem {
             console.log('📦 Config loaded:', appConfig);
 
             // 2. Initialize services and set properties
-            this.initializeStripe(stripeKeyData);
+            await this.initializeStripe(stripeKeyData);
             this.walletPayEnabled = !!(appConfig && appConfig.wallet_pay_enabled);
             this.cryptoCurrencies = cryptoCurrencies || [];
             
@@ -67,6 +70,55 @@ class DonationSystem {
             this.bindEvents();
             this.setInitialValues();
         }
+    }
+
+    async ensureExternalScripts() {
+        console.log('🔧 Checking external scripts...');
+        const scriptsToLoad = [];
+        
+        // Проверяем Stripe.js
+        if (typeof Stripe === 'undefined') {
+            console.log('📦 Loading Stripe.js...');
+            scriptsToLoad.push(this.loadScript('https://js.stripe.com/v3/'));
+        }
+        
+        // Проверяем QRCode.js
+        if (typeof QRCode === 'undefined') {
+            console.log('📦 Loading QRCode.js...');
+            scriptsToLoad.push(this.loadScript('https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js'));
+        }
+        
+        if (scriptsToLoad.length > 0) {
+            await Promise.all(scriptsToLoad);
+            console.log('✅ All external scripts loaded');
+        } else {
+            console.log('✅ All external scripts already loaded');
+        }
+    }
+    
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            // Проверяем не загружается ли уже этот скрипт
+            const existing = document.querySelector(`script[src="${src}"]`);
+            if (existing) {
+                console.log(`ℹ️ Script already loading: ${src}`);
+                existing.onload = resolve;
+                existing.onerror = reject;
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                console.log(`✅ Script loaded: ${src}`);
+                resolve();
+            };
+            script.onerror = () => {
+                console.error(`❌ Failed to load script: ${src}`);
+                reject(new Error(`Failed to load ${src}`));
+            };
+            document.head.appendChild(script);
+        });
     }
 
     buildInitialUI() {
@@ -93,8 +145,15 @@ class DonationSystem {
             }
         }
 
-        initializeStripe(keyData) {
+        async initializeStripe(keyData) {
             if (keyData && keyData.publishable_key) {
+                // Stripe.js уже должен быть загружен через ensureExternalScripts
+                // Но на всякий случай проверяем еще раз
+                if (typeof Stripe === 'undefined') {
+                    console.error('❌ Stripe.js still not available after ensureExternalScripts');
+                    return;
+                }
+                
                 this.stripe = Stripe(keyData.publishable_key);
                 console.log('✅ Stripe initialized with key:', keyData.publishable_key.substring(0, 20) + '...');
             } else {
@@ -451,6 +510,13 @@ class DonationSystem {
         
         // Валидация
         if (!this.validateForm()) {
+            return;
+        }
+        
+        // Проверяем что Stripe инициализирован
+        if (!this.stripe) {
+            console.error('❌ Stripe not initialized');
+            this.showError(window.t('donation_error', 'Ошибка инициализации платежной системы. Попробуйте перезагрузить страницу.'));
             return;
         }
         

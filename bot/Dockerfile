@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /quiz_project
 
 # Копируем файл зависимостей и устанавливаем их
-COPY requirements.txt .
+COPY bot/requirements.txt ./requirements.txt
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 

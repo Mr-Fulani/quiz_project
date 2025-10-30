@@ -19,6 +19,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    networks:
+      - quiz_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   telegram_bot:
     build:
       context: .
@@ -70,6 +85,8 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
       - NGROK_HOST=${NGROK_HOST}
+      - REDIS_URL=redis://redis_cache:6379/1
+      - CELERY_BROKER_URL=redis://redis_cache:6379/0
     # Команда теперь в entrypoint.sh
     volumes:
       - ./quiz_backend:/app
@@ -80,8 +97,71 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - quiz_network
+
+  celery_worker:
+    build:
+      context: ./quiz_backend
+      dockerfile: Dockerfile
+    container_name: celery_worker
+    command: celery -A config worker --loglevel=info --concurrency=2
+    env_file:
+      - .env
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - DATABASE_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-fulani_quiz_db}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis_cache:6379/1
+      - CELERY_BROKER_URL=redis://redis_cache:6379/0
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+    volumes:
+      - ./quiz_backend:/app
+      - ./media:/app/media
+    depends_on:
+      - database
+      - redis
+    networks:
+      - quiz_network
+    restart: unless-stopped
+
+  celery_beat:
+    build:
+      context: ./quiz_backend
+      dockerfile: Dockerfile
+    container_name: celery_beat
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - .env
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - DATABASE_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-fulani_quiz_db}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis_cache:6379/1
+      - CELERY_BROKER_URL=redis://redis_cache:6379/0
+    volumes:
+      - ./quiz_backend:/app
+    depends_on:
+      - database
+      - redis
+    networks:
+      - quiz_network
+    restart: unless-stopped
 
   mini_app:
     container_name: mini_app
