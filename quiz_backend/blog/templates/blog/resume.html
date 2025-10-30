@@ -230,7 +230,7 @@
             <ion-icon name="create-outline"></ion-icon> Edit
         </button>
         {% endif %}
-        <button id="download-pdf" class="action-btn" title="Автоматическое скачивание PDF">
+        <button id="download-pdf" class="action-btn" title="Автоматическое скачивание PDF" data-download-url="{% url 'blog:download_resume_pdf' %}">
             <ion-icon name="download-outline"></ion-icon> Download PDF
         </button>
         <button id="print-resume" class="action-btn">
@@ -321,5 +321,5 @@
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="{% static 'blog/js/resume.js' %}"></script>
+<script src="{% static 'blog/js/resume.js' %}?v=20251029"></script>
 {% endblock %}

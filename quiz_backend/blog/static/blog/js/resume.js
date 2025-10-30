@@ -171,8 +171,9 @@ document.addEventListener('DOMContentLoaded', function () {
             e.stopPropagation();
             console.log('Download PDF - server-side generation');
             
-            // Просто редиректим на серверный endpoint
-            window.location.href = `/resume/download/?lang=${currentLang}`;
+            // Просто редиректим на серверный endpoint (URL берём из шаблона с учётом i18n-префикса)
+            const downloadUrlBase = downloadBtn.getAttribute('data-download-url') || '/resume/download/';
+            window.location.href = `${downloadUrlBase}?lang=${currentLang}`;
         });
     } else {
         console.warn('Download PDF button not found');

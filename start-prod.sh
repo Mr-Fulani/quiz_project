@@ -3,6 +3,16 @@
 # Скрипт для запуска продакшена
 echo "🌐 Запуск продакшена..."
 
+# Быстрый режим: пропускаем тяжёлую очистку и долгие ожидания
+# Использование: ./start-prod.sh --fast или FAST_MODE=1 ./start-prod.sh
+FAST_MODE=${FAST_MODE:-0}
+if [ "$1" = "--fast" ]; then
+  FAST_MODE=1
+fi
+if [ "$FAST_MODE" = "1" ]; then
+  echo "⚡ Включён быстрый режим (без prune/down, сокращённые ожидания)"
+fi
+
 # Устанавливаем переменную окружения для продакшен конфигурации
 # export NGINX_DOCKERFILE=Dockerfile.prod
 
@@ -16,21 +26,23 @@ echo "ℹ️  Временно используются только домен�
 # Debug: Выводим полную команду Certbot перед выполнением
 # echo "Запуск Certbot с командой: docker compose -f docker-compose.local-prod.yml run --rm --entrypoint \"sh\" certbot -c \"set -x && ls -la /var/www/certbot && pwd && /usr/local/bin/certbot certonly --webroot -w /var/www/certbot --staging --agree-tos -v --non-interactive --email $EMAIL --config-dir /etc/letsencrypt/conf --work-dir /etc/letsencrypt/work --logs-dir /etc/letsencrypt/logs --domains \"$DOMAINS\" | tee /dev/stdout && sleep 5 && ls -la /etc/letsencrypt/logs/ && echo \"--- LETSENCRYPT LOG START ---\" && cat /etc/letsencrypt/logs/letsencrypt.log && echo \"--- LETSENCRYPT LOG END ---\" && ls -la /var/www/certbot\""
 
-echo "🔌 Остановка и удаление существующих контейнеров..."
-# Принудительно останавливаем все контейнеры проекта
-docker compose -f docker-compose.local-prod.yml down --volumes --remove-orphans
-# Дополнительная очистка на случай конфликтов портов
-docker stop $(docker ps -q --filter "name=quiz_project") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=quiz_project") 2>/dev/null || true
+if [ "$FAST_MODE" != "1" ]; then
+  echo "🔌 Остановка и удаление существующих контейнеров..."
+  docker compose -f docker-compose.local-prod.yml down --volumes --remove-orphans
+  docker stop $(docker ps -q --filter "name=quiz_project") 2>/dev/null || true
+  docker rm $(docker ps -aq --filter "name=quiz_project") 2>/dev/null || true
+fi
 
-echo "🧹 Очистка неиспользуемых Docker-образов..."
-docker image prune -f
+if [ "$FAST_MODE" != "1" ]; then
+  echo "🧹 Очистка неиспользуемых Docker-образов..."
+  docker image prune -f
 
-echo "🧹 Принудительная очистка Docker кэша..."
-# Удаляем все неиспользуемые образы (включая промежуточные)
-docker image prune -a -f
-# Очищаем кэш сборки
-docker builder prune -f
+  echo "🧹 Принудительная очистка Docker кэша..."
+  docker image prune -a -f
+  docker builder prune -f
+else
+  echo "⏭️ Пропускаем очистку образов и кэша (FAST_MODE)"
+fi
 
 echo "🧹 Проверка и подготовка конфигураций Certbot..."
 # Проверяем, есть ли уже сертификаты
@@ -47,18 +59,23 @@ fi
 
 if [ "$SKIP_CERTBOT" = true ]; then
     echo "🚀 Запуск всех сервисов с существующими SSL сертификатами..."
-    # Если сертификаты уже есть, сразу запускаем все с SSL (принудительная пересборка)
-    docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
+    if [ "$FAST_MODE" = "1" ]; then
+      # Быстрый запуск только необходимых сервисов
+      docker compose -f docker-compose.local-prod.yml up -d --build nginx quiz_backend mini_app redis postgres_db
+    else
+      # Полный запуск с пересборкой
+      docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
+    fi
     
     echo "⏳ Ожидание полного запуска всех сервисов..."
-    sleep 15
+    if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 15; fi
 else
     echo "🚀 Запуск базовых сервисов (без SSL)..."
     # Запускаем только базовые сервисы без SSL (включая Redis и Celery)
     docker compose -f docker-compose.local-prod.yml up -d postgres_db redis quiz_backend celery_worker celery_beat mini_app
 
     echo "⏳ Ожидание готовности сервисов..."
-    sleep 10
+    if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 10; fi
 
     echo "🌐 Запуск Nginx (временная конфигурация для получения сертификатов)..."
     # Пересобираем Nginx с временной конфигурацией (только HTTP)
@@ -67,7 +84,7 @@ else
     docker compose -f docker-compose.local-prod.yml up -d nginx
 
     echo "⏳ Ожидание готовности Nginx..."
-    sleep 5
+    if [ "$FAST_MODE" = "1" ]; then sleep 3; else sleep 5; fi
 
     echo "🔐 Запуск Certbot для получения SSL сертификатов..."
         # Запуск Certbot для получения первоначальных сертификатов
@@ -92,20 +109,26 @@ else
 
     echo "🔄 Перезапуск всех сервисов с SSL..."
     # Перезапускаем все сервисы с SSL сертификатами (принудительная пересборка)
-    docker compose -f docker-compose.local-prod.yml down
+    if [ "$FAST_MODE" != "1" ]; then
+      docker compose -f docker-compose.local-prod.yml down
+    fi
     docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
     
     echo "⏳ Ожидание полного запуска всех сервисов..."
-    sleep 15
+    if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 15; fi
 fi
 
 echo ""
-echo "🧹 Автоматическая очистка и пересборка кэша статических файлов..."
-echo "📁 Очистка staticfiles в контейнере..."
-docker compose -f docker-compose.local-prod.yml exec -T quiz_backend rm -rf staticfiles/* || true
-
-echo "📦 Пересборка статических файлов с версионированием..."
-docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput --clear
+echo "🧹 Пересборка статики..."
+if [ "$FAST_MODE" != "1" ]; then
+  echo "📁 Очистка staticfiles в контейнере (полный режим)..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend rm -rf staticfiles/* || true
+  echo "📦 Сбор статических файлов (clear)..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput --clear
+else
+  echo "📦 Сбор статических файлов (без clear, FAST_MODE)..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput
+fi
 
 # Проверяем, что статика собралась корректно
 echo "🔍 Проверка собранных файлов..."
