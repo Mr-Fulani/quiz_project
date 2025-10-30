@@ -4,7 +4,6 @@
       "topic": "Swift",
       "subtopic": "Recursive Functions",
       "description": "Analyzing a recursive function in Swift and identifying logical issues.",
-      "difficulty": "hard",
       "translations": [
         {
           "language": "en",
@@ -56,7 +55,6 @@
       "topic": "Swift",
       "subtopic": "Higher-Order Functions",
       "description": "Determining the correct use of higher-order functions in Swift.",
-      "difficulty": "hard",
       "translations": [
         {
           "language": "en",

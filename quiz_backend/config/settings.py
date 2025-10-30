@@ -127,6 +127,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
 
+    # Celery
+    'django_celery_beat',
+
     # Системные приложения Django
     'django.contrib.auth',
     'django.contrib.admin',
@@ -210,6 +213,7 @@ LOGGING = {
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'config.performance_middleware.RequestIDMiddleware',  # ID для каждого запроса
     'config.middleware.RequestLoggingMiddleware',  # Добавляем логирование
     'config.middleware.DisableCSRFForAPI',  # ПЕРЕД CommonMiddleware!
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -220,7 +224,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.UpdateLastSeenMiddleware',
+    'config.performance_middleware.PerformanceMonitoringMiddleware',  # Мониторинг производительности
 ]
+
+# В DEBUG добавляем дополнительные middleware
+if DEBUG:
+    MIDDLEWARE.append('config.performance_middleware.DatabaseQueryLogger')
+    MIDDLEWARE.append('config.performance_middleware.CacheMetricsMiddleware')
 
 # В продакшене добавляем middleware для раздачи статических файлов (только для отладки)
 if not DEBUG:
@@ -258,7 +268,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,
+        'APP_DIRS': False,  # Должно быть False когда используем loaders
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -276,10 +286,15 @@ TEMPLATES = [
                 'blog.context_processors.analytics_context',
                 'blog.context_processors.telegram_settings',  # Telegram настройки
             ],
-            # 'loaders': [
-            #     'django.template.loaders.filesystem.Loader',
-            #     'django.template.loaders.app_directories.Loader',
-            # ],
+            'loaders': [
+                ('django.template.loaders.cached.Loader', [
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                ]),
+            ] if not DEBUG else [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ],
         },
     },
 ]
@@ -299,6 +314,10 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST', 'postgres_db'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 0 if DEBUG else 600,  # Connection pooling в продакшене
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
     }
 }
 
@@ -526,12 +545,32 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Кэширование - используем Redis в продакшене, LocMem в разработке
+if DEBUG:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://redis_cache:6379/1'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+            },
+            'KEY_PREFIX': 'quiz',
+            'TIMEOUT': 300,
+        }
+    }
 
 
 
@@ -635,6 +674,36 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 FILE_UPLOAD_TEMP_DIR = '/tmp'
+
+# ============================================================
+# CELERY SETTINGS
+# ============================================================
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis_cache:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis_cache:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 минут
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# ============================================================
+# SESSION SETTINGS (оптимизация)
+# ============================================================
+if not DEBUG:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+    SESSION_CACHE_ALIAS = 'default'
+
+# ============================================================
+# SECURITY HEADERS (продакшн)
+# ============================================================
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
 
 
 

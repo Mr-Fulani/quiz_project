@@ -38,20 +38,34 @@ def personal_info(request):
         path = request.path.lower()
         if not (path.startswith('/en/quiz/') or path.startswith('/ru/quiz/') or path.startswith('/en/quizes/') or path.startswith('/ru/quizes/')):
             logger.info("=== DEBUG: top_users_data enabled for path: %s", path)
+            # Оптимизированный запрос с агрегацией статистики
             # Сначала сортируем по количеству решенных задач, потом по рейтингу
             top_users = User.objects.annotate(
                 tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
-                total_score=User.get_rating_annotation()
+                total_score=User.get_rating_annotation(),
+                total_attempts=Count('statistics'),
+                successful_attempts=Count('statistics', filter=Q(statistics__successful=True))
             ).filter(tasks_completed__gt=0).order_by('-tasks_completed', '-total_score')[:3]
+            
+            # Оптимизация: получаем все favorite_topics одним запросом для всех пользователей
+            user_ids = [user.id for user in top_users]
+            favorite_topics_data = {}
+            if user_ids:
+                favorite_topics_raw = TaskStatistics.objects.filter(
+                    user_id__in=user_ids,
+                    successful=True
+                ).values('user_id', 'task__topic__name').annotate(
+                    count=Count('id')
+                ).order_by('user_id', '-count')
+                
+                # Группируем по user_id и берем первый (самый популярный)
+                for item in favorite_topics_raw:
+                    if item['user_id'] not in favorite_topics_data:
+                        favorite_topics_data[item['user_id']] = item['task__topic__name']
 
             for i, user in enumerate(top_users, 1):
                 try:
-                    favorite_topic = TaskStatistics.objects.filter(
-                        user=user,
-                        successful=True
-                    ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
-
-                    # Используем данные из модели пользователя, если они есть, иначе рассчитываем
+                    # Используем данные из модели пользователя, если они есть, иначе используем рассчитанные
                     if user.quizzes_completed > 0 and user.average_score > 0:
                         # Используем сохраненные данные
                         avg_score = user.average_score
@@ -59,13 +73,14 @@ def personal_info(request):
                         total_score = user.total_points
                         favorite_category = user.favorite_category or _("Not determined")
                     else:
-                        # Рассчитываем на лету
-                        successful_attempts = TaskStatistics.objects.filter(user=user, successful=True).count()
-                        total_attempts = TaskStatistics.objects.filter(user=user).count()
+                        # Используем рассчитанные значения из annotate
+                        total_attempts = user.total_attempts or 0
+                        successful_attempts = user.successful_attempts or 0
                         avg_score = round((successful_attempts / total_attempts * 100) if total_attempts > 0 else 0, 1)
                         quizzes_count = user.tasks_completed
                         total_score = (user.total_score or 0)
-                        favorite_category = favorite_topic['task__topic__name'] if favorite_topic else _("Not determined")
+                        # Используем favorite_topic из предзагруженных данных
+                        favorite_category = favorite_topics_data.get(user.id) or user.favorite_category or _("Not determined")
 
                     avatar_url = user.get_avatar_url
                     user_data = {

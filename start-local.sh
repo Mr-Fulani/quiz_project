@@ -1,45 +1,124 @@
 #!/bin/bash
 
-# Скрипт для локальной разработки
-echo "🔧 Запуск локальной разработки..."
+# Универсальный скрипт для локальной разработки
+# Использование:
+#   ./start-local-new.sh              - стандартный запуск с очисткой кэша
+#   ./start-local-new.sh --clean-db   - полная очистка включая БД
+#   ./start-local-new.sh --quick      - быстрый restart без пересборки
 
-echo "🔌 Остановка и удаление существующих контейнеров..."
-# Принудительно останавливаем все контейнеры проекта
-docker compose down --volumes --remove-orphans
-# Дополнительная очистка на случай конфликтов портов
+set -e
+
+# Флаги
+CLEAN_DB=false
+QUICK=false
+
+# Парсим аргументы
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --clean-db)
+            CLEAN_DB=true
+            shift
+            ;;
+        --quick)
+            QUICK=true
+            shift
+            ;;
+        *)
+            echo "❌ Неизвестный параметр: $1"
+            echo ""
+            echo "Использование:"
+            echo "  ./start-local-new.sh              - стандартный запуск (БД сохраняется, кэш очищается)"
+            echo "  ./start-local-new.sh --clean-db   - полная очистка включая БД"
+            echo "  ./start-local-new.sh --quick      - быстрый restart (5 сек)"
+            echo ""
+            exit 1
+            ;;
+    esac
+done
+
+# Режим быстрого restart
+if [ "$QUICK" = true ]; then
+    echo "⚡ Быстрый перезапуск сервисов..."
+    docker compose restart
+    
+    echo "✅ Сервисы перезапущены!"
+    echo ""
+    docker compose ps
+    exit 0
+fi
+
+# Стандартный запуск
+echo "🚀 Запуск локальной разработки..."
+echo ""
+
+# Останавливаем контейнеры
+echo "🔌 Остановка контейнеров..."
+if [ "$CLEAN_DB" = true ]; then
+    echo "   ⚠️  Режим CLEAN-DB: volumes будут удалены (БД очистится!)"
+    read -p "   Продолжить? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "❌ Отменено"
+        exit 0
+    fi
+    docker compose down --volumes --remove-orphans
+else
+    echo "   💾 БД будет сохранена"
+    docker compose down --remove-orphans
+fi
+
+# Дополнительная очистка процессов
 docker stop $(docker ps -q --filter "name=quiz_project") 2>/dev/null || true
 docker rm $(docker ps -aq --filter "name=quiz_project") 2>/dev/null || true
 
 echo "🧹 Очистка неиспользуемых Docker-образов..."
 docker image prune -f
 
-echo "🚀 Запуск всех сервисов для локальной разработки..."
-# Запускаем все сервисы в фоновом режиме
-# --force-recreate: принудительно пересоздает контейнеры, обновляя переменные окружения из .env
+echo "🔨 Пересборка образов и запуск сервисов..."
 docker compose up --build --force-recreate -d
 
 echo "⏳ Ожидание запуска сервисов..."
 sleep 10
 
-echo "🔄 Применение миграций базы данных..."
-# Выполняем миграции в контейнере quiz_backend
+echo "🧹 Очистка кэша Redis..."
+docker compose exec -T redis redis-cli FLUSHDB || echo "   ℹ️  Redis еще не готов, пропускаем очистку"
+
+echo "🔄 Применение миграций..."
 docker compose exec -T quiz_backend python manage.py makemigrations
 docker compose exec -T quiz_backend python manage.py migrate
 
-echo "📋 Показ логов в реальном времени..."
-echo "   Для остановки нажмите Ctrl+C"
-echo ""
+echo "📁 Сбор статических файлов..."
+docker compose exec -T quiz_backend python manage.py collectstatic --noinput --clear
 
-echo "✅ Локальная разработка запущена!"
+echo "🎨 Загрузка иконок для тем..."
+docker compose exec -T quiz_backend python manage.py fix_icon_mapping
+
+echo ""
+echo "✅ Локальная разработка готова!"
 echo ""
 echo "🌐 Доступные сервисы:"
 echo "  - Backend: http://localhost:8001"
 echo "  - Mini App: http://localhost:8080"
 echo "  - Telegram Bot: http://localhost:8002"
 echo "  - Database: localhost:5433"
+echo "  - Redis: localhost:6379"
 echo ""
-echo "📝 Для остановки: docker compose down"
+echo "🔍 Статус сервисов:"
+docker compose ps
+echo ""
+echo "📝 Полезные команды:"
+echo "  - Остановить: docker compose down"
+echo "  - Логи: docker compose logs -f"
+echo "  - Кэш: docker compose run --rm quiz_backend python manage.py cache_monitor"
+echo "  - Celery: docker compose exec celery_worker celery -A config inspect ping"
 echo ""
 
-# Показываем логи всех сервисов в реальном времени
-docker compose logs -f
+# Спрашиваем показать ли логи
+read -p "📋 Показать логи в реальном времени? [y/N] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "🔍 Отображение логов (Ctrl+C для выхода)..."
+    docker compose logs -f
+fi
+
