@@ -338,7 +338,7 @@ if (window.TaskManagerAlreadyLoaded) {
             taskItem.dataset.solved = 'true';
             
             // Показываем индикатор загрузки
-            this.showLoadingToast('Отправляем ответ...');
+            this.showLoadingToast(window.t ? window.t('submitting_answer', 'Отправляем ответ...') : 'Отправляем ответ...');
             
             try {
                 // Отправляем ответ на сервер
@@ -364,7 +364,7 @@ if (window.TaskManagerAlreadyLoaded) {
                     // Подсветим правильный ответ и объяснение
                     this.showCorrectAnswer(taskItem);
                     this.showExplanation(taskItem);
-                    this.showToast(window.t ? window.t('already_answered') : 'Вы уже отвечали на этот вопрос', 'info');
+                    this.showToast(window.t ? window.t('already_answered', 'Вы уже отвечали на этот вопрос') : 'Вы уже отвечали на этот вопрос', 'info');
                 } else {
                     console.error('❌ Не удалось отправить ответ');
                     // Откатываем изменения интерфейса
@@ -374,7 +374,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
             } catch (error) {
                 console.error('❌ Критическая ошибка при обработке ответа:', error);
-                this.showToast(window.t ? window.t('error_occurred_try_again') : 'Произошла ошибка. Попробуйте еще раз.', 'error');
+                this.showToast(window.t ? window.t('error_occurred', 'Произошла ошибка. Попробуйте еще раз.') : 'Произошла ошибка. Попробуйте еще раз.', 'error');
                 
                 // Откатываем изменения
                 this.enableAllAnswers(taskItem);
@@ -401,7 +401,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 
                 if (!telegramId) {
                     console.error('❌ Не удалось получить telegram_id');
-                    this.showToast(window.t ? window.t('error_cannot_identify_user') : 'Ошибка: не удалось определить пользователя', 'error');
+                    this.showToast(window.t ? window.t('error_determine_user', 'Ошибка: не удалось определить пользователя') : 'Ошибка: не удалось определить пользователя', 'error');
                     return { success: false, error: 'telegram_id_not_found' };
                 }
                 
@@ -480,7 +480,7 @@ if (window.TaskManagerAlreadyLoaded) {
                     
                     // Для 409 (повторная отправка) показываем информационное сообщение
                     if (response.status === 409) {
-                        this.showToast(window.t ? window.t('already_answered') : 'Вы уже отвечали на этот вопрос', 'info');
+                        this.showToast(window.t ? window.t('already_answered', 'Вы уже отвечали на этот вопрос') : 'Вы уже отвечали на этот вопрос', 'info');
                     } else {
                         this.showToast(errorMessage, 'error');
                     }
@@ -488,7 +488,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
             } catch (error) {
                 console.error('❌ Критическая ошибка при отправке:', error);
-                this.showToast(window.t ? window.t('network_error_check_connection') : 'Ошибка сети. Проверьте подключение.', 'error');
+                this.showToast(window.t ? window.t('network_error', 'Ошибка сети. Проверьте подключение.') : 'Ошибка сети. Проверьте подключение.', 'error');
                 return { success: false, status: 0, error: 'network' };
             } finally {
                 console.log('🏁 === КОНЕЦ ОТПРАВКИ НА СЕРВЕР ===');
@@ -581,13 +581,13 @@ if (window.TaskManagerAlreadyLoaded) {
             let message, type;
             
             if (isDontKnow) {
-                message = window.t ? window.t('answer_dont_know') : 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.';
+                message = window.t ? window.t('dont_know_message', 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.') : 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.';
                 type = 'info';
             } else if (isCorrect) {
-                message = window.t ? window.t('answer_correct') : 'Правильно! Отличная работа!';
+                message = window.t ? window.t('correct_answer_message', 'Правильно! Отличная работа!') : 'Правильно! Отличная работа!';
                 type = 'success';
             } else {
-                message = window.t ? window.t('answer_incorrect') : 'Неправильно. Посмотрите объяснение ниже.';
+                message = window.t ? window.t('incorrect_answer_message', 'Неправильно. Посмотрите объяснение ниже.') : 'Неправильно. Посмотрите объяснение ниже.';
                 type = 'error';
             }
             
