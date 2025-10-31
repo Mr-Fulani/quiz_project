@@ -1,6 +1,9 @@
 import os
+import time
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.db import connection
+from django.core.exceptions import OperationalError
 from topics.models import Topic
 
 class Command(BaseCommand):
@@ -12,9 +15,53 @@ class Command(BaseCommand):
             action='store_true',
             help='Принудительно обновить все иконки, даже если они уже установлены',
         )
+        parser.add_argument(
+            '--max-retries',
+            type=int,
+            default=5,
+            help='Максимальное количество попыток подключения к БД (по умолчанию: 5)',
+        )
+
+    def wait_for_db(self, max_retries=5):
+        """Ожидает готовности базы данных с повторными попытками"""
+        for attempt in range(max_retries):
+            try:
+                # Пытаемся выполнить простой запрос к БД
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                return True
+            except (OperationalError, Exception) as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # Экспоненциальная задержка: 1s, 2s, 4s, 8s...
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"⚠️  БД недоступна (попытка {attempt + 1}/{max_retries}), "
+                            f"ожидание {wait_time}с перед повторной попыткой..."
+                        )
+                    )
+                    time.sleep(wait_time)
+                else:
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"❌ Не удалось подключиться к БД после {max_retries} попыток: {str(e)}"
+                        )
+                    )
+                    return False
+        return False
 
     def handle(self, *args, **options):
         self.stdout.write("🔧 Исправляю сопоставление иконок с темами...")
+        
+        # Проверяем доступность БД перед выполнением команды
+        max_retries = options.get('max_retries', 5)
+        if not self.wait_for_db(max_retries):
+            self.stdout.write(
+                self.style.WARNING(
+                    "⚠️  Пропуск сопоставления иконок: база данных недоступна. "
+                    "Команда может быть выполнена позже вручную."
+                )
+            )
+            return
         
         # Папка с иконками (используем staticfiles после collectstatic)
         icons_dir = os.path.join(settings.BASE_DIR, 'staticfiles', 'blog', 'images', 'icons')
@@ -48,9 +95,19 @@ class Command(BaseCommand):
         
         self.stdout.write(f"📁 Найдено {len(icon_files)} файлов иконок")
         
-        # Получаем все темы
-        topics = Topic.objects.all()
-        self.stdout.write(f"📚 Найдено {topics.count()} тем")
+        # Получаем все темы с обработкой ошибок
+        try:
+            topics = Topic.objects.all()
+            topics_count = topics.count()
+            self.stdout.write(f"📚 Найдено {topics_count} тем")
+        except (OperationalError, Exception) as e:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"❌ Ошибка при получении тем из БД: {str(e)}. "
+                    "Команда прервана."
+                )
+            )
+            return
         
         updated_count = 0
         not_found_count = 0
