@@ -516,11 +516,12 @@ async def get_stripe_publishable_key():
         return {"success": False, "message": "Error getting Stripe key"}
 
 @router.post("/create-payment-intent")
-async def create_payment_intent_proxy(request_data: dict):
+async def create_payment_intent_proxy(request: Request):
     """Создание Payment Intent через Django API"""
     from services.donation_service import DonationService
     
     try:
+        request_data = await request.json()
         donation_service = DonationService()
         result = await donation_service.create_payment_intent(
             amount=request_data.get('amount'),
@@ -534,11 +535,12 @@ async def create_payment_intent_proxy(request_data: dict):
         return {"success": False, "message": "Error creating payment intent"}
 
 @router.post("/confirm-payment")
-async def confirm_payment_proxy(request_data: dict):
+async def confirm_payment_proxy(request: Request):
     """Подтверждение платежа через Django API"""
     from services.donation_service import DonationService
     
     try:
+        request_data = await request.json()
         donation_service = DonationService()
         result = await donation_service.confirm_payment(
             payment_intent_id=request_data.get('payment_intent_id'),
