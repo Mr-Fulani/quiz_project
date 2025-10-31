@@ -33,14 +33,6 @@ class LocalizationService:
             "no_tasks_available": "No tasks available",
             "correct_answer": "Correct Answer",
             "incorrect_answer": "Incorrect Answer",
-            "correct_answer_message": "Correct! Great job!",
-            "incorrect_answer_message": "Incorrect. Check the explanation below.",
-            "dont_know_message": 'Correct! You chose "I don\'t know" - this is a good approach to learning.',
-            "submitting_answer": "Submitting answer...",
-            "already_answered": "You have already answered this question",
-            "error_occurred": "An error occurred. Please try again.",
-            "error_determine_user": "Error: failed to determine user",
-            "network_error": "Network error. Check your connection.",
             
             # Комментарии
             "comments": "Comments",
@@ -279,6 +271,15 @@ class LocalizationService:
             "close": "Close",
             "no_tasks_for_level": "No tasks for selected level",
             
+            # Ответы на задачи
+            "answer_correct": "Correct! Great job!",
+            "answer_incorrect": "Incorrect. Check the explanation below.",
+            "answer_dont_know": 'Correct! You chose "I do not know" - this is a good approach to learning.',
+            "already_answered": "You have already answered this question",
+            "error_occurred_try_again": "An error occurred. Please try again.",
+            "error_cannot_identify_user": "Error: could not identify user",
+            "network_error_check_connection": "Network error. Check your connection.",
+            
             # Профиль - дополнительные
             "points": "Points",
             "rating": "Rating",
@@ -361,14 +362,6 @@ class LocalizationService:
             "no_tasks_available": "Задачи не найдены",
             "correct_answer": "Правильный ответ",
             "incorrect_answer": "Неправильный ответ",
-            "correct_answer_message": "Правильно! Отличная работа!",
-            "incorrect_answer_message": "Неправильно. Посмотрите объяснение ниже.",
-            "dont_know_message": 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.',
-            "submitting_answer": "Отправляем ответ...",
-            "already_answered": "Вы уже отвечали на этот вопрос",
-            "error_occurred": "Произошла ошибка. Попробуйте еще раз.",
-            "error_determine_user": "Ошибка: не удалось определить пользователя",
-            "network_error": "Ошибка сети. Проверьте подключение.",
             
             # Комментарии
             "comments": "Комментарии",
@@ -606,6 +599,15 @@ class LocalizationService:
             "edit": "Редактировать",
             "close": "Закрыть",
             "no_tasks_for_level": "Нет задач выбранного уровня",
+            
+            # Ответы на задачи
+            "answer_correct": "Правильно! Отличная работа!",
+            "answer_incorrect": "Неправильно. Посмотрите объяснение ниже.",
+            "answer_dont_know": 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.',
+            "already_answered": "Вы уже отвечали на этот вопрос",
+            "error_occurred_try_again": "Произошла ошибка. Попробуйте еще раз.",
+            "error_cannot_identify_user": "Ошибка: не удалось определить пользователя",
+            "network_error_check_connection": "Ошибка сети. Проверьте подключение.",
             
             # Профиль - дополнительные
             "points": "Баллов",
