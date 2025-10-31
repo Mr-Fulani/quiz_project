@@ -66,7 +66,7 @@ services:
       - CSRF_TRUSTED_ORIGINS=https://quiz-code.com,https://mini.quiz-code.com,http://localhost:8080
       - REDIS_URL=redis://redis_cache_prod:6379/1
       - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
-      - GUNICORN_WORKERS=4
+      - GUNICORN_WORKERS=2  # Уменьшено до 2 для снижения нагрузки на слабый сервер
       - GUNICORN_THREADS=2
       - GUNICORN_TIMEOUT=120
     volumes:

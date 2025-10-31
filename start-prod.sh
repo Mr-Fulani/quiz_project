@@ -119,18 +119,9 @@ else
 fi
 
 echo ""
-echo "🧹 Пересборка статики..."
-if [ "$FAST_MODE" != "1" ]; then
-  echo "📁 Очистка staticfiles в контейнере (полный режим)..."
-  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend rm -rf staticfiles/* || true
-  echo "📦 Сбор статических файлов (clear)..."
-  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput --clear
-else
-  echo "📦 Сбор статических файлов (без clear, FAST_MODE)..."
-  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput
-fi
-
-# Проверяем, что статика собралась корректно
+echo "🧹 Проверка статики..."
+# Статика уже собрана в entrypoint.sh контейнера при запуске
+# Проверяем только, что она доступна
 echo "🔍 Проверка собранных файлов..."
 if docker compose -f docker-compose.local-prod.yml exec -T quiz_backend test -d staticfiles && docker compose -f docker-compose.local-prod.yml exec -T quiz_backend sh -c '[ "$(ls -A staticfiles)" ]'; then
     echo "✅ Статические файлы успешно собраны с версионированием"
@@ -143,6 +134,7 @@ if docker compose -f docker-compose.local-prod.yml exec -T quiz_backend test -d 
     fi
 else
     echo "⚠️  Предупреждение: не удалось проверить статические файлы"
+    echo "   Это может быть нормально, если контейнер еще запускается"
 fi
 
 echo "🔄 Перезапуск Nginx для применения изменений..."
