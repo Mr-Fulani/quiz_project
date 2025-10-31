@@ -756,34 +756,29 @@ class DonationSystem {
             console.log('📊 Payment result:', result);
             
             if (result.error) {
-                this.showStatus('error', result.error.message);
                 console.error('❌ Payment failed:', result.error);
-                    this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), result.error.message);
+                this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), result.error.message);
             } else {
                 console.log('✅ Payment intent status:', result.paymentIntent.status);
                 if (result.paymentIntent.status === 'succeeded') {
-                    this.showStatus('success', window.t('donation_success_processed', 'Платеж успешно обработан!'));
                     console.log('✅ Payment succeeded');
-                    
-                    // Показываем уведомление об успешном платеже
-                    this.showNotification('success', window.t('donation_payment_successful', 'Платеж успешен!'), window.t('donation_payment_processed', 'Ваш платеж был успешно обработан.'));
                     
                     // Уведомляем Django backend об успешном платеже
                     await this.confirmPayment(result.paymentIntent.id);
                     
-                    // Закрываем модальное окно через 4 секунды (больше времени для чтения)
+                    // Закрываем модальное окно через 2 секунды
                     setTimeout(() => {
                         this.closePaymentModal();
                         this.resetForm();
-                    }, 4000);
+                    }, 2000);
                 } else {
-                    this.showStatus('error', `${window.t('donation_status', 'Статус платежа')}: ${result.paymentIntent.status}`);
+                    this.showNotification('error', window.t('donation_status', 'Статус платежа'), result.paymentIntent.status);
                     console.log('⚠️ Payment not succeeded, status:', result.paymentIntent.status);
                 }
             }
         } catch (error) {
-            this.showStatus('error', window.t('donation_processing_error', 'Ошибка обработки платежа'));
             console.error('❌ Error handling payment:', error);
+            this.showNotification('error', window.t('donation_processing_error', 'Ошибка обработки платежа'), '');
         } finally {
             this.isProcessing = false;
             console.log('🔚 Payment processing finished');
@@ -793,7 +788,6 @@ class DonationSystem {
     async confirmPayment(paymentIntentId) {
         try {
             console.log('📡 Confirming payment with Django backend...');
-            this.showStatus('processing', window.t('donation_saving_data', 'Сохранение данных платежа...'));
             
             const response = await fetch('/api/confirm-payment', {
                 method: 'POST',
@@ -809,18 +803,13 @@ class DonationSystem {
             
             if (data.success) {
                 console.log('✅ Payment confirmed with Django backend');
-                this.showStatus('success', window.t('donation_saved_email_sent', 'Платеж сохранен! Благодарственное письмо отправлено на ваш email.'));
-                
-                // Показываем уведомление о благодарственном письме
                 this.showNotification('success', window.t('donation_thanks_support', 'Спасибо за поддержку!'), window.t('donation_thanks_email', 'Благодарственное письмо отправлено на ваш email.'));
             } else {
                 console.warn('⚠️ Payment confirmation failed:', data.message);
-                this.showStatus('warning', window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
                 this.showNotification('warning', window.t('donation_warning', 'Внимание'), window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
             }
         } catch (error) {
             console.error('❌ Error confirming payment with Django backend:', error);
-            this.showStatus('warning', window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
             this.showNotification('warning', window.t('donation_warning', 'Внимание'), window.t('donation_partial_success', 'Платеж обработан, но возникли проблемы с сохранением данных.'));
         }
     }
@@ -1419,10 +1408,21 @@ class DonationSystem {
         // Проверяем, что мы на странице с донатами, прежде чем что-либо делать.
         if (document.querySelector('.donation-container')) {
             console.log('🔧 DonationSystem: DOM loaded or changed, initializing new instance...');
+            
+            // ВАЖНО: Сначала проверяем, не инициализировали ли мы уже этот контейнер
+            const container = document.querySelector('.donation-container');
+            if (container.dataset.donationInitialized === 'true') {
+                console.log('⚠️ Donation container already initialized, skipping...');
+                return;
+            }
+            
             // Создаем новый экземпляр, который проведет всю необходимую настройку.
             window.donationSystemGlobal.instance = new DonationSystem();
             // Создаем алиас для обратной совместимости с inline onclick
             window.donationSystem = window.donationSystemGlobal.instance;
+            
+            // Отмечаем, что контейнер уже инициализирован
+            container.dataset.donationInitialized = 'true';
         } else {
             console.log('🧐 Donation container not found, skipping initialization.');
         }
@@ -1454,7 +1454,10 @@ class DonationSystem {
             Promise.resolve(result).then(() => {
                 // Даем время на полную загрузку и рендеринг
                 setTimeout(() => {
-                    if (document.querySelector('.donation-container')) {
+                    const container = document.querySelector('.donation-container');
+                    if (container) {
+                        // Очищаем флаг инициализации перед переинициализацией
+                        delete container.dataset.donationInitialized;
                         console.log('✅ [DonationSystem] Donation container found after page load, re-initializing...');
                         window.donationSystemGlobal.initialize();
                     }
@@ -1474,9 +1477,15 @@ if (window.onLanguageChanged) {
             console.log('🌐 [DonationSystem] Language change detected');
         originalOnLanguageChanged();
             
+            // Очищаем флаг инициализации для переинициализации после смены языка
+            const container = document.querySelector('.donation-container');
+            if (container) {
+                delete container.dataset.donationInitialized;
+            }
+            
             // Переинициализируем через небольшую задержку
             setTimeout(() => {
-                if (document.querySelector('.donation-container')) {
+                if (container) {
                     console.log('✅ [DonationSystem] Re-initializing after language change');
                     window.donationSystemGlobal.initialize();
                 }

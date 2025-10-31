@@ -512,13 +512,14 @@
                     const doc = parser.parseFromString(html, 'text/html');
                     
                     // Извлекаем и обновляем глобальные переменные локализации из загруженного HTML
-                    const newTranslationsScript = doc.querySelector('script[data-is-translations="true"]');
+                    const newTranslationsScript = doc.querySelector('script:not([src]):not([data-dynamic]):not([data-is-translations])');
                     if (newTranslationsScript) {
                         const scriptContent = newTranslationsScript.textContent;
-                        // Извлекаем объект из скрипта (теперь без JSON.parse)
-                        const translationsMatch = scriptContent.match(/window\.translations = ({.*?});/s);
+                        // Извлекаем JSON из скрипта - может быть как объект так и JSON.parse()
+                        const translationsMatch = scriptContent.match(/window\.translations\s*=\s*({.*?});/s);
                         if (translationsMatch && translationsMatch[1]) {
                             try {
+                                // Парсим JSON если это строка, иначе используем как есть
                                 window.translations = JSON.parse(translationsMatch[1]);
                                 console.log('✅ Translations updated from loaded page');
                             } catch (e) {
