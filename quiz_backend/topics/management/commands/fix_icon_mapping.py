@@ -3,7 +3,7 @@ import time
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.db import connection
-from django.core.exceptions import OperationalError
+from django.db.utils import OperationalError
 from topics.models import Topic
 
 class Command(BaseCommand):
