@@ -33,9 +33,13 @@ class LocalizationService:
             "no_tasks_available": "No tasks available",
             "correct_answer": "Correct Answer",
             "incorrect_answer": "Incorrect Answer",
-            "task_notification_correct": "Correct! Great job!",
-            "task_notification_incorrect": "Incorrect. Please look at the explanation below.",
-            "task_notification_dont_know": 'Correct! You chose "I don\'t know" - this is a good learning approach.',
+            "answer_correct_message": "Correct! Great job!",
+            "answer_incorrect_message": "Incorrect. See the explanation below.",
+            "answer_dont_know_message": "Good choice! You selected \"I don't know\" - this is a good learning approach.",
+            "already_answered_message": "You have already answered this question",
+            "error_occurred_message": "An error occurred. Please try again.",
+            "error_user_not_found": "Error: could not identify user",
+            "error_network": "Network error. Check your connection.",
             
             # Комментарии
             "comments": "Comments",
@@ -356,9 +360,13 @@ class LocalizationService:
             "no_tasks_available": "Задачи не найдены",
             "correct_answer": "Правильный ответ",
             "incorrect_answer": "Неправильный ответ",
-            "task_notification_correct": "Правильно! Отличная работа!",
-            "task_notification_incorrect": "Неправильно. Посмотрите объяснение ниже.",
-            "task_notification_dont_know": "Правильно! Вы выбрали \"Не знаю\" - это хороший подход к обучению.",
+            "answer_correct_message": "Правильно! Отличная работа!",
+            "answer_incorrect_message": "Неправильно. Посмотрите объяснение ниже.",
+            "answer_dont_know_message": "Правильно! Вы выбрали \"Не знаю\" - это хороший подход к обучению.",
+            "already_answered_message": "Вы уже отвечали на этот вопрос",
+            "error_occurred_message": "Произошла ошибка. Попробуйте еще раз.",
+            "error_user_not_found": "Ошибка: не удалось определить пользователя",
+            "error_network": "Ошибка сети. Проверьте подключение.",
             
             # Комментарии
             "comments": "Комментарии",

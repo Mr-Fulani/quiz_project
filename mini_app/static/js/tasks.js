@@ -364,7 +364,7 @@ if (window.TaskManagerAlreadyLoaded) {
                     // Подсветим правильный ответ и объяснение
                     this.showCorrectAnswer(taskItem);
                     this.showExplanation(taskItem);
-                    this.showToast('Вы уже отвечали на этот вопрос', 'info');
+                    this.showToast(this.getTranslation('already_answered_message'), 'info');
                 } else {
                     console.error('❌ Не удалось отправить ответ');
                     // Откатываем изменения интерфейса
@@ -374,7 +374,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
             } catch (error) {
                 console.error('❌ Критическая ошибка при обработке ответа:', error);
-                this.showToast('Произошла ошибка. Попробуйте еще раз.', 'error');
+                this.showToast(this.getTranslation('error_occurred_message'), 'error');
                 
                 // Откатываем изменения
                 this.enableAllAnswers(taskItem);
@@ -401,7 +401,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 
                 if (!telegramId) {
                     console.error('❌ Не удалось получить telegram_id');
-                    this.showToast('Ошибка: не удалось определить пользователя', 'error');
+                    this.showToast(this.getTranslation('error_user_not_found'), 'error');
                     return { success: false, error: 'telegram_id_not_found' };
                 }
                 
@@ -480,7 +480,7 @@ if (window.TaskManagerAlreadyLoaded) {
                     
                     // Для 409 (повторная отправка) показываем информационное сообщение
                     if (response.status === 409) {
-                        this.showToast('Вы уже отвечали на этот вопрос', 'info');
+                        this.showToast(this.getTranslation('already_answered_message'), 'info');
                     } else {
                         this.showToast(errorMessage, 'error');
                     }
@@ -488,7 +488,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
             } catch (error) {
                 console.error('❌ Критическая ошибка при отправке:', error);
-                this.showToast('Ошибка сети. Проверьте подключение.', 'error');
+                this.showToast(this.getTranslation('error_network'), 'error');
                 return { success: false, status: 0, error: 'network' };
             } finally {
                 console.log('🏁 === КОНЕЦ ОТПРАВКИ НА СЕРВЕР ===');
@@ -581,17 +581,32 @@ if (window.TaskManagerAlreadyLoaded) {
             let message, type;
             
             if (isDontKnow) {
-                message = window.t ? window.t('task_notification_dont_know', 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.') : 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.';
+                message = this.getTranslation('answer_dont_know_message');
                 type = 'info';
             } else if (isCorrect) {
-                message = window.t ? window.t('task_notification_correct', 'Правильно! Отличная работа!') : 'Правильно! Отличная работа!';
+                message = this.getTranslation('answer_correct_message');
                 type = 'success';
             } else {
-                message = window.t ? window.t('task_notification_incorrect', 'Неправильно. Посмотрите объяснение ниже.') : 'Неправильно. Посмотрите объяснение ниже.';
+                message = this.getTranslation('answer_incorrect_message');
                 type = 'error';
             }
             
             this.showToast(message, type);
+        }
+        
+        /**
+         * Получает перевод по ключу
+         * @param {string} key - Ключ перевода
+         * @returns {string} - Переведенный текст
+         */
+        getTranslation(key) {
+            if (window.localizationService) {
+                return window.localizationService.getText(key);
+            }
+            if (window.t && typeof window.t === 'function') {
+                return window.t(key);
+            }
+            return key;
         }
 
         /**
