@@ -189,7 +189,7 @@ class Command(BaseCommand):
             'Git': 'https://git-scm.com/images/logos/downloads/Git-Icon-1788C.png',
             'Golang': 'https://go.dev/blog/go-brand/Go-Logo/PNG/Go-Logo_Blue.png',
             'SQL': 'https://www.mysql.com/common/logos/logo-mysql-170x115.png',
-            'Dart': 'https://dart.dev/assets/img/dart-logo-horizontal.svg',
+            'Dart': 'https://upload.wikimedia.org/wikipedia/commons/6/6e/Dart-logo.png',
             # Популярные языки
             'Perl': 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Perl_logo.svg',
             'Haskell': 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Haskell-Logo.svg',
