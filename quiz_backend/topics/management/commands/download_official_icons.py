@@ -189,6 +189,81 @@ class Command(BaseCommand):
             'Git': 'https://git-scm.com/images/logos/downloads/Git-Icon-1788C.png',
             'Golang': 'https://go.dev/blog/go-brand/Go-Logo/PNG/Go-Logo_Blue.png',
             'SQL': 'https://www.mysql.com/common/logos/logo-mysql-170x115.png',
+            'Dart': 'https://dart.dev/assets/img/dart-logo-horizontal.svg',
+            # Популярные языки
+            'Perl': 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Perl_logo.svg',
+            'Haskell': 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Haskell-Logo.svg',
+            'Elixir': 'https://elixir-lang.org/images/logo/logo.png',
+            'Clojure': 'https://upload.wikimedia.org/wikipedia/commons/5/5d/Clojure_logo.svg',
+            'Erlang': 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Erlang_logo.svg',
+            # Микросервисы и контейнеризация
+            'Kubernetes': 'https://kubernetes.io/images/kubernetes-horizontal-color.png',
+            'Helm': 'https://helm.sh/img/helm.svg',
+            'Prometheus': 'https://prometheus.io/assets/prometheus_logo_grey.svg',
+            'Grafana': 'https://grafana.com/static/img/menu/grafana2.svg',
+            'Jaeger': 'https://www.jaegertracing.io/img/jaeger-logo.svg',
+            # Базы данных
+            'Cassandra': 'https://cassandra.apache.org/images/cassandra_logo.png',
+            'ClickHouse': 'https://clickhouse.com/press/Logo/clickhouse-logo.png',
+            'InfluxDB': 'https://www.influxdata.com/wp-content/uploads/InfluxDB_logo.svg',
+            'Neo4j': 'https://neo4j.com/wp-content/themes/neo4jweb/assets/images/neo4j-logo-2015.png',
+            'RabbitMQ': 'https://www.rabbitmq.com/img/logo-rabbitmq.svg',
+            'Apache Kafka': 'https://kafka.apache.org/images/kafka_logo.svg',
+            # Backend фреймворки
+            'Flask': 'https://flask.palletsprojects.com/en/2.3.x/_static/flask-icon.png',
+            'FastAPI': 'https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png',
+            'Spring Boot': 'https://spring.io/projects/spring-boot',
+            'Express.js': 'https://expressjs.com/images/express-facebook-share.png',
+            'NestJS': 'https://nestjs.com/img/logo_text.svg',
+            'Rails': 'https://rubyonrails.org/images/rails-logo.svg',
+            'Laravel': 'https://laravel.com/img/logomark.min.svg',
+            'Phoenix': 'https://www.phoenixframework.org/images/phoenix-logo.svg',
+            'ASP.NET Core': 'https://dotnet.microsoft.com/static/images/redesign/social-square.png',
+            # Frontend фреймворки и библиотеки
+            'Svelte': 'https://svelte.dev/tutorial/introduction',
+            'Next.js': 'https://nextjs.org/static/favicon/favicon-96x96.png',
+            'Nuxt.js': 'https://nuxt.com/',
+            'Gatsby': 'https://www.gatsbyjs.com/static/gatsby-icon-4a9773549091c227cd2eb82ccd9c5e3d.png',
+            'JQuery': 'https://jquery.com/jquery-wp-content/themes/jquery/images/logo-jquery.svg',
+            'Backbone.js': 'https://backbonejs.org/docs/images/backbone.png',
+            'Ember.js': 'https://emberjs.com/images/brand/ember_Ember-Dark.svg',
+            # Mobile
+            'Flutter': 'https://flutter.dev/assets/flutter-lockup-1caf6476beed76adec3c477586da54de6ce552a2f42163ec3af4f2071f3a8395.svg',
+            'React Native': 'https://reactnative.dev/img/tiny_logo.png',
+            'Ionic': 'https://ionicframework.com/img/meta/favicon-96x96.png',
+            'Xamarin': 'https://dotnet.microsoft.com/static/images/redesign/social-square.png',
+            # Инструменты DevOps
+            'Terraform': 'https://www.terraform.io/hashicorp-assets/images/logos/terraform.svg',
+            'Ansible': 'https://www.ansible.com/hs-fs/hubfs/2016-red-hat-ansible-logo.png',
+            'Puppet': 'https://puppet.com/images/puppet-logo.png',
+            'Chef': 'https://www.chef.io/static/img/logos/chef-logo.svg',
+            'GitLab': 'https://about.gitlab.com/images/press/logo/png/gitlab-logo.png',
+            'Bitbucket': 'https://bitbucket.org/product/press-kit/logos/bitbucket-icon-32.png',
+            # Cloud платформы
+            'AWS': 'https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png',
+            'GCP': 'https://cloud.google.com/_static/cloud/images/social-icon-google-cloud-1200-630.png',
+            'Azure': 'https://azure.microsoft.com/svghandler/azure-blue/azure-blue.svg',
+            'DigitalOcean': 'https://www.digitalocean.com/favicon.ico',
+            'Linode': 'https://www.linode.com/wp-content/uploads/2022/01/linode-logo-red.png',
+            # Мониторинг и логирование
+            'ELK Stack': 'https://www.elastic.co/blogs/content/images/sized/2016-08-elk_elkheartbeat.png',
+            'Logstash': 'https://www.elastic.co/logstash',
+            'Kibana': 'https://www.elastic.co/kibana',
+            'Elasticsearch': 'https://www.elastic.co/static/images/elastic-logo-200.png',
+            'Splunk': 'https://www.splunk.com/content/dam/splunk2/images/homepage/splunk-logo_light-bg.svg',
+            # Message brokers
+            'RabbitMQ': 'https://www.rabbitmq.com/img/logo-rabbitmq.svg',
+            'Apache Kafka': 'https://kafka.apache.org/images/kafka_logo.svg',
+            'Apache Pulsar': 'https://pulsar.apache.org/img/pulsar.svg',
+            # Тестирование
+            'Mocha': 'https://mochajs.org/static/mocha-logo.png',
+            'Jasmine': 'https://jasmine.github.io/images/jasmine_vertical.svg',
+            'Karma': 'https://karma-runner.github.io/assets/img/banner.png',
+            'Protractor': 'https://raw.githubusercontent.com/angular/protractor/master/chrome/test/protractorLogo.jpg',
+            'Robot Framework': 'https://robotframework.org/img/RF.svg',
+            # Другое
+            'Deno': 'https://deno.land/images/deno-logo-v2_2.gif',
+            'Bun': 'https://bun.sh/logo.svg',
         }
         
         # Если есть официальный URL для темы
