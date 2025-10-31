@@ -83,7 +83,7 @@ STATIC_VERSIONS = {
     'statistics.js': '3.7',  # FIX: улучшена инициализация при SPA-навигации, предотвращена двойная загрузка
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
     'styles.css': '3.2',  # Перенос контента из <head> в <body> (фикc скрытий)
-    'donation.css': '2.2',  # FIX: Исправлено дублирование платежей и уведомлений
+    'donation.css': '1.4',  # FIX: Отключены анимации для crypto/wallet, z-index селектора
     'profile.css': '12.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'user_profile.css': '5.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента
