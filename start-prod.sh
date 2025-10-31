@@ -28,7 +28,8 @@ echo "ℹ️  Временно используются только домен�
 
 if [ "$FAST_MODE" != "1" ]; then
   echo "🔌 Остановка и удаление существующих контейнеров..."
-  docker compose -f docker-compose.local-prod.yml down --volumes --remove-orphans
+  # УБИРАЕМ --volumes чтобы сохранить скачанные иконки
+  docker compose -f docker-compose.local-prod.yml down --remove-orphans
   docker stop $(docker ps -q --filter "name=quiz_project") 2>/dev/null || true
   docker rm $(docker ps -aq --filter "name=quiz_project") 2>/dev/null || true
 fi
@@ -110,7 +111,7 @@ else
     echo "🔄 Перезапуск всех сервисов с SSL..."
     # Перезапускаем все сервисы с SSL сертификатами (принудительная пересборка)
     if [ "$FAST_MODE" != "1" ]; then
-      docker compose -f docker-compose.local-prod.yml down
+      docker compose -f docker-compose.local-prod.yml down --remove-orphans
     fi
     docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
     
