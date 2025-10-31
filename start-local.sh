@@ -90,8 +90,7 @@ docker compose exec -T quiz_backend python manage.py migrate
 echo "📁 Сбор статических файлов..."
 docker compose exec -T quiz_backend python manage.py collectstatic --noinput --clear
 
-echo "🎨 Загрузка иконок для тем..."
-docker compose exec -T quiz_backend python manage.py fix_icon_mapping
+# Иконки загружаются автоматически при необходимости через fix_icon_mapping
 
 echo ""
 echo "✅ Локальная разработка готова!"

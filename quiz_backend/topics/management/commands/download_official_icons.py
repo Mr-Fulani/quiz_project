@@ -197,7 +197,6 @@ class Command(BaseCommand):
             'Clojure': 'https://upload.wikimedia.org/wikipedia/commons/5/5d/Clojure_logo.svg',
             'Erlang': 'https://upload.wikimedia.org/wikipedia/commons/a/aa/Erlang_logo.svg',
             # Микросервисы и контейнеризация
-            'Kubernetes': 'https://kubernetes.io/images/kubernetes-horizontal-color.png',
             'Helm': 'https://helm.sh/img/helm.svg',
             'Prometheus': 'https://prometheus.io/assets/prometheus_logo_grey.svg',
             'Grafana': 'https://grafana.com/static/img/menu/grafana2.svg',
@@ -207,8 +206,6 @@ class Command(BaseCommand):
             'ClickHouse': 'https://clickhouse.com/press/Logo/clickhouse-logo.png',
             'InfluxDB': 'https://www.influxdata.com/wp-content/uploads/InfluxDB_logo.svg',
             'Neo4j': 'https://neo4j.com/wp-content/themes/neo4jweb/assets/images/neo4j-logo-2015.png',
-            'RabbitMQ': 'https://www.rabbitmq.com/img/logo-rabbitmq.svg',
-            'Apache Kafka': 'https://kafka.apache.org/images/kafka_logo.svg',
             # Backend фреймворки
             'Flask': 'https://flask.palletsprojects.com/en/2.3.x/_static/flask-icon.png',
             'FastAPI': 'https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png',
@@ -240,20 +237,15 @@ class Command(BaseCommand):
             'GitLab': 'https://about.gitlab.com/images/press/logo/png/gitlab-logo.png',
             'Bitbucket': 'https://bitbucket.org/product/press-kit/logos/bitbucket-icon-32.png',
             # Cloud платформы
-            'AWS': 'https://a0.awsstatic.com/libra-css/images/logos/aws_logo_smile_1200x630.png',
             'GCP': 'https://cloud.google.com/_static/cloud/images/social-icon-google-cloud-1200-630.png',
-            'Azure': 'https://azure.microsoft.com/svghandler/azure-blue/azure-blue.svg',
             'DigitalOcean': 'https://www.digitalocean.com/favicon.ico',
             'Linode': 'https://www.linode.com/wp-content/uploads/2022/01/linode-logo-red.png',
             # Мониторинг и логирование
             'ELK Stack': 'https://www.elastic.co/blogs/content/images/sized/2016-08-elk_elkheartbeat.png',
             'Logstash': 'https://www.elastic.co/logstash',
             'Kibana': 'https://www.elastic.co/kibana',
-            'Elasticsearch': 'https://www.elastic.co/static/images/elastic-logo-200.png',
             'Splunk': 'https://www.splunk.com/content/dam/splunk2/images/homepage/splunk-logo_light-bg.svg',
             # Message brokers
-            'RabbitMQ': 'https://www.rabbitmq.com/img/logo-rabbitmq.svg',
-            'Apache Kafka': 'https://kafka.apache.org/images/kafka_logo.svg',
             'Apache Pulsar': 'https://pulsar.apache.org/img/pulsar.svg',
             # Тестирование
             'Mocha': 'https://mochajs.org/static/mocha-logo.png',
