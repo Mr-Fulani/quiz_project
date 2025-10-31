@@ -116,9 +116,93 @@ docker compose -f docker-compose.local-prod.yml logs quiz_backend --tail=50
 docker stats quiz_backend_local_prod
 ```
 
+## Критическая ситуация: перегруженный сервер
+
+⚠️ **ВАЖНО**: Если ваш сервер критически перегружен:
+- RAM: 95% использования (1.9/2 GB)
+- Storage: 94% использования (37.5/40 GB)
+- vCPU: 87% использования
+
+### Дополнительные меры для критически перегруженных серверов:
+
+#### 1. Экстренная очистка Docker
+```bash
+# Удаление неиспользуемых образов и кэша
+docker system prune -a --volumes -f
+
+# Удаление неиспользуемых старых образов
+docker image prune -a -f
+```
+
+#### 2. Удаление неиспользуемых volumes
+```bash
+# Список volumes
+docker volume ls
+
+# Удаление неиспользуемых
+docker volume prune -f
+```
+
+#### 3. Проверка и очистка логов
+```bash
+# Проверка размера логов Docker
+du -sh /var/lib/docker/containers/*/
+
+# Очистка старых логов (осторожно!)
+truncate -s 0 /var/lib/docker/containers/*/*-json.log
+```
+
+#### 4. Оптимизация Docker daemon
+```bash
+# Ограничение логов Docker в /etc/docker/daemon.json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+
+# Перезапуск Docker
+systemctl restart docker
+```
+
+#### 5. Освобождение места на диске
+```bash
+# Поиск больших файлов
+du -h / | sort -rh | head -20
+
+# Очистка apt кэша
+apt-get clean
+apt-get autoremove -y
+
+# Очистка старых ядер
+uname -a
+dpkg --list | grep linux-image
+apt-get remove --purge linux-image-X.X.X-X-generic
+```
+
+### Минимальная конфигурация для запуска:
+
+Если все еще не запускается, временно используйте абсолютный минимум:
+```bash
+# В docker-compose.local-prod.yml или через .env
+GUNICORN_WORKERS=1
+GUNICORN_THREADS=1
+CELERY_CONCURRENCY=1
+```
+
+### Рекомендации для долгосрочного решения:
+
+1. **Увеличить RAM**: минимум 4 GB для комфортной работы
+2. **Увеличить диск**: минимум 60-80 GB
+3. **Добавить swap**: `swapon --show` - проверьте, есть ли swap
+4. **Мониторинг**: установите `htop` или `iotop` для отслеживания
+
 ## Примечания
 
 - Эти оптимизации специально сделаны для слабых серверов с ограниченными ресурсами
 - Для мощных серверов можно вернуть 4 workers
 - Фоновый режим fix_icon_mapping означает, что не все иконки могут загрузиться при первом запуске (но это не критично)
+- **КРИТИЧНО**: При RAM >90% и Storage >90% приложение может не запуститься даже с оптимизациями
 
