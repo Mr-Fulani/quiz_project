@@ -581,13 +581,13 @@ if (window.TaskManagerAlreadyLoaded) {
             let message, type;
             
             if (isDontKnow) {
-                message = 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.';
+                message = window.t ? window.t('task_notification_dont_know', 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.') : 'Правильно! Вы выбрали "Не знаю" - это хороший подход к обучению.';
                 type = 'info';
             } else if (isCorrect) {
-                message = 'Правильно! Отличная работа!';
+                message = window.t ? window.t('task_notification_correct', 'Правильно! Отличная работа!') : 'Правильно! Отличная работа!';
                 type = 'success';
             } else {
-                message = 'Неправильно. Посмотрите объяснение ниже.';
+                message = window.t ? window.t('task_notification_incorrect', 'Неправильно. Посмотрите объяснение ниже.') : 'Неправильно. Посмотрите объяснение ниже.';
                 type = 'error';
             }
             

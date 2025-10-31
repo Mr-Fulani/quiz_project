@@ -33,6 +33,9 @@ class LocalizationService:
             "no_tasks_available": "No tasks available",
             "correct_answer": "Correct Answer",
             "incorrect_answer": "Incorrect Answer",
+            "task_notification_correct": "Correct! Great job!",
+            "task_notification_incorrect": "Incorrect. Please look at the explanation below.",
+            "task_notification_dont_know": 'Correct! You chose "I don\'t know" - this is a good learning approach.',
             
             # Комментарии
             "comments": "Comments",
@@ -353,6 +356,9 @@ class LocalizationService:
             "no_tasks_available": "Задачи не найдены",
             "correct_answer": "Правильный ответ",
             "incorrect_answer": "Неправильный ответ",
+            "task_notification_correct": "Правильно! Отличная работа!",
+            "task_notification_incorrect": "Неправильно. Посмотрите объяснение ниже.",
+            "task_notification_dont_know": "Правильно! Вы выбрали \"Не знаю\" - это хороший подход к обучению.",
             
             # Комментарии
             "comments": "Комментарии",
