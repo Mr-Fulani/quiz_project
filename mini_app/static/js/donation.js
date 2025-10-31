@@ -522,6 +522,13 @@ class DonationSystem {
         
         console.log('💳 Showing payment modal...');
         
+        // Проверяем, не открыта ли уже модалка
+        const existingModal = document.querySelector('.stripe-modal');
+        if (existingModal) {
+            console.log('⚠️ Modal already exists, removing old one...');
+            existingModal.remove();
+        }
+        
         // Создаем модальное окно
         this.createPaymentModal();
         
@@ -627,6 +634,12 @@ class DonationSystem {
     async initStripeElements() {
         if (!this.stripe) {
             console.error('❌ Stripe not initialized');
+            return;
+        }
+        
+        // Проверяем, не инициализированы ли уже Elements
+        if (this.cardElement) {
+            console.log('⚠️ Stripe Elements already initialized, skipping...');
             return;
         }
         
@@ -1408,6 +1421,8 @@ class DonationSystem {
             console.log('🔧 DonationSystem: DOM loaded or changed, initializing new instance...');
             // Создаем новый экземпляр, который проведет всю необходимую настройку.
             window.donationSystemGlobal.instance = new DonationSystem();
+            // Создаем алиас для обратной совместимости с inline onclick
+            window.donationSystem = window.donationSystemGlobal.instance;
         } else {
             console.log('🧐 Donation container not found, skipping initialization.');
         }

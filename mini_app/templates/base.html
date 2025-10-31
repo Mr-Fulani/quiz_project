@@ -51,8 +51,8 @@
     <!-- Глобальные переменные для локализации -->
     <script>
         window.currentLanguage = '{{ current_language or "en" }}';
-        window.translations = JSON.parse('{{ translations | tojson | safe }}');
-        window.supportedLanguages = JSON.parse('{{ supported_languages | tojson | safe }}');
+        window.translations = {{ translations | tojson | safe }};
+        window.supportedLanguages = {{ supported_languages | tojson | safe }};
         
         // Функция для получения переводов в JavaScript
         window.t = function(key, fallback = '') {
@@ -515,8 +515,8 @@
                     const newTranslationsScript = doc.querySelector('script[data-is-translations="true"]');
                     if (newTranslationsScript) {
                         const scriptContent = newTranslationsScript.textContent;
-                        // Извлекаем JSON из скрипта
-                        const translationsMatch = scriptContent.match(/window\.translations = (.*);/);
+                        // Извлекаем объект из скрипта (теперь без JSON.parse)
+                        const translationsMatch = scriptContent.match(/window\.translations = ({.*?});/s);
                         if (translationsMatch && translationsMatch[1]) {
                             try {
                                 window.translations = JSON.parse(translationsMatch[1]);
