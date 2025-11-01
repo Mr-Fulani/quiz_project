@@ -158,3 +158,13 @@ echo "   Запустите: ./clear_cache.sh"
 echo ""
 echo "📖 Подробная документация: STATIC_FILES_CACHE.md"
 echo "═══════════════════════════════════════════════════════════"
+echo ""
+
+# Спрашиваем показать ли логи
+read -p "📋 Показать логи в реальном времени? [y/N] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "🔍 Отображение логов (Ctrl+C для выхода)..."
+    docker compose -f docker-compose.local-prod.yml logs -f
+fi
