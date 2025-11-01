@@ -47,21 +47,400 @@ class TelegramAdminGroupInline(admin.TabularInline):
 
 
 from .telegram_admin_service import TelegramAdminService, run_async_function
+from django import forms
+from django.urls import path
+from django.http import JsonResponse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+
+class UserSearchWidget(forms.TextInput):
+    """
+    Кастомный виджет для поиска пользователя с кнопкой лупы.
+    """
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super().render(name, value, attrs, renderer)
+        # Добавляем кнопку с лупой сразу в HTML в контейнере для правильного отображения
+        button_html = '''
+        <div style="display: inline-block; margin-left: 5px; vertical-align: middle;">
+            <button type="button" id="user-search-button" style="padding: 5px 10px; background: #417690; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 14px; line-height: 1;" title="Показать список подписчиков каналов">🔍</button>
+        </div>
+        <script>
+        (function($) {
+            if (!$) $ = django.jQuery || jQuery || window.jQuery;
+            if (!$) return;
+            
+            // Глобальная функция для открытия модального окна (будет доступна и для внешнего JS)
+            window.openSubscribersModal = function() {
+                var $modal = $('#subscribers-modal-widget');
+                var modalData = window.telegramAdminModalData = window.telegramAdminModalData || { currentPage: 1 };
+                
+                // Создаем модальное окно, если его нет
+                if (!$modal.length) {
+                    $modal = $('<div id="subscribers-modal-widget" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000;"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 8px; width: 85%; max-width: 900px; max-height: 85vh; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4);"><div style="padding: 20px; border-bottom: 2px solid #417690; background: linear-gradient(135deg, #417690 0%, #3571a3 100%); color: white; display: flex; justify-content: space-between; align-items: center;"><h3 style="margin: 0; font-size: 18px; font-weight: 600;">📋 Список подписчиков каналов</h3><button type="button" class="close-modal-btn" style="background: transparent; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0; width: 32px; height: 32px; line-height: 28px; border-radius: 4px; transition: background 0.2s;">×</button></div><div style="padding: 15px; border-bottom: 1px solid #e0e0e0; background: #f9f9f9;"><input type="text" id="modal-search-input" placeholder="🔍 Поиск по username или ID..." style="width: 100%; padding: 10px 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; transition: border-color 0.2s;"></div><div id="modal-content-widget" style="padding: 0; max-height: 60vh; overflow-y: auto; background: white;"><div style="text-align: center; padding: 40px; color: #666;">Загрузка...</div></div><div id="modal-pagination-widget" style="padding: 15px; border-top: 1px solid #e0e0e0; text-align: center; background: #f9f9f9;"></div></div></div>');
+                    $('body').append($modal);
+                    
+                    $modal.find('.close-modal-btn').on('click', function() { $modal.hide(); });
+                    $modal.find('.close-modal-btn').on('mouseenter', function() { $(this).css('background', 'rgba(255,255,255,0.2)'); });
+                    $modal.find('.close-modal-btn').on('mouseleave', function() { $(this).css('background', 'transparent'); });
+                    $modal.on('click', function(e) { if ($(e.target).is('#subscribers-modal-widget')) $modal.hide(); });
+                    
+                    $('#modal-search-input').on('focus', function() { $(this).css({'borderColor': '#417690', 'outline': 'none'}); });
+                    $('#modal-search-input').on('blur', function() { $(this).css('borderColor', '#ddd'); });
+                    $('#modal-search-input').on('input', function() {
+                        modalData.currentPage = 1;
+                        loadUsers();
+                    });
+                }
+                
+                function loadUsers() {
+                    var query = $('#modal-search-input').val().trim();
+                    $('#modal-content-widget').html('<div style="text-align: center; padding: 20px; color: #999;">Загрузка...</div>');
+                    
+                    $.ajax({
+                        url: '/admin/accounts/telegramadmin/list-subscribers/',
+                        data: { page: modalData.currentPage, search: query },
+                        dataType: 'json',
+                        success: function(data) {
+                            if (!data.users || data.users.length === 0) {
+                                $('#modal-content-widget').html('<div style="text-align: center; padding: 40px; color: #666; font-size: 14px;">🔍 Подписчики не найдены. Попробуйте изменить поисковый запрос.</div>');
+                                $('#modal-pagination-widget').html('');
+                                return;
+                            }
+                            
+                            var html = '<table style="width: 100%; border-collapse: collapse; font-size: 14px; background: white;"><thead><tr style="background: #f8f9fa; border-bottom: 2px solid #417690;"><th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #417690;">ID</th><th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #417690;">Имя</th><th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #417690;">Username</th><th style="padding: 12px 10px; text-align: center; font-weight: 600; color: #333; border-bottom: 2px solid #417690;">Действие</th></tr></thead><tbody>';
+                            data.users.forEach(function(user) {
+                                var name = (user.first_name || '') + ' ' + (user.last_name || '');
+                                html += '<tr style="border-bottom: 1px solid #e0e0e0; background: white;"><td style="padding: 12px 10px; color: #000; font-weight: 500;">' + user.telegram_id + '</td><td style="padding: 12px 10px; color: #000;">' + (name.trim() || '<span style="color: #999;">—</span>') + '</td><td style="padding: 12px 10px; color: #417690; font-weight: 500;">' + (user.username ? '@' + user.username : '<span style="color: #999;">—</span>') + '</td><td style="padding: 12px 10px; text-align: center;"><button class="select-user-btn" data-id="' + user.telegram_id + '" data-username="' + (user.username || '') + '" data-name="' + (name.trim() || '') + '" data-lang="' + (user.language || 'ru') + '" style="background: #417690; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; box-shadow: 0 2px 4px rgba(65,118,144,0.2);">Выбрать</button></td></tr>';
+                            });
+                            html += '</tbody></table>';
+                            $('#modal-content-widget').html(html);
+                            
+                            $('.select-user-btn').on('click', function() {
+                                var id = $(this).data('id');
+                                var username = $(this).data('username');
+                                var name = $(this).data('name');
+                                var lang = $(this).data('lang');
+                                
+                                $('#id_telegram_id').val(id);
+                                $('#id_username').val(username);
+                                $('#id_language').val(lang);
+                                $('#id_user_search').val(id + ' (@' + (username || 'без username') + ')');
+                                $modal.hide();
+                            }).on('mouseenter', function() {
+                                $(this).css({
+                                    'background': '#3571a3',
+                                    'boxShadow': '0 3px 6px rgba(65,118,144,0.3)',
+                                    'transform': 'translateY(-1px)'
+                                });
+                            }).on('mouseleave', function() {
+                                $(this).css({
+                                    'background': '#417690',
+                                    'boxShadow': '0 2px 4px rgba(65,118,144,0.2)',
+                                    'transform': 'translateY(0)'
+                                });
+                            });
+                            
+                            if (data.total > data.per_page) {
+                                var pagHtml = '';
+                                if (data.page > 1) pagHtml += '<button id="prev-btn" style="margin-right: 10px; padding: 8px 16px; background: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; box-shadow: 0 2px 4px rgba(65,118,144,0.2);">← Назад</button>';
+                                pagHtml += '<span style="margin: 0 15px; color: #333; font-size: 14px; font-weight: 500;">Страница ' + data.page + ' из ' + Math.ceil(data.total / data.per_page) + ' (всего: ' + data.total + ')</span>';
+                                if (data.has_more) pagHtml += '<button id="next-btn" style="margin-left: 10px; padding: 8px 16px; background: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; box-shadow: 0 2px 4px rgba(65,118,144,0.2);">Вперёд →</button>';
+                                $('#modal-pagination-widget').html(pagHtml);
+                                
+                                $('#prev-btn').on('click', function() { if (modalData.currentPage > 1) { modalData.currentPage--; loadUsers(); } })
+                                .on('mouseenter', function() { $(this).css({'background': '#3571a3', 'boxShadow': '0 3px 6px rgba(65,118,144,0.3)', 'transform': 'translateY(-1px)'}); })
+                                .on('mouseleave', function() { $(this).css({'background': '#417690', 'boxShadow': '0 2px 4px rgba(65,118,144,0.2)', 'transform': 'translateY(0)'}); });
+                                
+                                $('#next-btn').on('click', function() { if (data.has_more) { modalData.currentPage++; loadUsers(); } })
+                                .on('mouseenter', function() { $(this).css({'background': '#3571a3', 'boxShadow': '0 3px 6px rgba(65,118,144,0.3)', 'transform': 'translateY(-1px)'}); })
+                                .on('mouseleave', function() { $(this).css({'background': '#417690', 'boxShadow': '0 2px 4px rgba(65,118,144,0.2)', 'transform': 'translateY(0)'}); });
+                            } else {
+                                $('#modal-pagination-widget').html('<span style="color: #333; font-size: 14px; font-weight: 500;">Всего найдено: ' + data.total + ' подписчик' + (data.total === 1 ? '' : data.total < 5 ? 'а' : 'ов') + '</span>');
+                            }
+                        },
+                        error: function() {
+                            $('#modal-content-widget').html('<div style="text-align: center; padding: 40px; color: #dc3545; font-size: 14px; font-weight: 500;">❌ Ошибка загрузки списка подписчиков</div>');
+                        }
+                    });
+                }
+                
+                modalData.currentPage = 1;
+                $modal.show();
+                loadUsers();
+            };
+            
+            // Ждем загрузки DOM и jQuery
+            function initButton() {
+                if (typeof $ !== 'undefined') {
+                    $('#user-search-button').on('click', function(e) {
+                        e.preventDefault();
+                        window.openSubscribersModal();
+                    });
+                } else {
+                    setTimeout(initButton, 100);
+                }
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initButton);
+            } else {
+                initButton();
+            }
+        })(django.jQuery || jQuery || window.jQuery);
+        </script>
+        '''
+        return mark_safe(html + button_html)
+
+
+class TelegramAdminForm(forms.ModelForm):
+    """
+    Кастомная форма для TelegramAdmin с поиском пользователей.
+    """
+    user_search = forms.CharField(
+        label='🔍 Поиск пользователя',
+        required=False,
+        help_text='Введите Telegram ID или @username для поиска, или нажмите на лупу для просмотра списка подписчиков каналов.',
+        widget=UserSearchWidget(attrs={
+            'placeholder': 'Введите Telegram ID (например: 123456789) или @username',
+            'class': 'vTextField',
+            'style': 'width: 400px;',
+            'autocomplete': 'off',
+            'id': 'id_user_search'
+        })
+    )
+    
+    class Meta:
+        model = TelegramAdmin
+        fields = ['telegram_id', 'username', 'language', 'is_active', 'photo']
+        widgets = {
+            'telegram_id': forms.NumberInput(attrs={'class': 'vIntegerField'}),
+            'username': forms.TextInput(attrs={'class': 'vTextField'}),
+            'language': forms.TextInput(attrs={'class': 'vTextField'}),
+            'photo': forms.TextInput(attrs={'class': 'vTextField'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Если редактируем существующего админа, показываем его данные
+        if self.instance.pk:
+            self.fields['user_search'].initial = f"{self.instance.telegram_id} ({self.instance.username or 'без username'})"
+            self.fields['user_search'].widget.attrs['readonly'] = True
+            self.fields['user_search'].widget.attrs['style'] = 'width: 300px; background-color: #f5f5f5;'
+    
+    class Media:
+        # JS файл отключен, так как вся логика встроена в виджет UserSearchWidget
+        pass
+        # js = ('admin/js/telegram_admin_search.js',)
 
 
 class TelegramAdminAdmin(admin.ModelAdmin):
     """
-    Админ-панель для TelegramAdmin с интеграцией Telegram Bot API.
+    Админ-панель для TelegramAdmin с интеграцией Telegram Bot API и поиском пользователей.
     """
+    form = TelegramAdminForm
     list_display = ['telegram_id', 'username', 'language', 'is_active', 'photo', 'group_count']
     search_fields = ['telegram_id', 'username']
     list_filter = ['is_active', 'language']
     inlines = [TelegramAdminGroupInline]
+    fieldsets = (
+        ('Поиск пользователя', {
+            'fields': ('user_search',),
+            'description': 'Используйте поле поиска для автоматического заполнения данных пользователя'
+        }),
+        ('Основная информация', {
+            'fields': ('telegram_id', 'username', 'language', 'photo', 'is_active')
+        }),
+    )
     actions = [
         'make_active', 'make_inactive', 
         'remove_admin_rights_from_all_channels',
         'delete_admin_completely', 'check_bot_permissions_in_channels'
     ]
+    
+    def get_urls(self):
+        """Добавляем URL для AJAX поиска пользователей."""
+        urls = super().get_urls()
+        custom_urls = [
+            path('search-user/', self.admin_site.admin_view(self.search_user_view), name='accounts_telegramadmin_search_user'),
+            path('list-subscribers/', self.admin_site.admin_view(self.list_subscribers_view), name='accounts_telegramadmin_list_subscribers'),
+        ]
+        return custom_urls + urls
+    
+    def search_user_view(self, request):
+        """
+        AJAX endpoint для поиска пользователя по telegram_id или username.
+        Ищет в TelegramUser, MiniAppUser, CustomUser.
+        """
+        query = request.GET.get('q', '').strip()
+        if not query:
+            return JsonResponse({'error': 'Пустой запрос'}, status=400)
+        
+        results = []
+        
+        # Удаляем @ если есть
+        query_clean = query.lstrip('@')
+        
+        # Пытаемся понять, это ID или username
+        try:
+            telegram_id = int(query_clean)
+            # Поиск по ID
+            # TelegramUser
+            telegram_users = TelegramUser.objects.filter(telegram_id=telegram_id)[:5]
+            for user in telegram_users:
+                results.append({
+                    'telegram_id': user.telegram_id,
+                    'username': user.username or '',
+                    'first_name': user.first_name or '',
+                    'last_name': user.last_name or '',
+                    'language': user.language or 'ru',
+                    'source': 'TelegramUser'
+                })
+            
+            # MiniAppUser
+            mini_app_users = MiniAppUser.objects.filter(telegram_id=telegram_id)[:5]
+            for user in mini_app_users:
+                results.append({
+                    'telegram_id': user.telegram_id,
+                    'username': user.username or '',
+                    'first_name': user.first_name or '',
+                    'last_name': user.last_name or '',
+                    'language': user.language or 'ru',
+                    'photo': user.telegram_photo_url or '',
+                    'source': 'MiniAppUser'
+                })
+            
+            # CustomUser
+            custom_users = CustomUser.objects.filter(telegram_id=telegram_id)[:5]
+            for user in custom_users:
+                results.append({
+                    'telegram_id': user.telegram_id,
+                    'username': user.username or '',
+                    'first_name': user.first_name or '',
+                    'last_name': user.last_name or '',
+                    'language': user.language or 'ru',
+                    'source': 'CustomUser'
+                })
+        except ValueError:
+            # Поиск по username
+            telegram_users = TelegramUser.objects.filter(username__icontains=query_clean)[:5]
+            for user in telegram_users:
+                results.append({
+                    'telegram_id': user.telegram_id,
+                    'username': user.username or '',
+                    'first_name': user.first_name or '',
+                    'last_name': user.last_name or '',
+                    'language': user.language or 'ru',
+                    'source': 'TelegramUser'
+                })
+            
+            mini_app_users = MiniAppUser.objects.filter(username__icontains=query_clean)[:5]
+            for user in mini_app_users:
+                results.append({
+                    'telegram_id': user.telegram_id,
+                    'username': user.username or '',
+                    'first_name': user.first_name or '',
+                    'last_name': user.last_name or '',
+                    'language': user.language or 'ru',
+                    'photo': user.telegram_photo_url or '',
+                    'source': 'MiniAppUser'
+                })
+            
+            custom_users = CustomUser.objects.filter(username__icontains=query_clean)[:5]
+            for user in custom_users:
+                if user.telegram_id:
+                    results.append({
+                        'telegram_id': user.telegram_id,
+                        'username': user.username or '',
+                        'first_name': user.first_name or '',
+                        'last_name': user.last_name or '',
+                        'language': user.language or 'ru',
+                        'source': 'CustomUser'
+                    })
+        
+        # Удаляем дубликаты по telegram_id
+        seen_ids = set()
+        unique_results = []
+        for result in results:
+            if result['telegram_id'] not in seen_ids:
+                seen_ids.add(result['telegram_id'])
+                unique_results.append(result)
+        
+        return JsonResponse({'results': unique_results[:10]})
+    
+    def list_subscribers_view(self, request):
+        """
+        AJAX endpoint для получения списка подписчиков каналов с пагинацией.
+        Возвращает последних активных подписчиков для производительности.
+        """
+        page = int(request.GET.get('page', 1))
+        per_page = 50  # Лимит для производительности
+        search_query = request.GET.get('search', '').strip()
+        
+        # Получаем уникальных пользователей из подписок (только активные подписки)
+        subscriptions = UserChannelSubscription.objects.filter(
+            subscription_status='active'
+        ).select_related('telegram_user').order_by('-subscribed_at')
+        
+        # Если есть поиск, фильтруем по username или telegram_id
+        if search_query:
+            try:
+                telegram_id = int(search_query.lstrip('@'))
+                subscriptions = subscriptions.filter(telegram_user__telegram_id=telegram_id)
+            except ValueError:
+                subscriptions = subscriptions.filter(
+                    Q(telegram_user__username__icontains=search_query) |
+                    Q(telegram_user__first_name__icontains=search_query)
+                )
+        
+        # Получаем уникальных пользователей (убираем дубликаты по telegram_id)
+        # Используем эффективную пагинацию: получаем только нужную страницу
+        seen_ids = set()
+        unique_users = []
+        
+        # Ограничение для производительности: максимум 2000 подписок для обработки
+        max_subscriptions = 2000
+        subscriptions_slice = subscriptions[:max_subscriptions]
+        
+        # Собираем уникальных пользователей с учетом пагинации
+        # Нам нужно получить достаточно для текущей страницы + немного для учета дубликатов
+        needed_for_page = page * per_page + per_page  # Немного больше для учета дубликатов
+        
+        for subscription in subscriptions_slice:
+            user = subscription.telegram_user
+            if user.telegram_id not in seen_ids:
+                seen_ids.add(user.telegram_id)
+                unique_users.append({
+                    'telegram_id': user.telegram_id,
+                    'username': user.username or '',
+                    'first_name': user.first_name or '',
+                    'last_name': user.last_name or '',
+                    'language': user.language or 'ru',
+                    'source': 'TelegramUser',
+                    'subscribed_at': subscription.subscribed_at.strftime('%d.%m.%Y %H:%M') if subscription.subscribed_at else ''
+                })
+                # Если собрали достаточно для текущей страницы + следующих, можно остановиться
+                if len(unique_users) >= needed_for_page:
+                    break
+        
+        # Общее количество (ограничено для производительности)
+        total = len(unique_users)
+        if len(subscriptions_slice) == max_subscriptions:
+            # Если достигли лимита, указываем что может быть больше
+            total = min(len(unique_users), 1000)  # Приблизительное число
+        
+        # Пагинация
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_users = unique_users[start:end]
+        
+        return JsonResponse({
+            'users': paginated_users,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'has_more': end < total
+        })
 
     def group_count(self, obj):
         """
