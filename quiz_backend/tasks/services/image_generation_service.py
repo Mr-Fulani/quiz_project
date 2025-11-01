@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import textwrap
+from pathlib import Path
 from typing import Tuple, Optional
 
 from PIL import Image, ImageDraw
@@ -475,8 +476,32 @@ def generate_image_for_task(task_question: str, topic_name: str) -> Optional[Ima
 
         logger.info(f"Генерация изображения, язык: {detected_language}")
         
-        # Получаем путь к логотипу из настроек
-        logo_path = getattr(settings, 'LOGO_PATH', None)
+        # Получаем путь к логотипу: сначала из переменной окружения, потом из настроек, потом fallback
+        logo_path = os.getenv('LOGO_PATH')
+        if not logo_path:
+            logo_path = getattr(settings, 'LOGO_PATH', None)
+        
+        # Если путь из настроек есть, но файл не существует - пробуем fallback
+        if logo_path and not os.path.exists(logo_path):
+            logger.warning(f"⚠️ Логотип по пути из настроек не найден: {logo_path}, пробуем fallback...")
+            logo_path = None
+        
+        if not logo_path:
+            # Fallback: ищем логотип в bot/assets/logo.png (как в боте)
+            # BASE_DIR в settings = quiz_backend, нужно подняться на уровень вверх
+            base_dir = settings.BASE_DIR.parent  # Корень проекта
+            fallback_logo_path = base_dir / 'bot' / 'assets' / 'logo.png'
+            if fallback_logo_path.exists():
+                logo_path = str(fallback_logo_path)
+                logger.info(f"🔍 Использован fallback путь к логотипу: {logo_path}")
+            else:
+                logger.warning(f"⚠️ Логотип не найден по пути: {fallback_logo_path}")
+        
+        if logo_path and os.path.exists(logo_path):
+            logger.info(f"🖼️ Путь к логотипу: {logo_path}")
+        else:
+            logger.warning("⚠️ Путь к логотипу не установлен или файл не существует, изображение будет создано без логотипа")
+            logo_path = None  # Убеждаемся, что None если файла нет
         
         image = generate_console_image(code, detected_language, logo_path)
         return image

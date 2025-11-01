@@ -69,11 +69,13 @@ services:
       - GUNICORN_WORKERS=1  # Минимум для слабых серверов
       - GUNICORN_THREADS=2
       - GUNICORN_TIMEOUT=120
+      - LOGO_PATH=/quiz_project/bot/assets/logo.png
     volumes:
       - ./quiz_backend:/app
       - static_volume_local_prod:/app/staticfiles
       - ./media:/app/media
       - ./quiz_backend/logs:/app/logs
+      - ./bot:/quiz_project/bot
     ports:
       - "8001:8000"
     depends_on:
@@ -210,6 +212,11 @@ services:
     container_name: upbeat_robinson
     environment:
       - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres_db:5432/${DB_NAME:-fulani_quiz_db}
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-admin_fulani_quiz}
+      - DB_NAME=${DB_NAME:-fulani_quiz_db}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
       - NGROK_HOST=${NGROK_HOST}
