@@ -87,11 +87,13 @@ services:
       - NGROK_HOST=${NGROK_HOST}
       - REDIS_URL=redis://redis_cache:6379/1
       - CELERY_BROKER_URL=redis://redis_cache:6379/0
+      - LOGO_PATH=/quiz_project/bot/assets/logo.png
     # Команда теперь в entrypoint.sh
     volumes:
       - ./quiz_backend:/app
       - static_volume:/app/staticfiles
       - ./media:/app/media
+      - ./bot:/quiz_project/bot
     ports:
       - "8001:8000"
     depends_on:

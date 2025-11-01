@@ -109,9 +109,9 @@ class TaskAdmin(admin.ModelAdmin):
     form = TaskAdminForm
     change_list_template = 'admin/tasks/task_changelist.html'
     
-    list_display = ('id', 'topic', 'subtopic', 'difficulty', 'published', 'error_status', 'create_date', 'publish_date', 'has_image', 'has_external_link')
-    list_filter = ('published', 'difficulty', 'topic', 'subtopic', 'error')
-    search_fields = ('id', 'topic__name', 'subtopic__name', 'translation_group_id', 'external_link')
+    list_display = ('id', 'topic', 'subtopic', 'get_language', 'difficulty', 'published', 'error_status', 'create_date', 'publish_date', 'has_image', 'has_external_link')
+    list_filter = ('published', 'difficulty', 'topic', 'subtopic', 'error', 'translations__language')
+    search_fields = ('id', 'topic__name', 'subtopic__name', 'translation_group_id', 'external_link', 'translations__language')
     raw_id_fields = ('topic', 'subtopic', 'group')
     date_hierarchy = 'create_date'
     ordering = ('-create_date',)
@@ -146,6 +146,11 @@ class TaskAdmin(admin.ModelAdmin):
         'delete_with_s3_cleanup'
     ]
     
+    def get_queryset(self, request):
+        """Оптимизация запросов: предзагружаем переводы для отображения языка."""
+        qs = super().get_queryset(request)
+        return qs.select_related('topic', 'subtopic', 'group').prefetch_related('translations')
+    
     def has_image(self, obj):
         """Проверка наличия изображения."""
         return bool(obj.image_url)
@@ -157,6 +162,74 @@ class TaskAdmin(admin.ModelAdmin):
         return bool(obj.external_link)
     has_external_link.boolean = True
     has_external_link.short_description = 'Ссылка "Подробнее"'
+    
+    def get_language(self, obj):
+        """Отображение языка задачи из перевода."""
+        translation = obj.translations.first()
+        if translation:
+            # Добавляем флаги для популярных языков
+            flags = {
+                'en': '🇬🇧',
+                'ru': '🇷🇺',
+                'tr': '🇹🇷',
+                'ar': '🇸🇦',
+                'es': '🇪🇸',
+                'fr': '🇫🇷',
+                'de': '🇩🇪',
+                'zh': '🇨🇳',
+                'ja': '🇯🇵',
+                'ko': '🇰🇷',
+                'it': '🇮🇹',
+                'pt': '🇵🇹',
+                'nl': '🇳🇱',
+                'pl': '🇵🇱',
+                'uk': '🇺🇦',
+                'he': '🇮🇱',
+                'hi': '🇮🇳',
+                'th': '🇹🇭',
+                'vi': '🇻🇳',
+                'id': '🇮🇩',
+                'sv': '🇸🇪',
+                'no': '🇳🇴',
+                'da': '🇩🇰',
+                'fi': '🇫🇮',
+                'cs': '🇨🇿',
+                'hu': '🇭🇺',
+                'ro': '🇷🇴',
+                'bg': '🇧🇬',
+                'el': '🇬🇷',
+                'sk': '🇸🇰',
+                'hr': '🇭🇷',
+                'sr': '🇷🇸',
+                'mk': '🇲🇰',
+                'sq': '🇦🇱',
+                'az': '🇦🇿',
+                'kk': '🇰🇿',
+                'uz': '🇺🇿',
+                'ka': '🇬🇪',
+                'hy': '🇦🇲',
+                'be': '🇧🇾',
+                'et': '🇪🇪',
+                'lv': '🇱🇻',
+                'lt': '🇱🇹',
+                'is': '🇮🇸',
+                'ga': '🇮🇪',
+                'mt': '🇲🇹',
+                'cy': '🇬🇧',
+                'eu': '🇪🇸',
+                'ca': '🇪🇸',
+                'gl': '🇪🇸',
+                'br': '🇫🇷',
+                'eo': '🌍',
+            }
+            flag = flags.get(translation.language.lower(), '🌐')
+            return format_html(
+                '<span style="font-weight: bold;">{} {}</span>',
+                flag,
+                translation.language.upper()
+            )
+        return format_html('<span style="color: #dc3545;">—</span>')
+    get_language.short_description = 'Язык'
     
     def error_status(self, obj):
         """Отображение статуса ошибки с цветовой индикацией."""
@@ -664,8 +737,12 @@ class TaskAdmin(admin.ModelAdmin):
                 image = generate_image_for_task(translation.question, topic_name)
                 
                 if image:
-                    # Загружаем в S3
-                    image_name = f"tasks/{task.id}_{uuid.uuid4().hex[:8]}.png"
+                    # Формируем имя файла в формате, как в боте
+                    language_code = translation.language or "unknown"
+                    subtopic_name = task.subtopic.name if task.subtopic else 'general'
+                    image_name = f"{task.topic.name}_{subtopic_name}_{language_code}_{task.id}.png"
+                    image_name = image_name.replace(" ", "_").lower()
+                    
                     self.message_user(request, f"☁️ Загрузка в S3: {image_name}...", messages.INFO)
                     
                     image_url = upload_image_to_s3(image, image_name)

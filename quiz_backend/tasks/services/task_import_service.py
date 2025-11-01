@@ -153,122 +153,127 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                         wrong_answers.remove(correct_answer)
                         logger.warning(f"⚠️ Дублирующийся правильный ответ удален")
                     
-                # Получаем группу для публикации
-                telegram_group = TelegramGroup.objects.filter(
-                    topic_id=topic,
-                    language=language
-                ).first()
-                
-                if not telegram_group:
-                    error_msg = f"Группа не найдена для топика '{topic_name}' и языка '{language}'."
-                    logger.warning(f"⚠️ {error_msg}")
-                    error_messages.append(error_msg)
-                
-                # Используем транзакцию для создания задачи и перевода
-                try:
-                    with transaction.atomic():
-                        # Создаём задачу
-                        task = Task.objects.create(
-                            topic=topic,
-                            subtopic=subtopic,
-                            group=telegram_group,
-                            difficulty=difficulty,
-                            published=False,
-                            translation_group_id=translation_group_id,
-                            external_link=external_link
-                        )
-                        
-                        logger.info(f"✅ Создана задача с ID {task.id}")
-                        detailed_logs.append(f"✅ Создана задача с ID {task.id} (язык: {language}, тема: {topic_name})")
-                        
-                        # Создаём перевод
-                        task_translation = TaskTranslation.objects.create(
-                            task=task,
-                            language=language,
-                            question=question,
-                            answers=serialized_answers,
-                            correct_answer=correct_answer,
-                            explanation=explanation
-                        )
-                        
-                        logger.info(f"✅ Создан перевод для задачи {task.id} на языке {language}")
-                        detailed_logs.append(f"✅ Создан перевод для задачи {task.id} на языке {language}")
-                        
-                        # Генерируем и загружаем изображение если его нет
-                        image_url = task_data.get('image_url')
-                        
-                        if not image_url:
-                            logger.info(f"🎨 Генерация изображения для задачи {task.id}")
-                            detailed_logs.append(f"🎨 Генерация изображения для задачи {task.id} (язык кода: {topic_name})")
+                    # Получаем группу для публикации
+                    telegram_group = TelegramGroup.objects.filter(
+                        topic_id=topic.id,
+                        language=language
+                    ).first()
+                    
+                    if not telegram_group:
+                        error_msg = f"Группа не найдена для топика '{topic_name}' и языка '{language}'."
+                        logger.warning(f"⚠️ {error_msg}")
+                        error_messages.append(error_msg)
+                        failed_tasks += 1
+                        continue  # Продолжаем с другими переводами
+                    
+                    # Используем транзакцию для создания задачи и перевода
+                    try:
+                        with transaction.atomic():
+                            # Создаём задачу
+                            task = Task.objects.create(
+                                topic=topic,
+                                subtopic=subtopic,
+                                group=telegram_group,
+                                difficulty=difficulty,
+                                published=False,
+                                translation_group_id=translation_group_id,
+                                external_link=external_link
+                            )
                             
-                            try:
-                                # Генерируем изображение
-                                image = generate_image_for_task(question, topic_name)
+                            logger.info(f"✅ Создана задача с ID {task.id}")
+                            detailed_logs.append(f"✅ Создана задача с ID {task.id} (язык: {language}, тема: {topic_name})")
+                            
+                            # Создаём перевод
+                            task_translation = TaskTranslation.objects.create(
+                                task=task,
+                                language=language,
+                                question=question,
+                                answers=serialized_answers,
+                                correct_answer=correct_answer,
+                                explanation=explanation
+                            )
+                            
+                            logger.info(f"✅ Создан перевод для задачи {task.id} на языке {language}")
+                            detailed_logs.append(f"✅ Создан перевод для задачи {task.id} на языке {language}")
+                            
+                            # Генерируем и загружаем изображение если его нет
+                            image_url = task_data.get('image_url')
+                            
+                            if not image_url:
+                                logger.info(f"🎨 Генерация изображения для задачи {task.id}")
+                                detailed_logs.append(f"🎨 Генерация изображения для задачи {task.id} (язык кода: {topic_name})")
                                 
-                                if image:
-                                    # Загружаем в S3
-                                    image_name = f"tasks/{task.id}_{language}_{uuid.uuid4().hex[:8]}.png"
-                                    image_url = upload_image_to_s3(image, image_name)
+                                try:
+                                    # Генерируем изображение
+                                    image = generate_image_for_task(question, topic_name)
                                     
-                                    if image_url:
-                                        task.image_url = image_url
-                                        task.save(update_fields=['image_url'])
-                                        logger.info(f"✅ Изображение загружено: {image_url}")
-                                        detailed_logs.append(f"✅ Изображение загружено в S3 для задачи {task.id}")
-                                        detailed_logs.append(f"   URL: {image_url}")
+                                    if image:
+                                        # Формируем имя файла в формате, как в боте
+                                        subtopic_name = task.subtopic.name if task.subtopic else 'general'
+                                        image_name = f"{task.topic.name}_{subtopic_name}_{language}_{task.id}.png"
+                                        image_name = image_name.replace(" ", "_").lower()
+                                        
+                                        image_url = upload_image_to_s3(image, image_name)
+                                        
+                                        if image_url:
+                                            task.image_url = image_url
+                                            task.save(update_fields=['image_url'])
+                                            logger.info(f"✅ Изображение загружено: {image_url}")
+                                            detailed_logs.append(f"✅ Изображение загружено в S3 для задачи {task.id}")
+                                            detailed_logs.append(f"   URL: {image_url}")
+                                        else:
+                                            logger.warning("⚠️ Не удалось загрузить изображение в S3")
+                                            detailed_logs.append(f"⚠️ Не удалось загрузить изображение в S3 для задачи {task.id}")
                                     else:
-                                        logger.warning("⚠️ Не удалось загрузить изображение в S3")
-                                        detailed_logs.append(f"⚠️ Не удалось загрузить изображение в S3 для задачи {task.id}")
-                                else:
-                                    logger.warning("⚠️ Не удалось сгенерировать изображение")
-                                    detailed_logs.append(f"⚠️ Не удалось сгенерировать изображение для задачи {task.id}")
+                                        logger.warning("⚠️ Не удалось сгенерировать изображение")
+                                        detailed_logs.append(f"⚠️ Не удалось сгенерировать изображение для задачи {task.id}")
+                                        
+                                except Exception as img_error:
+                                    logger.error(f"❌ Ошибка генерации/загрузки изображения: {img_error}")
+                            else:
+                                # Используем предоставленный URL
+                                task.image_url = image_url
+                                task.save(update_fields=['image_url'])
+                                detailed_logs.append(f"📎 Использован существующий URL изображения для задачи {task.id}")
+                            
+                            successfully_loaded += 1
+                            successfully_loaded_ids.append(task.id)
+                            
+                            # Публикуем в Telegram если требуется
+                            if publish and telegram_group and task.image_url:
+                                try:
+                                    logger.info(f"📢 Публикация задачи {task.id} в Telegram")
                                     
-                            except Exception as img_error:
-                                logger.error(f"❌ Ошибка генерации/загрузки изображения: {img_error}")
-                        else:
-                            # Используем предоставленный URL
-                            task.image_url = image_url
-                            task.save(update_fields=['image_url'])
-                            detailed_logs.append(f"📎 Использован существующий URL изображения для задачи {task.id}")
-                        
-                        successfully_loaded += 1
-                        successfully_loaded_ids.append(task.id)
-                        
-                        # Публикуем в Telegram если требуется
-                        if publish and telegram_group and task.image_url:
-                            try:
-                                logger.info(f"📢 Публикация задачи {task.id} в Telegram")
-                                
-                                pub_result = publish_task_to_telegram(
-                                    task=task,
-                                    translation=task_translation,
-                                    telegram_group=telegram_group,
-                                    external_link=external_link
-                                )
-                                
-                                if pub_result['success']:
-                                    task.published = True
-                                    task.save(update_fields=['published'])
-                                    published_count += 1
-                                    logger.info(f"✅ Задача {task.id} опубликована в Telegram")
-                                    detailed_logs.append(f"📢 Задача {task.id} опубликована в Telegram (канал: {telegram_group.group_name})")
-                                else:
-                                    pub_error = f"Задача {task.id}: {', '.join(pub_result['errors'])}"
-                                    publish_errors.append(pub_error)
-                                    logger.error(f"❌ {pub_error}")
-                                    detailed_logs.append(f"❌ Ошибка публикации задачи {task.id}: {', '.join(pub_result['errors'])}")
+                                    # Ссылка будет автоматически получена через DefaultLinkService внутри publish_task_to_telegram
+                                    pub_result = publish_task_to_telegram(
+                                        task=task,
+                                        translation=task_translation,
+                                        telegram_group=telegram_group
+                                    )
                                     
-                            except Exception as pub_error:
-                                error_msg = f"Ошибка публикации задачи {task.id}: {pub_error}"
-                                logger.error(f"❌ {error_msg}")
-                                publish_errors.append(error_msg)
-                
-                except Exception as task_error:
-                    error_msg = f"Ошибка создания задачи для языка '{language}': {task_error}"
-                    logger.error(f"❌ {error_msg}")
-                    error_messages.append(error_msg)
-                    failed_tasks += 1
-                    continue
+                                    if pub_result['success']:
+                                        task.published = True
+                                        task.save(update_fields=['published'])
+                                        published_count += 1
+                                        logger.info(f"✅ Задача {task.id} опубликована в Telegram")
+                                        detailed_logs.append(f"📢 Задача {task.id} опубликована в Telegram (канал: {telegram_group.group_name})")
+                                    else:
+                                        pub_error = f"Задача {task.id}: {', '.join(pub_result['errors'])}"
+                                        publish_errors.append(pub_error)
+                                        logger.error(f"❌ {pub_error}")
+                                        detailed_logs.append(f"❌ Ошибка публикации задачи {task.id}: {', '.join(pub_result['errors'])}")
+                                        
+                                except Exception as pub_error:
+                                    error_msg = f"Ошибка публикации задачи {task.id}: {pub_error}"
+                                    logger.error(f"❌ {error_msg}")
+                                    publish_errors.append(error_msg)
+                    
+                    except Exception as task_error:
+                        error_msg = f"Ошибка создания задачи для языка '{language}': {task_error}"
+                        logger.error(f"❌ {error_msg}")
+                        error_messages.append(error_msg)
+                        failed_tasks += 1
+                        continue
             
             except Exception as e:
                 error_msg = f"Ошибка обработки задачи: {e}"
