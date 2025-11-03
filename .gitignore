@@ -44,4 +44,8 @@ media/
 staticfiles/
 local_settings.py
 
+# Uploads - загруженные JSON файлы не должны попадать в git
+uploads/
+bot/uploads/
+
 # Docker
