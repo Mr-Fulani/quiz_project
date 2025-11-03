@@ -104,6 +104,62 @@ Invalid field name(s) for model Subtopic: 'description'
 
 ---
 
+## 7. Nginx: Deprecated listen http2 directive
+
+### Проблема
+```
+nginx: [warn] the "listen ... http2" directive is deprecated, use the "http2" directive instead
+```
+
+### Решение
+Исправлено в `nginx/nginx-prod.conf`:
+- Заменен устаревший синтаксис `listen 443 ssl http2;` на новый:
+  ```nginx
+  listen 443 ssl;
+  http2 on;
+  ```
+
+---
+
+## 8. Nginx: Conflicting server name
+
+### Проблема
+```
+nginx: [warn] conflicting server name "quiz-code.com" on 0.0.0.0:80, ignored
+```
+
+### Решение
+Исправлено в `nginx/nginx-prod.conf`:
+- Удалено дублирование server блоков для порта 80
+- Объединены блоки верификации Let's Encrypt и редиректа HTTP → HTTPS в один
+
+---
+
+## 9. Redis: Memory overcommit warning
+
+### Проблема
+```
+WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition.
+```
+
+### Решение
+Частично исправлено в `docker-compose.local-prod.yml`:
+- Добавлен параметр `--save ""` для отключения автоматического сохранения (если не требуется persistence)
+- Добавлены настройки `sysctls` для оптимизации
+
+**Полное исправление требует настройки хоста:**
+```bash
+# На хосте выполните:
+sudo sysctl vm.overcommit_memory=1
+
+# Для постоянного применения добавьте в /etc/sysctl.conf:
+vm.overcommit_memory = 1
+```
+
+**Примечание:** Это предупреждение не критично для работы Redis в контейнере, но рекомендуется исправить для production окружения.
+
+---
+
 ## Применение исправлений
 
 После применения исправлений:
