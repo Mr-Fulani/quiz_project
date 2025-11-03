@@ -553,7 +553,7 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                 new_task = Task(
                     topic_id=topic_id,
                     subtopic_id=subtopic_id,
-                    difficulty=task_data["difficulty"],
+                    difficulty=task_data.get('difficulty', 'medium'),  # Используем значение по умолчанию, если не указано
                     published=False,
                     group_id=group.id,
                     translation_group_id=translation_group_id,

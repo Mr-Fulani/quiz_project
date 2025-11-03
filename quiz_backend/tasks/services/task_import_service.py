@@ -160,9 +160,10 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                     ).first()
                     
                     if not telegram_group:
-                        error_msg = f"Группа не найдена для топика '{topic_name}' и языка '{language}'."
-                        logger.warning(f"⚠️ {error_msg}")
+                        error_msg = f"⚠️ Группа не найдена для топика '{topic_name}' и языка '{language}'. Задача для этого языка не будет создана."
+                        logger.warning(error_msg)
                         error_messages.append(error_msg)
+                        detailed_logs.append(error_msg)
                         failed_tasks += 1
                         continue  # Продолжаем с другими переводами
                     
