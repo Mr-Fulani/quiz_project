@@ -44,6 +44,10 @@ COPY templates /app/templates
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Создаем непривилегированного пользователя для Celery worker (безопасность)
+RUN useradd -m -u 1000 celeryuser && \
+    chown -R celeryuser:celeryuser /app
+
 # Команда по умолчанию
 CMD ["/entrypoint.sh"]
 

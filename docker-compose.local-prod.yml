@@ -103,6 +103,8 @@ services:
       context: ./quiz_backend
       dockerfile: Dockerfile
     container_name: celery_worker_prod
+    # Запуск от непривилегированного пользователя для безопасности
+    user: "1000:1000"
     command: python -m celery -A config worker --loglevel=info --concurrency=1
     environment:
       - DEBUG=False
