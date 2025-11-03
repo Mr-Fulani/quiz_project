@@ -66,10 +66,16 @@ services:
       - CSRF_TRUSTED_ORIGINS=https://quiz-code.com,https://mini.quiz-code.com,http://localhost:8080
       - REDIS_URL=redis://redis_cache_prod:6379/1
       - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_cache_prod:6379/0
       - GUNICORN_WORKERS=1  # Минимум для слабых серверов
       - GUNICORN_THREADS=2
       - GUNICORN_TIMEOUT=120
       - LOGO_PATH=/quiz_project/bot/assets/logo.png
+      # AWS S3 настройки для загрузки изображений
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION=${S3_REGION:-us-east-1}
     volumes:
       - ./quiz_backend:/app
       - static_volume_local_prod:/app/staticfiles
@@ -109,10 +115,16 @@ services:
       - DB_PORT=5432
       - REDIS_URL=redis://redis_cache_prod:6379/1
       - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_cache_prod:6379/0
       - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
       - EMAIL_PORT=${EMAIL_PORT:-587}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      # AWS S3 настройки для загрузки изображений
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION=${S3_REGION:-us-east-1}
     volumes:
       - ./quiz_backend:/app
       - ./media:/app/media
@@ -141,6 +153,12 @@ services:
       - DB_PORT=5432
       - REDIS_URL=redis://redis_cache_prod:6379/1
       - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_cache_prod:6379/0
+      # AWS S3 настройки для загрузки изображений
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION=${S3_REGION:-us-east-1}
     volumes:
       - ./quiz_backend:/app
       - ./quiz_backend/logs:/app/logs
