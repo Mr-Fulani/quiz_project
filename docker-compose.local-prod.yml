@@ -25,7 +25,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis_cache_prod
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # Исправление предупреждения о memory overcommit (требует настроек хоста)
+    # Для полного исправления выполните на хосте: sysctl vm.overcommit_memory=1
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save ""
+    sysctls:
+      - net.core.somaxconn=1024
     ports:
       - "6379:6379"
     networks:
