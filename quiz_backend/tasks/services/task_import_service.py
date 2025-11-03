@@ -89,8 +89,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                 if subtopic_name:
                     subtopic, created = Subtopic.objects.get_or_create(
                         name=subtopic_name,
-                        topic=topic,
-                        defaults={'description': f'Subtopic for {subtopic_name}'}
+                        topic=topic
                     )
                     
                     if created:
@@ -223,14 +222,18 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                                             detailed_logs.append(f"✅ Изображение загружено в S3 для задачи {task.id}")
                                             detailed_logs.append(f"   URL: {image_url}")
                                         else:
-                                            logger.warning("⚠️ Не удалось загрузить изображение в S3")
-                                            detailed_logs.append(f"⚠️ Не удалось загрузить изображение в S3 для задачи {task.id}")
+                                            error_msg = f"⚠️ Не удалось загрузить изображение в S3 для задачи {task.id}. Проверьте логи Django для деталей."
+                                            logger.warning(error_msg)
+                                            detailed_logs.append(error_msg)
                                     else:
-                                        logger.warning("⚠️ Не удалось сгенерировать изображение")
-                                        detailed_logs.append(f"⚠️ Не удалось сгенерировать изображение для задачи {task.id}")
+                                        error_msg = f"⚠️ Не удалось сгенерировать изображение для задачи {task.id}. Проверьте логи Django для деталей."
+                                        logger.warning(error_msg)
+                                        detailed_logs.append(error_msg)
                                         
                                 except Exception as img_error:
-                                    logger.error(f"❌ Ошибка генерации/загрузки изображения: {img_error}")
+                                    error_msg = f"❌ Ошибка генерации/загрузки изображения для задачи {task.id}: {img_error}"
+                                    logger.error(error_msg, exc_info=True)
+                                    detailed_logs.append(error_msg)
                             else:
                                 # Используем предоставленный URL
                                 task.image_url = image_url
