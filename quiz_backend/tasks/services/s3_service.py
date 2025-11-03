@@ -64,9 +64,20 @@ def upload_image_to_s3(image: Image.Image, image_name: str) -> Optional[str]:
         logger.error(f"Ожидался объект Image, получен тип {type(image)}")
         return None
         
-    if not all([settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY, 
-                settings.AWS_STORAGE_BUCKET_NAME]):
-        logger.error("AWS S3 настройки не сконфигурированы")
+    # Проверяем наличие всех необходимых настроек AWS
+    missing_settings = []
+    if not settings.AWS_ACCESS_KEY_ID:
+        missing_settings.append('AWS_ACCESS_KEY_ID')
+    if not settings.AWS_SECRET_ACCESS_KEY:
+        missing_settings.append('AWS_SECRET_ACCESS_KEY')
+    if not settings.AWS_STORAGE_BUCKET_NAME:
+        missing_settings.append('AWS_STORAGE_BUCKET_NAME')
+    if not settings.AWS_S3_REGION_NAME:
+        missing_settings.append('AWS_S3_REGION_NAME')
+    
+    if missing_settings:
+        error_msg = f"❌ AWS S3 настройки не сконфигурированы. Отсутствуют: {', '.join(missing_settings)}"
+        logger.error(error_msg)
         return None
     
     try:
@@ -119,8 +130,22 @@ def upload_image_to_s3(image: Image.Image, image_name: str) -> Optional[str]:
         
         return image_url
         
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        error_message = e.response.get('Error', {}).get('Message', str(e))
+        logger.error(
+            f"❌ Ошибка при загрузке изображения в S3: {error_code} - {error_message}. "
+            f"Бакет: {settings.AWS_STORAGE_BUCKET_NAME}, Регион: {settings.AWS_S3_REGION_NAME}, "
+            f"Ключ: {image_name}"
+        )
+        return None
     except Exception as e:
-        logger.error(f"❌ Ошибка при загрузке изображения в S3: {e}")
+        logger.error(
+            f"❌ Неожиданная ошибка при загрузке изображения в S3: {type(e).__name__}: {e}. "
+            f"Бакет: {settings.AWS_STORAGE_BUCKET_NAME}, Регион: {settings.AWS_S3_REGION_NAME}, "
+            f"Ключ: {image_name}",
+            exc_info=True
+        )
         return None
 
 
