@@ -689,6 +689,8 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 минут
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# Исправление предупреждения о broker_connection_retry для Celery 6.0+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # ============================================================
 # SESSION SETTINGS (оптимизация)
