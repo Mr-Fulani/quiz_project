@@ -787,12 +787,26 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
         logger.info(f"📁 Файлы запроса: {request.FILES}")
         
         # Логируем programming_language_ids отдельно для отладки
-        programming_language_ids = request.data.getlist('programming_language_ids')  # Используем getlist для получения всех значений
+        # Обрабатываем как QueryDict (form-data) или обычный dict (JSON)
+        if hasattr(request.data, 'getlist'):
+            # Это QueryDict (form-data запрос)
+            programming_language_ids = request.data.getlist('programming_language_ids')
+        else:
+            # Это обычный dict (JSON запрос)
+            programming_language_ids = request.data.get('programming_language_ids')
+            # Если это не список, преобразуем в список
+            if programming_language_ids is not None and not isinstance(programming_language_ids, list):
+                programming_language_ids = [programming_language_ids] if programming_language_ids else []
+        
         if programming_language_ids:
             logger.info(f"🔧 programming_language_ids получены: {programming_language_ids} (тип: {type(programming_language_ids)})")
         
         # Сериализатор сам обработает programming_language_ids
-        data = request.data.copy()
+        if hasattr(request.data, 'copy'):
+            data = request.data.copy()
+        else:
+            # Для обычного dict используем dict()
+            data = dict(request.data)
         
         # Исправляем programming_language_ids для правильной обработки множественных значений
         if programming_language_ids:

@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.utils.translation import activate
+from django.db import IntegrityError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -129,7 +130,15 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         if language and language in ['en', 'ru']:
             activate(language)
         
-        return super().list(request, *args, **kwargs)
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
     
     @swagger_auto_schema(
         operation_description="Создать новый комментарий или ответ",
@@ -215,6 +224,72 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                     comment=comment,
                     image=image
                 )
+        
+        # Отправляем уведомления
+        try:
+            from accounts.utils_folder.telegram_notifications import create_notification, notify_all_admins
+            from accounts.models import MiniAppUser
+            from django.db import models as django_models
+            
+            # Получаем список telegram_id всех админов, чтобы избежать дублирования
+            admin_ids = set()
+            try:
+                admins = MiniAppUser.objects.filter(
+                    notifications_enabled=True
+                ).filter(
+                    django_models.Q(telegram_admin__isnull=False) |
+                    django_models.Q(django_admin__isnull=False)
+                ).values_list('telegram_id', flat=True)
+                admin_ids = set(admins)
+                logger.info(f"📋 Найдено {len(admin_ids)} админов: {admin_ids}")
+            except Exception as e:
+                logger.warning(f"Не удалось получить список админов: {e}")
+            
+            # Если это ответ на комментарий, уведомляем автора родительского комментария
+            # НО только если он не админ (чтобы избежать дублирования)
+            if comment.parent_comment:
+                parent_author_id = comment.parent_comment.author_telegram_id
+                logger.info(f"🔍 Проверка уведомления об ответе: parent_author_id={parent_author_id}, comment_author_id={comment.author_telegram_id}, is_admin={parent_author_id in admin_ids}")
+                
+                # Не отправляем уведомление самому себе и не админам (они получат как админы)
+                if parent_author_id != comment.author_telegram_id:
+                    if parent_author_id not in admin_ids:
+                        # Пользователь не админ - отправляем персональное уведомление
+                        notification_title = "💬 Новый ответ на ваш комментарий"
+                        notification_message = f"{comment.author_username} ответил на ваш комментарий:\n\n{comment.text[:200]}"
+                        
+                        notification = create_notification(
+                            recipient_telegram_id=parent_author_id,
+                            notification_type='comment_reply',
+                            title=notification_title,
+                            message=notification_message,
+                            related_object_id=comment.id,
+                            related_object_type='comment',
+                            send_to_telegram=True
+                        )
+                        if notification:
+                            logger.info(f"📤 Отправлено уведомление об ответе на комментарий для {parent_author_id}")
+                        else:
+                            logger.warning(f"⚠️ Не удалось создать уведомление для {parent_author_id}")
+                    else:
+                        logger.info(f"ℹ️ Пользователь {parent_author_id} является админом, персональное уведомление не отправляется (получит как админ)")
+                else:
+                    logger.info(f"ℹ️ Пользователь ответил сам себе, уведомление не отправляется")
+            
+            # Уведомляем админов о новом комментарии
+            admin_title = "💬 Новый комментарий в задаче"
+            admin_message = f"Пользователь {comment.author_username} оставил комментарий:\n\n{comment.text[:200]}"
+            notify_all_admins(
+                notification_type='comment',
+                title=admin_title,
+                message=admin_message,
+                related_object_id=comment.id,
+                related_object_type='comment'
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка отправки уведомлений: {e}")
+        
         response_serializer = TaskCommentSerializer(
             comment,
             context={'request': request}
@@ -341,14 +416,76 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         data = request.data.copy()
         data['comment'] = comment.id
         
+        # Проверяем, не подавал ли пользователь уже жалобу (до валидации сериализатора)
+        reporter_telegram_id = data.get('reporter_telegram_id')
+        if reporter_telegram_id:
+            try:
+                reporter_telegram_id = int(reporter_telegram_id)
+                from .models import TaskCommentReport
+                if TaskCommentReport.objects.filter(
+                    comment=comment,
+                    reporter_telegram_id=reporter_telegram_id
+                ).exists():
+                    return Response(
+                        {'non_field_errors': ['Вы уже подали жалобу на этот комментарий']},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except (ValueError, TypeError):
+                pass
+        
         serializer = TaskCommentReportSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        
+        # Пытаемся сохранить и перехватываем IntegrityError
+        try:
+            report = serializer.save()
+        except IntegrityError as e:
+            # Перехватываем ошибки уникальности (unique_together)
+            logger.warning(f"Попытка создать дубликат жалобы: {e}")
+            return Response(
+                {'non_field_errors': ['Вы уже подали жалобу на этот комментарий']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            # Перехватываем другие ошибки
+            logger.error(f"Ошибка сохранения жалобы: {e}")
+            return Response(
+                {'error': 'Произошла ошибка при отправке жалобы. Попробуйте позже.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         logger.info(
             f"Жалоба на комментарий {comment.id} от пользователя "
             f"{data.get('reporter_telegram_id')}: {data.get('reason')}"
         )
+        
+        # Уведомляем админов о новой жалобе
+        try:
+            from accounts.utils_folder.telegram_notifications import notify_all_admins
+            from tasks.models import TaskCommentReport
+            
+            reason_display = dict(TaskCommentReport.REASON_CHOICES).get(report.reason, report.reason)
+            admin_title = "🚨 Новая жалоба на комментарий"
+            admin_message = (
+                f"Пользователь подал жалобу на комментарий.\n\n"
+                f"Причина: {reason_display}\n"
+                f"Комментарий: {comment.text[:150]}\n"
+                f"Автор комментария: {comment.author_username}"
+            )
+            
+            if report.description:
+                admin_message += f"\n\nДополнительно: {report.description[:100]}"
+            
+            notify_all_admins(
+                notification_type='report',
+                title=admin_title,
+                message=admin_message,
+                related_object_id=report.id,
+                related_object_type='report'
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка отправки уведомления о жалобе: {e}")
         
         return Response(
             serializer.data,

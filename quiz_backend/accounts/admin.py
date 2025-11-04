@@ -3,7 +3,7 @@ import logging
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Q
-from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar
+from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar, Notification
 
 logger = logging.getLogger(__name__)
 
@@ -2217,9 +2217,9 @@ class MiniAppUserAdmin(admin.ModelAdmin):
     """
     Админ-панель для MiniAppUser.
     """
-    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'avatars_count', 'is_admin', 'admin_type', 'created_at', 'last_seen']
+    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'avatars_count', 'is_admin', 'admin_type', 'notifications_enabled', 'created_at', 'last_seen']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
-    list_filter = ['language', 'grade', IsAdminFilter, 'created_at', 'last_seen']
+    list_filter = ['language', 'grade', IsAdminFilter, 'notifications_enabled', 'created_at', 'last_seen']
     readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name', 'avatars_preview']
     raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin', 'programming_language']
     filter_horizontal = ['programming_languages']
@@ -2239,6 +2239,9 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         ('Социальные сети', {
             'fields': ('website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube'),
             'classes': ('collapse',)
+        }),
+        ('Настройки', {
+            'fields': ('is_profile_public', 'notifications_enabled'),
         }),
         ('Связи с другими пользователями', {
             'fields': ('telegram_user', 'telegram_admin', 'django_admin', 'linked_custom_user'),
@@ -2410,6 +2413,93 @@ class MiniAppUserAdmin(admin.ModelAdmin):
 
 
 # Регистрация моделей
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """
+    Админ-панель для уведомлений.
+    """
+    list_display = ['id', 'get_recipient_display', 'notification_type', 'title', 'is_read', 'sent_to_telegram', 'created_at']
+    list_filter = ['notification_type', 'is_admin_notification', 'is_read', 'sent_to_telegram', 'created_at']
+    search_fields = ['recipient_telegram_id', 'title', 'message']
+    readonly_fields = ['created_at']
+    list_per_page = 50
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('is_admin_notification', 'recipient_telegram_id', 'notification_type', 'title', 'message')
+        }),
+        ('Связанный объект', {
+            'fields': ('related_object_id', 'related_object_type'),
+            'classes': ('collapse',)
+        }),
+        ('Статус', {
+            'fields': ('is_read', 'sent_to_telegram', 'created_at')
+        }),
+    )
+    
+    def get_recipient_display(self, obj):
+        """Отображает получателя уведомления."""
+        if obj.is_admin_notification:
+            return "👥 Все админы"
+        return obj.recipient_telegram_id or "-"
+    get_recipient_display.short_description = "Получатель"
+    
+    actions = ['mark_as_read', 'mark_as_unread', 'resend_to_telegram']
+    
+    def mark_as_read(self, request, queryset):
+        """Отметить уведомления как прочитанные."""
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f'{updated} уведомлений отмечено как прочитанные.')
+    mark_as_read.short_description = "Отметить как прочитанные"
+    
+    def mark_as_unread(self, request, queryset):
+        """Отметить уведомления как непрочитанные."""
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f'{updated} уведомлений отмечено как непрочитанные.')
+    mark_as_unread.short_description = "Отметить как непрочитанные"
+    
+    def resend_to_telegram(self, request, queryset):
+        """Повторно отправить уведомления в Telegram."""
+        from accounts.utils_folder.telegram_notifications import send_telegram_notification_sync
+        from accounts.models import MiniAppUser
+        from django.db import models as django_models
+        
+        sent_count = 0
+        for notification in queryset:
+            if notification.is_admin_notification:
+                # Для админских уведомлений отправляем всем админам
+                admins = MiniAppUser.objects.filter(
+                    notifications_enabled=True
+                ).filter(
+                    django_models.Q(telegram_admin__isnull=False) |
+                    django_models.Q(django_admin__isnull=False)
+                ).distinct()
+                
+                admin_sent = 0
+                for admin in admins:
+                    success = send_telegram_notification_sync(admin.telegram_id, notification.message)
+                    if success:
+                        admin_sent += 1
+                
+                if admin_sent > 0:
+                    notification.mark_as_sent()
+                    sent_count += 1
+            else:
+                # Для обычных уведомлений отправляем конкретному пользователю
+                if notification.recipient_telegram_id:
+                    success = send_telegram_notification_sync(
+                        notification.recipient_telegram_id,
+                        notification.message
+                    )
+                    if success:
+                        notification.mark_as_sent()
+                        sent_count += 1
+        
+        self.message_user(request, f'Отправлено {sent_count} уведомлений из {queryset.count()}.')
+    resend_to_telegram.short_description = "Повторно отправить в Telegram"
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(TelegramUser, TelegramUserAdmin)
 admin.site.register(TelegramAdmin, TelegramAdminAdmin)

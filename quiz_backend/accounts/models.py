@@ -448,6 +448,32 @@ class UserChannelSubscription(models.Model):
         self.subscribed_at = timezone.now()
         self.unsubscribed_at = None
         self.save()
+        
+        # Уведомляем админов о новой подписке
+        try:
+            from accounts.utils_folder.telegram_notifications import notify_all_admins
+            
+            user_info = f"ID: {self.telegram_user.telegram_id}"
+            if self.telegram_user.username:
+                user_info = f"@{self.telegram_user.username}"
+            
+            channel_info = self.channel.group_name if hasattr(self.channel, 'group_name') else str(self.channel.group_id)
+            
+            admin_title = "👤 Новая подписка"
+            admin_message = f"Пользователь {user_info} подписался на канал {channel_info}"
+            
+            notify_all_admins(
+                notification_type='subscription',
+                title=admin_title,
+                message=admin_message,
+                related_object_id=self.id,
+                related_object_type='subscription'
+            )
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Ошибка отправки уведомления о подписке: {e}")
 
     def unsubscribe(self):
         """Деактивировать подписку."""
@@ -589,6 +615,13 @@ class MiniAppUser(models.Model):
         default=True, 
         verbose_name="Публичный профиль",
         help_text="Определяет, доступен ли профиль для просмотра другим пользователям"
+    )
+    
+    # Настройки уведомлений
+    notifications_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Уведомления включены",
+        help_text="Общий переключатель всех уведомлений"
     )
     
     created_at = models.DateTimeField(
@@ -974,6 +1007,130 @@ class MiniAppUser(models.Model):
         if not self.last_seen:
             return False
         return timezone.now() - self.last_seen < timedelta(minutes=5)
+
+
+class Notification(models.Model):
+    """
+    Модель уведомлений для пользователей Mini App.
+    
+    Хранит историю уведомлений для просмотра в приложении,
+    отслеживает отправку в Telegram и статус прочтения.
+    """
+    
+    NOTIFICATION_TYPES = [
+        ('message', 'Новое сообщение'),
+        ('comment_reply', 'Ответ на комментарий'),
+        ('report', 'Жалоба на комментарий'),
+        ('subscription', 'Новая подписка'),
+        ('comment', 'Новый комментарий'),
+        ('other', 'Другое'),
+    ]
+    
+    RELATED_OBJECT_TYPES = [
+        ('message', 'Сообщение'),
+        ('comment', 'Комментарий'),
+        ('report', 'Жалоба'),
+        ('subscription', 'Подписка'),
+    ]
+    
+    recipient_telegram_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Telegram ID получателя",
+        help_text="ID получателя уведомления в Telegram. NULL для админских уведомлений (всем админам)"
+    )
+    is_admin_notification = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Уведомление для админов",
+        help_text="Если True, уведомление предназначено всем админам (recipient_telegram_id должен быть NULL)"
+    )
+    notification_type = models.CharField(
+        max_length=20,
+        choices=NOTIFICATION_TYPES,
+        verbose_name="Тип уведомления",
+        help_text="Тип события, вызвавшего уведомление"
+    )
+    title = models.CharField(
+        max_length=255,
+        verbose_name="Заголовок",
+        help_text="Краткий заголовок уведомления"
+    )
+    message = models.TextField(
+        verbose_name="Сообщение",
+        help_text="Полный текст уведомления"
+    )
+    related_object_id = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="ID связанного объекта",
+        help_text="ID объекта, с которым связано уведомление"
+    )
+    related_object_type = models.CharField(
+        max_length=20,
+        choices=RELATED_OBJECT_TYPES,
+        null=True,
+        blank=True,
+        verbose_name="Тип связанного объекта",
+        help_text="Тип объекта (message, comment, report, subscription)"
+    )
+    is_read = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Прочитано",
+        help_text="Отметка о прочтении уведомления"
+    )
+    sent_to_telegram = models.BooleanField(
+        default=False,
+        verbose_name="Отправлено в Telegram",
+        help_text="Отметка об отправке уведомления в Telegram"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        verbose_name="Дата создания",
+        help_text="Время создания уведомления"
+    )
+    
+    class Meta:
+        db_table = 'notifications'
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient_telegram_id', '-created_at']),
+            models.Index(fields=['recipient_telegram_id', 'is_read']),
+            models.Index(fields=['notification_type']),
+            models.Index(fields=['is_admin_notification', '-created_at']),
+        ]
+    
+    def __str__(self):
+        """
+        Строковое представление уведомления.
+        
+        Returns:
+            str: Заголовок уведомления и получатель
+        """
+        if self.is_admin_notification:
+            return f"{self.title} (для всех админов)"
+        return f"{self.title} (для {self.recipient_telegram_id})"
+    
+    def mark_as_read(self):
+        """
+        Отмечает уведомление как прочитанное.
+        """
+        if not self.is_read:
+            self.is_read = True
+            self.save(update_fields=['is_read'])
+    
+    def mark_as_sent(self):
+        """
+        Отмечает уведомление как отправленное в Telegram.
+        """
+        if not self.sent_to_telegram:
+            self.sent_to_telegram = True
+            self.save(update_fields=['sent_to_telegram'])
 
 
 class UserAvatar(models.Model):
