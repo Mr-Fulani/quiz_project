@@ -180,6 +180,42 @@ def submit_feedback_from_mini_app(request):
             )
             logger.info(f"✅ Сохранено изображение для feedback ID={feedback.id}")
         
+        # Отправляем уведомление админам о новом обращении
+        try:
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+            from django.urls import reverse
+            
+            # Получаем категорию
+            category_display = dict(FeedbackMessage.CATEGORY_CHOICES).get(category, category)
+            
+            # Формируем ссылку на feedback в админке с динамическим URL
+            base_url = get_base_url(request)
+            admin_path = reverse('admin:feedback_feedbackmessage_change', args=[feedback.id])
+            admin_url = f"{base_url}{admin_path}"
+            
+            admin_title = "📩 Новое обращение в поддержку"
+            admin_message = (
+                f"От: @{username} (ID: {user_id})\n"
+                f"Категория: {category_display}\n\n"
+                f"Сообщение: {message[:200]}\n\n"
+                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+            )
+            
+            logger.info(f"📤 Отправка уведомления о feedback #{feedback.id} с URL: {admin_url}")
+            
+            notify_all_admins(
+                notification_type='feedback',
+                title=admin_title,
+                message=admin_message,
+                related_object_id=feedback.id,
+                related_object_type='feedback'
+            )
+            
+            logger.info(f"✅ Уведомление о feedback #{feedback.id} отправлено админам")
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка отправки уведомления о feedback: {e}", exc_info=True)
+        
         return Response(
             {
                 'success': True,

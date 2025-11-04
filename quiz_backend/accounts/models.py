@@ -451,16 +451,30 @@ class UserChannelSubscription(models.Model):
         
         # Уведомляем админов о новой подписке
         try:
-            from accounts.utils_folder.telegram_notifications import notify_all_admins
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+            from django.urls import reverse
             
-            user_info = f"ID: {self.telegram_user.telegram_id}"
-            if self.telegram_user.username:
-                user_info = f"@{self.telegram_user.username}"
+            # Формируем информацию о пользователе
+            username = self.telegram_user.username or "Без username"
+            telegram_id = self.telegram_user.telegram_id
+            user_language = getattr(self.telegram_user, 'language', 'Не указан')
             
+            # Формируем информацию о канале
             channel_info = self.channel.group_name if hasattr(self.channel, 'group_name') else str(self.channel.group_id)
             
+            # Формируем ссылку на подписку в админке с динамическим URL
+            # В модели нет доступа к request, используем fallback на настройки
+            base_url = get_base_url(None)
+            admin_path = reverse('admin:accounts_userchannelsubscription_change', args=[self.id])
+            admin_url = f"{base_url}{admin_path}"
+            
             admin_title = "👤 Новая подписка"
-            admin_message = f"Пользователь {user_info} подписался на канал {channel_info}"
+            admin_message = (
+                f"Пользователь: @{username} (ID: {telegram_id})\n"
+                f"Язык: {user_language}\n"
+                f"Канал: {channel_info}\n\n"
+                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+            )
             
             notify_all_admins(
                 notification_type='subscription',
@@ -1144,6 +1158,8 @@ class Notification(models.Model):
         ('report', 'Жалоба на комментарий'),
         ('subscription', 'Новая подписка'),
         ('comment', 'Новый комментарий'),
+        ('donation', 'Новый донат'),
+        ('feedback', 'Обратная связь'),
         ('other', 'Другое'),
     ]
     
@@ -1152,6 +1168,8 @@ class Notification(models.Model):
         ('comment', 'Комментарий'),
         ('report', 'Жалоба'),
         ('subscription', 'Подписка'),
+        ('donation', 'Донат'),
+        ('feedback', 'Обратная связь'),
     ]
     
     recipient_telegram_id = models.BigIntegerField(

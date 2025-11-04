@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-22 14:12+0000\n"
+"POT-Creation-Date: 2025-11-04 20:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,39 +46,39 @@ msgstr ""
 msgid "The two password fields didn't match."
 msgstr ""
 
-#: accounts/api/api_views.py:1205
+#: accounts/api/api_views.py:1256
 msgid "Первый шаг"
 msgstr "First Step"
 
-#: accounts/api/api_views.py:1206
+#: accounts/api/api_views.py:1257
 msgid "Знаток {}"
 msgstr "Connoisseur of {}"
 
-#: accounts/api/api_views.py:1206
+#: accounts/api/api_views.py:1257
 msgid "Программирования"
 msgstr "Programming"
 
-#: accounts/api/api_views.py:1207
+#: accounts/api/api_views.py:1258
 msgid "Веб-мастер"
 msgstr "Web Master"
 
-#: accounts/api/api_views.py:1208
+#: accounts/api/api_views.py:1259
 msgid "Серия"
 msgstr "Streak"
 
-#: accounts/api/api_views.py:1209
+#: accounts/api/api_views.py:1260
 msgid "Эксперт"
 msgstr "Expert"
 
-#: accounts/api/api_views.py:1210
+#: accounts/api/api_views.py:1261
 msgid "Скорость"
 msgstr "Speed"
 
-#: accounts/models.py:170
+#: accounts/models.py:173
 msgid "Super Admin"
 msgstr ""
 
-#: accounts/models.py:172
+#: accounts/models.py:175
 msgid "Django Admin"
 msgstr ""
 
@@ -470,7 +470,7 @@ msgstr ""
 #: accounts/templates/accounts/user_list.html:51
 #: accounts/templates/accounts/user_profile.html:57
 #: blog/templates/blog/base.html:275 blog/templates/blog/quizes.html:22
-#: blog/views.py:1032 blog/views.py:1048 blog/views.py:1203
+#: blog/views.py:1127 blog/views.py:1143 blog/views.py:1298
 msgid "Quizzes"
 msgstr ""
 
@@ -556,234 +556,234 @@ msgstr ""
 msgid "Attempts"
 msgstr ""
 
-#: blog/admin.py:105
+#: blog/admin.py:106
 msgid "Вложение сообщения"
 msgstr ""
 
-#: blog/admin.py:106
+#: blog/admin.py:107
 msgid "Вложения сообщения"
 msgstr ""
 
-#: blog/admin.py:185
+#: blog/admin.py:186
 msgid "Не выбрано ни одного элемента для удаления."
 msgstr ""
 
-#: blog/admin.py:282
+#: blog/admin.py:283
 msgid "Сообщения для удаления не найдены или уже были удалены."
 msgstr ""
 
-#: blog/admin.py:285
+#: blog/admin.py:286
 msgid "Удалить выбранные сообщения"
 msgstr ""
 
-#: blog/admin.py:309
+#: blog/admin.py:310
 msgid "Отметить как прочитанные"
 msgstr ""
 
-#: blog/admin.py:332
+#: blog/admin.py:333
 msgid "Отметить как непрочитанные"
 msgstr ""
 
-#: blog/admin.py:355
+#: blog/admin.py:356
 msgid "Поместить в корзину для отправителя"
 msgstr ""
 
-#: blog/admin.py:378
+#: blog/admin.py:379
 msgid "Поместить в корзину для получателя"
 msgstr ""
 
-#: blog/context_processors.py:60 blog/context_processors.py:68
+#: blog/context_processors.py:74 blog/context_processors.py:83
 msgid "Not determined"
 msgstr ""
 
-#: blog/context_processors.py:124
+#: blog/context_processors.py:139
 msgid "Yandex Zen"
 msgstr ""
 
-#: blog/context_processors.py:138
+#: blog/context_processors.py:153
 msgid ""
 "I create high-load web applications, functional websites, powerful Telegram "
 "bots of any complexity, business cards and other digital solutions."
 msgstr ""
 
-#: blog/context_processors.py:139
+#: blog/context_processors.py:154
 msgid ""
 "I use microservice architecture, modular approach, modern databases and "
 "optimized APIs. This allows you to develop flexible, reliable and scalable "
 "projects that are easily adapted to any tasks."
 msgstr ""
 
-#: blog/context_processors.py:140
+#: blog/context_processors.py:155
 msgid ""
 "This blog is not only a business card, but also a useful resource for "
 "developers. Here I share: educational materials, guides and examples that "
 "will help you improve your programming skills."
 msgstr ""
 
-#: blog/context_processors.py:141
+#: blog/context_processors.py:156
 msgid ""
 "Whether it's process automation, integration with external services or "
 "creating a unique digital product - I will help bring your idea to life in a "
 "reliable and elegant solution."
 msgstr ""
 
-#: blog/context_processors.py:144
+#: blog/context_processors.py:159
 msgid ""
 "Welcome to QuizHub - your resource for programming and quizzes. Here you "
 "will find the latest news, detailed guides and practical tips covering "
 "everything from Python to React."
 msgstr ""
 
-#: blog/context_processors.py:145
+#: blog/context_processors.py:160
 msgid ""
 "On our site you can learn new technologies, take exciting interactive "
 "quizzes and track your progress with detailed statistics."
 msgstr ""
 
-#: blog/context_processors.py:146
+#: blog/context_processors.py:161
 msgid ""
 "We strive to make learning programming accessible, interesting and effective "
 "for everyone, whether you are a beginner or a professional."
 msgstr ""
 
-#: blog/context_processors.py:147
+#: blog/context_processors.py:162
 msgid ""
 "Start your learning right now - dive into the world of code, take quizzes, "
 "improve your skills and track your growth."
 msgstr ""
 
-#: blog/context_processors.py:240
+#: blog/context_processors.py:255
 msgid "Quiz Python, Go, JavaScript, Java, C# | Programming Quizzes & Learning"
 msgstr ""
 
-#: blog/context_processors.py:241 blog/context_processors.py:246
+#: blog/context_processors.py:256 blog/context_processors.py:261
 msgid ""
 "Master programming with interactive quizzes in Python, JavaScript, Go, Java, "
 "C#. Free coding challenges, tutorials, and skill assessment."
 msgstr ""
 
-#: blog/context_processors.py:242
+#: blog/context_processors.py:257
 msgid ""
 "programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, "
 "coding challenges, programming learning, developer skills, interactive coding"
 msgstr ""
 
-#: blog/context_processors.py:245
+#: blog/context_processors.py:260
 msgid "QuizHub - Interactive Programming Quizzes & Learning Platform"
 msgstr ""
 
-#: blog/context_processors.py:257
+#: blog/context_processors.py:272
 msgid "QuizHub - Interactive Programming Quizzes"
 msgstr ""
 
-#: blog/context_processors.py:258
+#: blog/context_processors.py:273
 msgid ""
 "Master programming with interactive quizzes in Python, JavaScript, Go, Java, "
 "C#."
 msgstr ""
 
-#: blog/context_processors.py:275
+#: blog/context_processors.py:290
 msgid "Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React"
 msgstr ""
 
-#: blog/context_processors.py:276
+#: blog/context_processors.py:291
 msgid ""
 "Experienced Full Stack Developer specializing in Python, Django, React, and "
 "modern web technologies. View my professional resume and portfolio."
 msgstr ""
 
-#: blog/context_processors.py:277
+#: blog/context_processors.py:292
 msgid ""
 "full stack developer, Python developer, Django developer, React developer, "
 "web developer resume, portfolio"
 msgstr ""
 
-#: blog/context_processors.py:280
+#: blog/context_processors.py:295
 msgid "Anvar Sh. - Full Stack Web Developer Resume"
 msgstr ""
 
-#: blog/context_processors.py:281
+#: blog/context_processors.py:296
 msgid ""
 "Experienced Full Stack Developer specializing in Python, Django, React, and "
 "modern web technologies."
 msgstr ""
 
-#: blog/context_processors.py:284
+#: blog/context_processors.py:299
 msgid "Anvar Sh. - Full Stack Developer Resume"
 msgstr ""
 
-#: blog/context_processors.py:285
+#: blog/context_processors.py:300
 msgid ""
 "Experienced developer specializing in Python, Django, React, and modern web "
 "technologies."
 msgstr ""
 
-#: blog/context_processors.py:289 blog/context_processors.py:294
+#: blog/context_processors.py:304 blog/context_processors.py:309
 msgid "About Anvar Sh. - Web Developer & Programming Instructor"
 msgstr ""
 
-#: blog/context_processors.py:290
+#: blog/context_processors.py:305
 msgid ""
 "Learn about Anvar Sh., a passionate web developer and programming instructor "
 "creating educational content and powerful web applications."
 msgstr ""
 
-#: blog/context_processors.py:291
+#: blog/context_processors.py:306
 msgid ""
 "about developer, programming instructor, web developer story, coding mentor, "
 "educational content creator"
 msgstr ""
 
-#: blog/context_processors.py:295
+#: blog/context_processors.py:310
 msgid ""
 "Learn about Anvar Sh., a passionate web developer and programming instructor."
 msgstr ""
 
-#: blog/context_processors.py:298
+#: blog/context_processors.py:313
 msgid "About Anvar Sh. - Web Developer"
 msgstr ""
 
-#: blog/context_processors.py:299
+#: blog/context_processors.py:314
 msgid ""
 "Passionate web developer and programming instructor creating educational "
 "content."
 msgstr ""
 
-#: blog/context_processors.py:303
+#: blog/context_processors.py:318
 msgid "Contact Anvar Sh. - Web Development Services & Collaboration"
 msgstr ""
 
-#: blog/context_processors.py:304
+#: blog/context_processors.py:319
 msgid ""
 "Get in touch for web development services, collaboration opportunities, or "
 "programming consultation. Available for freelance projects."
 msgstr ""
 
-#: blog/context_processors.py:305
+#: blog/context_processors.py:320
 msgid ""
 "contact developer, web development services, freelance developer, "
 "programming consultation, collaboration"
 msgstr ""
 
-#: blog/context_processors.py:308 blog/context_processors.py:311
+#: blog/context_processors.py:323 blog/context_processors.py:326
 msgid "Contact Anvar Sh. - Web Development Services"
 msgstr ""
 
-#: blog/context_processors.py:309
+#: blog/context_processors.py:324
 msgid ""
 "Get in touch for web development services, collaboration opportunities, or "
 "programming consultation."
 msgstr ""
 
-#: blog/context_processors.py:312
+#: blog/context_processors.py:327
 msgid ""
 "Get in touch for web development services and collaboration opportunities."
 msgstr ""
 
 #: blog/mixins.py:27 blog/views.py:525 blog/views.py:552 blog/views.py:596
-#: blog/views.py:648 blog/views.py:690 blog/views.py:710 blog/views.py:732
-#: blog/views.py:755 blog/views.py:859 blog/views.py:934 blog/views.py:1851
-#: blog/views.py:1885
+#: blog/views.py:648 blog/views.py:690 blog/views.py:805 blog/views.py:827
+#: blog/views.py:850 blog/views.py:954 blog/views.py:1029 blog/views.py:1975
+#: blog/views.py:2009
 msgid "Главная"
 msgstr ""
 
@@ -1004,8 +1004,8 @@ msgid "Modal windows"
 msgstr ""
 
 #: blog/templates/blog/base.html:269 blog/templates/blog/base.html:271
-#: blog/templates/blog/index.html:13 blog/views.py:1031 blog/views.py:1047
-#: blog/views.py:1202 templates/admin/platforms/telegram_post_form.html:322
+#: blog/templates/blog/index.html:13 blog/views.py:1126 blog/views.py:1142
+#: blog/views.py:1297 templates/admin/platforms/telegram_post_form.html:322
 msgid "Home"
 msgstr ""
 
@@ -1468,11 +1468,11 @@ msgstr ""
 msgid "Обо мне"
 msgstr ""
 
-#: blog/views.py:597 blog/views.py:733
+#: blog/views.py:597 blog/views.py:828
 msgid "Блог"
 msgstr ""
 
-#: blog/views.py:649 blog/views.py:711
+#: blog/views.py:649 blog/views.py:806
 msgid "Портфолио"
 msgstr ""
 
@@ -1480,138 +1480,138 @@ msgstr ""
 msgid "Резюме"
 msgstr ""
 
-#: blog/views.py:697
+#: blog/views.py:698
 msgid "My professional resume with experience and skills."
 msgstr ""
 
-#: blog/views.py:698
+#: blog/views.py:699
 msgid "resume, programmer, portfolio"
 msgstr ""
 
-#: blog/views.py:718
+#: blog/views.py:813
 msgid "Explore my portfolio of projects."
 msgstr ""
 
-#: blog/views.py:719
+#: blog/views.py:814
 msgid "portfolio, projects, programming"
 msgstr ""
 
-#: blog/views.py:743
+#: blog/views.py:838
 msgid "Explore articles and posts on programming and quizzes."
 msgstr ""
 
-#: blog/views.py:744
+#: blog/views.py:839
 msgid "blog, programming, quizzes"
 msgstr ""
 
-#: blog/views.py:756
+#: blog/views.py:851
 msgid "Контакты"
 msgstr ""
 
-#: blog/views.py:761
+#: blog/views.py:856
 msgid "Get in touch with us."
 msgstr ""
 
-#: blog/views.py:762
+#: blog/views.py:857
 msgid "contact, feedback, quiz project"
 msgstr ""
 
-#: blog/views.py:860 blog/views.py:935
+#: blog/views.py:955 blog/views.py:1030
 msgid "Квизы"
 msgstr ""
 
-#: blog/views.py:868
+#: blog/views.py:963
 msgid "Test your knowledge with our interactive quizzes."
 msgstr ""
 
-#: blog/views.py:869
+#: blog/views.py:964
 msgid "quizzes, tests, programming"
 msgstr ""
 
-#: blog/views.py:948
+#: blog/views.py:1043
 #, python-format
 msgid "%(topic_name)s Quizzes"
 msgstr ""
 
-#: blog/views.py:949
+#: blog/views.py:1044
 #, python-format
 msgid "Explore quizzes on %(topic_name)s."
 msgstr ""
 
-#: blog/views.py:950
+#: blog/views.py:1045
 #, python-format
 msgid "%(topic_name)s, quizzes, programming"
 msgstr ""
 
-#: blog/views.py:953
+#: blog/views.py:1048
 #, python-format
 msgid "No subtopics with tasks available in your language for %(topic_name)s."
 msgstr ""
 
-#: blog/views.py:1003 blog/views.py:1191
+#: blog/views.py:1098 blog/views.py:1286
 msgid "Easy"
 msgstr ""
 
-#: blog/views.py:1004 blog/views.py:1192
+#: blog/views.py:1099 blog/views.py:1287
 msgid "Medium"
 msgstr ""
 
-#: blog/views.py:1005 blog/views.py:1193
+#: blog/views.py:1100 blog/views.py:1288
 msgid "Hard"
 msgstr ""
 
-#: blog/views.py:1054
+#: blog/views.py:1149
 #, python-format
 msgid "%(subtopic_name)s Difficulty Levels — Quiz Project"
 msgstr ""
 
-#: blog/views.py:1055
+#: blog/views.py:1150
 #, python-format
 msgid "Choose difficulty levels for %(subtopic_name)s quizzes."
 msgstr ""
 
-#: blog/views.py:1056
+#: blog/views.py:1151
 #, python-format
 msgid "%(subtopic_name)s, difficulty levels, quizzes, programming"
 msgstr ""
 
-#: blog/views.py:1154 blog/views.py:1155
+#: blog/views.py:1249 blog/views.py:1250
 msgid "I don't know, but I want to learn"
 msgstr ""
 
-#: blog/views.py:1208
+#: blog/views.py:1303
 #, python-format
 msgid "%(subtopic_name)s — %(difficulty)s Quizzes"
 msgstr ""
 
-#: blog/views.py:1209
+#: blog/views.py:1304
 #, python-format
 msgid ""
 "Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level."
 msgstr ""
 
-#: blog/views.py:1210
+#: blog/views.py:1305
 #, python-format
 msgid "%(subtopic_name)s, quizzes, %(difficulty)s, programming"
 msgstr ""
 
-#: blog/views.py:1852
+#: blog/views.py:1976
 msgid "Техническое обслуживание"
 msgstr ""
 
-#: blog/views.py:1866
+#: blog/views.py:1990
 msgid "Спасибо за ваш отзыв! Он будет опубликован после проверки."
 msgstr ""
 
-#: blog/views.py:1869
+#: blog/views.py:1993
 msgid "Пожалуйста, исправьте ошибки в форме."
 msgstr ""
 
-#: blog/views.py:1886
+#: blog/views.py:2010
 msgid "Отзывы"
 msgstr ""
 
-#: blog/views.py:1894
+#: blog/views.py:2018
 msgid "Все отзывы"
 msgstr ""
 
@@ -1731,20 +1731,48 @@ msgstr ""
 msgid "new, pending, confirming, paid, invalid, expired, canceled"
 msgstr ""
 
-#: donation/models.py:136 templates/admin/blog/message/change_form.html:49
+#: donation/models.py:139
+msgid "Wallet Pay Order ID"
+msgstr ""
+
+#: donation/models.py:147
+msgid "Telegram Payment Charge ID"
+msgstr ""
+
+#: donation/models.py:148
+msgid "Telegram Stars payment charge ID"
+msgstr ""
+
+#: donation/models.py:153
+msgid "Stars Amount"
+msgstr ""
+
+#: donation/models.py:154
+msgid "Amount in Telegram Stars (XTR)"
+msgstr ""
+
+#: donation/models.py:160
+msgid "Invoice Payload"
+msgstr ""
+
+#: donation/models.py:161
+msgid "Custom payload for invoice identification"
+msgstr ""
+
+#: donation/models.py:166 templates/admin/blog/message/change_form.html:49
 msgid "Created At"
 msgstr ""
 
-#: donation/models.py:140
+#: donation/models.py:170
 msgid "Updated At"
 msgstr ""
 
-#: donation/models.py:144 donation/templates/donation/donation_page.html:5
-#: donation/templates/donation/donation_page.html:15 donation/views.py:45
+#: donation/models.py:174 donation/templates/donation/donation_page.html:5
+#: donation/templates/donation/donation_page.html:15 donation/views.py:47
 msgid "Donation"
 msgstr ""
 
-#: donation/models.py:145
+#: donation/models.py:175
 msgid "Donations"
 msgstr ""
 
@@ -1828,83 +1856,83 @@ msgstr ""
 msgid "Error processing payment: "
 msgstr ""
 
-#: donation/views.py:44
+#: donation/views.py:46
 msgid "Support"
 msgstr ""
 
-#: donation/views.py:69 donation/views.py:558
+#: donation/views.py:71 donation/views.py:359 donation/views.py:702
 msgid "Invalid amount. Minimum amount is $1.00"
 msgstr ""
 
-#: donation/views.py:75 donation/views.py:564
+#: donation/views.py:77 donation/views.py:361 donation/views.py:708
 msgid "Name is required"
 msgstr ""
 
-#: donation/views.py:83
+#: donation/views.py:85
 msgid "Unsupported currency"
 msgstr ""
 
-#: donation/views.py:118
+#: donation/views.py:120
 msgid "Card error: "
 msgstr ""
 
-#: donation/views.py:125
+#: donation/views.py:127
 msgid "Too many requests. Please try again later."
 msgstr ""
 
-#: donation/views.py:132
+#: donation/views.py:134
 msgid "Invalid request parameters"
 msgstr ""
 
-#: donation/views.py:139
+#: donation/views.py:141
 msgid "Authentication error. Please contact support."
 msgstr ""
 
-#: donation/views.py:146
+#: donation/views.py:148
 msgid "Network error. Please check your connection."
 msgstr ""
 
-#: donation/views.py:153
+#: donation/views.py:155
 msgid "Payment service error. Please try again."
 msgstr ""
 
-#: donation/views.py:160 donation/views.py:640
+#: donation/views.py:162 donation/views.py:784
 msgid "Invalid request format"
 msgstr ""
 
-#: donation/views.py:167
+#: donation/views.py:169
 msgid "Invalid amount format"
 msgstr ""
 
-#: donation/views.py:174 donation/views.py:647
+#: donation/views.py:176 donation/views.py:791
 msgid "An unexpected error occurred. Please try again."
 msgstr ""
 
-#: donation/views.py:197
+#: donation/views.py:199
 msgid "All card fields are required"
 msgstr ""
 
-#: donation/views.py:231
+#: donation/views.py:233
 msgid "Payment method creation error"
 msgstr ""
 
-#: donation/views.py:238 donation/views.py:313
+#: donation/views.py:240 donation/views.py:315
 msgid "An error occurred"
 msgstr ""
 
-#: donation/views.py:255
+#: donation/views.py:257
 msgid "Payment intent ID required"
 msgstr ""
 
-#: donation/views.py:295
+#: donation/views.py:297
 msgid "Payment confirmed successfully"
 msgstr ""
 
-#: donation/views.py:300
+#: donation/views.py:302
 msgid "Payment not completed"
 msgstr ""
 
-#: donation/views.py:307
+#: donation/views.py:309
 msgid "Payment confirmation error"
 msgstr ""
 
@@ -2228,6 +2256,51 @@ msgstr ""
 msgid "Аккаунт не найден или уже отключен"
 msgstr ""
 
+#: tasks/comment_serializers.py:113
+msgid "только что"
+msgstr "just now"
+
+#: tasks/comment_serializers.py:116
+#, python-format
+msgid "%(minutes)s мин. назад"
+msgstr "%(minutes)s min. ago"
+
+#: tasks/comment_serializers.py:119
+#, python-format
+msgid "%(hours)s ч. назад"
+msgstr "%(hours)s h. ago"
+
+#: tasks/comment_serializers.py:122
+#, python-format
+msgid "%(days)s дн. назад"
+msgstr "%(days)s d. ago"
+
+#: tasks/comment_views.py:231
+#, python-brace-format
+msgid "You are banned until {date}. Time remaining: {time}."
+msgstr "You are banned until {date}. Time remaining: {time}."
+
+#: tasks/comment_views.py:236
+#, python-brace-format
+msgid "Вы заблокированы до {date}. Осталось: {time}."
+msgstr "You are banned until {date}. Time remaining: {time}."
+
+#: tasks/comment_views.py:242
+msgid "You are banned permanently."
+msgstr "You are banned permanently."
+
+#: tasks/comment_views.py:244
+msgid "Вы заблокированы навсегда."
+msgstr "You are banned permanently."
+
+#: tasks/comment_views.py:248
+msgid "Reason:"
+msgstr "Reason:"
+
+#: tasks/comment_views.py:250
+msgid "Причина:"
+msgstr "Reason:"
+
 #: templates/admin/blog/message/change_form.html:42
 msgid "Message Details"
 msgstr ""
@@ -2411,7 +2484,7 @@ msgstr ""
 msgid "Отмена"
 msgstr ""
 
-#: templates/admin/tasks/import_json.html:101
+#: templates/admin/tasks/import_json.html:194
 msgid "Импорт задач из JSON"
 msgstr ""
 
@@ -2708,19 +2781,3 @@ msgstr ""
 #: templates/registration/password_reset_form.html:212
 msgid "Enter your email address"
 msgstr ""
-
-#: tasks/comment_serializers.py:111
-msgid "только что"
-msgstr "just now"
-
-#: tasks/comment_serializers.py:114
-msgid "%(minutes)s мин. назад"
-msgstr "%(minutes)s min. ago"
-
-#: tasks/comment_serializers.py:117
-msgid "%(hours)s ч. назад"
-msgstr "%(hours)s h. ago"
-
-#: tasks/comment_serializers.py:120
-msgid "%(days)s дн. назад"
-msgstr "%(days)s d. ago"
