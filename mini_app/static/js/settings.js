@@ -102,13 +102,54 @@ if (typeof SettingsPage === 'undefined') {
     
     applyLocalSettings() {
         try {
-            // Восстанавливаем состояние переключателя уведомлений
-            const notificationsEnabled = localStorage.getItem('notifications') !== 'false';
+            // Восстанавливаем состояние переключателя уведомлений из профиля пользователя
             const notificationsToggle = document.getElementById('notifications-toggle');
-            if (notificationsToggle) {
-                notificationsToggle.checked = notificationsEnabled;
-                notificationsToggle.addEventListener('change', function(e) {
-                    localStorage.setItem('notifications', e.target.checked);
+            if (notificationsToggle && window.currentUser) {
+                // Устанавливаем состояние из профиля пользователя
+                notificationsToggle.checked = window.currentUser.notifications_enabled !== false;
+                
+                // Обработчик изменения настройки
+                notificationsToggle.addEventListener('change', async function(e) {
+                    const isEnabled = e.target.checked;
+                    console.log('🔔 [SETTINGS] Изменение настройки уведомлений:', isEnabled);
+                    
+                    try {
+                        // Отправляем обновление на сервер
+                        const response = await fetch(`/api/accounts/miniapp-users/update/${window.currentUser.telegram_id}/`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                notifications_enabled: isEnabled
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            console.log('✅ [SETTINGS] Настройка уведомлений сохранена');
+                            // Обновляем локальный профиль
+                            if (window.currentUser) {
+                                window.currentUser.notifications_enabled = isEnabled;
+                            }
+                            
+                            // Показываем уведомление пользователю
+                            if (window.Telegram && window.Telegram.WebApp) {
+                                window.Telegram.WebApp.showAlert(
+                                    isEnabled ? 
+                                    'Уведомления включены' : 
+                                    'Уведомления отключены'
+                                );
+                            }
+                        } else {
+                            console.error('❌ [SETTINGS] Ошибка сохранения настройки уведомлений');
+                            // Возвращаем предыдущее состояние
+                            notificationsToggle.checked = !isEnabled;
+                        }
+                    } catch (error) {
+                        console.error('❌ [SETTINGS] Исключение при сохранении:', error);
+                        // Возвращаем предыдущее состояние
+                        notificationsToggle.checked = !isEnabled;
+                    }
                 });
             }
 

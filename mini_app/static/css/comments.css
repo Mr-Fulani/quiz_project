@@ -432,7 +432,7 @@
     transform: scale(1.1);
 }
 
-.comment-submit-btn, .comment-cancel-btn {
+.comment-submit-btn, .comment-cancel-btn, .report-submit-btn {
     padding: 8px 16px;
     border: none;
     border-radius: 6px;
@@ -442,7 +442,7 @@
     transition: all 0.3s;
 }
 
-.comment-submit-btn {
+.comment-submit-btn, .report-submit-btn {
     background: linear-gradient(135deg, var(--matrix-color), var(--active-color));
     color: #000;
     font-weight: bold;
@@ -450,12 +450,12 @@
     box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
 }
 
-.comment-submit-btn:hover:not(:disabled) {
+.comment-submit-btn:hover:not(:disabled), .report-submit-btn:hover:not(:disabled) {
     box-shadow: 0 0 15px rgba(41, 253, 83, 0.6);
     transform: translateY(-2px);
 }
 
-.comment-submit-btn:disabled {
+.comment-submit-btn:disabled, .report-submit-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;

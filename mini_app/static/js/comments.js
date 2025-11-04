@@ -229,9 +229,15 @@ class CommentsManager {
                     </button>
                 ` : ''}
                 ${!comment.is_deleted && comment.author_telegram_id != this.telegramId ? `
-                    <button class="comment-action" data-action="report" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
-                        ⚠️ ${window.translations?.report || 'Пожаловаться'}
-                    </button>
+                    ${comment.has_reported_by_current_user ? `
+                        <span class="comment-action reported" style="color: rgba(0, 255, 0, 0.5); cursor: default;" title="${window.translations?.report_already_sent || 'Жалоба уже отправлена'}">
+                            ✅ ${window.translations?.reported || 'Жалоба отправлена'}
+                        </span>
+                    ` : `
+                        <button class="comment-action" data-action="report" data-comment-id="${comment.id}" data-translation-id="${this.translationId}">
+                            ⚠️ ${window.translations?.report || 'Пожаловаться'}
+                        </button>
+                    `}
                 ` : ''}
             </div>
         `;
@@ -529,7 +535,7 @@ class CommentsManager {
                     <button class="comment-cancel-btn" data-action="close-modal">
                         ${t.cancel || 'Отмена'}
                     </button>
-                    <button class="comment-submit-btn" data-action="submit-report" data-comment-id="${commentId}" data-translation-id="${this.translationId}">
+                    <button class="report-submit-btn" data-action="submit-report" data-comment-id="${commentId}" data-translation-id="${this.translationId}" type="button">
                         ${t.send || 'Отправить'}
                     </button>
                 </div>
@@ -542,6 +548,28 @@ class CommentsManager {
         modal.onclick = (e) => {
             if (e.target === modal) modal.remove();
         };
+        
+        // Прямой обработчик для кнопки Cancel
+        const cancelBtn = modal.querySelector('.comment-cancel-btn[data-action="close-modal"]');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('❌ Закрытие модального окна жалобы');
+                modal.remove();
+            });
+        }
+        
+        // Прямой обработчик для кнопки отправки (на случай если делегирование не сработает)
+        const submitBtn = modal.querySelector('.report-submit-btn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📤 Прямой клик на кнопку отправки жалобы:', commentId);
+                this.submitReport(commentId, modal);
+            });
+        }
     }
 
     /**
@@ -566,12 +594,47 @@ class CommentsManager {
             );
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Ошибка отправки жалобы');
+                const errorData = await response.json();
+                let errorMessage = 'Ошибка отправки жалобы';
+                
+                // Извлекаем сообщение об ошибке из разных форматов ответа DRF
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.non_field_errors && errorData.non_field_errors.length > 0) {
+                    errorMessage = errorData.non_field_errors[0];
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                } else if (typeof errorData === 'string') {
+                    errorMessage = errorData;
+                } else {
+                    // Извлекаем первую ошибку из полей валидации
+                    const firstErrorField = Object.keys(errorData)[0];
+                    if (firstErrorField && Array.isArray(errorData[firstErrorField])) {
+                        errorMessage = errorData[firstErrorField][0];
+                    } else if (firstErrorField) {
+                        errorMessage = errorData[firstErrorField];
+                    }
+                }
+                
+                // Если это ошибка дубликата, показываем специальное сообщение
+                if (response.status === 400 && (errorMessage.includes('уже') || errorMessage.includes('already') || errorMessage.includes('существует'))) {
+                    const t = window.translations || {};
+                    alert(t.report_already_sent || 'Вы уже подали жалобу на этот комментарий');
+                    modal.remove();
+                    // Перезагружаем комментарии для обновления состояния
+                    this.loadComments(1);
+                    return;
+                }
+                
+                throw new Error(errorMessage);
             }
 
-            alert('Жалоба отправлена. Спасибо!');
+            const t = window.translations || {};
+            alert(t.report_sent || 'Жалоба отправлена. Спасибо!');
             modal.remove();
+            
+            // Перезагружаем комментарии для обновления состояния кнопки
+            this.loadComments(1);
 
         } catch (error) {
             console.error('Ошибка отправки жалобы:', error);
@@ -601,6 +664,23 @@ let commentsManager = null;
 
 // Глобальный обработчик событий для кнопок комментариев
 document.addEventListener('click', (e) => {
+    // Обработка кнопок с data-action (включая модальные окна, которые могут быть вне .comments-section)
+    const btn = e.target.closest('[data-action]');
+    if (btn) {
+        const action = btn.dataset.action;
+        
+        // Обработка действий которые не требуют секции комментариев (модальные окна)
+        if (action === 'close-modal') {
+            const modal = btn.closest('.report-modal');
+            if (modal) {
+                modal.remove();
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+        }
+    }
+    
     // КРИТИЧЕСКИ ВАЖНО: Обрабатываем только элементы внутри .comments-section
     // чтобы не мешать другим компонентам (навигация, feedback и т.д.)
     const commentsSection = e.target.closest('.comments-section');
@@ -609,20 +689,11 @@ document.addEventListener('click', (e) => {
         return;
     }
     
-    // Обработка кнопок с data-action
-    const btn = e.target.closest('[data-action]');
+    // Обработка кнопок с data-action внутри секции комментариев
     if (btn) {
         const action = btn.dataset.action;
         const commentId = btn.dataset.commentId ? parseInt(btn.dataset.commentId) : null;
         const translationId = btn.dataset.translationId ? parseInt(btn.dataset.translationId) : null;
-        
-        // Обработка действий которые не требуют менеджера
-        if (action === 'close-modal') {
-            const modal = btn.closest('.report-modal');
-            if (modal) modal.remove();
-            e.stopPropagation();
-            return;
-        }
         
         // Получаем менеджер для данного перевода
         const manager = translationId && window.commentManagers && window.commentManagers[translationId];
@@ -645,9 +716,14 @@ document.addEventListener('click', (e) => {
                 manager.loadMore();
                 break;
             case 'submit-report':
+                e.preventDefault();
+                e.stopPropagation();
                 const modal = btn.closest('.report-modal');
-                if (modal) {
+                if (modal && commentId) {
+                    console.log('📤 Отправка жалобы для комментария (через делегирование):', commentId);
                     manager.submitReport(commentId, modal);
+                } else {
+                    console.error('❌ Модальное окно или commentId не найдены:', { modal: !!modal, commentId, btn: btn });
                 }
                 break;
             case 'remove-image':
@@ -684,6 +760,11 @@ document.addEventListener('click', (e) => {
     
     const submitBtn = e.target.closest('.comment-submit-btn');
     if (submitBtn) {
+        // Пропускаем кнопки с data-action (они обрабатываются выше)
+        if (submitBtn.hasAttribute('data-action')) {
+            return;
+        }
+        
         console.log('📤 Submit button clicked via delegation');
         const form = submitBtn.closest('.comment-form');
         if (form) {

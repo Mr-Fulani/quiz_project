@@ -1619,6 +1619,35 @@ def send_message(request):
                 )
                 logger.info(f"send_message: Добавлено вложение {attachment.id} к сообщению {message.id}")
 
+            # Отправляем уведомление получателю
+            try:
+                # Получаем telegram_id получателя из связанного профиля MiniAppUser
+                from accounts.models import MiniAppUser
+                from accounts.utils_folder.telegram_notifications import create_notification
+                
+                # Ищем MiniAppUser по связи с CustomUser
+                recipient_mini_app = MiniAppUser.objects.filter(
+                    linked_custom_user=recipient
+                ).first()
+                
+                if recipient_mini_app:
+                    notification_title = "✉️ Новое сообщение"
+                    notification_message = f"{request.user.username} отправил вам сообщение:\n\n{content[:200]}"
+                    
+                    create_notification(
+                        recipient_telegram_id=recipient_mini_app.telegram_id,
+                        notification_type='message',
+                        title=notification_title,
+                        message=notification_message,
+                        related_object_id=message.id,
+                        related_object_type='message',
+                        send_to_telegram=True
+                    )
+                    logger.info(f"📤 Уведомление о сообщении отправлено для {recipient_mini_app.telegram_id}")
+                
+            except Exception as e:
+                logger.error(f"❌ Ошибка отправки уведомления о сообщении: {e}")
+
             return JsonResponse({
                 'status': 'sent',
                 'message_id': message.id,

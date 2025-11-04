@@ -45,6 +45,7 @@ class TaskCommentSerializer(serializers.ModelSerializer):
     depth = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
     created_at_formatted = serializers.SerializerMethodField()
+    has_reported_by_current_user = serializers.SerializerMethodField()
     
     class Meta:
         model = TaskComment
@@ -64,7 +65,8 @@ class TaskCommentSerializer(serializers.ModelSerializer):
             'replies',
             'replies_count',
             'depth',
-            'can_delete'
+            'can_delete',
+            'has_reported_by_current_user'
         ]
         read_only_fields = [
             'id',
@@ -120,6 +122,24 @@ class TaskCommentSerializer(serializers.ModelSerializer):
             return _("%(days)s дн. назад") % {'days': days}
         else:
             return obj.created_at.strftime('%d.%m.%Y')
+    
+    def get_has_reported_by_current_user(self, obj):
+        """Проверяет, подавал ли текущий пользователь жалобу на этот комментарий"""
+        request = self.context.get('request')
+        if not request:
+            return False
+        
+        # Получаем telegram_id из запроса
+        telegram_id = request.query_params.get('telegram_id')
+        if not telegram_id:
+            telegram_id = getattr(request, 'telegram_id', None)
+        
+        if telegram_id:
+            return TaskCommentReport.objects.filter(
+                comment=obj,
+                reporter_telegram_id=int(telegram_id)
+            ).exists()
+        return False
 
 
 class TaskCommentListSerializer(TaskCommentSerializer):
@@ -238,9 +258,9 @@ class TaskCommentReportSerializer(serializers.ModelSerializer):
             comment=comment,
             reporter_telegram_id=reporter_telegram_id
         ).exists():
-            raise serializers.ValidationError(
-                "Вы уже подали жалобу на этот комментарий"
-            )
+            raise serializers.ValidationError({
+                'non_field_errors': ["Вы уже подали жалобу на этот комментарий"]
+            })
         
         return data
 

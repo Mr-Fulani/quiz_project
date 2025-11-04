@@ -377,7 +377,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
             'full_name', 'language', 'avatar', 'avatars', 'created_at', 'last_seen',
             'is_admin', 'admin_type', 'grade', 'programming_language', 'programming_languages',
-            'gender', 'birth_date', 'is_profile_public',
+            'gender', 'birth_date', 'is_profile_public', 'notifications_enabled',
             'telegram_user_id', 'telegram_admin_id', 'django_admin_username',
             'social_links'
         )
@@ -515,7 +515,7 @@ class MiniAppUserUpdateSerializer(serializers.ModelSerializer):
             'id', 'telegram_id', 'username', 'first_name', 'last_name', 'full_name',
             'language', 'avatar', 'telegram_photo_url', 'photo_url',
             'grade', 'programming_language_ids', 'programming_languages', 'gender', 'birth_date',
-            'is_profile_public',
+            'is_profile_public', 'notifications_enabled',
             'website', 'telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'social_links'
         )
         extra_kwargs = {
