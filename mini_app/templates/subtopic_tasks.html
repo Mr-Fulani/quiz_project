@@ -120,6 +120,34 @@ window.initializeComments = function() {
                     console.warn('⚠️ Missing translation ID or telegram ID for section');
                 }
             });
+            
+            // Проверяем, вернулись ли мы из профиля (из комментариев)
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnTo = urlParams.get('return_to');
+            const translationId = urlParams.get('translation_id');
+            
+            if (returnTo === 'comments' && translationId) {
+                console.log('📝 Возврат из профиля, открываем секцию комментариев для translation:', translationId);
+                
+                // Находим секцию комментариев
+                const commentSection = document.getElementById(`comments-${translationId}`);
+                if (commentSection) {
+                    // Убираем класс collapsed чтобы секция была открыта
+                    commentSection.classList.remove('collapsed');
+                    
+                    // Прокручиваем к секции комментариев
+                    setTimeout(() => {
+                        commentSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }, 300);
+                    
+                    console.log('✅ Секция комментариев открыта и прокручена');
+                } else {
+                    console.warn('⚠️ Секция комментариев не найдена для translation:', translationId);
+                }
+            }
         }
     }, 100);
     

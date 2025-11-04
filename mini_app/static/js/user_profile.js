@@ -511,11 +511,28 @@
     }
     
     /**
-     * Возврат назад (к списку топ-пользователей)
+     * Возврат назад (к списку топ-пользователей или к комментариям)
      */
     function goBack() {
         console.log('🔙🔙🔙 GOBACK ВЫЗВАН 🔙🔙🔙');
         
+        // Проверяем параметры возврата из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnTo = urlParams.get('return_to');
+        const subtopicId = urlParams.get('subtopic_id');
+        const translationId = urlParams.get('translation_id');
+        
+        // Если пришли из комментариев, возвращаемся на страницу задач
+        if (returnTo === 'comments' && subtopicId) {
+            console.log('📝 Возврат из комментариев на страницу задач');
+            const currentLang = urlParams.get('lang') || window.currentLanguage || 'ru';
+            const targetUrl = `/subtopic/${subtopicId}/tasks?lang=${currentLang}`;
+            console.log('🚀 Переход на:', targetUrl);
+            window.location.href = targetUrl;
+            return;
+        }
+        
+        // Стандартная логика возврата на топ-пользователей
         // Проверяем, есть ли сохраненные фильтры
         const savedFilters = sessionStorage.getItem('topUsersFilters');
         console.log('🔍 savedFilters из sessionStorage:', savedFilters);
