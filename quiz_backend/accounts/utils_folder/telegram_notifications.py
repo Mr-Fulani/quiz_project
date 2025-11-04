@@ -20,13 +20,14 @@ def escape_markdown(text: str) -> str:
     Returns:
         str: Текст с экранированными специальными символами
     """
-    # Символы, которые нужно экранировать в Telegram Markdown
-    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
-    
-    for char in special_chars:
-        text = text.replace(char, f'\\{char}')
-    
-    return text
+    if text is None:
+        return ''
+
+    # Для parse_mode="Markdown" (Telegram Markdown V1) требуется экранировать
+    # только ограниченный набор символов. Расширенное экранирование приводило
+    # к некорректным ссылкам (например, https://quiz-code.com -> https://quiz\-code\.com).
+    # Экранируем только действительно необходимые символы и не трогаем символы URL.
+    return re.sub(r'(?<!\\)([_*\[\]\(\)])', r'\\\', text)
 
 
 def get_base_url(request=None):
