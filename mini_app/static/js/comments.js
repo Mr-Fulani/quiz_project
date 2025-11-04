@@ -171,7 +171,7 @@ class CommentsManager {
         
         comment.replies.forEach(reply => {
             // Создаем элемент ответа с указанием автора родительского комментария
-            const replyElement = this.createCommentElement(reply, comment.author_username, null);
+            const replyElement = this.createCommentElement(reply, comment.author_username, comment.author_telegram_id);
             container.appendChild(replyElement);
             
             // Рекурсивно добавляем ответы на этот ответ
@@ -184,7 +184,7 @@ class CommentsManager {
     /**
      * Создание HTML элемента комментария (плоская структура)
      */
-    createCommentElement(comment, parentAuthor = null) {
+    createCommentElement(comment, parentAuthor = null, parentAuthorTelegramId = null) {
         const div = document.createElement('div');
         // Определяем класс: reply если есть parent_comment, иначе root
         const commentClass = comment.parent_comment ? 'comment-item comment-reply' : 'comment-item comment-root';
@@ -198,13 +198,23 @@ class CommentsManager {
 
         const canDelete = comment.author_telegram_id == this.telegramId;
         
+        // Получаем URL для возврата (текущая страница с параметрами)
+        const returnUrl = this.getReturnUrl();
+        
         // Если это ответ и есть информация о родительском авторе
-        const replyToHtml = parentAuthor ? 
+        const replyToHtml = parentAuthor && parentAuthorTelegramId ? 
+            `<div class="reply-to">↳ ${window.translations?.reply_to || 'в ответ'} <a href="/user_profile/${parentAuthorTelegramId}${returnUrl}" class="reply-to-author">@${this.escapeHtml(parentAuthor)}</a></div>` : 
+            parentAuthor ? 
             `<div class="reply-to">↳ ${window.translations?.reply_to || 'в ответ'} <span class="reply-to-author">@${this.escapeHtml(parentAuthor)}</span></div>` : '';
+
+        // Создаем кликабельный username с параметрами возврата
+        const authorUsername = comment.author_telegram_id ? 
+            `<a href="/user_profile/${comment.author_telegram_id}${returnUrl}" class="comment-author-link">${this.escapeHtml(comment.author_username)}</a>` :
+            `<span class="comment-author">${this.escapeHtml(comment.author_username)}</span>`;
 
         div.innerHTML = `
             <div class="comment-header">
-                <span class="comment-author">${this.escapeHtml(comment.author_username)}</span>
+                ${authorUsername}
                 <span class="comment-date">${comment.created_at_formatted}</span>
             </div>
             ${replyToHtml}
@@ -243,6 +253,46 @@ class CommentsManager {
         `;
 
         return div;
+    }
+
+    /**
+     * Получение URL для возврата на страницу комментариев
+     */
+    getReturnUrl() {
+        // Получаем текущий URL страницы
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        
+        // Извлекаем subtopic_id из пути /subtopic/{subtopic_id}/tasks
+        const pathMatch = currentPath.match(/\/subtopic\/(\d+)\/tasks/);
+        if (pathMatch) {
+            const subtopicId = pathMatch[1];
+            // Формируем параметры для возврата
+            const params = new URLSearchParams({
+                return_to: 'comments',
+                subtopic_id: subtopicId,
+                translation_id: this.translationId.toString()
+            });
+            
+            // Добавляем язык если есть
+            if (this.language) {
+                params.set('lang', this.language);
+            }
+            
+            return `?${params.toString()}`;
+        }
+        
+        // Если не нашли subtopic_id, возвращаем минимальные параметры
+        const params = new URLSearchParams({
+            return_to: 'comments',
+            translation_id: this.translationId.toString()
+        });
+        
+        if (this.language) {
+            params.set('lang', this.language);
+        }
+        
+        return `?${params.toString()}`;
     }
 
     /**
