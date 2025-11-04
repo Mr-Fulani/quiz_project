@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Quiz Project 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-10 01:02+0000\n"
+"POT-Creation-Date: 2025-11-04 20:45+0000\n"
 "PO-Revision-Date: 2025-06-07 12:15+0300\n"
 "Last-Translator: Mr-Fulani <mr.fulani@example.com>\n"
 "Language-Team: Russian <ru@li.org>\n"
@@ -25,259 +25,301 @@ msgstr ""
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
 
-#: accounts/templates/accounts/dashboard.html:16
+# Registration error messages
+#: accounts/api/api_views.py:115 accounts/api/api_views.py:134
+msgid "A user with that username already exists."
+msgstr "Пользователь с таким именем уже существует. Выберите другое имя."
+
+#: accounts/api/api_views.py:117 accounts/api/api_views.py:136
+msgid "This field is required."
+msgstr "Это поле обязательно для заполнения."
+
+#: accounts/api/api_views.py:119
+msgid "Enter a valid email address."
+msgstr "Введите корректный email адрес."
+
+#: accounts/api/api_views.py:121
+msgid "This password is too short. It must contain at least 8 characters."
+msgstr "Пароль слишком короткий. Минимум 8 символов."
+
+#: accounts/api/api_views.py:123
+msgid "This password is too common."
+msgstr "Пароль слишком простой. Выберите более сложный пароль."
+
+#: accounts/api/api_views.py:125
+msgid "This password is entirely numeric."
+msgstr "Пароль не может состоять только из цифр."
+
+#: accounts/api/api_views.py:127
+msgid "The two password fields didn't match."
+msgstr "Пароли не совпадают."
+
+#: accounts/api/api_views.py:1256
+msgid "Первый шаг"
+msgstr ""
+
+#: accounts/api/api_views.py:1257
+msgid "Знаток {}"
+msgstr ""
+
+#: accounts/api/api_views.py:1257
+msgid "Программирования"
+msgstr ""
+
+#: accounts/api/api_views.py:1258
+msgid "Веб-мастер"
+msgstr ""
+
+#: accounts/api/api_views.py:1259
+msgid "Серия"
+msgstr ""
+
+#: accounts/api/api_views.py:1260
+msgid "Эксперт"
+msgstr ""
+
+#: accounts/api/api_views.py:1261
+msgid "Скорость"
+msgstr ""
+
+# Admin type translations
+#: accounts/models.py:173
+msgid "Super Admin"
+msgstr "Суперпользователь"
+
+#: accounts/models.py:175
+msgid "Django Admin"
+msgstr "Django Администратор"
+
+#: accounts/templates/accounts/dashboard.html:17
 msgid "Dashboard"
 msgstr "Панель управления"
 
-#: accounts/templates/accounts/dashboard.html:36
-#: accounts/templates/accounts/dashboard.html:44
+#: accounts/templates/accounts/dashboard.html:37
+#: accounts/templates/accounts/dashboard.html:54
 msgid "Personal Info"
 msgstr "Личная информация"
 
-#: accounts/templates/accounts/dashboard.html:37
-#: accounts/templates/accounts/dashboard.html:45
-#: accounts/templates/accounts/dashboard.html:138
+#: accounts/templates/accounts/dashboard.html:38
+#: accounts/templates/accounts/dashboard.html:55
+#: accounts/templates/accounts/dashboard.html:162
 msgid "Settings"
 msgstr "Настройки"
 
-#: accounts/templates/accounts/dashboard.html:38
-#: accounts/templates/accounts/dashboard.html:46
+#: accounts/templates/accounts/dashboard.html:39
+#: accounts/templates/accounts/dashboard.html:56
 msgid "Security"
 msgstr "Безопасность"
 
-#: accounts/templates/accounts/dashboard.html:70
+#: accounts/templates/accounts/dashboard.html:45
+#: accounts/templates/accounts/dashboard.html:62
+msgid "Logout"
+msgstr "Выйти"
+
+#: accounts/templates/accounts/dashboard.html:94
 #: accounts/templates/accounts/login.html:14
-#, fuzzy
-
-#: blog/templates/blog/post_detail.html:120
-#: blog/templates/blog/project_detail.html:120
-msgid "Лайкнуть"
-msgstr "Лайкнуть"
-
-#: blog/templates/blog/post_detail.html:132
-#: blog/templates/blog/project_detail.html:132
-msgid "Поделиться"
-msgstr "Поделиться"
-
-#: blog/templates/blog/post_detail.html:141
-#: blog/templates/blog/project_detail.html:141  
-msgid "просмотров"
-msgstr "просмотров"
-
-#: static/js/interactions.js:tooltip_likes
-msgid "Liked by"
-msgstr "Лайкнули"
-
-#: static/js/interactions.js:tooltip_shares
-msgid "Shared by"
-msgstr "Поделились"
-
-#: static/js/interactions.js:tooltip_more
-msgid "and %d more"
-msgstr "и еще %d"
-#| msgid "Users"
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: accounts/templates/accounts/dashboard.html:73
+#: accounts/templates/accounts/dashboard.html:97 donation/models.py:27
 #: templates/admin/blog/message/change_form.html:47
 msgid "Email"
 msgstr "Электронная почта"
 
-#: accounts/templates/accounts/dashboard.html:76
+#: accounts/templates/accounts/dashboard.html:100
 msgid "First Name"
 msgstr "Имя"
 
-#: accounts/templates/accounts/dashboard.html:79
+#: accounts/templates/accounts/dashboard.html:103
 #, fuzzy
 #| msgid "Last message"
 msgid "Last Name"
 msgstr "Фамилия"
 
-#: accounts/templates/accounts/dashboard.html:82
+#: accounts/templates/accounts/dashboard.html:106
 msgid "Bio"
 msgstr "Биография"
 
-#: accounts/templates/accounts/dashboard.html:85
-#: accounts/templates/accounts/profile.html:65
+#: accounts/templates/accounts/dashboard.html:109
+#: accounts/templates/accounts/profile.html:69
 #, fuzzy
 #| msgid "Action"
 msgid "Location"
 msgstr "Местоположение"
 
-#: accounts/templates/accounts/dashboard.html:88
+#: accounts/templates/accounts/dashboard.html:112
 msgid "Birth Date"
 msgstr "Дата рождения"
 
-#: accounts/templates/accounts/dashboard.html:126
+#: accounts/templates/accounts/dashboard.html:150
 msgid "Save Changes"
 msgstr "Сохранить изменения"
 
-#: accounts/templates/accounts/dashboard.html:143
+#: accounts/templates/accounts/dashboard.html:167
 #, fuzzy
 #| msgid "View Profile"
 msgid "Public Profile"
 msgstr "Публичный профиль"
 
-#: accounts/templates/accounts/dashboard.html:144
+#: accounts/templates/accounts/dashboard.html:168
 msgid "Allow others to view your profile"
 msgstr "Разрешить другим просматривать ваш профиль"
 
-#: accounts/templates/accounts/dashboard.html:155
+#: accounts/templates/accounts/dashboard.html:179
 msgid "Email Notifications"
 msgstr "Уведомления по электронной почте"
 
-#: accounts/templates/accounts/dashboard.html:156
+#: accounts/templates/accounts/dashboard.html:180
 msgid "Receive email notifications"
 msgstr "Получать уведомления по электронной почте"
 
-#: accounts/templates/accounts/dashboard.html:166
+#: accounts/templates/accounts/dashboard.html:190
 msgid "Dark Mode"
 msgstr "Темный режим"
 
-#: accounts/templates/accounts/dashboard.html:167
+#: accounts/templates/accounts/dashboard.html:191
 msgid "Enable dark mode for the dashboard"
 msgstr "Включить темный режим для панели управления"
 
-#: accounts/templates/accounts/dashboard.html:182
+#: accounts/templates/accounts/dashboard.html:206
 msgid "Security Settings"
 msgstr "Настройки безопасности"
 
-#: accounts/templates/accounts/dashboard.html:186
-#: accounts/templates/accounts/dashboard.html:232
-#: accounts/templates/accounts/profile.html:246
+#: accounts/templates/accounts/dashboard.html:210
+#: accounts/templates/accounts/dashboard.html:256
+#: accounts/templates/accounts/profile.html:250
 msgid "Password changed successfully!"
 msgstr "Пароль успешно изменен!"
 
-#: accounts/templates/accounts/dashboard.html:196
+#: accounts/templates/accounts/dashboard.html:220
 msgid "Current Password"
 msgstr "Текущий пароль"
 
-#: accounts/templates/accounts/dashboard.html:202
+#: accounts/templates/accounts/dashboard.html:226
 #: accounts/templates/accounts/login.html:17
 msgid "Password"
 msgstr "Пароль"
 
-#: accounts/templates/accounts/dashboard.html:203
+#: accounts/templates/accounts/dashboard.html:227
 msgid "Minimum 8 characters"
 msgstr "Минимум 8 символов"
 
-#: accounts/templates/accounts/dashboard.html:208
+#: accounts/templates/accounts/dashboard.html:232
 msgid "Confirm Password"
 msgstr "Подтвердить пароль"
 
-#: accounts/templates/accounts/dashboard.html:209
+#: accounts/templates/accounts/dashboard.html:233
 msgid "Repeat new password"
 msgstr "Повторите новый пароль"
 
-#: accounts/templates/accounts/dashboard.html:216
+#: accounts/templates/accounts/dashboard.html:240
 msgid "Authenticate"
 msgstr "Аутентифицировать"
 
-#: accounts/templates/accounts/dashboard.html:226
+#: accounts/templates/accounts/dashboard.html:250
 msgid "Avatar updated successfully!"
 msgstr "Аватар успешно обновлен!"
 
-#: accounts/templates/accounts/dashboard.html:227
+#: accounts/templates/accounts/dashboard.html:251
 msgid "Error updating avatar."
 msgstr "Ошибка при обновлении аватара."
 
-#: accounts/templates/accounts/dashboard.html:228
+#: accounts/templates/accounts/dashboard.html:252
 msgid "Profile updated successfully!"
 msgstr "Профиль успешно обновлен!"
 
-#: accounts/templates/accounts/dashboard.html:229
+#: accounts/templates/accounts/dashboard.html:253
 msgid "Error updating profile."
 msgstr "Ошибка при обновлении профиля."
 
-#: accounts/templates/accounts/dashboard.html:230
+#: accounts/templates/accounts/dashboard.html:254
 msgid "Settings updated!"
 msgstr "Настройки успешно обновлены!"
 
-#: accounts/templates/accounts/dashboard.html:231
+#: accounts/templates/accounts/dashboard.html:255
 #, fuzzy
 #| msgid "Error resetting statistics."
 msgid "Error updating settings."
 msgstr "Ошибка при обновлении настроек."
 
-#: accounts/templates/accounts/dashboard.html:233
+#: accounts/templates/accounts/dashboard.html:257
 msgid "Error changing password."
 msgstr "Ошибка при смене пароля."
 
-#: accounts/templates/accounts/dashboard.html:234
+#: accounts/templates/accounts/dashboard.html:258
 msgid "Failed to load content."
 msgstr "Не удалось загрузить содержимое."
 
-#: accounts/templates/accounts/dashboard.html:235
-#: accounts/templates/accounts/profile.html:248
-#: accounts/templates/accounts/statistics.html:181
-#: accounts/templates/accounts/user_sidebar.html:47
+#: accounts/templates/accounts/dashboard.html:259
+#: accounts/templates/accounts/profile.html:252
+#: accounts/templates/accounts/statistics.html:185
+#: accounts/templates/accounts/user_sidebar.html:50
 #: accounts/templates/accounts/user_statistics.html:11
 msgid "Solved Tasks"
 msgstr "Решенные задачи"
 
-#: accounts/templates/accounts/dashboard.html:236
-#: accounts/templates/accounts/profile.html:249
-#: accounts/templates/accounts/statistics.html:182
+#: accounts/templates/accounts/dashboard.html:260
+#: accounts/templates/accounts/profile.html:253
+#: accounts/templates/accounts/statistics.html:186
 msgid "Task Count"
 msgstr "Количество задач"
 
-#: accounts/templates/accounts/dashboard.html:242
-#: blog/templates/blog/base.html:109
+#: accounts/templates/accounts/dashboard.html:266
+#: blog/templates/blog/base.html:279
 msgid "Profile"
 msgstr "Профиль"
 
-#: accounts/templates/accounts/dashboard.html:245
+#: accounts/templates/accounts/dashboard.html:269
 msgid "You must"
 msgstr "Вы должны"
 
-#: accounts/templates/accounts/dashboard.html:245
+#: accounts/templates/accounts/dashboard.html:269
 msgid "Log in"
 msgstr "Войти"
 
-#: accounts/templates/accounts/dashboard.html:245
+#: accounts/templates/accounts/dashboard.html:269
 msgid "view your profile information."
 msgstr "чтобы просмотреть информацию вашего профиля."
 
-#: accounts/templates/accounts/inbox.html:17
-#: accounts/templates/accounts/profile.html:47
-#: accounts/templates/accounts/user_sidebar.html:72
+#: accounts/templates/accounts/inbox.html:18
+#: accounts/templates/accounts/profile.html:51
+#: accounts/templates/accounts/user_sidebar.html:74
 #: templates/admin/blog/message/change_list.html:307
 msgid "Messages"
 msgstr "Сообщения"
 
-#: accounts/templates/accounts/inbox.html:48
+#: accounts/templates/accounts/inbox.html:49
 #, fuzzy
 #| msgid "Conversation between"
 msgid "No conversations yet"
 msgstr "Пока нет диалогов"
 
-#: accounts/templates/accounts/inbox.html:68
+#: accounts/templates/accounts/inbox.html:69
 #, fuzzy
 #| msgid "Last message"
 msgid "Type a message..."
 msgstr "Напишите сообщение..."
 
-#: accounts/templates/accounts/inbox.html:88
+#: accounts/templates/accounts/inbox.html:90
 msgid "Error loading conversation."
 msgstr "Ошибка при загрузке диалога."
 
-#: accounts/templates/accounts/inbox.html:89
-#: accounts/templates/accounts/profile.html:245
+#: accounts/templates/accounts/inbox.html:91
+#: accounts/templates/accounts/profile.html:249
 #, fuzzy
 #| msgid "Error resetting statistics."
 msgid "Error sending message."
 msgstr "Ошибка при отправке сообщения."
 
-#: accounts/templates/accounts/inbox.html:90
-#: accounts/templates/accounts/profile.html:244
+#: accounts/templates/accounts/inbox.html:92
+#: accounts/templates/accounts/profile.html:248
 #, fuzzy
 #| msgid "Message sent!"
 msgid "Message sent successfully!"
 msgstr "Сообщение успешно отправлено!"
 
 #: accounts/templates/accounts/login.html:7
-#: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:117
+#: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:281
 msgid "Login"
 msgstr "Войти"
 
@@ -289,121 +331,121 @@ msgstr "Показать пароль"
 msgid "Reveal"
 msgstr "Показать"
 
-#: accounts/templates/accounts/profile.html:45
+#: accounts/templates/accounts/profile.html:49
 msgid "Info"
 msgstr "Информация"
 
-#: accounts/templates/accounts/profile.html:46
-#: accounts/templates/accounts/statistics.html:11
-#: blog/templates/blog/index.html:159
+#: accounts/templates/accounts/profile.html:50
+#: accounts/templates/accounts/statistics.html:15
+#: blog/templates/blog/index.html:162
 msgid "Statistics"
 msgstr "Статистика"
 
-#: accounts/templates/accounts/profile.html:60
+#: accounts/templates/accounts/profile.html:64
 #, fuzzy
 #| msgid "About me"
 msgid "About"
 msgstr "О себе"
 
-#: accounts/templates/accounts/profile.html:61
+#: accounts/templates/accounts/profile.html:65
 #, fuzzy
 #| msgid "No media available"
 msgid "No bio available"
 msgstr "Биография недоступна"
 
-#: accounts/templates/accounts/profile.html:66
+#: accounts/templates/accounts/profile.html:70
 msgid "Not specified"
 msgstr "Не указано"
 
-#: accounts/templates/accounts/profile.html:122
+#: accounts/templates/accounts/profile.html:126
 #, fuzzy
 #| msgid "Quiz Project"
 msgid "Quiz Performance"
 msgstr "Результаты квиза"
 
-#: accounts/templates/accounts/profile.html:131
-#: accounts/templates/accounts/statistics.html:28
+#: accounts/templates/accounts/profile.html:135
+#: accounts/templates/accounts/statistics.html:32
 #, fuzzy
 #| msgid "Number of Attempts"
 msgid "Total Attempts"
 msgstr "Всего попыток"
 
-#: accounts/templates/accounts/profile.html:141
-#: accounts/templates/accounts/statistics.html:37
+#: accounts/templates/accounts/profile.html:145
+#: accounts/templates/accounts/statistics.html:41
 msgid "Successful"
 msgstr "Успешные"
 
-#: accounts/templates/accounts/profile.html:151
-#: accounts/templates/accounts/statistics.html:46
-#: accounts/templates/accounts/statistics.html:77
+#: accounts/templates/accounts/profile.html:155
+#: accounts/templates/accounts/statistics.html:50
+#: accounts/templates/accounts/statistics.html:81
 #: accounts/templates/accounts/user_statistics.html:29
 msgid "Success Rate"
 msgstr "Процент успеха"
 
-#: accounts/templates/accounts/profile.html:162
+#: accounts/templates/accounts/profile.html:166
 msgid "Activity Over Time"
 msgstr "Активность по времени"
 
-#: accounts/templates/accounts/profile.html:168
+#: accounts/templates/accounts/profile.html:172
 #, fuzzy
 #| msgid "No user data available yet"
 msgid "No activity data available"
 msgstr "Данные об активности недоступны"
 
-#: accounts/templates/accounts/profile.html:174
+#: accounts/templates/accounts/profile.html:178
 #, fuzzy
 #| msgid "Favorite Category"
 msgid "Performance by Category"
 msgstr "Результаты по категориям"
 
-#: accounts/templates/accounts/profile.html:180
+#: accounts/templates/accounts/profile.html:184
 #, fuzzy
 #| msgid "No user data available yet"
 msgid "No category data available"
 msgstr "Данные по категориям недоступны"
 
-#: accounts/templates/accounts/profile.html:186
-#: accounts/templates/accounts/statistics.html:94
+#: accounts/templates/accounts/profile.html:190
+#: accounts/templates/accounts/statistics.html:98
 msgid "Attempts Distribution"
 msgstr "Распределение попыток"
 
-#: accounts/templates/accounts/profile.html:192
+#: accounts/templates/accounts/profile.html:196
 #, fuzzy
 #| msgid "No user data available yet"
 msgid "No attempts data available"
 msgstr "Данные о попытках недоступны"
 
-#: accounts/templates/accounts/profile.html:199
+#: accounts/templates/accounts/profile.html:203
 msgid "Detailed statistics are private"
 msgstr "Подробная статистика является приватной"
 
-#: accounts/templates/accounts/profile.html:211
+#: accounts/templates/accounts/profile.html:215
 #: blog/templates/blog/contact.html:33
 msgid "Send Message"
 msgstr "Отправить сообщение"
 
-#: accounts/templates/accounts/profile.html:216
+#: accounts/templates/accounts/profile.html:220
 #, fuzzy
 #| msgid "Your Message"
 msgid "Write your message..."
 msgstr "Напишите ваше сообщение..."
 
-#: accounts/templates/accounts/profile.html:221
+#: accounts/templates/accounts/profile.html:225
 msgid "Add Files"
 msgstr "Добавить файлы"
 
-#: accounts/templates/accounts/profile.html:229
+#: accounts/templates/accounts/profile.html:233
 #, fuzzy
 #| msgid "Sender"
 msgid "Send"
 msgstr "Отправить"
 
-#: accounts/templates/accounts/profile.html:247
+#: accounts/templates/accounts/profile.html:251
 msgid "Failed to change password."
 msgstr "Не удалось изменить пароль."
 
 #: accounts/templates/accounts/sidebar.html:14
-#: accounts/templates/accounts/user_sidebar.html:33
+#: accounts/templates/accounts/user_sidebar.html:36
 #, fuzzy
 #| msgid "Contact"
 msgid "Show Contacts"
@@ -414,8 +456,10 @@ msgid "About Me"
 msgstr "Обо мне"
 
 #: accounts/templates/accounts/sidebar.html:28
+#: blog/templates/blog/about.html:275
+#: blog/templates/blog/all_testimonials.html:93
 #: blog/templates/blog/includes/testimonial_modals.html:29
-#: blog/templates/blog/index.html:151 blog/templates/blog/index.html:265
+#: blog/templates/blog/index.html:154 blog/templates/blog/index.html:269
 msgid "View Profile"
 msgstr "Посмотреть профиль"
 
@@ -428,7 +472,7 @@ msgid "View Resume"
 msgstr "Посмотреть резюме"
 
 #: accounts/templates/accounts/sidebar.html:47
-#: blog/templates/blog/portfolio.html:11
+#: blog/templates/blog/portfolio.html:15
 msgid "Portfolio"
 msgstr "Портфолио"
 
@@ -449,63 +493,63 @@ msgstr "Контакты"
 msgid "Contact Me"
 msgstr "Связаться со мной"
 
-#: accounts/templates/accounts/statistics.html:59
-#: accounts/templates/accounts/user_list.html:7
-#: blog/templates/blog/base.html:108
+#: accounts/templates/accounts/statistics.html:63
+#: accounts/templates/accounts/user_list.html:11
+#: blog/templates/blog/base.html:278
 msgid "Users"
 msgstr "Пользователи"
 
-#: accounts/templates/accounts/statistics.html:68
-#: blog/templates/blog/index.html:119
+#: accounts/templates/accounts/statistics.html:72
+#: blog/templates/blog/index.html:122
 msgid "Quizzes Completed"
 msgstr "Пройдено квизов"
 
-#: accounts/templates/accounts/statistics.html:86
+#: accounts/templates/accounts/statistics.html:90
 msgid "Activity"
 msgstr "Активность"
 
-#: accounts/templates/accounts/statistics.html:90
+#: accounts/templates/accounts/statistics.html:94
 msgid "Categories"
 msgstr "Категории"
 
-#: accounts/templates/accounts/user_list.html:40
-#: accounts/templates/accounts/user_profile.html:50
-#: blog/templates/blog/index.html:116
+#: accounts/templates/accounts/user_list.html:47
+#: accounts/templates/accounts/user_profile.html:53
+#: blog/templates/blog/index.html:119
 msgid "Points"
 msgstr "Очки"
 
-#: accounts/templates/accounts/user_list.html:44
-#: accounts/templates/accounts/user_profile.html:54
-#: blog/templates/blog/base.html:106 blog/templates/blog/quizes.html:18
-#: blog/views.py:638 blog/views.py:654 blog/views.py:764 blog/views.py:781
+#: accounts/templates/accounts/user_list.html:51
+#: accounts/templates/accounts/user_profile.html:57
+#: blog/templates/blog/base.html:275 blog/templates/blog/quizes.html:22
+#: blog/views.py:1127 blog/views.py:1143 blog/views.py:1298
 msgid "Quizzes"
 msgstr "Квизы"
 
-#: accounts/templates/accounts/user_list.html:50
+#: accounts/templates/accounts/user_list.html:57
 #, fuzzy
 #| msgid "No messages found"
 msgid "No users found."
 msgstr "Пользователи не найдены."
 
-#: accounts/templates/accounts/user_list.html:57
+#: accounts/templates/accounts/user_list.html:64
 #: blog/templates/blog/all_testimonials.html:57
-#: blog/templates/blog/quiz_subtopic.html:82
+#: blog/templates/blog/quiz_subtopic.html:81
 msgid "Previous"
 msgstr "Предыдущая"
 
-#: accounts/templates/accounts/user_list.html:61
-#: blog/templates/blog/quiz_subtopic.html:84
+#: accounts/templates/accounts/user_list.html:68
+#: blog/templates/blog/quiz_subtopic.html:83
 msgid "Page"
 msgstr "Страница"
 
-#: accounts/templates/accounts/user_list.html:61
-#: blog/templates/blog/quiz_subtopic.html:84
+#: accounts/templates/accounts/user_list.html:68
+#: blog/templates/blog/quiz_subtopic.html:83
 msgid "of"
 msgstr "из"
 
-#: accounts/templates/accounts/user_list.html:65
+#: accounts/templates/accounts/user_list.html:72
 #: blog/templates/blog/all_testimonials.html:67
-#: blog/templates/blog/quiz_subtopic.html:86
+#: blog/templates/blog/quiz_subtopic.html:85
 msgid "Next"
 msgstr "Следующая"
 
@@ -519,11 +563,11 @@ msgstr "Онлайн"
 msgid "Last seen"
 msgstr "Последний визит"
 
-#: accounts/templates/accounts/user_profile.html:33
+#: accounts/templates/accounts/user_profile.html:36
 msgid "Member since"
 msgstr "Участник с"
 
-#: accounts/templates/accounts/user_profile.html:61
+#: accounts/templates/accounts/user_profile.html:64
 #, fuzzy
 #| msgid "View Profile"
 msgid "View Full Profile"
@@ -533,33 +577,37 @@ msgstr "Посмотреть полный профиль"
 msgid "User Avatar"
 msgstr "Аватар пользователя"
 
-#: accounts/templates/accounts/user_sidebar.html:59
+#: accounts/templates/accounts/user_sidebar.html:62
 msgid "Rating"
 msgstr "Рейтинг"
 
-#: accounts/templates/accounts/user_sidebar.html:179
+#: accounts/templates/accounts/user_sidebar.html:63
+msgid "Points based on task difficulty"
+msgstr ""
+
+#: accounts/templates/accounts/user_sidebar.html:180
 #, fuzzy
 #| msgid "avatar"
 msgid "Default avatar"
 msgstr "Аватар по умолчанию"
 
-#: accounts/templates/accounts/user_sidebar.html:182
+#: accounts/templates/accounts/user_sidebar.html:183
 msgid "Guest"
 msgstr "Гость"
 
-#: accounts/templates/accounts/user_sidebar.html:183
+#: accounts/templates/accounts/user_sidebar.html:184
 msgid "Visitor"
 msgstr "Посетитель"
 
-#: accounts/templates/accounts/user_sidebar.html:187
+#: accounts/templates/accounts/user_sidebar.html:188
 msgid "Please"
 msgstr "Пожалуйста,"
 
-#: accounts/templates/accounts/user_sidebar.html:187
+#: accounts/templates/accounts/user_sidebar.html:188
 msgid "log in"
 msgstr "войдите"
 
-#: accounts/templates/accounts/user_sidebar.html:187
+#: accounts/templates/accounts/user_sidebar.html:188
 msgid "to view your profile information."
 msgstr "чтобы просмотреть информацию вашего профиля."
 
@@ -569,93 +617,51 @@ msgstr "чтобы просмотреть информацию вашего пр
 msgid "Attempts"
 msgstr "Попытки"
 
-#: blog/admin.py:104
+#: blog/admin.py:106
 msgid "Вложение сообщения"
 msgstr "Вложение сообщения"
 
-#: blog/admin.py:105
+#: blog/admin.py:107
 msgid "Вложения сообщения"
 msgstr "Вложения сообщения"
 
-#: blog/admin.py:184
+#: blog/admin.py:186
 msgid "Не выбрано ни одного элемента для удаления."
 msgstr "Не выбрано ни одного элемента для удаления."
 
-#: blog/admin.py:261
-msgid "Ошибка при удалении сообщения PK {message_pk_for_log}: {str(e)}"
-msgstr "Ошибка при удалении сообщения PK {message_pk_for_log}: {str(e)}"
-
-#: blog/admin.py:266
-#, python-brace-format
-msgid "Обнаружен неверный формат ID сообщения: '{item_ids_str}'."
-msgstr "Обнаружен неверный формат ID сообщения: '{item_ids_str}'."
-
-#: blog/admin.py:270
-msgid "Ошибка при обработке элемента для удаления: {str(e)}"
-msgstr "Ошибка при обработке элемента для удаления: {str(e)}"
-
-#: blog/admin.py:275
-#, python-brace-format
-msgid ""
-"Успешно удалено {actual_deleted_messages_count} сообщений (ID: "
-"{deleted_pks_str}) и их вложений."
-msgstr ""
-"Успешно удалено {actual_deleted_messages_count} сообщений (ID: "
-"{deleted_pks_str}) и их вложений."
-
-#: blog/admin.py:281
+#: blog/admin.py:283
 msgid "Сообщения для удаления не найдены или уже были удалены."
 msgstr "Сообщения для удаления не найдены или уже были удалены."
 
-#: blog/admin.py:284
+#: blog/admin.py:286
 msgid "Удалить выбранные сообщения"
 msgstr "Удалить выбранные сообщения"
 
-#: blog/admin.py:306
-#, python-brace-format
-msgid "Отмечено как прочитанные {updated_count} сообщений."
-msgstr "Отмечено как прочитанные {updated_count} сообщений."
-
-#: blog/admin.py:308
+#: blog/admin.py:310
 msgid "Отметить как прочитанные"
 msgstr "Отметить как прочитанные"
 
-#: blog/admin.py:329
-#, python-brace-format
-msgid "Отмечено как непрочитанные {updated_count} сообщений."
-msgstr "Отмечено как непрочитанные {updated_count} сообщений."
-
-#: blog/admin.py:331
+#: blog/admin.py:333
 msgid "Отметить как непрочитанные"
 msgstr "Отметить как непрочитанные"
 
-#: blog/admin.py:352
-#, python-brace-format
-msgid "Помечено как удалённое отправителем для {updated_count} сообщений."
-msgstr "Помечено как удалённое отправителем для {updated_count} сообщений."
-
-#: blog/admin.py:354
+#: blog/admin.py:356
 msgid "Поместить в корзину для отправителя"
 msgstr "Поместить в корзину для отправителя"
 
-#: blog/admin.py:375
-#, python-brace-format
-msgid "Помечено как удалённое получателем для {updated_count} сообщений."
-msgstr "Помечено как удалённое получателем для {updated_count} сообщений."
-
-#: blog/admin.py:377
+#: blog/admin.py:379
 msgid "Поместить в корзину для получателя"
 msgstr "Поместить в корзину для получателя"
 
-#: blog/context_processors.py:63
+#: blog/context_processors.py:74 blog/context_processors.py:83
 msgid "Not determined"
 msgstr "Не определено"
 
-#: blog/context_processors.py:104
+#: blog/context_processors.py:139
 msgid "Yandex Zen"
 msgstr "Яндекс Дзен"
 
-#: blog/context_processors.py:118
+#: blog/context_processors.py:153
 msgid ""
 "I create high-load web applications, functional websites, powerful Telegram "
 "bots of any complexity, business cards and other digital solutions."
@@ -663,7 +669,7 @@ msgstr ""
 "Я создаю высоконагруженные веб-приложения, функциональные сайты, мощные "
 "Telegram-боты любой сложности, визитки и другие цифровые решения."
 
-#: blog/context_processors.py:119
+#: blog/context_processors.py:154
 msgid ""
 "I use microservice architecture, modular approach, modern databases and "
 "optimized APIs. This allows you to develop flexible, reliable and scalable "
@@ -673,7 +679,7 @@ msgstr ""
 "данных и оптимизированные API. Это позволяет разрабатывать гибкие, надежные "
 "и масштабируемые проекты, легко адаптируемые под любые задачи."
 
-#: blog/context_processors.py:120
+#: blog/context_processors.py:155
 msgid ""
 "This blog is not only a business card, but also a useful resource for "
 "developers. Here I share: educational materials, guides and examples that "
@@ -683,7 +689,7 @@ msgstr ""
 "я делюсь: учебными материалами, руководствами и примерами, которые помогут "
 "улучшить ваши навыки программирования."
 
-#: blog/context_processors.py:121
+#: blog/context_processors.py:156
 msgid ""
 "Whether it's process automation, integration with external services or "
 "creating a unique digital product - I will help bring your idea to life in a "
@@ -693,7 +699,7 @@ msgstr ""
 "создание уникального цифрового продукта — я помогу воплотить вашу идею в "
 "надежное и элегантное решение."
 
-#: blog/context_processors.py:124
+#: blog/context_processors.py:159
 msgid ""
 "Welcome to QuizHub - your resource for programming and quizzes. Here you "
 "will find the latest news, detailed guides and practical tips covering "
@@ -703,7 +709,7 @@ msgstr ""
 "вы найдете последние новости, подробные руководства и практические советы, "
 "охватывающие все — от Python до React."
 
-#: blog/context_processors.py:125
+#: blog/context_processors.py:160
 msgid ""
 "On our site you can learn new technologies, take exciting interactive "
 "quizzes and track your progress with detailed statistics."
@@ -712,7 +718,7 @@ msgstr ""
 "интерактивные квизы и отслеживать свой прогресс с помощью подробной "
 "статистики."
 
-#: blog/context_processors.py:126
+#: blog/context_processors.py:161
 msgid ""
 "We strive to make learning programming accessible, interesting and effective "
 "for everyone, whether you are a beginner or a professional."
@@ -720,7 +726,7 @@ msgstr ""
 "Мы стремимся сделать изучение программирования доступным, интересным и "
 "эффективным для всех, будь вы новичок или профессионал."
 
-#: blog/context_processors.py:127
+#: blog/context_processors.py:162
 msgid ""
 "Start your learning right now - dive into the world of code, take quizzes, "
 "improve your skills and track your growth."
@@ -728,69 +734,148 @@ msgstr ""
 "Начните обучение прямо сейчас — погрузитесь в мир кода, проходите квизы, "
 "улучшайте свои навыки и отслеживайте свой рост."
 
-#: blog/context_processors.py:174 blog/views.py:169
-msgid "Quiz Python, Go, JavaScript, Java, C#"
+#: blog/context_processors.py:255
+msgid "Quiz Python, Go, JavaScript, Java, C# | Programming Quizzes & Learning"
 msgstr ""
 
-#: blog/context_processors.py:175 blog/context_processors.py:180
-msgid "Welcome to Quiz Project — blog and portfolio with quizzes and projects."
-msgstr ""
-"Добро пожаловать в Квиз Проект — блог и портфолио с квизами и проектами."
-
-#: blog/context_processors.py:176
-msgid "quiz, blog, portfolio, projects, programming"
-msgstr "квиз, блог, портфолио, проекты, программирование"
-
-#: blog/context_processors.py:179
-msgid "Quiz Project"
-msgstr "Квиз Проект"
-
-#: blog/context_processors.py:187
-msgid "Resume — web developer"
+#: blog/context_processors.py:256 blog/context_processors.py:261
+msgid ""
+"Master programming with interactive quizzes in Python, JavaScript, Go, Java, "
+"C#. Free coding challenges, tutorials, and skill assessment."
 msgstr ""
 
-#: blog/context_processors.py:188 blog/views.py:324
-msgid "My professional resume with experience and skills."
-msgstr "Мое профессиональное резюме с опытом и навыками."
+#: blog/context_processors.py:257
+msgid ""
+"programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, "
+"coding challenges, programming learning, developer skills, interactive coding"
+msgstr ""
 
-#: blog/context_processors.py:189 blog/views.py:325
-msgid "resume, programmer, portfolio"
-msgstr "резюме, программист, портфолио"
+#: blog/context_processors.py:260
+msgid "QuizHub - Interactive Programming Quizzes & Learning Platform"
+msgstr ""
 
-#: blog/context_processors.py:198
+#: blog/context_processors.py:272
+msgid "QuizHub - Interactive Programming Quizzes"
+msgstr ""
+
+#: blog/context_processors.py:273
+msgid ""
+"Master programming with interactive quizzes in Python, JavaScript, Go, Java, "
+"C#."
+msgstr ""
+
+#: blog/context_processors.py:290
+msgid "Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React"
+msgstr ""
+
+#: blog/context_processors.py:291
+msgid ""
+"Experienced Full Stack Developer specializing in Python, Django, React, and "
+"modern web technologies. View my professional resume and portfolio."
+msgstr ""
+
+#: blog/context_processors.py:292
+msgid ""
+"full stack developer, Python developer, Django developer, React developer, "
+"web developer resume, portfolio"
+msgstr ""
+
+#: blog/context_processors.py:295
+msgid "Anvar Sh. - Full Stack Web Developer Resume"
+msgstr ""
+
+#: blog/context_processors.py:296
+msgid ""
+"Experienced Full Stack Developer specializing in Python, Django, React, and "
+"modern web technologies."
+msgstr ""
+
+#: blog/context_processors.py:299
+msgid "Anvar Sh. - Full Stack Developer Resume"
+msgstr ""
+
+#: blog/context_processors.py:300
+msgid ""
+"Experienced developer specializing in Python, Django, React, and modern web "
+"technologies."
+msgstr ""
+
+#: blog/context_processors.py:304 blog/context_processors.py:309
+msgid "About Anvar Sh. - Web Developer & Programming Instructor"
+msgstr ""
+
+#: blog/context_processors.py:305
+msgid ""
+"Learn about Anvar Sh., a passionate web developer and programming instructor "
+"creating educational content and powerful web applications."
+msgstr ""
+
+#: blog/context_processors.py:306
+msgid ""
+"about developer, programming instructor, web developer story, coding mentor, "
+"educational content creator"
+msgstr ""
+
+#: blog/context_processors.py:310
+msgid ""
+"Learn about Anvar Sh., a passionate web developer and programming instructor."
+msgstr ""
+
+#: blog/context_processors.py:313
 #, fuzzy
 #| msgid "About Me — Quiz Project"
-msgid "About Me — web developer"
+msgid "About Anvar Sh. - Web Developer"
 msgstr "Обо мне — Квиз Проект"
 
-#: blog/context_processors.py:199
-msgid "Learn more about me and my projects."
-msgstr "Узнайте больше обо мне и моих проектах."
+#: blog/context_processors.py:314
+msgid ""
+"Passionate web developer and programming instructor creating educational "
+"content."
+msgstr ""
 
-#: blog/context_processors.py:200
-msgid "about me, developer, programming"
-msgstr "обо мне, разработчик, программирование"
+#: blog/context_processors.py:318
+msgid "Contact Anvar Sh. - Web Development Services & Collaboration"
+msgstr ""
 
-#: blog/context_processors.py:209
-#, fuzzy
-#| msgid "Contact — Quiz Project"
-msgid "Contact — web developer"
-msgstr "Контакты — Квиз Проект"
+#: blog/context_processors.py:319
+msgid ""
+"Get in touch for web development services, collaboration opportunities, or "
+"programming consultation. Available for freelance projects."
+msgstr ""
 
-#: blog/context_processors.py:210
-msgid "Contact me for collaboration or questions."
-msgstr "Свяжитесь со мной для сотрудничества или вопросов."
+#: blog/context_processors.py:320
+msgid ""
+"contact developer, web development services, freelance developer, "
+"programming consultation, collaboration"
+msgstr ""
 
-#: blog/context_processors.py:211
-msgid "contact, programmer, collaboration"
-msgstr "контакты, программист, сотрудничество"
+#: blog/context_processors.py:323 blog/context_processors.py:326
+msgid "Contact Anvar Sh. - Web Development Services"
+msgstr ""
 
-#: blog/mixins.py:27 blog/views.py:153 blog/views.py:180 blog/views.py:224
-#: blog/views.py:276 blog/views.py:317 blog/views.py:337 blog/views.py:359
-#: blog/views.py:382 blog/views.py:476 blog/views.py:543 blog/views.py:1418
-#: blog/views.py:1450
+#: blog/context_processors.py:324
+msgid ""
+"Get in touch for web development services, collaboration opportunities, or "
+"programming consultation."
+msgstr ""
+
+#: blog/context_processors.py:327
+msgid ""
+"Get in touch for web development services and collaboration opportunities."
+msgstr ""
+
+#: blog/mixins.py:27 blog/views.py:525 blog/views.py:552 blog/views.py:596
+#: blog/views.py:648 blog/views.py:690 blog/views.py:805 blog/views.py:827
+#: blog/views.py:850 blog/views.py:954 blog/views.py:1029 blog/views.py:1975
+#: blog/views.py:2009
 msgid "Главная"
 msgstr "Главная"
+
+#: blog/templates/blog/about.html:11
+#, fuzzy
+#| msgid "About Me"
+msgid "About me"
+msgstr "Обо мне"
 
 #: blog/templates/blog/about.html:50
 msgid "What I do"
@@ -920,6 +1005,79 @@ msgstr "Git"
 msgid "Linux"
 msgstr "Linux"
 
+#: blog/templates/blog/about.html:276
+#: blog/templates/blog/all_testimonials.html:94
+#: blog/templates/blog/index.html:270
+msgid "Login to view profile"
+msgstr "Войдите, чтобы посмотреть профиль"
+
+#: blog/templates/blog/about.html:277
+#: blog/templates/blog/all_testimonials.html:95
+#: blog/templates/blog/index.html:271
+msgid "Profile unavailable"
+msgstr "Профиль недоступен"
+
+#: blog/templates/blog/about.html:278
+#: blog/templates/blog/all_testimonials.html:96
+#: blog/templates/blog/index.html:272
+msgid "Modal closed"
+msgstr "Модальное окно закрыто"
+
+#: blog/templates/blog/about.html:279
+#: blog/templates/blog/all_testimonials.html:97
+#: blog/templates/blog/index.html:273
+msgid "Modal opened"
+msgstr "Модальное окно открыто"
+
+#: blog/templates/blog/about.html:280
+#: blog/templates/blog/all_testimonials.html:98
+#: blog/templates/blog/index.html:274
+msgid "User not authenticated, preventing modal open"
+msgstr ""
+"Пользователь не аутентифицирован, предотвращение открытия модального окна"
+
+#: blog/templates/blog/about.html:281
+#: blog/templates/blog/all_testimonials.html:99
+#: blog/templates/blog/index.html:275
+msgid "Add testimonial modal opened"
+msgstr "Модальное окно добавления отзыва открыто"
+
+#: blog/templates/blog/about.html:282
+#: blog/templates/blog/all_testimonials.html:100
+#: blog/templates/blog/index.html:276
+msgid "Add testimonial button not found"
+msgstr "Кнопка добавления отзыва не найдена"
+
+#: blog/templates/blog/about.html:283
+#: blog/templates/blog/all_testimonials.html:101
+#: blog/templates/blog/index.html:277
+msgid "Add testimonial modal not found"
+msgstr "Модальное окно добавления отзыва не найдено"
+
+#: blog/templates/blog/about.html:284
+#: blog/templates/blog/all_testimonials.html:102
+#: blog/templates/blog/index.html:278
+msgid "Modal not found for closing"
+msgstr "Модальное окно не найдено для закрытия"
+
+#: blog/templates/blog/about.html:285
+#: blog/templates/blog/all_testimonials.html:103
+#: blog/templates/blog/index.html:279
+msgid "Thank you! Your testimonial has been successfully added."
+msgstr "Спасибо! Ваш отзыв был успешно добавлен."
+
+#: blog/templates/blog/about.html:286
+#: blog/templates/blog/all_testimonials.html:104
+#: blog/templates/blog/index.html:280
+msgid "An error occurred while submitting the testimonial. Please try again."
+msgstr "Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте еще раз."
+
+#: blog/templates/blog/about.html:287
+#: blog/templates/blog/all_testimonials.html:105
+#: blog/templates/blog/index.html:281
+msgid "Add testimonial button clicked, isAuthenticated:"
+msgstr "Кнопка добавления отзыва нажата, аутентифицирован:"
+
 #: blog/templates/blog/all_testimonials.html:11
 msgid "All Reviews"
 msgstr "Все отзывы"
@@ -937,42 +1095,103 @@ msgstr "Пока нет отзывов"
 msgid "Modal windows"
 msgstr "Модальные окна"
 
-#: blog/templates/blog/base.html:100 blog/templates/blog/base.html:102
-#: blog/templates/blog/index.html:13 blog/views.py:637 blog/views.py:653
-#: blog/views.py:763 blog/views.py:780
+#: blog/templates/blog/base.html:269 blog/templates/blog/base.html:271
+#: blog/templates/blog/index.html:13 blog/views.py:1126 blog/views.py:1142
+#: blog/views.py:1297 templates/admin/platforms/telegram_post_form.html:322
 msgid "Home"
 msgstr "Главная"
 
-#: blog/templates/blog/base.html:105
+#: blog/templates/blog/base.html:274
 msgid "Posts"
 msgstr "Посты"
 
-#: blog/templates/blog/base.html:113
-msgid "Logout"
-msgstr "Выйти"
+# Donation page translations
+#: blog/templates/blog/base.html:276
+#, fuzzy
+#| msgid "Donation"
+msgid "Donate"
+msgstr "Пожертвование"
 
-#: blog/templates/blog/blog_page.html:13
+#: blog/templates/blog/base.html:365
+msgid "или"
+msgstr ""
+
+#: blog/templates/blog/base.html:382 blog/templates/blog/base.html:434
+#, fuzzy
+#| msgid "Current Password"
+msgid "Forgot Password?"
+msgstr "Текущий пароль"
+
+#: blog/templates/blog/base.html:383
+msgid "Signup"
+msgstr ""
+
+#: blog/templates/blog/base.html:435
+#, fuzzy
+#| msgid ""
+#| "Enter your email address and we'll send you a link to reset your password."
+msgid ""
+"Enter your email address below and we'll send you a link to reset your "
+"password."
+msgstr "Введите ваш email адрес и мы отправим вам ссылку для сброса пароля."
+
+#: blog/templates/blog/base.html:439
+#, fuzzy
+#| msgid "Enter your email address"
+msgid "Enter your email"
+msgstr "Введите ваш email адрес"
+
+#: blog/templates/blog/base.html:442
+#: templates/registration/password_reset_form.html:217
+msgid "Send Reset Link"
+msgstr "Отправить ссылку для сброса"
+
+#: blog/templates/blog/base.html:445
+#: templates/registration/password_reset_done.html:177
+msgid "Back to Login"
+msgstr "Вернуться к входу"
+
+#: blog/templates/blog/blog_page.html:15
 msgid "Blog"
 msgstr "Блог"
 
-#: blog/templates/blog/blog_page.html:15 blog/templates/blog/portfolio.html:13
+#: blog/templates/blog/blog_page.html:17 blog/templates/blog/portfolio.html:17
 msgid "Filter"
 msgstr "Фильтр"
 
-#: blog/templates/blog/blog_page.html:20 blog/templates/blog/portfolio.html:18
+#: blog/templates/blog/blog_page.html:22 blog/templates/blog/portfolio.html:22
 #: templates/admin/blog/message/change_list.html:201
 msgid "All"
 msgstr "Все"
 
-#: blog/templates/blog/blog_page.html:54 blog/templates/blog/portfolio.html:52
+#: blog/templates/blog/blog_page.html:56 blog/templates/blog/portfolio.html:56
 msgid "No Image"
 msgstr "Нет изображения"
 
-#: blog/templates/blog/blog_page.html:73
+#: blog/templates/blog/blog_page.html:83 blog/templates/blog/portfolio.html:87
+#: blog/templates/blog/post_detail.html:153
+#: blog/templates/blog/project_detail.html:167
+#, fuzzy
+msgid "Лайкнуть"
+msgstr "Лайкнуть"
+
+#: blog/templates/blog/blog_page.html:93 blog/templates/blog/portfolio.html:97
+#: blog/templates/blog/post_detail.html:163
+#: blog/templates/blog/project_detail.html:177
+msgid "Поделиться"
+msgstr "Поделиться"
+
+#: blog/templates/blog/blog_page.html:99 blog/templates/blog/portfolio.html:103
+#: blog/templates/blog/post_detail.html:169
+#: blog/templates/blog/project_detail.html:183
+msgid "просмотров"
+msgstr "просмотров"
+
+#: blog/templates/blog/blog_page.html:105
 msgid "No posts yet, but we're working on it!"
 msgstr "Пока нет постов, но мы работаем над этим!"
 
-#: blog/templates/blog/blog_page.html:74
+#: blog/templates/blog/blog_page.html:106
 msgid "New posts will appear soon, stay tuned!"
 msgstr "Новые посты скоро появятся, следите за обновлениями!"
 
@@ -1087,139 +1306,91 @@ msgstr ""
 msgid "Top Users"
 msgstr "Топ пользователей"
 
-#: blog/templates/blog/index.html:115
+#: blog/templates/blog/index.html:118
 msgid "Rank"
 msgstr "Ранг"
 
-#: blog/templates/blog/index.html:120
+#: blog/templates/blog/index.html:123
 msgid "Average Score"
 msgstr "Средний балл"
 
-#: blog/templates/blog/index.html:121
+#: blog/templates/blog/index.html:124
 msgid "Favorite Category"
 msgstr "Любимая категория"
 
-#: blog/templates/blog/index.html:129
+#: blog/templates/blog/index.html:132
 msgid "No user data available yet"
 msgstr "Данные пользователей пока недоступны"
 
-#: blog/templates/blog/index.html:165
+#: blog/templates/blog/index.html:168
 msgid "Our Resources"
 msgstr "Наши ресурсы"
 
-#: blog/templates/blog/index.html:216
+#: blog/templates/blog/index.html:219
 msgid "Popular Quizzes"
 msgstr "Популярные квизы"
 
-#: blog/templates/blog/index.html:220
+#: blog/templates/blog/index.html:223
 msgid "Programming Basics"
 msgstr "Основы программирования"
 
-#: blog/templates/blog/index.html:221
+#: blog/templates/blog/index.html:224
 #, python-format
 msgid "80%% popularity"
 msgstr "80%% популярности"
 
-#: blog/templates/blog/index.html:229
+#: blog/templates/blog/index.html:232
 msgid "World History"
 msgstr "Всемирная история"
 
-#: blog/templates/blog/index.html:230
+#: blog/templates/blog/index.html:233
 #, python-format
 msgid "70%% popularity"
 msgstr "70%% популярности"
 
-#: blog/templates/blog/index.html:238
+#: blog/templates/blog/index.html:241
 msgid "Science Quiz"
 msgstr "Научный квиз"
 
-#: blog/templates/blog/index.html:239
+#: blog/templates/blog/index.html:242
 #, python-format
 msgid "90%% popularity"
 msgstr "90%% популярности"
 
-#: blog/templates/blog/index.html:247
+#: blog/templates/blog/index.html:250
 msgid "Literature Masters"
 msgstr "Мастера литературы"
 
-#: blog/templates/blog/index.html:248
+#: blog/templates/blog/index.html:251
 #, python-format
 msgid "50%% popularity"
 msgstr "50%% популярности"
 
-#: blog/templates/blog/index.html:266
-msgid "Login to view profile"
-msgstr "Войдите, чтобы посмотреть профиль"
-
-#: blog/templates/blog/index.html:267
-msgid "Profile unavailable"
-msgstr "Профиль недоступен"
-
-#: blog/templates/blog/index.html:268
-msgid "Modal closed"
-msgstr "Модальное окно закрыто"
-
-#: blog/templates/blog/index.html:269
-msgid "Modal opened"
-msgstr "Модальное окно открыто"
-
-#: blog/templates/blog/index.html:270
-msgid "User not authenticated, preventing modal open"
-msgstr "Пользователь не аутентифицирован, предотвращение открытия модального окна"
-
-#: blog/templates/blog/index.html:271
-msgid "Add testimonial modal opened"
-msgstr "Модальное окно добавления отзыва открыто"
-
-#: blog/templates/blog/index.html:272
-msgid "Add testimonial button not found"
-msgstr "Кнопка добавления отзыва не найдена"
-
-#: blog/templates/blog/index.html:273
-msgid "Add testimonial modal not found"
-msgstr "Модальное окно добавления отзыва не найдено"
-
-#: blog/templates/blog/index.html:274
-msgid "Modal not found for closing"
-msgstr "Модальное окно не найдено для закрытия"
-
-#: blog/templates/blog/index.html:275
-msgid "Thank you! Your testimonial has been successfully added."
-msgstr "Спасибо! Ваш отзыв был успешно добавлен."
-
-#: blog/templates/blog/index.html:276
-msgid "An error occurred while submitting the testimonial. Please try again."
-msgstr "Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте еще раз."
-
-#: blog/templates/blog/index.html:277
-msgid "Add testimonial button clicked, isAuthenticated:"
-msgstr "Кнопка добавления отзыва нажата, аутентифицирован:"
-
-#: blog/templates/blog/index.html:350
+#: blog/templates/blog/index.html:354
 msgid "Jan"
 msgstr "Янв"
 
-#: blog/templates/blog/index.html:350
+#: blog/templates/blog/index.html:354
 msgid "Feb"
 msgstr "Фев"
 
-#: blog/templates/blog/index.html:350
+#: blog/templates/blog/index.html:354
 msgid "Mar"
 msgstr "Мар"
 
-#: blog/templates/blog/index.html:350
+#: blog/templates/blog/index.html:354
 msgid "Apr"
 msgstr "Апр"
 
-#: blog/templates/blog/index.html:350
+#: blog/templates/blog/index.html:354
 msgid "May"
 msgstr "Май"
 
-#: blog/templates/blog/index.html:350
+#: blog/templates/blog/index.html:354
 msgid "Jun"
 msgstr "Июн"
 
-#: blog/templates/blog/index.html:352
+#: blog/templates/blog/index.html:356
 msgid "Number of Attempts"
 msgstr "Количество попыток"
 
@@ -1247,107 +1418,107 @@ msgstr ""
 msgid "Return to Home"
 msgstr "Вернуться на главную"
 
-#: blog/templates/blog/portfolio.html:75
+#: blog/templates/blog/portfolio.html:109
 msgid "No projects yet, but we're working on it!"
 msgstr "Пока нет проектов, но мы работаем над этим!"
 
-#: blog/templates/blog/portfolio.html:76
+#: blog/templates/blog/portfolio.html:110
 msgid "New projects will appear soon, stay tuned!"
 msgstr "Новые проекты скоро появятся, следите за обновлениями!"
 
-#: blog/templates/blog/post_detail.html:55
-#: blog/templates/blog/project_detail.html:51
+#: blog/templates/blog/post_detail.html:97
+#: blog/templates/blog/project_detail.html:87
 msgid "Your browser does not support the video tag."
 msgstr "Ваш браузер не поддерживает тег видео."
 
-#: blog/templates/blog/post_detail.html:65
-#: blog/templates/blog/project_detail.html:61
+#: blog/templates/blog/post_detail.html:107
+#: blog/templates/blog/project_detail.html:97
 msgid "No media available"
 msgstr "Медиа недоступно"
 
-#: blog/templates/blog/project_detail.html:107
+#: blog/templates/blog/project_detail.html:143
 msgid "GitHub"
 msgstr "GitHub"
 
-#: blog/templates/blog/project_detail.html:113
+#: blog/templates/blog/project_detail.html:149
 msgid "Live Demo"
 msgstr "Живая демо"
 
-#: blog/templates/blog/quiz_detail.html:18
+#: blog/templates/blog/quiz_detail.html:22
 msgid "Available Subtopics"
 msgstr "Доступные подтемы"
 
-#: blog/templates/blog/quiz_detail.html:26
+#: blog/templates/blog/quiz_detail.html:30
 #, python-format
 msgid "%(subtopic_name)s icon"
 msgstr "Иконка %(subtopic_name)s"
 
-#: blog/templates/blog/quiz_detail.html:30
+#: blog/templates/blog/quiz_detail.html:34
 msgid "Test on subtopic"
 msgstr "Тест по подтеме"
 
-#: blog/templates/blog/quiz_detail.html:38
+#: blog/templates/blog/quiz_detail.html:42
 #, fuzzy
 #| msgid "Test on subtopic"
 msgid "No subtopics"
 msgstr "Тест по подтеме"
 
-#: blog/templates/blog/quiz_detail.html:41
+#: blog/templates/blog/quiz_detail.html:45
 #, fuzzy
 #| msgid "No topics available"
 msgid "No Subtopics Available"
 msgstr "Нет доступных тем"
 
-#: blog/templates/blog/quiz_detail.html:42
+#: blog/templates/blog/quiz_detail.html:46
 #, fuzzy, python-format
 #| msgid "No subtopics available for"
 msgid "No subtopics available for %(topic_name)s."
 msgstr "Нет доступных подтем для"
 
-#: blog/templates/blog/quiz_detail.html:51
-#: blog/templates/blog/quiz_difficulty.html:56
-#: blog/templates/blog/quizes.html:55
+#: blog/templates/blog/quiz_detail.html:55
+#: blog/templates/blog/quiz_difficulty.html:57
+#: blog/templates/blog/quizes.html:59
 msgid "View my progress"
 msgstr "Посмотреть мой прогресс"
 
-#: blog/templates/blog/quiz_detail.html:53
-#: blog/templates/blog/quiz_difficulty.html:58
-#: blog/templates/blog/quizes.html:57
+#: blog/templates/blog/quiz_detail.html:57
+#: blog/templates/blog/quiz_difficulty.html:59
+#: blog/templates/blog/quizes.html:61
 msgid "Log in to track progress"
 msgstr "Войдите, чтобы отслеживать прогресс"
 
-#: blog/templates/blog/quiz_difficulty.html:22
+#: blog/templates/blog/quiz_difficulty.html:23
 #, fuzzy
 #| msgid "Available Difficulty Levels"
 msgid "Difficulty Levels"
 msgstr "Доступные уровни сложности"
 
-#: blog/templates/blog/quiz_difficulty.html:25
+#: blog/templates/blog/quiz_difficulty.html:26
 msgid "Available Difficulty Levels"
 msgstr "Доступные уровни сложности"
 
-#: blog/templates/blog/quiz_difficulty.html:32
+#: blog/templates/blog/quiz_difficulty.html:33
 #, python-format
 msgid "%(difficulty_name)s icon"
 msgstr "Иконка %(difficulty_name)s"
 
-#: blog/templates/blog/quiz_difficulty.html:36
+#: blog/templates/blog/quiz_difficulty.html:37
 msgid "Tasks of level"
 msgstr "Задачи уровня"
 
-#: blog/templates/blog/quiz_difficulty.html:44
+#: blog/templates/blog/quiz_difficulty.html:45
 #, fuzzy
 #| msgid "No difficulty levels available"
 msgid "No difficulty levels"
 msgstr "Нет доступных уровней сложности"
 
-#: blog/templates/blog/quiz_difficulty.html:47
+#: blog/templates/blog/quiz_difficulty.html:48
 #, fuzzy
 #| msgid "No difficulty levels available"
 msgid "No Difficulty Levels Available"
 msgstr "Нет доступных уровней сложности"
 
-#: blog/templates/blog/quiz_difficulty.html:48
+#: blog/templates/blog/quiz_difficulty.html:49
 #, fuzzy
 #| msgid "No difficulty levels available"
 msgid "No difficulty levels available for this subtopic."
@@ -1362,211 +1533,723 @@ msgid "Translation is missing. Please contact the administrator."
 msgstr "Перевод отсутствует. Пожалуйста, свяжитесь с администратором."
 
 #: blog/templates/blog/quiz_subtopic.html:61
-msgid "Are you sure you want to retake the test? Statistics for the subtopic"
-msgstr "Вы уверены, что хотите пересдать тест? Статистика по подтеме"
-
-#: blog/templates/blog/quiz_subtopic.html:61
-msgid "will be reset."
-msgstr "будет сброшена."
-
-#: blog/templates/blog/quiz_subtopic.html:62
 msgid "Retake Test"
 msgstr "Пересдать тест"
 
-#: blog/templates/blog/quiz_subtopic.html:73
+#: blog/templates/blog/quiz_subtopic.html:72
 msgid "View My Progress"
 msgstr "Посмотреть мой прогресс"
 
-#: blog/templates/blog/quiz_subtopic.html:75
+#: blog/templates/blog/quiz_subtopic.html:74
 msgid "Login to track progress"
 msgstr "Войдите, чтобы отслеживать прогресс"
 
-#: blog/templates/blog/quiz_subtopic.html:190
+#: blog/templates/blog/quiz_subtopic.html:182
+msgid "Are you sure you want to retake the test? Statistics for the subtopic"
+msgstr "Вы уверены, что хотите пересдать тест? Статистика по подтеме"
+
+#: blog/templates/blog/quiz_subtopic.html:182
+msgid "will be reset."
+msgstr "будет сброшена."
+
+#: blog/templates/blog/quiz_subtopic.html:205
 msgid "Error resetting statistics."
 msgstr "Ошибка при сбросе статистики."
 
-#: blog/templates/blog/quiz_subtopic.html:194
+#: blog/templates/blog/quiz_subtopic.html:209
 msgid "An error occurred while resetting statistics."
 msgstr "Произошла ошибка при сбросе статистики."
 
-#: blog/templates/blog/quizes.html:22
+#: blog/templates/blog/quizes.html:26
 msgid "Available Topics"
 msgstr "Доступные темы"
 
-#: blog/templates/blog/quizes.html:30
+#: blog/templates/blog/quizes.html:34
 #, python-format
 msgid "%(topic_name)s icon"
 msgstr "Иконка %(topic_name)s"
 
-#: blog/templates/blog/quizes.html:34
+#: blog/templates/blog/quizes.html:38
 msgid "Test on topic"
 msgstr "Тест по теме"
 
-#: blog/templates/blog/quizes.html:42
+#: blog/templates/blog/quizes.html:46
 #, fuzzy
 #| msgid "No topics available"
 msgid "No topics"
 msgstr "Нет доступных тем"
 
-#: blog/templates/blog/quizes.html:45
+#: blog/templates/blog/quizes.html:49
 #, fuzzy
 #| msgid "No media available"
 msgid "No Quizzes Available"
 msgstr "Биография недоступна"
 
-#: blog/templates/blog/quizes.html:46
+#: blog/templates/blog/quizes.html:50
 msgid "There are no quiz topics available at the moment."
 msgstr ""
 
-#: blog/views.py:181
+#: blog/views.py:541
+msgid "Quiz Python, Go, JavaScript, Java, C#"
+msgstr ""
+
+#: blog/views.py:553
 msgid "Обо мне"
 msgstr "Обо мне"
 
-#: blog/views.py:225 blog/views.py:360
+#: blog/views.py:597 blog/views.py:828
 msgid "Блог"
 msgstr "Блог"
 
-#: blog/views.py:277 blog/views.py:338
+#: blog/views.py:649 blog/views.py:806
 msgid "Портфолио"
 msgstr "Портфолио"
 
-#: blog/views.py:318
+#: blog/views.py:691
 msgid "Резюме"
 msgstr "Резюме"
 
-#: blog/views.py:345
+#: blog/views.py:698
+msgid "My professional resume with experience and skills."
+msgstr "Мое профессиональное резюме с опытом и навыками."
+
+#: blog/views.py:699
+msgid "resume, programmer, portfolio"
+msgstr "резюме, программист, портфолио"
+
+#: blog/views.py:813
 msgid "Explore my portfolio of projects."
 msgstr ""
 
-#: blog/views.py:346
+#: blog/views.py:814
 #, fuzzy
 #| msgid "quiz, blog, portfolio, projects, programming"
 msgid "portfolio, projects, programming"
 msgstr "квиз, блог, портфолио, проекты, программирование"
 
-#: blog/views.py:370
+#: blog/views.py:838
 msgid "Explore articles and posts on programming and quizzes."
 msgstr ""
 
-#: blog/views.py:371
+#: blog/views.py:839
 msgid "blog, programming, quizzes"
 msgstr ""
 
-#: blog/views.py:383
+#: blog/views.py:851
 msgid "Контакты"
 msgstr "Контакты"
 
-#: blog/views.py:388
+#: blog/views.py:856
 msgid "Get in touch with us."
 msgstr ""
 
-#: blog/views.py:389
+#: blog/views.py:857
 #, fuzzy
 #| msgid "Contact — Quiz Project"
 msgid "contact, feedback, quiz project"
 msgstr "Контакты — Квиз Проект"
 
-#: blog/views.py:477 blog/views.py:544
+#: blog/views.py:955 blog/views.py:1030
 msgid "Квизы"
 msgstr "Квизы"
 
-#: blog/views.py:485
+#: blog/views.py:963
 msgid "Test your knowledge with our interactive quizzes."
 msgstr ""
 
-#: blog/views.py:486
+#: blog/views.py:964
 #, fuzzy
 #| msgid "quiz, blog, portfolio, projects, programming"
 msgid "quizzes, tests, programming"
 msgstr "квиз, блог, портфолио, проекты, программирование"
 
-#: blog/views.py:560
-#, python-format
-msgid "%(topic_name)s Quizzes — Programming Languages"
-msgstr ""
+#: blog/views.py:1043
+#, fuzzy, python-format
+#| msgid "%(topic_name)s icon"
+msgid "%(topic_name)s Quizzes"
+msgstr "Иконка %(topic_name)s"
 
-#: blog/views.py:561
+#: blog/views.py:1044
 #, python-format
 msgid "Explore quizzes on %(topic_name)s."
 msgstr ""
 
-#: blog/views.py:562
+#: blog/views.py:1045
 #, fuzzy, python-format
 #| msgid "%(topic_name)s icon"
 msgid "%(topic_name)s, quizzes, programming"
 msgstr "Иконка %(topic_name)s"
 
-#: blog/views.py:565
+#: blog/views.py:1048
 #, python-format
 msgid "No subtopics with tasks available in your language for %(topic_name)s."
 msgstr ""
 
-#: blog/views.py:609 blog/views.py:752
+#: blog/views.py:1098 blog/views.py:1286
 msgid "Easy"
 msgstr ""
 
-#: blog/views.py:610 blog/views.py:753
+#: blog/views.py:1099 blog/views.py:1287
 msgid "Medium"
 msgstr ""
 
-#: blog/views.py:611 blog/views.py:754
+#: blog/views.py:1100 blog/views.py:1288
 msgid "Hard"
 msgstr ""
 
-#: blog/views.py:660
+#: blog/views.py:1149
 #, python-format
 msgid "%(subtopic_name)s Difficulty Levels — Quiz Project"
 msgstr ""
 
-#: blog/views.py:661
+#: blog/views.py:1150
 #, python-format
 msgid "Choose difficulty levels for %(subtopic_name)s quizzes."
 msgstr ""
 
-#: blog/views.py:662
+#: blog/views.py:1151
 #, python-format
 msgid "%(subtopic_name)s, difficulty levels, quizzes, programming"
 msgstr ""
 
-#: blog/views.py:788
-#, python-format
-msgid "%(subtopic_name)s %(difficulty)s Quizzes — Quiz Project"
-msgstr ""
-
-#: blog/views.py:792
-#, python-format
-msgid "Try %(subtopic_name)s %(difficulty)s quizzes to test your skills."
-msgstr ""
-
-#: blog/views.py:796
-#, python-format
-msgid "%(subtopic_name)s, %(difficulty)s, quizzes, programming"
-msgstr ""
-
-#: blog/views.py:804
-#, python-format
-msgid ""
-"No tasks available for difficulty level \"%(difficulty)s\" in subtopic "
-"\"%(subtopic_name)s\"."
-msgstr ""
-"Нет задач для уровня сложности \"%(difficulty)s\" в подтеме "
-"\"%(subtopic_name)s\"."
-
-#: blog/views.py:811 blog/views.py:812
+#: blog/views.py:1249 blog/views.py:1250
 msgid "I don't know, but I want to learn"
 msgstr "Я не знаю, но хочу узнать"
 
-#: blog/views.py:1419
+#: blog/views.py:1303
+#, fuzzy, python-format
+#| msgid "%(subtopic_name)s icon"
+msgid "%(subtopic_name)s — %(difficulty)s Quizzes"
+msgstr "Иконка %(subtopic_name)s"
+
+#: blog/views.py:1304
+#, python-format
+msgid ""
+"Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level."
+msgstr ""
+
+#: blog/views.py:1305
+#, fuzzy, python-format
+#| msgid "%(topic_name)s icon"
+msgid "%(subtopic_name)s, quizzes, %(difficulty)s, programming"
+msgstr "Иконка %(topic_name)s"
+
+#: blog/views.py:1976
 msgid "Техническое обслуживание"
 msgstr "Техническое обслуживание"
 
-#: blog/views.py:1451
+#: blog/views.py:1990
+msgid "Спасибо за ваш отзыв! Он будет опубликован после проверки."
+msgstr ""
+
+#: blog/views.py:1993
+msgid "Пожалуйста, исправьте ошибки в форме."
+msgstr ""
+
+#: blog/views.py:2010
 msgid "Отзывы"
 msgstr "Отзывы"
 
-#: blog/views.py:1459
+#: blog/views.py:2018
 msgid "Все отзывы"
 msgstr "Все отзывы"
+
+#: donation/forms.py:13
+msgid "Enter amount"
+msgstr ""
+
+# Donation admin translations
+#: donation/forms.py:17
+#, fuzzy
+#| msgid "Amount"
+msgid "Amount ($)"
+msgstr "Сумма"
+
+#: donation/forms.py:24
+#, fuzzy
+#| msgid "Enter your email address"
+msgid "Enter your email (optional)"
+msgstr "Введите ваш email адрес"
+
+#: donation/forms.py:26
+#, fuzzy
+#| msgid "Email Notifications"
+msgid "Email (optional)"
+msgstr "Уведомления по электронной почте"
+
+#: donation/models.py:9
+msgid "Pending"
+msgstr ""
+
+#: donation/models.py:10
+#, fuzzy
+#| msgid "Quizzes Completed"
+msgid "Completed"
+msgstr "Пройдено квизов"
+
+#: donation/models.py:11
+msgid "Failed"
+msgstr ""
+
+#: donation/models.py:12
+#, fuzzy
+#| msgid "Cancel"
+msgid "Cancelled"
+msgstr "Отмена"
+
+#: donation/models.py:20
+#, fuzzy
+#| msgid "Users"
+msgid "User"
+msgstr "Пользователи"
+
+#: donation/models.py:24 donation/templates/donation/donation_page.html:117
+msgid "Name"
+msgstr "Имя"
+
+# Donation admin translations
+#: donation/models.py:34
+msgid "Amount"
+msgstr "Сумма"
+
+#: donation/models.py:46 donation/templates/donation/donation_page.html:169
+msgid "Currency"
+msgstr "Валюта"
+
+#: donation/models.py:50
+#, fuzzy
+#| msgid "Visit Website"
+msgid "Website"
+msgstr "Посетить сайт"
+
+#: donation/models.py:51
+msgid "Mini App"
+msgstr ""
+
+#: donation/models.py:58
+msgid "Source"
+msgstr ""
+
+#: donation/models.py:62
+msgid "Fiat (Card)"
+msgstr ""
+
+#: donation/models.py:63
+#, fuzzy
+#| msgid "Currency"
+msgid "Cryptocurrency"
+msgstr "Валюта"
+
+#: donation/models.py:70
+#, fuzzy
+#| msgid "Payment error: "
+msgid "Payment Type"
+msgstr "Ошибка оплаты: "
+
+#: donation/models.py:75
+#, fuzzy
+#| msgid "Payment error: "
+msgid "Payment Method"
+msgstr "Ошибка оплаты: "
+
+#: donation/models.py:83 templates/admin/blog/message/change_list.html:309
+msgid "Status"
+msgstr "Статус"
+
+#: donation/models.py:89
+#, fuzzy
+#| msgid "Payment intent ID required"
+msgid "Stripe Payment Intent ID"
+msgstr "Требуется ID намерения платежа"
+
+#: donation/models.py:97
+#, fuzzy
+#| msgid "Currency"
+msgid "Crypto Currency"
+msgstr "Валюта"
+
+#: donation/models.py:98
+msgid "USDT, USDC, BUSD, DAI"
+msgstr ""
+
+#: donation/models.py:104
+msgid "Crypto Payment Address"
+msgstr ""
+
+# Donation admin translations
+#: donation/models.py:111
+#, fuzzy
+#| msgid "Amount"
+msgid "Crypto Amount"
+msgstr "Сумма"
+
+#: donation/models.py:118
+msgid "CoinGate Order ID"
+msgstr ""
+
+#: donation/models.py:124
+msgid "Transaction Hash"
+msgstr ""
+
+#: donation/models.py:130
+msgid "CoinGate Status"
+msgstr ""
+
+#: donation/models.py:131
+msgid "new, pending, confirming, paid, invalid, expired, canceled"
+msgstr ""
+
+#: donation/models.py:139
+msgid "Wallet Pay Order ID"
+msgstr ""
+
+#: donation/models.py:147
+msgid "Telegram Payment Charge ID"
+msgstr ""
+
+#: donation/models.py:148
+msgid "Telegram Stars payment charge ID"
+msgstr ""
+
+# Donation admin translations
+#: donation/models.py:153
+#, fuzzy
+#| msgid "Amount"
+msgid "Stars Amount"
+msgstr "Сумма"
+
+#: donation/models.py:154
+msgid "Amount in Telegram Stars (XTR)"
+msgstr ""
+
+#: donation/models.py:160
+msgid "Invoice Payload"
+msgstr ""
+
+#: donation/models.py:161
+msgid "Custom payload for invoice identification"
+msgstr ""
+
+#: donation/models.py:166 templates/admin/blog/message/change_form.html:49
+msgid "Created At"
+msgstr "Создано"
+
+#: donation/models.py:170
+#, fuzzy
+#| msgid "Created At"
+msgid "Updated At"
+msgstr "Создано"
+
+# Donation page translations
+#: donation/models.py:174 donation/templates/donation/donation_page.html:5
+#: donation/templates/donation/donation_page.html:15 donation/views.py:47
+msgid "Donation"
+msgstr "Пожертвование"
+
+# Donation page translations
+#: donation/models.py:175
+#, fuzzy
+#| msgid "Donation"
+msgid "Donations"
+msgstr "Пожертвование"
+
+#: donation/templates/donation/donation_page.html:35
+msgid "cardholder name"
+msgstr "имя держателя карты"
+
+#: donation/templates/donation/donation_page.html:36
+msgid "expiration"
+msgstr "срок действия"
+
+#: donation/templates/donation/donation_page.html:37
+msgid "card number"
+msgstr "номер карты"
+
+#: donation/templates/donation/donation_page.html:105
+msgid "security code"
+msgstr "код безопасности"
+
+#: donation/templates/donation/donation_page.html:122
+msgid "Card Number"
+msgstr "Номер карты"
+
+#: donation/templates/donation/donation_page.html:123
+msgid "generate random"
+msgstr "генерировать случайную"
+
+#: donation/templates/donation/donation_page.html:129
+msgid "Enter card details"
+msgstr "Введите данные карты"
+
+#: donation/templates/donation/donation_page.html:136
+msgid "Card animation updates automatically when entering data"
+msgstr "Анимация карты обновляется автоматически при вводе"
+
+#: donation/templates/donation/donation_page.html:181
+msgid "Complete Donation"
+msgstr "Завершить пожертвование"
+
+# JavaScript messages
+#: donation/templates/donation/donation_page.html:902
+msgid "Payment system loading error"
+msgstr "Ошибка загрузки платежной системы"
+
+#: donation/templates/donation/donation_page.html:903
+msgid "Form handler started!"
+msgstr "Обработчик формы запущен!"
+
+#: donation/templates/donation/donation_page.html:904
+msgid "Please enter a valid donation amount (minimum $1.00)"
+msgstr "Пожалуйста, введите корректную сумму пожертвования (минимум $1.00)"
+
+#: donation/templates/donation/donation_page.html:905
+msgid "Please enter your name on the card"
+msgstr "Пожалуйста, введите ваше имя на карте"
+
+#: donation/templates/donation/donation_page.html:906
+msgid "Please fill in all card details"
+msgstr "Пожалуйста, заполните все данные карты"
+
+#: donation/templates/donation/donation_page.html:907
+msgid "Processing your donation..."
+msgstr "Обработка вашего пожертвования..."
+
+#: donation/templates/donation/donation_page.html:908
+msgid "Payment error: "
+msgstr "Ошибка оплаты: "
+
+#: donation/templates/donation/donation_page.html:909
+msgid "Thank you for your donation"
+msgstr "Спасибо за ваше пожертвование"
+
+#: donation/templates/donation/donation_page.html:910
+msgid "Payment processed successfully."
+msgstr "Платеж успешно обработан."
+
+#: donation/templates/donation/donation_page.html:911
+msgid "Payment confirmation error: "
+msgstr "Ошибка подтверждения платежа: "
+
+#: donation/templates/donation/donation_page.html:912
+msgid "Error processing payment: "
+msgstr "Ошибка обработки платежа: "
+
+#: donation/views.py:46
+#, fuzzy
+#| msgid "Contact Support"
+msgid "Support"
+msgstr "Связаться с поддержкой"
+
+# Donation error messages
+#: donation/views.py:71 donation/views.py:359 donation/views.py:702
+msgid "Invalid amount. Minimum amount is $1.00"
+msgstr "Неверная сумма. Минимальная сумма $1.00"
+
+#: donation/views.py:77 donation/views.py:361 donation/views.py:708
+msgid "Name is required"
+msgstr "Имя обязательно"
+
+#: donation/views.py:85
+msgid "Unsupported currency"
+msgstr "Неподдерживаемая валюта"
+
+#: donation/views.py:120
+msgid "Card error: "
+msgstr "Ошибка карты: "
+
+#: donation/views.py:127
+msgid "Too many requests. Please try again later."
+msgstr "Слишком много запросов. Попробуйте позже."
+
+#: donation/views.py:134
+msgid "Invalid request parameters"
+msgstr "Неверные параметры запроса"
+
+#: donation/views.py:141
+msgid "Authentication error. Please contact support."
+msgstr "Ошибка аутентификации. Обратитесь в поддержку."
+
+#: donation/views.py:148
+msgid "Network error. Please check your connection."
+msgstr "Ошибка сети. Проверьте соединение."
+
+#: donation/views.py:155
+msgid "Payment service error. Please try again."
+msgstr "Ошибка платежного сервиса. Попробуйте еще раз."
+
+#: donation/views.py:162 donation/views.py:784
+msgid "Invalid request format"
+msgstr "Неверный формат запроса"
+
+#: donation/views.py:169
+msgid "Invalid amount format"
+msgstr "Неверный формат суммы"
+
+#: donation/views.py:176 donation/views.py:791
+msgid "An unexpected error occurred. Please try again."
+msgstr "Произошла неожиданная ошибка. Попробуйте еще раз."
+
+#: donation/views.py:199
+msgid "All card fields are required"
+msgstr "Все поля карты обязательны"
+
+#: donation/views.py:233
+msgid "Payment method creation error"
+msgstr "Ошибка создания метода оплаты"
+
+#: donation/views.py:240 donation/views.py:315
+msgid "An error occurred"
+msgstr "Произошла ошибка"
+
+#: donation/views.py:257
+msgid "Payment intent ID required"
+msgstr "Требуется ID намерения платежа"
+
+#: donation/views.py:297
+#, fuzzy
+#| msgid "Payment processed successfully."
+msgid "Payment confirmed successfully"
+msgstr "Платеж успешно обработан."
+
+#: donation/views.py:302
+msgid "Payment not completed"
+msgstr ""
+
+#: donation/views.py:309
+#, fuzzy
+#| msgid "Payment confirmation error: "
+msgid "Payment confirmation error"
+msgstr "Ошибка подтверждения платежа: "
+
+#: platforms/admin.py:223
+msgid "Пост успешно отправлен во все {} каналов!"
+msgstr ""
+
+#: platforms/admin.py:225
+msgid "Пост отправлен в {} из {} каналов."
+msgstr ""
+
+#: platforms/admin.py:227
+#, fuzzy
+#| msgid "Ошибка при обработке элемента для удаления: {str(e)}"
+msgid "Ошибка при отправке поста во все каналы."
+msgstr "Ошибка при обработке элемента для удаления: {str(e)}"
+
+#: platforms/admin.py:238 templates/admin/platforms/telegram_post_form.html:324
+msgid "Отправить пост в Telegram"
+msgstr ""
+
+#: platforms/admin.py:287
+msgid "Каналы/Группы"
+msgstr ""
+
+#: platforms/admin.py:288
+msgid ""
+"Выберите один или несколько каналов/групп для публикации (можно выбрать "
+"несколько, удерживая Ctrl)"
+msgstr ""
+
+#: platforms/admin.py:294
+msgid "Текст поста"
+msgstr ""
+
+#: platforms/admin.py:295
+msgid "Введите текст поста. Поддерживается Markdown форматирование."
+msgstr ""
+
+#: platforms/admin.py:301
+msgid "Фотография 1"
+msgstr ""
+
+#: platforms/admin.py:302 platforms/admin.py:309 platforms/admin.py:316
+msgid "Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ"
+msgstr ""
+
+#: platforms/admin.py:308
+msgid "Фотография 2"
+msgstr ""
+
+#: platforms/admin.py:315
+msgid "Фотография 3"
+msgstr ""
+
+#: platforms/admin.py:322
+msgid "GIF анимация 1"
+msgstr ""
+
+#: platforms/admin.py:323 platforms/admin.py:330
+msgid "Загрузите GIF анимацию. Максимальный размер: 20 МБ"
+msgstr ""
+
+#: platforms/admin.py:329
+msgid "GIF анимация 2"
+msgstr ""
+
+#: platforms/admin.py:336
+msgid "Видео 1"
+msgstr ""
+
+#: platforms/admin.py:337 platforms/admin.py:344
+msgid "Загрузите видео (MP4). Максимальный размер: 20 МБ"
+msgstr ""
+
+#: platforms/admin.py:343
+msgid "Видео 2"
+msgstr ""
+
+#: platforms/admin.py:352
+msgid "Текст кнопки 1"
+msgstr ""
+
+#: platforms/admin.py:353
+msgid "Текст для первой inline кнопки"
+msgstr ""
+
+#: platforms/admin.py:358
+msgid "Ссылка кнопки 1"
+msgstr ""
+
+#: platforms/admin.py:359
+msgid ""
+"URL для первой кнопки (например: https://example.com или https://t.me/"
+"channel)"
+msgstr ""
+
+#: platforms/admin.py:365
+msgid "Текст кнопки 2"
+msgstr ""
+
+#: platforms/admin.py:366
+msgid "Текст для второй inline кнопки"
+msgstr ""
+
+#: platforms/admin.py:371
+msgid "Ссылка кнопки 2"
+msgstr ""
+
+#: platforms/admin.py:372
+msgid "URL для второй кнопки"
+msgstr ""
+
+#: platforms/admin.py:405
+msgid "Необходимо указать текст поста или загрузить медиафайл."
+msgstr ""
+
+#: platforms/admin.py:414
+msgid "Для кнопки 1 указан текст, но не указана ссылка."
+msgstr ""
+
+#: platforms/admin.py:417
+msgid "Для кнопки 2 указан текст, но не указана ссылка."
+msgstr ""
+
+#: platforms/admin.py:420
+msgid "Для кнопки 1 указана ссылка, но не указан текст."
+msgstr ""
+
+#: platforms/admin.py:423
+msgid "Для кнопки 2 указана ссылка, но не указан текст."
+msgstr ""
 
 #: platforms/models.py:15
 msgid "Telegram группа/канал"
@@ -1596,6 +2279,224 @@ msgstr "Тип: группа, канал или веб-сайт"
 msgid "Username группы или канала"
 msgstr "Username группы или канала"
 
+#: social_auth/models.py:27
+msgid "Пользователь"
+msgstr ""
+
+#: social_auth/models.py:32 social_auth/models.py:389
+msgid "Провайдер"
+msgstr ""
+
+#: social_auth/models.py:36
+msgid "ID пользователя в провайдере"
+msgstr ""
+
+#: social_auth/models.py:42
+msgid "Username в провайдере"
+msgstr ""
+
+#: social_auth/models.py:47
+msgid "Email в провайдере"
+msgstr ""
+
+#: social_auth/models.py:53
+msgid "Имя"
+msgstr ""
+
+#: social_auth/models.py:59
+msgid "Фамилия"
+msgstr ""
+
+#: social_auth/models.py:64
+msgid "URL аватара"
+msgstr ""
+
+#: social_auth/models.py:69
+#, fuzzy
+#| msgid "Success Rate"
+msgid "Access token"
+msgstr "Процент успеха"
+
+#: social_auth/models.py:74
+msgid "Refresh token"
+msgstr ""
+
+#: social_auth/models.py:79
+msgid "Время истечения токена"
+msgstr ""
+
+#: social_auth/models.py:83
+msgid "Активен"
+msgstr ""
+
+#: social_auth/models.py:87 social_auth/models.py:362 social_auth/models.py:405
+msgid "Дата создания"
+msgstr ""
+
+#: social_auth/models.py:91 social_auth/models.py:409
+msgid "Дата обновления"
+msgstr ""
+
+#: social_auth/models.py:96
+msgid "Последний вход"
+msgstr ""
+
+#: social_auth/models.py:106
+msgid "Пользователь бота"
+msgstr ""
+
+#: social_auth/models.py:107
+msgid "Связь с пользователем Telegram бота, если он также использует бота"
+msgstr ""
+
+#: social_auth/models.py:115
+msgid "Mini App пользователь"
+msgstr ""
+
+#: social_auth/models.py:116
+msgid "Связь с пользователем Mini App, если он также использует Mini App"
+msgstr ""
+
+#: social_auth/models.py:124
+msgid "Админ бота"
+msgstr ""
+
+#: social_auth/models.py:125
+msgid "Связь с админом Telegram бота, если он также является админом"
+msgstr ""
+
+#: social_auth/models.py:133
+msgid "Django админ"
+msgstr ""
+
+#: social_auth/models.py:134
+msgid "Связь с Django админом, если он также управляет сайтом"
+msgstr ""
+
+#: social_auth/models.py:139 social_auth/models.py:339
+msgid "Социальный аккаунт"
+msgstr ""
+
+#: social_auth/models.py:140
+msgid "Социальные аккаунты"
+msgstr ""
+
+#: social_auth/models.py:333
+msgid "ID сессии"
+msgstr ""
+
+#: social_auth/models.py:344
+msgid "IP адрес"
+msgstr ""
+
+#: social_auth/models.py:349
+#, fuzzy
+#| msgid "User Avatar"
+msgid "User Agent"
+msgstr "Аватар пользователя"
+
+#: social_auth/models.py:353
+msgid "Успешный вход"
+msgstr ""
+
+#: social_auth/models.py:358
+#, fuzzy
+#| msgid "Вложение сообщения"
+msgid "Сообщение об ошибке"
+msgstr "Вложение сообщения"
+
+#: social_auth/models.py:367
+msgid "Сессия социальной аутентификации"
+msgstr ""
+
+#: social_auth/models.py:368
+msgid "Сессии социальной аутентификации"
+msgstr ""
+
+#: social_auth/models.py:393
+msgid "Client ID"
+msgstr ""
+
+#: social_auth/models.py:397
+msgid "Client Secret"
+msgstr ""
+
+#: social_auth/models.py:401
+msgid "Включен"
+msgstr ""
+
+#: social_auth/models.py:414
+msgid "Настройка социальной аутентификации"
+msgstr ""
+
+#: social_auth/models.py:415
+msgid "Настройки социальной аутентификации"
+msgstr ""
+
+#: social_auth/views.py:185
+msgid "Успешная авторизация через Telegram"
+msgstr ""
+
+#: social_auth/views.py:185
+msgid "Добро пожаловать! Ваш аккаунт создан."
+msgstr ""
+
+#: social_auth/views.py:283
+msgid "Социальный аккаунт успешно отключен"
+msgstr ""
+
+#: social_auth/views.py:288
+#, fuzzy
+#| msgid "Сообщения для удаления не найдены или уже были удалены."
+msgid "Аккаунт не найден или уже отключен"
+msgstr "Сообщения для удаления не найдены или уже были удалены."
+
+# Переводы времени для комментариев к задачам
+#: tasks/comment_serializers.py:113
+msgid "только что"
+msgstr "только что"
+
+#: tasks/comment_serializers.py:116
+#, python-format
+msgid "%(minutes)s мин. назад"
+msgstr "%(minutes)s мин. назад"
+
+#: tasks/comment_serializers.py:119
+#, python-format
+msgid "%(hours)s ч. назад"
+msgstr "%(hours)s ч. назад"
+
+#: tasks/comment_serializers.py:122
+#, python-format
+msgid "%(days)s дн. назад"
+msgstr "%(days)s дн. назад"
+
+#: tasks/comment_views.py:231
+#, python-brace-format
+msgid "You are banned until {date}. Time remaining: {time}."
+msgstr "Вы заблокированы до {date}. Осталось: {time}."
+
+#: tasks/comment_views.py:236
+#, python-brace-format
+msgid "Вы заблокированы до {date}. Осталось: {time}."
+msgstr "Вы заблокированы до {date}. Осталось: {time}."
+
+#: tasks/comment_views.py:242
+msgid "You are banned permanently."
+msgstr "Вы заблокированы навсегда."
+
+#: tasks/comment_views.py:244
+msgid "Вы заблокированы навсегда."
+msgstr "Вы заблокированы навсегда."
+
+#: tasks/comment_views.py:248
+msgid "Reason:"
+msgstr "Причина:"
+
+#: tasks/comment_views.py:250
+msgid "Причина:"
+msgstr "Причина:"
+
 #: templates/admin/blog/message/change_form.html:42
 msgid "Message Details"
 msgstr "Детали сообщения"
@@ -1616,10 +2517,6 @@ msgstr "Полное имя"
 #: templates/admin/blog/post_project_change_form.html:107
 msgid "Content"
 msgstr "Содержание"
-
-#: templates/admin/blog/message/change_form.html:49
-msgid "Created At"
-msgstr "Создано"
 
 #: templates/admin/blog/message/change_form.html:50
 msgid "Is Read"
@@ -1734,10 +2631,6 @@ msgstr "Последнее сообщение"
 msgid "Date"
 msgstr "Дата"
 
-#: templates/admin/blog/message/change_list.html:309
-msgid "Status"
-msgstr "Статус"
-
 #: templates/admin/blog/message/delete_confirmation.html:6
 msgid ""
 "Are you sure you want to delete the selected messages? All attachments will "
@@ -1766,557 +2659,364 @@ msgstr "Отрывок"
 msgid "Description"
 msgstr "Описание"
 
-#~ msgid "Resume — Quiz Project"
-#~ msgstr "Резюме — Квиз Проект"
-
-#~ msgid "English"
-#~ msgstr "Английский"
-
-#~ msgid "Русский"
-#~ msgstr "Русский"
-
-#~ msgid "Difficulty"
-#~ msgstr "Сложность"
-
-#~ msgid "Легкий"
-#~ msgstr "Легкий"
-
-#~ msgid "Средний"
-#~ msgstr "Средний"
-
-#~ msgid "Сложный"
-#~ msgstr "Сложный"
-
-#~ msgid "Я не знаю, но хочу узнать"
-#~ msgstr "Я не знаю, но хочу узнать"
-
-# locale/ru/LC_MESSAGES/django.po
-#~ msgid "Found a bug? Write to us in social networks!"
-#~ msgstr "Нашли баг? Напишите нам в социальных сетях!"
-
-# Donation page translations
-msgid "Donation"
-msgstr "Пожертвование"
-
-msgid "Name"
-msgstr "Имя"
-
-msgid "Card Number"
-msgstr "Номер карты"
-
-msgid "generate random"
-msgstr "генерировать случайную"
-
-
-
-msgid "Enter card details"
-msgstr "Введите данные карты"
-
-msgid "Card animation updates automatically when entering data"
-msgstr "Анимация карты обновляется автоматически при вводе"
-
-msgid "Complete Donation"
-msgstr "Завершить пожертвование"
-
-msgid "Currency"
-msgstr "Валюта"
-
-msgid "cardholder name"
-msgstr "имя держателя карты"
-
-msgid "expiration"
-msgstr "срок действия"
-
-msgid "card number"
-msgstr "номер карты"
-
-msgid "security code"
-msgstr "код безопасности"
-
-# Donation error messages
-msgid "Invalid amount. Minimum amount is $1.00"
-msgstr "Неверная сумма. Минимальная сумма $1.00"
-
-msgid "Name is required"
-msgstr "Имя обязательно"
-
-msgid "Unsupported currency"
-msgstr "Неподдерживаемая валюта"
-
-msgid "Card error: "
-msgstr "Ошибка карты: "
-
-msgid "Too many requests. Please try again later."
-msgstr "Слишком много запросов. Попробуйте позже."
-
-msgid "Invalid request parameters"
-msgstr "Неверные параметры запроса"
-
-msgid "Authentication error. Please contact support."
-msgstr "Ошибка аутентификации. Обратитесь в поддержку."
-
-msgid "Network error. Please check your connection."
-msgstr "Ошибка сети. Проверьте соединение."
-
-msgid "Payment service error. Please try again."
-msgstr "Ошибка платежного сервиса. Попробуйте еще раз."
-
-msgid "Invalid request format"
-msgstr "Неверный формат запроса"
-
-msgid "Invalid amount format"
-msgstr "Неверный формат суммы"
-
-msgid "An unexpected error occurred. Please try again."
-msgstr "Произошла неожиданная ошибка. Попробуйте еще раз."
-
-msgid "All card fields are required"
-msgstr "Все поля карты обязательны"
-
-msgid "Payment method creation error"
-msgstr "Ошибка создания метода оплаты"
-
-msgid "An error occurred"
-msgstr "Произошла ошибка"
-
-msgid "Payment intent ID required"
-msgstr "Требуется ID намерения платежа"
-
-# JavaScript messages
-msgid "Payment system loading error"
-msgstr "Ошибка загрузки платежной системы"
-
-msgid "Form handler started!"
-msgstr "Обработчик формы запущен!"
-
-msgid "Please enter a valid donation amount (minimum $1.00)"
-msgstr "Пожалуйста, введите корректную сумму пожертвования (минимум $1.00)"
-
-msgid "Please enter your name on the card"
-msgstr "Пожалуйста, введите ваше имя на карте"
-
-msgid "Please fill in all card details"
-msgstr "Пожалуйста, заполните все данные карты"
-
-msgid "Processing your donation..."
-msgstr "Обработка вашего пожертвования..."
-
-msgid "Payment error: "
-msgstr "Ошибка оплаты: "
-
-msgid "Thank you for your donation"
-msgstr "Спасибо за ваше пожертвование"
-
-msgid "Payment processed successfully."
-msgstr "Платеж успешно обработан."
-
-msgid "Payment confirmation error: "
-msgstr "Ошибка подтверждения платежа: "
-
-msgid "Error processing payment: "
-msgstr "Ошибка обработки платежа: "
-
-msgid "payment_processing_error"
-msgstr "Ошибка обработки платежа: "
-
-# Donation admin translations
-msgid "Amount"
-msgstr "Сумма"
-
-msgid "Days ago"
-msgstr "Дней назад"
-
-msgid "%(days)d days ago"
-msgstr "%(days)d дней назад"
-
-msgid "Mark selected donations as completed"
-msgstr "Отметить выбранные донаты как завершенные"
-
-msgid "Mark selected donations as failed"
-msgstr "Отметить выбранные донаты как неудачные"
-
-msgid "Export selected donations to CSV"
-msgstr "Экспортировать выбранные донаты в CSV"
-
-msgid "Send thank you emails to completed donations"
-msgstr "Отправить благодарственные письма завершенным донатам"
-
-msgid "Successfully marked %(count)d donations as completed."
-msgstr "Успешно отмечено как завершенные: %(count)d донатов."
-
-msgid "Successfully marked %(count)d donations as failed."
-msgstr "Успешно отмечено как неудачные: %(count)d донатов."
-
-msgid "Sent %(sent)d thank you emails out of %(total)d completed donations."
-msgstr "Отправлено %(sent)d благодарственных писем из %(total)d завершенных донатов."
-
-# Donation statistics translations
-msgid "Donation Statistics"
-msgstr "Статистика донатов"
-
-msgid "top_users"
-msgstr "Топ юзеров"
-
-msgid "top_users_title"
-msgstr "Топ юзеров"
-
-msgid "no_top_users"
-msgstr "Пока нет лучших пользователей"
-
-msgid "keep_playing"
-msgstr "Продолжайте играть, чтобы попасть в топ!"
-
-msgid "Last 30 Days"
-msgstr "За 30 дней"
-
-msgid "Statistics by Currency"
-msgstr "Статистика по валютам"
-
-msgid "TOTAL DONATIONS"
-msgstr "ВСЕГО ДОНАТОВ"
-
-msgid "COMPLETED"
-msgstr "ЗАВЕРШЕНО"
-
-msgid "PENDING"
-msgstr "ОЖИДАЕТ"
-
-msgid "FAILED"
-msgstr "НЕУДАЧНО"
-
-msgid "TOTAL AMOUNT"
-msgstr "ОБЩАЯ СУММА"
-
-msgid "Last 30 days:"
-msgstr "За последние 30 дней:"
-
-msgid "DONATIONS"
-msgstr "ДОНАТОВ"
-
-msgid "AMOUNT"
-msgstr "СУММА"
-
-# Registration error messages
-msgid "A user with that username already exists."
-msgstr "Пользователь с таким именем уже существует. Выберите другое имя."
-
-msgid "This field is required."
-msgstr "Это поле обязательно для заполнения."
-
-msgid "Enter a valid email address."
-msgstr "Введите корректный email адрес."
-
-msgid "This password is too short. It must contain at least 8 characters."
-msgstr "Пароль слишком короткий. Минимум 8 символов."
-
-msgid "This password is too common."
-msgstr "Пароль слишком простой. Выберите более сложный пароль."
-
-msgid "This password is entirely numeric."
-msgstr "Пароль не может состоять только из цифр."
-
-msgid "The two password fields didn't match."
-msgstr "Пароли не совпадают."
-
-# Password reset page translations
-msgid "Reset Password"
-msgstr "Сброс пароля"
-
-msgid "Reset Your Password"
-msgstr "Сброс вашего пароля"
-
-msgid "Enter your email address and we'll send you a link to reset your password."
-msgstr "Введите ваш email адрес и мы отправим вам ссылку для сброса пароля."
-
-msgid "Enter your email address"
-msgstr "Введите ваш email адрес"
-
-msgid "Send Reset Link"
-msgstr "Отправить ссылку для сброса"
-
-msgid "Back to Login"
-msgstr "Вернуться к входу"
-
-msgid "Password Reset Sent"
-msgstr "Письмо для сброса пароля отправлено"
-
-msgid "Email Sent Successfully!"
-msgstr "Письмо успешно отправлено!"
-
-msgid "We've sent you an email with instructions to reset your password."
-msgstr "Мы отправили вам письмо с инструкциями по сбросу пароля."
-
-msgid "Please check your inbox and follow the link in the email."
-msgstr "Пожалуйста, проверьте вашу почту и перейдите по ссылке в письме."
-
-msgid "What's Next?"
-msgstr "Что дальше?"
-
-msgid "Check your email inbox (it may take a few minutes)"
-msgstr "Проверьте вашу почту (это может занять несколько минут)"
-
-msgid "Click the reset link in the email"
-msgstr "Нажмите на ссылку сброса в письме"
-
-msgid "Create a new secure password"
-msgstr "Создайте новый безопасный пароль"
-
-msgid "Login with your new password"
-msgstr "Войдите с новым паролем"
-
-msgid "Don't see the email? Check your spam/junk folder. Add our domain to your safe sender list."
-msgstr "Не видите письмо? Проверьте папку спам. Добавьте наш домен в список безопасных отправителей."
-
-msgid "Back to Home"
-msgstr "На главную"
-
-msgid "Set New Password"
-msgstr "Установка нового пароля"
-
-msgid "Please enter your new password. Make sure it's secure and memorable."
-msgstr "Пожалуйста, введите новый пароль. Убедитесь, что он безопасный и запоминающийся."
-
-msgid "New Password"
-msgstr "Новый пароль"
-
-msgid "Confirm New Password"
-msgstr "Подтвердите новый пароль"
-
-msgid "Password Requirements:"
-msgstr "Требования к паролю:"
-
-msgid "At least 8 characters"
-msgstr "Минимум 8 символов"
-
-msgid "Passwords match"
-msgstr "Пароли совпадают"
-
-msgid "Contains letters and numbers"
-msgstr "Содержит буквы и цифры"
-
-msgid "Invalid Reset Link"
-msgstr "Недействительная ссылка сброса"
-
-msgid "This password reset link is invalid or has expired."
-msgstr "Эта ссылка для сброса пароля недействительна или истекла."
-
-msgid "Password reset links are only valid for 24 hours for security reasons."
-msgstr "Ссылки для сброса пароля действительны только 24 часа по соображениям безопасности."
-
-msgid "Request New Reset Link"
-msgstr "Запросить новую ссылку"
-
+#: templates/admin/platforms/telegram_post_form.html:335
+msgid "Please correct the error below."
+msgid_plural "Please correct the errors below."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#: templates/admin/platforms/telegram_post_form.html:366
+msgid "Медиафайлы"
+msgstr ""
+
+#: templates/admin/platforms/telegram_post_form.html:455
+msgid "Inline кнопки"
+msgstr ""
+
+#: templates/admin/platforms/telegram_post_form.html:504
+#: templates/admin/platforms/telegramgroup/change_list.html:8
+msgid "Отправить пост"
+msgstr ""
+
+#: templates/admin/platforms/telegram_post_form.html:505
+msgid "Отмена"
+msgstr ""
+
+#: templates/admin/tasks/import_json.html:194
+msgid "Импорт задач из JSON"
+msgstr ""
+
+#: templates/registration/password_reset_complete.html:5
+#: templates/registration/password_reset_complete.html:161
 msgid "Password Reset Complete"
 msgstr "Сброс пароля завершен"
 
+#: templates/registration/password_reset_complete.html:167
 msgid "Password Reset Complete!"
 msgstr "Сброс пароля завершен!"
 
-msgid "Your password has been successfully updated!"
-msgstr "Ваш пароль был успешно обновлен!"
-
-msgid "You can now log in with your new password and access all features."
-msgstr "Теперь вы можете войти с новым паролем и получить доступ ко всем функциям."
-
-msgid "Secure Account"
-msgstr "Безопасный аккаунт"
-
-msgid "Your account is now secured with your new password"
-msgstr "Ваш аккаунт теперь защищен новым паролем"
-
-msgid "Full Access"
-msgstr "Полный доступ"
-
-msgid "Access all quizzes, leaderboards and premium features"
-msgstr "Доступ ко всем квизам, таблицам лидеров и премиум функциям"
-
-msgid "Login Now"
-msgstr "Войти сейчас"
-
-msgid "Go Home"
-msgstr "На главную"
-
-msgid "Security Tips"
-msgstr "Советы по безопасности"
-
-msgid "Keep your password secure and don't share it with anyone"
-msgstr "Держите пароль в безопасности и не делитесь им ни с кем"
-
-msgid "Use a unique password that you don't use on other sites"
-msgstr "Используйте уникальный пароль, который не используете на других сайтах"
-
-msgid "Consider using a password manager for better security"
-msgstr "Рассмотрите использование менеджера паролей для лучшей безопасности"
-
-msgid "Log out from shared or public computers"
-msgstr "Выходите из аккаунта на общих или публичных компьютерах"
-
-# Password reset email translations
-msgid "Password Reset"
-msgstr "Сброс пароля"
-
-msgid "Reset your Quiz Project password"
-msgstr "Сбросьте пароль Quiz Project"
-
-msgid "Quiz Project - Password Reset Request"
-msgstr "Quiz Project - Запрос на сброс пароля"
-
-msgid "Hello"
-msgstr "Привет"
-
-msgid "We received a request to reset your password for your Quiz Project account."
-msgstr "Мы получили запрос на сброс пароля для вашего аккаунта Quiz Project."
-
-msgid "If you made this request, click the button below to set a new password:"
-msgstr "Если вы делали этот запрос, нажмите кнопку ниже, чтобы установить новый пароль:"
-
-msgid "Reset My Password"
-msgstr "Сбросить мой пароль"
-
-msgid "Important Information"
-msgstr "Важная информация"
-
-msgid "This link is valid for 24 hours"
-msgstr "Эта ссылка действительна 24 часа"
-
-msgid "For security reasons, you can only use this link once"
-msgstr "По соображениям безопасности, вы можете использовать эту ссылку только один раз"
-
-msgid "If you don't reset your password within 24 hours, you'll need to request a new link"
-msgstr "Если вы не сбросите пароль в течение 24 часов, вам нужно будет запросить новую ссылку"
-
-msgid "Didn't request this?"
-msgstr "Не запрашивали это?"
-
-msgid "If you didn't request a password reset, you can safely ignore this email. Your password won't be changed."
-msgstr "Если вы не запрашивали сброс пароля, можете спокойно проигнорировать это письмо. Ваш пароль не будет изменен."
-
-msgid "Quiz Project Team"
-msgstr "Команда Quiz Project"
-
-msgid "Making learning fun and accessible for everyone"
-msgstr "Делаем обучение веселым и доступным для всех"
-
-msgid "Contact Support"
-msgstr "Связаться с поддержкой"
-
-msgid "Visit Website"
-msgstr "Посетить сайт"
-
-msgid "Follow Us"
-msgstr "Подписаться на нас"
-
-msgid "This email was sent from Quiz Project. Please do not reply to this email."
-msgstr "Это письмо отправлено от Quiz Project. Пожалуйста, не отвечайте на это письмо."
-
-msgid "If the button above doesn't work, copy and paste this link into your browser:"
-msgstr "Если кнопка выше не работает, скопируйте и вставьте эту ссылку в ваш браузер:"
-
-msgid "Password Reset Request"
-msgstr "Запрос на сброс пароля"
-
-msgid "Questions?"
-msgstr "Вопросы?"
-
-msgid "FOLLOW US FOR UPDATES:"
-msgstr "СЛЕДИТЕ ЗА ОБНОВЛЕНИЯМИ:"
-
-# Additional password reset translations
-msgid "Password Reset Email Sent"
-msgstr "Письмо для сброса пароля отправлено"
-
-msgid "Email Sent!"
-msgstr "Письмо отправлено!"
-
-msgid "We've emailed you instructions for setting your password, if an account exists with the email you entered. You should receive them shortly."
-msgstr "Мы отправили вам инструкции по установке пароля, если аккаунт с указанным email существует. Вы должны получить их в ближайшее время."
-
-msgid "Important:"
-msgstr "Важно:"
-
-msgid "If you don't receive an email, please make sure you've entered the address you registered with, and check your spam folder."
-msgstr "Если вы не получили письмо, убедитесь, что вы ввели адрес, с которым регистрировались, и проверьте папку спам."
-
-msgid "Forgotten your password? Enter your email address below, and we'll email instructions for setting a new one."
-msgstr "Забыли пароль? Введите ваш email адрес ниже, и мы отправим инструкции по установке нового пароля."
-
-msgid "Email address:"
-msgstr "Email адрес:"
-
-msgid "Please enter your new password twice so we can verify you typed it in correctly."
-msgstr "Пожалуйста, введите новый пароль дважды, чтобы мы могли убедиться, что вы ввели его правильно."
-
-msgid "New password:"
-msgstr "Новый пароль:"
-
-msgid "Enter new password"
-msgstr "Введите новый пароль"
-
-msgid "Confirm password:"
-msgstr "Подтвердите пароль:"
-
-msgid "Confirm new password"
-msgstr "Подтвердите новый пароль"
-
-msgid "Contains uppercase letter"
-msgstr "Содержит заглавную букву"
-
-msgid "Contains lowercase letter"
-msgstr "Содержит строчную букву"
-
-msgid "Contains number"
-msgstr "Содержит цифру"
-
-msgid "Contains special character"
-msgstr "Содержит специальный символ"
-
-msgid "Change Password"
-msgstr "Изменить пароль"
-
+#: templates/registration/password_reset_complete.html:168
 msgid "Your password has been set. You may go ahead and log in now."
 msgstr "Ваш пароль установлен. Теперь вы можете войти в систему."
 
+#: templates/registration/password_reset_complete.html:172
 msgid "Success!"
 msgstr "Успех!"
 
-msgid "Your new password has been saved successfully. You can now use it to log into your account."
-msgstr "Ваш новый пароль был успешно сохранен. Теперь вы можете использовать его для входа в аккаунт."
+#: templates/registration/password_reset_complete.html:173
+msgid ""
+"Your new password has been saved successfully. You can now use it to log "
+"into your account."
+msgstr ""
+"Ваш новый пароль был успешно сохранен. Теперь вы можете использовать его для "
+"входа в аккаунт."
 
+#: templates/registration/password_reset_complete.html:177
 msgid "Log In Now"
 msgstr "Войти сейчас"
 
-# Admin type translations
-msgid "Super Admin"
-msgstr "Суперпользователь"
+#: templates/registration/password_reset_confirm.html:5
+#: templates/registration/password_reset_confirm.html:235
+#: templates/registration/password_reset_confirm.html:240
+msgid "Set New Password"
+msgstr "Установка нового пароля"
 
-msgid "Django Admin"
-msgstr "Django Администратор"
+#: templates/registration/password_reset_confirm.html:241
+msgid ""
+"Please enter your new password twice so we can verify you typed it in "
+"correctly."
+msgstr ""
+"Пожалуйста, введите новый пароль дважды, чтобы мы могли убедиться, что вы "
+"ввели его правильно."
 
-# Переводы для топ-пользователей Mini App
-msgid "points"
-msgstr "Баллов"
+#: templates/registration/password_reset_confirm.html:257
+msgid "New password:"
+msgstr "Новый пароль:"
 
-msgid "quizzes"
-msgstr "Квизов"
+#: templates/registration/password_reset_confirm.html:262
+msgid "Enter new password"
+msgstr "Введите новый пароль"
 
-msgid "success_rate"
-msgstr "Успешность"
+#: templates/registration/password_reset_confirm.html:267
+msgid "Confirm password:"
+msgstr "Подтвердите пароль:"
 
-msgid "top_users_description"
-msgstr "Лучшие игроки по рейтингу"
+#: templates/registration/password_reset_confirm.html:272
+msgid "Confirm new password"
+msgstr "Подтвердите новый пароль"
 
-# Переводы времени для комментариев к задачам
-msgid "только что"
-msgstr "только что"
+#: templates/registration/password_reset_confirm.html:277
+msgid "Password Requirements:"
+msgstr "Требования к паролю:"
 
+#: templates/registration/password_reset_confirm.html:280
+msgid "At least 8 characters"
+msgstr "Минимум 8 символов"
+
+#: templates/registration/password_reset_confirm.html:284
+msgid "Passwords match"
+msgstr "Пароли совпадают"
+
+#: templates/registration/password_reset_confirm.html:288
+msgid "Contains uppercase letter"
+msgstr "Содержит заглавную букву"
+
+#: templates/registration/password_reset_confirm.html:292
+msgid "Contains lowercase letter"
+msgstr "Содержит строчную букву"
+
+#: templates/registration/password_reset_confirm.html:296
+msgid "Contains number"
+msgstr "Содержит цифру"
+
+#: templates/registration/password_reset_confirm.html:300
+msgid "Contains special character"
+msgstr "Содержит специальный символ"
+
+#: templates/registration/password_reset_confirm.html:305
+msgid "Change Password"
+msgstr "Изменить пароль"
+
+# Additional password reset translations
+#: templates/registration/password_reset_done.html:5
+#: templates/registration/password_reset_done.html:161
+msgid "Password Reset Email Sent"
+msgstr "Письмо для сброса пароля отправлено"
+
+#: templates/registration/password_reset_done.html:167
+msgid "Email Sent!"
+msgstr "Письмо отправлено!"
+
+#: templates/registration/password_reset_done.html:168
+msgid ""
+"We've emailed you instructions for setting your password, if an account "
+"exists with the email you entered. You should receive them shortly."
+msgstr ""
+"Мы отправили вам инструкции по установке пароля, если аккаунт с указанным "
+"email существует. Вы должны получить их в ближайшее время."
+
+#: templates/registration/password_reset_done.html:172
+msgid "Important:"
+msgstr "Важно:"
+
+#: templates/registration/password_reset_done.html:173
+msgid ""
+"If you don't receive an email, please make sure you've entered the address "
+"you registered with, and check your spam folder."
+msgstr ""
+"Если вы не получили письмо, убедитесь, что вы ввели адрес, с которым "
+"регистрировались, и проверьте папку спам."
+
+# Password reset email translations
+#: templates/registration/password_reset_email.html:7
+#: templates/registration/password_reset_email_backup.html:6
+#: templates/registration/password_reset_email_simple.html:6
+#: templates/registration/password_reset_email_simple.html:9
+#: templates/registration/password_reset_subject.txt:1
+msgid "Password Reset"
+msgstr "Сброс пароля"
+
+#: templates/registration/password_reset_email.html:19
+#: templates/registration/password_reset_email_backup.html:202
+msgid "Password Reset Request"
+msgstr "Запрос на сброс пароля"
+
+#: templates/registration/password_reset_email.html:28
+#: templates/registration/password_reset_email_backup.html:207
+#: templates/registration/password_reset_email_backup.txt:2
+#: templates/registration/password_reset_email_simple.html:10
+msgid "Hello"
+msgstr "Привет"
+
+#: templates/registration/password_reset_email.html:31
+#: templates/registration/password_reset_email_backup.html:211
+#: templates/registration/password_reset_email_backup.txt:4
+#: templates/registration/password_reset_email_simple.html:11
+msgid ""
+"We received a request to reset your password for your Quiz Project account."
+msgstr "Мы получили запрос на сброс пароля для вашего аккаунта Quiz Project."
+
+#: templates/registration/password_reset_email.html:32
+#: templates/registration/password_reset_email_backup.html:212
+msgid "If you made this request, click the button below to set a new password:"
+msgstr ""
+"Если вы делали этот запрос, нажмите кнопку ниже, чтобы установить новый "
+"пароль:"
+
+#: templates/registration/password_reset_email.html:38
+#: templates/registration/password_reset_email_backup.html:217
+#: templates/registration/password_reset_email_simple.html:15
+msgid "Reset My Password"
+msgstr "Сбросить мой пароль"
+
+#: templates/registration/password_reset_email.html:43
+#: templates/registration/password_reset_email_backup.html:222
+msgid "Important Information"
+msgstr "Важная информация"
+
+#: templates/registration/password_reset_email.html:44
+#: templates/registration/password_reset_email_backup.html:223
+#: templates/registration/password_reset_email_backup.txt:11
+msgid "This link is valid for 24 hours"
+msgstr "Эта ссылка действительна 24 часа"
+
+#: templates/registration/password_reset_email.html:45
+#: templates/registration/password_reset_email_backup.html:224
+#: templates/registration/password_reset_email_backup.txt:12
+msgid "For security reasons, you can only use this link once"
+msgstr ""
+"По соображениям безопасности, вы можете использовать эту ссылку только один "
+"раз"
+
+#: templates/registration/password_reset_email.html:46
+#: templates/registration/password_reset_email_backup.html:225
+#: templates/registration/password_reset_email_backup.txt:13
+msgid ""
+"If you don't reset your password within 24 hours, you'll need to request a "
+"new link"
+msgstr ""
+"Если вы не сбросите пароль в течение 24 часов, вам нужно будет запросить "
+"новую ссылку"
+
+#: templates/registration/password_reset_email.html:52
+#: templates/registration/password_reset_email_backup.html:231
+#: templates/registration/password_reset_email_backup.txt:15
+msgid "Didn't request this?"
+msgstr "Не запрашивали это?"
+
+#: templates/registration/password_reset_email.html:53
+#: templates/registration/password_reset_email_backup.html:232
+#: templates/registration/password_reset_email_backup.txt:16
+msgid ""
+"If you didn't request a password reset, you can safely ignore this email. "
+"Your password won't be changed."
+msgstr ""
+"Если вы не запрашивали сброс пароля, можете спокойно проигнорировать это "
+"письмо. Ваш пароль не будет изменен."
+
+#: templates/registration/password_reset_email.html:57
+#: templates/registration/password_reset_email_backup.html:236
+msgid ""
+"If the button above doesn't work, copy and paste this link into your browser:"
+msgstr ""
+"Если кнопка выше не работает, скопируйте и вставьте эту ссылку в ваш браузер:"
+
+#: templates/registration/password_reset_email.html:69
+#: templates/registration/password_reset_email_backup.html:245
+#: templates/registration/password_reset_email_backup.txt:20
+#: templates/registration/password_reset_email_backup.txt:43
+msgid "Making learning fun and accessible for everyone"
+msgstr "Делаем обучение веселым и доступным для всех"
+
+#: templates/registration/password_reset_email.html:72
+#: templates/registration/password_reset_email_backup.html:248
+#: templates/registration/password_reset_email_backup.txt:22
+msgid "Contact Support"
+msgstr "Связаться с поддержкой"
+
+#: templates/registration/password_reset_email.html:82
+#: templates/registration/password_reset_email_backup.html:258
+#: templates/registration/password_reset_email_backup.txt:30
+msgid ""
+"This email was sent from Quiz Project. Please do not reply to this email."
+msgstr ""
+"Это письмо отправлено от Quiz Project. Пожалуйста, не отвечайте на это "
+"письмо."
+
+#: templates/registration/password_reset_email.html:83
+#: templates/registration/password_reset_email_backup.html:259
+#: templates/registration/password_reset_email_backup.txt:31
+#: templates/registration/password_reset_email_backup.txt:45
+msgid "Questions?"
+msgstr "Вопросы?"
+
+#: templates/registration/password_reset_email.txt:3
 #, python-format
-msgid "%(minutes)s мин. назад"
-msgstr "%(minutes)s мин. назад"
+msgid ""
+"You're receiving this email because you requested a password reset for your "
+"user account at %(site_name)s."
+msgstr ""
 
-#, python-format
-msgid "%(hours)s ч. назад"
-msgstr "%(hours)s ч. назад"
+#: templates/registration/password_reset_email.txt:5
+msgid "Please go to the following page and choose a new password:"
+msgstr ""
 
+#: templates/registration/password_reset_email.txt:9
+msgid "Your username, in case you've forgotten:"
+msgstr ""
+
+#: templates/registration/password_reset_email.txt:11
+msgid "Thanks for using our site!"
+msgstr ""
+
+#: templates/registration/password_reset_email.txt:13
 #, python-format
-msgid "%(days)s дн. назад"
-msgstr "%(days)s дн. назад"
+msgid "The %(site_name)s team"
+msgstr ""
+
+#: templates/registration/password_reset_email_backup.txt:6
+#: templates/registration/password_reset_email_simple.html:12
+#, fuzzy
+#| msgid ""
+#| "If you made this request, click the button below to set a new password:"
+msgid "If you made this request, click the link below to set a new password:"
+msgstr ""
+"Если вы делали этот запрос, нажмите кнопку ниже, чтобы установить новый "
+"пароль:"
+
+#: templates/registration/password_reset_email_backup.txt:10
+#, fuzzy
+#| msgid "Important Information"
+msgid "Important Information:"
+msgstr "Важная информация"
+
+#: templates/registration/password_reset_email_backup.txt:19
+#: templates/registration/password_reset_email_backup.txt:42
+#: templates/registration/password_reset_email_simple.html:23
+msgid "Quiz Project Team"
+msgstr "Команда Quiz Project"
+
+#: templates/registration/password_reset_email_backup.txt:33
+msgid "FOLLOW US FOR UPDATES:"
+msgstr "СЛЕДИТЕ ЗА ОБНОВЛЕНИЯМИ:"
+
+#: templates/registration/password_reset_email_simple.html:18
+#, fuzzy
+#| msgid "This link is valid for 24 hours"
+msgid "This link is valid for 24 hours."
+msgstr "Эта ссылка действительна 24 часа"
+
+#: templates/registration/password_reset_email_simple.html:20
+#, fuzzy
+#| msgid ""
+#| "If you didn't request a password reset, you can safely ignore this email. "
+#| "Your password won't be changed."
+msgid "If you didn't request this, you can safely ignore this email."
+msgstr ""
+"Если вы не запрашивали сброс пароля, можете спокойно проигнорировать это "
+"письмо. Ваш пароль не будет изменен."
+
+# Password reset page translations
+#: templates/registration/password_reset_form.html:5
+#: templates/registration/password_reset_form.html:185
+#: templates/registration/password_reset_form.html:190
+msgid "Reset Password"
+msgstr "Сброс пароля"
+
+#: templates/registration/password_reset_form.html:191
+msgid ""
+"Forgotten your password? Enter your email address below, and we'll email "
+"instructions for setting a new one."
+msgstr ""
+"Забыли пароль? Введите ваш email адрес ниже, и мы отправим инструкции по "
+"установке нового пароля."
+
+#: templates/registration/password_reset_form.html:207
+msgid "Email address:"
+msgstr "Email адрес:"
+
+#: templates/registration/password_reset_form.html:212
+msgid "Enter your email address"
+msgstr "Введите ваш email адрес"

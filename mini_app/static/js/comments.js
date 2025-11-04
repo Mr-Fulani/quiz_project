@@ -417,7 +417,17 @@ class CommentsManager {
         }
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Отправка...';
+        
+        // Определяем язык для перевода текста кнопки
+        let btnLanguage = this.language;
+        if (!btnLanguage || !['en', 'ru'].includes(btnLanguage)) {
+            const urlParams = new URLSearchParams(window.location.search);
+            btnLanguage = urlParams.get('lang') || urlParams.get('language') || 'en';
+        }
+        
+        // Переводим текст кнопки в зависимости от языка
+        const sendingText = btnLanguage === 'en' ? 'Sending...' : 'Отправка...';
+        submitBtn.textContent = sendingText;
 
         try {
             const formData = new FormData();
@@ -436,8 +446,18 @@ class CommentsManager {
                 });
             }
 
+            // Добавляем язык в URL как query параметр
+            const url = `/api/tasks/translations/${this.translationId}/comments/`;
+            // Определяем язык для запроса - используем this.language или из URL/cookie
+            let requestLanguage = this.language;
+            if (!requestLanguage || !['en', 'ru'].includes(requestLanguage)) {
+                const urlParams = new URLSearchParams(window.location.search);
+                requestLanguage = urlParams.get('lang') || urlParams.get('language') || 'en';
+            }
+            const urlWithLang = requestLanguage ? `${url}?language=${requestLanguage}` : url;
+            
             const response = await fetch(
-                `/api/tasks/translations/${this.translationId}/comments/`,
+                urlWithLang,
                 {
                     method: 'POST',
                     body: formData
@@ -449,8 +469,8 @@ class CommentsManager {
                 
                 // Проверяем, это ошибка бана
                 if (response.status === 403 && errorData.is_banned) {
-                    // Показываем специальное сообщение о бане
-                    this.showBanNotification(errorData);
+                    // Показываем специальное сообщение о бане, передаем язык запроса
+                    this.showBanNotification(errorData, requestLanguage);
                     throw new Error('USER_BANNED'); // Специальная ошибка, чтобы не показывать alert
                 }
                 
@@ -486,7 +506,17 @@ class CommentsManager {
             }
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Отправить';
+            
+            // Определяем язык для перевода текста кнопки (используем тот же язык, что и в начале метода)
+            let btnLanguage = this.language;
+            if (!btnLanguage || !['en', 'ru'].includes(btnLanguage)) {
+                const urlParams = new URLSearchParams(window.location.search);
+                btnLanguage = urlParams.get('lang') || urlParams.get('language') || 'en';
+            }
+            
+            // Переводим текст кнопки в зависимости от языка
+            const sendText = btnLanguage === 'en' ? 'Send' : 'Отправить';
+            submitBtn.textContent = sendText;
         }
     }
 
@@ -724,13 +754,223 @@ class CommentsManager {
 
     /**
      * Показать уведомление о бане пользователя
+     * @param {Object} banData - Данные о бане из API
+     * @param {string} [requestLanguage] - Язык, который был использован в запросе (опционально)
      */
-    showBanNotification(banData) {
+    showBanNotification(banData, requestLanguage = null) {
         // Удаляем предыдущее уведомление, если есть
         const existingNotification = document.querySelector('.ban-notification-overlay');
         if (existingNotification) {
             existingNotification.remove();
         }
+
+        // Получаем язык и переводы - приоритет: переданный язык > this.language > URL > cookie > localizationService
+        let lang = requestLanguage;
+        if (!lang || !['en', 'ru'].includes(lang)) {
+            lang = this.language;
+        }
+        if (!lang || !['en', 'ru'].includes(lang)) {
+            // Пробуем получить из URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlLang = urlParams.get('lang') || urlParams.get('language');
+            if (urlLang && ['en', 'ru'].includes(urlLang)) {
+                lang = urlLang;
+            } else if (window.localizationService) {
+                lang = window.localizationService.getCurrentLanguage();
+            } else {
+                // Пробуем получить из cookie
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    const [key, value] = cookie.trim().split('=');
+                    if (key === 'selected_language' && ['en', 'ru'].includes(value)) {
+                        lang = value;
+                        break;
+                    }
+                }
+            }
+        }
+        // Fallback на русский если ничего не найдено
+        if (!lang || !['en', 'ru'].includes(lang)) {
+            lang = 'ru';
+        }
+        
+        const translations = window.translations || {};
+        
+        // Функция для получения перевода
+        const getText = (key, fallback) => {
+            return translations[key] || fallback || key;
+        };
+
+        // Определяем локализацию для времени
+        const locale = lang === 'en' ? 'en-US' : 'ru-RU';
+        const dateFormat = lang === 'en' ? { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' } : { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+
+        // Форматируем время до разбана с учетом языка
+        let timeText = '';
+        if (banData.banned_until) {
+            const bannedUntil = new Date(banData.banned_until);
+            const now = new Date();
+            const diff = bannedUntil - now;
+            
+            if (diff > 0) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (lang === 'en') {
+                    if (hours > 24) {
+                        const days = Math.floor(hours / 24);
+                        timeText = `until ${bannedUntil.toLocaleString(locale, dateFormat)}<br><small style="opacity: 0.8;">(${days} day${days !== 1 ? 's' : ''} ${hours % 24} hour${(hours % 24) !== 1 ? 's' : ''} remaining)</small>`;
+                    } else if (hours > 0) {
+                        timeText = `until ${bannedUntil.toLocaleString(locale, dateFormat)}<br><small style="opacity: 0.8;">(${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''} remaining)</small>`;
+                    } else {
+                        timeText = `until ${bannedUntil.toLocaleString(locale, dateFormat)}<br><small style="opacity: 0.8;">(${minutes} minute${minutes !== 1 ? 's' : ''} remaining)</small>`;
+                    }
+                } else {
+                    // Русский
+                    if (hours > 24) {
+                        const days = Math.floor(hours / 24);
+                        const daysText = days === 1 ? 'день' : (days >= 2 && days <= 4 ? 'дня' : 'дней');
+                        const hoursText = (hours % 24) === 1 ? 'час' : ((hours % 24) >= 2 && (hours % 24) <= 4 ? 'часа' : 'часов');
+                        timeText = `до ${bannedUntil.toLocaleString(locale, dateFormat)}<br><small style="opacity: 0.8;">(осталось ${days} ${daysText} ${hours % 24} ${hoursText})</small>`;
+                    } else if (hours > 0) {
+                        const hoursText = hours === 1 ? 'час' : (hours >= 2 && hours <= 4 ? 'часа' : 'часов');
+                        const minutesText = minutes === 1 ? 'минута' : (minutes >= 2 && minutes <= 4 ? 'минуты' : 'минут');
+                        timeText = `до ${bannedUntil.toLocaleString(locale, dateFormat)}<br><small style="opacity: 0.8;">(осталось ${hours} ${hoursText} ${minutes} ${minutesText})</small>`;
+                    } else {
+                        const minutesText = minutes === 1 ? 'минута' : (minutes >= 2 && minutes <= 4 ? 'минуты' : 'минут');
+                        timeText = `до ${bannedUntil.toLocaleString(locale, dateFormat)}<br><small style="opacity: 0.8;">(осталось ${minutes} ${minutesText})</small>`;
+                    }
+                }
+            }
+        } else {
+            // Постоянный бан
+            timeText = lang === 'en' 
+                ? '<strong style="color: #ff4444;">permanently</strong>'
+                : '<strong style="color: #ff4444;">навсегда</strong>';
+        }
+
+        // Получаем переводы для интерфейсных элементов
+        const titleText = lang === 'en' ? 'You are banned' : 'Вы заблокированы';
+        const blockedText = lang === 'en' ? 'Blocked:' : 'Заблокировано:';
+        const reasonText = lang === 'en' ? 'Reason:' : 'Причина:';
+        const buttonText = lang === 'en' ? 'Got it' : 'Понятно';
+        
+        // Словарь стандартных причин бана с переводами
+        const banReasonsTranslations = {
+            'ru': {
+                'Блокировка на 1 час (действие администратора)': {
+                    'en': 'Blocked for 1 hour (administrator action)',
+                    'ru': 'Блокировка на 1 час (действие администратора)'
+                },
+                'Блокировка на 24 часа (действие администратора)': {
+                    'en': 'Blocked for 24 hours (administrator action)',
+                    'ru': 'Блокировка на 24 часа (действие администратора)'
+                },
+                'Блокировка на 7 дней (действие администратора)': {
+                    'en': 'Blocked for 7 days (administrator action)',
+                    'ru': 'Блокировка на 7 дней (действие администратора)'
+                },
+                'Блокировка на 30 дней (действие администратора)': {
+                    'en': 'Blocked for 30 days (administrator action)',
+                    'ru': 'Блокировка на 30 дней (действие администратора)'
+                },
+                'Постоянная блокировка (действие администратора)': {
+                    'en': 'Permanent ban (administrator action)',
+                    'ru': 'Постоянная блокировка (действие администратора)'
+                },
+                'Спам': {
+                    'en': 'Spam',
+                    'ru': 'Спам'
+                },
+                'Нарушение правил': {
+                    'en': 'Rules violation',
+                    'ru': 'Нарушение правил'
+                },
+                'Оскорбления': {
+                    'en': 'Insults',
+                    'ru': 'Оскорбления'
+                },
+                'Некорректное поведение': {
+                    'en': 'Inappropriate behavior',
+                    'ru': 'Некорректное поведение'
+                }
+            },
+            'en': {
+                'Blocked for 1 hour (administrator action)': {
+                    'en': 'Blocked for 1 hour (administrator action)',
+                    'ru': 'Блокировка на 1 час (действие администратора)'
+                },
+                'Blocked for 24 hours (administrator action)': {
+                    'en': 'Blocked for 24 hours (administrator action)',
+                    'ru': 'Блокировка на 24 часа (действие администратора)'
+                },
+                'Blocked for 7 days (administrator action)': {
+                    'en': 'Blocked for 7 days (administrator action)',
+                    'ru': 'Блокировка на 7 дней (действие администратора)'
+                },
+                'Blocked for 30 days (administrator action)': {
+                    'en': 'Blocked for 30 days (administrator action)',
+                    'ru': 'Блокировка на 30 дней (действие администратора)'
+                },
+                'Permanent ban (administrator action)': {
+                    'en': 'Permanent ban (administrator action)',
+                    'ru': 'Постоянная блокировка (действие администратора)'
+                },
+                'Spam': {
+                    'en': 'Spam',
+                    'ru': 'Спам'
+                },
+                'Rules violation': {
+                    'en': 'Rules violation',
+                    'ru': 'Нарушение правил'
+                },
+                'Insults': {
+                    'en': 'Insults',
+                    'ru': 'Оскорбления'
+                },
+                'Inappropriate behavior': {
+                    'en': 'Inappropriate behavior',
+                    'ru': 'Некорректное поведение'
+                }
+            }
+        };
+        
+        /**
+         * Функция для перевода причины бана
+         * @param {string} reason - Причина бана из базы данных
+         * @param {string} targetLang - Целевой язык перевода
+         * @returns {string} Переведенная причина или исходная, если перевод не найден
+         */
+        const translateBanReason = (reason, targetLang) => {
+            if (!reason) return '';
+            
+            // Ищем в словарях для обоих языков
+            for (const langKey of ['ru', 'en']) {
+                const translations = banReasonsTranslations[langKey];
+                if (translations && translations[reason]) {
+                    return translations[reason][targetLang] || reason;
+                }
+            }
+            
+            // Если точного совпадения нет, проверяем частичное совпадение
+            const reasonLower = reason.toLowerCase();
+            for (const langKey of ['ru', 'en']) {
+                const translations = banReasonsTranslations[langKey];
+                if (translations) {
+                    for (const [key, value] of Object.entries(translations)) {
+                        if (reasonLower.includes(key.toLowerCase()) || key.toLowerCase().includes(reasonLower)) {
+                            return value[targetLang] || reason;
+                        }
+                    }
+                }
+            }
+            
+            // Если перевод не найден, возвращаем исходную причину
+            return reason;
+        };
+        
+        // Используем переведенное сообщение из API, если оно есть
+        const banMessage = banData.error || banData.message || '';
 
         // Создаём overlay
         const overlay = document.createElement('div');
@@ -750,30 +990,6 @@ class CommentsManager {
             animation: fadeIn 0.3s ease;
         `;
 
-        // Форматируем время до разбана
-        let timeText = '';
-        if (banData.banned_until) {
-            const bannedUntil = new Date(banData.banned_until);
-            const now = new Date();
-            const diff = bannedUntil - now;
-            
-            if (diff > 0) {
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                
-                if (hours > 24) {
-                    const days = Math.floor(hours / 24);
-                    timeText = `до ${bannedUntil.toLocaleString('ru-RU')}<br><small style="opacity: 0.8;">(осталось ${days} дн. ${hours % 24} ч.)</small>`;
-                } else if (hours > 0) {
-                    timeText = `до ${bannedUntil.toLocaleString('ru-RU')}<br><small style="opacity: 0.8;">(осталось ${hours} ч. ${minutes} мин.)</small>`;
-                } else {
-                    timeText = `до ${bannedUntil.toLocaleString('ru-RU')}<br><small style="opacity: 0.8;">(осталось ${minutes} мин.)</small>`;
-                }
-            }
-        } else {
-            timeText = '<strong style="color: #ff4444;">навсегда</strong>';
-        }
-
         // Создаём модальное окно
         const modal = document.createElement('div');
         modal.className = 'ban-notification-modal';
@@ -789,41 +1005,120 @@ class CommentsManager {
             animation: slideUp 0.3s ease;
         `;
 
-        modal.innerHTML = `
-            <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
-            <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">
-                Вы заблокированы
-            </h2>
-            <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px 0;">
-                <div style="font-size: 16px; margin-bottom: 10px;">
-                    <strong>Заблокировано:</strong><br>
-                    ${timeText}
-                </div>
-                ${banData.ban_reason ? `
-                    <div style="font-size: 14px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
-                        <strong>Причина:</strong><br>
-                        <span style="opacity: 0.9;">${this.escapeHtml(banData.ban_reason)}</span>
-                    </div>
+        // Формируем содержимое модального окна
+        // Используем переведенное сообщение из API напрямую
+        if (banMessage) {
+            // Парсим сообщение: оно может содержать дату, время и причину
+            // Формат: "You are banned until...\n\nReason: причина"
+            const messageParts = banMessage.split('\n\n');
+            let mainMessage = messageParts[0] || banMessage;
+            let reasonPart = messageParts[1] || '';
+            
+            // Если причина не найдена в сообщении, но есть в banData, добавляем её
+            if (!reasonPart && banData.ban_reason) {
+                // Переводим причину бана в зависимости от языка приложения
+                const translatedReason = translateBanReason(banData.ban_reason, lang);
+                reasonPart = `${reasonText} ${translatedReason}`;
+            } else if (reasonPart) {
+                // Если причина уже есть в сообщении, проверяем, нужно ли её переводить
+                // Извлекаем причину из строки "Reason: причина" или "Причина: причина"
+                const reasonMatch = reasonPart.match(/^(?:Reason|Причина):\s*(.+)$/i);
+                if (reasonMatch && reasonMatch[1]) {
+                    const originalReason = reasonMatch[1].trim();
+                    const translatedReason = translateBanReason(originalReason, lang);
+                    // Если перевод найден, заменяем причину
+                    if (translatedReason !== originalReason) {
+                        reasonPart = `${reasonText} ${translatedReason}`;
+                    }
+                }
+            }
+            
+            console.log('🔍 Ban notification debug:', {
+                lang: lang,
+                banMessage: banMessage,
+                mainMessage: mainMessage,
+                reasonPart: reasonPart,
+                titleText: titleText,
+                banData: banData
+            });
+            
+            // Убираем дублирование - если mainMessage уже начинается с "You are banned" или "Вы заблокированы",
+            // не показываем заголовок отдельно
+            const hasTitleInMessage = mainMessage.toLowerCase().includes('you are banned') || 
+                                     mainMessage.toLowerCase().includes('вы заблокированы') ||
+                                     mainMessage.toLowerCase().startsWith('you are banned') ||
+                                     mainMessage.toLowerCase().startsWith('вы заблокированы');
+            
+            modal.innerHTML = `
+                <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
+                ${!hasTitleInMessage ? `
+                    <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">
+                        ${titleText}
+                    </h2>
                 ` : ''}
-            </div>
-            <p style="margin: 20px 0; opacity: 0.9; font-size: 14px;">
-                Вы не можете оставлять комментарии до окончания срока блокировки.
-            </p>
-            <button class="ban-notification-close" style="
-                background: rgba(255, 255, 255, 0.2);
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                color: white;
-                padding: 12px 30px;
-                border-radius: 25px;
-                font-size: 16px;
-                font-weight: bold;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                margin-top: 10px;
-            " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
-                Понятно
-            </button>
-        `;
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px 0;">
+                    <div style="font-size: 16px; margin-bottom: ${reasonPart ? '15px' : '0'}; white-space: pre-line; line-height: 1.6;">
+                        ${this.escapeHtml(mainMessage).replace(/\n/g, '<br>')}
+                    </div>
+                    ${reasonPart ? `
+                        <div style="font-size: 14px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2); white-space: pre-line; line-height: 1.5;">
+                            ${this.escapeHtml(reasonPart).replace(/\n/g, '<br>')}
+                        </div>
+                    ` : ''}
+                </div>
+                <button class="ban-notification-close" style="
+                    background: rgba(255, 255, 255, 0.2);
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    color: white;
+                    padding: 12px 30px;
+                    border-radius: 25px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-top: 10px;
+                " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+                    ${buttonText}
+                </button>
+            `;
+        } else {
+            // Fallback: используем старое форматирование
+            modal.innerHTML = `
+                <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
+                <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">
+                    ${titleText}
+                </h2>
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px 0;">
+                    <div style="font-size: 16px; margin-bottom: 10px;">
+                        <strong>${blockedText}</strong><br>
+                        ${timeText}
+                    </div>
+                    ${banData.ban_reason ? `
+                        <div style="font-size: 14px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                            <strong>${reasonText}</strong><br>
+                            <span style="opacity: 0.9;">${this.escapeHtml(translateBanReason(banData.ban_reason, lang))}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <p style="margin: 20px 0; opacity: 0.9; font-size: 14px;">
+                    ${lang === 'en' ? 'You cannot leave comments until the ban expires.' : 'Вы не можете оставлять комментарии до окончания срока блокировки.'}
+                </p>
+                <button class="ban-notification-close" style="
+                    background: rgba(255, 255, 255, 0.2);
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    color: white;
+                    padding: 12px 30px;
+                    border-radius: 25px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-top: 10px;
+                " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+                    ${buttonText}
+                </button>
+            `;
+        }
 
         overlay.appendChild(modal);
         document.body.appendChild(overlay);

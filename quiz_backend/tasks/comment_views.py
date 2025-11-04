@@ -10,7 +10,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from django.utils.translation import activate
+from django.utils.translation import activate, gettext as _
 from django.db import IntegrityError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -159,6 +159,22 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         
         Поддерживает загрузку до 3 изображений.
         """
+        # Активируем язык на основе параметра запроса (как в методе list)
+        app_language = request.query_params.get('language')
+        logger.info(f"🌐 Language from query_params: {app_language}")
+        if not app_language:
+            # Пробуем получить язык из данных запроса (если передается в теле)
+            app_language = request.data.get('language') if hasattr(request.data, 'get') else None
+            logger.info(f"🌐 Language from request.data: {app_language}")
+        if not app_language or app_language not in ['en', 'ru']:
+            app_language = 'ru'  # Fallback на русский
+            logger.info(f"🌐 Language fallback to: {app_language}")
+        
+        # Активируем язык для перевода
+        activate(app_language)
+        from django.utils.translation import get_language
+        logger.info(f"🌐 Language activated: {app_language}, current language: {get_language()}")
+        
         # Логирование для отладки
         logger.info(f"Create comment request data: {request.data}")
         logger.info(f"Create comment request FILES: {request.FILES}")
@@ -177,26 +193,70 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                 # Если пользователь забанен, запрещаем создание комментария
                 if user.is_banned:
                     from django.utils import timezone
+                    from django.utils.translation import get_language
+                    
+                    # Убеждаемся, что язык активирован (активирован в начале метода)
+                    current_lang = get_language()
+                    if current_lang != app_language:
+                        activate(app_language)
+                        current_lang = get_language()
+                    
+                    logger.info(f"🔍 Ban check: app_language={app_language}, current_lang={current_lang}, user.is_banned={user.is_banned}")
                     
                     if user.banned_until:
                         remaining = user.banned_until - timezone.now()
                         hours = int(remaining.total_seconds() // 3600)
                         minutes = int((remaining.total_seconds() % 3600) // 60)
                         
+                        # Формируем текст времени с учетом языка приложения
                         if hours > 24:
                             days = hours // 24
-                            time_text = f"{days} дней"
+                            if app_language == 'en':
+                                time_text = f"{days} day" if days == 1 else f"{days} days"
+                            else:
+                                # Русский: правильное склонение
+                                if days == 1:
+                                    time_text = f"{days} день"
+                                elif 2 <= days <= 4:
+                                    time_text = f"{days} дня"
+                                else:
+                                    time_text = f"{days} дней"
                         elif hours > 0:
-                            time_text = f"{hours} часов {minutes} минут"
+                            if app_language == 'en':
+                                time_text = f"{hours} hour{'s' if hours != 1 else ''} {minutes} minute{'s' if minutes != 1 else ''}"
+                            else:
+                                # Русский: правильное склонение
+                                hours_text = "час" if hours == 1 else ("часа" if 2 <= hours <= 4 else "часов")
+                                minutes_text = "минута" if minutes == 1 else ("минуты" if 2 <= minutes <= 4 else "минут")
+                                time_text = f"{hours} {hours_text} {minutes} {minutes_text}"
                         else:
-                            time_text = f"{minutes} минут"
+                            if app_language == 'en':
+                                time_text = f"{minutes} minute{'s' if minutes != 1 else ''}"
+                            else:
+                                # Русский: правильное склонение
+                                if minutes == 1:
+                                    time_text = f"{minutes} минута"
+                                elif 2 <= minutes <= 4:
+                                    time_text = f"{minutes} минуты"
+                                else:
+                                    time_text = f"{minutes} минут"
                         
-                        ban_message = f"Вы заблокированы до {user.banned_until.strftime('%d.%m.%Y %H:%M')}. Осталось: {time_text}."
+                        # Переводим сообщение о бане (gettext автоматически выберет правильный перевод)
+                        ban_message = _("You are banned until {date}. Time remaining: {time}.").format(
+                            date=user.banned_until.strftime('%d.%m.%Y %H:%M'),
+                            time=time_text
+                        )
+                        logger.info(f"🌐 Ban message (temp): app_lang={app_language}, current_lang={get_language()}, message={ban_message}")
                     else:
-                        ban_message = "Вы заблокированы навсегда."
+                        # Постоянный бан
+                        ban_message = _("You are banned permanently.")
+                        logger.info(f"🌐 Ban message (permanent): app_lang={app_language}, current_lang={get_language()}, message={ban_message}")
                     
                     if user.ban_reason:
-                        ban_message += f"\n\nПричина: {user.ban_reason}"
+                        reason_text = _("Reason:")
+                        ban_message += f"\n\n{reason_text} {user.ban_reason}"
+                    
+                    logger.info(f"🌐 Final ban message: {ban_message}")
                     
                     return Response(
                         {
@@ -326,8 +386,32 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                     logger.info(f"ℹ️ Пользователь ответил сам себе, уведомление не отправляется")
             
             # Уведомляем админов о новом комментарии
-            admin_title = "💬 Новый комментарий в задаче"
-            admin_message = f"Пользователь {comment.author_username} оставил комментарий:\n\n{comment.text[:200]}"
+            from django.urls import reverse
+            from accounts.utils_folder.telegram_notifications import escape_markdown, get_base_url
+            
+            # Получаем информацию о задаче
+            task = comment.task_translation.task
+            topic_name = task.topic.name if task.topic else "Неизвестная тема"
+            subtopic_name = task.subtopic.name if task.subtopic else "Без подтемы"
+            language = comment.task_translation.language.upper()
+            
+            # Формируем ссылку на комментарий в админке с динамическим URL
+            # Используем request из view, если доступен
+            view_request = getattr(self, 'request', None)
+            base_url = get_base_url(view_request)
+            admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
+            admin_url = f"{base_url}{admin_path}"
+            
+            admin_title = "💬 Новый комментарий"
+            admin_message = (
+                f"Пользователь: @{comment.author_username} (ID: {comment.author_telegram_id})\n"
+                f"Язык: {language}\n"
+                f"Тема: {topic_name}\n"
+                f"Подтема: {subtopic_name}\n\n"
+                f"Комментарий: {comment.text[:200]}\n\n"
+                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+            )
+            
             notify_all_admins(
                 notification_type='comment',
                 title=admin_title,
@@ -510,20 +594,46 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         
         # Уведомляем админов о новой жалобе
         try:
-            from accounts.utils_folder.telegram_notifications import notify_all_admins
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+            from accounts.models import MiniAppUser
             from tasks.models import TaskCommentReport
+            from django.urls import reverse
+            
+            # Получаем информацию о задаче
+            task = comment.task_translation.task
+            topic_name = task.topic.name if task.topic else "Неизвестная тема"
+            subtopic_name = task.subtopic.name if task.subtopic else "Без подтемы"
+            
+            # Получаем username репортера из MiniAppUser
+            reporter_username = "Без username"
+            try:
+                reporter_user = MiniAppUser.objects.filter(telegram_id=report.reporter_telegram_id).first()
+                if reporter_user:
+                    reporter_username = reporter_user.username or "Без username"
+            except Exception:
+                pass
+            
+            # Формируем ссылку на жалобу в админке с динамическим URL
+            # Используем request из view для получения правильного URL (ngrok)
+            view_request = getattr(self, 'request', None)
+            base_url = get_base_url(view_request)
+            admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
+            admin_url = f"{base_url}{admin_path}"
             
             reason_display = dict(TaskCommentReport.REASON_CHOICES).get(report.reason, report.reason)
             admin_title = "🚨 Новая жалоба на комментарий"
             admin_message = (
-                f"Пользователь подал жалобу на комментарий.\n\n"
-                f"Причина: {reason_display}\n"
-                f"Комментарий: {comment.text[:150]}\n"
-                f"Автор комментария: {comment.author_username}"
+                f"От: @{reporter_username} (ID: {report.reporter_telegram_id})\n"
+                f"Причина: {reason_display}\n\n"
+                f"Комментарий от: @{comment.author_username} (ID: {comment.author_telegram_id})\n"
+                f"Тема: {topic_name} → {subtopic_name}\n\n"
+                f"Текст комментария: {comment.text[:150]}"
             )
             
             if report.description:
                 admin_message += f"\n\nДополнительно: {report.description[:100]}"
+            
+            admin_message += f"\n\n👉 Посмотреть в админке: {escape_markdown(admin_url)}"
             
             notify_all_admins(
                 notification_type='report',

@@ -1,6 +1,7 @@
 import aiohttp
 import logging
 import os
+import re
 import requests
 from typing import Optional, List
 from django.conf import settings
@@ -9,10 +10,89 @@ from django.db import models as django_models
 logger = logging.getLogger(__name__)
 
 
+def escape_markdown(text: str) -> str:
+    """
+    Экранирует специальные символы Markdown для Telegram.
+    
+    Args:
+        text: Исходный текст
+        
+    Returns:
+        str: Текст с экранированными специальными символами
+    """
+    # Символы, которые нужно экранировать в Telegram Markdown
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    
+    return text
+
+
+def get_base_url(request=None):
+    """
+    Получает базовый URL для формирования ссылок в уведомлениях.
+    
+    Приоритет:
+    1. Из request заголовков (X-Forwarded-Host, X-Forwarded-Proto) - для работы через nginx/ngrok
+    2. Из request.get_host() - стандартный способ Django
+    3. Из settings.PUBLIC_URL (для разработки с ngrok)
+    4. Из settings.SITE_URL (для продакшена)
+    
+    Args:
+        request: Django request объект (опционально)
+        
+    Returns:
+        str: Базовый URL (например, https://quiz-code.com или https://xxx.ngrok-free.dev)
+    """
+    # Если передан request, пытаемся получить URL из него
+    if request:
+        try:
+            # Сначала проверяем заголовки X-Forwarded-Host и X-Forwarded-Proto
+            # Это важно для работы через nginx/ngrok
+            forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST') or request.META.get('X-Forwarded-Host')
+            forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO') or request.META.get('X-Forwarded-Proto')
+            
+            if forwarded_host:
+                # Используем заголовки от прокси (ngrok/nginx)
+                scheme = forwarded_proto or 'https'
+                # X-Forwarded-Host может содержать несколько хостов, берем первый
+                host = forwarded_host.split(',')[0].strip()
+                base_url = f"{scheme}://{host}"
+                logger.debug(f"🌐 Используем URL из заголовков X-Forwarded-Host: {base_url}")
+                return base_url
+            
+            # Если заголовков нет, используем стандартный способ Django
+            scheme = request.scheme or 'https'
+            host = request.get_host()
+            if host and host not in ['localhost', '127.0.0.1'] and 'localhost' not in host:
+                base_url = f"{scheme}://{host}"
+                logger.debug(f"🌐 Используем URL из request.get_host(): {base_url}")
+                return base_url
+            else:
+                logger.debug(f"⚠️ request.get_host() вернул localhost или невалидный хост: {host}, используем fallback")
+        except Exception as e:
+            logger.warning(f"Не удалось получить URL из request: {e}")
+    
+    # Fallback на настройки
+    if hasattr(settings, 'PUBLIC_URL') and settings.PUBLIC_URL:
+        logger.debug(f"🌐 Используем PUBLIC_URL из настроек: {settings.PUBLIC_URL}")
+        return settings.PUBLIC_URL
+    
+    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
+        logger.debug(f"🌐 Используем SITE_URL из настроек: {settings.SITE_URL}")
+        return settings.SITE_URL
+    
+    # Последний fallback
+    logger.warning("Не удалось определить базовый URL, используется дефолтный")
+    return "https://quiz-code.com"
+
+
 def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: str = "Markdown") -> bool:
     """
     Синхронная отправка уведомления пользователю в Telegram через бота.
     Сначала пытается использовать прямой API Telegram, если не получается - через bot сервис.
+    При ошибке 400 (Bad Request) пытается отправить без parse_mode или с HTML.
     
     Args:
         telegram_id: Telegram ID получателя
@@ -25,49 +105,83 @@ def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: 
     # Сначала пробуем прямой API Telegram
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     if bot_token:
-        try:
-            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-            payload = {
-                'chat_id': telegram_id,
-                'text': message,
-                'parse_mode': parse_mode
-            }
-            
-            response = requests.post(url, json=payload, timeout=10)
-            
-            if response.status_code == 200:
-                logger.info(f"✅ Уведомление отправлено пользователю {telegram_id} через Telegram API")
-                return True
-            else:
-                logger.warning(f"⚠️ Telegram API вернул {response.status_code}, пробуем через bot сервис")
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка отправки через Telegram API: {e}, пробуем через bot сервис")
+        # Пробуем разные режимы парсинга при ошибке
+        parse_modes_to_try = [parse_mode, None, "HTML"] if parse_mode else [None]
+        
+        for try_parse_mode in parse_modes_to_try:
+            try:
+                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                payload = {
+                    'chat_id': telegram_id,
+                    'text': message
+                }
+                
+                # Добавляем parse_mode только если он указан
+                if try_parse_mode:
+                    payload['parse_mode'] = try_parse_mode
+                
+                response = requests.post(url, json=payload, timeout=10)
+                
+                if response.status_code == 200:
+                    logger.info(f"✅ Уведомление отправлено пользователю {telegram_id} через Telegram API (parse_mode: {try_parse_mode})")
+                    return True
+                elif response.status_code == 400:
+                    # Если ошибка 400, пробуем следующий режим парсинга
+                    error_data = response.json() if response.content else {}
+                    error_desc = error_data.get('description', '')
+                    logger.warning(f"⚠️ Telegram API вернул 400 (parse_mode: {try_parse_mode}): {error_desc}")
+                    if try_parse_mode != parse_modes_to_try[-1]:  # Не последний режим
+                        continue
+                    # Если это последний режим, пробуем через bot сервис
+                    break
+                else:
+                    logger.warning(f"⚠️ Telegram API вернул {response.status_code}, пробуем через bot сервис")
+                    break
+            except Exception as e:
+                logger.warning(f"⚠️ Ошибка отправки через Telegram API (parse_mode: {try_parse_mode}): {e}")
+                if try_parse_mode == parse_modes_to_try[-1]:  # Последний режим
+                    break
+                continue
     
     # Если прямой API не сработал, пробуем через bot сервис
-    try:
-        bot_url = os.getenv('BOT_API_URL', 'http://telegram_bot:8000')
-        payload = {
-            'chat_id': telegram_id,
-            'text': message,
-            'parse_mode': parse_mode
-        }
-        
-        response = requests.post(
-            f"{bot_url}/api/send-message/",
-            json=payload,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            logger.info(f"✅ Уведомление отправлено пользователю {telegram_id} через bot сервис")
-            return True
-        else:
-            logger.error(f"❌ Ошибка отправки уведомления через bot сервис: {response.status_code}")
-            return False
+    parse_modes_to_try = [parse_mode, None, "HTML"] if parse_mode else [None]
+    
+    for try_parse_mode in parse_modes_to_try:
+        try:
+            bot_url = os.getenv('BOT_API_URL', 'http://telegram_bot:8000')
+            payload = {
+                'chat_id': telegram_id,
+                'text': message
+            }
             
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке уведомления через bot сервис: {e}")
-        return False
+            if try_parse_mode:
+                payload['parse_mode'] = try_parse_mode
+            
+            response = requests.post(
+                f"{bot_url}/api/send-message/",
+                json=payload,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"✅ Уведомление отправлено пользователю {telegram_id} через bot сервис (parse_mode: {try_parse_mode})")
+                return True
+            elif response.status_code == 400 and try_parse_mode != parse_modes_to_try[-1]:
+                logger.warning(f"⚠️ Bot сервис вернул 400 (parse_mode: {try_parse_mode}), пробуем следующий режим")
+                continue
+            else:
+                logger.error(f"❌ Ошибка отправки уведомления через bot сервис: {response.status_code}")
+                if try_parse_mode == parse_modes_to_try[-1]:
+                    return False
+                continue
+                
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке уведомления через bot сервис (parse_mode: {try_parse_mode}): {e}")
+            if try_parse_mode == parse_modes_to_try[-1]:
+                return False
+            continue
+    
+    return False
 
 
 def create_notification(

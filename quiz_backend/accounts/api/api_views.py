@@ -940,6 +940,42 @@ class MiniAppProfileByTelegramID(APIView):
                     mini_app_user = create_serializer.save()
 
                     logger.info(f"✅ Успешно создан MiniAppUser: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
+                    
+                    # Отправляем уведомление админам о новом пользователе
+                    try:
+                        from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+                        from django.urls import reverse
+                        
+                        # Формируем ссылку на пользователя в админке с динамическим URL
+                        base_url = get_base_url(request)
+                        admin_path = reverse('admin:accounts_miniappuser_change', args=[mini_app_user.id])
+                        admin_url = f"{base_url}{admin_path}"
+                        
+                        username = mini_app_user.username or "Без username"
+                        first_name = mini_app_user.first_name or ""
+                        last_name = mini_app_user.last_name or ""
+                        full_name = f"{first_name} {last_name}".strip() or "Без имени"
+                        
+                        admin_title = "🆕 Новый пользователь Mini App"
+                        admin_message = (
+                            f"Пользователь: @{username} (ID: {mini_app_user.telegram_id})\n"
+                            f"Имя: {full_name}\n"
+                            f"Дата регистрации: {mini_app_user.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+                            f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+                        )
+                        
+                        notify_all_admins(
+                            notification_type='other',
+                            title=admin_title,
+                            message=admin_message,
+                            related_object_id=mini_app_user.id,
+                            related_object_type='message'
+                        )
+                        
+                        logger.info(f"📤 Отправлено уведомление о новом пользователе #{mini_app_user.id}")
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка отправки уведомления о новом пользователе: {e}", exc_info=True)
                 else:
                     # Если пользователь существует, обновляем его данные, если предоставлены
                     logger.info(f"Найден существующий MiniAppUser для telegram_id {telegram_id}. Обновляем данные.")
