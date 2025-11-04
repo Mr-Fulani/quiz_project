@@ -121,6 +121,8 @@ class LocalizationService:
             "achievements_title": "Achievements",
             "no_statistics_data": "No data to display yet",
             "start_solving": "Start solving tasks to see statistics",
+            "favorite_topic": "Favorite Topic",
+            "not_defined": "Not defined",
             
             # Достижения
             "achievement_1": "First Step",
@@ -449,6 +451,8 @@ class LocalizationService:
             "achievements_title": "Достижения",
             "no_statistics_data": "Пока нет данных для отображения",
             "start_solving": "Начните решать задачи, чтобы увидеть статистику",
+            "favorite_topic": "Любимая тема",
+            "not_defined": "Не определена",
             
             # Достижения
             "achievement_1": "Первый шаг",

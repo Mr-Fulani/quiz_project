@@ -36,6 +36,9 @@ class StatisticsManager {
         // Перевод названий достижений
         this.translateAchievements();
         
+        // Проверяем и обновляем любимую тему при первой загрузке
+        this.checkFavoriteTopicTranslation();
+        
         // Обновление статистики каждые 30 секунд
         if (this.telegramId) {
             setInterval(() => this.refreshStatistics(), 30000);
@@ -43,6 +46,44 @@ class StatisticsManager {
         
         // Слушаем изменения языка
         this.setupLanguageListener();
+    }
+    
+    /**
+     * Проверка и обновление перевода любимой темы при первой загрузке
+     */
+    checkFavoriteTopicTranslation() {
+        const favoriteTopicElement = document.querySelector('.stat-card:nth-child(8) .stat-number');
+        if (favoriteTopicElement) {
+            const currentText = favoriteTopicElement.textContent.trim();
+            // Если элемент содержит значение по умолчанию "Не определена" и не имеет атрибута data-translate
+            if ((currentText === 'Не определена' || currentText === 'Not defined') && 
+                !favoriteTopicElement.hasAttribute('data-translate')) {
+                // Устанавливаем атрибут для перевода
+                favoriteTopicElement.setAttribute('data-translate', 'not_defined');
+                // Обновляем через систему локализации (с задержкой, если сервис еще не готов)
+                const updateTranslation = () => {
+                    if (window.localizationService && window.localizationService.getText) {
+                        const translation = window.localizationService.getText('not_defined');
+                        if (translation && translation !== 'not_defined') {
+                            favoriteTopicElement.textContent = translation;
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                
+                // Пытаемся обновить сразу
+                if (!updateTranslation()) {
+                    // Если не получилось, ждем немного и пробуем снова
+                    setTimeout(() => {
+                        if (!updateTranslation()) {
+                            // Если все еще не работает, ждем еще
+                            setTimeout(updateTranslation, 500);
+                        }
+                    }, 100);
+                }
+            }
+        }
     }
 
     /**
@@ -69,6 +110,7 @@ class StatisticsManager {
         // Слушаем события изменения языка от системы локализации
         document.addEventListener('languageChanged', () => {
             this.translateAchievements();
+            this.checkFavoriteTopicTranslation();
         });
     }
 
@@ -139,8 +181,27 @@ class StatisticsManager {
         
         // Обновляем любимую тему (без анимации числа, так как это текст)
         const favoriteTopicElement = document.querySelector('.stat-card:nth-child(8) .stat-number');
-        if (favoriteTopicElement && data.stats.favorite_topic) {
-            favoriteTopicElement.textContent = data.stats.favorite_topic;
+        if (favoriteTopicElement) {
+            // Проверяем, является ли значение "Не определена" (значение по умолчанию из API)
+            const isDefaultValue = !data.stats.favorite_topic || 
+                                   data.stats.favorite_topic === 'Не определена' ||
+                                   data.stats.favorite_topic === 'Not defined';
+            
+            if (!isDefaultValue && data.stats.favorite_topic) {
+                // Если есть реальная тема, показываем её и убираем атрибут перевода
+                favoriteTopicElement.textContent = data.stats.favorite_topic;
+                favoriteTopicElement.removeAttribute('data-translate');
+            } else {
+                // Если темы нет или это значение по умолчанию, устанавливаем атрибут для перевода (как у остальных карточек)
+                favoriteTopicElement.setAttribute('data-translate', 'not_defined');
+                // Обновляем текст через систему локализации (как это делается для всех элементов с data-translate)
+                if (window.localizationService) {
+                    const translation = window.localizationService.getText('not_defined');
+                    if (translation) {
+                        favoriteTopicElement.textContent = translation;
+                    }
+                }
+            }
         }
     }
 
