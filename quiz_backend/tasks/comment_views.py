@@ -164,6 +164,55 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         logger.info(f"Create comment request FILES: {request.FILES}")
         logger.info(f"Content-Type: {request.content_type}")
         
+        # Проверка бана пользователя
+        telegram_id = request.data.get('author_telegram_id')
+        if telegram_id:
+            try:
+                from accounts.models import MiniAppUser
+                user = MiniAppUser.objects.get(telegram_id=telegram_id)
+                
+                # Проверяем, не истёк ли бан
+                user.check_ban_expired()
+                
+                # Если пользователь забанен, запрещаем создание комментария
+                if user.is_banned:
+                    from django.utils import timezone
+                    
+                    if user.banned_until:
+                        remaining = user.banned_until - timezone.now()
+                        hours = int(remaining.total_seconds() // 3600)
+                        minutes = int((remaining.total_seconds() % 3600) // 60)
+                        
+                        if hours > 24:
+                            days = hours // 24
+                            time_text = f"{days} дней"
+                        elif hours > 0:
+                            time_text = f"{hours} часов {minutes} минут"
+                        else:
+                            time_text = f"{minutes} минут"
+                        
+                        ban_message = f"Вы заблокированы до {user.banned_until.strftime('%d.%m.%Y %H:%M')}. Осталось: {time_text}."
+                    else:
+                        ban_message = "Вы заблокированы навсегда."
+                    
+                    if user.ban_reason:
+                        ban_message += f"\n\nПричина: {user.ban_reason}"
+                    
+                    return Response(
+                        {
+                            'error': ban_message,
+                            'is_banned': True,
+                            'banned_until': user.banned_until.isoformat() if user.banned_until else None,
+                            'ban_reason': user.ban_reason
+                        },
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except MiniAppUser.DoesNotExist:
+                # Пользователь не найден - пропускаем проверку
+                logger.warning(f"Пользователь с telegram_id={telegram_id} не найден в базе MiniAppUser")
+            except Exception as e:
+                logger.error(f"Ошибка при проверке бана пользователя: {e}")
+        
         # Проверяем, что translation_id существует
         translation_id = kwargs.get('translation_id')
         get_object_or_404(TaskTranslation, pk=translation_id)

@@ -624,6 +624,37 @@ class MiniAppUser(models.Model):
         help_text="Общий переключатель всех уведомлений"
     )
     
+    # Поля блокировки
+    is_banned = models.BooleanField(
+        default=False,
+        verbose_name="Заблокирован",
+        help_text="Заблокирован ли пользователь за нарушения"
+    )
+    banned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата блокировки",
+        help_text="Когда пользователь был заблокирован"
+    )
+    banned_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Заблокирован до",
+        help_text="Дата окончания блокировки (None = перманентный бан)"
+    )
+    ban_reason = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Причина блокировки",
+        help_text="Описание причины блокировки пользователя"
+    )
+    banned_by_admin_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="ID админа, заблокировавшего",
+        help_text="Telegram ID администратора, который заблокировал пользователя"
+    )
+    
     created_at = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="Дата создания"
@@ -1007,6 +1038,96 @@ class MiniAppUser(models.Model):
         if not self.last_seen:
             return False
         return timezone.now() - self.last_seen < timedelta(minutes=5)
+    
+    def ban_user(self, duration_hours=None, reason="", admin_id=None):
+        """
+        Блокирует пользователя.
+        
+        Args:
+            duration_hours (int, optional): Длительность бана в часах. 
+                                           None означает перманентный бан.
+            reason (str): Причина блокировки
+            admin_id (int, optional): Telegram ID администратора, который блокирует
+        
+        Returns:
+            bool: True если пользователь был успешно заблокирован
+        """
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        self.is_banned = True
+        self.banned_at = timezone.now()
+        self.ban_reason = reason
+        self.banned_by_admin_id = admin_id
+        
+        if duration_hours is not None:
+            self.banned_until = timezone.now() + timedelta(hours=duration_hours)
+        else:
+            # Перманентный бан
+            self.banned_until = None
+        
+        self.save()
+        return True
+    
+    def unban_user(self):
+        """
+        Разблокирует пользователя.
+        
+        Returns:
+            bool: True если пользователь был успешно разблокирован
+        """
+        self.is_banned = False
+        self.banned_until = None
+        # Сохраняем историю бана (banned_at, ban_reason, banned_by_admin_id)
+        self.save()
+        return True
+    
+    def check_ban_expired(self):
+        """
+        Проверяет, истёк ли срок блокировки пользователя.
+        Если истёк - автоматически разблокирует.
+        
+        Returns:
+            bool: True если бан истёк и пользователь был разблокирован, False если бан ещё активен
+        """
+        from django.utils import timezone
+        
+        if self.is_banned and self.banned_until:
+            if timezone.now() >= self.banned_until:
+                self.unban_user()
+                return True
+        return False
+    
+    @property
+    def ban_status_text(self):
+        """
+        Возвращает текстовое описание статуса блокировки.
+        
+        Returns:
+            str: Описание статуса блокировки
+        """
+        if not self.is_banned:
+            return "Не заблокирован"
+        
+        from django.utils import timezone
+        
+        if self.banned_until is None:
+            return "Заблокирован навсегда"
+        
+        if timezone.now() >= self.banned_until:
+            return "Блокировка истекла"
+        
+        remaining = self.banned_until - timezone.now()
+        hours = int(remaining.total_seconds() // 3600)
+        minutes = int((remaining.total_seconds() % 3600) // 60)
+        
+        if hours > 24:
+            days = hours // 24
+            return f"Заблокирован ещё на {days} дн."
+        elif hours > 0:
+            return f"Заблокирован ещё на {hours} ч. {minutes} мин."
+        else:
+            return f"Заблокирован ещё на {minutes} мин."
 
 
 class Notification(models.Model):
