@@ -445,8 +445,18 @@ class CommentsManager {
             );
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Ошибка создания комментария');
+                const errorData = await response.json();
+                
+                // Проверяем, это ошибка бана
+                if (response.status === 403 && errorData.is_banned) {
+                    // Показываем специальное сообщение о бане
+                    this.showBanNotification(errorData);
+                    throw new Error('USER_BANNED'); // Специальная ошибка, чтобы не показывать alert
+                }
+                
+                // Обычная ошибка - используем error или detail
+                const errorMessage = errorData.error || errorData.detail || 'Ошибка создания комментария';
+                throw new Error(errorMessage);
             }
 
             // Очищаем форму
@@ -469,7 +479,11 @@ class CommentsManager {
 
         } catch (error) {
             console.error('Ошибка отправки комментария:', error);
-            alert(error.message || 'Ошибка отправки комментария');
+            
+            // Не показываем alert для бана, так как уже показали специальное уведомление
+            if (error.message !== 'USER_BANNED') {
+                alert(error.message || 'Ошибка отправки комментария');
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Отправить';
@@ -706,6 +720,173 @@ class CommentsManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Показать уведомление о бане пользователя
+     */
+    showBanNotification(banData) {
+        // Удаляем предыдущее уведомление, если есть
+        const existingNotification = document.querySelector('.ban-notification-overlay');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Создаём overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'ban-notification-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        // Форматируем время до разбана
+        let timeText = '';
+        if (banData.banned_until) {
+            const bannedUntil = new Date(banData.banned_until);
+            const now = new Date();
+            const diff = bannedUntil - now;
+            
+            if (diff > 0) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (hours > 24) {
+                    const days = Math.floor(hours / 24);
+                    timeText = `до ${bannedUntil.toLocaleString('ru-RU')}<br><small style="opacity: 0.8;">(осталось ${days} дн. ${hours % 24} ч.)</small>`;
+                } else if (hours > 0) {
+                    timeText = `до ${bannedUntil.toLocaleString('ru-RU')}<br><small style="opacity: 0.8;">(осталось ${hours} ч. ${minutes} мин.)</small>`;
+                } else {
+                    timeText = `до ${bannedUntil.toLocaleString('ru-RU')}<br><small style="opacity: 0.8;">(осталось ${minutes} мин.)</small>`;
+                }
+            }
+        } else {
+            timeText = '<strong style="color: #ff4444;">навсегда</strong>';
+        }
+
+        // Создаём модальное окно
+        const modal = document.createElement('div');
+        modal.className = 'ban-notification-modal';
+        modal.style.cssText = `
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            color: white;
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        `;
+
+        modal.innerHTML = `
+            <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
+            <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">
+                Вы заблокированы
+            </h2>
+            <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <div style="font-size: 16px; margin-bottom: 10px;">
+                    <strong>Заблокировано:</strong><br>
+                    ${timeText}
+                </div>
+                ${banData.ban_reason ? `
+                    <div style="font-size: 14px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                        <strong>Причина:</strong><br>
+                        <span style="opacity: 0.9;">${this.escapeHtml(banData.ban_reason)}</span>
+                    </div>
+                ` : ''}
+            </div>
+            <p style="margin: 20px 0; opacity: 0.9; font-size: 14px;">
+                Вы не можете оставлять комментарии до окончания срока блокировки.
+            </p>
+            <button class="ban-notification-close" style="
+                background: rgba(255, 255, 255, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 12px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                margin-top: 10px;
+            " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+                Понятно
+            </button>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Добавляем анимации в head
+        if (!document.querySelector('#ban-notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'ban-notification-styles';
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(30px) scale(0.95);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Обработчик закрытия
+        const closeHandler = () => {
+            overlay.style.animation = 'fadeOut 0.3s ease';
+            modal.style.animation = 'slideDown 0.3s ease';
+            setTimeout(() => overlay.remove(), 300);
+        };
+
+        // Закрытие по кнопке
+        modal.querySelector('.ban-notification-close').addEventListener('click', closeHandler);
+
+        // Закрытие по клику на overlay
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeHandler();
+            }
+        });
+
+        // Анимация закрытия
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            @keyframes slideDown {
+                from { 
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+                to { 
+                    opacity: 0;
+                    transform: translateY(30px) scale(0.95);
+                }
+            }
+        `;
+        document.head.appendChild(style);
     }
 }
 

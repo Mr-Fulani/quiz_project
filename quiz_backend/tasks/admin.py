@@ -1055,23 +1055,27 @@ class TaskCommentImageAdmin(admin.ModelAdmin):
 @admin.register(TaskComment)
 class TaskCommentAdmin(admin.ModelAdmin):
     """Админка для модерации комментариев к задачам."""
-    list_display = ('id', 'author_display', 'task_display', 'text_preview', 'images_count_display', 'replies_count_display', 'created_at', 'is_deleted', 'reports_count_display')
+    list_display = ('id', 'author_display_link', 'task_display', 'text_preview', 'replied_to_display', 'images_count_display', 'replies_count_display', 'created_at', 'is_deleted', 'reports_count_display')
     list_filter = ('is_deleted', 'created_at', 'reports_count', 'task_translation__language')
     search_fields = ('author_username', 'author_telegram_id', 'text', 'task_translation__question')
     raw_id_fields = ('task_translation', 'parent_comment')
     date_hierarchy = 'created_at'
     list_per_page = 20
-    readonly_fields = ('created_at', 'updated_at', 'reports_count', 'get_depth', 'get_replies_count', 'author_profile_link', 'images_preview')
+    readonly_fields = ('created_at', 'updated_at', 'reports_count', 'get_depth', 'get_replies_count', 'author_profile_link', 'images_preview', 'parent_comment_author_link', 'parent_comment_preview')
     
     fieldsets = (
         ('Автор', {
             'fields': ('author_telegram_id', 'author_username', 'author_profile_link')
         }),
         ('Содержание', {
-            'fields': ('task_translation', 'text', 'parent_comment', 'images_preview')
+            'fields': ('task_translation', 'text', 'images_preview')
+        }),
+        ('Цепочка ответов', {
+            'fields': ('parent_comment', 'parent_comment_author_link', 'parent_comment_preview', 'get_depth', 'get_replies_count'),
+            'description': 'Информация о родительском комментарии, если это ответ'
         }),
         ('Статус', {
-            'fields': ('is_deleted', 'reports_count', 'get_depth', 'get_replies_count')
+            'fields': ('is_deleted', 'reports_count')
         }),
         ('Даты', {
             'fields': ('created_at', 'updated_at'),
@@ -1126,6 +1130,87 @@ class TaskCommentAdmin(admin.ModelAdmin):
                 obj.author_telegram_id
             )
     author_display.short_description = 'Автор'
+    
+    def author_display_link(self, obj):
+        """Кликабельное отображение автора в списке."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.author_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="text-decoration: none;"><strong>{}</strong></a><br><small style="color: #666;">@{} (ID: {})</small>',
+                user.id,
+                user.first_name or user.username or 'Без имени',
+                user.username or 'нет',
+                obj.author_telegram_id
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">{}</span><br><small>(ID: {})</small>',
+                obj.author_username,
+                obj.author_telegram_id
+            )
+    author_display_link.short_description = 'Автор'
+    
+    def replied_to_display(self, obj):
+        """Отображение, кому ответил пользователь."""
+        if not obj.parent_comment:
+            return format_html('<span style="color: #999;">—</span>')
+        
+        parent = obj.parent_comment
+        try:
+            user = MiniAppUser.objects.get(telegram_id=parent.author_telegram_id)
+            return format_html(
+                '💬 <a href="/admin/tasks/taskcomment/{}/change/" target="_blank" style="text-decoration: none;">#{}</a> от <a href="/admin/accounts/miniappuser/{}/change/" target="_blank"><strong>{}</strong></a>',
+                parent.id,
+                parent.id,
+                user.id,
+                user.first_name or user.username or 'Пользователь'
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html(
+                '💬 <a href="/admin/tasks/taskcomment/{}/change/" target="_blank">#{}</a> от {}',
+                parent.id,
+                parent.id,
+                parent.author_username
+            )
+    replied_to_display.short_description = 'Ответ на'
+    
+    def parent_comment_author_link(self, obj):
+        """Ссылка на профиль автора родительского комментария."""
+        if not obj.parent_comment:
+            return format_html('<span style="color: #999;">Нет родительского комментария</span>')
+        
+        parent = obj.parent_comment
+        try:
+            user = MiniAppUser.objects.get(telegram_id=parent.author_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">👤 Автор родительского: {} (@{})</a>',
+                user.id,
+                user.first_name or user.username,
+                user.username or 'нет'
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html('<span style="color: #dc3545;">❌ Пользователь не найден (Telegram ID: {})</span>', parent.author_telegram_id)
+    parent_comment_author_link.short_description = 'Автор родительского комментария'
+    
+    def parent_comment_preview(self, obj):
+        """Превью родительского комментария."""
+        if not obj.parent_comment:
+            return format_html('<span style="color: #999;">Это корневой комментарий (не является ответом)</span>')
+        
+        parent = obj.parent_comment
+        text = parent.text[:100] + ('...' if len(parent.text) > 100 else '')
+        img_count = parent.images.count()
+        img_badge = f' 📷{img_count}' if img_count > 0 else ''
+        
+        return format_html(
+            '<a href="/admin/tasks/taskcomment/{}/change/" target="_blank" style="text-decoration: none;"><div style="padding: 12px; background: #e8f5e9; border-left: 4px solid #28a745; border-radius: 4px; margin-top: 8px;"><strong>💬 Родительский комментарий #{}</strong>{}<br><small style="color: #666; margin-top: 5px; display: block;">{}</small><small style="color: #999; font-size: 11px; margin-top: 5px; display: block;">📅 {}</small></div></a>',
+            parent.id,
+            parent.id,
+            img_badge,
+            text,
+            parent.created_at.strftime("%d.%m.%Y %H:%M")
+        )
+    parent_comment_preview.short_description = 'Превью родительского комментария'
     
     def task_display(self, obj):
         """Красивое отображение задачи с языком."""
@@ -1203,20 +1288,24 @@ class TaskCommentAdmin(admin.ModelAdmin):
 @admin.register(TaskCommentReport)
 class TaskCommentReportAdmin(admin.ModelAdmin):
     """Админка для жалоб на комментарии."""
-    list_display = ('id', 'reporter_display', 'comment_preview', 'reason_display', 'created_at', 'is_reviewed_display')
+    list_display = ('id', 'reporter_display_link', 'comment_author_display_link', 'comment_preview', 'reason_display', 'created_at', 'is_reviewed_display', 'quick_ban_link')
     list_filter = ('is_reviewed', 'reason', 'created_at')
     search_fields = ('comment__text', 'reporter_telegram_id', 'description', 'comment__author_username')
     raw_id_fields = ('comment',)
     date_hierarchy = 'created_at'
     list_per_page = 20
-    readonly_fields = ('created_at', 'reporter_profile_link', 'comment_author_link', 'comment_full_text')
+    readonly_fields = ('created_at', 'reporter_profile_link', 'comment_author_link', 'comment_full_text', 'report_summary_card', 'total_reports_on_comment')
     
     fieldsets = (
+        ('📋 Сводка по жалобе', {
+            'fields': ('report_summary_card',),
+            'description': 'Визуальная карточка с полной информацией о жалобе'
+        }),
         ('Кто пожаловался', {
             'fields': ('reporter_telegram_id', 'reporter_profile_link')
         }),
-        ('На что жалоба', {
-            'fields': ('comment', 'comment_author_link', 'comment_full_text')
+        ('На кого/что жалоба', {
+            'fields': ('comment', 'comment_author_link', 'comment_full_text', 'total_reports_on_comment')
         }),
         ('Причина жалобы', {
             'fields': ('reason', 'description')
@@ -1337,6 +1426,161 @@ class TaskCommentReportAdmin(admin.ModelAdmin):
             img_html
         )
     comment_full_text.short_description = 'Полный текст комментария'
+    
+    def reporter_display_link(self, obj):
+        """Кликабельное отображение репортера в списке."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.reporter_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="text-decoration: none;"><strong>🚨 {}</strong></a><br><small style="color: #666;">@{} (ID: {})</small>',
+                user.id,
+                user.first_name or user.username or 'Без имени',
+                user.username or 'нет',
+                obj.reporter_telegram_id
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">❌ Не найден</span><br><small>(ID: {})</small>',
+                obj.reporter_telegram_id
+            )
+    reporter_display_link.short_description = 'Кто пожаловался'
+    
+    def comment_author_display_link(self, obj):
+        """Кликабельное отображение автора комментария в списке."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.comment.author_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="text-decoration: none;"><strong>👤 {}</strong></a><br><small style="color: #666;">@{} (ID: {})</small>',
+                user.id,
+                user.first_name or user.username or 'Без имени',
+                user.username or 'нет',
+                obj.comment.author_telegram_id
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">❌ Не найден</span><br><small>(ID: {})</small>',
+                obj.comment.author_telegram_id
+            )
+    comment_author_display_link.short_description = 'Автор комментария'
+    
+    def quick_ban_link(self, obj):
+        """Быстрая ссылка для бана автора комментария."""
+        try:
+            user = MiniAppUser.objects.get(telegram_id=obj.comment.author_telegram_id)
+            return format_html(
+                '<a href="/admin/accounts/miniappuser/{}/change/" target="_blank" style="padding: 6px 12px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; display: inline-block;">🚫 Забанить</a>',
+                user.id
+            )
+        except MiniAppUser.DoesNotExist:
+            return format_html('<span style="color: #999;">—</span>')
+    quick_ban_link.short_description = 'Действие'
+    
+    def total_reports_on_comment(self, obj):
+        """Общее количество жалоб на этот комментарий."""
+        total = obj.comment.reports_count
+        if total <= 1:
+            return format_html('<span style="color: #28a745;">{} жалоба</span>', total)
+        elif total < 3:
+            return format_html('<span style="color: #ffc107; font-weight: bold;">{} жалобы</span>', total)
+        else:
+            return format_html('<span style="color: #dc3545; font-weight: bold;">⚠️ {} жалоб</span>', total)
+    total_reports_on_comment.short_description = 'Всего жалоб на комментарий'
+    
+    def report_summary_card(self, obj):
+        """Визуальная карточка-сводка по жалобе."""
+        # Информация о репортере
+        try:
+            reporter = MiniAppUser.objects.get(telegram_id=obj.reporter_telegram_id)
+            reporter_name = reporter.first_name or reporter.username or 'Без имени'
+            reporter_username = f"@{reporter.username}" if reporter.username else 'нет username'
+            reporter_link = f'/admin/accounts/miniappuser/{reporter.id}/change/'
+        except MiniAppUser.DoesNotExist:
+            reporter_name = 'Пользователь не найден'
+            reporter_username = f'ID: {obj.reporter_telegram_id}'
+            reporter_link = '#'
+        
+        # Информация об авторе комментария
+        try:
+            author = MiniAppUser.objects.get(telegram_id=obj.comment.author_telegram_id)
+            author_name = author.first_name or author.username or 'Без имени'
+            author_username = f"@{author.username}" if author.username else 'нет username'
+            author_link = f'/admin/accounts/miniappuser/{author.id}/change/'
+        except MiniAppUser.DoesNotExist:
+            author_name = 'Пользователь не найден'
+            author_username = f'ID: {obj.comment.author_telegram_id}'
+            author_link = '#'
+        
+        # Причина жалобы
+        reason_colors = {
+            'spam': '#ffc107',
+            'offensive': '#dc3545',
+            'inappropriate': '#fd7e14',
+            'other': '#6c757d'
+        }
+        reason_icons = {
+            'spam': '📧',
+            'offensive': '⚠️',
+            'inappropriate': '🚫',
+            'other': '❓'
+        }
+        reason_color = reason_colors.get(obj.reason, '#6c757d')
+        reason_icon = reason_icons.get(obj.reason, '❓')
+        
+        # Текст комментария
+        comment_text = obj.comment.text[:150] + ('...' if len(obj.comment.text) > 150 else '')
+        img_count = obj.comment.images.count()
+        
+        html = f'''
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; margin: 15px 0;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">🚨 Информация о жалобе #{obj.id}</h3>
+            
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <div style="font-size: 14px; margin-bottom: 10px;">
+                    <strong>Кто пожаловался:</strong><br>
+                    <a href="{reporter_link}" target="_blank" style="color: #ffd700; text-decoration: none; font-size: 16px;">
+                        👤 {reporter_name} ({reporter_username}, ID: {obj.reporter_telegram_id})
+                    </a>
+                </div>
+                
+                <div style="font-size: 14px;">
+                    <strong>На кого:</strong><br>
+                    <a href="{author_link}" target="_blank" style="color: #ff6b6b; text-decoration: none; font-size: 16px;">
+                        👤 {author_name} ({author_username}, ID: {obj.comment.author_telegram_id})
+                    </a>
+                </div>
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <div style="font-size: 14px; margin-bottom: 10px;">
+                    <strong>Причина:</strong> 
+                    <span style="background: {reason_color}; padding: 4px 10px; border-radius: 4px; font-weight: bold;">
+                        {reason_icon} {obj.get_reason_display()}
+                    </span>
+                </div>
+                {f'<div style="font-size: 14px;"><strong>Описание:</strong> {obj.description}</div>' if obj.description else ''}
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                <div style="font-size: 14px; margin-bottom: 8px;">
+                    <strong>Комментарий <a href="/admin/tasks/taskcomment/{obj.comment.id}/change/" target="_blank" style="color: #ffd700; text-decoration: none;">#{obj.comment.id}</a>:</strong>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; font-size: 13px; font-family: monospace;">
+                    "{comment_text}"
+                </div>
+                {f'<div style="margin-top: 8px; font-size: 13px;">📷 Изображений: {img_count}</div>' if img_count > 0 else ''}
+                <div style="margin-top: 8px; font-size: 13px;">
+                    <strong>Всего жалоб на этот комментарий:</strong> <span style="background: #dc3545; padding: 3px 8px; border-radius: 4px; font-weight: bold;">{obj.comment.reports_count}</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; text-align: right; font-size: 12px; opacity: 0.8;">
+                📅 Жалоба создана: {obj.created_at.strftime("%d.%m.%Y %H:%M")}
+            </div>
+        </div>
+        '''
+        
+        return format_html(html)
+    report_summary_card.short_description = 'Сводка по жалобе'
     
     @admin.action(description='Отметить как проверенные')
     def mark_as_reviewed(self, request, queryset):

@@ -1,85 +1,70 @@
 """
-Сигналы для автоматической очистки связанных ресурсов при удалении задач.
+Сигналы для автоматической отправки уведомлений администраторам.
+
+Обрабатывает создание новых комментариев и жалоб,
+отправляя уведомления через Telegram всем активным админам.
 """
+
 import logging
-from django.db.models.signals import post_delete, pre_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Task
-from .services.s3_service import delete_image_from_s3
+from .models import TaskComment, TaskCommentReport
+from .notification_service import notify_admins_new_comment, notify_admins_new_report
 
 logger = logging.getLogger(__name__)
 
 
-@receiver(pre_delete, sender=Task)
-def delete_related_tasks_and_images(sender, instance, **kwargs):
+@receiver(post_save, sender=TaskComment)
+def comment_created_notification(sender, instance, created, **kwargs):
     """
-    При удалении задачи удаляет все связанные задачи по translation_group_id
-    и их изображения из S3.
+    Отправляет уведомление администраторам при создании нового комментария.
     
     Args:
-        sender: Класс модели (Task)
-        instance: Удаляемый экземпляр Task
+        sender: Модель TaskComment
+        instance: Созданный комментарий
+        created: True если это новый объект, False если обновление
         **kwargs: Дополнительные аргументы сигнала
     """
-    try:
-        translation_group_id = instance.translation_group_id
-        
-        if not translation_group_id:
-            logger.warning(f"Задача {instance.id} не имеет translation_group_id")
-            return
-        
-        # Находим все связанные задачи
-        related_tasks = Task.objects.filter(
-            translation_group_id=translation_group_id
-        ).exclude(id=instance.id)
-        
-        # Собираем URL изображений для удаления
-        image_urls = []
-        if instance.image_url:
-            image_urls.append(instance.image_url)
-        
-        for task in related_tasks:
-            if task.image_url:
-                image_urls.append(task.image_url)
-        
-        # Удаляем изображения из S3
-        for image_url in image_urls:
-            try:
-                success = delete_image_from_s3(image_url)
-                if success:
-                    logger.info(f"✅ Удалено изображение из S3: {image_url}")
-                else:
-                    logger.warning(f"⚠️ Не удалось удалить изображение из S3: {image_url}")
-            except Exception as e:
-                logger.error(f"❌ Ошибка удаления изображения {image_url}: {e}")
-        
-        # Удаляем связанные задачи
-        # Django автоматически удалит TaskTranslation через CASCADE
-        deleted_count, _ = related_tasks.delete()
-        
-        if deleted_count > 0:
-            logger.info(
-                f"✅ Удалено {deleted_count} связанных задач "
-                f"для translation_group_id {translation_group_id}"
-            )
-        
-    except Exception as e:
-        logger.error(f"❌ Ошибка в сигнале удаления задачи {instance.id}: {e}")
+    # Отправляем уведомление только при создании нового комментария
+    if created:
+        try:
+            logger.info(f"Новый комментарий создан: #{instance.id} от пользователя {instance.author_telegram_id}")
+            
+            # Отправляем уведомления админам
+            sent_count = notify_admins_new_comment(instance)
+            
+            if sent_count > 0:
+                logger.info(f"Уведомления о новом комментарии отправлены {sent_count} админам")
+            else:
+                logger.warning(f"Не удалось отправить уведомления о новом комментарии #{instance.id}")
+                
+        except Exception as e:
+            logger.error(f"Ошибка при обработке сигнала создания комментария: {e}", exc_info=True)
 
 
-@receiver(post_delete, sender=Task)
-def log_task_deletion(sender, instance, **kwargs):
+@receiver(post_save, sender=TaskCommentReport)
+def report_created_notification(sender, instance, created, **kwargs):
     """
-    Логирует удаление задачи.
+    Отправляет уведомление администраторам при создании новой жалобы.
     
     Args:
-        sender: Класс модели (Task)
-        instance: Удаленный экземпляр Task
+        sender: Модель TaskCommentReport
+        instance: Созданная жалоба
+        created: True если это новый объект, False если обновление
         **kwargs: Дополнительные аргументы сигнала
     """
-    logger.info(
-        f"🗑️ Задача {instance.id} удалена "
-        f"(topic: {instance.topic.name if instance.topic else 'N/A'}, "
-        f"translation_group_id: {instance.translation_group_id})"
-    )
-
+    # Отправляем уведомление только при создании новой жалобы
+    if created:
+        try:
+            logger.info(f"Новая жалоба создана: #{instance.id} от пользователя {instance.reporter_telegram_id} на комментарий #{instance.comment.id}")
+            
+            # Отправляем уведомления админам
+            sent_count = notify_admins_new_report(instance)
+            
+            if sent_count > 0:
+                logger.info(f"Уведомления о новой жалобе отправлены {sent_count} админам")
+            else:
+                logger.warning(f"Не удалось отправить уведомления о новой жалобе #{instance.id}")
+                
+        except Exception as e:
+            logger.error(f"Ошибка при обработке сигнала создания жалобы: {e}", exc_info=True)

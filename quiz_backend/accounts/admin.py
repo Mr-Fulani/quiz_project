@@ -1,6 +1,6 @@
 import sys
 import logging
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Q
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar, Notification
@@ -2217,10 +2217,10 @@ class MiniAppUserAdmin(admin.ModelAdmin):
     """
     Админ-панель для MiniAppUser.
     """
-    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'avatars_count', 'is_admin', 'admin_type', 'notifications_enabled', 'created_at', 'last_seen']
+    list_display = ['telegram_id', 'username', 'full_name', 'language', 'grade', 'avatars_count', 'is_admin', 'admin_type', 'ban_status_display', 'notifications_enabled', 'created_at', 'last_seen']
     search_fields = ['telegram_id', 'username', 'first_name', 'last_name']
-    list_filter = ['language', 'grade', IsAdminFilter, 'notifications_enabled', 'created_at', 'last_seen']
-    readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name', 'avatars_preview']
+    list_filter = ['language', 'grade', 'is_banned', IsAdminFilter, 'notifications_enabled', 'created_at', 'last_seen']
+    readonly_fields = ['created_at', 'last_seen', 'is_admin', 'admin_type', 'full_name', 'avatars_preview', 'ban_info_display', 'banned_by_admin_display']
     raw_id_fields = ['telegram_user', 'telegram_admin', 'django_admin', 'programming_language']
     filter_horizontal = ['programming_languages']
     inlines = [UserAvatarInline]
@@ -2243,6 +2243,10 @@ class MiniAppUserAdmin(admin.ModelAdmin):
         ('Настройки', {
             'fields': ('is_profile_public', 'notifications_enabled'),
         }),
+        ('🚫 Блокировка', {
+            'fields': ('is_banned', 'ban_info_display', 'banned_at', 'banned_until', 'ban_reason', 'banned_by_admin_display'),
+            'description': 'Управление блокировкой пользователя за нарушения'
+        }),
         ('Связи с другими пользователями', {
             'fields': ('telegram_user', 'telegram_admin', 'django_admin', 'linked_custom_user'),
             'classes': ('collapse',)
@@ -2252,7 +2256,8 @@ class MiniAppUserAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    actions = ['update_last_seen', 'link_to_existing_users', 'merge_statistics_with_custom_user']
+    actions = ['update_last_seen', 'link_to_existing_users', 'merge_statistics_with_custom_user', 
+               'ban_user_1_hour', 'ban_user_24_hours', 'ban_user_7_days', 'ban_user_permanent', 'unban_user']
     
     def avatars_count(self, obj):
         """
@@ -2410,6 +2415,223 @@ class MiniAppUserAdmin(admin.ModelAdmin):
                 self.message_user(request, error, level='ERROR')
     
     merge_statistics_with_custom_user.short_description = "Объединить статистику с CustomUser"
+    
+    def ban_status_display(self, obj):
+        """Отображение статуса блокировки в списке."""
+        from django.utils.safestring import mark_safe
+        
+        # Сначала проверяем, не истёк ли бан
+        obj.check_ban_expired()
+        
+        if not obj.is_banned:
+            return mark_safe('<span style="color: #28a745; font-weight: bold;">✅ Активен</span>')
+        
+        from django.utils import timezone
+        
+        if obj.banned_until is None:
+            return mark_safe('<span style="color: #dc3545; font-weight: bold;">🚫 Бан навсегда</span>')
+        
+        if timezone.now() >= obj.banned_until:
+            return mark_safe('<span style="color: #ffc107; font-weight: bold;">⚠️ Бан истёк</span>')
+        
+        remaining = obj.banned_until - timezone.now()
+        hours = int(remaining.total_seconds() // 3600)
+        
+        if hours > 24:
+            days = hours // 24
+            return mark_safe(f'<span style="color: #dc3545; font-weight: bold;">🚫 Бан {days} дн.</span>')
+        else:
+            return mark_safe(f'<span style="color: #fd7e14; font-weight: bold;">🚫 Бан {hours} ч.</span>')
+    
+    ban_status_display.short_description = 'Статус бана'
+    
+    def ban_info_display(self, obj):
+        """Детальная информация о текущем бане."""
+        from django.utils.safestring import mark_safe
+        from django.utils import timezone
+        
+        if not obj.is_banned:
+            return mark_safe('<div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; color: #155724;"><strong>✅ Пользователь не заблокирован</strong></div>')
+        
+        # Проверяем, не истёк ли бан
+        is_expired = obj.check_ban_expired()
+        
+        if is_expired:
+            return mark_safe('<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; color: #856404;"><strong>⚠️ Срок блокировки истёк</strong><br>Пользователь автоматически разблокирован.</div>')
+        
+        ban_type = 'Перманентный бан' if obj.banned_until is None else f'Заблокирован до {obj.banned_until.strftime("%d.%m.%Y %H:%M")}'
+        
+        remaining_text = ''
+        if obj.banned_until:
+            remaining = obj.banned_until - timezone.now()
+            hours = int(remaining.total_seconds() // 3600)
+            minutes = int((remaining.total_seconds() % 3600) // 60)
+            
+            if hours > 24:
+                days = hours // 24
+                remaining_text = f'<br><strong>Осталось:</strong> {days} дн. {hours % 24} ч.'
+            else:
+                remaining_text = f'<br><strong>Осталось:</strong> {hours} ч. {minutes} мин.'
+        
+        admin_info = ''
+        if obj.banned_by_admin_id:
+            try:
+                from accounts.models import MiniAppUser
+                admin = MiniAppUser.objects.get(telegram_id=obj.banned_by_admin_id)
+                admin_name = admin.first_name or admin.username or f'ID {obj.banned_by_admin_id}'
+                admin_info = f'<br><strong>Заблокировал:</strong> {admin_name} (@{admin.username or "нет"}, ID: {obj.banned_by_admin_id})'
+            except:
+                admin_info = f'<br><strong>Заблокировал:</strong> ID {obj.banned_by_admin_id}'
+        
+        reason_html = f'<br><strong>Причина:</strong> {obj.ban_reason}' if obj.ban_reason else ''
+        banned_at = f'<br><strong>Дата блокировки:</strong> {obj.banned_at.strftime("%d.%m.%Y %H:%M")}' if obj.banned_at else ''
+        
+        return mark_safe(f'''
+            <div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px; color: #721c24;">
+                <strong>🚫 ПОЛЬЗОВАТЕЛЬ ЗАБЛОКИРОВАН</strong>
+                <br><br>
+                <strong>Тип блокировки:</strong> {ban_type}
+                {remaining_text}
+                {reason_html}
+                {banned_at}
+                {admin_info}
+            </div>
+        ''')
+    
+    ban_info_display.short_description = 'Информация о блокировке'
+    
+    def banned_by_admin_display(self, obj):
+        """Отображает информацию об админе, который забанил пользователя."""
+        from django.utils.safestring import mark_safe
+        
+        if not obj.banned_by_admin_id:
+            return mark_safe('<span style="color: #999; font-style: italic;">Не указано</span>')
+        
+        try:
+            # Пытаемся найти админа через MiniAppUser
+            admin = MiniAppUser.objects.get(telegram_id=obj.banned_by_admin_id)
+            admin_name = admin.first_name or admin.username or 'Администратор'
+            admin_username = f"@{admin.username}" if admin.username else 'нет username'
+            
+            return mark_safe(
+                f'<a href="/admin/accounts/miniappuser/{admin.id}/change/" target="_blank" style="text-decoration: none; color: #007bff; font-weight: bold;">'
+                f'👤 {admin_name} ({admin_username}, ID: {obj.banned_by_admin_id})'
+                f'</a>'
+            )
+        except MiniAppUser.DoesNotExist:
+            # Если не нашли в MiniAppUser, просто показываем ID
+            return mark_safe(f'<span style="color: #666;">ID: {obj.banned_by_admin_id}</span>')
+    
+    banned_by_admin_display.short_description = 'Админ, который заблокировал'
+    
+    def get_admin_telegram_id(self, request):
+        """
+        Получает telegram_id администратора, который выполняет действие.
+        Пытается найти через связи с MiniAppUser, DjangoAdmin, TelegramAdmin.
+        
+        Returns:
+            int or None: Telegram ID админа или None если не найден
+        """
+        admin_id = None
+        
+        try:
+            # Сначала пробуем получить через linked_custom_user -> MiniAppUser
+            if hasattr(request.user, 'mini_app_profile'):
+                mini_app_user = request.user.mini_app_profile
+                if mini_app_user:
+                    admin_id = mini_app_user.telegram_id
+            
+            # Если не нашли, пробуем через DjangoAdmin
+            if not admin_id:
+                from accounts.models import DjangoAdmin
+                try:
+                    django_admin = DjangoAdmin.objects.get(username=request.user.username)
+                    if django_admin and hasattr(django_admin, 'mini_app_user') and django_admin.mini_app_user:
+                        admin_id = django_admin.mini_app_user.telegram_id
+                except DjangoAdmin.DoesNotExist:
+                    pass
+            
+            # Если всё ещё не нашли, пробуем через TelegramAdmin
+            if not admin_id:
+                from accounts.models import TelegramAdmin
+                try:
+                    telegram_admin = TelegramAdmin.objects.filter(username=request.user.username).first()
+                    if telegram_admin:
+                        admin_id = telegram_admin.telegram_id
+                except Exception:
+                    pass
+            
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Не удалось получить telegram_id админа: {e}")
+        
+        return admin_id
+    
+    @admin.action(description='🚫 Забанить на 1 час')
+    def ban_user_1_hour(self, request, queryset):
+        """Банит пользователей на 1 час."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for user in queryset:
+            user.ban_user(
+                duration_hours=1,
+                reason='Блокировка на 1 час (действие администратора)',
+                admin_id=admin_id
+            )
+            count += 1
+        self.message_user(request, f'Заблокировано {count} пользователей на 1 час', messages.SUCCESS)
+    
+    @admin.action(description='🚫 Забанить на 24 часа')
+    def ban_user_24_hours(self, request, queryset):
+        """Банит пользователей на 24 часа."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for user in queryset:
+            user.ban_user(
+                duration_hours=24,
+                reason='Блокировка на 24 часа (действие администратора)',
+                admin_id=admin_id
+            )
+            count += 1
+        self.message_user(request, f'Заблокировано {count} пользователей на 24 часа', messages.SUCCESS)
+    
+    @admin.action(description='🚫 Забанить на 7 дней')
+    def ban_user_7_days(self, request, queryset):
+        """Банит пользователей на 7 дней."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for user in queryset:
+            user.ban_user(
+                duration_hours=168,  # 7 * 24
+                reason='Блокировка на 7 дней (действие администратора)',
+                admin_id=admin_id
+            )
+            count += 1
+        self.message_user(request, f'Заблокировано {count} пользователей на 7 дней', messages.SUCCESS)
+    
+    @admin.action(description='🚫 Перманентный бан')
+    def ban_user_permanent(self, request, queryset):
+        """Банит пользователей навсегда."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for user in queryset:
+            user.ban_user(
+                duration_hours=None,
+                reason='Перманентная блокировка (действие администратора)',
+                admin_id=admin_id
+            )
+            count += 1
+        self.message_user(request, f'Заблокировано {count} пользователей навсегда', messages.WARNING)
+    
+    @admin.action(description='✅ Разбанить пользователей')
+    def unban_user(self, request, queryset):
+        """Разбанивает пользователей."""
+        count = 0
+        for user in queryset:
+            if user.is_banned:
+                user.unban_user()
+                count += 1
+        self.message_user(request, f'Разблокировано {count} пользователей', messages.SUCCESS)
 
 
 # Регистрация моделей
