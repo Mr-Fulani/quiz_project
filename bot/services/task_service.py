@@ -225,10 +225,12 @@ async def prepare_publication(
 
     correct_answer = translation.correct_answer
 
-    # Если правильный ответ уже содержится в вариантах, удаляем его
-    if correct_answer in wrong_answers:
-        wrong_answers.remove(correct_answer)
-        logger.warning(f"⚠️ Дублирующийся правильный ответ удален, обновленные варианты: {wrong_answers}")
+    # Удаляем все вхождения правильного ответа из списка неправильных ответов
+    initial_count = len(wrong_answers)
+    wrong_answers = [x for x in wrong_answers if x != correct_answer]
+    removed_count = initial_count - len(wrong_answers)
+    if removed_count > 0:
+        logger.warning(f"⚠️ Дублирующийся правильный ответ удален ({removed_count} вхождений), обновленные варианты: {wrong_answers}")
 
     # Формируем варианты ответов
     options = wrong_answers + [correct_answer]
@@ -501,12 +503,15 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     failed_tasks += 1
                     continue
 
+                # Удаляем все вхождения правильного ответа из списка неправильных ответов
+                initial_count = len(wrong_answers)
+                wrong_answers = [x for x in wrong_answers if x != correct_answer]
+                removed_count = initial_count - len(wrong_answers)
+                if removed_count > 0:
+                    logger.warning(f"⚠️ Дублирующийся правильный ответ удален ({removed_count} вхождений), обновленные варианты: {wrong_answers}")
+
                 # **Всегда сериализуем answers как JSON строку**
                 serialized_answers = json.dumps(wrong_answers + [correct_answer])
-
-                if correct_answer in wrong_answers:
-                    wrong_answers.remove(correct_answer)
-                    logger.warning(f"⚠️ Дублирующийся правильный ответ удален, обновленные варианты: {wrong_answers}")
 
                 options = wrong_answers + [correct_answer]
                 random.shuffle(options)

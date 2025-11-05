@@ -486,9 +486,12 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         
         correct_answer = translation.correct_answer
         
-        # Убираем дубликаты правильного ответа
-        if correct_answer in wrong_answers:
-            wrong_answers.remove(correct_answer)
+        # Удаляем все вхождения правильного ответа из списка неправильных ответов
+        initial_count = len(wrong_answers)
+        wrong_answers = [x for x in wrong_answers if x != correct_answer]
+        removed_count = initial_count - len(wrong_answers)
+        if removed_count > 0:
+            logger.warning(f"⚠️ Дублирующийся правильный ответ удален ({removed_count} вхождений), обновленные варианты: {wrong_answers}")
         
         # Формируем варианты ответов
         options = wrong_answers + [correct_answer]
