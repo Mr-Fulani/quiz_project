@@ -386,39 +386,11 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                     logger.info(f"ℹ️ Пользователь ответил сам себе, уведомление не отправляется")
             
             # Уведомляем админов о новом комментарии
-            from django.urls import reverse
-            from accounts.utils_folder.telegram_notifications import escape_markdown, get_base_url
+            from tasks.notification_service import format_comment_notification, send_to_all_admins
             
-            # Получаем информацию о задаче
-            task = comment.task_translation.task
-            topic_name = task.topic.name if task.topic else "Неизвестная тема"
-            subtopic_name = task.subtopic.name if task.subtopic else "Без подтемы"
-            language = comment.task_translation.language.upper()
-            
-            # Формируем ссылку на комментарий в админке с динамическим URL
-            # Используем request из view, если доступен
-            view_request = getattr(self, 'request', None)
-            base_url = get_base_url(view_request)
-            admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
-            admin_url = f"{base_url}{admin_path}"
-            
-            admin_title = "💬 Новый комментарий"
-            admin_message = (
-                f"Пользователь: @{comment.author_username} (ID: {comment.author_telegram_id})\n"
-                f"Язык: {language}\n"
-                f"Тема: {topic_name}\n"
-                f"Подтема: {subtopic_name}\n\n"
-                f"Комментарий: {comment.text[:200]}\n\n"
-                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
-            )
-            
-            notify_all_admins(
-                notification_type='comment',
-                title=admin_title,
-                message=admin_message,
-                related_object_id=comment.id,
-                related_object_type='comment'
-            )
+            # Используем красивый формат из notification_service с правильным request
+            notification_message = format_comment_notification(comment, request=request)
+            send_to_all_admins(notification_message)
             
         except Exception as e:
             logger.error(f"❌ Ошибка отправки уведомлений: {e}")
@@ -594,7 +566,7 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         
         # Уведомляем админов о новой жалобе
         try:
-            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, escape_username_for_markdown, get_base_url, format_markdown_link
             from accounts.models import MiniAppUser
             from tasks.models import TaskCommentReport
             from django.urls import reverse
@@ -614,26 +586,38 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                 pass
             
             # Формируем ссылку на жалобу в админке с динамическим URL
-            # Используем request из view для получения правильного URL (ngrok)
-            view_request = getattr(self, 'request', None)
-            base_url = get_base_url(view_request)
+            # Используем request из view напрямую
+            base_url = get_base_url(request)
             admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
             admin_url = f"{base_url}{admin_path}"
             
             reason_display = dict(TaskCommentReport.REASON_CHOICES).get(report.reason, report.reason)
+
+            # Экранируем значения для Markdown
+            # Для username используем специальную функцию, которая НЕ экранирует подчеркивания
+            escaped_reporter = escape_username_for_markdown(reporter_username or "Без username")
+            reporter_display = f"@{escaped_reporter}" if reporter_username else escaped_reporter
+            escaped_reason = escape_markdown(str(reason_display))
+            escaped_comment_author = escape_username_for_markdown(comment.author_username or "Без username")
+            comment_author_display = f"@{escaped_comment_author}" if comment.author_username else escaped_comment_author
+            escaped_topic = escape_markdown(topic_name)
+            escaped_subtopic = escape_markdown(subtopic_name)
+            escaped_comment_text = escape_markdown(comment.text[:150] if comment.text else "")
+            escaped_description = escape_markdown(report.description[:100]) if report.description else ""
+
             admin_title = "🚨 Новая жалоба на комментарий"
             admin_message = (
-                f"От: @{reporter_username} (ID: {report.reporter_telegram_id})\n"
-                f"Причина: {reason_display}\n\n"
-                f"Комментарий от: @{comment.author_username} (ID: {comment.author_telegram_id})\n"
-                f"Тема: {topic_name} → {subtopic_name}\n\n"
-                f"Текст комментария: {comment.text[:150]}"
+                f"От: {reporter_display} (ID: {report.reporter_telegram_id})\n"
+                f"Причина: {escaped_reason}\n\n"
+                f"Комментарий от: {comment_author_display} (ID: {comment.author_telegram_id})\n"
+                f"Тема: {escaped_topic} → {escaped_subtopic}\n\n"
+                f"Текст комментария: {escaped_comment_text}"
             )
             
             if report.description:
-                admin_message += f"\n\nДополнительно: {report.description[:100]}"
+                admin_message += f"\n\nДополнительно: {escaped_description}"
             
-            admin_message += f"\n\n👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+            admin_message += f"\n\n👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             
             notify_all_admins(
                 notification_type='report',

@@ -68,13 +68,18 @@ def notify_admins_about_donation(sender, instance, created, **kwargs):
             }
             symbol = currency_symbols.get(instance.currency, instance.currency.upper())
             amount_str = f"{symbol}{instance.amount} {instance.currency.upper()}"
-        
+
         # Метод платежа
         payment_method = instance.payment_method or "Неизвестен"
+
+        from accounts.utils_folder.telegram_notifications import escape_markdown
+        escaped_donor_name = escape_markdown(donor_name)
+        escaped_amount = escape_markdown(amount_str)
+        escaped_payment_method = escape_markdown(payment_method)
         
         # Формируем ссылку на донат в админке с динамическим URL
         # В signals нет доступа к request, используем fallback на настройки
-        from accounts.utils_folder.telegram_notifications import escape_markdown, get_base_url
+        from accounts.utils_folder.telegram_notifications import get_base_url, format_markdown_link
         base_url = get_base_url(None)
         admin_path = reverse('admin:donation_donation_change', args=[instance.id])
         admin_url = f"{base_url}{admin_path}"
@@ -84,17 +89,17 @@ def notify_admins_about_donation(sender, instance, created, **kwargs):
         
         if telegram_id:
             admin_message = (
-                f"От: {donor_name} (ID: {telegram_id})\n"
-                f"Сумма: {amount_str}\n"
-                f"Метод: {payment_method}\n\n"
-                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+                f"От: {escaped_donor_name} (ID: {telegram_id})\n"
+                f"Сумма: {escaped_amount}\n"
+                f"Метод: {escaped_payment_method}\n\n"
+                f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             )
         else:
             admin_message = (
-                f"От: {donor_name}\n"
-                f"Сумма: {amount_str}\n"
-                f"Метод: {payment_method}\n\n"
-                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+                f"От: {escaped_donor_name}\n"
+                f"Сумма: {escaped_amount}\n"
+                f"Метод: {escaped_payment_method}\n\n"
+                f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             )
         
         notify_all_admins(

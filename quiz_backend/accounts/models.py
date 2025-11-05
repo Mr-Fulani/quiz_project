@@ -451,31 +451,38 @@ class UserChannelSubscription(models.Model):
         
         # Уведомляем админов о новой подписке
         try:
-            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, escape_username_for_markdown, get_base_url, format_markdown_link
             from django.urls import reverse
             
             # Формируем информацию о пользователе
             username = self.telegram_user.username or "Без username"
             telegram_id = self.telegram_user.telegram_id
             user_language = getattr(self.telegram_user, 'language', 'Не указан')
-            
+
             # Формируем информацию о канале
             channel_info = self.channel.group_name if hasattr(self.channel, 'group_name') else str(self.channel.group_id)
-            
+
             # Формируем ссылку на подписку в админке с динамическим URL
             # В модели нет доступа к request, используем fallback на настройки
             base_url = get_base_url(None)
             admin_path = reverse('admin:accounts_userchannelsubscription_change', args=[self.id])
             admin_url = f"{base_url}{admin_path}"
-            
+
+            # Экранируем значения для Markdown
+            # Для username используем специальную функцию, которая НЕ экранирует подчеркивания
+            escaped_username = escape_username_for_markdown(username)
+            username_display = f"@{escaped_username}" if self.telegram_user.username else escaped_username
+            escaped_language = escape_markdown(str(user_language))
+            escaped_channel = escape_markdown(str(channel_info))
+
             admin_title = "👤 Новая подписка"
             admin_message = (
-                f"Пользователь: @{username} (ID: {telegram_id})\n"
-                f"Язык: {user_language}\n"
-                f"Канал: {channel_info}\n\n"
-                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+                f"Пользователь: {username_display} (ID: {telegram_id})\n"
+                f"Язык: {escaped_language}\n"
+                f"Канал: {escaped_channel}\n\n"
+                f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             )
-            
+
             notify_all_admins(
                 notification_type='subscription',
                 title=admin_title,

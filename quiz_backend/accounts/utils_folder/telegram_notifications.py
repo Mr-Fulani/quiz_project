@@ -27,7 +27,24 @@ def escape_markdown(text: str) -> str:
     # только ограниченный набор символов. Расширенное экранирование приводило
     # к некорректным ссылкам (например, https://quiz-code.com -> https://quiz\-code\.com).
     # Экранируем только действительно необходимые символы и не трогаем символы URL.
-    return re.sub(r'(?<!\\)([_*\[\]\(\)])', r'\\\', text)
+    return re.sub(r'(?<!\\)([_*\[\]\(\)])', r'\\\1', text)
+
+
+def escape_username_for_markdown(username: Optional[str]) -> str:
+    """
+    Экранирует username для Markdown так, чтобы символы не ломали форматирование
+    и корректно отображались в Telegram.
+    
+    Args:
+        username: Имя пользователя (может быть None)
+        
+    Returns:
+        str: Экранированный username или пустая строка, если вход None
+    """
+    if username is None:
+        return ''
+
+    return re.sub(r'(?<!\\)([_*\[\]\(\)])', r'\\\1', username)
 
 
 def get_base_url(request=None):
@@ -37,8 +54,7 @@ def get_base_url(request=None):
     Приоритет:
     1. Из request заголовков (X-Forwarded-Host, X-Forwarded-Proto) - для работы через nginx/ngrok
     2. Из request.get_host() - стандартный способ Django
-    3. Из settings.PUBLIC_URL (для разработки с ngrok)
-    4. Из settings.SITE_URL (для продакшена)
+    3. Из settings.SITE_URL (для продакшена) - ВСЕГДА используется если нет request
     
     Args:
         request: Django request объект (опционально)
@@ -75,11 +91,8 @@ def get_base_url(request=None):
         except Exception as e:
             logger.warning(f"Не удалось получить URL из request: {e}")
     
-    # Fallback на настройки
-    if hasattr(settings, 'PUBLIC_URL') and settings.PUBLIC_URL:
-        logger.debug(f"🌐 Используем PUBLIC_URL из настроек: {settings.PUBLIC_URL}")
-        return settings.PUBLIC_URL
-    
+    # Fallback на настройки (для сигналов без request)
+    # Всегда используем SITE_URL для продакшена
     if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
         logger.debug(f"🌐 Используем SITE_URL из настроек: {settings.SITE_URL}")
         return settings.SITE_URL
@@ -87,6 +100,26 @@ def get_base_url(request=None):
     # Последний fallback
     logger.warning("Не удалось определить базовый URL, используется дефолтный")
     return "https://quiz-code.com"
+
+
+def format_markdown_link(text: str, url: str) -> str:
+    """
+    Формирует Markdown-ссылку, не экранируя допустимые символы в URL.
+    
+    Args:
+        text: Текст ссылки
+        url: Адрес, на который должна вести ссылка
+        
+    Returns:
+        str: Строка с Markdown-ссылкой или экранированный текст, если URL пустой
+    """
+    if not url:
+        return escape_markdown(text)
+
+    escaped_text = escape_markdown(text)
+    safe_url = re.sub(r'(?<!\\)([_*])', r'\\\1', url)
+    safe_url = safe_url.replace(')', '\\)').replace('(', '\\(')
+    return f"[{escaped_text}]({safe_url})"
 
 
 def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: str = "Markdown") -> bool:

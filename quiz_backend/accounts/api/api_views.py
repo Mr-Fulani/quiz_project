@@ -943,7 +943,7 @@ class MiniAppProfileByTelegramID(APIView):
                     
                     # Отправляем уведомление админам о новом пользователе
                     try:
-                        from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+                        from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, escape_username_for_markdown, get_base_url, format_markdown_link
                         from django.urls import reverse
                         
                         # Формируем ссылку на пользователя в админке с динамическим URL
@@ -951,19 +951,26 @@ class MiniAppProfileByTelegramID(APIView):
                         admin_path = reverse('admin:accounts_miniappuser_change', args=[mini_app_user.id])
                         admin_url = f"{base_url}{admin_path}"
                         
-                        username = mini_app_user.username or "Без username"
+                        # Получаем информацию о пользователе
+                        author_name = mini_app_user.first_name or mini_app_user.username or "Без имени"
+                        escaped_username = escape_username_for_markdown(mini_app_user.username) if mini_app_user.username else None
+                        author_username = f"@{escaped_username}" if escaped_username else 'нет'
+                        
                         first_name = mini_app_user.first_name or ""
                         last_name = mini_app_user.last_name or ""
                         full_name = f"{first_name} {last_name}".strip() or "Без имени"
-                        
+
+                        # Экранируем значения для Markdown
+                        escaped_full_name = escape_markdown(full_name)
+
                         admin_title = "🆕 Новый пользователь Mini App"
                         admin_message = (
-                            f"Пользователь: @{username} (ID: {mini_app_user.telegram_id})\n"
-                            f"Имя: {full_name}\n"
+                            f"Пользователь: {author_name} ({author_username}, ID: {mini_app_user.telegram_id})\n"
+                            f"Имя: {escaped_full_name}\n"
                             f"Дата регистрации: {mini_app_user.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-                            f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+                            f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
                         )
-                        
+
                         notify_all_admins(
                             notification_type='other',
                             title=admin_title,
