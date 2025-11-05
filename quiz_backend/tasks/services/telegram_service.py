@@ -332,6 +332,55 @@ def send_poll(chat_id: str, question: str, options: List[str],
         return None
 
 
+def delete_message(chat_id: str, message_id: int) -> bool:
+    """
+    Удаляет сообщение из Telegram канала/чата.
+    
+    Args:
+        chat_id: ID канала или чата
+        message_id: ID сообщения для удаления
+        
+    Returns:
+        True если удаление успешно, False при ошибке
+    """
+    if not settings.TELEGRAM_BOT_TOKEN:
+        logger.error("TELEGRAM_BOT_TOKEN не настроен")
+        return False
+    
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/deleteMessage"
+    
+    data = {
+        'chat_id': chat_id,
+        'message_id': message_id,
+    }
+    
+    try:
+        response = requests.post(url, data=data, timeout=10)
+        response.raise_for_status()
+        result = response.json()
+        
+        if result.get('ok'):
+            logger.info(f"✅ Сообщение {message_id} успешно удалено из канала {chat_id}")
+            return True
+        else:
+            error_description = result.get('description', 'Unknown error')
+            # Не логируем как ошибку, если сообщение уже удалено или нет прав
+            if 'message to delete not found' in error_description.lower() or \
+               'not enough rights' in error_description.lower() or \
+               'message can\'t be deleted' in error_description.lower():
+                logger.warning(f"⚠️ Не удалось удалить сообщение {message_id} из {chat_id}: {error_description}")
+            else:
+                logger.error(f"❌ Ошибка удаления сообщения {message_id} из {chat_id}: {error_description}")
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Исключение при удалении сообщения {message_id} из {chat_id}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Неожиданная ошибка при удалении сообщения {message_id} из {chat_id}: {e}")
+        return False
+
+
 def send_message_with_button(chat_id: str, text: str, button_text: str, 
                              button_url: str, parse_mode: str = "MarkdownV2") -> Optional[Dict]:
     """
@@ -522,7 +571,15 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         
         if poll_result:
             result['poll_sent'] = True
-            result['detailed_logs'].append(f"✅ Опрос отправлен (poll_id: {poll_result.get('poll', {}).get('id', 'N/A')})")
+            poll_message_id = poll_result.get('message_id')
+            result['detailed_logs'].append(f"✅ Опрос отправлен (poll_id: {poll_result.get('poll', {}).get('id', 'N/A')}, message_id: {poll_message_id})")
+            
+            # Сохраняем message_id опроса в задачу для возможности удаления
+            if poll_message_id:
+                task.message_id = poll_message_id
+                task.group = telegram_group
+                task.save(update_fields=['message_id', 'group'])
+                logger.info(f"💾 Сохранен message_id {poll_message_id} для задачи {task.id}")
         else:
             result['errors'].append("Не удалось отправить опрос")
             result['detailed_logs'].append(f"❌ Не удалось отправить опрос (проверьте длину вопроса: {len(translation.question)} символов, макс: 300)")
