@@ -142,8 +142,7 @@ class TaskAdmin(admin.ModelAdmin):
     actions = [
         'publish_to_telegram',
         'generate_images',
-        'clear_error_flag',
-        'delete_with_s3_cleanup'
+        'clear_error_flag'
     ]
     
     def get_queryset(self, request):
@@ -397,9 +396,11 @@ class TaskAdmin(admin.ModelAdmin):
         """
         Переопределяем метод для отображения всех связанных задач, 
         которые будут удалены вместе с выбранными.
+        Показывает все связанные сущности: переводы, статистику, опросы, комментарии и т.д.
         """
         from django.contrib.admin.utils import NestedObjects
         from django.db import router
+        from .models import TaskTranslation, TaskStatistics, MiniAppTaskStatistics, TaskPoll
         
         collector = NestedObjects(using=router.db_for_write(Task))
         
@@ -409,12 +410,14 @@ class TaskAdmin(admin.ModelAdmin):
             if obj.translation_group_id:
                 related_tasks = Task.objects.filter(
                     translation_group_id=obj.translation_group_id
-                )
+                ).select_related('topic', 'subtopic').prefetch_related('translations')
                 all_tasks_to_delete.update(related_tasks)
             else:
+                # Предзагружаем связи для одиночной задачи
+                obj = Task.objects.select_related('topic', 'subtopic').prefetch_related('translations').get(pk=obj.pk)
                 all_tasks_to_delete.add(obj)
         
-        # Собираем все объекты для удаления
+        # Собираем все объекты для удаления (NestedObjects автоматически соберет все связанные через CASCADE)
         collector.collect(list(all_tasks_to_delete))
         
         # Получаем стандартное представление удаляемых объектов
@@ -431,16 +434,55 @@ class TaskAdmin(admin.ModelAdmin):
                 translation = obj.translations.first()
                 if translation:
                     return f'{opts.verbose_name}: {obj} ({translation.language.upper()})'
+                return no_edit_link
             
+            # Для переводов показываем язык
+            if isinstance(obj, TaskTranslation):
+                return f'{opts.verbose_name}: {obj.task_id} ({obj.language.upper()})'
+            
+            # Для статистики показываем пользователя
+            if isinstance(obj, TaskStatistics):
+                return f'{opts.verbose_name}: Задача {obj.task_id} - Пользователь {obj.user_id}'
+            
+            # Для статистики мини-аппа
+            if isinstance(obj, MiniAppTaskStatistics):
+                return f'{opts.verbose_name}: Задача {obj.task_id} - Mini App пользователь {obj.mini_app_user_id}'
+            
+            # Для опросов
+            if isinstance(obj, TaskPoll):
+                return f'{opts.verbose_name}: {obj.poll_id} (Задача {obj.task_id})'
+            
+            # Стандартное форматирование для остальных
             return no_edit_link
         
         to_delete = collector.nested(format_callback)
         
         # Считаем количество объектов каждого типа
-        model_count = {
-            model._meta.verbose_name_plural: len(objs_list)
-            for model, objs_list in collector.model_objs.items()
-        }
+        model_count = {}
+        if hasattr(collector, 'model_objs') and collector.model_objs:
+            for model, objs_list in collector.model_objs.items():
+                count = len(objs_list)
+                if count > 0:
+                    # Используем verbose_name_plural для отображения
+                    verbose_name = model._meta.verbose_name_plural
+                    model_count[verbose_name] = count
+        
+        # Добавляем информацию об изображениях S3, которые будут удалены
+        image_urls = set()
+        for task in all_tasks_to_delete:
+            if task.image_url:
+                image_urls.add(task.image_url)
+        
+        # Преобразуем to_delete в список, если это не список
+        if isinstance(to_delete, tuple):
+            to_delete = list(to_delete)
+        elif not isinstance(to_delete, list):
+            to_delete = [str(to_delete)] if to_delete else []
+        
+        # Добавляем информацию об изображениях в начало списка
+        if image_urls:
+            image_info = f"🖼️ Изображения в S3: {len(image_urls)} файл(ов) будет удален"
+            to_delete.insert(0, image_info)
         
         return to_delete, model_count, perms_needed, protected
     
@@ -449,9 +491,6 @@ class TaskAdmin(admin.ModelAdmin):
         Переопределяем удаление одной задачи для очистки связанных ресурсов.
         Удаляет все связанные задачи по translation_group_id и их изображения из S3.
         """
-        from django.db.models.signals import pre_delete
-        from .signals import delete_related_tasks_and_images
-        
         translation_group_id = obj.translation_group_id
         
         if translation_group_id:
@@ -474,15 +513,8 @@ class TaskAdmin(admin.ModelAdmin):
             for image_url in image_urls:
                 delete_image_from_s3(image_url)
             
-            # ОТКЛЮЧАЕМ СИГНАЛ чтобы избежать дублирования
-            pre_delete.disconnect(delete_related_tasks_and_images, sender=Task)
-            
-            try:
-                # Удаляем все связанные задачи
-                related_tasks.delete()
-            finally:
-                # ВКЛЮЧАЕМ СИГНАЛ обратно
-                pre_delete.connect(delete_related_tasks_and_images, sender=Task)
+            # Удаляем все связанные задачи
+            related_tasks.delete()
             
             lang_info = ", ".join(languages) if languages else ""
             
@@ -498,9 +530,6 @@ class TaskAdmin(admin.ModelAdmin):
         """
         Переопределяем массовое удаление для очистки связанных ресурсов.
         """
-        from django.db.models.signals import pre_delete
-        from .signals import delete_related_tasks_and_images
-        
         # Собираем все translation_group_id
         translation_group_ids = set(
             queryset.values_list('translation_group_id', flat=True)
@@ -529,15 +558,8 @@ class TaskAdmin(admin.ModelAdmin):
             if delete_image_from_s3(image_url):
                 deleted_images += 1
         
-        # ОТКЛЮЧАЕМ СИГНАЛ чтобы избежать дублирования
-        pre_delete.disconnect(delete_related_tasks_and_images, sender=Task)
-        
-        try:
-            # Удаляем все связанные задачи
-            all_related_tasks.delete()
-        finally:
-            # ВКЛЮЧАЕМ СИГНАЛ обратно
-            pre_delete.connect(delete_related_tasks_and_images, sender=Task)
+        # Удаляем все связанные задачи
+        all_related_tasks.delete()
         
         lang_info = ", ".join(sorted(set(languages))) if languages else ""
         
@@ -811,12 +833,6 @@ class TaskAdmin(admin.ModelAdmin):
             messages.SUCCESS
         )
     
-    @admin.action(description='Удалить с очисткой S3')
-    def delete_with_s3_cleanup(self, request, queryset):
-        """
-        Удаляет задачи с очисткой изображений из S3.
-        """
-        self.delete_queryset(request, queryset)
 
 
 @admin.register(TaskTranslation)
