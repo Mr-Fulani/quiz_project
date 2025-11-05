@@ -10,7 +10,7 @@ from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTask
 from .services.task_import_service import import_tasks_from_json
 from accounts.models import MiniAppUser
 from .services.s3_service import delete_image_from_s3
-from .services.telegram_service import publish_task_to_telegram
+from .services.telegram_service import publish_task_to_telegram, delete_message
 from .services.image_generation_service import generate_image_for_task
 from .services.s3_service import upload_image_to_s3
 import uuid
@@ -410,11 +410,11 @@ class TaskAdmin(admin.ModelAdmin):
             if obj.translation_group_id:
                 related_tasks = Task.objects.filter(
                     translation_group_id=obj.translation_group_id
-                ).select_related('topic', 'subtopic').prefetch_related('translations')
+                ).select_related('topic', 'subtopic', 'group').prefetch_related('translations')
                 all_tasks_to_delete.update(related_tasks)
             else:
                 # Предзагружаем связи для одиночной задачи
-                obj = Task.objects.select_related('topic', 'subtopic').prefetch_related('translations').get(pk=obj.pk)
+                obj = Task.objects.select_related('topic', 'subtopic', 'group').prefetch_related('translations').get(pk=obj.pk)
                 all_tasks_to_delete.add(obj)
         
         # Собираем все объекты для удаления (NestedObjects автоматически соберет все связанные через CASCADE)
@@ -469,9 +469,18 @@ class TaskAdmin(admin.ModelAdmin):
         
         # Добавляем информацию об изображениях S3, которые будут удалены
         image_urls = set()
+        telegram_messages_count = 0
+        telegram_channels = set()
+        
         for task in all_tasks_to_delete:
             if task.image_url:
                 image_urls.add(task.image_url)
+            
+            # Подсчитываем задачи, которые имеют опубликованные сообщения в Telegram
+            if task.published and task.message_id and task.group:
+                telegram_messages_count += 1
+                if task.group.group_name:
+                    telegram_channels.add(task.group.group_name)
         
         # Преобразуем to_delete в список, если это не список
         if isinstance(to_delete, tuple):
@@ -479,30 +488,69 @@ class TaskAdmin(admin.ModelAdmin):
         elif not isinstance(to_delete, list):
             to_delete = [str(to_delete)] if to_delete else []
         
-        # Добавляем информацию об изображениях в начало списка
+        # Добавляем информацию в начало списка
+        warnings = []
+        
+        # Информация об удалении сообщений из Telegram
+        if telegram_messages_count > 0:
+            channels_info = f" ({', '.join(sorted(telegram_channels))})" if telegram_channels else ""
+            telegram_info = f"📱 Telegram: {telegram_messages_count} опубликованная задача(и) будет удалена из каналов{channels_info}. Сообщения (фото, текст, опрос, кнопка) будут удалены из Telegram каналов, если бот имеет необходимые права."
+            warnings.append(telegram_info)
+        
+        # Информация об изображениях S3
         if image_urls:
             image_info = f"🖼️ Изображения в S3: {len(image_urls)} файл(ов) будет удален"
-            to_delete.insert(0, image_info)
+            warnings.append(image_info)
+        
+        # Вставляем предупреждения в начало списка
+        for warning in reversed(warnings):
+            to_delete.insert(0, warning)
         
         return to_delete, model_count, perms_needed, protected
     
     def delete_model(self, request, obj):
         """
         Переопределяем удаление одной задачи для очистки связанных ресурсов.
-        Удаляет все связанные задачи по translation_group_id и их изображения из S3.
+        Удаляет все связанные задачи по translation_group_id, их изображения из S3
+        и сообщения из Telegram каналов (если бот имеет права).
         """
         translation_group_id = obj.translation_group_id
         
         if translation_group_id:
             # Находим все связанные задачи
-            related_tasks = Task.objects.filter(translation_group_id=translation_group_id)
+            related_tasks = Task.objects.filter(translation_group_id=translation_group_id).select_related('group')
             
             # Собираем информацию о языках ДО удаления
             languages = []
+            deleted_messages_count = 0
+            failed_messages_count = 0
+            
             for task in related_tasks:
                 translation = task.translations.first()
                 if translation:
                     languages.append(translation.language.upper())
+                
+                # Удаляем сообщения из Telegram каналов, если задача была опубликована
+                if task.published and task.message_id and task.group:
+                    try:
+                        chat_id = str(task.group.group_id)
+                        logger.info(f"🗑️ Попытка удаления сообщений для задачи {task.id}: message_id={task.message_id}, chat_id={chat_id}")
+                        # Пробуем удалить несколько сообщений подряд (фото, текст, опрос, кнопка)
+                        # Обычно опрос имеет message_id, а остальные сообщения идут рядом
+                        for offset in range(-2, 2):  # -2, -1, 0, 1 (покрываем 4 сообщения)
+                            message_id_to_delete = task.message_id + offset
+                            logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
+                            if delete_message(chat_id, message_id_to_delete):
+                                deleted_messages_count += 1
+                                logger.info(f"   ✅ Удалено сообщение {message_id_to_delete}")
+                            else:
+                                failed_messages_count += 1
+                                logger.debug(f"   ⚠️ Не удалось удалить сообщение {message_id_to_delete}")
+                    except Exception as e:
+                        logger.warning(f"Ошибка при удалении сообщений для задачи {task.id}: {e}", exc_info=True)
+                        failed_messages_count += 1
+                else:
+                    logger.debug(f"⚠️ Задача {task.id} пропущена при удалении сообщений: published={task.published}, message_id={task.message_id}, group={task.group}")
             
             # Собираем URL изображений ОДИН РАЗ
             image_urls = list(set([task.image_url for task in related_tasks if task.image_url]))
@@ -517,18 +565,38 @@ class TaskAdmin(admin.ModelAdmin):
             related_tasks.delete()
             
             lang_info = ", ".join(languages) if languages else ""
+            message_info = ""
+            if deleted_messages_count > 0:
+                message_info = f", удалено {deleted_messages_count} сообщений из Telegram"
+            if failed_messages_count > 0:
+                message_info += f" ({failed_messages_count} сообщений не удалось удалить - возможно, нет прав бота или сообщения уже удалены)"
             
             messages.success(
                 request,
-                f"Удалено {count} связанных задач ({lang_info}) и {len(image_urls)} изображений из S3"
+                f"Удалено {count} связанных задач ({lang_info}) и {len(image_urls)} изображений из S3{message_info}"
             )
         else:
-            # Обычное удаление
+            # Обычное удаление одной задачи
+            if obj.published and obj.message_id and obj.group:
+                try:
+                    chat_id = str(obj.group.group_id)
+                    logger.info(f"🗑️ Попытка удаления сообщений для задачи {obj.id}: message_id={obj.message_id}, chat_id={chat_id}")
+                    # Пробуем удалить несколько сообщений подряд
+                    for offset in range(-2, 2):
+                        message_id_to_delete = obj.message_id + offset
+                        logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
+                        delete_message(chat_id, message_id_to_delete)
+                except Exception as e:
+                    logger.warning(f"Ошибка при удалении сообщений для задачи {obj.id}: {e}", exc_info=True)
+            else:
+                logger.debug(f"⚠️ Задача {obj.id} пропущена при удалении сообщений: published={obj.published}, message_id={obj.message_id}, group={obj.group}")
+            
             super().delete_model(request, obj)
     
     def delete_queryset(self, request, queryset):
         """
         Переопределяем массовое удаление для очистки связанных ресурсов.
+        Удаляет задачи, изображения из S3 и сообщения из Telegram каналов.
         """
         # Собираем все translation_group_id
         translation_group_ids = set(
@@ -538,14 +606,38 @@ class TaskAdmin(admin.ModelAdmin):
         # Находим все связанные задачи
         all_related_tasks = Task.objects.filter(
             translation_group_id__in=translation_group_ids
-        )
+        ).select_related('group')
         
         # Собираем информацию о языках ДО удаления
         languages = []
+        deleted_messages_count = 0
+        failed_messages_count = 0
+        
         for task in all_related_tasks:
             translation = task.translations.first()
             if translation:
                 languages.append(translation.language.upper())
+            
+            # Удаляем сообщения из Telegram каналов, если задача была опубликована
+            if task.published and task.message_id and task.group:
+                try:
+                    chat_id = str(task.group.group_id)
+                    logger.info(f"🗑️ Попытка удаления сообщений для задачи {task.id}: message_id={task.message_id}, chat_id={chat_id}")
+                    # Пробуем удалить несколько сообщений подряд (фото, текст, опрос, кнопка)
+                    for offset in range(-2, 2):  # -2, -1, 0, 1 (покрываем 4 сообщения)
+                        message_id_to_delete = task.message_id + offset
+                        logger.debug(f"   Попытка удалить message_id {message_id_to_delete} (offset={offset})")
+                        if delete_message(chat_id, message_id_to_delete):
+                            deleted_messages_count += 1
+                            logger.info(f"   ✅ Удалено сообщение {message_id_to_delete}")
+                        else:
+                            failed_messages_count += 1
+                            logger.debug(f"   ⚠️ Не удалось удалить сообщение {message_id_to_delete}")
+                except Exception as e:
+                    logger.warning(f"Ошибка при удалении сообщений для задачи {task.id}: {e}", exc_info=True)
+                    failed_messages_count += 1
+            else:
+                logger.debug(f"⚠️ Задача {task.id} пропущена при удалении сообщений: published={task.published}, message_id={task.message_id}, group={task.group}")
         
         # Собираем URL изображений ОДИН РАЗ (используем set для уникальности)
         image_urls = list(set([task.image_url for task in all_related_tasks if task.image_url]))
@@ -562,10 +654,15 @@ class TaskAdmin(admin.ModelAdmin):
         all_related_tasks.delete()
         
         lang_info = ", ".join(sorted(set(languages))) if languages else ""
+        message_info = ""
+        if deleted_messages_count > 0:
+            message_info = f", удалено {deleted_messages_count} сообщений из Telegram"
+        if failed_messages_count > 0:
+            message_info += f" ({failed_messages_count} сообщений не удалось удалить - возможно, нет прав бота или сообщения уже удалены)"
         
         messages.success(
             request,
-            f"Удалено {count} задач ({lang_info}) и {deleted_images} изображений из S3"
+            f"Удалено {count} задач ({lang_info}) и {deleted_images} изображений из S3{message_info}"
         )
     
     @admin.action(description='Опубликовать выбранные задачи в Telegram')
@@ -674,10 +771,19 @@ class TaskAdmin(admin.ModelAdmin):
                 
                 if result['success']:
                     # Обновляем флаг публикации и дату для этой задачи
+                    # message_id и group уже сохранены в publish_task_to_telegram
                     task.published = True
                     task.publish_date = timezone.now()
                     task.error = False  # Сбрасываем ошибку если публикация успешна
-                    task.save(update_fields=['published', 'publish_date', 'error'])
+                    # Обновляем только если message_id еще не сохранен
+                    update_fields = ['published', 'publish_date', 'error']
+                    if not task.message_id:
+                        # Если message_id не был сохранен в publish_task_to_telegram, пробуем получить из результата
+                        # (но обычно он уже сохранен)
+                        update_fields.append('message_id')
+                    if not task.group:
+                        update_fields.append('group')
+                    task.save(update_fields=update_fields)
                     published_count += 1
                     
                     # Считаем по языкам
