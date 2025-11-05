@@ -14,32 +14,46 @@ from accounts.utils_folder.telegram_notifications import send_telegram_notificat
 logger = logging.getLogger(__name__)
 
 
-def format_comment_notification(comment) -> str:
+def format_comment_notification(comment, request=None) -> str:
     """
     Форматирует уведомление о новом комментарии в Markdown.
     
     Args:
         comment: Объект TaskComment
+        request: Django request для получения правильного base_url (опционально)
         
     Returns:
         str: Отформатированное сообщение для Telegram
     """
     try:
+        from accounts.utils_folder.telegram_notifications import (
+            get_base_url,
+            escape_username_for_markdown,
+            format_markdown_link,
+            escape_markdown,
+        )
+        from django.urls import reverse
+        
         # Получаем информацию об авторе
         try:
             author = MiniAppUser.objects.get(telegram_id=comment.author_telegram_id)
             author_name = author.first_name or author.username or 'Без имени'
-            author_username = f"@{author.username}" if author.username else 'нет'
+            # Используем escape_username_for_markdown для правильного отображения username
+            escaped_username = escape_username_for_markdown(author.username) if author.username else None
+            author_username = f"@{escaped_username}" if escaped_username else 'нет'
         except MiniAppUser.DoesNotExist:
             author_name = comment.author_username
             author_username = 'нет'
+
+        escaped_author_name = escape_markdown(author_name)
         
         # Информация о задаче
         lang_flag = '🇷🇺' if comment.task_translation.language == 'ru' else '🇬🇧'
         task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()})"
         
         # Текст комментария (обрезаем, если слишком длинный)
-        comment_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
+        raw_comment_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
+        comment_text = escape_markdown(raw_comment_text)
         
         # Количество изображений
         images_count = comment.images.count()
@@ -51,22 +65,32 @@ def format_comment_notification(comment) -> str:
             try:
                 parent_author = MiniAppUser.objects.get(telegram_id=comment.parent_comment.author_telegram_id)
                 parent_name = parent_author.first_name or parent_author.username or 'Пользователь'
-                parent_username = f"@{parent_author.username}" if parent_author.username else 'нет'
-                parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {parent_name} ({parent_username}, ID: {comment.parent_comment.author_telegram_id})"
+                escaped_parent_username = escape_username_for_markdown(parent_author.username) if parent_author.username else None
+                parent_username = f"@{escaped_parent_username}" if escaped_parent_username else 'нет'
+                escaped_parent_name = escape_markdown(parent_name)
+                parent_info = (
+                    f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {escaped_parent_name}"
+                    f" ({parent_username}, ID: {comment.parent_comment.author_telegram_id})"
+                )
             except MiniAppUser.DoesNotExist:
-                parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {comment.parent_comment.author_username}"
+                fallback_parent_name = escape_markdown(comment.parent_comment.author_username or 'Пользователь')
+                parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {fallback_parent_name}"
+        
+        # Формируем ссылку с динамическим base_url
+        base_url = get_base_url(request)
+        admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
+        admin_url = f"{base_url}{admin_path}"
         
         # Формируем сообщение
         message = f"""💬 *Новый комментарий*
 
-👤 *Автор:* {author_name} ({author_username}, ID: {comment.author_telegram_id})
+👤 *Автор:* {escaped_author_name} ({author_username}, ID: {comment.author_telegram_id})
 📝 *Задача:* {task_info}
 
 *Текст:*
 "{comment_text}"{images_text}{parent_info}
 
-🔗 Просмотреть в админке:
-{settings.SITE_URL}/admin/tasks/taskcomment/{comment.id}/change/
+🔗 {format_markdown_link('Просмотреть в админке', admin_url)}
 """
         
         return message
@@ -87,23 +111,33 @@ def format_report_notification(report) -> str:
         str: Отформатированное сообщение для Telegram
     """
     try:
+        from accounts.utils_folder.telegram_notifications import (
+            format_markdown_link,
+            escape_username_for_markdown,
+            escape_markdown,
+        )
+
         # Информация о репортере
         try:
             reporter = MiniAppUser.objects.get(telegram_id=report.reporter_telegram_id)
             reporter_name = reporter.first_name or reporter.username or 'Без имени'
-            reporter_username = f"@{reporter.username}" if reporter.username else 'нет'
+            reporter_username = f"@{escape_username_for_markdown(reporter.username)}" if reporter.username else 'нет'
         except MiniAppUser.DoesNotExist:
             reporter_name = 'Пользователь не найден'
             reporter_username = 'нет'
+
+        escaped_reporter_name = escape_markdown(reporter_name)
         
         # Информация об авторе комментария
         try:
             author = MiniAppUser.objects.get(telegram_id=report.comment.author_telegram_id)
             author_name = author.first_name or author.username or 'Без имени'
-            author_username = f"@{author.username}" if author.username else 'нет'
+            author_username = f"@{escape_username_for_markdown(author.username)}" if author.username else 'нет'
         except MiniAppUser.DoesNotExist:
             author_name = report.comment.author_username
             author_username = 'нет'
+
+        escaped_author_name = escape_markdown(author_name)
         
         # Причина жалобы с иконками
         reason_icons = {
@@ -113,17 +147,21 @@ def format_report_notification(report) -> str:
             'other': '❓'
         }
         reason_icon = reason_icons.get(report.reason, '❓')
-        reason_text = report.get_reason_display()
+        reason_text = escape_markdown(report.get_reason_display())
         
         # Текст комментария
-        comment_text = report.comment.text[:150] + ('...' if len(report.comment.text) > 150 else '')
+        raw_comment_text = report.comment.text[:150] + ('...' if len(report.comment.text) > 150 else '')
+        comment_text = escape_markdown(raw_comment_text)
         
         # Количество изображений
         images_count = report.comment.images.count()
         images_text = f"\n📷 Изображений: {images_count}" if images_count > 0 else ""
         
         # Описание жалобы (если есть)
-        description_text = f'\n📝 *Описание:* "{report.description}"' if report.description else ""
+        description_text = ''
+        if report.description:
+            escaped_description = escape_markdown(report.description)
+            description_text = f'\n📝 *Описание:* "{escaped_description}"'
         
         # Общее количество жалоб на комментарий
         total_reports = report.comment.reports_count
@@ -131,8 +169,8 @@ def format_report_notification(report) -> str:
         # Формируем сообщение
         message = f"""🚨 *Новая жалоба на комментарий*
 
-👤 *Кто пожаловался:* {reporter_name} ({reporter_username}, ID: {report.reporter_telegram_id})
-🎯 *На кого:* {author_name} ({author_username}, ID: {report.comment.author_telegram_id})
+👤 *Кто пожаловался:* {escaped_reporter_name} ({reporter_username}, ID: {report.reporter_telegram_id})
+🎯 *На кого:* {escaped_author_name} ({author_username}, ID: {report.comment.author_telegram_id})
 
 {reason_icon} *Причина:* {reason_text}{description_text}
 
@@ -141,11 +179,9 @@ def format_report_notification(report) -> str:
 
 ⚠️ *Всего жалоб на этот комментарий:* {total_reports}
 
-🔗 Просмотреть жалобу:
-{settings.SITE_URL}/admin/tasks/taskcommentreport/{report.id}/change/
+🔗 {format_markdown_link('Просмотреть жалобу', f"{settings.SITE_URL}/admin/tasks/taskcommentreport/{report.id}/change/")}
 
-🔗 Просмотреть комментарий:
-{settings.SITE_URL}/admin/tasks/taskcomment/{report.comment.id}/change/
+🔗 {format_markdown_link('Просмотреть комментарий', f"{settings.SITE_URL}/admin/tasks/taskcomment/{report.comment.id}/change/")}
 """
         
         return message

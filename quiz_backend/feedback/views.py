@@ -182,8 +182,20 @@ def submit_feedback_from_mini_app(request):
         
         # Отправляем уведомление админам о новом обращении
         try:
-            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, get_base_url
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, escape_username_for_markdown, get_base_url, format_markdown_link
+            from accounts.models import MiniAppUser
             from django.urls import reverse
+            
+            # Получаем полную информацию о пользователе
+            try:
+                mini_user = MiniAppUser.objects.get(telegram_id=user_id)
+                author_name = mini_user.first_name or mini_user.username or 'Без имени'
+                escaped_username = escape_username_for_markdown(mini_user.username) if mini_user.username else None
+                author_username = f"@{escaped_username}" if escaped_username else 'нет'
+            except MiniAppUser.DoesNotExist:
+                author_name = username or "Без имени"
+                escaped_username = escape_username_for_markdown(username) if username else None
+                author_username = f"@{escaped_username}" if escaped_username else 'нет'
             
             # Получаем категорию
             category_display = dict(FeedbackMessage.CATEGORY_CHOICES).get(category, category)
@@ -193,12 +205,16 @@ def submit_feedback_from_mini_app(request):
             admin_path = reverse('admin:feedback_feedbackmessage_change', args=[feedback.id])
             admin_url = f"{base_url}{admin_path}"
             
+            # Экранируем значения для Markdown
+            escaped_category = escape_markdown(str(category_display))
+            escaped_message = escape_markdown(message[:200]) if message else ""
+
             admin_title = "📩 Новое обращение в поддержку"
             admin_message = (
-                f"От: @{username} (ID: {user_id})\n"
-                f"Категория: {category_display}\n\n"
-                f"Сообщение: {message[:200]}\n\n"
-                f"👉 Посмотреть в админке: {escape_markdown(admin_url)}"
+                f"От: {author_name} ({author_username}, ID: {user_id})\n"
+                f"Категория: {escaped_category}\n\n"
+                f"Сообщение: {escaped_message}\n\n"
+                f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             )
             
             logger.info(f"📤 Отправка уведомления о feedback #{feedback.id} с URL: {admin_url}")
