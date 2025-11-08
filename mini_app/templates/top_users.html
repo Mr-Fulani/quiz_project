@@ -179,7 +179,12 @@ window.openUserProfile = openUserProfile;
                 <div class="swiper-slide">
                     <div class="user-item" data-telegram-id="{{ user.telegram_id }}">
                         <!-- Аватарка на весь экран -->
-                        <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
+                        <img class="user-avatar" 
+                             src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" 
+                             alt="{{ user.username }}"
+                             loading="eager"
+                             decoding="async"
+                             fetchpriority="high">
                         {% if user.is_online %}
                         <div class="online-indicator"></div>
                         <div class="online-status-text" data-translate="online">{{ translations.get('online', 'В сети') }}</div>

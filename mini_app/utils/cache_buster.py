@@ -96,7 +96,7 @@ STATIC_VERSIONS = {
     'serializers.py': '1.1',  # FIX: Исправлена логика отображения аватаров - главный аватар теперь первый в свайпе
     'admin.py': '1.1',  # FIX: Улучшена админка для понятного отображения главного аватара и галереи
     'top_users.css': '35.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
-    'top_users_swiper.css': '30.3',  # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Убран inset:unset который переопределял top/left
+    'top_users_swiper.css': '30.4',  # FIX: Улучшено качество изображения аватарок в модальном окне (image-rendering, аппаратное ускорение)
     'topic_cards_swiper.css': '1.1',  # Добавлены стили для video в увеличенной карточке  # Стили для Swiper карточек тем (аналогично top_users_swiper.css)
     'statistics.css': '7.0',  # NEW: Добавлено отображение total_points, topic_progress и achievements
     # Принудительное обновление кэша для Django статических файлов

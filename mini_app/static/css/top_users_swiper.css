@@ -243,6 +243,12 @@ div#all-users-carousel.all-users-carousel[style*="display: block"] {
     margin: 0 !important;
     padding: 0 !important;
     pointer-events: none !important; /* Не блокирует клики по родителю */
+    image-rendering: -webkit-optimize-contrast !important; /* Улучшение качества для WebKit */
+    image-rendering: crisp-edges !important; /* Улучшение качества для других браузеров */
+    image-rendering: high-quality !important; /* Приоритет качества */
+    -webkit-backface-visibility: hidden !important; /* Улучшение производительности */
+    backface-visibility: hidden !important;
+    transform: translateZ(0) !important; /* Аппаратное ускорение */
 }
 
 /* Индикатор онлайн статуса */
