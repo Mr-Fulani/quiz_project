@@ -387,19 +387,14 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
             
             # Уведомляем админов о новом комментарии
             from tasks.notification_service import format_comment_notification, send_to_all_admins
-            from accounts.models import MiniAppUser
+            from accounts.models import MiniAppUser, Notification
             from django.db import models as django_models
             
             # Формируем красивое сообщение для Telegram (с Markdown форматированием и ссылкой "Просмотреть в админке")
             telegram_message = format_comment_notification(comment, request=request)
             
-            # Отправляем красивое сообщение в Telegram (с Markdown форматированием)
-            send_to_all_admins(telegram_message)
-            
-            # Создаем уведомление в админке Django БЕЗ отправки в Telegram (чтобы избежать дублирования)
-            # Получаем всех админов для создания уведомления
+            # Создаем уведомление в БД ПЕРЕД отправкой
             try:
-                from accounts.models import Notification
                 admins = MiniAppUser.objects.filter(
                     notifications_enabled=True
                 ).filter(
@@ -459,7 +454,7 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                         f"🔗 Просмотреть в админке"
                     )
                     
-                    # Создаем ОДНО уведомление в БД для всех админов БЕЗ отправки в Telegram
+                    # Создаем ОДНО уведомление в БД для всех админов
                     admin_notification = Notification.objects.create(
                         recipient_telegram_id=None,  # NULL для админских уведомлений
                         is_admin_notification=True,
@@ -470,7 +465,17 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                         related_object_type='comment'
                     )
                     
-                    logger.info(f"📝 Создано админское уведомление #{admin_notification.id} для всех админов (без отправки в Telegram)")
+                    # Отправляем красивое сообщение в Telegram (с Markdown форматированием)
+                    sent_count = send_to_all_admins(telegram_message)
+                    
+                    # Отмечаем уведомление как отправленное, если хотя бы одному админу отправлено
+                    if sent_count > 0:
+                        admin_notification.mark_as_sent()
+                        logger.info(f"📤 Уведомление #{admin_notification.id} отправлено {sent_count} админам и отмечено как отправленное")
+                    else:
+                        logger.warning(f"⚠️ Уведомление #{admin_notification.id} не было отправлено ни одному админу")
+                    
+                    logger.info(f"📝 Создано админское уведомление #{admin_notification.id} для всех админов")
             except Exception as e:
                 logger.error(f"❌ Ошибка создания уведомления в админке: {e}")
             

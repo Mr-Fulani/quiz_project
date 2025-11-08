@@ -3,6 +3,7 @@ import logging
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Q
+from django.utils.html import format_html
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar, Notification
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,28 @@ from django.urls import path
 from django.http import JsonResponse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+
+
+class NotificationAdminForm(forms.ModelForm):
+    """Кастомная форма для админки уведомлений."""
+    
+    class Meta:
+        model = Notification
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Убеждаемся, что поле is_read редактируемое
+        if 'is_read' in self.fields:
+            self.fields['is_read'].widget.attrs.update({'class': 'is-read-checkbox'})
+            self.fields['is_read'].required = False
+            # Убеждаемся, что поле не в disabled состоянии
+            self.fields['is_read'].disabled = False
+    
+    def clean_is_read(self):
+        """Очистка и валидация поля is_read."""
+        is_read = self.cleaned_data.get('is_read', False)
+        return bool(is_read)
 
 
 class UserSearchWidget(forms.TextInput):
@@ -2640,12 +2663,14 @@ class NotificationAdmin(admin.ModelAdmin):
     """
     Админ-панель для уведомлений.
     """
-    list_display = ['id', 'get_recipient_display', 'notification_type', 'title', 'is_read', 'sent_to_telegram', 'created_at']
+    form = NotificationAdminForm
+    list_display = ['id', 'get_recipient_display', 'notification_type', 'title', 'is_read_display', 'sent_to_telegram', 'created_at']
     list_filter = ['notification_type', 'is_admin_notification', 'is_read', 'sent_to_telegram', 'created_at']
     search_fields = ['recipient_telegram_id', 'title', 'message']
     readonly_fields = ['created_at']
     list_per_page = 50
     date_hierarchy = 'created_at'
+    list_display_links = ['id', 'title']
     
     fieldsets = (
         ('Основная информация', {
@@ -2656,7 +2681,8 @@ class NotificationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Статус', {
-            'fields': ('is_read', 'sent_to_telegram', 'created_at')
+            'fields': ('is_read', 'sent_to_telegram', 'created_at'),
+            'description': 'Используйте чекбокс "Прочитано" для отметки уведомления как прочитанного.'
         }),
     )
     
@@ -2666,6 +2692,45 @@ class NotificationAdmin(admin.ModelAdmin):
             return "👥 Все админы"
         return obj.recipient_telegram_id or "-"
     get_recipient_display.short_description = "Получатель"
+    
+    def is_read_display(self, obj):
+        """Визуальное отображение статуса прочтения."""
+        if obj.is_read:
+            return format_html(
+                '<span style="color: #28a745; font-weight: bold;">✓ Прочитано</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: #dc3545; font-weight: bold;">● Непрочитано</span>'
+            )
+    is_read_display.short_description = "Статус"
+    is_read_display.admin_order_field = 'is_read'
+    
+    def get_queryset(self, request):
+        """Оптимизация запросов."""
+        qs = super().get_queryset(request)
+        return qs.select_related()
+    
+    def changelist_view(self, request, extra_context=None):
+        """Переопределяем для улучшенного отображения уведомлений."""
+        # Убираем автоматический фильтр по умолчанию - показываем все уведомления
+        # Пользователь может сам выбрать фильтр через интерфейс
+        return super().changelist_view(request, extra_context)
+    
+    def save_model(self, request, obj, form, change):
+        """Сохраняет модель и логирует изменения статуса прочтения."""
+        # Сохраняем значение is_read напрямую из формы
+        if 'is_read' in form.cleaned_data:
+            obj.is_read = form.cleaned_data['is_read']
+            logger.debug(f"Установка is_read={obj.is_read} для уведомления {obj.id if obj.pk else 'новое'}")
+        
+        # Сохраняем объект
+        super().save_model(request, obj, form, change)
+        
+        # Дополнительная проверка сохранения
+        if change and obj.pk:
+            obj.refresh_from_db()
+            logger.debug(f"Уведомление {obj.id} сохранено, is_read={obj.is_read}")
     
     actions = ['mark_as_read', 'mark_as_unread', 'resend_to_telegram']
     
