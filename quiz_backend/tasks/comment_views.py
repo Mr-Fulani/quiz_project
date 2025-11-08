@@ -387,10 +387,82 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
             
             # Уведомляем админов о новом комментарии
             from tasks.notification_service import format_comment_notification, send_to_all_admins
+            from accounts.utils_folder.telegram_notifications import notify_all_admins, escape_markdown, escape_username_for_markdown, get_base_url, format_markdown_link
+            from django.urls import reverse
             
-            # Используем красивый формат из notification_service с правильным request
-            notification_message = format_comment_notification(comment, request=request)
-            send_to_all_admins(notification_message)
+            # Получаем информацию о задаче и топике для уведомления в админке
+            task = comment.task_translation.task
+            topic_name = task.topic.name if task.topic else "Без топика"
+            subtopic_info = ""
+            if task.subtopic:
+                subtopic_info = f" → {task.subtopic.name}"
+            
+            # Формируем ссылку на комментарий в админке
+            base_url = get_base_url(None)  # Используем None для использования settings.SITE_URL
+            admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
+            admin_url = f"{base_url}{admin_path}"
+            
+            # Получаем информацию об авторе для уведомления в админке
+            try:
+                author = MiniAppUser.objects.get(telegram_id=comment.author_telegram_id)
+                author_name = author.first_name or author.username or 'Без имени'
+                author_username = f"@{author.username}" if author.username else 'нет'
+            except MiniAppUser.DoesNotExist:
+                author_name = comment.author_username
+                author_username = 'нет'
+            
+            # Информация о задаче
+            lang_flag = '🇷🇺' if comment.task_translation.language == 'ru' else '🇬🇧'
+            task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()})"
+            
+            # Текст комментария (обрезаем, если слишком длинный)
+            comment_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
+            
+            # Количество изображений
+            images_count = comment.images.count()
+            images_text = f"\n📷 Изображений: {images_count}" if images_count > 0 else ""
+            
+            # Информация о родительском комментарии
+            parent_info = ""
+            if comment.parent_comment:
+                try:
+                    parent_author = MiniAppUser.objects.get(telegram_id=comment.parent_comment.author_telegram_id)
+                    parent_name = parent_author.first_name or parent_author.username or 'Пользователь'
+                    parent_username = f"@{parent_author.username}" if parent_author.username else 'нет'
+                    parent_info = (
+                        f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {parent_name}"
+                        f" ({parent_username}, ID: {comment.parent_comment.author_telegram_id})"
+                    )
+                except MiniAppUser.DoesNotExist:
+                    parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {comment.parent_comment.author_username or 'Пользователь'}"
+            
+            # Формируем красивое сообщение для Telegram (с Markdown форматированием)
+            telegram_message = format_comment_notification(comment, request=request)
+            
+            # Формируем сообщение для админки (без Markdown форматирования для отображения в админке)
+            # Но используем информацию о топике
+            admin_title = "💬 Новый комментарий"
+            admin_message = (
+                f"👤 Автор: {author_name} ({author_username}, ID: {comment.author_telegram_id})\n"
+                f"📝 Задача: {task_info} | {topic_name}{subtopic_info}\n\n"
+                f"Текст:\n"
+                f'"{comment_text}"{images_text}{parent_info}\n\n'
+                f"🔗 Просмотреть в админке: {admin_url}"
+            )
+            
+            # Создаем уведомление в админке Django с информацией о топике
+            # Это также отправит сообщение в Telegram, но мы отправим красивое сообщение отдельно
+            notify_all_admins(
+                notification_type='comment',
+                title=admin_title,
+                message=admin_message,
+                related_object_id=comment.id,
+                related_object_type='comment'
+            )
+            
+            # Отправляем красивое сообщение в Telegram (с Markdown форматированием)
+            # Это сообщение будет более красивым для Telegram
+            send_to_all_admins(telegram_message)
             
         except Exception as e:
             logger.error(f"❌ Ошибка отправки уведомлений: {e}")

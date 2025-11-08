@@ -201,7 +201,9 @@ def submit_feedback_from_mini_app(request):
             category_display = dict(FeedbackMessage.CATEGORY_CHOICES).get(category, category)
             
             # Формируем ссылку на feedback в админке с динамическим URL
-            base_url = get_base_url(request)
+            # Используем get_base_url(None) для использования settings.SITE_URL,
+            # так как request может не содержать правильных заголовков от прокси
+            base_url = get_base_url(None)
             admin_path = reverse('admin:feedback_feedbackmessage_change', args=[feedback.id])
             admin_url = f"{base_url}{admin_path}"
             
