@@ -20,19 +20,64 @@ async def index(
     request: Request, 
     search: str = None,
     lang: str = Query(default=None, description="Language code"),
-    tgWebAppStartParam: str = Query(default=None, alias="tgWebAppStartParam")
+    tgWebAppStartParam: str = Query(default=None, alias="tgWebAppStartParam"),
+    startapp: str = Query(default=None, description="Start parameter from URL")
 ):
-    # Обработка deep link
-    if tgWebAppStartParam and tgWebAppStartParam.startswith("topic_"):
+    # Обработка deep link для комментариев
+    # Проверяем оба варианта: tgWebAppStartParam (из query) и startapp (из URL параметра)
+    start_param = tgWebAppStartParam or startapp
+    
+    if start_param and start_param.startswith("comment_"):
         try:
-            topic_id = int(tgWebAppStartParam.split("_")[1])
+            comment_id = int(start_param.split("_")[1])
+            logger.info(f"🔗 Deep link для комментария: comment_id={comment_id}")
+            # Получаем информацию о комментарии через Django API
+            try:
+                comment_data = await django_api_service.get_comment_detail(comment_id)
+                if comment_data:
+                    translation_id = comment_data.get('translation_id')
+                    task_id = comment_data.get('task_id')
+                    subtopic_id = comment_data.get('subtopic_id')
+                    topic_id = comment_data.get('topic_id')
+                    language = comment_data.get('language', 'en')
+                    
+                    # Устанавливаем язык
+                    if lang:
+                        localization_service.set_language(lang)
+                    elif language:
+                        localization_service.set_language(language)
+                    
+                    current_language = localization_service.get_language()
+                    
+                    # Редиректим на страницу задач подтемы с параметрами для прокрутки к комментарию
+                    if subtopic_id:
+                        redirect_url = f"/subtopic/{subtopic_id}/tasks?comment_id={comment_id}&translation_id={translation_id}&lang={current_language}"
+                    elif topic_id:
+                        redirect_url = f"/topic/{topic_id}?comment_id={comment_id}&lang={current_language}"
+                    else:
+                        redirect_url = f"/?comment_id={comment_id}&lang={current_language}"
+                    
+                    logger.info(f"🔗 Редирект на: {redirect_url}")
+                    return RedirectResponse(url=redirect_url)
+                else:
+                    logger.warning(f"⚠️ Не удалось получить данные комментария {comment_id}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка получения данных комментария {comment_id}: {e}", exc_info=True)
+                # Fallback - просто открываем главную страницу
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Некорректный параметр deep link для комментария: {start_param}, ошибка: {e}")
+    
+    # Обработка deep link для тем
+    if start_param and start_param.startswith("topic_"):
+        try:
+            topic_id = int(start_param.split("_")[1])
             # Устанавливаем язык перед редиректом
             if lang:
                 localization_service.set_language(lang)
             current_language = localization_service.get_language()
             return RedirectResponse(url=f"/topic/{topic_id}?lang={current_language}")
         except (ValueError, IndexError):
-            logger.warning(f"Некорректный параметр deep link: {tgWebAppStartParam}")
+            logger.warning(f"Некорректный параметр deep link: {start_param}")
 
     # Язык уже установлен middleware, но можно переопределить через query параметр
     if lang:

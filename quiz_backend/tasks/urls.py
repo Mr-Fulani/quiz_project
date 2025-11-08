@@ -39,4 +39,10 @@ urlpatterns = [
     
     # Комментарии (через роутер)
     path('', include(router.urls)),
+    
+    # Отдельный endpoint для получения комментария по ID для deep link
+    # Используем ViewSet напрямую через as_view
+    path('comments/<int:pk>/detail-for-deeplink/', 
+         TaskCommentViewSet.as_view({'get': 'detail_for_deeplink'}), 
+         name='comment-detail-deeplink'),
 ] 

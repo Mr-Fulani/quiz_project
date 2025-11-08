@@ -14,6 +14,89 @@
     <!-- Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
+    <!-- КРИТИЧЕСКИ ВАЖНО: Обработка deep link ПЕРЕД загрузкой контента -->
+    <script>
+    // Этот код должен выполняться ДО загрузки любого контента
+    (function() {
+        // Расширяем приложение на весь экран при открытии через кнопку
+        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+            try {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+                console.log('🔗 [EARLY] Приложение расширено на весь экран');
+            } catch (e) {
+                console.warn('⚠️ [EARLY] Не удалось расширить приложение:', e);
+            }
+        }
+        
+        // Проверяем параметр startapp из URL (для WebAppInfo кнопок)
+        const urlParams = new URLSearchParams(window.location.search);
+        const startappParam = urlParams.get('startapp');
+        
+        // Также проверяем startParam из Telegram WebApp API (если доступен)
+        let startParam = null;
+        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp && window.Telegram.WebApp.startParam) {
+            startParam = window.Telegram.WebApp.startParam;
+        }
+        
+        // Используем startParam из API, если доступен, иначе из URL
+        const finalParam = startParam || startappParam;
+        
+        console.log('🔗 [EARLY CHECK] startParam from API:', startParam);
+        console.log('🔗 [EARLY CHECK] startapp from URL:', startappParam);
+        console.log('🔗 [EARLY CHECK] finalParam:', finalParam);
+        
+        if (finalParam && finalParam.startsWith('comment_')) {
+            try {
+                const commentId = finalParam.split('_')[1];
+                console.log('🔗 [EARLY] Deep link для комментария:', commentId);
+                
+                // Получаем информацию о комментарии через API
+                fetch(`/api/tasks/comments/${commentId}/detail-for-deeplink/`)
+                    .then(response => response.json())
+                    .then(commentData => {
+                        console.log('🔗 [EARLY] Данные комментария получены:', commentData);
+                        if (commentData && commentData.subtopic_id) {
+                            const translationId = commentData.translation_id;
+                            const subtopicId = commentData.subtopic_id;
+                            const language = commentData.language || 'en';
+                            
+                            // Редиректим на страницу задач подтемы с параметрами для прокрутки к комментарию
+                            const redirectUrl = `/subtopic/${subtopicId}/tasks?comment_id=${commentId}&translation_id=${translationId}&lang=${language}`;
+                            console.log('🔗 [EARLY] Редирект на:', redirectUrl);
+                            window.location.replace(redirectUrl); // Используем replace вместо href для предотвращения возврата
+                            return;
+                        } else if (commentData && commentData.topic_id) {
+                            const topicId = commentData.topic_id;
+                            const language = commentData.language || 'en';
+                            
+                            const redirectUrl = `/topic/${topicId}?comment_id=${commentId}&lang=${language}`;
+                            console.log('🔗 [EARLY] Редирект на:', redirectUrl);
+                            window.location.replace(redirectUrl);
+                            return;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ [EARLY] Ошибка получения данных комментария:', error);
+                    });
+            } catch (e) {
+                console.warning('Некорректный параметр deep link для комментария:', finalParam, e);
+            }
+        } else if (finalParam && finalParam.startsWith('topic_')) {
+            try {
+                const topicId = finalParam.split('_')[1];
+                const language = urlParams.get('lang') || 'en';
+                const redirectUrl = `/topic/${topicId}?lang=${language}`;
+                console.log('🔗 [EARLY] Редирект на тему:', redirectUrl);
+                window.location.replace(redirectUrl);
+                return;
+            } catch (e) {
+                console.warning('Некорректный параметр deep link для темы:', finalParam, e);
+            }
+        }
+    })();
+    </script>
+    
     <!-- Font Awesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -317,6 +400,66 @@
                     }
                 });
                 console.log('✅ Telegram WebApp is ready (или имитирован).');
+                
+                // Обработка startParam для deep links (комментарии, темы)
+                // Проверяем startParam из Telegram WebApp API
+                let startParam = window.Telegram.WebApp.startParam;
+                console.log('🔗 Telegram WebApp startParam:', startParam);
+                
+                // Если startParam не доступен, проверяем URL параметры
+                if (!startParam) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    startParam = urlParams.get('startapp') || urlParams.get('tgWebAppStartParam');
+                    console.log('🔗 startParam из URL:', startParam);
+                }
+                
+                if (startParam && startParam.startsWith('comment_')) {
+                    try {
+                        const commentId = startParam.split('_')[1];
+                        console.log('🔗 Deep link для комментария:', commentId);
+                        
+                        // Получаем информацию о комментарии через API
+                        fetch(`/api/tasks/comments/${commentId}/detail-for-deeplink/`)
+                            .then(response => response.json())
+                            .then(commentData => {
+                                console.log('🔗 Данные комментария получены:', commentData);
+                                if (commentData && commentData.subtopic_id) {
+                                    const translationId = commentData.translation_id;
+                                    const subtopicId = commentData.subtopic_id;
+                                    const language = commentData.language || 'en';
+                                    
+                                    // Редиректим на страницу задач подтемы с параметрами для прокрутки к комментарию
+                                    const redirectUrl = `/subtopic/${subtopicId}/tasks?comment_id=${commentId}&translation_id=${translationId}&lang=${language}`;
+                                    console.log('🔗 Редирект на:', redirectUrl);
+                                    window.location.href = redirectUrl;
+                                } else if (commentData && commentData.topic_id) {
+                                    const topicId = commentData.topic_id;
+                                    const language = commentData.language || 'en';
+                                    
+                                    const redirectUrl = `/topic/${topicId}?comment_id=${commentId}&lang=${language}`;
+                                    console.log('🔗 Редирект на:', redirectUrl);
+                                    window.location.href = redirectUrl;
+                                } else {
+                                    console.warn('⚠️ Не удалось получить данные комментария для редиректа');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('❌ Ошибка получения данных комментария:', error);
+                            });
+                    } catch (e) {
+                        console.warning('Некорректный параметр deep link для комментария:', startParam, e);
+                    }
+                } else if (startParam && startParam.startsWith('topic_')) {
+                    try {
+                        const topicId = startParam.split('_')[1];
+                        const language = window.currentLanguage || 'en';
+                        const redirectUrl = `/topic/${topicId}?lang=${language}`;
+                        console.log('🔗 Редирект на тему:', redirectUrl);
+                        window.location.href = redirectUrl;
+                    } catch (e) {
+                        console.warning('Некорректный параметр deep link для темы:', startParam, e);
+                    }
+                }
             }
             
             try {

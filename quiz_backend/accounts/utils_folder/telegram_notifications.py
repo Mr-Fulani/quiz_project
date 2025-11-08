@@ -114,6 +114,110 @@ def get_base_url(request=None):
     return "https://quiz-code.com"
 
 
+def get_mini_app_url(request=None):
+    """
+    Получает базовый URL для mini app (с поддоменом mini.).
+    Для ссылок на mini app всегда использует поддомен mini.quiz-code.com.
+    
+    Args:
+        request: Django request объект (опционально)
+        
+    Returns:
+        str: Базовый URL для mini app (например, https://mini.quiz-code.com)
+    """
+    # Сначала проверяем настройки
+    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
+        site_url = settings.SITE_URL
+        # Если в SITE_URL уже есть mini., используем его
+        if 'mini.' in site_url:
+            logger.debug(f"🌐 Используем SITE_URL с mini поддоменом: {site_url}")
+            return site_url
+        # Если нет mini., добавляем его
+        # Заменяем основной домен на mini.домен
+        if 'quiz-code.com' in site_url:
+            mini_url = site_url.replace('quiz-code.com', 'mini.quiz-code.com')
+            logger.debug(f"🌐 Добавляем mini поддомен: {mini_url}")
+            return mini_url
+        # Если другой домен, добавляем mini. в начало
+        if '://' in site_url:
+            parts = site_url.split('://', 1)
+            mini_url = f"{parts[0]}://mini.{parts[1]}"
+            logger.debug(f"🌐 Добавляем mini поддомен: {mini_url}")
+            return mini_url
+    
+    # Если передан request, пытаемся получить URL из него и добавить mini.
+    if request:
+        try:
+            forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST') or request.META.get('X-Forwarded-Host')
+            forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO') or request.META.get('X-Forwarded-Proto')
+            
+            if forwarded_host:
+                scheme = forwarded_proto or 'https'
+                host = forwarded_host.split(',')[0].strip()
+                # Добавляем mini. если его нет
+                if 'mini.' not in host:
+                    host = f"mini.{host}"
+                mini_url = f"{scheme}://{host}"
+                logger.debug(f"🌐 Используем URL из заголовков с mini поддоменом: {mini_url}")
+                return mini_url
+            
+            scheme = request.scheme or 'https'
+            host = request.get_host()
+            if host and host not in ['localhost', '127.0.0.1'] and 'localhost' not in host:
+                # Добавляем mini. если его нет
+                if 'mini.' not in host:
+                    host = f"mini.{host}"
+                mini_url = f"{scheme}://{host}"
+                logger.debug(f"🌐 Используем URL из request.get_host() с mini поддоменом: {mini_url}")
+                return mini_url
+        except Exception as e:
+            logger.warning(f"Не удалось получить URL из request для mini app: {e}")
+    
+    # Fallback на дефолтный mini app URL
+    logger.warning("Не удалось определить базовый URL для mini app, используется дефолтный")
+    return "https://mini.quiz-code.com"
+
+
+def get_mini_app_url_with_startapp(comment_id: int, request=None) -> str:
+    """
+    Формирует URL mini app для открытия комментария через WebAppInfo.
+    Параметр startParam будет автоматически передан Telegram через window.Telegram.WebApp.startParam,
+    поэтому в URL его указывать не нужно - просто возвращаем базовый URL mini app.
+    
+    Args:
+        comment_id: ID комментария (используется только для логирования)
+        request: Django request объект (опционально)
+        
+    Returns:
+        str: Базовый URL mini app (например, https://mini.quiz-code.com/)
+    """
+    mini_app_url = get_mini_app_url(request)
+    # Telegram автоматически передаст startParam через window.Telegram.WebApp.startParam
+    # при открытии через WebAppInfo, поэтому просто возвращаем базовый URL
+    logger.debug(f"🔗 Сформирован URL mini app для комментария {comment_id}: {mini_app_url}/")
+    return f"{mini_app_url}/"
+
+
+def get_comment_deep_link(comment_id: int) -> str:
+    """
+    Формирует deep link для открытия комментария в mini app через Telegram бота.
+    
+    Args:
+        comment_id: ID комментария
+        
+    Returns:
+        str: Deep link URL (например, https://t.me/mr_proger_bot?startapp=comment_123)
+    """
+    from django.conf import settings
+    bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
+    # Формат: https://t.me/bot_username?startapp=comment_123
+    # Используем стандартный формат deep link без указания имени mini app
+    # Telegram автоматически откроет mini app, настроенный в боте
+    deep_link = f"https://t.me/{bot_username}?startapp=comment_{comment_id}"
+    logger.debug(f"🔗 Сформирован deep link для комментария {comment_id}: {deep_link}")
+    return deep_link
+
+
 def format_markdown_link(text: str, url: str) -> str:
     """
     Формирует Markdown-ссылку, не экранируя допустимые символы в URL.
@@ -134,7 +238,7 @@ def format_markdown_link(text: str, url: str) -> str:
     return f"[{escaped_text}]({safe_url})"
 
 
-def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: str = "Markdown") -> bool:
+def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: str = "Markdown", web_app_url: Optional[str] = None) -> bool:
     """
     Синхронная отправка уведомления пользователю в Telegram через бота.
     Сначала пытается использовать прямой API Telegram, если не получается - через bot сервис.
@@ -144,10 +248,23 @@ def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: 
         telegram_id: Telegram ID получателя
         message: Текст сообщения
         parse_mode: Режим парсинга (Markdown, HTML или None)
+        web_app_url: URL для открытия mini app (опционально, создаст inline keyboard button)
         
     Returns:
         bool: True если отправлено успешно, иначе False
     """
+    # Формируем reply_markup если есть web_app_url
+    reply_markup = None
+    if web_app_url:
+        reply_markup = {
+            "inline_keyboard": [[
+                {
+                    "text": "Открыть комментарий",
+                    "web_app": {"url": web_app_url}
+                }
+            ]]
+        }
+    
     # Сначала пробуем прямой API Telegram
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     if bot_token:
@@ -165,6 +282,10 @@ def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: 
                 # Добавляем parse_mode только если он указан
                 if try_parse_mode:
                     payload['parse_mode'] = try_parse_mode
+                
+                # Добавляем reply_markup если есть
+                if reply_markup:
+                    payload['reply_markup'] = reply_markup
                 
                 response = requests.post(url, json=payload, timeout=10)
                 
@@ -203,6 +324,10 @@ def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: 
             if try_parse_mode:
                 payload['parse_mode'] = try_parse_mode
             
+            # Добавляем reply_markup если есть
+            if reply_markup:
+                payload['reply_markup'] = reply_markup
+            
             response = requests.post(
                 f"{bot_url}/api/send-message/",
                 json=payload,
@@ -237,7 +362,8 @@ def create_notification(
     message: str,
     related_object_id: Optional[int] = None,
     related_object_type: Optional[str] = None,
-    send_to_telegram: bool = True
+    send_to_telegram: bool = True,
+    web_app_url: Optional[str] = None
 ) -> Optional[object]:
     """
     Создает уведомление в БД и опционально отправляет его в Telegram.
@@ -250,6 +376,7 @@ def create_notification(
         related_object_id: ID связанного объекта (опционально)
         related_object_type: Тип связанного объекта (опционально)
         send_to_telegram: Отправлять ли уведомление в Telegram
+        web_app_url: URL для открытия mini app (опционально, создаст inline keyboard button)
         
     Returns:
         Объект Notification или None при ошибке
@@ -281,7 +408,7 @@ def create_notification(
         
         # Отправляем в Telegram если нужно
         if send_to_telegram:
-            success = send_telegram_notification_sync(recipient_telegram_id, message)
+            success = send_telegram_notification_sync(recipient_telegram_id, message, web_app_url=web_app_url)
             if success:
                 notification.mark_as_sent()
         
