@@ -50,11 +50,12 @@ def escape_username_for_markdown(username: Optional[str]) -> str:
 def get_base_url(request=None):
     """
     Получает базовый URL для формирования ссылок в уведомлениях.
+    Для админских ссылок всегда использует основной домен (quiz-code.com), игнорируя поддомены.
     
     Приоритет:
-    1. Из request заголовков (X-Forwarded-Host, X-Forwarded-Proto) - для работы через nginx/ngrok
-    2. Из request.get_host() - стандартный способ Django
-    3. Из settings.SITE_URL (для продакшена) - ВСЕГДА используется если нет request
+    1. Из settings.SITE_URL (для продакшена) - ВСЕГДА используется для админских ссылок
+    2. Из request заголовков (X-Forwarded-Host, X-Forwarded-Proto) - для работы через nginx/ngrok
+    3. Из request.get_host() - стандартный способ Django
     
     Args:
         request: Django request объект (опционально)
@@ -62,7 +63,18 @@ def get_base_url(request=None):
     Returns:
         str: Базовый URL (например, https://quiz-code.com или https://xxx.ngrok-free.dev)
     """
-    # Если передан request, пытаемся получить URL из него
+    # Для админских ссылок всегда используем SITE_URL из настроек (основной домен)
+    # Это гарантирует, что ссылки на админку будут работать корректно
+    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
+        # Убираем поддомены из SITE_URL если они есть (например, mini.quiz-code.com -> quiz-code.com)
+        site_url = settings.SITE_URL
+        # Если есть поддомен типа mini., убираем его
+        if 'mini.' in site_url:
+            site_url = site_url.replace('mini.', '')
+        logger.debug(f"🌐 Используем SITE_URL из настроек (для админки): {site_url}")
+        return site_url
+    
+    # Если передан request и нет SITE_URL, пытаемся получить URL из него
     if request:
         try:
             # Сначала проверяем заголовки X-Forwarded-Host и X-Forwarded-Proto
@@ -75,6 +87,9 @@ def get_base_url(request=None):
                 scheme = forwarded_proto or 'https'
                 # X-Forwarded-Host может содержать несколько хостов, берем первый
                 host = forwarded_host.split(',')[0].strip()
+                # Убираем поддомены для админских ссылок
+                if 'mini.' in host:
+                    host = host.replace('mini.', '')
                 base_url = f"{scheme}://{host}"
                 logger.debug(f"🌐 Используем URL из заголовков X-Forwarded-Host: {base_url}")
                 return base_url
@@ -83,6 +98,9 @@ def get_base_url(request=None):
             scheme = request.scheme or 'https'
             host = request.get_host()
             if host and host not in ['localhost', '127.0.0.1'] and 'localhost' not in host:
+                # Убираем поддомены для админских ссылок
+                if 'mini.' in host:
+                    host = host.replace('mini.', '')
                 base_url = f"{scheme}://{host}"
                 logger.debug(f"🌐 Используем URL из request.get_host(): {base_url}")
                 return base_url
@@ -90,12 +108,6 @@ def get_base_url(request=None):
                 logger.debug(f"⚠️ request.get_host() вернул localhost или невалидный хост: {host}, используем fallback")
         except Exception as e:
             logger.warning(f"Не удалось получить URL из request: {e}")
-    
-    # Fallback на настройки (для сигналов без request)
-    # Всегда используем SITE_URL для продакшена
-    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
-        logger.debug(f"🌐 Используем SITE_URL из настроек: {settings.SITE_URL}")
-        return settings.SITE_URL
     
     # Последний fallback
     logger.warning("Не удалось определить базовый URL, используется дефолтный")

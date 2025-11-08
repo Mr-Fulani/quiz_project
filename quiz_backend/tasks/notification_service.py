@@ -109,12 +109,13 @@ def format_comment_notification(comment, request=None) -> str:
         return f"💬 Новый комментарий #{comment.id if comment else 'N/A'}"
 
 
-def format_report_notification(report) -> str:
+def format_report_notification(report, request=None) -> str:
     """
     Форматирует уведомление о новой жалобе в Markdown.
     
     Args:
         report: Объект TaskCommentReport
+        request: Django request для получения правильного base_url (опционально)
         
     Returns:
         str: Отформатированное сообщение для Telegram
@@ -124,7 +125,9 @@ def format_report_notification(report) -> str:
             format_markdown_link,
             escape_username_for_markdown,
             escape_markdown,
+            get_base_url,
         )
+        from django.urls import reverse
 
         # Информация о репортере
         try:
@@ -175,6 +178,13 @@ def format_report_notification(report) -> str:
         # Общее количество жалоб на комментарий
         total_reports = report.comment.reports_count
         
+        # Формируем ссылки с использованием get_base_url и reverse
+        base_url = get_base_url(request)
+        report_admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
+        comment_admin_path = reverse('admin:tasks_taskcomment_change', args=[report.comment.id])
+        report_admin_url = f"{base_url}{report_admin_path}"
+        comment_admin_url = f"{base_url}{comment_admin_path}"
+        
         # Формируем сообщение
         message = f"""🚨 *Новая жалоба на комментарий*
 
@@ -188,9 +198,9 @@ def format_report_notification(report) -> str:
 
 ⚠️ *Всего жалоб на этот комментарий:* {total_reports}
 
-🔗 {format_markdown_link('Просмотреть жалобу', f"{settings.SITE_URL}/admin/tasks/taskcommentreport/{report.id}/change/")}
+🔗 {format_markdown_link('Просмотреть жалобу', report_admin_url)}
 
-🔗 {format_markdown_link('Просмотреть комментарий', f"{settings.SITE_URL}/admin/tasks/taskcomment/{report.comment.id}/change/")}
+🔗 {format_markdown_link('Просмотреть комментарий', comment_admin_url)}
 """
         
         return message
@@ -287,18 +297,19 @@ def notify_admins_new_comment(comment) -> int:
         return 0
 
 
-def notify_admins_new_report(report) -> int:
+def notify_admins_new_report(report, request=None) -> int:
     """
     Уведомляет администраторов о новой жалобе.
     
     Args:
         report: Объект TaskCommentReport
+        request: Django request для получения правильного base_url (опционально)
         
     Returns:
         int: Количество успешно отправленных уведомлений
     """
     try:
-        message = format_report_notification(report)
+        message = format_report_notification(report, request=request)
         return send_to_all_admins(message)
     except Exception as e:
         logger.error(f"Ошибка при отправке уведомления о новой жалобе: {e}")
