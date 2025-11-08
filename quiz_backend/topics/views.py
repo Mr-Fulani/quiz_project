@@ -132,6 +132,7 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
     def get_queryset(self):
         # Получаем язык из query параметров, по умолчанию английский
         language = self.request.query_params.get('language', 'en')
+        telegram_id = self.request.query_params.get('telegram_id', None)
         queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
         
         # Аннотируем количество задач (distinct по задачам) на активном языке и фильтруем только те, где >0
@@ -148,10 +149,27 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
 
         return queryset
 
+    def list(self, request, *args, **kwargs):
+        """
+        Переопределяем метод list для сортировки подтем:
+        сначала непройденные, потом пройденные.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Сериализуем данные с правильным контекстом
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        
+        # Сортируем: сначала непройденные (is_completed=False), потом пройденные (is_completed=True)
+        sorted_data = sorted(data, key=lambda x: (x.get('is_completed', False), x.get('id', 0)))
+        
+        return Response(sorted_data)
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         telegram_id = self.request.query_params.get('telegram_id', None)
         context['telegram_id'] = telegram_id
+        context['request'] = self.request
         return context
 
     def perform_create(self, serializer):

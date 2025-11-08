@@ -88,15 +88,27 @@ def notify_admins_about_donation(sender, instance, created, **kwargs):
         admin_title = "💰 Новый донат из Mini App"
         
         if telegram_id:
+            # Если есть email, добавляем его в сообщение
+            email_info = ""
+            if instance.email:
+                escaped_email = escape_markdown(instance.email)
+                email_info = f"\n📧 Email: {escaped_email}"
+            
             admin_message = (
-                f"От: {escaped_donor_name} (ID: {telegram_id})\n"
+                f"От: {escaped_donor_name} (ID: {telegram_id}){email_info}\n"
                 f"Сумма: {escaped_amount}\n"
                 f"Метод: {escaped_payment_method}\n\n"
                 f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             )
         else:
+            # Если есть email, добавляем его в сообщение
+            email_info = ""
+            if instance.email:
+                escaped_email = escape_markdown(instance.email)
+                email_info = f"\n📧 Email: {escaped_email}"
+            
             admin_message = (
-                f"От: {escaped_donor_name}\n"
+                f"От: {escaped_donor_name}{email_info}\n"
                 f"Сумма: {escaped_amount}\n"
                 f"Метод: {escaped_payment_method}\n\n"
                 f"👉 {format_markdown_link('Посмотреть в админке', admin_url)}"

@@ -24,6 +24,7 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     description = serializers.SerializerMethodField()
     difficulty_counts = serializers.SerializerMethodField()
     solved_counts = serializers.SerializerMethodField()
+    is_completed = serializers.SerializerMethodField()
 
     class Meta:
         model = Subtopic
@@ -34,7 +35,8 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
             'questions_count',
             'topic_id',
             'difficulty_counts',
-            'solved_counts'
+            'solved_counts',
+            'is_completed'
         ]
 
     def get_questions_count(self, obj):
@@ -92,6 +94,21 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         medium = base_qs.filter(difficulty='medium').count()
         hard = base_qs.filter(difficulty='hard').count()
         return {'easy': easy, 'medium': medium, 'hard': hard}
+
+    def get_is_completed(self, obj):
+        """Определяет, пройдена ли подтема (все задачи решены)."""
+        difficulty_counts = self.get_difficulty_counts(obj)
+        solved_counts = self.get_solved_counts(obj)
+        
+        # Подтема считается пройденной, если все задачи решены
+        total_tasks = difficulty_counts['easy'] + difficulty_counts['medium'] + difficulty_counts['hard']
+        total_solved = solved_counts['easy'] + solved_counts['medium'] + solved_counts['hard']
+        
+        # Если нет задач, считаем непройденной
+        if total_tasks == 0:
+            return False
+        
+        return total_solved >= total_tasks
 
 class TopicSerializer(serializers.ModelSerializer):
     """
