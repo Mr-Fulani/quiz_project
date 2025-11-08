@@ -757,7 +757,11 @@ class DonationSystem {
             
             if (result.error) {
                 console.error('❌ Payment failed:', result.error);
-                this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), result.error.message);
+                const errorMessage = result.error.message || result.error.code || 'Неизвестная ошибка платежа';
+                this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), errorMessage);
+                this.showStatus('error', errorMessage);
+                this.isProcessing = false;
+                return;
             } else {
                 console.log('✅ Payment intent status:', result.paymentIntent.status);
                 if (result.paymentIntent.status === 'succeeded') {
@@ -772,13 +776,18 @@ class DonationSystem {
                         this.resetForm();
                     }, 2000);
                 } else {
-                    this.showNotification('error', window.t('donation_status', 'Статус платежа'), result.paymentIntent.status);
+                    const statusMessage = `Статус платежа: ${result.paymentIntent.status}`;
+                    this.showNotification('error', window.t('donation_status', 'Статус платежа'), statusMessage);
+                    this.showStatus('error', statusMessage);
                     console.log('⚠️ Payment not succeeded, status:', result.paymentIntent.status);
+                    this.isProcessing = false;
                 }
             }
         } catch (error) {
             console.error('❌ Error handling payment:', error);
-            this.showNotification('error', window.t('donation_processing_error', 'Ошибка обработки платежа'), '');
+            const errorMessage = error.message || error.toString() || window.t('donation_processing_error', 'Ошибка обработки платежа');
+            this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), errorMessage);
+            this.showStatus('error', errorMessage);
         } finally {
             this.isProcessing = false;
             console.log('🔚 Payment processing finished');

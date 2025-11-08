@@ -47,9 +47,18 @@ def format_comment_notification(comment, request=None) -> str:
 
         escaped_author_name = escape_markdown(author_name)
         
-        # Информация о задаче
+        # Информация о задаче с топиком
         lang_flag = '🇷🇺' if comment.task_translation.language == 'ru' else '🇬🇧'
-        task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()})"
+        task = comment.task_translation.task
+        topic_name = escape_markdown(task.topic.name) if task.topic else 'Без топика'
+        
+        # Добавляем подтопик, если он есть
+        subtopic_info = ""
+        if task.subtopic:
+            subtopic_name = escape_markdown(task.subtopic.name)
+            subtopic_info = f" → {subtopic_name}"
+        
+        task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()}) | {topic_name}{subtopic_info}"
         
         # Текст комментария (обрезаем, если слишком длинный)
         raw_comment_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
