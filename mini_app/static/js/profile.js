@@ -1769,6 +1769,9 @@
             };
         }
         
+        // Переинициализируем обработчики аватарки
+        setupAvatarHandlers();
+        
         console.log('✅ Profile page переинициализирован для SPA навигации');
     };
 
@@ -1828,13 +1831,32 @@
         backdrop.classList.add('active');
         modal.classList.add('active');
         
-        // Инициализируем Swiper
+        // Инициализируем Swiper с улучшенной конфигурацией
         setTimeout(() => {
+            console.log('🔧 Проверяем доступность Swiper...');
+            console.log('🔧 typeof Swiper:', typeof Swiper);
+            console.log('🔧 window.Swiper:', window.Swiper);
+            
             if (typeof Swiper !== 'undefined') {
+                console.log('🔧 Начинаем инициализацию Avatar Swiper...');
+                console.log('📊 Количество слайдов:', swiperWrapper.children.length);
+                console.log('📍 Начальный индекс:', startIndex);
+                
                 // Уничтожаем предыдущий экземпляр Swiper если есть
                 if (window.avatarSwiper) {
+                    console.log('🗑️ Уничтожаем предыдущий Swiper');
                     window.avatarSwiper.destroy(true, true);
+                    window.avatarSwiper = null;
                 }
+                
+                // Проверяем что элементы существуют
+                const swiperEl = document.getElementById('avatar-swiper');
+                if (!swiperEl) {
+                    console.error('❌ Swiper элемент не найден!');
+                    return;
+                }
+                
+                console.log('✅ Swiper элемент найден, создаем экземпляр...');
                 
                 window.avatarSwiper = new Swiper('#avatar-swiper', {
                     slidesPerView: 1,
@@ -1844,26 +1866,114 @@
                     effect: 'slide',
                     speed: 300,
                     initialSlide: startIndex,
+                    observer: true,
+                    observeParents: true,
+                    watchOverflow: true,
+                    touchRatio: 1,
+                    touchAngle: 45,
+                    simulateTouch: true,
+                    allowTouchMove: true,
                     navigation: {
-                        nextEl: '.swiper-button-next',
-                        prevEl: '.swiper-button-prev',
+                        nextEl: '#avatar-swiper .swiper-button-next',
+                        prevEl: '#avatar-swiper .swiper-button-prev',
                     },
                     pagination: {
-                        el: '.swiper-pagination',
+                        el: '#avatar-swiper .swiper-pagination',
                         clickable: true,
+                        type: 'bullets',
                     },
                     on: {
                         init: function() {
                             console.log('✅ Avatar Swiper инициализирован на слайде:', this.activeIndex);
+                            console.log('   - Активный слайд:', this.activeIndex);
+                            console.log('   - Всего слайдов:', this.slides.length);
+                            console.log('   - Размеры:', {
+                                width: this.width,
+                                height: this.height
+                            });
+                        },
+                        slideChange: function() {
+                            console.log('🔄 Переключение слайда:', this.activeIndex);
+                        },
+                        touchStart: function() {
+                            console.log('👆 Touch start');
+                        },
+                        touchMove: function() {
+                            console.log('👆 Touch move');
+                        },
+                        touchEnd: function() {
+                            console.log('👆 Touch end');
                         }
+                    }
+                });
+                
+                // Принудительное обновление размеров
+                requestAnimationFrame(() => {
+                    if (window.avatarSwiper) {
+                        console.log('🔄 Обновляем Swiper...');
+                        window.avatarSwiper.update();
+                        window.avatarSwiper.updateSize();
+                        window.avatarSwiper.updateSlides();
+                        window.avatarSwiper.updateProgress();
+                        
+                        console.log('✅ Avatar Swiper полностью обновлен');
+                        console.log('   - Финальный слайд:', window.avatarSwiper.activeIndex);
+                        console.log('   - allowTouchMove:', window.avatarSwiper.params.allowTouchMove);
                     }
                 });
                 
                 console.log('✅ Avatar Swiper создан');
             } else {
                 console.error('❌ Swiper library not found');
+                console.log('🔄 Попытка загрузить Swiper из CDN...');
+                
+                // Пытаемся загрузить Swiper из CDN
+                const swiperScript = document.createElement('script');
+                swiperScript.src = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js';
+                swiperScript.onload = () => {
+                    console.log('✅ Swiper загружен из CDN, повторная инициализация...');
+                    // Повторяем инициализацию после загрузки
+                    setTimeout(() => {
+                        if (typeof Swiper !== 'undefined') {
+                            window.avatarSwiper = new Swiper('#avatar-swiper', {
+                                slidesPerView: 1,
+                                spaceBetween: 0,
+                                centeredSlides: true,
+                                loop: avatars.length > 1,
+                                effect: 'slide',
+                                speed: 300,
+                                initialSlide: startIndex,
+                                observer: true,
+                                observeParents: true,
+                                watchOverflow: true,
+                                touchRatio: 1,
+                                touchAngle: 45,
+                                simulateTouch: true,
+                                allowTouchMove: true,
+                                navigation: {
+                                    nextEl: '#avatar-swiper .swiper-button-next',
+                                    prevEl: '#avatar-swiper .swiper-button-prev',
+                                },
+                                pagination: {
+                                    el: '#avatar-swiper .swiper-pagination',
+                                    clickable: true,
+                                    type: 'bullets',
+                                },
+                                on: {
+                                    init: function() {
+                                        console.log('✅ Avatar Swiper инициализирован после загрузки CDN');
+                                    }
+                                }
+                            });
+                        }
+                    }, 100);
+                };
+                swiperScript.onerror = () => {
+                    console.error('❌ Не удалось загрузить Swiper из CDN');
+                };
+                document.head.appendChild(swiperScript);
             }
-        }, 100);
+        }, 200);
     }
     
     /**
