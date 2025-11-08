@@ -160,7 +160,7 @@ window.openUserProfile = openUserProfile;
     {% if top_users %}
     <div class="show-all-section">
         <button class="show-all-btn" id="show-all-users" data-translate="show_all_users">
-            {{ translations.get('show_all_users', 'Все пользователи') }} ({{ top_users|length }})
+            {{ translations.get('show_all_users', 'Все пользователи') }}{% if is_admin is defined and is_admin %} ({{ top_users|length }}){% endif %}
         </button>
     </div>
     {% endif %}

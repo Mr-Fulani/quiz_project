@@ -162,6 +162,29 @@ async def top_users(
     try:
         logger.info(f"Rendering top_users page with language: {current_language}")
         
+        # Получаем telegram_id из заголовков/куки для проверки админа
+        telegram_id = request.headers.get('X-Telegram-User-Id')
+        if not telegram_id:
+            telegram_id = request.cookies.get('telegram_id')
+        
+        # Проверяем, является ли пользователь админом через Django API
+        is_admin = False
+        if telegram_id:
+            try:
+                telegram_id_int = int(telegram_id)
+                # Получаем полный профиль пользователя из Django API для проверки is_admin
+                # Используем метод get_miniapp_user_by_telegram, который возвращает полный профиль с is_admin
+                user_profile = await django_api_service.get_miniapp_user_by_telegram(telegram_id_int)
+                if user_profile and user_profile.get('is_admin'):
+                    is_admin = True
+                    logger.info(f"Пользователь {telegram_id_int} является админом")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Ошибка при проверке админа для telegram_id={telegram_id}: {e}")
+            except Exception as e:
+                # Если пользователь не найден или произошла ошибка, считаем что не админ
+                logger.debug(f"Пользователь {telegram_id} не найден или ошибка при проверке админа: {e}")
+                is_admin = False
+        
         # Получаем переводы для текущего языка
         translations = localization_service.get_all_texts()
         
@@ -192,6 +215,7 @@ async def top_users(
             "supported_languages": localization_service.get_supported_languages(),
             "top_users": top_users_data, # Передаем данные топ-пользователей в шаблон
             "programming_languages": programming_languages, # Передаем языки программирования для фильтра
+            "is_admin": is_admin, # Флаг для проверки админа
             "tasks_js_url": get_js_url('tasks.js'),
             "localization_js_url": get_js_url('localization.js'),
             "share_app_js_url": get_js_url('share-app.js'),
