@@ -88,7 +88,7 @@ STATIC_VERSIONS = {
     'user_profile.css': '5.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента
     'explanation-modal.css': '1.1',  # Обновлено: добавлена поддержка safe areas
-    'profile.js': '7.1',  # FIX: Автоматическое удаление старых аватарок перед загрузкой новых
+    'profile.js': '7.2',  # FIX: Улучшена конфигурация Swiper для свайпа аватарок (добавлены observer, touch параметры, загрузка из CDN)
     'user_profile.js': '2.5',  # FIX: Добавлена загрузка Swiper JS и CSS для модального окна аватарок
     'avatar_modal.css': '2.1',  # FIX: Добавлена поддержка Safe Areas для Telegram в модальном окне аватарок
     # Принудительное обновление кэша для Django моделей
