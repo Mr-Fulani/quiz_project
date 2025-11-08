@@ -364,8 +364,75 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                 if parent_author_id != comment.author_telegram_id:
                     if parent_author_id not in admin_ids:
                         # Пользователь не админ - отправляем персональное уведомление
-                        notification_title = "💬 Новый ответ на ваш комментарий"
-                        notification_message = f"{comment.author_username} ответил на ваш комментарий:\n\n{comment.text[:200]}"
+                        # Формируем информативное уведомление с деталями о задаче и теме
+                        try:
+                            from accounts.utils_folder.telegram_notifications import (
+                                escape_markdown,
+                                escape_username_for_markdown,
+                                get_mini_app_url,
+                                get_comment_deep_link,
+                            )
+                            
+                            # Получаем информацию о задаче и топике
+                            task = comment.task_translation.task
+                            topic_name = task.topic.name if task.topic else "Без топика"
+                            subtopic_info = ""
+                            if task.subtopic:
+                                subtopic_info = f" → {task.subtopic.name}"
+                            
+                            # Информация о задаче
+                            lang_flag = '🇷🇺' if comment.task_translation.language == 'ru' else '🇬🇧'
+                            task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()})"
+                            
+                            # Получаем информацию об авторе ответа
+                            try:
+                                reply_author = MiniAppUser.objects.get(telegram_id=comment.author_telegram_id)
+                                reply_author_name = reply_author.first_name or reply_author.username or 'Пользователь'
+                                escaped_reply_username = escape_username_for_markdown(reply_author.username) if reply_author.username else None
+                                reply_author_username = f"@{escaped_reply_username}" if escaped_reply_username else 'нет'
+                            except MiniAppUser.DoesNotExist:
+                                reply_author_name = comment.author_username or 'Пользователь'
+                                reply_author_username = 'нет'
+                            
+                            escaped_reply_author_name = escape_markdown(reply_author_name)
+                            
+                            # Текст ответа (обрезаем, если слишком длинный)
+                            reply_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
+                            escaped_reply_text = escape_markdown(reply_text)
+                            
+                            # Текст родительского комментария (вашего комментария)
+                            parent_comment_text = comment.parent_comment.text[:150] + ('...' if len(comment.parent_comment.text) > 150 else '')
+                            escaped_parent_text = escape_markdown(parent_comment_text)
+                            
+                            # Количество изображений в ответе
+                            images_count = comment.images.count()
+                            images_text = f"\n📷 Изображений: {images_count}" if images_count > 0 else ""
+                            
+                            # Формируем URL mini app с параметром startapp для кнопки WebAppInfo
+                            # Для WebAppInfo нужно использовать прямой URL mini app с параметром startapp
+                            mini_app_base_url = get_mini_app_url(request)
+                            # Telegram передаст параметр startapp через window.Telegram.WebApp.startParam
+                            # но мы также добавляем его в URL для совместимости
+                            mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
+                            
+                            notification_title = "💬 Новый ответ на ваш комментарий"
+                            notification_message = (
+                                f"👤 *{escaped_reply_author_name}* ({reply_author_username}) ответил на ваш комментарий:\n\n"
+                                f"💬 *Ваш комментарий:*\n"
+                                f'"{escaped_parent_text}"\n\n'
+                                f"💬 *Ответ:*\n"
+                                f'"{escaped_reply_text}"{images_text}\n\n'
+                                f"📝 *Задача:* {task_info}\n"
+                                f"🏷️ *Тема:* {escape_markdown(topic_name)}{escape_markdown(subtopic_info)}\n\n"
+                                f"Нажмите кнопку ниже, чтобы открыть комментарий в приложении."
+                            )
+                            
+                        except Exception as e:
+                            logger.error(f"❌ Ошибка формирования уведомления об ответе: {e}")
+                            # Fallback на простое уведомление
+                            notification_title = "💬 Новый ответ на ваш комментарий"
+                            notification_message = f"{comment.author_username} ответил на ваш комментарий:\n\n{comment.text[:200]}"
+                            mini_app_url = None
                         
                         notification = create_notification(
                             recipient_telegram_id=parent_author_id,
@@ -374,7 +441,8 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                             message=notification_message,
                             related_object_id=comment.id,
                             related_object_type='comment',
-                            send_to_telegram=True
+                            send_to_telegram=True,
+                            web_app_url=mini_app_url
                         )
                         if notification:
                             logger.info(f"📤 Отправлено уведомление об ответе на комментарий для {parent_author_id}")
@@ -750,6 +818,39 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
             serializer.data,
             status=status.HTTP_201_CREATED
         )
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_description="Получить детальную информацию о комментарии для deep link",
+        responses={200: TaskCommentSerializer}
+    )
+    @action(detail=True, methods=['get'], url_path='detail-for-deeplink')
+    def detail_for_deeplink(self, request, translation_id=None, pk=None):
+        """
+        Получить детальную информацию о комментарии для deep link.
+        Возвращает информацию о комментарии вместе с информацией о задаче, подтеме и теме.
+        Может быть вызван как с translation_id, так и без него (translation_id игнорируется).
+        """
+        comment = get_object_or_404(TaskComment, pk=pk, is_deleted=False)
+        
+        # Получаем информацию о задаче
+        task_translation = comment.task_translation
+        task = task_translation.task
+        
+        serializer = self.get_serializer(comment)
+        data = serializer.data
+        
+        # Добавляем информацию для deep link
+        data['translation_id'] = task_translation.id
+        data['task_id'] = task.id
+        data['language'] = task_translation.language
+        
+        if task.subtopic:
+            data['subtopic_id'] = task.subtopic.id
+        if task.topic:
+            data['topic_id'] = task.topic.id
+        
+        return Response(data)
     
     @swagger_auto_schema(
         method='get',

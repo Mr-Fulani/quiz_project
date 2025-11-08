@@ -70,6 +70,100 @@
 <script src='{{ get_js_url("search.js") }}'></script>
 
 <script>
+// Обработка deep link через Telegram WebApp startParam
+// Выполняется после полной инициализации Telegram WebApp API
+(function() {
+    function handleStartParam() {
+        // Проверяем, есть ли startParam в Telegram WebApp API
+        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+            const startParam = window.Telegram.WebApp.startParam;
+            console.log('🔗 Telegram WebApp startParam:', startParam);
+            
+            if (startParam && startParam.startsWith('comment_')) {
+                try {
+                    const commentId = startParam.split('_')[1];
+                    console.log('🔗 Deep link для комментария:', commentId);
+                    
+                    // Получаем информацию о комментарии через API
+                    fetch(`/api/tasks/comments/${commentId}/detail-for-deeplink/`)
+                        .then(response => response.json())
+                        .then(commentData => {
+                            console.log('🔗 Данные комментария получены:', commentData);
+                            if (commentData && commentData.subtopic_id) {
+                                const translationId = commentData.translation_id;
+                                const subtopicId = commentData.subtopic_id;
+                                const language = commentData.language || 'en';
+                                
+                                // Редиректим на страницу задач подтемы с параметрами для прокрутки к комментарию
+                                const redirectUrl = `/subtopic/${subtopicId}/tasks?comment_id=${commentId}&translation_id=${translationId}&lang=${language}`;
+                                console.log('🔗 Редирект на:', redirectUrl);
+                                window.location.href = redirectUrl;
+                                return; // Прерываем выполнение, чтобы не загружать главную страницу
+                            } else if (commentData && commentData.topic_id) {
+                                const topicId = commentData.topic_id;
+                                const language = commentData.language || 'en';
+                                
+                                const redirectUrl = `/topic/${topicId}?comment_id=${commentId}&lang=${language}`;
+                                console.log('🔗 Редирект на:', redirectUrl);
+                                window.location.href = redirectUrl;
+                                return; // Прерываем выполнение
+                            } else {
+                                console.warn('⚠️ Не удалось получить данные комментария для редиректа');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('❌ Ошибка получения данных комментария:', error);
+                        });
+                } catch (e) {
+                    console.warning('Некорректный параметр deep link для комментария:', startParam, e);
+                }
+            } else if (startParam && startParam.startsWith('topic_')) {
+                try {
+                    const topicId = startParam.split('_')[1];
+                    const language = window.currentLanguage || '{{ current_language }}' || 'en';
+                    const redirectUrl = `/topic/${topicId}?lang=${language}`;
+                    console.log('🔗 Редирект на тему:', redirectUrl);
+                    window.location.href = redirectUrl;
+                    return; // Прерываем выполнение
+                } catch (e) {
+                    console.warning('Некорректный параметр deep link для темы:', startParam, e);
+                }
+            }
+        } else {
+            console.log('⚠️ Telegram WebApp API еще не доступен');
+        }
+    }
+    
+    // Пытаемся обработать startParam сразу
+    handleStartParam();
+    
+    // Также обрабатываем после готовности Telegram WebApp
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        // Если WebApp уже готов, вызываем ready() и обрабатываем startParam
+        if (window.Telegram.WebApp.ready) {
+            window.Telegram.WebApp.ready();
+        }
+        
+        // Обрабатываем startParam после небольшой задержки для гарантии инициализации
+        setTimeout(handleStartParam, 100);
+        
+        // Также слушаем событие ready, если оно доступно
+        if (window.Telegram.WebApp.onEvent) {
+            window.Telegram.WebApp.onEvent('viewportChanged', handleStartParam);
+        }
+    }
+    
+    // Дополнительная проверка через DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', handleStartParam);
+    } else {
+        // DOM уже загружен
+        setTimeout(handleStartParam, 200);
+    }
+})();
+</script>
+
+<script>
 // Инициализация визуальной прогресс-линии из data-атрибутов, если есть
 document.addEventListener('DOMContentLoaded', function() {
     try {

@@ -112,6 +112,22 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении деталей подтемы {subtopic_id}: {e}")
             return None
     
+    async def get_comment_detail(self, comment_id: int) -> Optional[Dict[str, Any]]:
+        """Получение детальной информации о комментарии для deep link"""
+        try:
+            # Используем endpoint detail-for-deeplink, который возвращает информацию о комментарии
+            # вместе с информацией о задаче, подтеме и теме
+            # Формат URL: /api/tasks/translations/{translation_id}/comments/{comment_id}/detail-for-deeplink/
+            # Но нам нужен comment_id, поэтому сначала получим комментарий через стандартный endpoint
+            # или создадим отдельный endpoint без translation_id
+            
+            # Используем отдельный endpoint для получения комментария по ID без translation_id
+            data = await self._make_request("GET", f"/api/tasks/comments/{comment_id}/detail-for-deeplink/")
+            return data
+        except Exception as e:
+            logger.error(f"Ошибка при получении деталей комментария {comment_id}: {e}")
+            return None
+    
     async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en', telegram_id: Optional[int] = None, level: Optional[str] = None) -> List[Dict[str, Any]]:
         """Получение задач для подтемы с учетом языка и уровня сложности"""
         try:
