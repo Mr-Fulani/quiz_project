@@ -9,7 +9,7 @@ from aiogram import F
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from sqlalchemy import select, func, case, and_, or_, update, literal, String
+from sqlalchemy import select, func, case, and_, or_, update, literal, String, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.quiz_keyboards import get_admin_channels_keyboard
@@ -114,6 +114,37 @@ def get_current_quarter_boundaries() -> tuple[datetime, datetime]:
     last_day = calendar.monthrange(now.year, end_month)[1]
     end_of_quarter = now.replace(month=end_month, day=last_day, hour=23, minute=59, second=59, microsecond=999999)
     return start_of_quarter, end_of_quarter
+
+
+async def get_mini_app_users_count(db_session: AsyncSession, start_date: datetime, end_date: datetime) -> int:
+    """
+    Подсчитывает количество новых пользователей Mini App за указанный период.
+    Использует прямые SQL запросы к таблице Django mini_app_users.
+
+    Args:
+        db_session (AsyncSession): Асинхронная сессия SQLAlchemy.
+        start_date (datetime): Начало периода.
+        end_date (datetime): Конец периода.
+
+    Returns:
+        int: Количество новых пользователей Mini App за период.
+    """
+    try:
+        # Используем параметризованный запрос для безопасности
+        query = text("""
+            SELECT COUNT(*) 
+            FROM mini_app_users 
+            WHERE created_at >= :start_date AND created_at <= :end_date
+        """)
+        result = await db_session.execute(
+            query,
+            {"start_date": start_date, "end_date": end_date}
+        )
+        count = result.scalar() or 0
+        return count
+    except Exception as e:
+        logger.error(f"[get_mini_app_users_count] Ошибка при подсчете пользователей Mini App: {e}")
+        return 0
 
 
 # ------------------------------------------------------------------------------
@@ -323,6 +354,7 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                 )
             )
         )).scalar() or 0
+        mini_app_users_month = await get_mini_app_users_count(db_session, start_month, end_month)
 
         channel_activity_query_month = select(
             TelegramGroup.group_name,
@@ -367,6 +399,7 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                 )
             )
         )).scalar() or 0
+        mini_app_users_week = await get_mini_app_users_count(db_session, start_week, end_week)
 
         channel_activity_query_week = select(
             TelegramGroup.group_name,
@@ -411,6 +444,7 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
                 )
             )
         )).scalar() or 0
+        mini_app_users_quarter = await get_mini_app_users_count(db_session, start_quarter, end_quarter)
 
         channel_activity_query_quarter = select(
             TelegramGroup.group_name,
@@ -458,16 +492,19 @@ async def all_statistics(message: types.Message, db_session: AsyncSession):
         response += f"*За текущий месяц* \\({month_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_month))}\n"
         response += f"  • Отписались: {escape_markdown_v2(str(unsubscribed_month))}\n"
+        response += f"  • Новые Mini App: {escape_markdown_v2(str(mini_app_users_month))}\n"
         response += f"  • Активность в каналах: {month_activity}\n\n"
 
         response += f"*За текущую неделю* \\({week_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_week))}\n"
         response += f"  • Отписались: {escape_markdown_v2(str(unsubscribed_week))}\n"
+        response += f"  • Новые Mini App: {escape_markdown_v2(str(mini_app_users_week))}\n"
         response += f"  • Активность в каналах: {week_activity}\n\n"
 
         response += f"*За текущий квартал* \\({quarter_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_quarter))}\n"
         response += f"  • Отписались: {escape_markdown_v2(str(unsubscribed_quarter))}\n"
+        response += f"  • Новые Mini App: {escape_markdown_v2(str(mini_app_users_quarter))}\n"
         response += f"  • Активность в каналах: {quarter_activity}\n"
 
         # Детальная активность по каналам
@@ -532,6 +569,7 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
                 and_(TelegramUser.subscription_status == 'inactive', TelegramUser.deactivated_at.between(start_month, end_month))
             )
         )).scalar() or 0
+        mini_app_users_month = await get_mini_app_users_count(db_session, start_month, end_month)
         channel_activity_query_month = select(
             TelegramGroup.group_name,
             TelegramGroup.username,
@@ -564,6 +602,7 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
                 and_(TelegramUser.subscription_status == 'inactive', TelegramUser.deactivated_at.between(start_week, end_week))
             )
         )).scalar() or 0
+        mini_app_users_week = await get_mini_app_users_count(db_session, start_week, end_week)
         channel_activity_query_week = select(
             TelegramGroup.group_name,
             TelegramGroup.username,
@@ -594,6 +633,7 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
                 and_(TelegramUser.subscription_status == 'inactive', TelegramUser.deactivated_at.between(start_quarter, end_quarter))
             )
         )).scalar() or 0
+        mini_app_users_quarter = await get_mini_app_users_count(db_session, start_quarter, end_quarter)
         channel_activity_query_quarter = select(
             TelegramGroup.group_name,
             TelegramGroup.username,
@@ -645,16 +685,19 @@ async def callback_allstats(call: types.CallbackQuery, db_session: AsyncSession)
         response += f"*За текущий месяц* \\({month_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_month))}\n"
         response += f"  • Отписались: {escape_markdown_v2(str(unsubscribed_month))}\n"
+        response += f"  • Новые Mini App: {escape_markdown_v2(str(mini_app_users_month))}\n"
         response += f"  • Активность в каналах: {escape_markdown_v2(overall_channel_activity_month)}\n\n"
 
         response += f"*За текущую неделю* \\({week_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_week))}\n"
         response += f"  • Отписались: {escape_markdown_v2(str(unsubscribed_week))}\n"
+        response += f"  • Новые Mini App: {escape_markdown_v2(str(mini_app_users_week))}\n"
         response += f"  • Активность в каналах: {escape_markdown_v2(overall_channel_activity_week)}\n\n"
 
         response += f"*За текущий квартал* \\({quarter_dates}\\):\n"
         response += f"  • Подписались: {escape_markdown_v2(str(subscribed_quarter))}\n"
         response += f"  • Отписались: {escape_markdown_v2(str(unsubscribed_quarter))}\n"
+        response += f"  • Новые Mini App: {escape_markdown_v2(str(mini_app_users_quarter))}\n"
         response += f"  • Активность в каналах: {escape_markdown_v2(overall_channel_activity_quarter)}\n"
 
         response += detailed_activity

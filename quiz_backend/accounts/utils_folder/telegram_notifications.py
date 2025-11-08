@@ -304,11 +304,11 @@ def notify_all_admins(
     from accounts.models import MiniAppUser, Notification
     
     try:
-        # Получаем всех админов
+        # Получаем всех админов с включенными уведомлениями
         admins = MiniAppUser.objects.filter(
             notifications_enabled=True
         ).filter(
-            django_models.Q(telegram_admin__isnull=False) |
+            django_models.Q(telegram_admin__isnull=False, telegram_admin__is_active=True) |
             django_models.Q(django_admin__isnull=False)
         ).distinct()
         

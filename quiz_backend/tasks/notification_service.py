@@ -203,6 +203,7 @@ def format_report_notification(report) -> str:
 def send_to_all_admins(message: str, parse_mode: str = "Markdown") -> int:
     """
     Отправляет уведомление всем активным администраторам.
+    Проверяет настройку notifications_enabled из MiniAppUser перед отправкой.
     
     Args:
         message: Текст сообщения
@@ -214,6 +215,8 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown") -> int:
     sent_count = 0
     
     try:
+        from accounts.models import MiniAppUser
+        
         # Получаем всех активных админов
         admins = TelegramAdmin.objects.filter(is_active=True)
         
@@ -223,6 +226,26 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown") -> int:
         
         for admin in admins:
             try:
+                # Проверяем настройку notifications_enabled из MiniAppUser
+                # Связь может быть через telegram_admin или через telegram_id
+                mini_app_user = None
+                try:
+                    # Пытаемся получить через связь telegram_admin
+                    if admin.mini_app_user:
+                        mini_app_user = admin.mini_app_user
+                    else:
+                        # Если связи нет, ищем по telegram_id
+                        mini_app_user = MiniAppUser.objects.filter(telegram_id=admin.telegram_id).first()
+                except Exception as e:
+                    logger.debug(f"Ошибка при получении MiniAppUser для админа {admin.telegram_id}: {e}")
+                    # Продолжаем отправку, если не удалось получить MiniAppUser
+                    mini_app_user = None
+                
+                # Проверяем настройку уведомлений
+                if mini_app_user and not mini_app_user.notifications_enabled:
+                    logger.info(f"Уведомления отключены для админа {admin.telegram_id}, пропускаем отправку")
+                    continue
+                
                 success = send_telegram_notification_sync(
                     telegram_id=admin.telegram_id,
                     message=message,
