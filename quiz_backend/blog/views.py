@@ -26,6 +26,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _, get_language, activate
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
@@ -1053,6 +1054,24 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
 
 
 
+def _build_safe_absolute_uri(request, url):
+    """
+    Безопасное построение абсолютного URI с обработкой ошибок.
+    
+    Args:
+        request: Django request объект
+        url: Относительный URL
+        
+    Returns:
+        str: Абсолютный URI или пустая строка в случае ошибки
+    """
+    try:
+        return request.build_absolute_uri(url)
+    except Exception as e:
+        logger.warning(f"Error building absolute URI for '{url}': {e}")
+        return ''
+
+
 def quiz_difficulty(request, quiz_type, subtopic):
     """
     Отображает уровни сложности для подтемы, фильтруя по наличию задач с переводом на текущий язык сайта.
@@ -1118,16 +1137,34 @@ def quiz_difficulty(request, quiz_type, subtopic):
 
     logger.info(f"Found {len(difficulties)} difficulties for subtopic '{subtopic_obj.name}' on language '{preferred_language}'")  # Изменено: добавлено логирование
 
+    # Используем исходный параметр subtopic из URL для breadcrumbs, чтобы сохранить обратную совместимость
+    # Параметр subtopic уже является валидным slug, который используется в URL
+    # Это гарантирует, что breadcrumbs будут использовать тот же URL, что и текущая страница
+    subtopic_slug_for_url = subtopic
+    
+    # Используем reverse вместо reverse_lazy, так как функция выполняется во время запроса
+    try:
+        breadcrumbs_list = [
+            {'name': str(_('Home')), 'url': reverse('blog:home')},
+            {'name': str(_('Quizzes')), 'url': reverse('blog:quizes')},
+            {'name': topic.name, 'url': reverse('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+            {'name': subtopic_obj.name, 'url': reverse('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic_slug_for_url})},
+        ]
+    except Exception as e:
+        logger.error(f"Error building breadcrumbs for subtopic '{subtopic_obj.name}': {e}", exc_info=True)
+        # Fallback: используем исходный параметр из URL
+        breadcrumbs_list = [
+            {'name': str(_('Home')), 'url': reverse('blog:home')},
+            {'name': str(_('Quizzes')), 'url': reverse('blog:quizes')},
+            {'name': topic.name, 'url': reverse('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
+            {'name': subtopic_obj.name, 'url': reverse('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
+        ]
+
     context = {
         'topic': topic,
         'subtopic': subtopic_obj,
         'difficulties': difficulties,
-        'breadcrumbs': [
-            {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
-            {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
-            {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-            {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
-        ],
+        'breadcrumbs': breadcrumbs_list,
         'breadcrumbs_json_ld': {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
@@ -1136,14 +1173,10 @@ def quiz_difficulty(request, quiz_type, subtopic):
                     "@type": "ListItem",
                     "position": index + 1,
                     "name": crumb['name'],
-                    "item": request.build_absolute_uri(crumb['url'])
+                    "item": _build_safe_absolute_uri(request, crumb['url']) if crumb.get('url') else ''
                 }
-                for index, crumb in enumerate([
-                    {'name': str(_('Home')), 'url': reverse_lazy('blog:home')},
-                    {'name': str(_('Quizzes')), 'url': reverse_lazy('blog:quizes')},
-                    {'name': topic.name, 'url': reverse_lazy('blog:quiz_detail', kwargs={'quiz_type': topic.name.lower()})},
-                    {'name': subtopic_obj.name, 'url': reverse_lazy('blog:quiz_difficulty', kwargs={'quiz_type': topic.name.lower(), 'subtopic': subtopic})},
-                ])
+                for index, crumb in enumerate(breadcrumbs_list)
+                if crumb.get('url')  # Пропускаем элементы без URL
             ]
         },
         'meta_title': _('%(subtopic_name)s Difficulty Levels — Quiz Project') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
