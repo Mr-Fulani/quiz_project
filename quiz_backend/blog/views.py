@@ -1095,20 +1095,46 @@ def quiz_difficulty(request, quiz_type, subtopic):
     topic = get_object_or_404(Topic, name__iexact=quiz_type)
     
     # Улучшенная логика поиска подтемы
-    # Сначала пробуем точное совпадение (игнорируя регистр)
-    try:
-        subtopic_obj = Subtopic.objects.get(topic=topic, name__iexact=subtopic)
-    except Subtopic.DoesNotExist:
-        # Если не найдено, пробуем с более гибким regex
-        # Преобразуем generators-coroutines в generators.*coroutines (игнорируя регистр)
+    subtopic_queryset = Subtopic.objects.filter(topic=topic)
+
+    # 1. Пробуем точное совпадение (игнорируя регистр)
+    subtopic_obj = subtopic_queryset.filter(name__iexact=subtopic).first()
+
+    # 2. Пробуем совпадение по slug (так же, как в шаблонах используется slugify)
+    if not subtopic_obj:
+        subtopics_list = list(subtopic_queryset)
+        slug_matches = [item for item in subtopics_list if slugify(item.name) == subtopic]
+        if slug_matches:
+            if len(slug_matches) > 1:
+                logger.warning(
+                    "Multiple subtopics matched slug '%s' for topic '%s'. Using the first match (ID=%s)",
+                    subtopic,
+                    quiz_type,
+                    slug_matches[0].id,
+                )
+            subtopic_obj = slug_matches[0]
+
+    # 3. Пробуем более гибкий regex (например, generators-coroutines -> generators.*coroutines)
+    if not subtopic_obj:
         normalized_subtopic = subtopic.replace('-', '.*')
-        subtopic_query = Q(topic=topic, name__iregex=normalized_subtopic)
+        subtopic_query = Q(name__iregex=normalized_subtopic)
         logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
-        try:
-            subtopic_obj = Subtopic.objects.get(subtopic_query)
-        except Subtopic.DoesNotExist:
-            logger.error(f"Subtopic not found for query: {subtopic_query}")
-            raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
+        fuzzy_matches = subtopic_queryset.filter(subtopic_query).order_by('id')
+        match_count = fuzzy_matches.count()
+        if match_count == 1:
+            subtopic_obj = fuzzy_matches.first()
+        elif match_count > 1:
+            logger.warning(
+                "Multiple subtopics matched regex '%s' for topic '%s'. Using the first match (ID=%s)",
+                normalized_subtopic,
+                quiz_type,
+                fuzzy_matches.first().id if fuzzy_matches else 'unknown',
+            )
+            subtopic_obj = fuzzy_matches.first()
+
+    if not subtopic_obj:
+        logger.error("Subtopic '%s' not found for topic '%s'", subtopic, quiz_type)
+        raise Http404(f"Subtopic {subtopic} not found for topic {quiz_type}")
 
     preferred_language = get_language()  # Изменено: используем get_language()
 
