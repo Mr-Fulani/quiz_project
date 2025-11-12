@@ -6,6 +6,35 @@
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{{ translations.get('home', 'Мое приложение') }}{% endblock %}</title>
 
+    {# Базовые Open Graph мета-теги для шаринга #}
+    {% set current_lang = current_language or 'en' %}
+    {% set base_url = request.url.scheme + '://' + request.url.hostname + (':' + request.url.port|string if request.url.port else '') %}
+    {% set og_title = 'Quiz Mini App - ' + ('Образовательное приложение' if current_lang == 'ru' else 'Educational App') %}
+    {% set og_description = ('Изучайте различные темы через интерактивные квизы. Проходите тесты, получайте достижения и развивайте свои навыки!' if current_lang == 'ru' else 'Learn various topics through interactive quizzes. Take tests, earn achievements and develop your skills!') %}
+    {% set og_image = base_url + '/static/images/logo.png' %}
+    {% set og_url = base_url + request.url.path %}
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content="{{ og_title }}" />
+    <meta property="og:description" content="{{ og_description }}" />
+    <meta property="og:image" content="{{ og_image }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ og_url }}" />
+    
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ og_title }}" />
+    <meta name="twitter:description" content="{{ og_description }}" />
+    <meta name="twitter:image" content="{{ og_image }}" />
+    
+    <!-- Telegram specific meta tags -->
+    <meta property="telegram:title" content="{{ og_title }}" />
+    <meta property="telegram:description" content="{{ og_description }}" />
+    <meta property="telegram:image" content="{{ og_image }}" />
+    
+    <!-- Additional meta tags -->
+    <meta name="description" content="{{ og_description }}" />
+
     {% block extra_head %}{% endblock %}
 
     <!-- Подключение шрифтов -->

@@ -6,12 +6,24 @@
 
 class ShareApp {
     constructor() {
-        // Используем ссылку на Telegram бота вместо браузерной версии
-        this.appUrl = 'https://t.me/mr_proger_bot';
+        // Базовый URL будет определяться динамически при каждом использовании
         this.qrCodeContainer = null;
         this.modal = null;
         this.socialModal = null; // Модальное окно с соцсетями
         this.init();
+    }
+
+    /**
+     * Получает актуальный URL для шаринга приложения с учетом текущего языка
+     */
+    getAppUrl() {
+        // Определяем текущий язык динамически при каждом вызове
+        const currentLang = window.currentLanguage || 
+                           (window.localizationService && window.localizationService.currentLanguage) || 
+                           (new URLSearchParams(window.location.search).get('lang')) || 
+                           'en';
+        const baseUrl = window.location.origin;
+        return `${baseUrl}/share/app?lang=${currentLang}`;
     }
 
     init() {
@@ -94,6 +106,9 @@ class ShareApp {
             window.onLanguageChanged = (language, translations) => {
                 console.log('🔄 ShareApp: Language changed, updating translations');
                 
+                // Обновляем window.currentLanguage для корректной работы getAppUrl()
+                window.currentLanguage = language;
+                
                 // Закрываем модальное окно при изменении языка
                 if (this.modal && this.modal.style.display === 'flex') {
                     console.log('🔄 ShareApp: Language changed, closing modal');
@@ -112,6 +127,9 @@ class ShareApp {
             window.onLanguageChanged = (language, translations) => {
                 console.log('🔄 ShareApp: Language changed, updating translations');
                 
+                // Обновляем window.currentLanguage для корректной работы getAppUrl()
+                window.currentLanguage = language;
+                
                 // Закрываем модальное окно при изменении языка
                 if (this.modal && this.modal.style.display === 'flex') {
                     console.log('🔄 ShareApp: Language changed, closing modal');
@@ -122,6 +140,14 @@ class ShareApp {
                 this.refreshTranslations();
             };
         }
+        
+        // Также слушаем событие изменения языка через CustomEvent (если используется)
+        document.addEventListener('languageChanged', (event) => {
+            if (event.detail && event.detail.language) {
+                console.log('🔄 ShareApp: Language changed via CustomEvent:', event.detail.language);
+                window.currentLanguage = event.detail.language;
+            }
+        });
 
         // Добавляем глобальные обработчики для автоматического закрытия модального окна
         this.addGlobalEventListeners();
@@ -169,7 +195,9 @@ class ShareApp {
                 const canvas = document.createElement('canvas');
                 container.appendChild(canvas);
                 
-                QRCode.toCanvas(canvas, this.appUrl, {
+                // Используем актуальный URL с текущим языком
+                const appUrl = this.getAppUrl();
+                QRCode.toCanvas(canvas, appUrl, {
                     width: 200,
                     margin: 2,
                     color: {
@@ -194,7 +222,8 @@ class ShareApp {
 
     async generateQRCodeViaAPI(container) {
         // Используем бесплатный API для генерации QR-кода
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(this.appUrl)}`;
+        const appUrl = this.getAppUrl();
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(appUrl)}`;
         
         const img = document.createElement('img');
         img.src = qrApiUrl;
@@ -209,7 +238,8 @@ class ShareApp {
 
     async copyLink() {
         try {
-            await navigator.clipboard.writeText(this.appUrl);
+            const appUrl = this.getAppUrl();
+            await navigator.clipboard.writeText(appUrl);
             this.showCopySuccess();
         } catch (error) {
             console.error('Ошибка копирования ссылки:', error);
@@ -220,7 +250,7 @@ class ShareApp {
 
     fallbackCopyLink() {
         const textArea = document.createElement('textarea');
-        textArea.value = this.appUrl;
+        textArea.value = this.getAppUrl();
         document.body.appendChild(textArea);
         textArea.select();
         document.execCommand('copy');
@@ -246,7 +276,8 @@ class ShareApp {
         event.preventDefault();
         
         try {
-            await navigator.clipboard.writeText(this.appUrl);
+            const appUrl = this.getAppUrl();
+            await navigator.clipboard.writeText(appUrl);
             
             // Показываем уведомление
             this.showInstagramCopyNotification();
@@ -296,8 +327,16 @@ class ShareApp {
     }
 
     shareToSocial() {
-        const shareText = '🎓 Quiz Mini App - Telegram бот для изучения различных тем через квизы! Проходите тесты и получайте достижения. Попробуйте прямо сейчас!';
-        const shareUrl = this.appUrl;
+        // Используем локализованный текст для шаринга
+        // Определяем текущий язык динамически
+        const currentLang = window.currentLanguage || 
+                           (window.localizationService && window.localizationService.currentLanguage) || 
+                           (new URLSearchParams(window.location.search).get('lang')) || 
+                           'en';
+        const shareText = currentLang === 'ru' 
+            ? '🎓 Quiz Mini App - Образовательное приложение для изучения различных тем через квизы! Проходите тесты и получайте достижения. Попробуйте прямо сейчас!'
+            : '🎓 Quiz Mini App - Educational app for learning various topics through quizzes! Take tests and earn achievements. Try it now!';
+        const shareUrl = this.getAppUrl();
         
         // Проверяем поддержку Web Share API
         if (navigator.share) {
@@ -316,8 +355,15 @@ class ShareApp {
 
     fallbackShare() {
         // Fallback для браузеров без Web Share API
-        const shareText = encodeURIComponent('🎓 Quiz Mini App - Telegram бот для изучения различных тем через квизы!');
-        const shareUrl = encodeURIComponent(this.appUrl);
+        // Определяем текущий язык динамически
+        const currentLang = window.currentLanguage || 
+                           (window.localizationService && window.localizationService.currentLanguage) || 
+                           (new URLSearchParams(window.location.search).get('lang')) || 
+                           'en';
+        const shareText = currentLang === 'ru'
+            ? encodeURIComponent('🎓 Quiz Mini App - Образовательное приложение для изучения различных тем через квизы!')
+            : encodeURIComponent('🎓 Quiz Mini App - Educational app for learning various topics through quizzes!');
+        const shareUrl = encodeURIComponent(this.getAppUrl());
         
         // Создаем модальное окно с кнопками соцсетей
         this.socialModal = document.createElement('div');
