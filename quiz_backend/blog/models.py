@@ -154,12 +154,19 @@ class Post(models.Model):
         main_image = self.get_main_image()
         
         # Логирование для отладки
-        logger.info(f"Post {self.slug}: main_image={main_image}, main_image_photo={main_image.photo if main_image else 'None'}")
+        main_image_photo = main_image.photo if main_image and main_image.photo else None
+        logger.info(f"Post {self.slug}: main_image={main_image}, main_image_photo={main_image_photo}")
         
-        # Если главное изображение есть и это не дефолтное изображение
-        if main_image and main_image.photo and 'default-og-image' not in str(main_image.photo):
-            logger.info(f"Post {self.slug}: Using main image: {main_image.photo.url}")
-            return main_image.photo.url
+        # Если главное изображение есть и у него есть фото (не дефолтное)
+        if main_image and main_image.photo:
+            photo_str = str(main_image.photo)
+            if 'default-og-image' not in photo_str:
+                try:
+                    photo_url = main_image.photo.url
+                    logger.info(f"Post {self.slug}: Using main image: {photo_url}")
+                    return photo_url
+                except (AttributeError, ValueError) as e:
+                    logger.warning(f"Post {self.slug}: Error getting main image URL: {e}")
         
         # Если главное изображение дефолтное или его нет, ищем первое реальное изображение
         real_images = self.images.filter(photo__isnull=False).exclude(photo__icontains='default-og-image')
@@ -167,8 +174,13 @@ class Post(models.Model):
         
         if real_images.exists():
             first_real_image = real_images.first()
-            logger.info(f"Post {self.slug}: Using first real image: {first_real_image.photo.url}")
-            return first_real_image.photo.url
+            if first_real_image and first_real_image.photo:
+                try:
+                    photo_url = first_real_image.photo.url
+                    logger.info(f"Post {self.slug}: Using first real image: {photo_url}")
+                    return photo_url
+                except (AttributeError, ValueError) as e:
+                    logger.warning(f"Post {self.slug}: Error getting real image URL: {e}")
             
         # Проверяем есть ли уже сгенерированная OG картинка
         og_filename = f'og_post_{self.slug}.jpg'
@@ -387,11 +399,16 @@ class Project(models.Model):
         main_image = self.get_main_image()
         
         # Логирование для отладки
-        logger.info(f"Project {self.slug}: main_image={main_image}, main_image_photo={main_image.photo if main_image else 'None'}")
+        main_image_photo = main_image.photo if main_image and main_image.photo else None
+        logger.info(f"Project {self.slug}: main_image={main_image}, main_image_photo={main_image_photo}")
         
         if main_image and main_image.photo:
-            logger.info(f"Project {self.slug}: Using main image: {main_image.photo.url}")
-            return main_image.photo.url
+            try:
+                photo_url = main_image.photo.url
+                logger.info(f"Project {self.slug}: Using main image: {photo_url}")
+                return photo_url
+            except (AttributeError, ValueError) as e:
+                logger.warning(f"Project {self.slug}: Error getting main image URL: {e}")
             
         # Проверяем есть ли уже сгенерированная OG картинка
         og_filename = f'og_project_{self.slug}.jpg'
