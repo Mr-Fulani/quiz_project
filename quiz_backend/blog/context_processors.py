@@ -414,9 +414,21 @@ def analytics_context(request):
     """
     Добавляет переменные аналитики и социальных сетей в контекст всех шаблонов
     """
+    ga_id = settings.GOOGLE_ANALYTICS_PROPERTY_ID
+    yandex_id = settings.YANDEX_METRICA_ID
+    
+    # Отладочное логирование
+    logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
+    logger.info(f"=== DEBUG: analytics_context - YANDEX_METRICA_ID: '{yandex_id}'")
+    
+    # Проверяем переменные окружения напрямую
+    import os
+    env_ga_id = os.getenv('GOOGLE_ANALYTICS_ID', 'NOT_SET')
+    logger.info(f"=== DEBUG: analytics_context - env GOOGLE_ANALYTICS_ID: '{env_ga_id}'")
+    
     return {
-        'GOOGLE_ANALYTICS_PROPERTY_ID': settings.GOOGLE_ANALYTICS_PROPERTY_ID,
-        'YANDEX_METRICA_ID': settings.YANDEX_METRICA_ID,
+        'GOOGLE_ANALYTICS_PROPERTY_ID': ga_id,
+        'YANDEX_METRICA_ID': yandex_id,
         'twitter_username': getattr(settings, 'TWITTER_USERNAME', None),
     }
 

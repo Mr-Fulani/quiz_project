@@ -80,6 +80,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - S3_REGION=${S3_REGION:-us-east-1}
+      # Analytics
+      - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
+      - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
     volumes:
       - ./quiz_backend:/app
       - static_volume_local_prod:/app/staticfiles
@@ -131,6 +134,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - S3_REGION=${S3_REGION:-us-east-1}
+      # Analytics
+      - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
+      - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
     volumes:
       - ./quiz_backend:/app
       - ./media:/app/media
@@ -165,6 +171,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - S3_REGION=${S3_REGION:-us-east-1}
+      # Analytics
+      - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
+      - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
     volumes:
       - ./quiz_backend:/app
       - ./quiz_backend/logs:/app/logs
