@@ -1420,129 +1420,173 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         logger.error(f"Invalid request method for task_id={task_id}, method={request.method}")
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-    topic = get_object_or_404(Topic, name__iexact=quiz_type)
-    
-    # Улучшенная логика поиска подтемы
-    # Сначала пробуем точное совпадение (игнорируя регистр)
     try:
-        subtopic_obj = Subtopic.objects.get(topic=topic, name__iexact=subtopic)
-    except Subtopic.DoesNotExist:
-        # Если не найдено, пробуем с более гибким regex
-        # Преобразуем generators-coroutines в generators.*coroutines (игнорируя регистр)
-        cleaned_subtopic = subtopic.replace('-', '.*')
-        subtopic_obj = get_object_or_404(Subtopic, topic=topic, name__iregex=cleaned_subtopic)
-    task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
+        topic = get_object_or_404(Topic, name__iexact=quiz_type)
+        
+        # Улучшенная логика поиска подтемы (аналогично quiz_subtopic)
+        subtopic_queryset = Subtopic.objects.filter(topic=topic)
 
-    preferred_language = request.user.language if request.user.is_authenticated else 'en'
-    translation = (TaskTranslation.objects.filter(task=task, language=preferred_language).first() or
-                   TaskTranslation.objects.filter(task=task).first())
+        # 1. Пробуем точное совпадение (игнорируя регистр)
+        subtopic_obj = subtopic_queryset.filter(name__iexact=subtopic).first()
 
-    if not translation:
-        logger.error(f"No translation found for task_id={task_id}, topic={quiz_type}, subtopic={subtopic}")
+        # 2. Пробуем совпадение по slug (так же, как в шаблонах используется slugify)
+        if not subtopic_obj:
+            subtopics_list = list(subtopic_queryset)
+            slug_matches = [item for item in subtopics_list if slugify(item.name) == subtopic]
+            if slug_matches:
+                if len(slug_matches) > 1:
+                    logger.warning(
+                        "Multiple subtopics matched slug '%s' for topic '%s'. Using the first match (ID=%s)",
+                        subtopic,
+                        quiz_type,
+                        slug_matches[0].id,
+                    )
+                subtopic_obj = slug_matches[0]
+
+        # 3. Пробуем более гибкий regex (например, generators-coroutines -> generators.*coroutines)
+        if not subtopic_obj:
+            normalized_subtopic = subtopic.replace('-', '.*')
+            subtopic_query = Q(name__iregex=normalized_subtopic)
+            logger.info(f"Searching subtopic: original={subtopic}, regex={normalized_subtopic}")
+            fuzzy_matches = subtopic_queryset.filter(subtopic_query).order_by('id')
+            match_count = fuzzy_matches.count()
+            if match_count == 1:
+                subtopic_obj = fuzzy_matches.first()
+            elif match_count > 1:
+                logger.warning(
+                    "Multiple subtopics matched regex '%s' for topic '%s'. Using the first match (ID=%s)",
+                    normalized_subtopic,
+                    quiz_type,
+                    fuzzy_matches.first().id if fuzzy_matches else 'unknown',
+                )
+                subtopic_obj = fuzzy_matches.first()
+
+        if not subtopic_obj:
+            logger.error("Subtopic '%s' not found for topic '%s'", subtopic, quiz_type)
+            return JsonResponse({'error': f'Subtopic {subtopic} not found for topic {quiz_type}'}, status=404)
+        
+        task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
+    except Http404 as e:
+        logger.error(f"404 error in submit_task_answer: {e}")
+        return JsonResponse({'error': 'Task or subtopic not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Unexpected error in submit_task_answer: {e}", exc_info=True)
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+    try:
+        preferred_language = request.user.language if request.user.is_authenticated else 'en'
+        translation = (TaskTranslation.objects.filter(task=task, language=preferred_language).first() or
+                       TaskTranslation.objects.filter(task=task).first())
+
+        if not translation:
+            logger.error(f"No translation found for task_id={task_id}, topic={quiz_type}, subtopic={subtopic}")
+            stats, created = TaskStatistics.objects.get_or_create(
+                user=request.user,
+                task=task,
+                defaults={
+                    'attempts': 1,
+                    'successful': False,
+                    'selected_answer': request.POST.get('answer', 'No translation')
+                }
+            )
+            if not created:
+                stats.attempts = F('attempts') + 1
+                stats.save(update_fields=['attempts'])
+            return JsonResponse({'error': 'No translation available'}, status=400)
+
+        selected_answer = request.POST.get('answer')
+        if not selected_answer:
+            logger.error(f"No answer provided for task_id={task_id}")
+            return JsonResponse({'error': 'No answer provided'}, status=400)
+
+        if isinstance(translation.answers, str):
+            try:
+                answers = json.loads(translation.answers)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error parsing answers JSON for task_id={task_id}: {e}")
+                return JsonResponse({'error': 'Invalid answer format'}, status=400)
+        else:
+            answers = translation.answers
+
+        dont_know_options = [
+            "Я не знаю, но хочу узнать",
+            "I don't know, but I want to learn",
+        ]
+        if selected_answer not in answers and selected_answer not in dont_know_options:
+            logger.error(f"Invalid answer selected for task_id={task_id}: {selected_answer}")
+            return JsonResponse({'error': 'Invalid answer selected'}, status=400)
+
+        is_correct = selected_answer == translation.correct_answer
+        total_votes = task.statistics.count() + 1
+        results = []
+        for answer in answers:
+            votes = task.statistics.filter(selected_answer=answer).count()
+            if answer == selected_answer:
+                votes += 1
+            percentage = (votes / total_votes * 100) if total_votes > 0 else 0
+            results.append({
+                'text': answer,
+                'is_correct': answer == translation.correct_answer,
+                'percentage': percentage
+            })
+
         stats, created = TaskStatistics.objects.get_or_create(
             user=request.user,
             task=task,
             defaults={
                 'attempts': 1,
-                'successful': False,
-                'selected_answer': request.POST.get('answer', 'No translation')
+                'successful': is_correct,
+                'selected_answer': selected_answer
             }
         )
         if not created:
             stats.attempts = F('attempts') + 1
-            stats.save(update_fields=['attempts'])
-        return JsonResponse({'error': 'No translation available'}, status=400)
+            stats.successful = is_correct
+            stats.selected_answer = selected_answer
+            stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
 
-    selected_answer = request.POST.get('answer')
-    if not selected_answer:
-        logger.error(f"No answer provided for task_id={task_id}")
-        return JsonResponse({'error': 'No answer provided'}, status=400)
-
-    if isinstance(translation.answers, str):
+        # Обновляем статистику пользователя
         try:
-            answers = json.loads(translation.answers)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing answers JSON for task_id={task_id}: {e}")
-            return JsonResponse({'error': 'Invalid answer format'}, status=400)
-    else:
-        answers = translation.answers
+            from django.db.models import Count, Q
+            user_stats = TaskStatistics.objects.filter(user=request.user).aggregate(
+                total_attempts=Count('id'),
+                successful_attempts=Count('id', filter=Q(successful=True))
+            )
+            
+            # Обновляем поля в модели пользователя
+            request.user.quizzes_completed = user_stats['successful_attempts']
+            request.user.average_score = round((user_stats['successful_attempts'] / user_stats['total_attempts'] * 100) if user_stats['total_attempts'] > 0 else 0, 1)
+            request.user.total_points = request.user.calculate_rating()
+            
+            # Получаем любимую категорию
+            favorite_topic = TaskStatistics.objects.filter(
+                user=request.user,
+                successful=True
+            ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
+            
+            if favorite_topic:
+                request.user.favorite_category = favorite_topic['task__topic__name']
+            
+            request.user.save(update_fields=['quizzes_completed', 'average_score', 'total_points', 'favorite_category'])
+            
+            # Очищаем кэш статистики
+            request.user.invalidate_statistics_cache()
+            
+            logger.info(f"User stats updated: quizzes={request.user.quizzes_completed}, avg_score={request.user.average_score}%, points={request.user.total_points}")
+        except Exception as e:
+            logger.error(f"Error updating user statistics: {e}")
 
-    dont_know_options = [
-        "Я не знаю, но хочу узнать",
-        "I don't know, but I want to learn",
-    ]
-    if selected_answer not in answers and selected_answer not in dont_know_options:
-        logger.error(f"Invalid answer selected for task_id={task_id}: {selected_answer}")
-        return JsonResponse({'error': 'Invalid answer selected'}, status=400)
-
-    is_correct = selected_answer == translation.correct_answer
-    total_votes = task.statistics.count() + 1
-    results = []
-    for answer in answers:
-        votes = task.statistics.filter(selected_answer=answer).count()
-        if answer == selected_answer:
-            votes += 1
-        percentage = (votes / total_votes * 100) if total_votes > 0 else 0
-        results.append({
-            'text': answer,
-            'is_correct': answer == translation.correct_answer,
-            'percentage': percentage
+        logger.info(f"Answer submitted for task_id={task_id}, user={request.user}, is_correct={is_correct}")
+        return JsonResponse({
+            'status': 'success',
+            'is_correct': is_correct,
+            'selected_answer': selected_answer,
+            'results': results,
+            'explanation': translation.explanation if translation else 'No explanation available.'
         })
-
-    stats, created = TaskStatistics.objects.get_or_create(
-        user=request.user,
-        task=task,
-        defaults={
-            'attempts': 1,
-            'successful': is_correct,
-            'selected_answer': selected_answer
-        }
-    )
-    if not created:
-        stats.attempts = F('attempts') + 1
-        stats.successful = is_correct
-        stats.selected_answer = selected_answer
-        stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
-
-    # Обновляем статистику пользователя
-    try:
-        from django.db.models import Count, Q
-        user_stats = TaskStatistics.objects.filter(user=request.user).aggregate(
-            total_attempts=Count('id'),
-            successful_attempts=Count('id', filter=Q(successful=True))
-        )
-        
-        # Обновляем поля в модели пользователя
-        request.user.quizzes_completed = user_stats['successful_attempts']
-        request.user.average_score = round((user_stats['successful_attempts'] / user_stats['total_attempts'] * 100) if user_stats['total_attempts'] > 0 else 0, 1)
-        request.user.total_points = request.user.calculate_rating()
-        
-        # Получаем любимую категорию
-        favorite_topic = TaskStatistics.objects.filter(
-            user=request.user,
-            successful=True
-        ).values('task__topic__name').annotate(count=Count('id')).order_by('-count').first()
-        
-        if favorite_topic:
-            request.user.favorite_category = favorite_topic['task__topic__name']
-        
-        request.user.save(update_fields=['quizzes_completed', 'average_score', 'total_points', 'favorite_category'])
-        
-        # Очищаем кэш статистики
-        request.user.invalidate_statistics_cache()
-        
-        logger.info(f"User stats updated: quizzes={request.user.quizzes_completed}, avg_score={request.user.average_score}%, points={request.user.total_points}")
     except Exception as e:
-        logger.error(f"Error updating user statistics: {e}")
-
-    logger.info(f"Answer submitted for task_id={task_id}, user={request.user}, is_correct={is_correct}")
-    return JsonResponse({
-        'status': 'success',
-        'is_correct': is_correct,
-        'selected_answer': selected_answer,
-        'results': results,
-        'explanation': translation.explanation if translation else 'No explanation available.'
-    })
+        logger.error(f"Unexpected error in submit_task_answer (after task lookup): {e}", exc_info=True)
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
 @login_required
