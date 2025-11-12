@@ -599,11 +599,12 @@ body {
     font-size: 1.5rem;
     text-align: center;
     transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    will-change: transform; /* Оптимизация для мобильных устройств */
     color: var(--clr);
 }
 
 .navigation ul li.active a .icon {
-    transform: translateY(-32px);
+    transform: translate3d(0, -32px, 0); /* Используем translate3d для аппаратного ускорения */
 }
 
 .navigation ul li a .text {
@@ -644,6 +645,7 @@ body {
     border-radius: 50%;
     border: 6px solid var(--clr);
     transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    will-change: transform; /* Оптимизация для мобильных устройств */
     z-index: 0;
 }
 
@@ -657,19 +659,19 @@ body {
 
 /* Позиционирование индикатора для каждого элемента */
 .navigation ul li:nth-child(1).active ~ .indicator {
-    transform: translateX(calc(70px * 0));
+    transform: translate3d(calc(70px * 0), 0, 0); /* Используем translate3d для аппаратного ускорения */
 }
 .navigation ul li:nth-child(2).active ~ .indicator {
-    transform: translateX(calc(70px * 1));
+    transform: translate3d(calc(70px * 1), 0, 0);
 }
 .navigation ul li:nth-child(3).active ~ .indicator {
-    transform: translateX(calc(70px * 2));
+    transform: translate3d(calc(70px * 2), 0, 0);
 }
 .navigation ul li:nth-child(4).active ~ .indicator {
-    transform: translateX(calc(70px * 3));
+    transform: translate3d(calc(70px * 3), 0, 0);
 }
 .navigation ul li:nth-child(5).active ~ .indicator {
-    transform: translateX(calc(70px * 4));
+    transform: translate3d(calc(70px * 4), 0, 0);
 }
 
 /* Адаптивность меню (для мобильных устройств) */
@@ -683,24 +685,34 @@ body {
     .navigation ul li {
         width: 60px;
     }
+    /* На мобильных устройствах используем ту же логику, что и на десктопе */
+    /* Но добавляем задержку для иконки, чтобы она начинала движение после индикатора */
+    /* На мобильных браузеры обрабатывают селектор ~ медленнее, поэтому нужна задержка */
+    .navigation ul li a .icon {
+        transition-delay: 0.25s; /* Увеличенная задержка для синхронизации с индикатором на мобильных */
+    }
+    .navigation ul li.active a .icon {
+        transition-delay: 0.25s; /* Увеличенная задержка для синхронизации с индикатором на мобильных */
+    }
     .indicator {
         width: 60px;
         height: 60px;
+        /* Индикатор без задержки - начинает движение сразу */
     }
     .navigation ul li:nth-child(1).active ~ .indicator {
-        transform: translateX(calc(60px * 0));
+        transform: translate3d(calc(60px * 0), 0, 0); /* Используем translate3d для аппаратного ускорения */
     }
     .navigation ul li:nth-child(2).active ~ .indicator {
-        transform: translateX(calc(60px * 1));
+        transform: translate3d(calc(60px * 1), 0, 0);
     }
     .navigation ul li:nth-child(3).active ~ .indicator {
-        transform: translateX(calc(60px * 2));
+        transform: translate3d(calc(60px * 2), 0, 0);
     }
     .navigation ul li:nth-child(4).active ~ .indicator {
-        transform: translateX(calc(60px * 3));
+        transform: translate3d(calc(60px * 3), 0, 0);
     }
     .navigation ul li:nth-child(5).active ~ .indicator {
-        transform: translateX(calc(60px * 4));
+        transform: translate3d(calc(60px * 4), 0, 0);
     }
 
     /* Адаптация размеров текста и галереи для мобильных устройств */
