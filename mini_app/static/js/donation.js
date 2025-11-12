@@ -384,18 +384,67 @@ class DonationSystem {
             if (e.target.closest('.donate-btn')) {
                 console.log('💳 Primary donate button clicked');
                 e.preventDefault();
+                
+                // Защита от множественных кликов
+                if (this.isProcessing) {
+                    console.log('⚠️ Payment already processing, ignoring click');
+                    return;
+                }
+                
+                // Блокируем кнопку визуально
+                const donateBtn = e.target.closest('.donate-btn');
+                if (donateBtn) {
+                    donateBtn.disabled = true;
+                    const originalText = donateBtn.innerHTML;
+                    // Сохраняем оригинальный текст для восстановления
+                    donateBtn.setAttribute('data-original-text', originalText);
+                    donateBtn.innerHTML = '<span>' + (window.t ? window.t('donation_processing', 'Обработка...') : 'Обработка...') + '</span>';
+                    
+                    // Восстанавливаем кнопку через таймаут на случай ошибки
+                    setTimeout(() => {
+                        if (donateBtn && !this.isProcessing && donateBtn.disabled) {
+                            donateBtn.disabled = false;
+                            const savedText = donateBtn.getAttribute('data-original-text');
+                            if (savedText) {
+                                donateBtn.innerHTML = savedText;
+                                donateBtn.removeAttribute('data-original-text');
+                            }
+                        }
+                    }, 3000);
+                }
+                
                 // Визуально скрываем/прячем дополнительные кнопки при обработке
                 const walletForm = document.querySelector('.telegram-wallet-form');
+                const restoreDonateBtn = () => {
+                    if (donateBtn && !this.isProcessing && donateBtn.disabled) {
+                        donateBtn.disabled = false;
+                        const savedText = donateBtn.getAttribute('data-original-text');
+                        if (savedText) {
+                            donateBtn.innerHTML = savedText;
+                            donateBtn.removeAttribute('data-original-text');
+                        }
+                    }
+                };
+                
                 if (this.paymentMethod === 'crypto') {
-                    this.processCryptoPayment();
+                    this.processCryptoPayment().finally(() => {
+                        restoreDonateBtn();
+                    });
                 } else if (this.paymentMethod === 'wallet') {
                     // Если Wallet выбран — используем основной donate-btn как триггер
-                    this.processTelegramWalletPayment();
+                    this.processTelegramWalletPayment().finally(() => {
+                        restoreDonateBtn();
+                    });
                 } else if (this.paymentMethod === 'stars') {
                     // Если Telegram Stars выбран
-                    this.processTelegramStarsPayment();
+                    this.processTelegramStarsPayment().finally(() => {
+                        restoreDonateBtn();
+                    });
                 } else {
-                    this.showPaymentModal();
+                    this.showPaymentModal().catch((error) => {
+                        console.error('❌ Error showing payment modal:', error);
+                        restoreDonateBtn();
+                    });
                 }
             }
             
@@ -506,7 +555,10 @@ class DonationSystem {
     }
     
     async showPaymentModal() {
-        if (this.isProcessing) return;
+        if (this.isProcessing) {
+            console.log('⚠️ Payment already processing, ignoring click');
+            return;
+        }
         
         // Валидация
         if (!this.validateForm()) {
@@ -522,12 +574,26 @@ class DonationSystem {
         
         console.log('💳 Showing payment modal...');
         
-        // Проверяем, не открыта ли уже модалка
+        // Проверяем, не открыта ли уже модалка и закрываем её правильно
         const existingModal = document.querySelector('.stripe-modal');
         if (existingModal) {
-            console.log('⚠️ Modal already exists, removing old one...');
-            existingModal.remove();
+            console.log('⚠️ Modal already exists, closing old one properly...');
+            this.closePaymentModal();
+            // Даем время на полную очистку
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
+        
+        // Убеждаемся, что все ресурсы очищены перед созданием нового модального окна
+        if (this.cardElement) {
+            try {
+                this.cardElement.destroy();
+            } catch (e) {
+                console.warn('⚠️ Error destroying card element:', e);
+            }
+            this.cardElement = null;
+        }
+        this.elements = null;
+        this.currentPaymentIntent = null;
         
         // Создаем модальное окно
         this.createPaymentModal();
@@ -536,7 +602,7 @@ class DonationSystem {
         document.body.appendChild(this.modal);
         
         // Ждем немного, чтобы DOM обновился
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Инициализируем Stripe Elements
         await this.initStripeElements();
@@ -639,20 +705,33 @@ class DonationSystem {
         
         // Проверяем, не инициализированы ли уже Elements
         if (this.cardElement) {
-            console.log('⚠️ Stripe Elements already initialized, skipping...');
-            return;
+            console.log('⚠️ Stripe Elements already initialized, destroying old instance...');
+            try {
+                this.cardElement.destroy();
+            } catch (e) {
+                console.warn('⚠️ Error destroying existing card element:', e);
+            }
+            this.cardElement = null;
+            this.elements = null;
         }
         
         try {
             console.log('🔧 Initializing Stripe Elements...');
             
-            // Проверяем, существует ли элемент
-            const cardElement = document.getElementById('card-element-modal');
-            if (!cardElement) {
-                console.error('❌ Card element not found in DOM');
+            // Проверяем, существует ли элемент в DOM
+            const cardElementContainer = document.getElementById('card-element-modal');
+            if (!cardElementContainer) {
+                console.error('❌ Card element container not found in DOM');
                 return;
             }
-            console.log('✅ Card element found:', cardElement);
+            
+            // Проверяем, что контейнер пустой (Stripe может оставить элементы внутри)
+            if (cardElementContainer.children.length > 0) {
+                console.log('⚠️ Card element container not empty, clearing...');
+                cardElementContainer.innerHTML = '';
+            }
+            
+            console.log('✅ Card element container found:', cardElementContainer);
             
             // Создаем Elements с английской локалью
             this.elements = this.stripe.elements({ locale: 'en' });
@@ -671,6 +750,7 @@ class DonationSystem {
                 },
             });
             
+            // Монтируем элемент
             this.cardElement.mount('#card-element-modal');
             
             // Обработчик изменений
@@ -681,9 +761,19 @@ class DonationSystem {
                 }
             });
             
+            // Обработчик ошибок
+            this.cardElement.on('ready', () => {
+                console.log('✅ Stripe card element ready');
+                const submitButton = document.getElementById('submit-button-modal');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            });
+            
             console.log('✅ Stripe Elements initialized successfully');
         } catch (error) {
             console.error('❌ Error initializing Stripe Elements:', error);
+            this.showError(window.t('donation_stripe_init_error', 'Ошибка инициализации формы оплаты. Попробуйте перезагрузить страницу.'));
         }
     }
     
@@ -727,8 +817,9 @@ class DonationSystem {
     async handlePayment() {
         console.log('💳 Starting payment processing...');
         
+        // Дополнительная проверка на множественные клики
         if (this.isProcessing) {
-            console.log('⚠️ Payment already processing');
+            console.log('⚠️ Payment already processing, ignoring duplicate call');
             return;
         }
         
@@ -738,59 +829,85 @@ class DonationSystem {
             return;
         }
         
-        this.isProcessing = true;
-        this.showStatus('processing', window.t('donation_processing', 'Обработка платежа...'));
+        if (!this.cardElement) {
+            console.error('❌ Card element not initialized');
+            this.showStatus('error', window.t('donation_card_not_ready', 'Форма оплаты не готова. Попробуйте перезагрузить страницу.'));
+            return;
+        }
         
-        try {
-            console.log('🔧 Confirming card payment with Stripe...');
-            const result = await this.stripe.confirmCardPayment(this.currentPaymentIntent, {
-                payment_method: {
-                    card: this.cardElement,
-                    billing_details: {
-                        name: document.querySelector('.donation-name').value.trim(),
-                        email: document.querySelector('.donation-email').value.trim()
+        // Блокируем кнопку отправки в модальном окне
+        const submitButton = document.getElementById('submit-button-modal');
+        if (submitButton) {
+            submitButton.disabled = true;
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.innerHTML = '<span>' + (window.t ? window.t('donation_processing', 'Обработка платежа...') : 'Обработка платежа...') + '</span>';
+            
+            // Восстанавливаем кнопку в случае ошибки
+            const restoreButton = () => {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonText;
+                }
+            };
+            
+            this.isProcessing = true;
+            this.showStatus('processing', window.t('donation_processing', 'Обработка платежа...'));
+            
+            try {
+                console.log('🔧 Confirming card payment with Stripe...');
+                const result = await this.stripe.confirmCardPayment(this.currentPaymentIntent, {
+                    payment_method: {
+                        card: this.cardElement,
+                        billing_details: {
+                            name: document.querySelector('.donation-name').value.trim(),
+                            email: document.querySelector('.donation-email').value.trim()
+                        }
+                    }
+                });
+                
+                console.log('📊 Payment result:', result);
+                
+                if (result.error) {
+                    console.error('❌ Payment failed:', result.error);
+                    const errorMessage = result.error.message || result.error.code || 'Неизвестная ошибка платежа';
+                    this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), errorMessage);
+                    this.showStatus('error', errorMessage);
+                    restoreButton();
+                    this.isProcessing = false;
+                    return;
+                } else {
+                    console.log('✅ Payment intent status:', result.paymentIntent.status);
+                    if (result.paymentIntent.status === 'succeeded') {
+                        console.log('✅ Payment succeeded');
+                        
+                        // Уведомляем Django backend об успешном платеже
+                        await this.confirmPayment(result.paymentIntent.id);
+                        
+                        // Закрываем модальное окно через 2 секунды
+                        setTimeout(() => {
+                            this.closePaymentModal();
+                            this.resetForm();
+                        }, 2000);
+                    } else {
+                        const statusMessage = `Статус платежа: ${result.paymentIntent.status}`;
+                        this.showNotification('error', window.t('donation_status', 'Статус платежа'), statusMessage);
+                        this.showStatus('error', statusMessage);
+                        console.log('⚠️ Payment not succeeded, status:', result.paymentIntent.status);
+                        restoreButton();
+                        this.isProcessing = false;
                     }
                 }
-            });
-            
-            console.log('📊 Payment result:', result);
-            
-            if (result.error) {
-                console.error('❌ Payment failed:', result.error);
-                const errorMessage = result.error.message || result.error.code || 'Неизвестная ошибка платежа';
+            } catch (error) {
+                console.error('❌ Error handling payment:', error);
+                const errorMessage = error.message || error.toString() || window.t('donation_processing_error', 'Ошибка обработки платежа');
                 this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), errorMessage);
                 this.showStatus('error', errorMessage);
+                restoreButton();
                 this.isProcessing = false;
-                return;
-            } else {
-                console.log('✅ Payment intent status:', result.paymentIntent.status);
-                if (result.paymentIntent.status === 'succeeded') {
-                    console.log('✅ Payment succeeded');
-                    
-                    // Уведомляем Django backend об успешном платеже
-                    await this.confirmPayment(result.paymentIntent.id);
-                    
-                    // Закрываем модальное окно через 2 секунды
-                    setTimeout(() => {
-                        this.closePaymentModal();
-                        this.resetForm();
-                    }, 2000);
-                } else {
-                    const statusMessage = `Статус платежа: ${result.paymentIntent.status}`;
-                    this.showNotification('error', window.t('donation_status', 'Статус платежа'), statusMessage);
-                    this.showStatus('error', statusMessage);
-                    console.log('⚠️ Payment not succeeded, status:', result.paymentIntent.status);
-                    this.isProcessing = false;
-                }
             }
-        } catch (error) {
-            console.error('❌ Error handling payment:', error);
-            const errorMessage = error.message || error.toString() || window.t('donation_processing_error', 'Ошибка обработки платежа');
-            this.showNotification('error', window.t('donation_payment_error', 'Ошибка платежа'), errorMessage);
-            this.showStatus('error', errorMessage);
-        } finally {
+        } else {
+            console.error('❌ Submit button not found in modal');
             this.isProcessing = false;
-            console.log('🔚 Payment processing finished');
         }
     }
     
@@ -882,17 +999,56 @@ class DonationSystem {
     }
     
     closePaymentModal() {
-        if (this.modal && this.modal.parentNode) {
-            this.modal.parentNode.removeChild(this.modal);
-        }
+        console.log('🔒 Closing payment modal...');
         
+        // Уничтожаем Stripe Elements перед удалением модального окна
         if (this.cardElement) {
-            this.cardElement.destroy();
+            try {
+                console.log('🗑️ Destroying Stripe card element...');
+                this.cardElement.destroy();
+                console.log('✅ Stripe card element destroyed');
+            } catch (error) {
+                console.warn('⚠️ Error destroying card element:', error);
+            }
             this.cardElement = null;
         }
         
+        // Очищаем ссылку на elements
+        this.elements = null;
+        
+        // Восстанавливаем кнопку доната на странице (если была заблокирована)
+        const donateBtn = document.querySelector('.donation-content .donate-btn');
+        if (donateBtn && donateBtn.disabled) {
+            donateBtn.disabled = false;
+            // Восстанавливаем оригинальный текст, если он был изменен
+            const originalText = donateBtn.getAttribute('data-original-text');
+            if (originalText) {
+                donateBtn.innerHTML = originalText;
+                donateBtn.removeAttribute('data-original-text');
+            }
+        }
+        
+        // Удаляем модальное окно из DOM
+        if (this.modal) {
+            if (this.modal.parentNode) {
+                this.modal.parentNode.removeChild(this.modal);
+            }
+            this.modal = null;
+        }
+        
+        // Также удаляем любые другие модальные окна, которые могли остаться
+        const existingModals = document.querySelectorAll('.stripe-modal');
+        existingModals.forEach(modal => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        });
+        
+        // Очищаем состояние
         this.currentPaymentIntent = null;
         this.isProcessing = false;
+        
+        console.log('✅ Payment modal closed and resources cleaned up');
     }
     
     resetForm() {

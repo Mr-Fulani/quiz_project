@@ -102,6 +102,12 @@ if (typeof SettingsPage === 'undefined') {
     
     applyLocalSettings() {
         try {
+            // Инициализация разворачивающейся карточки донатов
+            this.initDonationCollapsible();
+            
+            // Инициализация разворачивающейся карточки обратной связи
+            this.initFeedbackCollapsible();
+            
             // Восстанавливаем состояние переключателя уведомлений из профиля пользователя
             const notificationsToggle = document.getElementById('notifications-toggle');
             if (notificationsToggle && window.currentUser) {
@@ -164,6 +170,70 @@ if (typeof SettingsPage === 'undefined') {
             }
         } catch (e) {
             console.warn('⚠️ [SETTINGS] Failed to apply local settings:', e);
+        }
+    }
+    
+    initDonationCollapsible() {
+        try {
+            const donationHeader = document.getElementById('donation-header');
+            const donationContent = document.getElementById('donation-content');
+            const donationCollapsible = document.querySelector('.donation-collapsible');
+            
+            if (!donationHeader || !donationContent || !donationCollapsible) {
+                console.warn('⚠️ [SETTINGS] Donation collapsible elements not found');
+                return;
+            }
+            
+            // Обработчик клика на заголовок
+            donationHeader.addEventListener('click', () => {
+                const isExpanded = donationCollapsible.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    // Сворачиваем
+                    donationCollapsible.classList.remove('expanded');
+                    donationContent.style.display = 'none';
+                } else {
+                    // Разворачиваем
+                    donationCollapsible.classList.add('expanded');
+                    donationContent.style.display = 'block';
+                }
+            });
+            
+            console.log('✅ [SETTINGS] Donation collapsible initialized');
+        } catch (e) {
+            console.warn('⚠️ [SETTINGS] Failed to initialize donation collapsible:', e);
+        }
+    }
+    
+    initFeedbackCollapsible() {
+        try {
+            const feedbackHeader = document.getElementById('feedback-header');
+            const feedbackContent = document.getElementById('feedback-content');
+            const feedbackCollapsible = document.querySelector('.feedback-collapsible');
+            
+            if (!feedbackHeader || !feedbackContent || !feedbackCollapsible) {
+                console.warn('⚠️ [SETTINGS] Feedback collapsible elements not found');
+                return;
+            }
+            
+            // Обработчик клика на заголовок
+            feedbackHeader.addEventListener('click', () => {
+                const isExpanded = feedbackCollapsible.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    // Сворачиваем
+                    feedbackCollapsible.classList.remove('expanded');
+                    feedbackContent.style.display = 'none';
+                } else {
+                    // Разворачиваем
+                    feedbackCollapsible.classList.add('expanded');
+                    feedbackContent.style.display = 'block';
+                }
+            });
+            
+            console.log('✅ [SETTINGS] Feedback collapsible initialized');
+        } catch (e) {
+            console.warn('⚠️ [SETTINGS] Failed to initialize feedback collapsible:', e);
         }
     }
     };
