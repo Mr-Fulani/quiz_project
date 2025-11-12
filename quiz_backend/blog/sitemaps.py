@@ -284,11 +284,16 @@ class ImageSitemap(Sitemap):
             images_data = []
             for image in item['images']:
                 if image.photo:
-                    images_data.append({
-                        'loc': image.photo.url if image.photo.url.startswith('http') else f"{protocol}://{domain}{image.photo.url}",
-                        'title': item['object'].title,
-                        'caption': image.alt_text or item['object'].title,
-                    })
+                    try:
+                        photo_url = image.photo.url
+                        images_data.append({
+                            'loc': photo_url if photo_url.startswith('http') else f"{protocol}://{domain}{photo_url}",
+                            'title': item['object'].title,
+                            'caption': image.alt_text or item['object'].title,
+                        })
+                    except (AttributeError, ValueError):
+                        # Пропускаем изображение, если не удалось получить URL
+                        continue
             
             # Создаем XML-структуру
             url_info = {

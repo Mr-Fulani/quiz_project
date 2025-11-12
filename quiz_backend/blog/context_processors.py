@@ -689,7 +689,13 @@ def dynamic_seo_context(request):
                         meta_keywords = project.meta_keywords or f"{project.title}, {project.technologies}, portfolio, project, web development"
 
                         main_image = project.get_main_image()
-                        og_image = main_image.photo.url if main_image and main_image.photo else getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        if main_image and main_image.photo:
+                            try:
+                                og_image = main_image.photo.url
+                            except (AttributeError, ValueError):
+                                og_image = getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                        else:
+                            og_image = getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
 
                         # Добавляем версию к изображению для кэширования
                         if og_image and not og_image.startswith('http'):
