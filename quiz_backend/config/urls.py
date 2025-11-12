@@ -35,9 +35,35 @@ from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSit
 
 # Health check endpoint
 from django.http import HttpResponse
+from django.contrib.sites.shortcuts import get_current_site
 
 def health_check(request):
     return HttpResponse("OK", status=200)
+
+def robots_txt_view(request):
+    """
+    Генерирует robots.txt динамически с правильным доменом для sitemap.
+    """
+    current_site = get_current_site(request)
+    # Всегда используем HTTPS в продакшене
+    scheme = 'https'
+    sitemap_url = f"{scheme}://{current_site.domain}/sitemap.xml"
+    
+    robots_content = f"""User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /swagger/
+Disallow: /redoc/
+Disallow: /messages/
+Disallow: /inbox/
+Disallow: /silk/
+Disallow: /__debug__/
+Allow: /
+
+# Sitemap
+Sitemap: {sitemap_url}
+"""
+    return HttpResponse(robots_content, content_type='text/plain')
 
 
 # Настройки Swagger
@@ -118,6 +144,10 @@ urlpatterns = [
     # Кастомный переключатель языка (вне языковых паттернов для работы с любым языком)
     path('set-language/', custom_set_language, name='custom_set_language'),
     path('health/', health_check, name='health_check'),  # Health check endpoint
+    
+    # SEO файлы (вне языковых паттернов)
+    path('robots.txt', robots_txt_view, name='robots_txt'),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps, 'template_name': 'sitemap.xml'}, name='django.contrib.sitemaps.views.sitemap'),
 ] + i18n_patterns(
     # path('admin/', admin.site.urls), -> Перенесено выше
     #   -> Админ-панель Django
@@ -146,9 +176,6 @@ urlpatterns = [
 
     path('tinymce/', include('tinymce.urls')),  # Добавляем маршруты TinyMCE
     path('tinymce/upload/', tinymce_image_upload, name='tinymce_image_upload'),
-
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
-    path('robots.txt', static_serve, {'document_root': settings.STATIC_ROOT, 'path': 'robots.txt'}),
 )
 
 # Подключение статических и медиа-файлов в режиме разработки (DEBUG=True)

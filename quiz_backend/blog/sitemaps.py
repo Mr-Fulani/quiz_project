@@ -6,26 +6,77 @@ from .models import Post, Project
 
 class I18nSitemap(Sitemap):
     """
-    Базовый класс для мультиязычных карт сайта.
+    Базовый класс для мультиязычных карт сайта с поддержкой hreflang.
+    Генерирует полные URL для всех языковых версий страниц.
     """
     def get_urls(self, page=1, site=None, protocol=None):
         # Получаем стандартные URL
         urls = super().get_urls(page, site, protocol)
         
+        # Определяем домен и протокол
+        if site is None:
+            from django.contrib.sites.models import Site
+            site = Site.objects.get_current()
+        
+        if protocol is None:
+            protocol = self.protocol or 'https'
+        
+        domain = site.domain
+        
         # Добавляем hreflang к каждому URL
         for url in urls:
             item = url['item']
+            # Получаем текущий location
+            current_location = url.get('location', '')
+            
+            # Определяем язык текущего URL
+            current_lang = None
+            for lang_code, _ in settings.LANGUAGES:
+                lang_prefix = lang_code[:2]
+                if f"/{lang_prefix}/" in current_location:
+                    current_lang = lang_prefix
+                    break
+            
+            # Если язык не определен, используем язык по умолчанию
+            if current_lang is None:
+                current_lang = settings.LANGUAGE_CODE[:2]
+            
+            # Получаем базовый путь без языкового префикса
+            base_path = current_location
+            for lang_code, _ in settings.LANGUAGES:
+                lang_prefix = lang_code[:2]
+                if base_path.startswith(f"/{lang_prefix}/"):
+                    base_path = base_path[len(f"/{lang_prefix}"):]
+                    break
+            
             # Получаем URL для всех языков
             hreflangs = []
             for lang_code, _ in settings.LANGUAGES:
+                lang_prefix = lang_code[:2]
                 with translation.override(lang_code):
                     try:
                         # Используем location из дочернего класса
                         location = self.location(item)
-                        hreflangs.append({'lang': lang_code, 'location': location})
+                        # Убираем языковой префикс если он есть
+                        if location.startswith(f"/{lang_prefix}/"):
+                            location = location[len(f"/{lang_prefix}"):]
+                        # Создаем полный URL с правильным языковым префиксом
+                        full_url = f"{protocol}://{domain}/{lang_prefix}{location}"
+                        hreflangs.append({'lang': lang_prefix, 'location': full_url})
                     except Exception:
                         # Если для какого-то языка нет URL, пропускаем
                         continue
+            
+            # Убеждаемся, что текущий URL тоже в списке
+            if current_location and not current_location.startswith('http'):
+                current_full_url = f"{protocol}://{domain}{current_location}"
+            else:
+                current_full_url = current_location
+            
+            # Добавляем текущий URL в alternates если его там еще нет
+            if not any(alt['lang'] == current_lang and alt['location'] == current_full_url for alt in hreflangs):
+                hreflangs.append({'lang': current_lang, 'location': current_full_url})
+            
             url['alternates'] = hreflangs
             
         return urls

@@ -616,10 +616,46 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
             # Если это обычный URL, преобразуем в share URL
             share_url = current_url.replace('/post/', '/share/post/')
         
+        # Исправляем canonical URL для использования основного домена
+        host = self.request.get_host()
+        scheme = 'https' if self.request.is_secure() else 'http'
+        if host == 'mini.quiz-code.com':
+            # Для mini app используем основной домен в canonical
+            base_domain = 'quiz-code.com'
+            canonical_url = current_url.replace(host, base_domain)
+        else:
+            canonical_url = current_url
+        
+        # Генерируем hreflang URLs для всех языков
+        from django.conf import settings
+        from django.urls import reverse
+        current_lang = get_language()[:2]
+        hreflang_en = None
+        hreflang_ru = None
+        
+        for lang_code, _ in settings.LANGUAGES:
+            lang_prefix = lang_code[:2]
+            with translation.override(lang_code):
+                try:
+                    lang_url = reverse('blog:post_detail', kwargs={'slug': post.slug})
+                    if host == 'mini.quiz-code.com':
+                        base_domain = 'quiz-code.com'
+                    else:
+                        base_domain = host
+                    full_lang_url = f"{scheme}://{base_domain}/{lang_prefix}{lang_url}"
+                    if lang_prefix == 'en':
+                        hreflang_en = full_lang_url
+                    elif lang_prefix == 'ru':
+                        hreflang_ru = full_lang_url
+                except Exception:
+                    continue
+        
         # Мета-теги теперь обрабатываются в context_processors.py
         context['og_url'] = share_url
-        context['canonical_url'] = current_url  # Канонический URL остается обычным
-        context['hreflang_url'] = current_url
+        context['canonical_url'] = canonical_url
+        context['hreflang_en'] = hreflang_en
+        context['hreflang_ru'] = hreflang_ru
+        context['hreflang_x_default'] = hreflang_en or canonical_url
         context['related_posts'] = related_posts
         context['page_videos'] = PageVideo.objects.filter(page='post_detail')
         return context
@@ -668,10 +704,46 @@ class ProjectDetailView(BreadcrumbsMixin, DetailView):
             # Если это обычный URL, преобразуем в share URL
             share_url = current_url.replace('/project/', '/share/project/')
         
+        # Исправляем canonical URL для использования основного домена
+        host = self.request.get_host()
+        scheme = 'https' if self.request.is_secure() else 'http'
+        if host == 'mini.quiz-code.com':
+            # Для mini app используем основной домен в canonical
+            base_domain = 'quiz-code.com'
+            canonical_url = current_url.replace(host, base_domain)
+        else:
+            canonical_url = current_url
+        
+        # Генерируем hreflang URLs для всех языков
+        from django.conf import settings
+        from django.urls import reverse
+        current_lang = get_language()[:2]
+        hreflang_en = None
+        hreflang_ru = None
+        
+        for lang_code, _ in settings.LANGUAGES:
+            lang_prefix = lang_code[:2]
+            with translation.override(lang_code):
+                try:
+                    lang_url = reverse('blog:project_detail', kwargs={'slug': project.slug})
+                    if host == 'mini.quiz-code.com':
+                        base_domain = 'quiz-code.com'
+                    else:
+                        base_domain = host
+                    full_lang_url = f"{scheme}://{base_domain}/{lang_prefix}{lang_url}"
+                    if lang_prefix == 'en':
+                        hreflang_en = full_lang_url
+                    elif lang_prefix == 'ru':
+                        hreflang_ru = full_lang_url
+                except Exception:
+                    continue
+        
         # Мета-теги теперь обрабатываются в context_processors.py
         context['og_url'] = share_url
-        context['canonical_url'] = current_url  # Канонический URL остается обычным
-        context['hreflang_url'] = current_url
+        context['canonical_url'] = canonical_url
+        context['hreflang_en'] = hreflang_en
+        context['hreflang_ru'] = hreflang_ru
+        context['hreflang_x_default'] = hreflang_en or canonical_url
         context['related_projects'] = related_projects
         context['page_videos'] = PageVideo.objects.filter(page='project_detail')
         return context
