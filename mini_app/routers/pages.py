@@ -577,6 +577,74 @@ async def share_topic_preview(request: Request, topic_id: int):
     response = templates.TemplateResponse("share_preview.html", context)
     return response
 
+@router.get("/share/app", response_class=HTMLResponse)
+async def share_app_preview(request: Request):
+    """
+    Страница для шаринга мини-приложения с правильными мета-тегами для Telegram и соцсетей
+    """
+    # Построим базовый URL на основе заголовков запроса (работает за прокси и локально)
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host') or request.url.hostname
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    # Принудительно используем https для share_url (для корректной работы соцсетей)
+    share_scheme = 'https' if scheme in ['https', 'http'] else scheme
+    if host:
+        base_url = f"{scheme}://{host}"
+        share_base_url = f"{share_scheme}://{host}"
+        current_url = f"{share_base_url}/share/app"
+    else:
+        # fallback к настройкам, если хост не определен
+        base_url = app_settings.MINI_APP_BASE_URL
+        share_base_url = app_settings.MINI_APP_BASE_URL
+        current_url = f"{share_base_url}/share/app"
+    
+    # Получаем язык из параметров запроса или используем английский по умолчанию
+    language = request.query_params.get('lang', 'en')
+    if language not in ['ru', 'en']:
+        language = 'en'
+    
+    # Устанавливаем язык в сервисе локализации
+    localization_service.set_language(language)
+    translations = localization_service.get_all_texts()
+    
+    # Проверяем откуда пришел пользователь (из мини-апп или по внешней ссылке)
+    from_app = request.query_params.get('from', '') == 'app'
+    
+    # URL для редиректа в бота (прямая ссылка на мини-апп)
+    bot_url = "https://t.me/mr_proger_bot/quiz"
+    
+    # URL для шаринга БЕЗ параметра from=app (для внешних ссылок)
+    share_url = f"{share_base_url}/share/app?lang={language}"
+    
+    # Конструируем абсолютный путь к изображению логотипа
+    # Используем правильный формат без двойных слэшей
+    image_path = "static/images/logo.png"
+    image_url = f"{base_url.rstrip('/')}/{image_path}"
+    
+    # Название и описание приложения с локализацией
+    app_title_ru = "Quiz Mini App - Образовательное приложение"
+    app_title_en = "Quiz Mini App - Educational App"
+    app_description_ru = "Изучайте различные темы через интерактивные квизы. Проходите тесты, получайте достижения и развивайте свои навыки!"
+    app_description_en = "Learn various topics through interactive quizzes. Take tests, earn achievements and develop your skills!"
+    
+    title = app_title_ru if language == 'ru' else app_title_en
+    description = app_description_ru if language == 'ru' else app_description_en
+    
+    context = {
+        "request": request,
+        "title": title,
+        "description": description,
+        "image_url": image_url,
+        "redirect_url": bot_url,
+        "share_url": share_url,
+        "current_url": current_url,
+        "language": language,
+        "from_app": from_app
+    }
+    
+    # Возвращаем страницу с кнопками соцсетей для всех пользователей
+    response = templates.TemplateResponse("share_app.html", context)
+    return response
+
 # Загрузка аватара останется здесь, так как она связана со страницей профиля
 @router.post("/profile/{telegram_id}/update/", response_class=HTMLResponse)
 async def update_profile(request: Request, telegram_id: int, avatar: UploadFile = File(...)):
