@@ -83,6 +83,8 @@ services:
       # Analytics
       - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
       - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
+    env_file:
+      - .env
     volumes:
       - ./quiz_backend:/app
       - static_volume_local_prod:/app/staticfiles
@@ -137,6 +139,8 @@ services:
       # Analytics
       - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
       - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
+    env_file:
+      - .env
     volumes:
       - ./quiz_backend:/app
       - ./media:/app/media
@@ -174,6 +178,8 @@ services:
       # Analytics
       - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
       - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
+    env_file:
+      - .env
     volumes:
       - ./quiz_backend:/app
       - ./quiz_backend/logs:/app/logs
