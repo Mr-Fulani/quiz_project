@@ -13,6 +13,34 @@ if [ "$FAST_MODE" = "1" ]; then
   echo "⚡ Включён быстрый режим (без prune/down, сокращённые ожидания)"
 fi
 
+# Освобождение порта 5433 перед запуском
+echo "🔍 Проверка порта 5433..."
+PID=$(lsof -ti :5433 2>/dev/null || echo "")
+if [ ! -z "$PID" ]; then
+  echo "⚠️  Порт 5433 занят процессом PID=$PID, освобождаем..."
+  # Проверяем, это Docker контейнер или нет
+  CONTAINER=$(docker ps --format "{{.ID}} {{.State.Pid}}" 2>/dev/null | awk -v pid="$PID" '$2==pid {print $1}' | head -1)
+  if [ ! -z "$CONTAINER" ]; then
+    echo "🛑 Останавливаем Docker контейнер: $CONTAINER"
+    docker stop "$CONTAINER" 2>/dev/null || true
+    docker rm -f "$CONTAINER" 2>/dev/null || true
+  else
+    echo "🛑 Останавливаем процесс PID=$PID"
+    kill -9 "$PID" 2>/dev/null || true
+  fi
+  sleep 2
+  # Проверяем еще раз
+  REMAINING=$(lsof -ti :5433 2>/dev/null || echo "")
+  if [ ! -z "$REMAINING" ]; then
+    echo "⚠️  Порт все еще занят, принудительно освобождаем..."
+    kill -9 $REMAINING 2>/dev/null || true
+    sleep 1
+  fi
+  echo "✅ Порт 5433 освобожден"
+else
+  echo "✅ Порт 5433 свободен"
+fi
+
 # Устанавливаем переменную окружения для продакшен конфигурации
 # export NGINX_DOCKERFILE=Dockerfile.prod
 
