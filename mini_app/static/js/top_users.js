@@ -944,39 +944,65 @@ function updateLastSeenTexts() {
 document.addEventListener('DOMContentLoaded', () => {
     updateLastSeenTexts();
     
-    // Проверяем, откуда пришел пользователь
+    // Проверяем, нужно ли восстановить модальное окно после возврата
+    // При SPA навигации document.referrer может не обновляться, поэтому полагаемся на sessionStorage
+    const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
+    const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
+    
+    // Дополнительная проверка referrer для совместимости с обычной навигацией
     const referrer = document.referrer;
     const cameFromUserProfile = referrer && referrer.includes('/user_profile/');
     
     console.log('🔍 Referrer:', referrer);
     console.log('🔍 Пришел из user_profile?', cameFromUserProfile);
+    console.log('🔍 shouldReturnToSwiper:', shouldReturnToSwiper);
+    console.log('🔍 savedSwiperIndex:', savedSwiperIndex);
     
-    // Проверяем, нужно ли восстановить модальное окно после возврата
-    const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
-    const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
-    
-    // Восстанавливаем модальное окно ТОЛЬКО если пришли из user_profile
-    if (cameFromUserProfile && shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
+    // Восстанавливаем модальное окно если есть флаг returnToSwiper и сохраненный индекс
+    // При SPA навигации referrer может быть пустым, поэтому проверяем только sessionStorage
+    if (shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
         console.log('🔄 Восстановление модального окна Swiper на слайде:', savedSwiperIndex);
         
         // Очищаем флаги
         sessionStorage.removeItem('returnToSwiper');
+        const slideIndex = parseInt(savedSwiperIndex, 10);
         sessionStorage.removeItem('topUsersSwiperIndex');
         
-        // Открываем модальное окно на сохраненном слайде с минимальной задержкой
-        setTimeout(() => {
-            const slideIndex = parseInt(savedSwiperIndex, 10);
-            if (typeof window.openSwiperAtIndex === 'function') {
-                window.openSwiperAtIndex(slideIndex);
-                console.log('✅ Модальное окно восстановлено на слайде:', slideIndex);
+        // Используем более надежное ожидание готовности DOM и Swiper
+        // Проверяем готовность элементов и библиотеки Swiper
+        function restoreSwiperModal() {
+            const carousel = document.getElementById('all-users-carousel');
+            const swiperEl = document.getElementById('users-swiper');
+            
+            if (!carousel || !swiperEl) {
+                console.log('⏳ Элементы еще не готовы, повтор через 50ms...');
+                setTimeout(restoreSwiperModal, 50);
+                return;
             }
-        }, 100);
-    } else if (!cameFromUserProfile) {
-        // Если пришли НЕ из user_profile, очищаем флаги
-        console.log('🧹 Очищаем флаги Swiper (обычный переход на вкладку)');
+            
+            // Проверяем наличие Swiper библиотеки
+            if (typeof Swiper === 'undefined') {
+                console.log('⏳ Swiper библиотека еще не загружена, повтор через 50ms...');
+                setTimeout(restoreSwiperModal, 50);
+                return;
+            }
+            
+            // Открываем модальное окно на сохраненном слайде
+            if (typeof window.openSwiperAtIndex === 'function') {
+                console.log('✅ Все готово, открываем модальное окно на слайде:', slideIndex);
+                window.openSwiperAtIndex(slideIndex);
+            } else {
+                console.error('❌ Функция openSwiperAtIndex не найдена');
+            }
+        }
+        
+        // Начинаем восстановление с небольшой задержкой для стабилизации DOM
+        setTimeout(restoreSwiperModal, 50);
+    } else if (shouldReturnToSwiper === 'true' || savedSwiperIndex !== null) {
+        // Если флаги есть, но не удалось восстановить (например, элементы не найдены), очищаем их
+        console.log('🧹 Очищаем флаги Swiper (не удалось восстановить модальное окно)');
         sessionStorage.removeItem('returnToSwiper');
         sessionStorage.removeItem('topUsersSwiperIndex');
-        sessionStorage.removeItem('topUsersFilters');
     }
 });
 
