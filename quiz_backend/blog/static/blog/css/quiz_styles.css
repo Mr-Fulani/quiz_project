@@ -159,6 +159,15 @@
 }
 
 /**
+ * Вариант "Я не знаю" остается кликабельным даже после выбора ответа
+ */
+.answer-option.disabled.dont-know-option {
+    pointer-events: auto;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+/**
  * Стили для пагинации
  */
 .pagination {

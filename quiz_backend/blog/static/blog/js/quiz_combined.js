@@ -268,8 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
         lightningCanvas.style.display = 'block';
         lightningCanvas.style.opacity = '1';
 
-        playSound(thunderSound);
-
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isSmallScreen = window.innerWidth < 768;
 
@@ -379,6 +377,19 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     /**
+     * Показывает правильный ответ, выделяя его зеленым цветом.
+     * @param {HTMLElement} taskItem - Элемент задачи.
+     */
+    function showCorrectAnswer(taskItem) {
+        const answers = taskItem.querySelectorAll('.answer-option');
+        answers.forEach(btn => {
+            if (btn.dataset.correct === 'true') {
+                btn.classList.add('correct');
+            }
+        });
+    }
+
+    /**
      * Показывает модальное окно с объяснением и предотвращает прокрутку страницы.
      * @param {string} explanation - Текст объяснения.
      */
@@ -406,9 +417,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.top = `-${scrollY}px`;
         document.body.style.width = '100%';
 
-        // Обработчик для закрытия модального окна при клике/касании вне области
+        // Обработчик для закрытия модального окна при клике/касании на фон
         const closeModalHandler = (e) => {
-            if (e.target === modal || e.target === closeButton) {
+            if (e.target === modal) {
                 modal.remove();
                 // Восстанавливаем прокрутку страницы
                 document.body.style.position = '';
@@ -548,8 +559,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 option.removeEventListener('touchmove', handleTouchMove);
 
                 // Добавляем класс dont-know-option, если ответ в списке
-                if (dontKnowOptions.includes(option.dataset.answer)) {
+                const isDontKnowOption = dontKnowOptions.includes(option.dataset.answer);
+                if (isDontKnowOption) {
                     option.classList.add('dont-know-option');
+                }
+
+                // Для варианта "Я не знаю" добавляем обработчик для повторного показа объяснения
+                if (isDontKnowOption) {
+                    const showExplanationHandler = (e) => {
+                        const taskItem = option.closest('.task-item');
+                        if (taskItem && taskItem.dataset.solved === 'true') {
+                            // Если задача уже решена, показываем только модальное окно с объяснением
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            const explanation = taskItem.dataset.explanation || 'No explanation available.';
+                            showModal(explanation);
+                            return false;
+                        }
+                    };
+                    // Добавляем обработчик с флагом capture для приоритета
+                    option.addEventListener('click', showExplanationHandler, true);
+                    option.addEventListener('touchend', showExplanationHandler, true);
                 }
 
                 // Добавляем новые обработчики
@@ -686,9 +717,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const isDontKnow = option.classList.contains('dont-know-option') || dontKnowOptions.includes(option.dataset.answer);
         const parent = option.parentElement;
 
-        // Фиксируем задачу
+        // Фиксируем задачу, но оставляем вариант "Я не знаю" кликабельным для повторного показа объяснения
         parent.querySelectorAll('.answer-option').forEach(opt => {
-            opt.style.pointerEvents = 'none';
+            const optIsDontKnow = opt.classList.contains('dont-know-option') || dontKnowOptions.includes(opt.dataset.answer);
+            // Вариант "Я не знаю" остается кликабельным для повторного показа объяснения
+            if (!optIsDontKnow) {
+                opt.style.pointerEvents = 'none';
+            }
             opt.classList.remove('active');
             opt.classList.add('disabled');
             if (opt === option) {
@@ -719,10 +754,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         showConfetti(option);
                     } else if (!isDontKnow) {
                         showLightningEffect(option);
+                        showCorrectAnswer(taskItem);
                     }
-                    if (isDontKnow) {
-                        showModal(explanation);
-                    }
+                    // Показываем модальное окно с объяснением всегда
+                    showModal(explanation);
                 }
             } catch (error) {
                 console.error('Submit error:', error);
