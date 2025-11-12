@@ -575,25 +575,29 @@ def dynamic_seo_context(request):
                         og_image = post.get_og_image_url()
                         logger.info(f"=== DEBUG: OG image from get_og_image_url(): {og_image}")
 
-                        # Добавляем версию к изображению для кэширования
-                        if og_image and not og_image.startswith('http'):
-                            # Для относительных URL добавляем версию
-                            og_image_with_version = f"{og_image}?v={int(post.updated_at.timestamp())}"
+                        # Формируем полный URL для OG изображения
+                        if og_image:
+                            # Если URL уже полный (начинается с http), используем как есть
+                            if og_image.startswith('http'):
+                                og_image_full_url = og_image
+                            # Если относительный, формируем полный URL
+                            elif og_image.startswith('/'):
+                                og_image_full_url = f"{scheme}://{host}{og_image}"
+                            else:
+                                # Если путь без слеша, добавляем MEDIA_URL
+                                og_image_full_url = f"{scheme}://{host}{og_image}"
+                            
+                            # Добавляем кэш-бюстинг
+                            cache_buster = int(post.updated_at.timestamp())
+                            if '?' in og_image_full_url:
+                                og_image_final = f"{og_image_full_url}&v={cache_buster}"
+                            else:
+                                og_image_final = f"{og_image_full_url}?v={cache_buster}"
                         else:
-                            og_image_with_version = og_image
-
-                        # ДОБАВЛЕНО: Отладочная информация для VK
-                        vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
-                        logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
-                        logger.info(f"=== DEBUG: PUBLIC_URL setting: {getattr(settings, 'PUBLIC_URL', 'NOT_SET')}")
+                            # Если изображения нет, используем дефолтное
+                            og_image_final = request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg'))
                         
-                        # ДОБАВЛЕНО: Кэш-бюстинг для всех платформ
-                        cache_buster = int(post.updated_at.timestamp())
-                        # Добавляем несколько параметров для лучшего кэш-бюстинга
-                        if '?' in og_image_with_version:
-                            og_image_with_cache = f"{og_image_with_version}&v={cache_buster}&cb={cache_buster}&t={cache_buster}"
-                        else:
-                            og_image_with_cache = f"{og_image_with_version}?v={cache_buster}&cb={cache_buster}&t={cache_buster}"
+                        logger.info(f"=== DEBUG: Final OG image URL: {og_image_final}")
 
                         seo_data.update({
                             'meta_title': f"{post.title} | Quiz Project Blog",
@@ -602,7 +606,7 @@ def dynamic_seo_context(request):
                             'canonical_url': base_url + post.get_absolute_url(),
                             'og_title': post.title,
                             'og_description': meta_description[:160],
-                            'og_image': request.build_absolute_uri(og_image_with_cache),
+                            'og_image': og_image_final,
                             'og_url': base_url + post.get_absolute_url(),
                             'og_type': 'article',
                             'article_author': 'Anvar Sh.',
@@ -615,18 +619,18 @@ def dynamic_seo_context(request):
                             # VK Meta Tags
                             'vk_title': post.title,
                             'vk_description': meta_description[:160],
-                            'vk_image': vk_image_url,
+                            'vk_image': og_image_final,
                             # Twitter Card Tags
                             'twitter_title': post.title,
                             'twitter_description': meta_description[:160],
-                            'twitter_image': request.build_absolute_uri(og_image_with_cache),
+                            'twitter_image': og_image_final,
                         })
 
                         # ДОБАВЛЕНО: Отладочная информация
                         logger.info(f"=== DEBUG: SEO data updated for post: {post.title}")
                         logger.info(f"=== DEBUG: vk_title: {post.title}")
                         logger.info(f"=== DEBUG: vk_description: {meta_description[:160]}")
-                        logger.info(f"=== DEBUG: vk_image: {vk_image_url}")
+                        logger.info(f"=== DEBUG: vk_image: {og_image_final}")
 
                         # JSON-LD для статьи
                         article_data = {
@@ -634,7 +638,7 @@ def dynamic_seo_context(request):
                             "@type": "Article",
                             "headline": post.title,
                             "description": meta_description[:160],
-                            "image": request.build_absolute_uri(og_image),
+                            "image": og_image_final,
                             "url": base_url + post.get_absolute_url(),
                             "author": {
                                 "@type": "Person",
