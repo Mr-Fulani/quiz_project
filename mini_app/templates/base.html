@@ -1175,46 +1175,72 @@
                             tryInitCarouselButtons();
                             
                             // Проверяем, нужно ли восстановить модальное окно после возврата (SPA-навигация)
-                            // Проверяем referrer - восстанавливаем ТОЛЬКО если пришли из user_profile
+                            // При SPA навигации document.referrer может не обновляться, поэтому полагаемся на sessionStorage
+                            const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
+                            const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
+                            
+                            // Дополнительная проверка referrer для совместимости с обычной навигацией
                             const referrer = document.referrer;
                             const cameFromUserProfile = referrer && referrer.includes('/user_profile/');
                             
                             console.log('🔍 [SPA] Referrer:', referrer);
                             console.log('🔍 [SPA] Пришел из user_profile?', cameFromUserProfile);
+                            console.log('🔍 [SPA] shouldReturnToSwiper:', shouldReturnToSwiper);
+                            console.log('🔍 [SPA] savedSwiperIndex:', savedSwiperIndex);
                             
-                            const shouldReturnToSwiper = sessionStorage.getItem('returnToSwiper');
-                            const savedSwiperIndex = sessionStorage.getItem('topUsersSwiperIndex');
-                            
-                            if (cameFromUserProfile && shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
+                            // Восстанавливаем модальное окно если есть флаг returnToSwiper и сохраненный индекс
+                            // При SPA навигации referrer может быть пустым, поэтому проверяем только sessionStorage
+                            if (shouldReturnToSwiper === 'true' && savedSwiperIndex !== null) {
                                 console.log('🔄 [SPA] Восстановление модального окна Swiper на слайде:', savedSwiperIndex);
                                 
                                 // Очищаем флаги
                                 sessionStorage.removeItem('returnToSwiper');
+                                const slideIndex = parseInt(savedSwiperIndex, 10);
                                 sessionStorage.removeItem('topUsersSwiperIndex');
                                 
-                                // Открываем модальное окно на сохраненном слайде с минимальной задержкой
-                                setTimeout(() => {
-                                    const slideIndex = parseInt(savedSwiperIndex, 10);
-                                    if (typeof window.openSwiperAtIndex === 'function') {
-                                        window.openSwiperAtIndex(slideIndex);
-                                        console.log('✅ [SPA] Модальное окно восстановлено на слайде:', slideIndex);
+                                // Используем более надежное ожидание готовности DOM и Swiper
+                                function restoreSwiperModalSPA() {
+                                    const carousel = document.getElementById('all-users-carousel');
+                                    const swiperEl = document.getElementById('users-swiper');
+                                    
+                                    if (!carousel || !swiperEl) {
+                                        console.log('⏳ [SPA] Элементы еще не готовы, повтор через 30ms...');
+                                        setTimeout(restoreSwiperModalSPA, 30);
+                                        return;
                                     }
-                                }, 200);
-                            } else if (!cameFromUserProfile && (shouldReturnToSwiper || savedSwiperIndex)) {
-                                // Если пришли НЕ из user_profile, очищаем флаги
-                                console.log('🧹 [SPA] Очищаем флаги Swiper (переход не из user_profile)');
+                                    
+                                    // Проверяем наличие Swiper библиотеки
+                                    if (typeof Swiper === 'undefined') {
+                                        console.log('⏳ [SPA] Swiper библиотека еще не загружена, повтор через 30ms...');
+                                        setTimeout(restoreSwiperModalSPA, 30);
+                                        return;
+                                    }
+                                    
+                                    // Открываем модальное окно на сохраненном слайде
+                                    if (typeof window.openSwiperAtIndex === 'function') {
+                                        console.log('✅ [SPA] Все готово, открываем модальное окно на слайде:', slideIndex);
+                                        window.openSwiperAtIndex(slideIndex);
+                                    } else {
+                                        console.error('❌ [SPA] Функция openSwiperAtIndex не найдена');
+                                    }
+                                }
+                                
+                                // Начинаем восстановление сразу после загрузки скрипта
+                                setTimeout(restoreSwiperModalSPA, 50);
+                            } else if (shouldReturnToSwiper === 'true' || savedSwiperIndex !== null) {
+                                // Если флаги есть, но не удалось восстановить (например, элементы не найдены), очищаем их
+                                console.log('🧹 [SPA] Очищаем флаги Swiper (не удалось восстановить модальное окно)');
                                 sessionStorage.removeItem('returnToSwiper');
                                 sessionStorage.removeItem('topUsersSwiperIndex');
-                                sessionStorage.removeItem('topUsersFilters');
                             }
                             
-                            // Также вызываем переинициализацию для SPA навигации
+                            // Также вызываем переинициализацию для SPA навигации (с меньшей задержкой)
                             setTimeout(() => {
                                 if (typeof window.reinitializeTopUsersPage === 'function') {
                                     console.log('🔄 Calling reinitializeTopUsersPage for SPA navigation');
                                     window.reinitializeTopUsersPage();
                                 }
-                            }, 500);
+                            }, 200);
                         }, 100);
                     };
                     script.onerror = function() {

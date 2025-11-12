@@ -528,7 +528,12 @@
             const currentLang = urlParams.get('lang') || window.currentLanguage || 'ru';
             const targetUrl = `/subtopic/${subtopicId}/tasks?lang=${currentLang}`;
             console.log('🚀 Переход на:', targetUrl);
-            window.location.href = targetUrl;
+            // Используем SPA навигацию для быстрого возврата
+            if (typeof window.loadPage === 'function') {
+                window.loadPage(targetUrl);
+            } else {
+                window.location.href = targetUrl;
+            }
             return;
         }
         
@@ -578,7 +583,12 @@
         }
         
         console.log('🚀 Переход на:', targetUrl);
-        window.location.href = targetUrl;
+        // Используем SPA навигацию для быстрого возврата вместо полной перезагрузки
+        if (typeof window.loadPage === 'function') {
+            window.loadPage(targetUrl);
+        } else {
+            window.location.href = targetUrl;
+        }
     }
     
     /**
