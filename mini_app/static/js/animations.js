@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Удаляем класс active у всех элементов
             items.forEach(item => item.classList.remove('active'));
 
-            // Добавляем класс active к нажатому элементу
+            // Добавляем класс active (как на десктопе - просто добавляем класс)
             item.classList.add('active');
 
             // Получаем ссылку для перехода

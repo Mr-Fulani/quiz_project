@@ -437,6 +437,7 @@ class MiniAppUserSerializer(serializers.ModelSerializer):
         avatars_data = []
         
         # 1. Добавляем главный аватар первым (если есть)
+        # obj.avatar содержит аватарку из Telegram профиля или установленную пользователем через интерфейс
         if obj.avatar and hasattr(obj.avatar, 'url'):
             main_avatar_data = {
                 'id': 'main_avatar',  # Специальный ID для главного аватара
@@ -677,45 +678,9 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
     def get_avatar_url(self, obj):
         """
         Возвращает URL аватара пользователя Mini App.
-        Приоритет: 1) первая аватарка из массива avatars (высокое качество), 2) загруженный avatar, 3) telegram_photo_url, 4) None
+        Приоритет: 1) загруженный avatar (главный аватар из Telegram или установленный пользователем), 2) telegram_photo_url, 3) первая аватарка из массива avatars, 4) None
         """
-        # Сначала проверяем первую аватарку из массива avatars (обычно более качественная)
-        avatars = obj.avatars.all().order_by('order')
-        if avatars.exists():
-            first_avatar = avatars.first()
-            if first_avatar.image and hasattr(first_avatar.image, 'url'):
-                avatar_url = first_avatar.image.url
-                decoded_url = unquote(avatar_url)
-                
-                if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
-                    return decoded_url
-                
-                request = self.context.get('request')
-                if request:
-                    forwarded_host = request.headers.get('X-Forwarded-Host')
-                    host_header = request.headers.get('Host')
-                    x_forwarded_port = request.headers.get('X-Forwarded-Port')
-                    
-                    if forwarded_host and 'localhost' in forwarded_host:
-                        host = 'localhost'
-                        port = x_forwarded_port or '8080'
-                        scheme = 'http'
-                        return f"{scheme}://{host}:{port}{avatar_url}"
-                    elif forwarded_host:
-                        host = forwarded_host
-                        scheme = request.headers.get('X-Forwarded-Proto', 'https')
-                        return f"{scheme}://{host}{avatar_url}"
-                    elif host_header and not host_header.startswith('localhost'):
-                        host = host_header
-                        scheme = request.headers.get('X-Forwarded-Proto', 'https')
-                        return f"{scheme}://{host}{avatar_url}"
-                    else:
-                        host = 'mini.quiz-code.com'
-                        scheme = 'https'
-                        return f"{scheme}://{host}{avatar_url}"
-                return avatar_url
-        
-        # Если нет аватарок в массиве, проверяем загруженный аватар
+        # Сначала проверяем главный аватар (obj.avatar) - это аватарка из Telegram профиля или установленная пользователем
         if obj.avatar and hasattr(obj.avatar, 'url'):
             avatar_url = obj.avatar.url
             # Декодируем URL
@@ -767,6 +732,42 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
         if obj.telegram_photo_url:
             logger.info(f"[DEBUG AVATAR] Using telegram_photo_url: {obj.telegram_photo_url}")
             return obj.telegram_photo_url
+        
+        # Если нет главного аватара и telegram_photo_url, используем первую аватарку из галереи как fallback
+        avatars = obj.avatars.all().order_by('order')
+        if avatars.exists():
+            first_avatar = avatars.first()
+            if first_avatar.image and hasattr(first_avatar.image, 'url'):
+                avatar_url = first_avatar.image.url
+                decoded_url = unquote(avatar_url)
+                
+                if decoded_url.startswith('http://') or decoded_url.startswith('https://'):
+                    return decoded_url
+                
+                request = self.context.get('request')
+                if request:
+                    forwarded_host = request.headers.get('X-Forwarded-Host')
+                    host_header = request.headers.get('Host')
+                    x_forwarded_port = request.headers.get('X-Forwarded-Port')
+                    
+                    if forwarded_host and 'localhost' in forwarded_host:
+                        host = 'localhost'
+                        port = x_forwarded_port or '8080'
+                        scheme = 'http'
+                        return f"{scheme}://{host}:{port}{avatar_url}"
+                    elif forwarded_host:
+                        host = forwarded_host
+                        scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                        return f"{scheme}://{host}{avatar_url}"
+                    elif host_header and not host_header.startswith('localhost'):
+                        host = host_header
+                        scheme = request.headers.get('X-Forwarded-Proto', 'https')
+                        return f"{scheme}://{host}{avatar_url}"
+                    else:
+                        host = 'mini.quiz-code.com'
+                        scheme = 'https'
+                        return f"{scheme}://{host}{avatar_url}"
+                return avatar_url
             
         return None
     

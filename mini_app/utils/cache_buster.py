@@ -82,7 +82,8 @@ STATIC_VERSIONS = {
     'top_users_swiper.js': '1.3',  # Отключен для избежания конфликтов (инициализация теперь в top_users.html)
     'statistics.js': '3.9',  # FIX: добавлена проверка и обновление перевода при инициализации страницы
     'platform-detector.js': '2.0',  # Добавлены Telegram-специфичные CSS переменные для safe areas
-    'styles.css': '3.2',  # Перенос контента из <head> в <body> (фикc скрытий)
+    'styles.css': '3.7',  # FIX: Увеличена задержка для иконки на мобильных до 0.25s для лучшей синхронизации с индикатором
+    'animations.js': '1.2',  # FIX: Упрощена логика - убрана сложная синхронизация, используется простая логика как на десктопе
     'donation.css': '1.4',  # FIX: Отключены анимации для crypto/wallet, z-index селектора
     'profile.css': '12.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'user_profile.css': '5.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
@@ -93,7 +94,7 @@ STATIC_VERSIONS = {
     'avatar_modal.css': '2.1',  # FIX: Добавлена поддержка Safe Areas для Telegram в модальном окне аватарок
     # Принудительное обновление кэша для Django моделей
     'models.py': '1.1',  # FIX: Добавлено автоматическое удаление файлов аватарок при удалении записей
-    'serializers.py': '1.1',  # FIX: Исправлена логика отображения аватаров - главный аватар теперь первый в свайпе
+    'serializers.py': '1.4',  # FIX: Исправлен приоритет в MiniAppTopUserSerializer.get_avatar_url - теперь главный аватар (obj.avatar) имеет приоритет над первой аватаркой из галереи
     'admin.py': '1.1',  # FIX: Улучшена админка для понятного отображения главного аватара и галереи
     'top_users.css': '35.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'top_users_swiper.css': '30.4',  # FIX: Улучшено качество изображения аватарок в модальном окне (image-rendering, аппаратное ускорение)
