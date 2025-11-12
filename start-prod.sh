@@ -14,31 +14,39 @@ if [ "$FAST_MODE" = "1" ]; then
 fi
 
 # Освобождение порта 5433 перед запуском
-echo "🔍 Проверка порта 5433..."
+echo "🔍 Проверка и освобождение порта 5433..."
+
+# Сначала останавливаем все postgres контейнеры
+echo "🛑 Остановка всех postgres контейнеров..."
+docker ps -a --filter "name=postgres" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+
+# Останавливаем контейнеры через docker compose (даже в быстром режиме для освобождения порта)
+echo "🛑 Остановка контейнеров через docker compose..."
+docker compose -f docker-compose.local-prod.yml stop postgres_db 2>/dev/null || true
+docker compose -f docker-compose.local-prod.yml rm -f postgres_db 2>/dev/null || true
+
+# Проверяем порт через lsof
 PID=$(lsof -ti :5433 2>/dev/null || echo "")
 if [ ! -z "$PID" ]; then
-  echo "⚠️  Порт 5433 занят процессом PID=$PID, освобождаем..."
-  # Проверяем, это Docker контейнер или нет
-  CONTAINER=$(docker ps --format "{{.ID}} {{.State.Pid}}" 2>/dev/null | awk -v pid="$PID" '$2==pid {print $1}' | head -1)
-  if [ ! -z "$CONTAINER" ]; then
-    echo "🛑 Останавливаем Docker контейнер: $CONTAINER"
-    docker stop "$CONTAINER" 2>/dev/null || true
-    docker rm -f "$CONTAINER" 2>/dev/null || true
-  else
-    echo "🛑 Останавливаем процесс PID=$PID"
-    kill -9 "$PID" 2>/dev/null || true
-  fi
+  echo "⚠️  Порт 5433 все еще занят процессом PID=$PID, принудительно освобождаем..."
+  kill -9 "$PID" 2>/dev/null || true
   sleep 2
-  # Проверяем еще раз
-  REMAINING=$(lsof -ti :5433 2>/dev/null || echo "")
-  if [ ! -z "$REMAINING" ]; then
-    echo "⚠️  Порт все еще занят, принудительно освобождаем..."
-    kill -9 $REMAINING 2>/dev/null || true
-    sleep 1
-  fi
-  echo "✅ Порт 5433 освобожден"
-else
+fi
+
+# Проверяем еще раз через docker ps (контейнеры, использующие порт)
+CONTAINERS_WITH_PORT=$(docker ps --format "{{.ID}} {{.Ports}}" | grep ":5433" | awk '{print $1}' || echo "")
+if [ ! -z "$CONTAINERS_WITH_PORT" ]; then
+  echo "🛑 Найдены контейнеры, использующие порт 5433, останавливаем..."
+  echo "$CONTAINERS_WITH_PORT" | xargs -r docker rm -f 2>/dev/null || true
+  sleep 2
+fi
+
+# Финальная проверка
+FINAL_CHECK=$(lsof -ti :5433 2>/dev/null || echo "")
+if [ -z "$FINAL_CHECK" ]; then
   echo "✅ Порт 5433 свободен"
+else
+  echo "⚠️  Порт 5433 все еще занят, но продолжаем..."
 fi
 
 # Устанавливаем переменную окружения для продакшен конфигурации
@@ -60,6 +68,10 @@ if [ "$FAST_MODE" != "1" ]; then
   docker compose -f docker-compose.local-prod.yml down --remove-orphans
   docker stop $(docker ps -q --filter "name=quiz_project") 2>/dev/null || true
   docker rm $(docker ps -aq --filter "name=quiz_project") 2>/dev/null || true
+else
+  # В быстром режиме тоже очищаем orphan контейнеры
+  echo "🧹 Очистка orphan контейнеров..."
+  docker compose -f docker-compose.local-prod.yml down --remove-orphans 2>/dev/null || true
 fi
 
 if [ "$FAST_MODE" != "1" ]; then
