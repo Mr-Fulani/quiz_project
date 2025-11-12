@@ -533,21 +533,41 @@ async def share_topic_preview(request: Request, topic_id: int):
         raise HTTPException(status_code=404, detail="Topic not found")
     
     # Построим базовый URL на основе заголовков запроса (работает за прокси и локально)
+    # ВАЖНО: На продакшене с правильным HTTPS доменом все будет работать корректно
+    # При разработке с ngrok могут быть проблемы с мета-тегами Stories (это нормально)
     host = request.headers.get('x-forwarded-host') or request.headers.get('host') or request.url.hostname
     scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    
+    # Проверяем, не является ли это ngrok URL (для разработки)
+    is_ngrok = host and ('ngrok' in host.lower() or 'ngrok-free' in host.lower() or 'ngrok.io' in host.lower())
+    
     # Принудительно используем https для share_url (для корректной работы соцсетей)
+    # На продакшене всегда будет HTTPS, на ngrok тоже обычно HTTPS
     share_scheme = 'https' if scheme in ['https', 'http'] else scheme
+    
     if host:
         base_url = f"{scheme}://{host}"
         share_base_url = f"{share_scheme}://{host}"
+        
+        # Логируем для отладки (можно убрать в продакшене)
+        if is_ngrok:
+            logger.info(f"⚠️ Используется ngrok URL для шаринга: {share_base_url} (на продакшене будет правильный домен)")
     else:
         # fallback к настройкам, если хост не определен
         base_url = app_settings.MINI_APP_BASE_URL
         share_base_url = app_settings.MINI_APP_BASE_URL
+        logger.warning(f"⚠️ Хост не определен, используется fallback URL: {share_base_url}")
 
     # Конструируем абсолютный путь к изображению аккуратно, чтобы не получилось двойного слэша
+    # ВАЖНО: Используем share_base_url (HTTPS) для изображений, чтобы они работали в Stories
     image_path = topic_data.get('video_poster_url') if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url') else topic_data.get('image_url', '')
-    image_url = f"{base_url.rstrip('/')}/{image_path.lstrip('/')}" if image_path else ''
+    if image_path:
+        # Убеждаемся, что путь начинается с / для правильной конкатенации
+        image_path_clean = image_path.lstrip('/')
+        image_url = f"{share_base_url.rstrip('/')}/{image_path_clean}"
+    else:
+        # Fallback на логотип приложения, если изображение темы отсутствует
+        image_url = f"{share_base_url.rstrip('/')}/static/images/logo.png"
 
     # Получаем язык из параметров запроса или используем английский по умолчанию
     language = request.query_params.get('lang', 'en')
@@ -563,13 +583,28 @@ async def share_topic_preview(request: Request, topic_id: int):
     # URL для шаринга БЕЗ параметра from=app (для внешних ссылок)
     share_url = f"{share_base_url}/share/topic/{topic_id}?lang={language}"
     
+    # Текущий URL страницы для мета-тегов
+    current_url = f"{share_base_url}/share/topic/{topic_id}?lang={language}"
+    
+    # Получаем локализованное описание темы
+    topic_name = topic_data.get("name", "Quiz Topic")
+    topic_description = topic_data.get("description", "")
+    
+    # Если описание пустое, используем дефолтное с локализацией
+    if not topic_description or topic_description.strip() == "":
+        if language == 'ru':
+            topic_description = f"Изучайте тему '{topic_name}' через интерактивные квизы. Проходите тесты и получайте достижения!"
+        else:
+            topic_description = f"Learn the topic '{topic_name}' through interactive quizzes. Take tests and earn achievements!"
+    
     context = {
         "request": request,
-        "title": topic_data.get("name", "Quiz Topic"),
-        "description": topic_data.get("description", "Check out this interesting topic!"),
+        "title": topic_name,
+        "description": topic_description,
         "image_url": image_url,
         "redirect_url": bot_url,
         "share_url": share_url,
+        "current_url": current_url,
         "language": language,
         "from_app": from_app
     }
@@ -583,19 +618,32 @@ async def share_app_preview(request: Request):
     Страница для шаринга мини-приложения с правильными мета-тегами для Telegram и соцсетей
     """
     # Построим базовый URL на основе заголовков запроса (работает за прокси и локально)
+    # ВАЖНО: На продакшене с правильным HTTPS доменом все будет работать корректно
+    # При разработке с ngrok могут быть проблемы с мета-тегами Stories (это нормально)
     host = request.headers.get('x-forwarded-host') or request.headers.get('host') or request.url.hostname
     scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    
+    # Проверяем, не является ли это ngrok URL (для разработки)
+    is_ngrok = host and ('ngrok' in host.lower() or 'ngrok-free' in host.lower() or 'ngrok.io' in host.lower())
+    
     # Принудительно используем https для share_url (для корректной работы соцсетей)
+    # На продакшене всегда будет HTTPS, на ngrok тоже обычно HTTPS
     share_scheme = 'https' if scheme in ['https', 'http'] else scheme
+    
     if host:
         base_url = f"{scheme}://{host}"
         share_base_url = f"{share_scheme}://{host}"
         current_url = f"{share_base_url}/share/app"
+        
+        # Логируем для отладки (можно убрать в продакшене)
+        if is_ngrok:
+            logger.info(f"⚠️ Используется ngrok URL для шаринга приложения: {share_base_url} (на продакшене будет правильный домен)")
     else:
         # fallback к настройкам, если хост не определен
         base_url = app_settings.MINI_APP_BASE_URL
         share_base_url = app_settings.MINI_APP_BASE_URL
         current_url = f"{share_base_url}/share/app"
+        logger.warning(f"⚠️ Хост не определен, используется fallback URL: {share_base_url}")
     
     # Получаем язык из параметров запроса или используем английский по умолчанию
     language = request.query_params.get('lang', 'en')
@@ -617,8 +665,9 @@ async def share_app_preview(request: Request):
     
     # Конструируем абсолютный путь к изображению логотипа
     # Используем правильный формат без двойных слэшей
+    # ВАЖНО: Используем share_base_url (HTTPS) для изображений, чтобы они работали в Stories
     image_path = "static/images/logo.png"
-    image_url = f"{base_url.rstrip('/')}/{image_path}"
+    image_url = f"{share_base_url.rstrip('/')}/{image_path}"
     
     # Название и описание приложения с локализацией
     app_title_ru = "Quiz Mini App - Образовательное приложение"
