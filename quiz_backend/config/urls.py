@@ -32,6 +32,7 @@ from donation.views import (
 from social_auth.views import TelegramAuthView
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
+from django.template.response import TemplateResponse
 
 # Health check endpoint
 from django.http import HttpResponse
@@ -64,6 +65,48 @@ Allow: /
 Sitemap: {sitemap_url}
 """
     return HttpResponse(robots_content, content_type='text/plain')
+
+def custom_sitemap_view(request, sitemaps, section=None, template_name='blog/sitemap.xml', content_type='application/xml'):
+    """
+    Кастомный view для sitemap, который правильно передает alternates в шаблон.
+    """
+    from django.contrib.sites.models import Site
+    from django.contrib.sitemaps import Sitemap
+    
+    req_protocol = 'https'
+    req_site = get_current_site(request)
+    
+    if section is not None:
+        if section not in sitemaps:
+            from django.http import Http404
+            raise Http404("No sitemap available for section: %r" % section)
+        maps = [sitemaps[section]]
+    else:
+        maps = sitemaps.values()
+    
+    try:
+        page = int(request.GET.get("p", 1))
+    except (TypeError, ValueError):
+        page = 1
+    
+    urls = []
+    for site_map in maps:
+        try:
+            if callable(site_map):
+                site_map = site_map()
+            # Получаем URL с alternates
+            site_urls = site_map.get_urls(page=page, site=req_site, protocol=req_protocol)
+            urls.extend(site_urls)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error processing sitemap: {e}")
+            continue
+    
+    return TemplateResponse(
+        request, template_name, {'urlset': urls},
+        content_type=content_type
+    )
 
 
 # Настройки Swagger
@@ -147,7 +190,7 @@ urlpatterns = [
     
     # SEO файлы (вне языковых паттернов)
     path('robots.txt', robots_txt_view, name='robots_txt'),
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps, 'template_name': 'sitemap.xml'}, name='django.contrib.sitemaps.views.sitemap'),
+    path('sitemap.xml', custom_sitemap_view, {'sitemaps': sitemaps, 'template_name': 'blog/sitemap.xml'}, name='django.contrib.sitemaps.views.sitemap'),
 ] + i18n_patterns(
     # path('admin/', admin.site.urls), -> Перенесено выше
     #   -> Админ-панель Django

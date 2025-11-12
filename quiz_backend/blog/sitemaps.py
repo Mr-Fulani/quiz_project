@@ -2,6 +2,7 @@ from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 from django.conf import settings
 from django.utils import translation
+from django.utils.html import format_html
 from .models import Post, Project
 
 class I18nSitemap(Sitemap):
@@ -77,8 +78,39 @@ class I18nSitemap(Sitemap):
             if not any(alt['lang'] == current_lang and alt['location'] == current_full_url for alt in hreflangs):
                 hreflangs.append({'lang': current_lang, 'location': current_full_url})
             
-            url['alternates'] = hreflangs
-            
+            # Устраняем дубликаты и формируем структуру для шаблона
+            ordered_alternates = {}
+            for alt in hreflangs:
+                lang = alt.get('lang')
+                location = alt.get('location')
+                if not lang or not location:
+                    continue
+                if lang not in ordered_alternates:
+                    ordered_alternates[lang] = location
+
+            # Добавляем x-default согласно рекомендациям Google
+            default_lang = settings.LANGUAGE_CODE[:2]
+            default_location = ordered_alternates.get(default_lang)
+            if not default_location and ordered_alternates:
+                default_location = next(iter(ordered_alternates.values()))
+            if default_location:
+                ordered_alternates.setdefault('x-default', default_location)
+
+            alternates_list = [
+                {'lang': lang_key, 'location': location}
+                for lang_key, location in ordered_alternates.items()
+            ]
+
+            url['alternates'] = alternates_list
+            url['alternate_links'] = [
+                format_html(
+                    '<xhtml:link rel="alternate" hreflang="{}" href="{}" />',
+                    alt['lang'],
+                    alt['location'],
+                )
+                for alt in alternates_list
+            ]
+ 
         return urls
 
 class PostSitemap(I18nSitemap):
@@ -172,7 +204,11 @@ class ImageSitemap(Sitemap):
     protocol = 'https'
 
     def items(self):
-        images = []
+        """
+        Возвращает список страниц с изображениями, группируя изображения по страницам.
+        Это предотвращает дублирование URL в sitemap.
+        """
+        pages_with_images = {}
         
         # Изображения из постов
         posts_with_images = Post.objects.filter(
@@ -181,14 +217,17 @@ class ImageSitemap(Sitemap):
         ).prefetch_related('images')
         
         for post in posts_with_images:
+            post_url = reverse('blog:post_detail', kwargs={'slug': post.slug})
+            if post_url not in pages_with_images:
+                pages_with_images[post_url] = {
+                    'type': 'post',
+                    'object': post,
+                    'images': []
+                }
+            
             for image in post.images.all():
                 if image.photo:
-                    images.append({
-                        'type': 'post',
-                        'object': post,
-                        'image': image,
-                        'url': reverse('blog:post_detail', kwargs={'slug': post.slug})
-                    })
+                    pages_with_images[post_url]['images'].append(image)
         
         # Изображения из проектов
         projects_with_images = Project.objects.filter(
@@ -196,51 +235,60 @@ class ImageSitemap(Sitemap):
         ).prefetch_related('images')
         
         for project in projects_with_images:
+            project_url = reverse('blog:project_detail', kwargs={'slug': project.slug})
+            if project_url not in pages_with_images:
+                pages_with_images[project_url] = {
+                    'type': 'project',
+                    'object': project,
+                    'images': []
+                }
+            
             for image in project.images.all():
                 if image.photo:
-                    images.append({
-                        'type': 'project',
-                        'object': project,
-                        'image': image,
-                        'url': reverse('blog:project_detail', kwargs={'slug': project.slug})
-                    })
+                    pages_with_images[project_url]['images'].append(image)
         
-        return images
+        # Преобразуем в список
+        return [{'url': url, **data} for url, data in pages_with_images.items()]
 
     def location(self, item):
         return item['url']
 
     def lastmod(self, item):
         return item['object'].updated_at
-
-    # Добавляем метод для извлечения URL изображений
-    def _urls(self, page, protocol, domain):
-        urls = []
-        # Получаем сайт из настроек, чтобы строить полные URL
-        latest_lastmod = None
-        all_items_lastmod = True  # флаг для проверки
+    
+    def get_urls(self, page=1, site=None, protocol=None):
+        """
+        Переопределяем get_urls для правильной обработки изображений.
+        Группируем изображения по страницам.
+        """
+        if site is None:
+            from django.contrib.sites.models import Site
+            site = Site.objects.get_current()
         
-        # Получаем полные URL для изображений
-        for item in self.paginator.page(page).object_list:
+        if protocol is None:
+            protocol = self.protocol or 'https'
+        
+        domain = site.domain
+        urls = []
+        
+        # Получаем все элементы для текущей страницы
+        paginator = self.paginator
+        page_obj = paginator.page(page)
+        
+        for item in page_obj.object_list:
             loc = f"{protocol}://{domain}{self.location(item)}"
             priority = self.priority
             lastmod = self.lastmod(item)
-
-            if all_items_lastmod:
-                if lastmod is not None:
-                    if latest_lastmod is None:
-                        latest_lastmod = lastmod
-                    else:
-                        latest_lastmod = max(latest_lastmod, lastmod)
-                else:
-                    all_items_lastmod = False
             
-            # Собираем данные для <image:image>
-            image_data = {
-                'loc': item['image'].photo.url,
-                'title': item['object'].title,
-                'caption': item['image'].alt_text or item['object'].title,
-            }
+            # Собираем данные для всех изображений страницы
+            images_data = []
+            for image in item['images']:
+                if image.photo:
+                    images_data.append({
+                        'loc': image.photo.url if image.photo.url.startswith('http') else f"{protocol}://{domain}{image.photo.url}",
+                        'title': item['object'].title,
+                        'caption': image.alt_text or item['object'].title,
+                    })
             
             # Создаем XML-структуру
             url_info = {
@@ -249,8 +297,8 @@ class ImageSitemap(Sitemap):
                 'lastmod': lastmod,
                 'changefreq': self.changefreq,
                 'priority': f'{priority:.1f}',
-                'images': [image_data]  # Список изображений для одной страницы
+                'images': images_data  # Список всех изображений для одной страницы
             }
             urls.append(url_info)
-            
+        
         return urls

@@ -2,7 +2,6 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-{% spaceless %}
 {% for url in urlset %}
     <url>
         <loc>{{ url.location|escape }}</loc>
@@ -18,13 +17,11 @@
                 </image:image>
             {% endfor %}
         {% endif %}
-        {% if url.alternates %}
-            {% for alternate in url.alternates %}
-                <xhtml:link rel="alternate" hreflang="{{ alternate.lang }}" href="{{ alternate.location|escape }}" />
+        {% if url.alternate_links %}
+            {% for alternate_link in url.alternate_links %}
+                {{ alternate_link }}
             {% endfor %}
         {% endif %}
     </url>
 {% endfor %}
-{% endspaceless %}
 </urlset>
-
