@@ -155,20 +155,30 @@ class Post(models.Model):
         
         # Логирование для отладки
         main_image_photo = main_image.photo if main_image and main_image.photo else None
-        logger.info(f"Post {self.slug}: main_image={main_image}, main_image_photo={main_image_photo}")
+        main_image_gif = main_image.gif if main_image and main_image.gif else None
+        logger.info(f"Post {self.slug}: main_image={main_image}, photo={main_image_photo}, gif={main_image_gif}")
         
-        # Если главное изображение есть и у него есть фото (не дефолтное)
+        # Приоритет 1: Если главное изображение есть и у него есть фото (не дефолтное)
         if main_image and main_image.photo:
             photo_str = str(main_image.photo)
             if 'default-og-image' not in photo_str:
                 try:
                     photo_url = main_image.photo.url
-                    logger.info(f"Post {self.slug}: Using main image: {photo_url}")
+                    logger.info(f"Post {self.slug}: Using main image photo: {photo_url}")
                     return photo_url
                 except (AttributeError, ValueError) as e:
-                    logger.warning(f"Post {self.slug}: Error getting main image URL: {e}")
+                    logger.warning(f"Post {self.slug}: Error getting main image photo URL: {e}")
         
-        # Если главное изображение дефолтное или его нет, ищем первое реальное изображение
+        # Приоритет 2: Если у главного изображения есть гифка (когда нет фото)
+        if main_image and main_image.gif:
+            try:
+                gif_url = main_image.gif.url
+                logger.info(f"Post {self.slug}: Using main image GIF: {gif_url}")
+                return gif_url
+            except (AttributeError, ValueError) as e:
+                logger.warning(f"Post {self.slug}: Error getting main image GIF URL: {e}")
+        
+        # Приоритет 3: Ищем первое реальное изображение с фото
         real_images = self.images.filter(photo__isnull=False).exclude(photo__icontains='default-og-image')
         logger.info(f"Post {self.slug}: real_images_count={real_images.count()}")
         
@@ -177,12 +187,24 @@ class Post(models.Model):
             if first_real_image and first_real_image.photo:
                 try:
                     photo_url = first_real_image.photo.url
-                    logger.info(f"Post {self.slug}: Using first real image: {photo_url}")
+                    logger.info(f"Post {self.slug}: Using first real image photo: {photo_url}")
                     return photo_url
                 except (AttributeError, ValueError) as e:
-                    logger.warning(f"Post {self.slug}: Error getting real image URL: {e}")
-            
-        # Проверяем есть ли уже сгенерированная OG картинка
+                    logger.warning(f"Post {self.slug}: Error getting real image photo URL: {e}")
+        
+        # Приоритет 4: Ищем первую гифку (если нет фото вообще)
+        gif_images = self.images.filter(gif__isnull=False)
+        if gif_images.exists():
+            first_gif = gif_images.first()
+            if first_gif and first_gif.gif:
+                try:
+                    gif_url = first_gif.gif.url
+                    logger.info(f"Post {self.slug}: Using first GIF: {gif_url}")
+                    return gif_url
+                except (AttributeError, ValueError) as e:
+                    logger.warning(f"Post {self.slug}: Error getting GIF URL: {e}")
+        
+        # Приоритет 5: Проверяем есть ли уже сгенерированная OG картинка
         og_filename = f'og_post_{self.slug}.jpg'
         og_path = os.path.join(settings.MEDIA_ROOT, 'og_images', og_filename)
         
@@ -190,7 +212,7 @@ class Post(models.Model):
             logger.info(f"Post {self.slug}: Using existing OG image: {og_filename}")
             return f'{settings.MEDIA_URL}og_images/{og_filename}'
         
-        # Генерируем новую OG картинку
+        # Приоритет 6: Генерируем новую OG картинку
         try:
             logger.info(f"Post {self.slug}: Generating new OG image")
             og_url = save_og_image(
