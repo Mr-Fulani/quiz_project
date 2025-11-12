@@ -20,7 +20,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 // Устанавливаем размер в зависимости от устройства
 const isMobileDevice = window.innerWidth <= 580;
-const initialSize = isMobileDevice ? 400 : 600;
+const initialSize = isMobileDevice ? 400 : 500;
 renderer.setSize(initialSize, initialSize);
 renderer.setClearColor(0x000000, 0); // Прозрачный фон
 // Сразу устанавливаем прозрачность canvas
@@ -141,7 +141,7 @@ loader.load(
     const savedDeviceType = localStorage.getItem('beeDeviceType');
     const currentDeviceType = isMobile ? 'mobile' : 'desktop';
     const savedVersion = localStorage.getItem('beeScaleVersion');
-    const currentVersion = 'v2.1'; // Новая версия для сброса размеров
+    const currentVersion = 'v2.2'; // Новая версия для уменьшения размера на десктопе
     
     if (savedDeviceType && savedDeviceType !== currentDeviceType) {
       // Устройство изменилось, очищаем сохраненную позицию и масштаб
@@ -159,8 +159,8 @@ loader.load(
     localStorage.setItem('beeDeviceType', currentDeviceType);
     
     // Устанавливаем масштаб в зависимости от ширины экрана
-    // Можно увеличить эти значения, если пчела все еще кажется маленькой
-    const scale = isMobile ? 0.25 : 0.3; // Уменьшили размер пчелы на мобильных
+    // Уменьшен размер пчелы для десктопа
+    const scale = isMobile ? 0.25 : 0.26; // Уменьшили размер пчелы на десктопе
     bee.scale.set(scale, scale, scale);
     console.log("✅ Bee scale set to:", scale, "isMobile:", isMobile);
     
@@ -232,7 +232,7 @@ window.addEventListener("resize", () => {
     
     // Обновляем размер рендерера
     const isMobile = window.innerWidth <= 580;
-    const size = isMobile ? 400 : 600;
+    const size = isMobile ? 400 : 500;
     renderer.setSize(size, size);
     camera.aspect = 1; // Всегда квадратный
     camera.updateProjectionMatrix();
