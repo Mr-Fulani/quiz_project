@@ -138,13 +138,13 @@ All static text is localized using {% trans %} for English msgid and translation
             {% if project.github_link or project.demo_link %}
             <div class="blog-meta project-links">
                 {% if project.github_link %}
-                <a href="{{ project.github_link }}" class="btn" target="_blank">
+                <a href="{{ project.github_link }}" class="btn" target="_blank" rel="noopener noreferrer">
                     <ion-icon name="logo-github"></ion-icon>
                     {% trans "GitHub" %}
                 </a>
                 {% endif %}
                 {% if project.demo_link %}
-                <a href="{{ project.demo_link }}" class="btn" target="_blank">
+                <a href="{{ project.demo_link }}" class="btn" target="_blank" rel="noopener noreferrer">
                     <ion-icon name="globe-outline"></ion-icon>
                     {% trans "Live Demo" %}
                 </a>

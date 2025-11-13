@@ -30,11 +30,11 @@
             <p class="email"><a href="mailto:{{ resume.email|default:'fulani.dev@gmail.com' }}">{{ resume.email|default:'fulani.dev@gmail.com' }}</a></p>
             {% if websites %}
                 {% for website in websites %}
-                <p><a href="{{ website.url }}" target="_blank">{{ website.url }}</a></p>
+                <p><a href="{{ website.url }}" target="_blank" rel="noopener noreferrer">{{ website.url }}</a></p>
                 {% endfor %}
             {% else %}
-            <p><a href="https://github.com/Mr-Fulani" target="_blank">https://github.com/Mr-Fulani</a></p>
-            <p><a href="https://t.me/Mr_Fulani" target="_blank">https://t.me/Mr_Fulani</a></p>
+            <p><a href="https://github.com/Mr-Fulani" target="_blank" rel="noopener noreferrer">https://github.com/Mr-Fulani</a></p>
+            <p><a href="https://t.me/Mr_Fulani" target="_blank" rel="noopener noreferrer">https://t.me/Mr_Fulani</a></p>
             {% endif %}
         </div>
     </header>
