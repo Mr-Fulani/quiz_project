@@ -1,4 +1,5 @@
 # Dockerfile для nginx сервера
+# Используем готовый образ с brotli или стандартный alpine
 FROM nginx:alpine
 
 ARG NGINX_CONF=nginx-local.conf
