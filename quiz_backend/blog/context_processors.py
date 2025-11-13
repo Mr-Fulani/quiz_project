@@ -253,7 +253,7 @@ def seo_context(request):
     # Базовые SEO данные
     seo_data = {
         'meta_title': _('Quiz Python, Go, JavaScript, Java, C# | Programming Quizzes & Learning'),
-        'meta_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment.'),
+        'meta_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment. Improve your developer skills with our comprehensive quiz platform.'),
         'meta_keywords': _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding'),
         'canonical_url': base_url + reverse('blog:home'),
         'hreflang_url': base_url + reverse('blog:home'),
