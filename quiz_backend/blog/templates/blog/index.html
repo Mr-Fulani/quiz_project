@@ -10,7 +10,8 @@
 {% block content %}
 <article class="about active" data-page="home">
     <header>
-        <h1 class="h2 article-title">{% trans "Home" %}</h1>
+        <h1 class="h2 article-title">{% trans "Programming Quizzes & Learning Platform" %}</h1>
+        <p class="page-subtitle">{% trans "Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges and tutorials." %}</p>
     </header>
 
     <section class="video section-gap">
@@ -169,7 +170,7 @@
         <ul class="resources-list">
             {% for key, resource in personal_info.resources.items %}
             <li class="resources-item">
-                <a href="{{ resource.url }}" target="_blank" class="services-link">
+                <a href="{{ resource.url }}" target="_blank" rel="noopener noreferrer" class="services-link">
                     <div class="resources-icon-box">
                         <img src="{{ resource.icon }}" alt="{{ resource.name }}" width="40">
                     </div>
@@ -190,7 +191,7 @@
                 {% for marquee in marquees %}
                     <span>
                         {% if marquee.link_url %}
-                            <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                            <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank" rel="noopener noreferrer"{% endif %}>
                                 {{ marquee.get_text }}
                             </a>
                         {% else %}
@@ -202,7 +203,7 @@
                 {% for marquee in marquees %}
                     <span>
                         {% if marquee.link_url %}
-                            <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank"{% endif %}>
+                            <a href="{{ marquee.link_url }}" {% if marquee.link_target_blank %}target="_blank" rel="noopener noreferrer"{% endif %}>
                                 {{ marquee.get_text }}
                             </a>
                         {% else %}

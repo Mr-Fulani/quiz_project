@@ -174,18 +174,18 @@
     </script>
 
     <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}">
-    <script src="{% static 'blog/js/font-awesome.min.js' %}"></script>
+    <script src="{% static 'blog/js/font-awesome.min.js' %}" defer></script>
 
     <!-- GSAP будет подключен в футере для анимации пчелы -->
 
     {% block extra_head %}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     {% endblock %}
 
     <!-- Google Analytics -->
     {% if GOOGLE_ANALYTICS_PROPERTY_ID %}
         <script async src="https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_PROPERTY_ID }}"></script>
-        <script>
+        <script defer>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
@@ -193,7 +193,7 @@
             console.log('Google Analytics initialized with ID: {{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
         </script>
     {% else %}
-        <script>
+        <script defer>
             console.log('Google Analytics not initialized: GOOGLE_ANALYTICS_PROPERTY_ID is not set');
         </script>
     {% endif %}
@@ -212,7 +212,7 @@
             console.log('Yandex Metrica not initialized: YANDEX_METRICA_ID is not set');
         </script>
     {% endif %}
-
+ 
 
     <!-- Structured Data (JSON-LD) -->
     {% if website_json_ld %}
@@ -934,7 +934,7 @@
 {% block scripts %}{% endblock %}
 
 <!-- Подключение JavaScript для динамических отступов заголовков -->
-<script src="{% static 'blog/js/header-spacing.js' %}"></script>
+<script src="{% static 'blog/js/header-spacing.js' %}" defer></script>
 
 </body>
 </html>

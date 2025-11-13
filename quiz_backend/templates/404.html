@@ -1,11 +1,13 @@
-{% load static %}
+{% load static i18n %}
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Error</title>
+  <title>{% trans "Page Not Found - 404" %} | QuizHub</title>
+  <meta name="description" content="{% trans 'The page you are looking for could not be found. Return to QuizHub homepage or explore our programming quizzes and tutorials.' %}">
+  <meta name="robots" content="noindex, follow">
   
   <!-- Добавляем favicon -->
   <link rel="icon" type="image/png" href="{% static 'blog/favicon/favicon.png' %}">
@@ -15,43 +17,105 @@
        https://codepen.io/PraRoz/pen/OJzrmmm */
     @import url("https://fonts.googleapis.com/css2?family=Monoton&display=swap");
 
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       background-color: #111111;
-      overflow: hidden;
+      overflow-x: hidden;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
-    div {
+    
+    .error-container {
+      text-align: center;
       margin-top: 90px;
       padding: 40px;
+    }
+    
+    .error-text {
       font-size: 95px;
       font-family: "Monoton", cursive;
-      text-align: center;
       text-transform: uppercase;
       text-shadow: 0 0 80px red, 0 0 30px FireBrick, 0 0 6px DarkRed;
       color: red;
+      margin-bottom: 20px;
     }
-    div p {
+    
+    .error-text p {
       margin: 5px;
     }
+    
     #error:hover {
       text-shadow: 0 0 200px #ffffff, 0 0 80px #008000, 0 0 6px #0000ff;
     }
+    
     #code:hover {
       text-shadow: 0 0 100px red, 0 0 40px FireBrick, 0 0 8px DarkRed;
     }
+    
     #error {
       color: #fff;
       text-shadow: 0 0 80px #ffffff, 0 0 30px #008000, 0 0 6px #0000ff;
     }
+    
     #error span {
       animation: upper 6s linear infinite;
     }
+    
     #code span:nth-of-type(2) {
       animation: lower 9s linear infinite;
     }
+    
     #code span:nth-of-type(1) {
       text-shadow: none;
       opacity: 0.4;
     }
+    
+    .helpful-links {
+      margin-top: 40px;
+      padding: 20px;
+      max-width: 600px;
+    }
+    
+    .helpful-links h2 {
+      color: #fff;
+      font-size: 24px;
+      margin-bottom: 20px;
+      font-weight: normal;
+    }
+    
+    .helpful-links ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .helpful-links a {
+      color: #4a9eff;
+      text-decoration: none;
+      font-size: 18px;
+      padding: 10px 20px;
+      border: 2px solid #4a9eff;
+      border-radius: 5px;
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+    
+    .helpful-links a:hover {
+      background-color: #4a9eff;
+      color: #111111;
+      transform: translateY(-2px);
+    }
+    
     @keyframes upper {
       0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% {
         opacity: 0.99;
@@ -62,6 +126,7 @@
         text-shadow: none;
       }
     }
+    
     @keyframes lower {
       0%, 12%, 18.999%, 23%, 31.999%, 37%, 44.999%, 46%, 49.999%, 51%, 58.999%, 61%, 68.999%, 71%, 85.999%, 96%, 100% {
         opacity: 0.99;
@@ -72,12 +137,41 @@
         text-shadow: none;
       }
     }
+    
+    @media (max-width: 768px) {
+      .error-text {
+        font-size: 60px;
+      }
+      
+      .helpful-links h2 {
+        font-size: 20px;
+      }
+      
+      .helpful-links a {
+        font-size: 16px;
+        padding: 8px 16px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div>
-    <p id="error">E <span>r</span>ror</p>
-    <p id="code">4<span>0</span><span>4</span></p>
+  <div class="error-container">
+    <div class="error-text">
+      <p id="error">E <span>r</span>ror</p>
+      <p id="code">4<span>0</span><span>4</span></p>
+    </div>
+    
+    <div class="helpful-links">
+      <h2>{% trans "Page Not Found" %}</h2>
+      <p style="color: #ccc; margin-bottom: 20px;">{% trans "The page you are looking for could not be found. Here are some helpful links:" %}</p>
+      <ul>
+        <li><a href="/">{% trans "Home" %}</a></li>
+        <li><a href="/blog/">{% trans "Blog Posts" %}</a></li>
+        <li><a href="/quizes/">{% trans "Programming Quizzes" %}</a></li>
+        <li><a href="/portfolio/">{% trans "Portfolio" %}</a></li>
+        <li><a href="/about/">{% trans "About" %}</a></li>
+      </ul>
+    </div>
   </div>
 </body>
 </html>
