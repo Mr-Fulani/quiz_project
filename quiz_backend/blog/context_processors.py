@@ -120,27 +120,32 @@ def personal_info(request):
             'resources': {
                 'youtube': {
                     'url': 'https://www.youtube.com/@Mr_Fulani',
-                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/800px-YouTube_full-color_icon_%282017%29.svg.png',
+                    # Используем thumbnail версию 128px вместо 800px для оптимизации
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/128px-YouTube_full-color_icon_%282017%29.svg.png',
                     'name': 'YouTube'
                 },
                 'telegram': {
                     'url': 'https://t.me/+Gh7xasVaKwdlMTY0',
-                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Telegram_2019_Logo.svg/512px-Telegram_2019_Logo.svg.png',
+                    # Используем thumbnail версию 128px вместо 512px для оптимизации
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Telegram_2019_Logo.svg/128px-Telegram_2019_Logo.svg.png',
                     'name': 'Telegram'
                 },
                 'vk': {
                     'url': 'https://vk.com/development_hub',
-                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/VK_Compact_Logo_%282021-present%29.svg/512px-VK_Compact_Logo_%282021-present%29.svg.png',
+                    # Используем thumbnail версию 128px вместо 512px для оптимизации
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/VK_Compact_Logo_%282021-present%29.svg/128px-VK_Compact_Logo_%282021-present%29.svg.png',
                     'name': 'VKontakte'
                 },
                 'dzen': {
                     'url': 'https://dzen.ru/yourpage',
-                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Yandex_Zen_logo_icon.svg/512px-Yandex_Zen_logo_icon.svg.png',
+                    # Используем thumbnail версию 128px вместо 512px для оптимизации
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Yandex_Zen_logo_icon.svg/128px-Yandex_Zen_logo_icon.svg.png',
                     'name': _('Yandex Zen')
                 },
                 'instagram': {
                     'url': 'https://www.instagram.com/fulani_developer',
-                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Instagram_logo_2022.svg/512px-Instagram_logo_2022.svg.png',
+                    # Используем thumbnail версию 128px вместо 512px для оптимизации
+                    'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Instagram_logo_2022.svg/128px-Instagram_logo_2022.svg.png',
                     'name': 'Instagram'
                 },
                 'tiktok': {
