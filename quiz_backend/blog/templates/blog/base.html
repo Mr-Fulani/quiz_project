@@ -754,7 +754,9 @@
 <!-- Скрипты для 3D анимации пчелы (lazy load для критической производительности) -->
 <script>
     // Lazy load тяжелых библиотек анимации только после загрузки страницы
+    // Увеличена задержка для ScrollTrigger, чтобы не блокировать основной поток
     window.addEventListener('load', function() {
+        // Загружаем GSAP с небольшой задержкой для password-animation.js
         setTimeout(function() {
             var gsapScript = document.createElement('script');
             gsapScript.src = '{% static "blog/js/gsap.min.js" %}';
@@ -767,21 +769,43 @@
                 passwordAnimationScript.src = '{% static "blog/js/password-animation.js" %}';
                 passwordAnimationScript.defer = true;
                 document.body.appendChild(passwordAnimationScript);
+            };
+        }, 2000); // Задержка 2 секунды для GSAP
+        
+        // ScrollTrigger загружаем с большой задержкой, чтобы не блокировать основной поток
+        setTimeout(function() {
+            // Проверяем, что GSAP уже загружен
+            if (typeof gsap === 'undefined') {
+                var gsapScript = document.createElement('script');
+                gsapScript.src = '{% static "blog/js/gsap.min.js" %}';
+                gsapScript.defer = true;
+                document.body.appendChild(gsapScript);
                 
+                gsapScript.onload = function() {
+                    loadScrollTrigger();
+                };
+            } else {
+                loadScrollTrigger();
+            }
+            
+            function loadScrollTrigger() {
                 var scrollTriggerScript = document.createElement('script');
                 scrollTriggerScript.src = '{% static "blog/js/ScrollTrigger.min.js" %}';
                 scrollTriggerScript.defer = true;
                 document.body.appendChild(scrollTriggerScript);
                 
                 scrollTriggerScript.onload = function() {
-                    var beeScript = document.createElement('script');
-                    beeScript.type = 'module';
-                    beeScript.src = '{% static "blog/js/bee-scroll.js" %}';
-                    beeScript.defer = true;
-                    document.body.appendChild(beeScript);
+                    // Загружаем bee-scroll.js только после полной загрузки ScrollTrigger
+                    setTimeout(function() {
+                        var beeScript = document.createElement('script');
+                        beeScript.type = 'module';
+                        beeScript.src = '{% static "blog/js/bee-scroll.js" %}';
+                        beeScript.defer = true;
+                        document.body.appendChild(beeScript);
+                    }, 1000); // Дополнительная задержка для bee-scroll.js
                 };
-            };
-        }, 2000); // Задержка 2 секунды для приоритета критического контента
+            }
+        }, 6000); // Задержка 6 секунд для ScrollTrigger (критично для производительности)
     });
 </script>
 

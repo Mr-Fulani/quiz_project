@@ -115,7 +115,7 @@ All static text is localized using {% trans %} for English msgid and translation
 {% endblock %}
 
 {% block scripts %}
-<script src="https://unpkg.com/gsap@3.11.0/dist/gsap.min.js"></script>
-<script type="module" src="{% static 'blog/js/filter-dropdown.js' %}"></script>
+<!-- GSAP загружается в base.html с задержкой, filter-dropdown.js работает без GSAP -->
+<script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
     <script src="{% static 'blog/js/interactions.js' %}?v=2.1"></script>
 {% endblock %}
