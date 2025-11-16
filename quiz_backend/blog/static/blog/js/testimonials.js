@@ -214,7 +214,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (addButton) {
         addButton.addEventListener('click', openAddTestimonialModal);
     } else {
-        console.error(window.testimonialsTranslations.addTestimonialButtonNotFound);
+        // Кнопка не найдена - это нормально, если страница не использует testimonials
+        // Используем console.debug вместо console.error для некритичных случаев
+        if (window.testimonialsTranslations && window.testimonialsTranslations.addTestimonialButtonNotFound) {
+            console.debug(window.testimonialsTranslations.addTestimonialButtonNotFound);
+        }
     }
 
     if (testimonialForm) {

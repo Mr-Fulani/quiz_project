@@ -73,12 +73,21 @@ function restoreBeePosition() {
   const savedPosition = localStorage.getItem('beePosition');
   if (savedPosition && bee) {
     try {
+      // Проверяем, что данные валидны перед парсингом
+      if (typeof savedPosition !== 'string' || !savedPosition.trim().startsWith('{')) {
+        console.warn("Invalid bee position data in localStorage, clearing it");
+        localStorage.removeItem('beePosition');
+        return;
+      }
       const position = JSON.parse(savedPosition);
-      bee.position.set(position.position.x, position.position.y, position.position.z);
-      bee.rotation.set(position.rotation.x, position.rotation.y, position.rotation.z);
-      console.log("Bee position restored from localStorage");
+      if (position && position.position && position.rotation) {
+        bee.position.set(position.position.x, position.position.y, position.position.z);
+        bee.rotation.set(position.rotation.x, position.rotation.y, position.rotation.z);
+        console.log("Bee position restored from localStorage");
+      }
     } catch (e) {
-      console.error("Error restoring bee position:", e);
+      console.warn("Error restoring bee position, clearing invalid data:", e);
+      localStorage.removeItem('beePosition');
     }
   }
 }
@@ -91,17 +100,26 @@ function setInitialBeePosition() {
   const savedPosition = localStorage.getItem('beePosition');
   if (savedPosition) {
     try {
+      // Проверяем, что данные валидны перед парсингом
+      if (typeof savedPosition !== 'string' || !savedPosition.trim().startsWith('{')) {
+        console.warn("Invalid bee position data in localStorage, clearing it");
+        localStorage.removeItem('beePosition');
+        return;
+      }
       const position = JSON.parse(savedPosition);
-      bee.position.set(position.position.x, position.position.y, position.position.z);
-      bee.rotation.set(position.rotation.x, position.rotation.y, position.rotation.z);
-      // Восстанавливаем масштаб, если он был сохранен
-      if (position.scale) {
-        bee.scale.set(position.scale.x, position.scale.y, position.scale.z);
+      if (position && position.position && position.rotation) {
+        bee.position.set(position.position.x, position.position.y, position.position.z);
+        bee.rotation.set(position.rotation.x, position.rotation.y, position.rotation.z);
+        // Восстанавливаем масштаб, если он был сохранен
+        if (position.scale) {
+          bee.scale.set(position.scale.x, position.scale.y, position.scale.z);
+        }
       }
       console.log("Bee position and scale restored from localStorage:", position);
       return; // Выходим, если восстановили сохраненную позицию
     } catch (e) {
-      console.error("Error restoring bee position:", e);
+      console.warn("Error restoring bee position, clearing invalid data:", e);
+      localStorage.removeItem('beePosition');
     }
   }
   
