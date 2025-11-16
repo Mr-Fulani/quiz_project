@@ -145,24 +145,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const isActive = dropdown.classList.toggle('active');
             toggleBtn.classList.toggle('active');
 
-            gsap.to(dropdown, {
-                opacity: isActive ? 1 : 0,
-                y: isActive ? 0 : -10,
-                duration: 0.3,
-                ease: 'power2.out',
-                onStart: () => {
-                    if (isActive) {
-                        dropdown.style.visibility = 'visible';
-                        dropdown.style.display = 'block';
+            if (typeof gsap !== 'undefined') {
+                gsap.to(dropdown, {
+                    opacity: isActive ? 1 : 0,
+                    y: isActive ? 0 : -10,
+                    duration: 0.3,
+                    ease: 'power2.out',
+                    onStart: () => {
+                        if (isActive) {
+                            dropdown.style.visibility = 'visible';
+                            dropdown.style.display = 'block';
+                        }
+                    },
+                    onComplete: () => {
+                        if (!isActive) {
+                            dropdown.style.visibility = 'hidden';
+                            dropdown.style.display = 'none';
+                        }
                     }
-                },
-                onComplete: () => {
-                    if (!isActive) {
+                });
+            } else {
+                // Fallback без GSAP
+                if (isActive) {
+                    dropdown.style.visibility = 'visible';
+                    dropdown.style.display = 'block';
+                    dropdown.style.opacity = '1';
+                } else {
+                    dropdown.style.opacity = '0';
+                    setTimeout(() => {
                         dropdown.style.visibility = 'hidden';
                         dropdown.style.display = 'none';
-                    }
+                    }, 300);
                 }
-            });
+            }
 
             console.log('Dropdown toggled:', isActive);
         });
@@ -175,16 +190,25 @@ document.addEventListener('DOMContentLoaded', () => {
             dropdown.classList.remove('active');
             if (toggleBtn) toggleBtn.classList.remove('active');
 
-            gsap.to(dropdown, {
-                opacity: 0,
-                y: -10,
-                duration: 0.3,
-                ease: 'power2.out',
-                onComplete: () => {
+            if (typeof gsap !== 'undefined') {
+                gsap.to(dropdown, {
+                    opacity: 0,
+                    y: -10,
+                    duration: 0.3,
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        dropdown.style.visibility = 'hidden';
+                        dropdown.style.display = 'none';
+                    }
+                });
+            } else {
+                // Fallback без GSAP
+                dropdown.style.opacity = '0';
+                setTimeout(() => {
                     dropdown.style.visibility = 'hidden';
                     dropdown.style.display = 'none';
-                }
-            });
+                }, 300);
+            }
 
             console.log('Dropdown closed');
         }
@@ -200,16 +224,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.innerWidth <= 580) {
                 dropdown.classList.remove('active');
                 if (toggleBtn) toggleBtn.classList.remove('active');
-                gsap.to(dropdown, {
-                    opacity: 0,
-                    y: -10,
-                    duration: 0.3,
-                    ease: 'power2.out',
-                    onComplete: () => {
+                if (typeof gsap !== 'undefined') {
+                    gsap.to(dropdown, {
+                        opacity: 0,
+                        y: -10,
+                        duration: 0.3,
+                        ease: 'power2.out',
+                        onComplete: () => {
+                            dropdown.style.visibility = 'hidden';
+                            dropdown.style.display = 'none';
+                        }
+                    });
+                } else {
+                    // Fallback без GSAP
+                    dropdown.style.opacity = '0';
+                    setTimeout(() => {
                         dropdown.style.visibility = 'hidden';
                         dropdown.style.display = 'none';
-                    }
-                });
+                    }, 300);
+                }
             }
         });
     });
