@@ -225,7 +225,8 @@ function initTopicCards() {
                 }
                 
                 if (videoSrc) {
-                    mediaElement = `<video src="${videoSrc}" alt="${title}" controls playsinline></video>`;
+                    // Видео без стандартных контролов и без звука по умолчанию
+                    mediaElement = `<video src="${videoSrc}" alt="${title}" playsinline muted loop></video>`;
                 }
             } else {
                 const img = topicCard.querySelector('img');
@@ -234,6 +235,13 @@ function initTopicCards() {
                 }
             }
             
+            // Добавляем кнопку звука только для видео
+            const soundButtonHTML = mediaType === 'video' ? `
+                <button class="sound-toggle-btn" data-video-index="${index}">
+                    <ion-icon name="volume-mute-outline"></ion-icon>
+                </button>
+            ` : '';
+            
             swiperHTML += `
                 <div class="swiper-slide">
                     <div class="topic-card-enlarged">
@@ -241,6 +249,7 @@ function initTopicCards() {
                             <ion-icon name="share-social-outline"></ion-icon>
                         </button>
                         ${mediaElement}
+                        ${soundButtonHTML}
                         <div class="card-overlay always-visible">
                             <h3>${title}</h3>
                             <div class="card-actions">
@@ -293,27 +302,45 @@ function initTopicCards() {
                     on: {
                         init: function() {
                             console.log('Swiper инициализирован на слайде:', this.activeIndex);
-                            // Автовоспроизведение видео на текущем слайде
+                            // Автовоспроизведение видео на текущем слайде (без звука)
                             const activeSlide = this.slides[this.activeIndex];
                             if (activeSlide) {
                                 const video = activeSlide.querySelector('video');
                                 if (video) {
+                                    video.muted = true; // Без звука по умолчанию
                                     video.play().catch(err => console.log('Autoplay blocked:', err));
+                                    updateSoundButton(activeSlide, video);
                                 }
                             }
                         },
                         slideChange: function() {
-                            // Автовоспроизведение видео при смене слайда
+                            // Останавливаем видео на предыдущем слайде
+                            const previousSlide = this.slides[this.previousIndex];
+                            if (previousSlide) {
+                                const prevVideo = previousSlide.querySelector('video');
+                                if (prevVideo) {
+                                    prevVideo.pause();
+                                    prevVideo.muted = true; // Отключаем звук при смене слайда
+                                    updateSoundButton(previousSlide, prevVideo);
+                                }
+                            }
+                            
+                            // Автовоспроизведение видео при смене слайда (без звука)
                             const activeSlide = this.slides[this.activeIndex];
                             if (activeSlide) {
                                 const video = activeSlide.querySelector('video');
                                 if (video) {
+                                    video.muted = true; // Без звука по умолчанию
                                     video.play().catch(err => console.log('Autoplay blocked:', err));
+                                    updateSoundButton(activeSlide, video);
                                 }
                             }
                         }
                     }
                 });
+                
+                // Добавляем обработчики для кнопок звука
+                setupSoundButtons();
                 
                 console.log('Swiper карточек тем успешно инициализирован');
             } else {
@@ -363,6 +390,39 @@ function initTopicCards() {
     function resumeGallery() {
         console.log('Resuming gallery');
         gallery.classList.remove('paused');
+    }
+    
+    // Функция для настройки кнопок звука
+    function setupSoundButtons() {
+        const soundButtons = document.querySelectorAll('.sound-toggle-btn');
+        soundButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const slide = this.closest('.swiper-slide');
+                const video = slide.querySelector('video');
+                if (video) {
+                    video.muted = !video.muted;
+                    updateSoundButton(slide, video);
+                }
+            });
+        });
+    }
+    
+    // Функция для обновления иконки кнопки звука
+    function updateSoundButton(slide, video) {
+        const soundButton = slide.querySelector('.sound-toggle-btn');
+        if (soundButton) {
+            const icon = soundButton.querySelector('ion-icon');
+            if (icon) {
+                if (video.muted) {
+                    icon.setAttribute('name', 'volume-mute-outline');
+                } else {
+                    icon.setAttribute('name', 'volume-high-outline');
+                }
+            }
+        }
     }
     
     function navigateToTopic(topicId) {
