@@ -904,11 +904,13 @@ class BlogView(BreadcrumbsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        posts_list = Post.objects.all()
+        # Исправлено: фильтруем только опубликованные посты
+        posts_list = Post.objects.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
-        context['categories'] = Category.objects.all()
+        # Исправлено: фильтруем только категории блога (не портфолио), чтобы JavaScript фильтр работал корректно
+        context['categories'] = Category.objects.filter(is_portfolio=False)
         context['meta_description'] = _('Explore articles and posts on programming and quizzes.')
         context['meta_keywords'] = _('blog, programming, quizzes')
         return context
