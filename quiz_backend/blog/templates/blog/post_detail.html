@@ -153,7 +153,7 @@ All static text is localized using {% trans %} for English msgid and translation
             <span class="sr-only">{% trans "Лайкнуть" %}</span>
         </button>
 
-        <button class="interaction-btn share-btn" 
+        <button type="button" class="interaction-btn share-btn" 
                 data-content-type="post" 
                 data-slug="{{ post.slug }}"
                 data-title="{{ post.title }}"
@@ -220,6 +220,6 @@ All static text is localized using {% trans %} for English msgid and translation
     </script>
 
             <!-- JavaScript для взаимодействий -->
-        <script src="{% static 'blog/js/interactions.js' %}?v=2.1"></script>
+        <script src="{% static 'blog/js/interactions.js' %}?v=2.2"></script>
 </article>
 {% endblock %}

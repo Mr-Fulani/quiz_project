@@ -83,7 +83,7 @@
                         <span class="sr-only">{% trans "Лайкнуть" %}</span>
                     </button>
 
-                    <button class="interaction-btn share-btn" 
+                    <button type="button" class="interaction-btn share-btn" 
                             data-content-type="post" 
                             data-slug="{{ post.slug }}"
                             data-title="{{ post.title }}"
@@ -131,5 +131,5 @@
 
 {% block scripts %}
 <script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
-    <script src="{% static 'blog/js/interactions.js' %}?v=2.1"></script>
+    <script src="{% static 'blog/js/interactions.js' %}?v=2.2"></script>
 {% endblock %}
