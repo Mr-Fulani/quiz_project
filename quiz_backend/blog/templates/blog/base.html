@@ -109,43 +109,54 @@
     
     <!-- Глобальная функция для Telegram авторизации (перенесено в конец body для избежания render-blocking) -->
 
+    <!-- Preload Font Awesome для улучшения производительности -->
+    <link rel="preload" href="{% static 'blog/webfonts/fa-solid-900.woff2' %}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}">
     <script src="{% static 'blog/js/font-awesome.min.js' %}" defer></script>
+    <!-- Font Awesome уже имеет font-display в CSS, preload ускоряет загрузку -->
 
     <!-- GSAP будет подключен в футере для анимации пчелы -->
 
     {% block extra_head %}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    {# Chart.js загружается только на страницах где используется, не глобально #}
     {% endblock %}
 
-    <!-- Google Analytics -->
+    <!-- Google Analytics - отложенная загрузка для улучшения производительности -->
     {% if GOOGLE_ANALYTICS_PROPERTY_ID %}
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_PROPERTY_ID }}"></script>
-        <script defer>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '{{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
-            console.log('Google Analytics initialized with ID: {{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
-        </script>
-    {% else %}
-        <script defer>
-            console.log('Google Analytics not initialized: GOOGLE_ANALYTICS_PROPERTY_ID is not set');
+        <script>
+            // Загружаем аналитику только после полной загрузки страницы
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    var script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_PROPERTY_ID }}';
+                    document.head.appendChild(script);
+                    
+                    script.onload = function() {
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+                        gtag('config', '{{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
+                        console.log('Google Analytics initialized with ID: {{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
+                    };
+                }, 3000); // Задержка 3 секунды для приоритета критического контента
+            });
         </script>
     {% endif %}
 
-    <!-- Yandex Metrica -->
+    <!-- Yandex Metrica - отложенная загрузка для улучшения производительности -->
     {% if YANDEX_METRICA_ID %}
-        <script type="text/javascript" defer>
-            (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-            m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-            (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-            ym('{{ YANDEX_METRICA_ID }}', "init", { clickmap:true, trackLinks:true, accurateTrackBounce:true });
-            console.log('Yandex Metrica initialized with ID: {{ YANDEX_METRICA_ID }}');
-        </script>
-    {% else %}
-        <script defer>
-            console.log('Yandex Metrica not initialized: YANDEX_METRICA_ID is not set');
+        <script>
+            // Загружаем аналитику только после полной загрузки страницы
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+                    m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+                    (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+                    ym('{{ YANDEX_METRICA_ID }}', "init", { clickmap:true, trackLinks:true, accurateTrackBounce:true });
+                    console.log('Yandex Metrica initialized with ID: {{ YANDEX_METRICA_ID }}');
+                }, 3000); // Задержка 3 секунды для приоритета критического контента
+            });
         </script>
     {% endif %}
  
