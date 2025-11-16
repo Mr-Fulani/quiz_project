@@ -16,9 +16,9 @@
         <div class="modal-img-wrapper">
             <figure class="modal-avatar-box">
                 {% if testimonial.user.profile.avatar %}
-                    <img src="{{ testimonial.user.profile.avatar.url }}" alt="avatar" data-modal-img>
+                    <img src="{{ testimonial.user.profile.avatar.url }}" alt="avatar" data-modal-img width="120" height="120">
                 {% else %}
-                    <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-modal-img>
+                    <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-modal-img width="120" height="120">
                 {% endif %}
             </figure>
         </div>
