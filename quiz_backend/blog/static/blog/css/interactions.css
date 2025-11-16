@@ -22,6 +22,9 @@
     border-top: 1px solid #eee;
     border-bottom: none;
     border-radius: 0 0 8px 8px;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
 }
 
 .interactions-bar.compact .interaction-btn {
@@ -46,6 +49,9 @@
     border-radius: 20px;
     transition: all 0.3s ease;
     text-decoration: none;
+    position: relative;
+    z-index: 11;
+    pointer-events: auto;
 }
 
 .interaction-btn:hover {

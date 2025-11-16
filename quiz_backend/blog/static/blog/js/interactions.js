@@ -72,19 +72,21 @@ class ContentInteractions {
             }
         });
 
-        // Обработка репостов
+        // Обработка репостов - используем capture фазу для раннего перехвата
         document.addEventListener('click', (e) => {
             if (e.target.matches('.share-btn, .share-btn *')) {
                 e.preventDefault();
                 e.stopPropagation(); // Предотвращаем всплытие события
+                e.stopImmediatePropagation(); // Останавливаем дальнейшую обработку
                 const btn = e.target.closest('.share-btn');
                 if (btn && !btn.disabled) {
                     btn.disabled = true; // Временно отключаем кнопку
                     this.showShareModal(btn);
                     setTimeout(() => btn.disabled = false, 1000); // Включаем через секунду
                 }
+                return false; // Дополнительная защита
             }
-        });
+        }, true); // Используем capture фазу для раннего перехвата события
 
         // Тултипы для лайков и репостов с улучшенной логикой
         document.addEventListener('mouseenter', (e) => {
