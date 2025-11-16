@@ -102,7 +102,7 @@ if [ "$SKIP_CERTBOT" = true ]; then
     echo "🚀 Запуск всех сервисов с существующими SSL сертификатами..."
     if [ "$FAST_MODE" = "1" ]; then
       # Быстрый запуск только необходимых сервисов
-      docker compose -f docker-compose.local-prod.yml up -d --build nginx quiz_backend mini_app redis postgres_db
+      docker compose -f docker-compose.local-prod.yml up -d --build nginx quiz_backend mini_app redis postgres_db telegram_bot celery_worker celery_beat
     else
       # Полный запуск с пересборкой
       docker compose -f docker-compose.local-prod.yml up -d --build --force-recreate
@@ -113,7 +113,7 @@ if [ "$SKIP_CERTBOT" = true ]; then
 else
     echo "🚀 Запуск базовых сервисов (без SSL)..."
     # Запускаем только базовые сервисы без SSL (включая Redis и Celery)
-    docker compose -f docker-compose.local-prod.yml up -d postgres_db redis quiz_backend celery_worker celery_beat mini_app
+    docker compose -f docker-compose.local-prod.yml up -d postgres_db redis quiz_backend celery_worker celery_beat mini_app telegram_bot
 
     echo "⏳ Ожидание готовности сервисов..."
     if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 10; fi
@@ -180,6 +180,15 @@ fi
 
 echo "🔄 Перезапуск Nginx для применения изменений..."
 docker compose -f docker-compose.local-prod.yml restart nginx
+
+echo ""
+echo "🤖 Проверка статуса Telegram бота..."
+if docker compose -f docker-compose.local-prod.yml ps telegram_bot | grep -q "Up"; then
+    echo "✅ Telegram бот запущен и работает"
+else
+    echo "⚠️  Внимание: Telegram бот не запущен или имеет проблемы"
+    echo "   Проверьте логи: docker compose -f docker-compose.local-prod.yml logs telegram_bot"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"

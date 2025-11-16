@@ -249,16 +249,19 @@ services:
       context: .
       dockerfile: bot/Dockerfile
     container_name: upbeat_robinson
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres_db:5432/${DB_NAME:-fulani_quiz_db}
       - DB_HOST=postgres_db
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-admin_fulani_quiz}
+      - DB_USER=${DB_USER:-postgres}
       - DB_NAME=${DB_NAME:-fulani_quiz_db}
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
       - NGROK_HOST=${NGROK_HOST}
+      - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/quiz_project
       - LOGO_PATH=/quiz_project/bot/assets/logo.png
     volumes:
