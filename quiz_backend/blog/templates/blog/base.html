@@ -402,8 +402,7 @@
     window.loginUrl = "{% url 'accounts:login' %}";
 </script>
 <script defer src="{% static 'blog/js/auth_modal.js' %}"></script>
-<!-- Password animation -->
-<script defer src="{% static 'blog/js/password-animation.js' %}"></script>
+<!-- Password animation загружается после GSAP (см. блок загрузки GSAP ниже) -->
 <!-- Telegram Auth -->
 <!-- <script defer src="{% static 'social_auth/js/telegram-auth.js' %}"></script> -->
 
@@ -763,6 +762,12 @@
             document.body.appendChild(gsapScript);
             
             gsapScript.onload = function() {
+                // Загружаем password-animation.js после GSAP (нужен для страницы логина)
+                var passwordAnimationScript = document.createElement('script');
+                passwordAnimationScript.src = '{% static "blog/js/password-animation.js" %}';
+                passwordAnimationScript.defer = true;
+                document.body.appendChild(passwordAnimationScript);
+                
                 var scrollTriggerScript = document.createElement('script');
                 scrollTriggerScript.src = '{% static "blog/js/ScrollTrigger.min.js" %}';
                 scrollTriggerScript.defer = true;

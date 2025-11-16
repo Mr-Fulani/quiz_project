@@ -53,7 +53,7 @@
             <li class="service-item">
                 <a href="{% url 'blog:portfolio' %}?category=web" title="{% trans 'Development of websites and web applications' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1197/1197460.png" alt="{% trans 'Web development icon' %}" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/128/1197/1197460.png" alt="{% trans 'Web development icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
@@ -66,7 +66,7 @@
             <li class="service-item">
                 <a href="{% url 'blog:portfolio' %}?category=telegram-apps" title="{% trans 'Development of Telegram mini-apps' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="{% trans 'Telegram Mini Apps icon' %}" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/128/2111/2111644.png" alt="{% trans 'Telegram Mini Apps icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
@@ -79,7 +79,7 @@
             <li class="service-item">
                 <a href="{% url 'blog:portfolio' %}?category=bots" title="{% trans 'Creation of Telegram bots' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3480/3480317.png" alt="{% trans 'Telegram bots icon' %}" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/128/3480/3480317.png" alt="{% trans 'Telegram bots icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
@@ -92,7 +92,7 @@
             <li class="service-item">
                 <a href="{% url 'blog:portfolio' %}?category=automation" title="{% trans 'Business process automation' %}">
                     <div class="service-icon-box">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1055/1055687.png" alt="{% trans 'Automation icon' %}" width="40" height="40">
+                        <img src="https://cdn-icons-png.flaticon.com/128/1055/1055687.png" alt="{% trans 'Automation icon' %}" width="40" height="40">
                     </div>
 
                     <div class="service-content-box">
@@ -134,9 +134,9 @@
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
                         {% if testimonial.user.avatar %}
-                            <img src="{{ testimonial.user.avatar.url }}" alt="avatar" data-testimonials-avatar width="60">
+                            <img src="{{ testimonial.user.avatar.url }}" alt="avatar" data-testimonials-avatar width="60" height="60">
                         {% else %}
-                            <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-testimonials-avatar width="60">
+                            <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-testimonials-avatar width="60" height="60">
                         {% endif %}
                     </figure>
 
