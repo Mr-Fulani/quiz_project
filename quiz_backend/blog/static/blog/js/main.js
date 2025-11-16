@@ -117,7 +117,9 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("Initializing filter with first button");
         filterBtn[0].click();
     } else {
-        console.error("No filter buttons found. Check .filter-list visibility or [data-filter-btn] elements.");
+        // Кнопки фильтра не найдены - это нормально, если страница не использует фильтры
+        // Используем console.debug вместо console.error для некритичных случаев
+        console.debug("No filter buttons found. This is normal if the page doesn't use filters.");
     }
 
     /**
