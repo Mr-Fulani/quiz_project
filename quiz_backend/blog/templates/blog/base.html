@@ -98,12 +98,10 @@
     {# <link rel="manifest" href="{% static 'path/to/site.webmanifest' %}"> #}
     {# <link rel="mask-icon" href="{% static 'path/to/safari-pinned-tab.svg' %}" color="#5bbad5"> #}
 
-    <!-- Критический CSS загружается синхронно, остальные асинхронно -->
+    <!-- CSS файлы загружаются синхронно для предотвращения FOUC -->
     <link rel="stylesheet" href="{% static 'blog/css/global.css' %}">
-    <link rel="stylesheet" href="{% static 'blog/css/header-spacing.css' %}" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="{% static 'blog/css/header-spacing.css' %}"></noscript>
-    <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}"></noscript>
+    <link rel="stylesheet" href="{% static 'blog/css/header-spacing.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
     {% block extra_css %}{% endblock %}
 
     <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}" defer></script>
@@ -743,10 +741,33 @@
     }
 
 </style>
-<!-- Скрипты для 3D анимации пчелы (отложенная загрузка для улучшения производительности) -->
-<script src="{% static 'blog/js/gsap.min.js' %}" defer></script>
-<script src="{% static 'blog/js/ScrollTrigger.min.js' %}" defer></script>
-<script type="module" src="{% static 'blog/js/bee-scroll.js' %}" defer></script>
+<!-- Скрипты для 3D анимации пчелы (lazy load для критической производительности) -->
+<script>
+    // Lazy load тяжелых библиотек анимации только после загрузки страницы
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            var gsapScript = document.createElement('script');
+            gsapScript.src = '{% static "blog/js/gsap.min.js" %}';
+            gsapScript.defer = true;
+            document.body.appendChild(gsapScript);
+            
+            gsapScript.onload = function() {
+                var scrollTriggerScript = document.createElement('script');
+                scrollTriggerScript.src = '{% static "blog/js/ScrollTrigger.min.js" %}';
+                scrollTriggerScript.defer = true;
+                document.body.appendChild(scrollTriggerScript);
+                
+                scrollTriggerScript.onload = function() {
+                    var beeScript = document.createElement('script');
+                    beeScript.type = 'module';
+                    beeScript.src = '{% static "blog/js/bee-scroll.js" %}';
+                    beeScript.defer = true;
+                    document.body.appendChild(beeScript);
+                };
+            };
+        }, 2000); // Задержка 2 секунды для приоритета критического контента
+    });
+</script>
 
 <!-- Telegram Auth Handler -->
 <script>
