@@ -47,15 +47,55 @@
     <script>
     // Этот код должен выполняться ДО загрузки любого контента
     (function() {
-        // Расширяем приложение на весь экран при открытии через кнопку
-        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-            try {
-                window.Telegram.WebApp.ready();
-                window.Telegram.WebApp.expand();
-                console.log('🔗 [EARLY] Приложение расширено на весь экран');
-            } catch (e) {
-                console.warn('⚠️ [EARLY] Не удалось расширить приложение:', e);
+        // Функция для расширения приложения на весь экран (Fullscreen режим)
+        function expandToFullscreen() {
+            if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+                try {
+                    const tg = window.Telegram.WebApp;
+                    
+                    // Вызываем ready() если доступен
+                    if (tg.ready) {
+                        tg.ready();
+                    }
+                    
+                    // Расширяем приложение на весь экран
+                    if (tg.expand) {
+                        tg.expand();
+                        console.log('✅ [FULLSCREEN] Приложение расширено на весь экран (Fullscreen режим)');
+                    } else {
+                        console.warn('⚠️ [FULLSCREEN] Метод expand() недоступен');
+                    }
+                    
+                    // Устанавливаем полноэкранный режим через viewportStableHeight если доступен
+                    if (tg.viewportStableHeight !== undefined) {
+                        // Используем максимальную высоту для полноэкранного режима
+                        const maxHeight = tg.viewportHeight || window.innerHeight;
+                        console.log('📐 [FULLSCREEN] Viewport height:', maxHeight);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ [FULLSCREEN] Не удалось расширить приложение:', e);
+                }
             }
+        }
+        
+        // Расширяем приложение сразу при загрузке
+        expandToFullscreen();
+        
+        // Также расширяем при изменении viewport (на случай если Telegram изменит размер)
+        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+            const tg = window.Telegram.WebApp;
+            
+            // Слушаем событие изменения viewport
+            if (tg.onEvent) {
+                tg.onEvent('viewportChanged', function() {
+                    console.log('📐 [FULLSCREEN] Viewport изменился, расширяем на весь экран');
+                    expandToFullscreen();
+                });
+            }
+            
+            // Также расширяем после небольшой задержки для гарантии
+            setTimeout(expandToFullscreen, 100);
+            setTimeout(expandToFullscreen, 500);
         }
         
         // Проверяем параметр startapp из URL (для WebAppInfo кнопок)
@@ -407,6 +447,7 @@
                         viewportHeight: window.innerHeight,
                         viewportStableHeight: window.innerHeight,
                         themeParams: {},
+                        onEvent: () => {}, // Mock для onEvent
                         colorScheme: 'light',
                     };
                     // Устанавливаем cookie telegram_id для тестового режима
@@ -429,6 +470,12 @@
                     }
                 });
                 console.log('✅ Telegram WebApp is ready (или имитирован).');
+                
+                // Гарантируем полноэкранный режим после инициализации
+                if (window.Telegram.WebApp.expand) {
+                    window.Telegram.WebApp.expand();
+                    console.log('✅ [FULLSCREEN] Приложение расширено на весь экран после инициализации');
+                }
                 
                 // Обработка startParam для deep links (комментарии, темы)
                 // Проверяем startParam из Telegram WebApp API

@@ -49,13 +49,14 @@ async def update_all_bot_settings():
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     
     try:
-        profile_url = f"{WEBAPP_URL}/profile"
+        # URL для главной страницы мини-приложения
+        main_app_url = f"{WEBAPP_URL}/"
         
         logger.info("=" * 60)
         logger.info("🚀 ОБНОВЛЕНИЕ НАСТРОЕК MINI APP")
         logger.info("=" * 60)
         logger.info(f"🔗 WEBAPP_URL: {WEBAPP_URL}")
-        logger.info(f"🔗 Profile URL: {profile_url}")
+        logger.info(f"🔗 Главная страница Mini App: {main_app_url}")
         
         # Шаг 1: Получаем информацию о боте
         me = await bot.get_me()
@@ -72,10 +73,12 @@ async def update_all_bot_settings():
         
         # Шаг 4: Устанавливаем новый menu button
         logger.info("🔧 Установка нового menu button...")
+        # Текст кнопки по умолчанию: "Запустить приложение"
+        menu_button_text = os.getenv('TELEGRAM_MENU_BUTTON_TEXT', 'Запустить приложение')
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
-                text="Профиль",
-                web_app=WebAppInfo(url=profile_url)
+                text=menu_button_text,
+                web_app=WebAppInfo(url=main_app_url)
             )
         )
         
@@ -83,15 +86,22 @@ async def update_all_bot_settings():
         updated_menu = await bot.get_chat_menu_button()
         logger.info(f"✅ Обновленный menu button: {updated_menu}")
         
-        # Шаг 6: Обновляем описание бота
-        logger.info("📝 Обновление описания бота...")
-        description = f"Quiz Bot with Mini App: {WEBAPP_URL}"
-        await bot.set_my_description(description=description)
+        # Шаг 6: Обновляем описание бота (только если установлена переменная окружения)
+        logger.info("📝 Проверка настроек описания бота...")
+        desired_description = os.getenv('TELEGRAM_BOT_DESCRIPTION')
+        if desired_description:
+            logger.info(f"📝 Обновление описания бота: {desired_description}")
+            await bot.set_my_description(description=desired_description)
+        else:
+            logger.info("ℹ️  TELEGRAM_BOT_DESCRIPTION не установлена - пропускаем обновление описания")
         
-        # Шаг 7: Обновляем краткое описание
-        logger.info("📝 Обновление краткого описания...")
-        short_description = "Quiz Bot with Mini App"
-        await bot.set_my_short_description(short_description=short_description)
+        # Шаг 7: Обновляем краткое описание (только если установлена переменная окружения)
+        desired_short_description = os.getenv('TELEGRAM_BOT_SHORT_DESCRIPTION')
+        if desired_short_description:
+            logger.info(f"📝 Обновление краткого описания: {desired_short_description}")
+            await bot.set_my_short_description(short_description=desired_short_description)
+        else:
+            logger.info("ℹ️  TELEGRAM_BOT_SHORT_DESCRIPTION не установлена - пропускаем обновление краткого описания")
         
         logger.info("\n" + "=" * 60)
         logger.info("✅ ВСЕ НАСТРОЙКИ ОБНОВЛЕНЫ!")

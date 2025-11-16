@@ -260,6 +260,13 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-mr_proger_bot}
+      # Настройки описания бота (опционально)
+      # Если не установлены, используются существующие настройки из BotFather
+      # Это предотвращает сброс настроек при каждом деплое
+      - TELEGRAM_BOT_DESCRIPTION=${TELEGRAM_BOT_DESCRIPTION:-}
+      - TELEGRAM_BOT_SHORT_DESCRIPTION=${TELEGRAM_BOT_SHORT_DESCRIPTION:-}
+      # Текст кнопки меню Mini App (по умолчанию: "Запустить приложение")
+      - TELEGRAM_MENU_BUTTON_TEXT=${TELEGRAM_MENU_BUTTON_TEXT:-Запустить приложение}
       - NGROK_HOST=${NGROK_HOST}
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/quiz_project

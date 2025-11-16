@@ -144,12 +144,24 @@
             window.Telegram.WebApp.ready();
         }
         
+        // Расширяем приложение на весь экран (Fullscreen режим)
+        if (window.Telegram.WebApp.expand) {
+            window.Telegram.WebApp.expand();
+            console.log('✅ [FULLSCREEN] Приложение расширено на весь экран в index.html');
+        }
+        
         // Обрабатываем startParam после небольшой задержки для гарантии инициализации
         setTimeout(handleStartParam, 100);
         
         // Также слушаем событие ready, если оно доступно
         if (window.Telegram.WebApp.onEvent) {
-            window.Telegram.WebApp.onEvent('viewportChanged', handleStartParam);
+            window.Telegram.WebApp.onEvent('viewportChanged', function() {
+                // При изменении viewport также расширяем на весь экран
+                if (window.Telegram.WebApp.expand) {
+                    window.Telegram.WebApp.expand();
+                }
+                handleStartParam();
+            });
         }
     }
     
