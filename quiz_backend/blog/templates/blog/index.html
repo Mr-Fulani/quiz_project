@@ -10,8 +10,12 @@
 {% block content %}
 <article class="about active" data-page="home">
     <header>
-        <h1 class="h2 article-title">{% trans "Programming Quizzes & Learning Platform" %}</h1>
-        <p class="page-subtitle">{% trans "Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges and tutorials." %}</p>
+        <!-- SEO заголовок: скрыт визуально, но доступен для поисковиков -->
+        <h1 class="sr-only">{% trans "Programming Quizzes & Learning Platform" %}</h1>
+        <!-- Видимый заголовок для пользователей -->
+        <h2 class="h2 article-title">{% trans "Home" %}</h2>
+        <!-- SEO описание: скрыто визуально, но доступно для поисковиков -->
+        <p class="page-subtitle sr-only">{% trans "Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges and tutorials." %}</p>
     </header>
 
     <section class="video section-gap">
