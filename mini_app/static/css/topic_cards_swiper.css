@@ -129,6 +129,27 @@
     padding: 0 !important;
 }
 
+/* Скрываем стандартные контролы видео */
+.selected-card-container .swiper-slide .topic-card-enlarged video::-webkit-media-controls {
+    display: none !important;
+}
+
+.selected-card-container .swiper-slide .topic-card-enlarged video::-webkit-media-controls-enclosure {
+    display: none !important;
+}
+
+.selected-card-container .swiper-slide .topic-card-enlarged video::-webkit-media-controls-panel {
+    display: none !important;
+}
+
+.selected-card-container .swiper-slide .topic-card-enlarged video::-webkit-media-controls-play-button {
+    display: none !important;
+}
+
+.selected-card-container .swiper-slide .topic-card-enlarged video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+}
+
 /* Overlay с кнопками */
 .selected-card-container .card-overlay {
     position: relative !important;
@@ -232,11 +253,67 @@
 }
 
 /* ========================================
+   КНОПКА ЗВУКА (В ЛЕВОМ ВЕРХНЕМ УГЛУ МОДАЛЬНОГО ОКНА)
+   Матричные стили, похожие на кнопку шаринга
+   Позиционируется относительно .topic-card-enlarged, как и кнопка шаринга
+   ======================================== */
+.selected-card-container .topic-card-enlarged .sound-toggle-btn,
+.selected-card-overlay .topic-card-enlarged .sound-toggle-btn {
+    position: absolute !important;
+    top: 10px !important;
+    left: 10px !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(0, 255, 0, 0.3) !important;
+    color: #00ff00 !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    backdrop-filter: blur(5px) !important;
+    z-index: 1000002 !important; /* Выше overlay, но ниже кнопки шаринга */
+    pointer-events: auto !important;
+}
+
+.selected-card-container .topic-card-enlarged .sound-toggle-btn:hover,
+.selected-card-overlay .topic-card-enlarged .sound-toggle-btn:hover {
+    background: rgba(0, 255, 0, 0.2) !important;
+    border-color: #00ff00 !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5) !important;
+}
+
+.selected-card-container .topic-card-enlarged .sound-toggle-btn ion-icon,
+.selected-card-overlay .topic-card-enlarged .sound-toggle-btn ion-icon {
+    font-size: 20px !important;
+    color: #00ff00 !important;
+}
+
+/* Скрываем кнопку звука для карточек без видео */
+.selected-card-container .swiper-slide .topic-card-enlarged .sound-toggle-btn {
+    display: flex !important;
+}
+
+/* Скрываем кнопку звука, если нет видео элемента */
+.selected-card-container .swiper-slide:not(:has(video)) .sound-toggle-btn,
+.selected-card-container .swiper-slide .topic-card-enlarged:not(:has(video)) .sound-toggle-btn {
+    display: none !important;
+}
+
+/* ========================================
    iOS SAFE AREA
    ======================================== */
 @supports (padding: max(0px)) {
     .selected-card-container .card-overlay {
         padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    }
+    
+    .selected-card-container .sound-toggle-btn {
+        top: max(10px, calc(10px + env(safe-area-inset-top))) !important;
+        left: max(10px, calc(10px + env(safe-area-inset-left))) !important;
     }
 }
 

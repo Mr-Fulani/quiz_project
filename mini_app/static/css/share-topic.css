@@ -37,10 +37,13 @@
 }
 
 /* Показываем кнопку поделиться только в развернутых карточках (модальных окнах) */
-.selected-card-overlay .share-topic-btn {
+.selected-card-overlay .topic-card-enlarged .share-topic-btn,
+.selected-card-container .topic-card-enlarged .share-topic-btn {
     display: flex !important;
-    z-index: 1000001 !important; /* Выше всех модальных окон */
+    z-index: 1000003 !important; /* Выше всех модальных окон и кнопки звука */
     position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
 }
 
 .share-topic-btn:hover {
