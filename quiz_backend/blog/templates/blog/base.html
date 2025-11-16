@@ -4,7 +4,7 @@
 <html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ dynamic_seo.meta_title|default:meta_title|default:"QuizHub - Programming Quizzes & Learning" }}{% endblock %}</title>
     
     <!-- Basic Meta Tags -->
@@ -81,7 +81,7 @@
     <!-- Telegram Mini App specific -->
     {% if is_mini_app %}
         <meta name="telegram-mini-app" content="true">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+        <!-- Для Telegram Mini App можно оставить ограничения, но лучше использовать CSS для управления -->
     {% endif %}
 
     <!-- Favicon -->
@@ -98,8 +98,8 @@
     <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
     {% block extra_css %}{% endblock %}
 
-    <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}"></script>
-    <script nomodule src="{% static 'blog/js/ionicons/ionicons.js' %}"></script>
+    <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}" defer></script>
+    <script nomodule src="{% static 'blog/js/ionicons/ionicons.js' %}" defer></script>
     
     <!-- Глобальная функция для Telegram авторизации (перенесено в конец body для избежания render-blocking) -->
 
@@ -735,10 +735,10 @@
     }
 
 </style>
-<!-- Скрипты для 3D анимации пчелы -->
-<script src="{% static 'blog/js/gsap.min.js' %}"></script>
-<script src="{% static 'blog/js/ScrollTrigger.min.js' %}"></script>
-<script type="module" src="{% static 'blog/js/bee-scroll.js' %}"></script>
+<!-- Скрипты для 3D анимации пчелы (отложенная загрузка для улучшения производительности) -->
+<script src="{% static 'blog/js/gsap.min.js' %}" defer></script>
+<script src="{% static 'blog/js/ScrollTrigger.min.js' %}" defer></script>
+<script type="module" src="{% static 'blog/js/bee-scroll.js' %}" defer></script>
 
 <!-- Telegram Auth Handler -->
 <script>
