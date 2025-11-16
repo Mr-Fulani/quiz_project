@@ -46,23 +46,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemCategory === normalizedFilterValue) {
                 item.classList.remove('hidden');
                 item.style.display = 'block';
-                gsap.to(item, {
-                    opacity: 1,
-                    duration: 0.3,
-                    ease: 'power2.out',
-                    overwrite: 'auto'
-                });
+                // Используем GSAP если доступен, иначе просто устанавливаем opacity
+                if (typeof gsap !== 'undefined') {
+                    gsap.to(item, {
+                        opacity: 1,
+                        duration: 0.3,
+                        ease: 'power2.out',
+                        overwrite: 'auto'
+                    });
+                } else {
+                    item.style.opacity = '1';
+                }
                 visibleItems++;
             } else {
-                gsap.to(item, {
-                    opacity: 0,
-                    duration: 0.3,
-                    ease: 'power2.out',
-                    onComplete: () => {
-                        item.classList.add('hidden');
-                        item.style.display = 'none';
-                    }
-                });
+                // Используем GSAP если доступен, иначе просто скрываем
+                if (typeof gsap !== 'undefined') {
+                    gsap.to(item, {
+                        opacity: 0,
+                        duration: 0.3,
+                        ease: 'power2.out',
+                        onComplete: () => {
+                            item.classList.add('hidden');
+                            item.style.display = 'none';
+                        }
+                    });
+                } else {
+                    item.classList.add('hidden');
+                    item.style.display = 'none';
+                    item.style.opacity = '0';
+                }
             }
         });
 
@@ -70,20 +82,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (noContentMessage) {
             if (visibleItems === 0) {
                 noContentMessage.style.display = 'block';
-                gsap.to(noContentMessage, {
-                    opacity: 1,
-                    duration: 0.3,
-                    ease: 'power2.out'
-                });
+                if (typeof gsap !== 'undefined') {
+                    gsap.to(noContentMessage, {
+                        opacity: 1,
+                        duration: 0.3,
+                        ease: 'power2.out'
+                    });
+                } else {
+                    noContentMessage.style.opacity = '1';
+                }
             } else {
-                gsap.to(noContentMessage, {
-                    opacity: 0,
-                    duration: 0.3,
-                    ease: 'power2.out',
-                    onComplete: () => {
-                        noContentMessage.style.display = 'none';
-                    }
-                });
+                if (typeof gsap !== 'undefined') {
+                    gsap.to(noContentMessage, {
+                        opacity: 0,
+                        duration: 0.3,
+                        ease: 'power2.out',
+                        onComplete: () => {
+                            noContentMessage.style.display = 'none';
+                        }
+                    });
+                } else {
+                    noContentMessage.style.display = 'none';
+                    noContentMessage.style.opacity = '0';
+                }
             }
         }
     }
@@ -94,13 +115,27 @@ document.addEventListener('DOMContentLoaded', () => {
     )?.textContent.trim().toLowerCase() ||
     (filterButtons.length > 0 ? filterButtons[0].textContent.trim().toLowerCase() : 'all');
     console.log('Default filter:', defaultFilter);
+    console.log('Filter items count:', filterItems.length);
+    console.log('Filter buttons count:', filterButtons.length);
 
     // Принудительно показываем все элементы при инициализации
+    // ВАЖНО: Не устанавливаем opacity = 0, чтобы элементы были видны даже без GSAP
     filterItems.forEach(item => {
         item.classList.remove('hidden');
         item.style.display = 'block';
-        item.style.opacity = '0';
+        // Убираем установку opacity = 0, чтобы элементы были видны по умолчанию
+        if (item.style.opacity === '0') {
+            item.style.opacity = '1';
+        }
     });
+    
+    // Скрываем сообщение о пустом контенте при инициализации, если есть посты
+    if (noContentMessage && filterItems.length > 0) {
+        noContentMessage.style.display = 'none';
+        noContentMessage.style.opacity = '0';
+    }
+    
+    // Применяем фильтр "All" по умолчанию
     applyFilter(defaultFilter);
 
     // Открытие/закрытие выпадающего меню (только для мобильной версии)
