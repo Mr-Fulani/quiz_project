@@ -79,6 +79,19 @@
     </div>
 </div>
 
+<!-- Полноэкранный просмотр изображения задачи -->
+<div id="task-image-overlay"
+     class="task-image-overlay"
+     data-overlay="task-image-overlay"
+     aria-hidden="true"
+     role="dialog"
+     aria-label="{{ translations.get('task_image_fullscreen', 'Изображение задачи во весь экран') }}">
+    <img id="task-image-overlay-target"
+         data-overlay-image="task-image-overlay"
+         src=""
+         alt="{{ translations.get('task_image_fullscreen', 'Изображение задачи во весь экран') }}">
+</div>
+
 <script src="{{ get_js_url('comments.js') }}"></script>
 <script>
 // Инициализация комментариев для каждой задачи (глобальная функция)
