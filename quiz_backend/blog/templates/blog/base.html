@@ -313,7 +313,7 @@
                 </div>
                 
                 <!-- Telegram Login Widget -->
-                <div class="inputBx" style="display: flex; justify-content: center; align-items: center;">
+                <div class="inputBx" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px;">
                     <!-- Telegram Login Widget с redirect методом на auth endpoint -->
                     <script async src="https://telegram.org/js/telegram-widget.js?22"
                             data-telegram-login="{{ TELEGRAM_BOT_USERNAME }}"
@@ -323,6 +323,28 @@
                             data-lang="ru"
                                                            data-auth-url="{% url 'social_auth:telegram_auth_api' %}">
                     </script>
+                    
+                    <!-- Кнопка для локального тестирования (показывается через JS если DEBUG=True) -->
+                    <div id="telegram-mock-auth-container" style="text-align: center; margin-top: 10px; display: none;">
+                        <a href="{% url 'social_auth:telegram_auth_api' %}?mock=true" 
+                           class="telegram-mock-auth-btn"
+                           style="display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; transition: background 0.3s;"
+                           title="Тестовая авторизация для локальной разработки">
+                            🧪 Тестовая авторизация (локально)
+                        </a>
+                    </div>
+                    
+                    {% if debug or DEBUG %}
+                    <!-- Fallback: показываем кнопку если debug доступен в шаблоне -->
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const container = document.getElementById('telegram-mock-auth-container');
+                            if (container) {
+                                container.style.display = 'block';
+                            }
+                        });
+                    </script>
+                    {% endif %}
                 </div>
                 
                 <div class="links">
@@ -811,31 +833,10 @@
 
 <!-- Telegram Auth Handler -->
 <script>
-    // Отладка Telegram виджета
-    console.log('🔧 Telegram auth handler initialized');
-    
-    // Проверяем iframe от Telegram через 3 секунды
-    setTimeout(() => {
-        const iframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
-        if (iframe) {
-            console.log('✅ Telegram widget loaded successfully');
-        } else {
-            console.log('❌ Telegram widget not loaded - check BotFather domain settings');
-            console.log('📋 Current domain:', window.location.hostname);
-        }
-    }, 3000);
-    
     // Глобальная функция для обработки авторизации через Telegram
     function handleTelegramAuth(user) {
-        console.log('🚨 ВНИМАНИЕ! Telegram callback вызван!');
-        console.log('🔐 Telegram auth callback called:', user);
-        console.log('🔍 Тип user:', typeof user);
-        console.log('🔍 Содержимое user:', JSON.stringify(user, null, 2));
-        alert('✅ Telegram callback вызван! Проверьте консоль.');
-        
         // Проверяем, что user содержит необходимые данные
         if (!user || !user.id) {
-            console.error('❌ Некорректные данные пользователя:', user);
             alert('Ошибка: некорректные данные пользователя');
             return;
         }
@@ -849,24 +850,15 @@
             },
             body: JSON.stringify(user)
         })
-        .then(response => {
-            console.log('📡 Статус ответа:', response.status);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            console.log('📥 Ответ сервера:', data);
             if (data.success) {
-                // Успешная авторизация
-                console.log('✅ Авторизация успешна!');
                 window.location.reload();
             } else {
-                // Ошибка авторизации
-                console.error('❌ Ошибка авторизации:', data.error);
                 alert('Ошибка авторизации: ' + (data.error || 'Неизвестная ошибка'));
             }
         })
         .catch(error => {
-            console.error('❌ Ошибка отправки данных:', error);
             alert('Ошибка отправки данных на сервер: ' + error);
         });
     }
@@ -874,61 +866,44 @@
     // Делаем функцию доступной глобально
     window.handleTelegramAuth = handleTelegramAuth;
     
-    // Тестовая функция для проверки
-    window.testTelegramAuth = function() {
-        console.log('=== TEST TELEGRAM AUTH ===');
-        const testUser = {
-            id: 123456789,
-            first_name: 'Test',
-            username: 'testuser',
-            auth_date: Math.floor(Date.now() / 1000),
-            hash: 'test_hash'
-        };
-        handleTelegramAuth(testUser);
-    };
-    
-    // Функция для проверки состояния виджета
-    window.checkTelegramWidget = function() {
-        console.log('=== TELEGRAM WIDGET DEBUG ===');
-        const widget = document.querySelector('[data-telegram-login]');
-        const iframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
-        const script = document.querySelector('[src*="telegram-widget.js"]');
-        
-        console.log('📊 Widget status:');
-        console.log('  Script loaded:', !!script);
-        console.log('  Widget element:', !!widget);
-        console.log('  Iframe created:', !!iframe);
-        console.log('  window.Telegram:', typeof window.Telegram);
-        console.log('  handleTelegramAuth:', typeof window.handleTelegramAuth);
-        
-        if (widget && !iframe) {
-            console.log('⚠️ Виджет есть, но iframe не создался - возможно проблема с ботом в BotFather');
-        }
-        
-        return {
-            script: !!script,
-            widget: !!widget,
-            iframe: !!iframe,
-            telegram: typeof window.Telegram,
-            handler: typeof window.handleTelegramAuth
-        };
-    };
-    
-    // Дополнительная отладка для виджета
+    // Устанавливаем обработчик для виджета
     if (window.TelegramLoginWidget) {
-        console.log('🔧 Устанавливаем обработчик для TelegramLoginWidget');
         window.TelegramLoginWidget.dataOnauth = handleTelegramAuth;
     }
     
-    // Обработчик клика по виджету для отладки
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('[data-telegram-login]')) {
-            console.log('🖱️ Клик по виджету Telegram');
-            console.log('🔍 Виджет:', e.target.closest('[data-telegram-login]'));
-            console.log('🔍 handleTelegramAuth доступна:', typeof window.handleTelegramAuth);
+    // Показываем кнопку тестовой авторизации в режиме разработки
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('telegram-mock-auth-container');
+        if (container) {
+            const isLocalhost = window.location.hostname === 'localhost' || 
+                               window.location.hostname === '127.0.0.1' ||
+                               window.location.hostname.includes('localhost');
+            const urlParams = new URLSearchParams(window.location.search);
+            const showMock = urlParams.has('show_mock');
+            
+            if (isLocalhost || showMock) {
+                container.style.display = 'block';
+            }
         }
     });
 </script>
+
+<style>
+    /* Стили для кнопки тестовой авторизации */
+    .telegram-mock-auth-btn:hover {
+        background: #f57c00 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .telegram-mock-auth-btn:active {
+        transform: translateY(0);
+    }
+    
+    #telegram-mock-auth-container {
+        margin-top: 15px;
+    }
+</style>
 
 {% block scripts %}{% endblock %}
 
