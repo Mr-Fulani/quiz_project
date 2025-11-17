@@ -102,12 +102,60 @@
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid rgba(0, 255, 0, 0.2);
+    cursor: zoom-in;
 }
 
 .task-image img {
     width: 100%;
     height: auto;
     display: block;
+}
+
+body.task-image-overlay-open {
+    overflow: hidden;
+}
+
+.task-image-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.task-image-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.task-image-overlay img {
+    max-width: 94vw;
+    max-height: 94vh;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    cursor: zoom-out;
+    transition: transform 0.3s ease;
+}
+
+.task-image-overlay.is-visible img {
+    transform: scale(1);
+}
+
+@media (max-width: 768px) {
+    .task-image-overlay img {
+        max-width: 98vw;
+        max-height: 90vh;
+        border-radius: 12px;
+    }
 }
 
 /* Контейнер вариантов ответов */

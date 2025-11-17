@@ -43,6 +43,9 @@ if (window.TaskManagerAlreadyLoaded) {
             
             // Флаг для отслеживания состояния инициализации
             this.isInitialized = false;
+            this.imageOverlay = null;
+            this.imageOverlayImg = null;
+            this.boundEscHandler = null;
             
             this.init();
         }
@@ -71,8 +74,59 @@ if (window.TaskManagerAlreadyLoaded) {
         setupEventHandlers() {
             this.setupAnswerHandlers();
             this.setupBackButton();
+            this.setupTaskImageHandlers();
+            this.setupImageOverlay();
             this.isInitialized = true;
             console.log('✅ Обработчики событий настроены');
+        }
+
+        /**
+         * Добавляет обработчики для изображений задач
+         */
+        setupTaskImageHandlers() {
+            const taskImages = document.querySelectorAll('.task-image img');
+            if (!taskImages.length) {
+                console.log('ℹ️ Изображения задач не найдены, пропускаем полноэкранный режим');
+                return;
+            }
+
+            taskImages.forEach((imageElement) => {
+                if (imageElement.dataset.overlayBound === 'true') {
+                    return;
+                }
+
+                imageElement.dataset.overlayBound = 'true';
+                imageElement.addEventListener('click', () => {
+                    this.openImageFullscreen(imageElement.src);
+                });
+            });
+        }
+
+        /**
+         * Настраивает overlay для полноэкранных изображений
+         */
+        setupImageOverlay() {
+            if (!this.imageOverlay) {
+                this.imageOverlay = document.querySelector('[data-overlay="task-image-overlay"]');
+            }
+            if (!this.imageOverlayImg) {
+                this.imageOverlayImg = document.querySelector('[data-overlay-image="task-image-overlay"]');
+            }
+
+            if (!this.imageOverlay || !this.imageOverlayImg) {
+                console.warn('⚠️ Overlay для изображений не найден, пропускаем настройку');
+                return;
+            }
+
+            if (!this.imageOverlay.dataset.boundClick) {
+                this.imageOverlay.dataset.boundClick = 'true';
+                this.imageOverlay.addEventListener('click', () => this.closeImageFullscreen());
+            }
+
+            if (!this.boundEscHandler) {
+                this.boundEscHandler = (event) => this.handleOverlayKeydown(event);
+                document.addEventListener('keydown', this.boundEscHandler);
+            }
         }
         
         /**
@@ -81,6 +135,51 @@ if (window.TaskManagerAlreadyLoaded) {
         reinitializeBackButton() {
             console.log('🔧 Переинициализация обработчиков кнопки "Назад"...');
             this.setupBackButton();
+        }
+
+        /**
+         * Открывает полноэкранный просмотр изображения
+         * @param {string} src - Адрес изображения
+         */
+        openImageFullscreen(src) {
+            if (!this.imageOverlay || !this.imageOverlayImg) {
+                this.setupImageOverlay();
+            }
+            if (!this.imageOverlay || !this.imageOverlayImg) {
+                return;
+            }
+
+            this.imageOverlayImg.src = src;
+            this.imageOverlay.classList.add('is-visible');
+            this.imageOverlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('task-image-overlay-open');
+        }
+
+        /**
+         * Закрывает полноэкранный просмотр изображения
+         */
+        closeImageFullscreen() {
+            if (!this.imageOverlay || !this.imageOverlayImg) {
+                return;
+            }
+
+            this.imageOverlay.classList.remove('is-visible');
+            this.imageOverlay.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('task-image-overlay-open');
+
+            setTimeout(() => {
+                this.imageOverlayImg.src = '';
+            }, 200);
+        }
+
+        /**
+         * Обрабатывает нажатие Esc для закрытия overlay
+         * @param {KeyboardEvent} event - Событие клавиатуры
+         */
+        handleOverlayKeydown(event) {
+            if (event.key === 'Escape' && this.imageOverlay?.classList.contains('is-visible')) {
+                this.closeImageFullscreen();
+            }
         }
 
         /**
