@@ -131,10 +131,12 @@ class TelegramAuthService:
                     
                     user = social_account.user
                     is_new_user = False
+                    logger.info(f"Найден существующий социальный аккаунт для telegram_id={telegram_id}, пользователь: {user.username}, is_active={user.is_active}")
                 else:
                     # Создаем нового пользователя или связываем с существующим
                     user = TelegramAuthService._get_or_create_user(data)
                     is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                    logger.info(f"Создан/найден пользователь для telegram_id={telegram_id}, username: {user.username}, is_active={user.is_active}, is_new={is_new_user}")
                     
                     # Создаем социальный аккаунт
                     social_account = SocialAccount.objects.create(
@@ -152,8 +154,22 @@ class TelegramAuthService:
                         linked_count = social_account.auto_link_existing_users()
                         if linked_count > 0:
                             logger.info(f"Автоматически связано {linked_count} пользователей для telegram_id={telegram_id}")
+                            # Обновляем объект user после связывания
+                            user.refresh_from_db()
+                            # Обновляем социальный аккаунт
+                            social_account.refresh_from_db()
+                            logger.info(f"Пользователь после связывания: {user.username}, is_active={user.is_active}")
                     except Exception as e:
                         logger.warning(f"Ошибка при автоматическом связывании для telegram_id={telegram_id}: {e}")
+                
+                # Убеждаемся что пользователь активен перед возвратом
+                user.refresh_from_db()
+                if not user.is_active:
+                    logger.error(f"Пользователь {user.username} не активен после авторизации!")
+                    return {
+                        'success': False,
+                        'error': 'Аккаунт неактивен'
+                    }
                 
                 # Создаем сессию
                 session = SocialLoginSession.objects.create(
@@ -163,6 +179,8 @@ class TelegramAuthService:
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
                     is_successful=True
                 )
+                
+                logger.info(f"Авторизация успешна: user={user.username}, telegram_id={telegram_id}, session_id={session.session_id}")
                 
                 return {
                     'success': True,
