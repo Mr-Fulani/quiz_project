@@ -98,7 +98,19 @@ class TelegramAuthView(APIView):
             
             # Авторизуем пользователя
             user = result['user']
-            login(request, user)
+            
+            # Убеждаемся что пользователь активен
+            if not user.is_active:
+                logger.warning(f"Попытка авторизации неактивного пользователя: {user.username}")
+                return redirect('/?open_login=true&error=Аккаунт неактивен')
+            
+            # Авторизуем пользователя
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            # Явно сохраняем сессию перед редиректом
+            request.session.save()
+            
+            logger.info(f"Пользователь {user.username} успешно авторизован через Telegram")
             
             # Перенаправляем на главную с успешной авторизацией
             return redirect('/?telegram_auth_success=true')
@@ -152,7 +164,10 @@ class TelegramAuthView(APIView):
             
             # Авторизуем пользователя
             user = result['user']
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            # Явно сохраняем сессию перед редиректом
+            request.session.save()
             
             # Перенаправляем на главную с успешной авторизацией
             return redirect('/?telegram_auth_success=true&mock=true')
@@ -203,7 +218,10 @@ class TelegramAuthView(APIView):
             
             # Авторизуем пользователя
             user = result['user']
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            # Явно сохраняем сессию
+            request.session.save()
             
             # Подготавливаем ответ
             response_data = {
@@ -269,7 +287,10 @@ class TelegramAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             user = result['user']
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            # Явно сохраняем сессию
+            request.session.save()
             
             return Response({
                 'success': True,

@@ -444,6 +444,29 @@
             }, 3000);
         }
         
+        // Показываем уведомление об успешной авторизации через Telegram
+        if (urlParams.has('telegram_auth_success')) {
+            // Закрываем модальное окно входа если оно открыто
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal && loginModal.classList.contains('active')) {
+                loginModal.classList.remove('active');
+            }
+            
+            // Показываем уведомление об успехе
+            const notification = document.createElement('div');
+            notification.className = 'message-notification success';
+            notification.textContent = 'Успешная авторизация через Telegram!';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+            
+            // Обновляем страницу для отображения авторизованного состояния
+            setTimeout(() => {
+                window.location.href = window.location.pathname;
+            }, 1500);
+        }
+        
         // Автоматически открываем модальное окно регистрации при наличии ошибок
         console.log('🔍 Проверяем URL параметры...');
         console.log('URL params:', urlParams.toString());
