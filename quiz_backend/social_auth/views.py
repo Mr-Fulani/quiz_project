@@ -1,8 +1,11 @@
 import logging
+import time
+from datetime import timedelta, datetime
 from django.contrib.auth import login
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
+from django.utils.http import http_date
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from rest_framework import status
@@ -110,10 +113,32 @@ class TelegramAuthView(APIView):
             # Явно сохраняем сессию перед редиректом
             request.session.save()
             
-            logger.info(f"Пользователь {user.username} успешно авторизован через Telegram")
+            # Устанавливаем куки явно для обеспечения сохранения сессии
+            response = redirect('/?telegram_auth_success=true')
             
-            # Перенаправляем на главную с успешной авторизацией
-            return redirect('/?telegram_auth_success=true')
+            # Копируем куки сессии в response для гарантированного сохранения
+            session_key = request.session.session_key
+            if session_key:
+                max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
+                expires = None
+                if max_age:
+                    expires = http_date(time.time() + max_age)
+                
+                response.set_cookie(
+                    settings.SESSION_COOKIE_NAME,
+                    session_key,
+                    max_age=max_age,
+                    expires=expires,
+                    domain=getattr(settings, 'SESSION_COOKIE_DOMAIN', None),
+                    path=getattr(settings, 'SESSION_COOKIE_PATH', '/'),
+                    secure=getattr(settings, 'SESSION_COOKIE_SECURE', False) if not settings.DEBUG else False,
+                    httponly=getattr(settings, 'SESSION_COOKIE_HTTPONLY', True),
+                    samesite=getattr(settings, 'SESSION_COOKIE_SAMESITE', 'Lax')
+                )
+            
+            logger.info(f"Пользователь {user.username} успешно авторизован через Telegram, session_key={session_key}")
+            
+            return response
             
         except Exception as e:
             import traceback
@@ -169,8 +194,32 @@ class TelegramAuthView(APIView):
             # Явно сохраняем сессию перед редиректом
             request.session.save()
             
-            # Перенаправляем на главную с успешной авторизацией
-            return redirect('/?telegram_auth_success=true&mock=true')
+            # Устанавливаем куки явно для обеспечения сохранения сессии
+            response = redirect('/?telegram_auth_success=true&mock=true')
+            
+            # Копируем куки сессии в response для гарантированного сохранения
+            session_key = request.session.session_key
+            if session_key:
+                max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
+                expires = None
+                if max_age:
+                    expires = http_date(time.time() + max_age)
+                
+                response.set_cookie(
+                    settings.SESSION_COOKIE_NAME,
+                    session_key,
+                    max_age=max_age,
+                    expires=expires,
+                    domain=getattr(settings, 'SESSION_COOKIE_DOMAIN', None),
+                    path=getattr(settings, 'SESSION_COOKIE_PATH', '/'),
+                    secure=getattr(settings, 'SESSION_COOKIE_SECURE', False) if not settings.DEBUG else False,
+                    httponly=getattr(settings, 'SESSION_COOKIE_HTTPONLY', True),
+                    samesite=getattr(settings, 'SESSION_COOKIE_SAMESITE', 'Lax')
+                )
+            
+            logger.info(f"Мок авторизация: пользователь {user.username} авторизован, session_key={session_key}")
+            
+            return response
             
         except Exception as e:
             logger.error(f"Ошибка в мок авторизации: {e}")
