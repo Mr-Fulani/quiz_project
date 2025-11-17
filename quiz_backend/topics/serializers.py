@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Topic, Subtopic
+from .utils import normalize_subtopic_name
 from tasks.models import MiniAppTaskStatistics, Task
 import random
 
@@ -14,6 +15,12 @@ class SubtopicSerializer(serializers.ModelSerializer):
             'name',
             'topic'
         ]
+
+    def validate_name(self, value):
+        """
+        Нормализует имя подтемы перед сохранением.
+        """
+        return normalize_subtopic_name(value)
 
 class SubtopicWithTasksSerializer(serializers.ModelSerializer):
     """

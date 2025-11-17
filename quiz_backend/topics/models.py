@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
+from .utils import normalize_subtopic_name
 
 
 def validate_file_size(value):
@@ -151,10 +152,18 @@ class Subtopic(models.Model):
         return f"{self.topic.name} - {self.name}"
 
     def clean(self):
+        self.name = normalize_subtopic_name(self.name)
         if Subtopic.objects.filter(
             topic=self.topic,
             name=self.name
         ).exclude(id=self.id).exists():
             raise ValidationError('Подтема с таким названием уже существует в данной теме')
+
+    def save(self, *args, **kwargs):
+        """
+        Нормализует имя при каждом сохранении.
+        """
+        self.name = normalize_subtopic_name(self.name)
+        super().save(*args, **kwargs)
 
 
