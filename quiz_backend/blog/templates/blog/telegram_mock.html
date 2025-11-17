@@ -1,0 +1,104 @@
+{% extends "blog/base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Тестовая авторизация Telegram{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 50px auto; padding: 20px; font-family: Arial, sans-serif;">
+    <h1 style="text-align: center; color: #333; margin-bottom: 30px;">
+        🔧 Тестовая авторизация Telegram (Мок)
+    </h1>
+    
+    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="color: #666; margin-bottom: 15px;">
+            Эта страница доступна только в режиме разработки (DEBUG=True).
+            Используйте её для тестирования авторизации через Telegram без реального виджета.
+        </p>
+    </div>
+    
+    <form method="get" action="{% url 'social_auth:telegram_auth_api' %}" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <input type="hidden" name="mock_auth" value="true">
+        
+        <div style="margin-bottom: 20px;">
+            <label for="user_id" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                Telegram ID:
+            </label>
+            <input type="number" 
+                   id="user_id" 
+                   name="user_id" 
+                   value="975113235" 
+                   required
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label for="first_name" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                Имя:
+            </label>
+            <input type="text" 
+                   id="first_name" 
+                   name="first_name" 
+                   value="TestUser" 
+                   required
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label for="last_name" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                Фамилия:
+            </label>
+            <input type="text" 
+                   id="last_name" 
+                   name="last_name" 
+                   value="Developer" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+            <label for="username" style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                Username:
+            </label>
+            <input type="text" 
+                   id="username" 
+                   name="username" 
+                   value="testdev" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+            <small style="color: #666; display: block; margin-top: 5px;">
+                (опционально)
+            </small>
+        </div>
+        
+        <button type="submit" 
+                style="width: 100%; padding: 15px; background: #0088cc; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s;">
+            🔐 Авторизоваться через Telegram (Мок)
+        </button>
+    </form>
+    
+    <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <p style="margin: 0; color: #856404;">
+            <strong>Примечание:</strong> Эта форма создаёт тестового пользователя с указанными данными.
+            Проверка подписи пропускается в режиме разработки.
+        </p>
+    </div>
+    
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="/" style="color: #0088cc; text-decoration: none;">
+            ← Вернуться на главную
+        </a>
+    </div>
+</div>
+
+<style>
+    button:hover {
+        background: #006ba6 !important;
+    }
+    
+    input:focus {
+        outline: none;
+        border-color: #0088cc !important;
+        box-shadow: 0 0 0 2px rgba(0, 136, 204, 0.1);
+    }
+</style>
+{% endblock %}
+

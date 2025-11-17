@@ -789,7 +789,7 @@ from django.conf import settings
 
 def telegram_settings(request):
     """
-    Добавляет настройки Telegram в контекст всех шаблонов.
+    Добавляет настройки Telegram и DEBUG в контекст всех шаблонов.
     """
     username = getattr(settings, 'TELEGRAM_BOT_USERNAME', '')
     token = getattr(settings, 'TELEGRAM_BOT_TOKEN', '')
@@ -802,4 +802,6 @@ def telegram_settings(request):
     return {
         'TELEGRAM_BOT_USERNAME': username,
         'TELEGRAM_BOT_TOKEN': token,
+        'DEBUG': settings.DEBUG,  # Добавляем DEBUG для проверки в шаблонах
+        'debug': settings.DEBUG,  # Маленькая буква для совместимости
     }

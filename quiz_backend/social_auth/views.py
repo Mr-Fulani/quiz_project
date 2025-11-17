@@ -42,8 +42,6 @@ class TelegramAuthView(APIView):
         В режиме разработки может обрабатывать мок данные.
         """
         try:
-            logger.info(f"Telegram auth GET request: {dict(request.GET)}")
-            
             # Проверяем запросы мока на продакшене
             if (request.GET.get('mock') == 'true' or request.GET.get('mock_auth') == 'true'):
                 if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
@@ -62,12 +60,37 @@ class TelegramAuthView(APIView):
                     return self._handle_mock_auth(request)
             
             # Для GET запроса данные приходят в query параметрах
-            data = dict(request.GET)
+            # QueryDict возвращает списки, нужно извлечь первые значения
+            raw_data = dict(request.GET)
             
-            logger.info(f"Processing auth data: {data}")
+            # Преобразуем данные в правильные типы
+            data = {}
+            for key, value in raw_data.items():
+                # QueryDict возвращает списки, берем первое значение
+                val = value[0] if isinstance(value, list) else value
+                
+                # Преобразуем в нужные типы согласно сериализатору
+                if key == 'id':
+                    try:
+                        data[key] = int(val)
+                    except (ValueError, TypeError):
+                        return redirect('/?open_login=true&error=Неверный формат данных')
+                elif key == 'auth_date':
+                    try:
+                        data[key] = int(val)
+                    except (ValueError, TypeError):
+                        return redirect('/?open_login=true&error=Неверный формат данных')
+                else:
+                    # Остальные поля - строки
+                    data[key] = val if val else ''
             
-            # Обрабатываем авторизацию
-            result = TelegramAuthService.process_telegram_auth(data, request)
+            # Валидируем данные перед обработкой
+            serializer = TelegramAuthSerializer(data=data)
+            if not serializer.is_valid():
+                return redirect('/?open_login=true&error=Неверные данные авторизации')
+            
+            # Обрабатываем авторизацию с валидированными данными
+            result = TelegramAuthService.process_telegram_auth(serializer.validated_data, request)
             
             if not result or not result.get('success'):
                 error_message = result.get('error', 'Ошибка авторизации') if result else 'Ошибка авторизации'
@@ -81,8 +104,13 @@ class TelegramAuthView(APIView):
             return redirect('/?telegram_auth_success=true')
             
         except Exception as e:
+            import traceback
             logger.error(f"Ошибка в GET TelegramAuthView: {e}")
-            return redirect('/?open_login=true&error=Внутренняя ошибка сервера')
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            error_message = 'Внутренняя ошибка сервера'
+            if settings.DEBUG:
+                error_message = f'Ошибка: {str(e)}'
+            return redirect(f'/?open_login=true&error={error_message}')
 
     def _handle_mock_page(self, request):
         """Отображает страницу мока для разработки"""
@@ -93,21 +121,31 @@ class TelegramAuthView(APIView):
         """Обрабатывает мок авторизацию"""
         try:
             import time
+            # Получаем данные из запроса, преобразуя в правильные типы
+            user_id = request.GET.get('user_id', '975113235')
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                user_id = 975113235
+            
             # Создаем мок данные пользователя
             mock_data = {
-                'id': request.GET.get('user_id', '975113235'),
-                'first_name': request.GET.get('first_name', 'TestUser'),
-                'last_name': request.GET.get('last_name', 'Developer'),
-                'username': request.GET.get('username', 'testdev'),
+                'id': user_id,
+                'first_name': request.GET.get('first_name', 'TestUser') or '',
+                'last_name': request.GET.get('last_name', 'Developer') or '',
+                'username': request.GET.get('username', 'testdev') or '',
                 'photo_url': 'https://via.placeholder.com/150',
-                'auth_date': str(int(time.time())),  # Текущее время
+                'auth_date': int(time.time()),  # Текущее время
                 'hash': 'mock_hash_for_development'
             }
             
-            logger.error(f"Mock auth data: {mock_data}")
+            # Валидируем данные
+            serializer = TelegramAuthSerializer(data=mock_data)
+            if not serializer.is_valid():
+                return redirect('/?open_login=true&error=Ошибка валидации мок данных')
             
-            # Обрабатываем мок авторизацию
-            result = TelegramAuthService.process_telegram_auth(mock_data, request)
+            # Обрабатываем мок авторизацию с валидированными данными
+            result = TelegramAuthService.process_telegram_auth(serializer.validated_data, request)
             
             if not result or not result.get('success'):
                 return redirect('/?open_login=true&error=Ошибка мок авторизации')
@@ -128,8 +166,6 @@ class TelegramAuthView(APIView):
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
-            logger.info(f"Получен запрос авторизации Telegram: {request.data}")
-            
             # Проверяем мок запросы на продакшене
             if request.data.get('mock') == 'true':
                 if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
@@ -146,25 +182,18 @@ class TelegramAuthView(APIView):
             
             # Валидируем данные
             serializer = TelegramAuthSerializer(data=request.data)
-            logger.info(f"Данные для валидации: {request.data}")
             if not serializer.is_valid():
-                logger.error(f"Ошибка валидации сериализатора: {serializer.errors}")
-                logger.error(f"Ошибка валидации: {serializer.errors}")
                 return Response({
                     'success': False,
                     'error': 'Неверные данные авторизации',
                     'details': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
-            
             # Обрабатываем авторизацию
             result = TelegramAuthService.process_telegram_auth(
                 serializer.validated_data, 
                 request
             )
-            
-            logger.info(f"Результат обработки авторизации: {result}")
             
             if not result or not result.get('success'):
                 return Response({
@@ -193,11 +222,9 @@ class TelegramAuthView(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
             
         except Exception as e:
-            logger.error(f"Детальная ошибка в TelegramAuthView: {e}")
-            logger.error(f"Тип ошибки: {type(e)}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
             logger.error(f"Ошибка в TelegramAuthView: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return Response({
                 'success': False,
                 'error': 'Внутренняя ошибка сервера'
@@ -207,17 +234,33 @@ class TelegramAuthView(APIView):
         """Обрабатывает POST мок авторизацию"""
         try:
             import time
+            # Получаем данные из запроса, преобразуя в правильные типы
+            user_id = request.data.get('user_id', '975113235')
+            try:
+                user_id = int(user_id) if isinstance(user_id, str) else user_id
+            except (ValueError, TypeError):
+                user_id = 975113235
+            
             mock_data = {
-                'id': request.data.get('user_id', '975113235'),
-                'first_name': request.data.get('first_name', 'TestUser'),
-                'last_name': request.data.get('last_name', 'Developer'), 
-                'username': request.data.get('username', 'testdev'),
+                'id': user_id,
+                'first_name': request.data.get('first_name', 'TestUser') or '',
+                'last_name': request.data.get('last_name', 'Developer') or '',
+                'username': request.data.get('username', 'testdev') or '',
                 'photo_url': 'https://via.placeholder.com/150',
-                'auth_date': str(int(time.time())),  # Текущее время
+                'auth_date': int(time.time()),  # Текущее время
                 'hash': 'mock_hash_for_development'
             }
             
-            result = TelegramAuthService.process_telegram_auth(mock_data, request)
+            # Валидируем данные
+            serializer = TelegramAuthSerializer(data=mock_data)
+            if not serializer.is_valid():
+                return Response({
+                    'success': False,
+                    'error': 'Ошибка валидации мок данных',
+                    'details': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            result = TelegramAuthService.process_telegram_auth(serializer.validated_data, request)
             
             if not result or not result.get('success'):
                 return Response({
