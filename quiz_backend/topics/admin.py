@@ -3,6 +3,7 @@ from django import forms
 from django.contrib import admin
 from django.conf import settings
 from .models import Topic, Subtopic
+from .utils import normalize_subtopic_name
 
 class TopicAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -86,6 +87,14 @@ class SubtopicAdmin(admin.ModelAdmin):
     search_fields = ('name', 'topic__name')
     raw_id_fields = ('topic',)
     ordering = ('topic', 'name')
+
+    def save_model(self, request, obj, form, change):
+        """
+        Нормализует имя подтемы перед сохранением через админку.
+        """
+        if obj.name:
+            obj.name = normalize_subtopic_name(obj.name)
+        super().save_model(request, obj, form, change)
 
     def get_tasks_count(self, obj):
         """Получить количество задач в подтеме"""
