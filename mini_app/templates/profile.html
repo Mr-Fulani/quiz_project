@@ -184,6 +184,44 @@
     </div>
 </div>
 
+<!-- Экран приглашения для неавторизованных пользователей -->
+<div id="invitation-screen" class="invitation-screen" style="display: none;">
+    <div class="invitation-container">
+        <div class="invitation-header">
+            <h1 class="invitation-title" data-translate="welcome_to_miniapp">{{ translations.get('welcome_to_miniapp', 'Добро пожаловать в QUIZ-CODE!') }}</h1>
+            <p class="invitation-description" data-translate="miniapp_requires_telegram">{{ translations.get('miniapp_requires_telegram', 'Для использования мини-приложения необходимо открыть его через Telegram бота.') }}</p>
+        </div>
+        
+        <div class="invitation-options">
+            <div class="invitation-option">
+                <div class="option-icon telegram-icon">
+                    <i class="fab fa-telegram"></i>
+                </div>
+                <h3 class="option-title" data-translate="login_via_telegram">{{ translations.get('login_via_telegram', 'Войти через Telegram') }}</h3>
+                <p class="option-description" data-translate="telegram_option_description">{{ translations.get('telegram_option_description', 'Откройте мини-приложение через Telegram бота для доступа ко всем функциям') }}</p>
+                <a href="https://t.me/mr_proger_bot" target="_blank" class="option-button telegram-button" data-translate="open_telegram_bot">
+                    {{ translations.get('open_telegram_bot', 'Открыть в Telegram') }}
+                </a>
+            </div>
+            
+            <div class="invitation-divider">
+                <span data-translate="or">{{ translations.get('or', 'или') }}</span>
+            </div>
+            
+            <div class="invitation-option">
+                <div class="option-icon website-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <h3 class="option-title" data-translate="register_on_website">{{ translations.get('register_on_website', 'Зарегистрироваться на сайте') }}</h3>
+                <p class="option-description" data-translate="website_option_description">{{ translations.get('website_option_description', 'Создайте аккаунт на нашем сайте и получите доступ к аналогичному функционалу') }}</p>
+                <a href="https://quiz-code.com/{{ current_language }}/?open_register=true" target="_blank" class="option-button website-button" data-translate="go_to_website">
+                    {{ translations.get('go_to_website', 'Перейти на сайт') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Backdrop для модального окна с аватарками -->
 <div class="avatar-modal-backdrop" id="avatar-modal-backdrop"></div>
 

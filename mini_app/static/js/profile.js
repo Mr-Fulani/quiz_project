@@ -24,6 +24,36 @@
         return telegramId ? parseInt(telegramId) : null;
     }
 
+    // Функция для получения значения cookie
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    // Функция для показа экрана приглашения
+    function showInvitationScreen() {
+        console.log('📢 Показываем экран приглашения');
+        const elements = getDOMElements();
+        
+        // Скрываем лоадер и профиль
+        if (elements.loader) {
+            elements.loader.style.display = 'none';
+        }
+        if (elements.profileContainer) {
+            elements.profileContainer.style.display = 'none';
+        }
+        
+        // Показываем экран приглашения
+        const invitationScreen = document.getElementById('invitation-screen');
+        if (invitationScreen) {
+            invitationScreen.style.display = 'block';
+        } else {
+            console.error('❌ Элемент invitation-screen не найден в DOM');
+        }
+    }
+
     // Простая функция для показа уведомлений
     function showNotification(key, type, element, message) {
         console.log(`📢 Notification [${type}]: ${message}`);
@@ -959,41 +989,38 @@
             }
             
             if (!tg || !tg.initData) {
-                console.log('⚠️ Нет initData, пытаемся получить данные профиля через API');
+                console.log('⚠️ Нет initData - пользователь открыл приложение в браузере');
                 
-                // Пытаемся получить данные профиля через API
+                // Проверяем, есть ли telegram_id в cookie (на случай если пользователь уже авторизован)
+                const telegramIdFromCookie = getCookie('telegram_id');
+                
+                if (!telegramIdFromCookie) {
+                    // Нет ни initData, ни telegram_id - показываем экран приглашения
+                    console.log('⚠️ Пользователь не авторизован - показываем экран приглашения');
+                    showInvitationScreen();
+                    return;
+                }
+                
+                // Если есть telegram_id в cookie, пытаемся загрузить профиль
+                console.log('🔍 Найден telegram_id в cookie:', telegramIdFromCookie);
                 try {
-                    const profileResponse = await fetch('/api/accounts/miniapp-users/by-telegram/7827592658/');
+                    const profileResponse = await fetch(`/api/accounts/miniapp-users/by-telegram/${telegramIdFromCookie}/`);
                     if (profileResponse.ok) {
                         const profileData = await profileResponse.json();
                         console.log('✅ Получены данные профиля через API:', profileData);
-                        console.log('🔍 gender в API данных:', profileData.gender);
-                        console.log('🔍 birth_date в API данных:', profileData.birth_date);
                         updateProfileDOM(profileData);
+                        return;
+                    } else {
+                        // Если профиль не найден, показываем экран приглашения
+                        console.log('⚠️ Профиль не найден - показываем экран приглашения');
+                        showInvitationScreen();
                         return;
                     }
                 } catch (apiError) {
                     console.error('❌ Ошибка получения данных через API:', apiError);
+                    showInvitationScreen();
+                    return;
                 }
-                
-                // Fallback к заглушке
-                console.log('⚠️ Fallback к заглушке');
-                const mockData = {
-                    first_name: 'Тестовый',
-                    last_name: 'Пользователь',
-                    username: 'test_user',
-                    avatar: null,
-                    points: 0,
-                    rating: 0,
-                    quizzes_completed: 0,
-                    success_rate: 0,
-                    social_links: [],
-                    progress: [],
-                    gender: 'male',  // Добавляем поле пола для тестирования
-                    birth_date: '1990-01-01'  // Добавляем дату рождения для тестирования
-                };
-                updateProfileDOM(mockData);
-                return;
             }
 
             // Основной рабочий процесс с initData
