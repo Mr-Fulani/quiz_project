@@ -1059,3 +1059,203 @@ input[type="date"]:focus {
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
 }
+
+/* Стили для экрана приглашения */
+.invitation-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--base-bg);
+    padding: 20px;
+    box-sizing: border-box;
+    
+    /* Safe Area Insets для Telegram Mini App */
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+}
+
+.invitation-container {
+    max-width: 600px;
+    width: 100%;
+    background: rgba(21, 31, 40, 0.95);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    border-radius: 25px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
+    padding: 40px 30px;
+    box-sizing: border-box;
+}
+
+.invitation-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.invitation-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--matrix-color);
+    margin: 0 0 15px 0;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.invitation-description {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.invitation-options {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.invitation-option {
+    text-align: center;
+    padding: 30px 20px;
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.invitation-option:hover {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: rgba(0, 255, 0, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2);
+}
+
+.option-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 40px;
+    transition: all 0.3s ease;
+}
+
+.telegram-icon {
+    background: linear-gradient(135deg, #0088cc 0%, #229ED9 100%);
+    color: white;
+}
+
+.website-icon {
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.2) 0%, rgba(0, 255, 0, 0.4) 100%);
+    color: var(--matrix-color);
+}
+
+.option-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 10px 0;
+}
+
+.option-description {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+    margin: 0 0 20px 0;
+}
+
+.option-button {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.telegram-button {
+    background: linear-gradient(135deg, #0088cc 0%, #229ED9 100%);
+    color: white;
+    border-color: #0088cc;
+}
+
+.telegram-button:hover {
+    background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(34, 158, 217, 0.4);
+}
+
+.website-button {
+    background: transparent;
+    color: var(--matrix-color);
+    border-color: var(--matrix-color);
+}
+
+.website-button:hover {
+    background: rgba(0, 255, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 0, 0.3);
+}
+
+.invitation-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0;
+    position: relative;
+}
+
+.invitation-divider::before,
+.invitation-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(0, 255, 0, 0.3);
+}
+
+.invitation-divider span {
+    padding: 0 15px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .invitation-container {
+        padding: 30px 20px;
+    }
+    
+    .invitation-title {
+        font-size: 24px;
+    }
+    
+    .invitation-description {
+        font-size: 14px;
+    }
+    
+    .option-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 30px;
+    }
+    
+    .option-title {
+        font-size: 20px;
+    }
+    
+    .option-description {
+        font-size: 13px;
+    }
+    
+    .option-button {
+        padding: 10px 25px;
+        font-size: 14px;
+    }
+}
