@@ -51,6 +51,7 @@ class S3ServiceTestCase(TestCase):
         mock_settings.AWS_STORAGE_BUCKET_NAME = 'test_bucket'
         mock_settings.AWS_S3_REGION_NAME = 'us-east-1'
         mock_settings.AWS_S3_CUSTOM_DOMAIN = 'test_bucket.s3.us-east-1.amazonaws.com'
+        mock_settings.AWS_PUBLIC_MEDIA_DOMAIN = 'cdn.test-bucket.com'
 
         mock_s3 = MagicMock()
         mock_boto_client.return_value = mock_s3
@@ -63,7 +64,7 @@ class S3ServiceTestCase(TestCase):
 
         # Проверяем
         self.assertIsNotNone(result)
-        self.assertIn('test_bucket.s3.us-east-1.amazonaws.com', result)
+        self.assertIn('cdn.test-bucket.com', result)
         mock_s3.put_object.assert_called_once()
 
     @patch('tasks.services.s3_service.settings')

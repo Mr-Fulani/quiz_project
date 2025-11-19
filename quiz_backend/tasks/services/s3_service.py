@@ -125,7 +125,8 @@ def upload_image_to_s3(image: Image.Image, image_name: str) -> Optional[str]:
                 raise e
         
         # Формируем URL
-        image_url = f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/{image_name}"
+        public_domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', settings.AWS_S3_CUSTOM_DOMAIN)
+        image_url = f"https://{public_domain}/{image_name}"
         logger.info(f"✅ Изображение успешно загружено в S3: {image_url}")
         
         return image_url

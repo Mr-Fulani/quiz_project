@@ -665,6 +665,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.getenv('S3_REGION', 'us-east-1')
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+AWS_PUBLIC_MEDIA_DOMAIN = os.getenv('AWS_PUBLIC_MEDIA_DOMAIN', AWS_S3_CUSTOM_DOMAIN)
 
 # Logo path for image generation
 LOGO_PATH = os.path.join(MEDIA_ROOT, 'logos/logo.png')
