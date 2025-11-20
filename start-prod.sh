@@ -1,5 +1,32 @@
 #!/bin/bash
 
+# Загрузка переменных окружения из .env файла
+# Безопасный способ парсинга .env с поддержкой пробелов в значениях
+if [ -f .env ]; then
+    set -a
+    source .env 2>/dev/null || {
+        # Если source не работает, используем альтернативный метод
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Пропускаем комментарии и пустые строки
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "${line// }" ]] && continue
+            
+            # Экспортируем переменную, если она содержит =
+            if [[ "$line" =~ ^[[:space:]]*([^=]+)=(.*)$ ]]; then
+                key="${BASH_REMATCH[1]// /}"
+                value="${BASH_REMATCH[2]}"
+                # Убираем кавычки если они есть
+                value="${value#\"}"
+                value="${value%\"}"
+                value="${value#\'}"
+                value="${value%\'}"
+                export "$key=$value" 2>/dev/null || true
+            fi
+        done < .env
+    }
+    set +a
+fi
+
 # Скрипт для запуска продакшена
 echo "🌐 Запуск продакшена..."
 
@@ -157,6 +184,46 @@ else
     
     echo "⏳ Ожидание полного запуска всех сервисов..."
     if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 15; fi
+fi
+
+echo ""
+echo "🔧 Исправление предупреждений PostgreSQL..."
+# Исправляем предупреждение о collation version mismatch
+# Ожидаем готовности PostgreSQL перед исправлением
+MAX_RETRIES=5
+RETRY_COUNT=0
+FIXED=false
+
+if docker ps | grep -q "postgres_db_local_prod"; then
+    DB_USER=${DB_USER:-postgres}
+    DB_PASSWORD=${DB_PASSWORD:-postgres}
+    DB_NAME=${DB_NAME:-fulani_quiz_db}
+    
+    echo "   🔍 Ожидание готовности PostgreSQL для исправления collation version..."
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$FIXED" = false ]; do
+        # Проверяем, доступен ли PostgreSQL
+        if docker exec -e PGPASSWORD="$DB_PASSWORD" postgres_db_local_prod \
+            pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
+            
+            echo "   🔍 Попытка исправления collation version ($((RETRY_COUNT+1))/$MAX_RETRIES)..."
+            if docker exec -e PGPASSWORD="$DB_PASSWORD" postgres_db_local_prod \
+                psql -U "$DB_USER" -d "$DB_NAME" -c "ALTER DATABASE $DB_NAME REFRESH COLLATION VERSION;" >/dev/null 2>&1; then
+                echo "   ✅ Предупреждение о collation version исправлено"
+                FIXED=true
+                break
+            fi
+        fi
+        
+        RETRY_COUNT=$((RETRY_COUNT+1))
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            sleep 2
+        fi
+    done
+    
+    if [ "$FIXED" = false ]; then
+        echo "   ⚠️  Не удалось автоматически исправить после $MAX_RETRIES попыток."
+        echo "   💡 Запустите вручную: ./fix-warnings.sh"
+    fi
 fi
 
 echo ""

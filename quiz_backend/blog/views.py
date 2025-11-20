@@ -526,6 +526,44 @@ class HomePageView(BreadcrumbsMixin, TemplateView):
     template_name = 'blog/index.html'
     breadcrumbs = [{'name': _('Главная'), 'url': reverse_lazy('blog:home')}]
 
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Обрабатываем данные от Telegram в URL параметрах.
+        Telegram может делать redirect на главную страницу вместо /api/social-auth/telegram/auth/
+        """
+        # Проверяем наличие данных от Telegram в GET параметрах
+        telegram_id = request.GET.get('id')
+        telegram_hash = request.GET.get('hash')
+        
+        if telegram_id and telegram_hash:
+            logger.info("🔐 Обнаружены данные от Telegram в URL параметрах главной страницы!")
+            logger.info(f"  - ID: {telegram_id}, Hash: {telegram_hash}")
+            logger.info(f"  - Referer: {request.META.get('HTTP_REFERER', 'N/A')}")
+            logger.info(f"  - Все GET параметры: {dict(request.GET)}")
+            
+            # Перенаправляем на API endpoint с данными от Telegram
+            # Собираем все параметры от Telegram
+            telegram_params = {
+                'id': telegram_id,
+                'hash': telegram_hash,
+            }
+            # Добавляем остальные параметры от Telegram, если есть
+            for param in ['auth_date', 'first_name', 'last_name', 'username', 'photo_url']:
+                if request.GET.get(param):
+                    telegram_params[param] = request.GET.get(param)
+            
+            # Формируем URL с параметрами
+            from django.http import QueryDict
+            from urllib.parse import urlencode
+            auth_url = reverse('social_auth:telegram_auth_api')
+            query_string = urlencode(telegram_params)
+            redirect_url = f"{auth_url}?{query_string}"
+            
+            logger.info(f"  - Редирект на: {redirect_url}")
+            return redirect(redirect_url)
+        
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         posts_list = Post.objects.filter(published=True)

@@ -17,7 +17,7 @@ from bot.database.models import TelegramAdmin, TelegramGroup, TelegramUser, User
 from bot.keyboards.reply_keyboards import get_start_reply_keyboard
 from bot.services.admin_service import is_admin, add_admin
 from bot.states.admin_states import AddAdminStates, RemoveAdminStates, ManageAdminGroupsStates
-from bot.utils.markdownV2 import escape_markdown, format_group_link
+from bot.utils.markdownV2 import escape_markdown, format_group_link, format_user_link
 from bot.utils.notifications import notify_admin
 from bot.utils.admin_utils import create_groups_keyboard, promote_admin_in_group, get_available_groups, demote_admin_in_group, remove_admin_rights
 
@@ -713,9 +713,11 @@ async def process_admin_confirmation(call: CallbackQuery, state: FSMContext, bot
     
     # Формируем текст с username или ID
     if new_username:
-        username_text = escape_markdown("🎉 Админ добавлен: @") + f"[{escape_markdown(new_username)}](https://t.me/{new_username})"
+        username_link = format_user_link(new_username, new_admin_id)
+        username_text = escape_markdown("🎉 Админ добавлен: ") + username_link
     else:
-        username_text = escape_markdown("🎉 Админ добавлен: ") + escape_markdown(str(new_admin_id))
+        username_link = format_user_link(None, new_admin_id)
+        username_text = escape_markdown("🎉 Админ добавлен: ") + username_link
     
     summary_text = (
         username_text +

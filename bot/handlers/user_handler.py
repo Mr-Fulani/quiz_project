@@ -102,7 +102,7 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
                 django.setup()
                 logger.info("Django настроен")
                 
-                from accounts.models import TelegramAdmin
+                from accounts.models import TelegramAdmin, TelegramAdminGroup
                 from platforms.models import TelegramGroup
                 
                 try:
@@ -237,13 +237,17 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
                 logger.info(f"Найдена группа: {group.group_name}")
                 
                 # Создаем связь через Django ORM
-                if group not in admin.groups.all():
-                    admin.groups.add(group)
+                link, link_created = TelegramAdminGroup.objects.get_or_create(
+                    telegram_admin=admin,
+                    telegram_group=group
+                )
+
+                if link_created:
                     logger.info(f"Создана связь админа {user.username} с группой {channel_obj.group_name}")
                     return True
-                else:
-                    logger.debug(f"Связь админа {user.username} с группой {channel_obj.group_name} уже существует")
-                    return False
+
+                logger.debug(f"Связь админа {user.username} с группой {channel_obj.group_name} уже существует")
+                return False
             
             # Выполняем синхронную функцию в отдельном потоке
             logger.info("Запускаем create_admin_in_django в отдельном потоке...")

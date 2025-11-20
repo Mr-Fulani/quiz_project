@@ -264,6 +264,7 @@ def smart_format_code(code: str, language: str) -> str:
         'mysql': format_sql_code,
         'postgresql': format_sql_code,
         
+        'php': format_curly_braces_language,
         'java': format_curly_braces_language,
         'c#': format_curly_braces_language,
         'csharp': format_curly_braces_language,
@@ -329,13 +330,18 @@ def get_lexer(language: str):
         'c++': 'cpp',
         'mysql': 'mysql',
         'postgresql': 'postgresql',
+        'php': 'php',
     }
     
     # Преобразуем alias в название лексера
     lexer_name = lexer_aliases.get(lang, lang)
+    lexer_kwargs = {}
+    
+    if lexer_name == 'php':
+        lexer_kwargs['startinline'] = True
     
     try:
-        lexer = get_lexer_by_name(lexer_name)
+        lexer = get_lexer_by_name(lexer_name, **lexer_kwargs)
         logger.debug(f"✅ Найден лексер: {lexer_name}")
         return lexer
     except Exception as e:
@@ -471,7 +477,7 @@ def generate_image_for_task(task_question: str, topic_name: str) -> Optional[Ima
         if detected_language == 'python' and topic_name:
             topic_lower = topic_name.lower()
             # Пытаемся использовать topic как fallback для языка
-            if topic_lower in ['python', 'java', 'javascript', 'go', 'golang', 'rust', 'sql']:
+            if topic_lower in ['python', 'java', 'javascript', 'go', 'golang', 'rust', 'sql', 'php']:
                 detected_language = topic_lower
 
         logger.info(f"Генерация изображения, язык: {detected_language}")

@@ -1,7 +1,7 @@
 import logging
 from aiogram import Bot
 from bot.database.models import TelegramAdmin
-from bot.utils.markdownV2 import format_group_link, escape_markdown
+from bot.utils.markdownV2 import format_group_link, escape_markdown, format_user_link
 
 logger = logging.getLogger(__name__)
 
@@ -24,21 +24,21 @@ async def notify_admin(bot: Bot, action: str, admin: TelegramAdmin) -> None:
         group_text = ", ".join(group_links) if group_links else escape_markdown("нет групп")
 
         # Экранируем username для безопасного отображения
-        escaped_username = escape_markdown(admin.username or str(admin.telegram_id))
+        user_link = format_user_link(admin.username, admin.telegram_id)
 
         if action == "added":
             message = (
-                escape_markdown("Здравствуйте, @") + f"[{escaped_username}](https://t.me/{admin.username.lstrip('@') if admin.username else admin.telegram_id})" +
+                escape_markdown("Здравствуйте, ") + user_link +
                 escape_markdown("!\nВы были добавлены как администратор.\nГруппы: ") + group_text + escape_markdown(".")
             )
         elif action == "updated":
             message = (
-                escape_markdown("Здравствуйте, @") + f"[{escaped_username}](https://t.me/{admin.username.lstrip('@') if admin.username else admin.telegram_id})" +
+                escape_markdown("Здравствуйте, ") + user_link +
                 escape_markdown("!\nВаши права обновлены.\nГруппы: ") + group_text + escape_markdown(".")
             )
         elif action == "removed":
             message = (
-                escape_markdown("Здравствуйте, @") + f"[{escaped_username}](https://t.me/{admin.username.lstrip('@') if admin.username else admin.telegram_id})" +
+                escape_markdown("Здравствуйте, ") + user_link +
                 escape_markdown("!\nВы удалены из администраторов.\nГруппы: ") + group_text + escape_markdown(".")
             )
         else:
