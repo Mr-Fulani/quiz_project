@@ -337,18 +337,27 @@ class TelegramAuthView(APIView):
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
-            logger.info(f"=== TELEGRAM AUTH POST REQUEST ===")
-            if hasattr(request, 'data'):
-                logger.info(f"Request data (DRF): {request.data}")
-            logger.info(f"Request POST params: {dict(request.POST)}")
-            if request.body:
-                try:
-                    logger.info(f"Request body (first 500 chars): {request.body.decode('utf-8')[:500]}")
-                except Exception:
-                    logger.info(f"Request body (raw, first 500 bytes): {request.body[:500]}")
+            logger.info("=" * 80)
+            logger.info("=== TELEGRAM AUTH POST REQUEST ===")
+            logger.info("=" * 80)
+            logger.info(f"Request method: {request.method}")
             logger.info(f"Request path: {request.path}")
             logger.info(f"Request host: {request.get_host()}")
             logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
+            
+            if hasattr(request, 'data'):
+                logger.info(f"Request data (DRF): {request.data}")
+            logger.info(f"Request POST params: {dict(request.POST)}")
+            
+            if request.body:
+                try:
+                    body_str = request.body.decode('utf-8')
+                    logger.info(f"Request body (first 500 chars): {body_str[:500]}")
+                except Exception as e:
+                    logger.warning(f"Не удалось декодировать body: {e}")
+                    logger.info(f"Request body (raw, first 500 bytes): {request.body[:500]}")
+            else:
+                logger.info("Request body is empty")
             
             # Обрабатываем данные из request.data (DRF) или request.POST
             auth_data = {}
@@ -505,31 +514,57 @@ class TelegramAuthView(APIView):
             # Подготавливаем ответ
             try:
                 user_data = UserSocialAccountsSerializer(user).data
+                logger.info(f"Пользователь сериализован: {user.username}")
             except Exception as e:
+                import traceback
                 logger.error(f"Ошибка сериализации пользователя: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 # Fallback: простые данные пользователя
                 user_data = {
                     'id': user.id,
                     'username': user.username,
-                    'email': user.email or ''
+                    'email': getattr(user, 'email', '') or ''
                 }
             
             try:
-                social_account_data = SocialAccountSerializer(result['social_account']).data
+                social_account = result.get('social_account')
+                if social_account:
+                    social_account_data = SocialAccountSerializer(social_account).data
+                    logger.info(f"Social account сериализован: {social_account.provider}")
+                else:
+                    logger.warning("Social account отсутствует в результате")
+                    social_account_data = {}
             except Exception as e:
+                import traceback
                 logger.error(f"Ошибка сериализации social_account: {e}")
-                social_account_data = {
-                    'id': result['social_account'].id,
-                    'provider': result['social_account'].provider
-                }
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                social_account = result.get('social_account')
+                if social_account:
+                    social_account_data = {
+                        'id': social_account.id,
+                        'provider': social_account.provider
+                    }
+                else:
+                    social_account_data = {}
             
+            # Формируем минимальный ответ чтобы избежать ошибок сериализации
             response_data = {
                 'success': True,
                 'user': user_data,
-                'social_account': social_account_data,
                 'is_new_user': result.get('is_new_user', False),
-                'message': _('Успешная авторизация через Telegram') if not result.get('is_new_user') else _('Добро пожаловать! Ваш аккаунт создан.')
             }
+            
+            # Добавляем social_account только если есть
+            if social_account_data:
+                response_data['social_account'] = social_account_data
+            
+            # Добавляем сообщение
+            if result.get('is_new_user'):
+                response_data['message'] = _('Добро пожаловать! Ваш аккаунт создан.')
+            else:
+                response_data['message'] = _('Успешная авторизация через Telegram')
+            
+            logger.info(f"Ответ подготовлен: success=True, user_id={user.id}, username={user.username}")
             
             # Добавляем redirect_url если есть
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -566,12 +601,17 @@ class TelegramAuthView(APIView):
         except Exception as e:
             import traceback
             error_traceback = traceback.format_exc()
-            logger.error(f"Критическая ошибка в POST TelegramAuthView: {e}")
-            logger.error(f"Traceback: {error_traceback}")
+            logger.error("=" * 80)
+            logger.error("КРИТИЧЕСКАЯ ОШИБКА В POST TelegramAuthView")
+            logger.error("=" * 80)
+            logger.error(f"Ошибка: {str(e)}")
+            logger.error(f"Тип ошибки: {type(e).__name__}")
+            logger.error(f"Traceback:\n{error_traceback}")
             logger.error(f"Request: method={request.method}, path={request.path}")
             logger.error(f"Request body: {request.body[:500] if request.body else 'empty'}")
             logger.error(f"Request data: {getattr(request, 'data', 'N/A')}")
             logger.error(f"Request POST: {dict(request.POST) if request.POST else 'empty'}")
+            logger.error("=" * 80)
             
             # Возвращаем более детальную ошибку в режиме отладки
             error_message = 'Внутренняя ошибка сервера при авторизации'
