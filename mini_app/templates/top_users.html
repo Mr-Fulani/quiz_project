@@ -88,23 +88,30 @@ window.openUserProfile = openUserProfile;
             <div class="user-item" data-telegram-id="{{ user.telegram_id }}" data-user-index="{{ loop.index0 }}" onclick="event.stopPropagation(); openSwiperAtIndex({{ loop.index0 }});">
                 <div class="user-rank">{{ loop.index }}</div>
                 <div class="user-avatar-wrapper">
-                    <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{{ user.username }}">
-                    {% if user.is_online %}
-                    <div class="online-indicator"></div>
-                    {% endif %}
-                    {% if not user.is_online and user.last_seen_formatted %}
-                    <div class="last-seen-badge" title="{{ translations.get('last_seen', 'Был в сети') }} {{ user.last_seen_formatted }}">
-                        <i class="far fa-clock"></i>
-                    </div>
+                    <img class="user-avatar" src="{{ user.avatar_url or '/static/images/default_avatar.png' }}" alt="{% if user.is_profile_public and user.username %}{{ user.username }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}">
+                    {% if user.is_profile_public %}
+                        {% if user.is_online %}
+                        <div class="online-indicator"></div>
+                        {% endif %}
+                        {% if not user.is_online and user.last_seen_formatted %}
+                        <div class="last-seen-badge" title="{{ translations.get('last_seen', 'Был в сети') }} {{ user.last_seen_formatted }}">
+                            <i class="far fa-clock"></i>
+                        </div>
+                        {% endif %}
                     {% endif %}
                 </div>
                 <div class="user-info">
+                    {% if user.is_profile_public and user.username %}
                     <h3 class="user-username">{{ user.username }}</h3>
+                    {% else %}
+                    <h3 class="user-username" style="opacity: 0.5;">{{ translations.get('private_profile', 'Приватный профиль') }}</h3>
+                    {% endif %}
                     <p class="user-name">{{ user.first_name }} {{ user.last_name }}</p>
                     <div class="user-stats">
+                        {% if user.is_profile_public %}
                         <div class="stat-item">
                             <span class="stat-label" data-translate="rating">{{ translations.get('rating', 'Рейтинг') }}:</span>
-                            <span class="stat-value">{{ user.rating }}</span>
+                            <span class="stat-value">{{ user.rating or 0 }}</span>
                         </div>
                         <div class="personal-info-item">
                             <span class="gender-icon">
@@ -143,6 +150,11 @@ window.openUserProfile = openUserProfile;
                                 {% endif %}
                             </span>
                         </div>
+                        {% else %}
+                        <div class="stat-item" style="opacity: 0.5;">
+                            <span class="stat-label">{{ translations.get('private_profile', 'Приватный профиль') }}</span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -185,21 +197,28 @@ window.openUserProfile = openUserProfile;
                              loading="eager"
                              decoding="async"
                              fetchpriority="high">
-                        {% if user.is_online %}
-                        <div class="online-indicator"></div>
-                        <div class="online-status-text" data-translate="online">{{ translations.get('online', 'В сети') }}</div>
-                        {% elif user.last_seen %}
-                        <div class="last-seen-text" data-last-seen="{{ user.last_seen }}" data-translate-prefix="last_seen"></div>
+                        {% if user.is_profile_public %}
+                            {% if user.is_online %}
+                            <div class="online-indicator"></div>
+                            <div class="online-status-text" data-translate="online">{{ translations.get('online', 'В сети') }}</div>
+                            {% elif user.last_seen %}
+                            <div class="last-seen-text" data-last-seen="{{ user.last_seen }}" data-translate-prefix="last_seen"></div>
+                            {% endif %}
                         {% endif %}
                         
                         <!-- Информация внизу экрана -->
                         <div class="user-info-container">
                             <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                            {% if user.is_profile_public and user.username %}
                             <div class="user-username">@{{ user.username }}</div>
+                            {% else %}
+                            <div class="user-username" style="opacity: 0.5;">{{ translations.get('private_profile', 'Приватный профиль') }}</div>
+                            {% endif %}
                             
                             <div class="user-stats">
+                                {% if user.is_profile_public %}
                                 <div class="user-rating">
-                                    ⭐ {{ user.rating }} {{ translations.get('rating', 'Рейтинг') }}
+                                    ⭐ {{ user.rating or 0 }} {{ translations.get('rating', 'Рейтинг') }}
                                 </div>
                                 <div class="user-details">
                                     {% if user.gender %}
@@ -228,6 +247,11 @@ window.openUserProfile = openUserProfile;
                                     </span>
                                     {% endif %}
                                 </div>
+                                {% else %}
+                                <div class="user-rating" style="opacity: 0.5;">
+                                    {{ translations.get('private_profile', 'Приватный профиль') }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
