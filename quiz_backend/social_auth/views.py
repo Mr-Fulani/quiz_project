@@ -352,19 +352,22 @@ class TelegramAuthView(APIView):
             
             print(f"POST Request: {request.method} {request.path}", flush=True)
             
+            # Логируем request.data и request.POST (безопасно)
             if hasattr(request, 'data'):
                 logger.info(f"Request data (DRF): {request.data}")
+                print(f"Request data (DRF): {request.data}", flush=True)
             logger.info(f"Request POST params: {dict(request.POST)}")
             
-            if request.body:
-                try:
-                    body_str = request.body.decode('utf-8')
-                    logger.info(f"Request body (first 500 chars): {body_str[:500]}")
-                except Exception as e:
-                    logger.warning(f"Не удалось декодировать body: {e}")
-                    logger.info(f"Request body (raw, first 500 bytes): {request.body[:500]}")
-            else:
-                logger.info("Request body is empty")
+            # НЕ обращаемся к request.body напрямую - это может вызвать RawPostDataException
+            # если body уже был прочитан через request.data
+            try:
+                if hasattr(request, '_body') and request._body:
+                    body_str = request._body.decode('utf-8', errors='ignore')
+                    logger.info(f"Request _body (first 500 chars): {body_str[:500]}")
+                else:
+                    logger.info("Request _body is empty or not accessible")
+            except Exception as e:
+                logger.warning(f"Не удалось прочитать _body: {e}")
             
             # Обрабатываем данные из request.data (DRF) или request.POST
             # ВАЖНО: В DRF нельзя читать request.body после обращения к request.data!
