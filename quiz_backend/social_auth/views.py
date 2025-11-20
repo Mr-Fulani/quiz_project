@@ -367,40 +367,26 @@ class TelegramAuthView(APIView):
                 logger.info("Request body is empty")
             
             # Обрабатываем данные из request.data (DRF) или request.POST
+            # ВАЖНО: В DRF нельзя читать request.body после обращения к request.data!
+            # Порядок важен: сначала request.data, потом request.body
             auth_data = {}
             
-            # Сначала пытаемся получить из request.body (JSON)
-            if request.body:
-                try:
-                    import json
-                    body_str = request.body.decode('utf-8')
-                    print(f"Request body (raw): {body_str[:500]}", flush=True)
-                    if body_str.strip():
-                        auth_data = json.loads(body_str)
-                        print(f"Данные получены из request.body (JSON): {auth_data}", flush=True)
-                        logger.info(f"Данные получены из request.body (JSON): {auth_data}")
-                except json.JSONDecodeError as e:
-                        error_msg = f"Не удалось распарсить JSON из body: {e}, body: {body_str[:200]}"
-                        print(f"WARNING: {error_msg}", flush=True)
-                        logger.warning(error_msg)
-                except Exception as e:
-                    error_msg = f"Ошибка при обработке body: {e}"
-                    print(f"WARNING: {error_msg}", flush=True)
-                    logger.warning(error_msg)
-            
-            # Если не получили из body, пробуем request.data (DRF)
-            if not auth_data and hasattr(request, 'data') and request.data:
+            # Сначала пробуем request.data (DRF) - это безопасно и не блокирует body
+            if hasattr(request, 'data') and request.data:
                 try:
                     # request.data может быть QueryDict или dict
                     if hasattr(request.data, 'dict'):
                         auth_data = request.data.dict()
                     else:
                         auth_data = dict(request.data)
+                    print(f"Данные получены из request.data (DRF): {auth_data}", flush=True)
                     logger.info(f"Данные получены из request.data (DRF): {auth_data}")
                 except Exception as e:
-                    logger.warning(f"Ошибка при обработке request.data: {e}")
+                    error_msg = f"Ошибка при обработке request.data: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
             
-            # Если все еще нет данных, пробуем request.POST
+            # Если не получили из request.data, пробуем request.POST
             if not auth_data and request.POST:
                 try:
                     # Обрабатываем QueryDict
@@ -409,9 +395,34 @@ class TelegramAuthView(APIView):
                             auth_data[key] = value[0]
                         elif value:
                             auth_data[key] = value
+                    print(f"Данные получены из request.POST: {auth_data}", flush=True)
                     logger.info(f"Данные получены из request.POST: {auth_data}")
                 except Exception as e:
-                    logger.warning(f"Ошибка при обработке request.POST: {e}")
+                    error_msg = f"Ошибка при обработке request.POST: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
+            
+            # Только если не получили данные из request.data и request.POST, пробуем request.body
+            # Но это может вызвать RawPostDataException если body уже был прочитан
+            if not auth_data:
+                try:
+                    # Пытаемся прочитать body только если он еще не был прочитан
+                    if hasattr(request, '_body') and request._body:
+                        body_str = request._body.decode('utf-8')
+                        print(f"Request body (raw from _body): {body_str[:500]}", flush=True)
+                        if body_str.strip():
+                            import json
+                            auth_data = json.loads(body_str)
+                            print(f"Данные получены из request._body (JSON): {auth_data}", flush=True)
+                            logger.info(f"Данные получены из request._body (JSON): {auth_data}")
+                except (AttributeError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                    error_msg = f"Не удалось прочитать body: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
+                except Exception as e:
+                    error_msg = f"Ошибка при обработке body: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
             
             if not auth_data:
                 error_msg = "Не удалось получить данные авторизации ни из одного источника"
@@ -653,7 +664,15 @@ class TelegramAuthView(APIView):
             logger.error(f"Тип ошибки: {type(e).__name__}")
             logger.error(f"Traceback:\n{error_traceback}")
             logger.error(f"Request: method={request.method}, path={request.path}")
-            logger.error(f"Request body: {request.body[:500] if request.body else 'empty'}")
+            # Не обращаемся к request.body напрямую чтобы избежать RawPostDataException
+            try:
+                body_info = 'empty'
+                if hasattr(request, '_body') and request._body:
+                    body_info = request._body[:500].decode('utf-8', errors='ignore')
+                logger.error(f"Request _body: {body_info}")
+            except Exception:
+                logger.error(f"Request _body: cannot read")
+            
             logger.error(f"Request data: {getattr(request, 'data', 'N/A')}")
             logger.error(f"Request POST: {dict(request.POST) if request.POST else 'empty'}")
             logger.error("=" * 80)
