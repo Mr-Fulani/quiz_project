@@ -11,27 +11,32 @@ echo "---------------------------------------------------"
 docker compose -f docker-compose.local-prod.yml exec quiz_backend ls -la /app/logs/ 2>/dev/null || echo "Папка /app/logs не найдена или недоступна"
 echo ""
 
-echo "2. Последние 150 строк из gunicorn-error.log:"
+echo "2. Проверка что print() есть в коде:"
 echo "---------------------------------------------------"
-docker compose -f docker-compose.local-prod.yml exec quiz_backend tail -150 /app/logs/gunicorn-error.log 2>/dev/null || echo "Файл gunicorn-error.log не найден или пуст"
+docker compose -f docker-compose.local-prod.yml exec quiz_backend grep -c "print(" /app/social_auth/views.py 2>/dev/null || echo "Не удалось проверить"
 echo ""
 
-echo "3. Поиск TELEGRAM в gunicorn-error.log:"
+echo "3. Последние 200 строк из gunicorn-error.log:"
 echo "---------------------------------------------------"
-docker compose -f docker-compose.local-prod.yml exec quiz_backend grep -i "telegram\|TELEGRAM AUTH POST" /app/logs/gunicorn-error.log 2>/dev/null | tail -100 || echo "Нет записей о Telegram в error.log"
+docker compose -f docker-compose.local-prod.yml exec quiz_backend tail -200 /app/logs/gunicorn-error.log 2>/dev/null || echo "Файл gunicorn-error.log не найден или пуст"
 echo ""
 
-echo "4. Последние строки из gunicorn-access.log с Telegram:"
+echo "4. Поиск TELEGRAM в gunicorn-error.log:"
+echo "---------------------------------------------------"
+docker compose -f docker-compose.local-prod.yml exec quiz_backend grep -i "telegram\|TELEGRAM AUTH POST\|POST Request\|ERROR\|Traceback" /app/logs/gunicorn-error.log 2>/dev/null | tail -150 || echo "Нет записей о Telegram в error.log"
+echo ""
+
+echo "5. Последние строки из gunicorn-access.log с Telegram:"
 echo "---------------------------------------------------"
 docker compose -f docker-compose.local-prod.yml exec quiz_backend grep -i "telegram\|/api/social-auth" /app/logs/gunicorn-access.log 2>/dev/null | tail -50 || echo "Нет записей о Telegram в access.log"
 echo ""
 
-echo "5. Все последние логи quiz_backend (stdout/stderr) с print():"
+echo "6. Все последние логи quiz_backend (stdout/stderr) с print():"
 echo "---------------------------------------------------"
-docker compose -f docker-compose.local-prod.yml logs quiz_backend --tail=500 2>&1 | grep -A 5 "TELEGRAM AUTH POST\|POST Request\|Обработанные данные\|Вызываем\|Пользователь\|ERROR\|Traceback" | tail -200
+docker compose -f docker-compose.local-prod.yml logs quiz_backend --tail=500 2>&1 | grep -A 5 "TELEGRAM AUTH POST\|POST Request\|Обработанные данные\|Вызываем\|Пользователь\|ERROR\|Traceback" | tail -200 || echo "Нет совпадений в stdout логах"
 echo ""
 
-echo "6. Полные последние 200 строк логов quiz_backend:"
+echo "7. Полные последние 200 строк логов quiz_backend:"
 echo "---------------------------------------------------"
 docker compose -f docker-compose.local-prod.yml logs quiz_backend --tail=200 2>&1
 echo ""
