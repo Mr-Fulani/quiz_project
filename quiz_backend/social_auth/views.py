@@ -337,6 +337,11 @@ class TelegramAuthView(APIView):
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
+            # Дублируем вывод в print для гарантии что увидим в логах
+            print("=" * 80, flush=True)
+            print("=== TELEGRAM AUTH POST REQUEST ===", flush=True)
+            print("=" * 80, flush=True)
+            
             logger.info("=" * 80)
             logger.info("=== TELEGRAM AUTH POST REQUEST ===")
             logger.info("=" * 80)
@@ -344,6 +349,8 @@ class TelegramAuthView(APIView):
             logger.info(f"Request path: {request.path}")
             logger.info(f"Request host: {request.get_host()}")
             logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
+            
+            print(f"POST Request: {request.method} {request.path}", flush=True)
             
             if hasattr(request, 'data'):
                 logger.info(f"Request data (DRF): {request.data}")
@@ -367,13 +374,19 @@ class TelegramAuthView(APIView):
                 try:
                     import json
                     body_str = request.body.decode('utf-8')
+                    print(f"Request body (raw): {body_str[:500]}", flush=True)
                     if body_str.strip():
                         auth_data = json.loads(body_str)
+                        print(f"Данные получены из request.body (JSON): {auth_data}", flush=True)
                         logger.info(f"Данные получены из request.body (JSON): {auth_data}")
                 except json.JSONDecodeError as e:
-                        logger.warning(f"Не удалось распарсить JSON из body: {e}, body: {body_str[:200]}")
+                        error_msg = f"Не удалось распарсить JSON из body: {e}, body: {body_str[:200]}"
+                        print(f"WARNING: {error_msg}", flush=True)
+                        logger.warning(error_msg)
                 except Exception as e:
-                    logger.warning(f"Ошибка при обработке body: {e}")
+                    error_msg = f"Ошибка при обработке body: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
             
             # Если не получили из body, пробуем request.data (DRF)
             if not auth_data and hasattr(request, 'data') and request.data:
@@ -401,12 +414,15 @@ class TelegramAuthView(APIView):
                     logger.warning(f"Ошибка при обработке request.POST: {e}")
             
             if not auth_data:
-                logger.error("Не удалось получить данные авторизации ни из одного источника")
+                error_msg = "Не удалось получить данные авторизации ни из одного источника"
+                print(f"ERROR: {error_msg}", flush=True)
+                logger.error(error_msg)
                 return Response({
                     'success': False,
                     'error': 'Отсутствуют данные авторизации'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            print(f"Обработанные данные авторизации: {auth_data}", flush=True)
             logger.info(f"Обработанные данные авторизации: {auth_data}")
             
             # Проверяем мок запросы на продакшене
@@ -461,14 +477,18 @@ class TelegramAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
+            print(f"Данные прошли валидацию: {serializer.validated_data}", flush=True)
             
             # Обрабатываем авторизацию
+            print("Вызываем TelegramAuthService.process_telegram_auth...", flush=True)
             result = TelegramAuthService.process_telegram_auth(
                 serializer.validated_data, 
                 request
             )
             
-            logger.info(f"Результат обработки POST авторизации: success={result.get('success') if result else False}")
+            result_msg = f"Результат обработки POST авторизации: success={result.get('success') if result else False}"
+            print(result_msg, flush=True)
+            logger.info(result_msg)
             
             if not result or not result.get('success'):
                 return Response({
@@ -565,6 +585,7 @@ class TelegramAuthView(APIView):
                 response_data['message'] = _('Успешная авторизация через Telegram')
             
             logger.info(f"Ответ подготовлен: success=True, user_id={user.id}, username={user.username}")
+            print(f"Ответ подготовлен: success=True, user_id={user.id}, username={user.username}", flush=True)
             
             # Добавляем redirect_url если есть
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -572,7 +593,9 @@ class TelegramAuthView(APIView):
                 response_data['redirect_url'] = next_url
             
             # Создаем Response и устанавливаем куки сессии явно
+            print(f"Создаем Response с данными: {response_data}", flush=True)
             response = Response(response_data, status=status.HTTP_200_OK)
+            print("Response создан успешно", flush=True)
             
             # Устанавливаем куки сессии для гарантированного сохранения
             session_key = session_key_before  # Используем уже полученный session_key
@@ -601,6 +624,14 @@ class TelegramAuthView(APIView):
         except Exception as e:
             import traceback
             error_traceback = traceback.format_exc()
+            
+            # Дублируем в print для гарантии что увидим
+            print("=" * 80, flush=True)
+            print("КРИТИЧЕСКАЯ ОШИБКА В POST TelegramAuthView", flush=True)
+            print(f"Ошибка: {str(e)}", flush=True)
+            print(f"Тип ошибки: {type(e).__name__}", flush=True)
+            print(f"Traceback:\n{error_traceback}", flush=True)
+            
             logger.error("=" * 80)
             logger.error("КРИТИЧЕСКАЯ ОШИБКА В POST TelegramAuthView")
             logger.error("=" * 80)
