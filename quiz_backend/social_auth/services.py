@@ -36,40 +36,67 @@ class TelegramAuthService:
             # В режиме разработки пропускаем проверку подписи для мок данных
             if (getattr(settings, 'MOCK_TELEGRAM_AUTH', False) and 
                 data.get('hash') in ['test_hash', 'mock_hash_for_development']):
+                logger.info("Пропущена проверка подписи для мок данных")
                 return True
             
             # Получаем токен бота из настроек
             bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
             if not bot_token:
-                logger.error("TELEGRAM_BOT_TOKEN не настроен")
+                logger.error("TELEGRAM_BOT_TOKEN не настроен в settings")
+                return False
+            
+            # Проверяем наличие обязательных полей
+            if 'hash' not in data or not data.get('hash'):
+                logger.error("Отсутствует hash в данных от Telegram")
+                return False
+            
+            if 'auth_date' not in data:
+                logger.error("Отсутствует auth_date в данных от Telegram")
                 return False
             
             # Создаем секрет для проверки подписи
             secret = hashlib.sha256(bot_token.encode()).digest()
             
-            # Собираем данные для проверки
+            # Собираем данные для проверки (только те поля, которые есть в данных)
+            # Важно: включаем только те поля, которые присутствуют в исходных данных
             allowed_keys = ['id', 'first_name', 'last_name', 'username', 'photo_url', 'auth_date']
-            check_data = {k: data[k] for k in allowed_keys if k in data}
-            # Преобразуем все значения в строки для создания check_string
+            check_data = {}
+            for k in allowed_keys:
+                if k in data and data[k] is not None and data[k] != '':
+                    # Преобразуем в строку, как требует Telegram
+                    check_data[k] = str(data[k])
+            
             # Telegram требует сортировку ключей по алфавиту
             check_string = '\n'.join([
-                f"{k}={str(check_data[k])}" for k in sorted(check_data.keys())
+                f"{k}={check_data[k]}" for k in sorted(check_data.keys())
             ])
+            
+            logger.info(f"Check string для проверки подписи: {check_string}")
             
             # Вычисляем хеш
             computed_hash = hmac.new(
                 secret,
-                check_string.encode(),
+                check_string.encode('utf-8'),
                 hashlib.sha256
             ).hexdigest()
             
             received_hash = data.get('hash', '')
             
+            logger.info(f"Computed hash: {computed_hash[:20]}..., received hash: {received_hash[:20]}...")
+            
             # Сравниваем с полученным хешем
-            return computed_hash == received_hash
+            is_valid = computed_hash == received_hash
+            
+            if not is_valid:
+                logger.warning(f"Неверная подпись Telegram. Computed: {computed_hash}, Received: {received_hash}")
+                logger.warning(f"Данные для проверки: {check_data}")
+            
+            return is_valid
             
         except Exception as e:
+            import traceback
             logger.error(f"Ошибка при проверке подписи Telegram: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
     
     @staticmethod
@@ -86,12 +113,15 @@ class TelegramAuthService:
         """
         try:
             # Проверяем подпись
+            logger.info(f"Проверка подписи Telegram для данных: id={data.get('id')}, auth_date={data.get('auth_date')}")
             if not TelegramAuthService.verify_telegram_auth(data):
-                logger.warning("Неверная подпись Telegram")
+                logger.warning("Неверная подпись Telegram - авторизация отклонена")
+                logger.warning(f"Полученные данные: {data}")
                 return {
                     'success': False,
-                    'error': 'Неверная подпись'
+                    'error': 'Неверная подпись. Проверьте настройки бота в BotFather.'
                 }
+            logger.info("Подпись Telegram успешно проверена")
             
             # Проверяем время авторизации (не старше 24 часов)
             auth_date = data.get('auth_date')
@@ -111,6 +141,15 @@ class TelegramAuthService:
                 }
             
             telegram_id = str(data.get('id'))
+            
+            if not telegram_id or telegram_id == 'None':
+                logger.error("Отсутствует или неверный telegram_id в данных")
+                return {
+                    'success': False,
+                    'error': 'Некорректные данные авторизации'
+                }
+            
+            logger.info(f"Обработка авторизации для telegram_id={telegram_id}")
             
             with transaction.atomic():
                 # Ищем существующий социальный аккаунт
@@ -208,10 +247,15 @@ class TelegramAuthService:
         Returns:
             User: Пользователь Django
         """
-        telegram_id = str(data.get('id'))
-        username = data.get('username')
-        first_name = data.get('first_name', '')
-        last_name = data.get('last_name', '')
+        telegram_id = str(data.get('id', ''))
+        if not telegram_id or telegram_id == 'None':
+            raise ValueError("telegram_id обязателен для создания пользователя")
+        
+        username = data.get('username') or ''
+        first_name = data.get('first_name', '') or ''
+        last_name = data.get('last_name', '') or ''
+        
+        logger.info(f"Поиск/создание пользователя для telegram_id={telegram_id}, username={username}")
         
         # Сначала ищем по telegram_id в CustomUser
         user = User.objects.filter(telegram_id=telegram_id).first()
@@ -225,19 +269,22 @@ class TelegramAuthService:
             return user
         
         # Ищем по username, если он есть
-        if username:
+        if username and username.strip():
             user = User.objects.filter(username=username).first()
-            if user and not user.telegram_id:
+            if user and (not user.telegram_id or user.telegram_id != telegram_id):
                 # Связываем существующий аккаунт с Telegram
+                logger.info(f"Связывание существующего пользователя {user.username} с telegram_id={telegram_id}")
                 user.telegram_id = telegram_id
-                user.first_name = first_name
-                user.last_name = last_name
+                user.first_name = first_name or user.first_name
+                user.last_name = last_name or user.last_name
                 user.is_telegram_user = True
                 user.save()
                 return user
         
         # Создаем нового пользователя
-        username = username or f"user_{telegram_id}"
+        # Генерируем username если его нет
+        if not username or not username.strip():
+            username = f"user_{telegram_id}"
         
         # Проверяем уникальность username
         counter = 1
@@ -245,7 +292,11 @@ class TelegramAuthService:
         while User.objects.filter(username=username).exists():
             username = f"{original_username}_{counter}"
             counter += 1
+            if counter > 1000:  # Защита от бесконечного цикла
+                username = f"user_{telegram_id}_{int(time.time())}"
+                break
         
+        logger.info(f"Создание нового пользователя: username={username}, telegram_id={telegram_id}")
         user = User.objects.create(
             username=username,
             first_name=first_name,
@@ -255,6 +306,7 @@ class TelegramAuthService:
             is_active=True
         )
         
+        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, telegram_id={user.telegram_id}")
         return user
 
 
