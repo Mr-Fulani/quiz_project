@@ -3,9 +3,55 @@ from django.dispatch import receiver
 from .models import TelegramAdmin, TelegramAdminGroup, CustomUser, DjangoAdmin
 from aiogram import Bot
 from django.conf import settings
+from html import escape
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
+
+
+def _format_channel_link(channel) -> str:
+    """
+    Возвращает HTML-ссылку на канал. Если username отсутствует, используем tg://openmessage.
+    """
+    safe_name = escape(channel.group_name or f"канал {channel.group_id}")
+
+    if channel.username:
+        username = channel.username.lstrip('@')
+        link = f"https://t.me/{username}"
+    else:
+        link = f"tg://openmessage?chat_id={channel.group_id}"
+
+    return f"<a href='{link}'>{safe_name}</a>"
+
+
+def _build_admin_added_message(channel) -> str:
+    channel_display = _format_channel_link(channel)
+    return f"""
+🎉 <b>Поздравляем!</b>
+
+Вас назначили администратором в канале {channel_display}
+
+Теперь у вас есть права на:
+• Управление сообщениями
+• Удаление сообщений
+• Приглашение пользователей
+• Ограничение участников
+• Закрепление сообщений
+
+Спасибо за вашу помощь в модерации! 🙏
+""".strip()
+
+
+def _build_admin_removed_message(channel) -> str:
+    channel_display = _format_channel_link(channel)
+    return f"""
+⚠️ <b>Изменение прав</b>
+
+Ваши права администратора были сняты в канале {channel_display}.
+
+Если вы считаете, что это произошло по ошибке, свяжитесь с владельцем канала.
+""".strip()
 
 @receiver(post_save, sender=CustomUser)
 def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
@@ -80,12 +126,28 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
 
 # Импортируем notify_admin только для TelegramAdmin сигналов
 try:
-    from .utils_folder.telegram_notifications import notify_admin
+    from .utils_folder.telegram_notifications import notify_admin as notify_admin_async
 except ImportError:
     # Если модуль не найден, создаем заглушку
-    def notify_admin(action, instance, groups):
+    async def notify_admin_async(action, instance, groups):
         logger.warning(f"notify_admin не импортирован, пропускаем уведомление для {action} {instance}")
     logger.warning("Модуль telegram_notifications не найден, уведомления отключены")
+
+
+def _run_notify_admin(action, instance, groups):
+    """
+    Синхронная обертка для async функции notify_admin.
+    """
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(notify_admin_async(action, instance, groups))
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.error(f"Ошибка при запуске async функции notify_admin: {e}")
+
 
 @receiver(post_save, sender=TelegramAdmin)
 def notify_telegram_admin_save(sender, instance, created, **kwargs):
@@ -93,7 +155,7 @@ def notify_telegram_admin_save(sender, instance, created, **kwargs):
     Уведомляет Telegram-бота о создании или обновлении администратора.
     """
     action = 'added' if created else 'updated'
-    notify_admin(action, instance, instance.groups.all())
+    _run_notify_admin(action, instance, instance.groups.all())
 
 
 @receiver(post_delete, sender=TelegramAdmin)
@@ -101,16 +163,16 @@ def notify_telegram_admin_delete(sender, instance, **kwargs):
     """
     Уведомляет Telegram-бота об удалении администратора.
     """
-    notify_admin('deleted', instance, instance.groups.all())
+    _run_notify_admin('deleted', instance, instance.groups.all())
 
 
-@receiver(post_save, sender=TelegramAdminGroup)
-async def promote_telegram_admin(sender, instance, created, **kwargs):
+async def _promote_telegram_admin_async(instance):
     """
-    Назначает Telegram-админа в группе при добавлении связи TelegramAdminGroup.
+    Асинхронная функция для назначения Telegram-админа в группе.
     """
-    if created:
-        bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    try:
+        # Пытаемся назначить админа в Telegram
         try:
             await bot.promote_chat_member(
                 chat_id=instance.telegram_group.group_id,
@@ -125,7 +187,86 @@ async def promote_telegram_admin(sender, instance, created, **kwargs):
                 can_promote_members=False
             )
             logger.info(f"Админ {instance.telegram_admin.telegram_id} назначен в группе {instance.telegram_group.group_id}")
+        except Exception as promote_error:
+            # Логируем ошибку, но продолжаем отправлять уведомление
+            logger.warning(
+                f"Не удалось назначить админа {instance.telegram_admin.telegram_id} "
+                f"в группе {instance.telegram_group.group_id}: {promote_error}. "
+                f"Уведомление все равно будет отправлено."
+            )
+
+        # Отправляем уведомление независимо от результата promote_chat_member
+        try:
+            await bot.send_message(
+                chat_id=instance.telegram_admin.telegram_id,
+                text=_build_admin_added_message(instance.telegram_group),
+                parse_mode='HTML',
+                disable_web_page_preview=True
+            )
+            logger.info(f"Уведомление о назначении отправлено пользователю {instance.telegram_admin.telegram_id}")
+        except Exception as notification_error:
+            logger.warning(
+                f"Не удалось отправить уведомление пользователю {instance.telegram_admin.telegram_id}: {notification_error}"
+            )
+    except Exception as e:
+        logger.error(f"Критическая ошибка при обработке назначения админа в группе {instance.telegram_group.group_id}: {e}")
+    finally:
+        await bot.session.close()
+
+
+@receiver(post_save, sender=TelegramAdminGroup)
+def promote_telegram_admin(sender, instance, created, **kwargs):
+    """
+    Назначает Telegram-админа в группе при добавлении связи TelegramAdminGroup.
+    """
+    if created:
+        try:
+            # Запускаем async функцию в новом event loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(_promote_telegram_admin_async(instance))
+            finally:
+                loop.close()
         except Exception as e:
-            logger.error(f"Ошибка назначения админа в группе {instance.telegram_group.group_id}: {e}")
+            logger.error(f"Ошибка при запуске async функции для назначения админа: {e}")
+
+
+async def _notify_admin_rights_removed_async(instance):
+    """
+    Асинхронная функция для уведомления пользователя о снятии прав администратора.
+    """
+    bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+    try:
+        await bot.send_message(
+            chat_id=instance.telegram_admin.telegram_id,
+            text=_build_admin_removed_message(instance.telegram_group),
+            parse_mode='HTML',
+            disable_web_page_preview=True
+        )
+        logger.info(
+            f"Пользователь {instance.telegram_admin.telegram_id} уведомлён о снятии прав в канале {instance.telegram_group.group_id}"
+        )
+    except Exception as e:
+        logger.warning(
+            f"Не удалось отправить уведомление о снятии прав пользователю {instance.telegram_admin.telegram_id}: {e}"
+        )
+    finally:
+        await bot.session.close()
+
+
+@receiver(post_delete, sender=TelegramAdminGroup)
+def notify_admin_rights_removed(sender, instance, **kwargs):
+    """
+    Уведомляет пользователя о снятии прав администратора при удалении связи TelegramAdminGroup.
+    """
+    try:
+        # Запускаем async функцию в новом event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(_notify_admin_rights_removed_async(instance))
         finally:
-            await bot.session.close()
+            loop.close()
+    except Exception as e:
+        logger.error(f"Ошибка при запуске async функции для уведомления о снятии прав: {e}")

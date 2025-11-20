@@ -1,10 +1,19 @@
 import sys
 import logging
+from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.forms import BaseInlineFormSet
+from django.http import JsonResponse
+from django.urls import path
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from django.utils import timezone
+
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar, Notification
+from .telegram_admin_service import TelegramAdminService, run_async_function
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +44,132 @@ class SocialAccountInline(admin.TabularInline):
         return False
 
 
+class TelegramAdminGroupInlineFormSet(BaseInlineFormSet):
+    """
+    Валидирует добавление администратора в каналы: пользователь обязан быть подписчиком.
+    """
+
+    def clean(self):
+        """Проверяет каждую связь администратора с каналом."""
+        super().clean()
+
+        admin_instance = self.instance
+        if not admin_instance or not admin_instance.telegram_id:
+            return
+
+        has_errors = False
+        service = TelegramAdminService()
+        try:
+            for form in self.forms:
+                if not hasattr(form, "cleaned_data"):
+                    continue
+                if form.instance.pk or form.cleaned_data.get('DELETE'):
+                    continue
+
+                group = form.cleaned_data.get('telegram_group')
+                if not group:
+                    continue
+
+                member_info = run_async_function(
+                    service.get_chat_member,
+                    group.group_id,
+                    admin_instance.telegram_id
+                )
+
+                if not member_info:
+                    has_errors = True
+                    form.add_error(
+                        None,
+                        ValidationError(
+                            "Не удалось проверить участие пользователя в канале. "
+                            "Убедитесь, что бот является администратором канала.",
+                            code='membership_check_failed'
+                        )
+                    )
+                    continue
+
+                status = member_info.get('status', 'unknown')
+                is_member = member_info.get('is_member', False)
+                
+                # Разрешаем назначение для создателей и администраторов
+                if status in ('creator', 'administrator'):
+                    # Создатели и администраторы автоматически валидны, но создаем подписку для истории
+                    telegram_user = TelegramUser.objects.filter(telegram_id=admin_instance.telegram_id).first()
+                    if telegram_user:
+                        UserChannelSubscription.objects.update_or_create(
+                            telegram_user=telegram_user,
+                            channel=group,
+                            defaults={
+                                'subscription_status': 'active',
+                                'subscribed_at': timezone.now(),
+                                'unsubscribed_at': None,
+                            }
+                        )
+                    continue  # Пропускаем дальнейшие проверки для создателей и администраторов
+
+                # Для обычных участников проверяем статус
+                if not is_member or status in ('left', 'kicked', 'restricted'):
+                    status_display = {
+                        'left': 'покинул канал',
+                        'kicked': 'заблокирован в канале',
+                        'restricted': 'ограничен в канале',
+                        'unknown': 'неизвестен'
+                    }.get(status, status)
+                    
+                    has_errors = True
+                    form.add_error(
+                        None,
+                        ValidationError(
+                            f"Пользователь {admin_instance.username or admin_instance.telegram_id} "
+                            f"не является участником канала {group.group_name or group.group_id}. "
+                            f"Текущий статус в Telegram: {status_display}.",
+                            code='not_member_in_telegram'
+                        )
+                    )
+                    continue
+
+                # Для обычных участников проверяем локальную подписку
+                subscribed = UserChannelSubscription.objects.filter(
+                    telegram_user__telegram_id=admin_instance.telegram_id,
+                    channel__group_id=group.group_id,
+                    subscription_status='active'
+                ).exists()
+
+                if not subscribed:
+                    telegram_user = TelegramUser.objects.filter(telegram_id=admin_instance.telegram_id).first()
+                    if not telegram_user:
+                        has_errors = True
+                        form.add_error(
+                            None,
+                            ValidationError(
+                                f"Пользователь {admin_instance.username or admin_instance.telegram_id} "
+                                f"является участником канала {group.group_name or group.group_id} в Telegram "
+                                f"(статус: {status}), но не найден в базе данных. "
+                                f"Попросите его выполнить /start в боте и попробуйте снова.",
+                                code='telegram_user_missing'
+                            )
+                        )
+                        continue
+
+                    # Автоматически создаем подписку для существующих участников
+                    UserChannelSubscription.objects.update_or_create(
+                        telegram_user=telegram_user,
+                        channel=group,
+                        defaults={
+                            'subscription_status': 'active',
+                            'subscribed_at': timezone.now(),
+                            'unsubscribed_at': None,
+                        }
+                    )
+        finally:
+            service.close()
+
+        if has_errors:
+            raise ValidationError(
+                "Назначение отменено: убедитесь, что пользователь состоит в выбранных каналах."
+            )
+
+
 class TelegramAdminGroupInline(admin.TabularInline):
     """
     Inline-форма для связи TelegramAdmin с группами/каналами.
@@ -45,14 +180,7 @@ class TelegramAdminGroupInline(admin.TabularInline):
     verbose_name_plural = "Группы/Каналы"
     fields = ['telegram_group']
     raw_id_fields = ['telegram_group']
-
-
-from .telegram_admin_service import TelegramAdminService, run_async_function
-from django import forms
-from django.urls import path
-from django.http import JsonResponse
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
+    formset = TelegramAdminGroupInlineFormSet
 
 
 class NotificationAdminForm(forms.ModelForm):
@@ -1882,48 +2010,6 @@ class UserChannelSubscriptionAdmin(admin.ModelAdmin):
                         telegram_admin=admin,
                         telegram_group=channel
                     )
-                    
-                    # Отправляем сообщение пользователю
-                    channel_name = channel.group_name or f"канал {channel.group_id}"
-                    
-                    # Формируем ссылку на канал
-                    if channel.username:
-                        channel_link = f"https://t.me/{channel.username}"
-                        channel_display = f"<a href='{channel_link}'>{channel_name}</a>"
-                    else:
-                        # Если нет username, используем просто название
-                        channel_display = f"<b>{channel_name}</b>"
-                    
-                    notification_message = f"""
-🎉 <b>Поздравляем!</b>
-
-Вас назначили администратором в канале {channel_display}
-
-Теперь у вас есть права на:
-• Управление сообщениями
-• Удаление сообщений
-• Приглашение пользователей
-• Ограничение участников
-• Закрепление сообщений
-
-Спасибо за вашу помощь в модерации! 🙏
-                    """.strip()
-                    
-                    # Создаем новый сервис для отправки сообщения
-                    message_service = TelegramAdminService()
-                    try:
-                        message_sent, message_result = run_async_function(
-                            message_service.send_message_to_user,
-                            user.telegram_id,
-                            notification_message
-                        )
-                        
-                        if message_sent:
-                            logger.info(f"Уведомление отправлено пользователю {user.telegram_id}")
-                        else:
-                            logger.warning(f"Не удалось отправить уведомление пользователю {user.telegram_id}: {message_result}")
-                    finally:
-                        message_service.close()
                     
                     total_promoted += 1
                     

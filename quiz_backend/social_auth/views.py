@@ -45,6 +45,16 @@ class TelegramAuthView(APIView):
         В режиме разработки может обрабатывать мок данные.
         """
         try:
+            logger.info(f"=== TELEGRAM AUTH GET REQUEST ===")
+            logger.info(f"Request method: {request.method}")
+            logger.info(f"Request GET params: {dict(request.GET)}")
+            logger.info(f"Request POST params: {dict(request.POST)}")
+            logger.info(f"Request path: {request.path}")
+            logger.info(f"Request full path: {request.get_full_path()}")
+            logger.info(f"Request query string: {request.META.get('QUERY_STRING', '')}")
+            logger.info(f"Request host: {request.get_host()}")
+            logger.info(f"Request META: {dict(request.META)}")
+            
             # Проверяем запросы мока на продакшене
             if (request.GET.get('mock') == 'true' or request.GET.get('mock_auth') == 'true'):
                 if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
@@ -65,6 +75,38 @@ class TelegramAuthView(APIView):
             # Для GET запроса данные приходят в query параметрах
             # QueryDict возвращает списки, нужно извлечь первые значения
             raw_data = dict(request.GET)
+            
+            # Также проверяем POST на случай если Telegram отправляет через POST
+            if request.method == 'POST' and request.POST:
+                logger.info("Обнаружены данные в POST, добавляем к GET данным")
+                raw_data.update(dict(request.POST))
+            
+            logger.info(f"Raw data (GET+POST): {raw_data}")
+            logger.info(f"Raw data keys: {list(raw_data.keys())}")
+            logger.info(f"Raw data values: {list(raw_data.values())}")
+            
+            # Дополнительная проверка: может быть данные в request.body или request.META
+            logger.info(f"Request body (raw): {request.body}")
+            logger.info(f"Request content_type: {request.content_type}")
+            logger.info(f"Request META HTTP_*: {[(k, v) for k, v in request.META.items() if k.startswith('HTTP_')]}")
+            
+            # Проверяем, есть ли вообще данные от Telegram
+            if not raw_data or 'id' not in raw_data:
+                logger.error("=" * 60)
+                logger.error("❌ НЕТ ДАННЫХ ОТ TELEGRAM ВИДЖЕТА!")
+                logger.error("=" * 60)
+                logger.error(f"Request method: {request.method}")
+                logger.error(f"Request path: {request.path}")
+                logger.error(f"Request full path: {request.get_full_path()}")
+                logger.error(f"Request query string: {request.META.get('QUERY_STRING', 'ПУСТО')}")
+                logger.error(f"Request GET: {dict(request.GET)}")
+                logger.error(f"Request POST: {dict(request.POST)}")
+                logger.error(f"Request body: {request.body}")
+                logger.error(f"Все доступные ключи в raw_data: {list(raw_data.keys()) if raw_data else 'НЕТ ДАННЫХ'}")
+                logger.error(f"Полный URL: {request.build_absolute_uri()}")
+                logger.error(f"Referer: {request.META.get('HTTP_REFERER', 'НЕТ')}")
+                logger.error("=" * 60)
+                return redirect('/?open_login=true&error=Нет данных от Telegram виджета')
             
             # Преобразуем данные в правильные типы
             data = {}
@@ -87,13 +129,20 @@ class TelegramAuthView(APIView):
                     # Остальные поля - строки
                     data[key] = val if val else ''
             
+            logger.info(f"Преобразованные данные для валидации: {data}")
+            
             # Валидируем данные перед обработкой
             serializer = TelegramAuthSerializer(data=data)
             if not serializer.is_valid():
+                logger.error(f"Ошибка валидации: {serializer.errors}")
                 return redirect('/?open_login=true&error=Неверные данные авторизации')
+            
+            logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
             
             # Обрабатываем авторизацию с валидированными данными
             result = TelegramAuthService.process_telegram_auth(serializer.validated_data, request)
+            
+            logger.info(f"Результат обработки авторизации: success={result.get('success') if result else False}")
             
             if not result or not result.get('success'):
                 error_message = result.get('error', 'Ошибка авторизации') if result else 'Ошибка авторизации'
@@ -113,11 +162,29 @@ class TelegramAuthView(APIView):
             # Явно сохраняем сессию перед редиректом
             request.session.save()
             
+            # Проверяем что сессия создана и сохранена в БД
+            session_key = request.session.session_key
+            logger.info(f"Сессия после login: session_key={session_key}")
+            
+            # Проверяем наличие сессии в БД
+            if session_key:
+                from django.contrib.sessions.models import Session
+                try:
+                    session_exists = Session.objects.filter(session_key=session_key).exists()
+                    logger.info(f"Проверка сессии в БД: session_exists={session_exists}, session_key={session_key}")
+                    if not session_exists:
+                        logger.warning(f"⚠️ Сессия {session_key} не найдена в БД! Возможно проблема с SESSION_ENGINE или Redis")
+                        # Пытаемся сохранить еще раз
+                        request.session.save()
+                        session_exists_retry = Session.objects.filter(session_key=session_key).exists()
+                        logger.info(f"Повторная проверка после save(): session_exists={session_exists_retry}")
+                except Exception as e:
+                    logger.error(f"Ошибка при проверке сессии в БД: {e}")
+            
             # Устанавливаем куки явно для обеспечения сохранения сессии
             response = redirect('/?telegram_auth_success=true')
             
             # Копируем куки сессии в response для гарантированного сохранения
-            session_key = request.session.session_key
             if session_key:
                 max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
                 expires = None
@@ -137,6 +204,16 @@ class TelegramAuthView(APIView):
                 )
             
             logger.info(f"Пользователь {user.username} успешно авторизован через Telegram, session_key={session_key}")
+            
+            # Проверяем, если запрос пришел из iframe (виджет Telegram)
+            # В этом случае возвращаем HTML страницу, которая закроет окно и обновит родительскую страницу
+            if request.headers.get('Sec-Fetch-Dest') == 'iframe' or 'iframe' in request.headers.get('Referer', '').lower():
+                from django.shortcuts import render
+                logger.info("Запрос пришел из iframe, возвращаем HTML страницу для закрытия окна")
+                return render(request, 'social_auth/telegram_auth_success.html', {
+                    'user': user,
+                    'session_key': session_key
+                })
             
             return response
             
@@ -230,6 +307,11 @@ class TelegramAuthView(APIView):
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
+            logger.info(f"=== TELEGRAM AUTH POST REQUEST ===")
+            logger.info(f"Request data: {request.data}")
+            logger.info(f"Request path: {request.path}")
+            logger.info(f"Request host: {request.get_host()}")
+            
             # Проверяем мок запросы на продакшене
             if request.data.get('mock') == 'true':
                 if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
@@ -245,19 +327,25 @@ class TelegramAuthView(APIView):
                 return self._handle_mock_post(request)
             
             # Валидируем данные
+            logger.info(f"Валидация данных: {request.data}")
             serializer = TelegramAuthSerializer(data=request.data)
             if not serializer.is_valid():
+                logger.error(f"Ошибка валидации POST данных: {serializer.errors}")
                 return Response({
                     'success': False,
                     'error': 'Неверные данные авторизации',
                     'details': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
+            
             # Обрабатываем авторизацию
             result = TelegramAuthService.process_telegram_auth(
                 serializer.validated_data, 
                 request
             )
+            
+            logger.info(f"Результат обработки POST авторизации: success={result.get('success') if result else False}")
             
             if not result or not result.get('success'):
                 return Response({
@@ -267,10 +355,38 @@ class TelegramAuthView(APIView):
             
             # Авторизуем пользователя
             user = result['user']
+            
+            # Убеждаемся что пользователь активен
+            if not user.is_active:
+                logger.warning(f"Попытка POST авторизации неактивного пользователя: {user.username}")
+                return Response({
+                    'success': False,
+                    'error': 'Аккаунт неактивен'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
             # Явно сохраняем сессию
             request.session.save()
+            
+            # Проверяем что сессия создана и сохранена в БД
+            session_key_before = request.session.session_key
+            logger.info(f"POST: Сессия после login: session_key={session_key_before}")
+            
+            # Проверяем наличие сессии в БД
+            if session_key_before:
+                from django.contrib.sessions.models import Session
+                try:
+                    session_exists = Session.objects.filter(session_key=session_key_before).exists()
+                    logger.info(f"POST: Проверка сессии в БД: session_exists={session_exists}, session_key={session_key_before}")
+                    if not session_exists:
+                        logger.warning(f"⚠️ POST: Сессия {session_key_before} не найдена в БД! Возможно проблема с SESSION_ENGINE или Redis")
+                        # Пытаемся сохранить еще раз
+                        request.session.save()
+                        session_exists_retry = Session.objects.filter(session_key=session_key_before).exists()
+                        logger.info(f"POST: Повторная проверка после save(): session_exists={session_exists_retry}")
+                except Exception as e:
+                    logger.error(f"POST: Ошибка при проверке сессии в БД: {e}")
             
             # Подготавливаем ответ
             response_data = {
@@ -286,7 +402,32 @@ class TelegramAuthView(APIView):
             if next_url:
                 response_data['redirect_url'] = next_url
             
-            return Response(response_data, status=status.HTTP_200_OK)
+            # Создаем Response и устанавливаем куки сессии явно
+            response = Response(response_data, status=status.HTTP_200_OK)
+            
+            # Устанавливаем куки сессии для гарантированного сохранения
+            session_key = session_key_before  # Используем уже полученный session_key
+            if session_key:
+                max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
+                expires = None
+                if max_age:
+                    expires = http_date(time.time() + max_age)
+                
+                response.set_cookie(
+                    settings.SESSION_COOKIE_NAME,
+                    session_key,
+                    max_age=max_age,
+                    expires=expires,
+                    domain=getattr(settings, 'SESSION_COOKIE_DOMAIN', None),
+                    path=getattr(settings, 'SESSION_COOKIE_PATH', '/'),
+                    secure=getattr(settings, 'SESSION_COOKIE_SECURE', False) if not settings.DEBUG else False,
+                    httponly=getattr(settings, 'SESSION_COOKIE_HTTPONLY', True),
+                    samesite=getattr(settings, 'SESSION_COOKIE_SAMESITE', 'Lax')
+                )
+            
+            logger.info(f"POST авторизация: пользователь {user.username} успешно авторизован, session_key={session_key}")
+            
+            return response
             
         except Exception as e:
             import traceback
@@ -474,3 +615,147 @@ def social_auth_status(request):
             'success': False,
             'error': 'Ошибка при получении данных'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def telegram_auth_debug(request):
+    """
+    Временный диагностический endpoint для проверки данных от Telegram.
+    """
+    import json
+    from django.http import JsonResponse
+    
+    debug_data = {
+        'method': request.method,
+        'path': request.path,
+        'full_path': request.get_full_path(),
+        'query_string': request.META.get('QUERY_STRING', ''),
+        'get_params': dict(request.GET),
+        'post_params': dict(request.POST),
+        'body': request.body.decode('utf-8') if request.body else '',
+        'content_type': request.content_type,
+        'headers': {k: v for k, v in request.META.items() if k.startswith('HTTP_')},
+        'referer': request.META.get('HTTP_REFERER', ''),
+        'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+    }
+    
+    logger.error("=" * 60)
+    logger.error("🔍 DEBUG ENDPOINT - ВСЕ ДАННЫЕ ЗАПРОСА:")
+    logger.error(json.dumps(debug_data, indent=2, ensure_ascii=False))
+    logger.error("=" * 60)
+    
+    return JsonResponse(debug_data, json_dumps_params={'ensure_ascii': False, 'indent': 2})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def telegram_oauth_redirect(request):
+    """
+    Генерирует прямой URL для Telegram OAuth и делает redirect на него.
+    Использует прямой /auth endpoint (не /embed), чтобы открываться в том же окне, а не в iframe.
+    """
+    logger.info("=" * 60)
+    logger.info("🚀 TELEGRAM OAUTH REDIRECT ЗАПРОС")
+    logger.info("=" * 60)
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request path: {request.path}")
+    logger.info(f"Request host: {request.get_host()}")
+    logger.info(f"Request GET params: {dict(request.GET)}")
+    logger.info(f"Request headers: {dict(request.headers)}")
+    
+    try:
+        from django.conf import settings
+        from urllib.parse import quote
+        import requests
+        
+        bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', None)
+        bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+        
+        if not bot_username:
+            logger.error("TELEGRAM_BOT_USERNAME не настроен в settings")
+            return redirect('/?open_login=true&error=Настройки Telegram бота не найдены')
+        
+        # Получаем bot_id из токена через getMe API
+        bot_id = None
+        if bot_token:
+            try:
+                response = requests.get(f'https://api.telegram.org/bot{bot_token}/getMe', timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('ok'):
+                        bot_id = data.get('result', {}).get('id')
+                        logger.info(f"✅ Получен bot_id из API: {bot_id}")
+                    else:
+                        logger.error(f"❌ Telegram API вернул ошибку: {data}")
+                else:
+                    logger.error(f"❌ Telegram API вернул статус {response.status_code}: {response.text}")
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось получить bot_id из API: {e}")
+        
+        # Получаем текущий домен
+        current_domain = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        origin = f"{protocol}://{current_domain}"
+        
+        # URL для возврата после авторизации
+        # ВАЖНО: Telegram передает данные в query параметрах, поэтому URL должен быть без hash
+        # ВАЖНО: Если данные не приходят, это означает, что домен не настроен в BotFather
+        # Используем URL без trailing slash, так как Telegram может его убрать при редиректе
+        return_to = f"{origin}/api/social-auth/telegram/auth"
+        
+        logger.info(f"🔍 Параметры для Telegram OAuth:")
+        logger.info(f"  - bot_username: {bot_username}")
+        logger.info(f"  - bot_id: {bot_id}")
+        logger.info(f"  - origin: {origin}")
+        logger.info(f"  - return_to: {return_to}")
+        
+        # Формируем URL для Telegram OAuth
+        # ПРОБЛЕМА: Telegram не передает данные в query параметрах при редиректе
+        # Это означает, что домен не настроен в BotFather или используется неправильный метод
+        # Попробуем использовать embed виджет, который передает данные через postMessage
+        # Но сначала проверим, может быть проблема в том, что нужно использовать другой формат return_to
+        
+        # ВАЖНО: Согласно документации Telegram, данные передаются ТОЛЬКО если домен правильно настроен в BotFather
+        # И данные передаются в query параметрах в формате: ?id=...&first_name=...&auth_date=...&hash=...
+        
+        # Попробуем использовать прямой /auth endpoint, но с правильным форматом return_to
+        if bot_id:
+            # Используем bot_id для прямого /auth endpoint
+            # ВАЖНО: return_to должен быть абсолютным URL без trailing slash (по документации Telegram)
+            telegram_oauth_url = (
+                f"https://oauth.telegram.org/auth?"
+                f"bot_id={bot_id}&"
+                f"origin={quote(origin)}&"
+                f"request_access=write&"
+                f"return_to={quote(return_to.rstrip('/'))}"
+            )
+            logger.info(f"✅ Используется прямой /auth endpoint с bot_id")
+            logger.warning(f"⚠️ ВАЖНО: Если данные не приходят, проверьте настройки домена в BotFather!")
+            logger.warning(f"⚠️ Домен должен быть настроен через /setdomain в @BotFather")
+            logger.warning(f"⚠️ Домен должен быть: {current_domain} (без протокола)")
+        else:
+            # Fallback: используем embed URL с username (откроется в iframe, но это лучше чем ничего)
+            logger.warning("⚠️ bot_id не получен, используем embed URL с username")
+            telegram_oauth_url = (
+                f"https://oauth.telegram.org/embed/{bot_username}?"
+                f"origin={quote(origin)}&"
+                f"return_to={quote(return_to.rstrip('/'))}&"
+                f"size=large&"
+                f"userpic=true&"
+                f"request_access=write&"
+                f"lang=ru"
+            )
+        
+        logger.info(f"🔗 Redirect на Telegram OAuth: {telegram_oauth_url}")
+        logger.info(f"⚠️ ВАЖНО: Убедитесь, что домен {current_domain} настроен в BotFather!")
+        logger.info(f"⚠️ Выполните в @BotFather: /setdomain для бота {bot_username}")
+        logger.info(f"⚠️ Укажите домен: {current_domain}")
+        
+        return redirect(telegram_oauth_url)
+        
+    except Exception as e:
+        logger.error(f"Ошибка при генерации Telegram OAuth URL: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return redirect('/?open_login=true&error=Ошибка при генерации URL авторизации')
