@@ -536,13 +536,18 @@ class TelegramAuthView(APIView):
                     logger.error(f"POST: Ошибка при проверке сессии в БД: {e}")
             
             # Подготавливаем ответ
+            print("Начинаем сериализацию данных для ответа...", flush=True)
             try:
                 user_data = UserSocialAccountsSerializer(user).data
+                print(f"Пользователь сериализован: {user.username}", flush=True)
                 logger.info(f"Пользователь сериализован: {user.username}")
             except Exception as e:
                 import traceback
+                error_tb = traceback.format_exc()
+                print(f"ERROR сериализации пользователя: {e}", flush=True)
+                print(f"Traceback: {error_tb}", flush=True)
                 logger.error(f"Ошибка сериализации пользователя: {e}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.error(f"Traceback: {error_tb}")
                 # Fallback: простые данные пользователя
                 user_data = {
                     'id': user.id,
@@ -554,14 +559,19 @@ class TelegramAuthView(APIView):
                 social_account = result.get('social_account')
                 if social_account:
                     social_account_data = SocialAccountSerializer(social_account).data
+                    print(f"Social account сериализован: {social_account.provider}", flush=True)
                     logger.info(f"Social account сериализован: {social_account.provider}")
                 else:
+                    print("WARNING: Social account отсутствует в результате", flush=True)
                     logger.warning("Social account отсутствует в результате")
                     social_account_data = {}
             except Exception as e:
                 import traceback
+                error_tb = traceback.format_exc()
+                print(f"ERROR сериализации social_account: {e}", flush=True)
+                print(f"Traceback: {error_tb}", flush=True)
                 logger.error(f"Ошибка сериализации social_account: {e}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.error(f"Traceback: {error_tb}")
                 social_account = result.get('social_account')
                 if social_account:
                     social_account_data = {
