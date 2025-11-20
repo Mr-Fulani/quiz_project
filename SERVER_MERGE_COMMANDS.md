@@ -45,8 +45,17 @@ docker compose -f docker-compose.local-prod.yml logs -f --tail=100 quiz_backend
 - `security-updates-backup` (ветка бэкапа)
 - `remotes/origin/main`
 - `remotes/origin/security-updates-backup`
+- `remotes/origin/feature/user-linking-and-stats-merge` (новая ветка для дальнейшей работы)
 
 Ветка `fix/telegram-auth-issue` должна быть удалена как локально, так и на удаленном сервере.
+
+## Статус выполнения
+
+✅ **ВЫПОЛНЕНО на удаленном сервере:**
+- Ветка main обновлена с последними изменениями
+- Ветка fix/telegram-auth-issue удалена локально
+- git fetch --prune очистил устаревшие ссылки
+- Остались только нужные ветки
 
 ## Важно
 
