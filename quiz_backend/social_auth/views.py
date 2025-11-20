@@ -498,19 +498,23 @@ class TelegramAuthView(APIView):
             
             # Авторизуем пользователя
             user = result['user']
+            print(f"Пользователь получен: {user.username}, id={user.id}, is_active={user.is_active}", flush=True)
             
             # Убеждаемся что пользователь активен
             if not user.is_active:
                 logger.warning(f"Попытка POST авторизации неактивного пользователя: {user.username}")
+                print(f"ERROR: Пользователь {user.username} неактивен", flush=True)
                 return Response({
                     'success': False,
                     'error': 'Аккаунт неактивен'
                 }, status=status.HTTP_403_FORBIDDEN)
             
+            print(f"Вызываем login() для пользователя {user.username}...", flush=True)
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
             # Явно сохраняем сессию
             request.session.save()
+            print(f"Сессия сохранена: {request.session.session_key}", flush=True)
             
             # Проверяем что сессия создана и сохранена в БД
             session_key_before = request.session.session_key
