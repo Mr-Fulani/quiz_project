@@ -3,11 +3,14 @@ import hmac
 import time
 import uuid
 import logging
+import urllib.request
+import urllib.parse
 from typing import Optional, Dict, Any
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db import transaction
+from django.core.files.base import ContentFile
 from .models import SocialAccount, SocialLoginSession, SocialAuthSettings
 
 User = get_user_model()
@@ -161,12 +164,43 @@ class TelegramAuthService:
                 
                 if social_account:
                     # Обновляем данные аккаунта
-                    social_account.username = data.get('username', social_account.username)
-                    social_account.first_name = data.get('first_name', social_account.first_name)
-                    social_account.last_name = data.get('last_name', social_account.last_name)
-                    social_account.avatar_url = data.get('photo_url', social_account.avatar_url)
+                    updated = False
+                    if data.get('username') and data.get('username') != social_account.username:
+                        social_account.username = data.get('username')
+                        updated = True
+                    if data.get('first_name') and data.get('first_name') != social_account.first_name:
+                        social_account.first_name = data.get('first_name')
+                        updated = True
+                    if data.get('last_name') and data.get('last_name') != social_account.last_name:
+                        social_account.last_name = data.get('last_name')
+                        updated = True
+                    if data.get('photo_url') and data.get('photo_url') != social_account.avatar_url:
+                        social_account.avatar_url = data.get('photo_url')
+                        updated = True
+                    
                     social_account.update_last_login()
-                    social_account.save()
+                    if updated:
+                        social_account.save()
+                        logger.info(f"Данные SocialAccount обновлены: username={social_account.username}, first_name={social_account.first_name}, last_name={social_account.last_name}")
+                    
+                    # Также обновляем данные пользователя и аватарку
+                    user_updated = False
+                    if data.get('first_name') and data.get('first_name') != user.first_name:
+                        user.first_name = data.get('first_name')
+                        user_updated = True
+                    if data.get('last_name') and data.get('last_name') != user.last_name:
+                        user.last_name = data.get('last_name')
+                        user_updated = True
+                    
+                    # Загружаем аватарку если есть photo_url и у пользователя еще нет аватарки
+                    photo_url = data.get('photo_url')
+                    if photo_url and not user.avatar:
+                        if TelegramAuthService._download_avatar_from_url(photo_url, user):
+                            user_updated = True
+                    
+                    if user_updated:
+                        user.save()
+                        logger.info(f"Данные пользователя обновлены: {user.username}, first_name={user.first_name}, last_name={user.last_name}")
                     
                     user = social_account.user
                     is_new_user = False
@@ -177,16 +211,40 @@ class TelegramAuthService:
                     is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для telegram_id={telegram_id}, username: {user.username}, is_active={user.is_active}, is_new={is_new_user}")
                     
-                    # Создаем социальный аккаунт
-                    social_account = SocialAccount.objects.create(
+                    # Создаем или обновляем социальный аккаунт
+                    # username из Telegram должен идти в SocialAccount.username, а не в User.username
+                    social_account, created = SocialAccount.objects.get_or_create(
                         user=user,
                         provider='telegram',
                         provider_user_id=telegram_id,
-                        username=data.get('username'),
-                        first_name=data.get('first_name'),
-                        last_name=data.get('last_name'),
-                        avatar_url=data.get('photo_url')
+                        defaults={
+                            'username': data.get('username'),
+                            'first_name': data.get('first_name'),
+                            'last_name': data.get('last_name'),
+                            'avatar_url': data.get('photo_url')
+                        }
                     )
+                    
+                    # Обновляем данные если аккаунт уже существовал
+                    if not created:
+                        updated = False
+                        if data.get('username') and data.get('username') != social_account.username:
+                            social_account.username = data.get('username')
+                            updated = True
+                        if data.get('first_name') and data.get('first_name') != social_account.first_name:
+                            social_account.first_name = data.get('first_name')
+                            updated = True
+                        if data.get('last_name') and data.get('last_name') != social_account.last_name:
+                            social_account.last_name = data.get('last_name')
+                            updated = True
+                        if data.get('photo_url') and data.get('photo_url') != social_account.avatar_url:
+                            social_account.avatar_url = data.get('photo_url')
+                            updated = True
+                        
+                        if updated:
+                            social_account.update_last_login()
+                            social_account.save()
+                            logger.info(f"Данные SocialAccount обновлены для пользователя {user.username}")
                     
                     # Автоматически связываем с существующими пользователями
                     try:
@@ -237,6 +295,62 @@ class TelegramAuthService:
             }
     
     @staticmethod
+    def _download_avatar_from_url(photo_url: str, user: User) -> bool:
+        """
+        Загружает аватарку из URL и сохраняет в поле avatar пользователя.
+        
+        Args:
+            photo_url: URL аватарки из Telegram
+            user: Пользователь Django
+            
+        Returns:
+            bool: True если аватарка успешно загружена, False иначе
+        """
+        if not photo_url or not photo_url.strip():
+            return False
+        
+        try:
+            
+            # Загружаем изображение
+            req = urllib.request.Request(photo_url)
+            req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                image_data = response.read()
+                
+                # Определяем расширение файла
+                content_type = response.headers.get('Content-Type', '')
+                ext = 'jpg'  # по умолчанию
+                if 'jpeg' in content_type or 'jpg' in content_type:
+                    ext = 'jpg'
+                elif 'png' in content_type:
+                    ext = 'png'
+                elif 'webp' in content_type:
+                    ext = 'webp'
+                else:
+                    # Пытаемся определить по URL
+                    parsed_url = urllib.parse.urlparse(photo_url)
+                    path = parsed_url.path.lower()
+                    if path.endswith('.png'):
+                        ext = 'png'
+                    elif path.endswith('.webp'):
+                        ext = 'webp'
+                    elif path.endswith('.jpg') or path.endswith('.jpeg'):
+                        ext = 'jpg'
+                
+                # Создаем имя файла
+                filename = f"telegram_avatar_{user.telegram_id}_{int(time.time())}.{ext}"
+                
+                # Сохраняем в поле avatar
+                user.avatar.save(filename, ContentFile(image_data), save=True)
+                logger.info(f"Аватарка загружена из Telegram для пользователя {user.username}: {filename}")
+                return True
+                
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить аватарку из {photo_url}: {e}")
+            return False
+    
+    @staticmethod
     def _get_or_create_user(data: Dict[str, Any]) -> User:
         """
         Получает или создает пользователя на основе данных Telegram.
@@ -251,52 +365,83 @@ class TelegramAuthService:
         if not telegram_id or telegram_id == 'None':
             raise ValueError("telegram_id обязателен для создания пользователя")
         
-        username = data.get('username') or ''
+        # username из Telegram идет в SocialAccount, а не в User.username
+        telegram_username = data.get('username') or ''
         first_name = data.get('first_name', '') or ''
         last_name = data.get('last_name', '') or ''
+        photo_url = data.get('photo_url', '') or ''
         
-        logger.info(f"Поиск/создание пользователя для telegram_id={telegram_id}, username={username}")
+        logger.info(f"Поиск/создание пользователя для telegram_id={telegram_id}, telegram_username={telegram_username}, first_name={first_name}, last_name={last_name}")
         
         # Сначала ищем по telegram_id в CustomUser
         user = User.objects.filter(telegram_id=telegram_id).first()
         
         if user:
             # Обновляем данные пользователя
-            user.first_name = first_name
-            user.last_name = last_name
-            user.is_telegram_user = True
-            user.save()
+            updated = False
+            if first_name and first_name != user.first_name:
+                user.first_name = first_name
+                updated = True
+            if last_name and last_name != user.last_name:
+                user.last_name = last_name
+                updated = True
+            if not user.is_telegram_user:
+                user.is_telegram_user = True
+                updated = True
+            
+            # Загружаем аватарку если есть photo_url и у пользователя еще нет аватарки
+            if photo_url and not user.avatar:
+                if TelegramAuthService._download_avatar_from_url(photo_url, user):
+                    updated = True
+                    logger.info(f"Аватарка загружена для существующего пользователя {user.username}")
+            # Опционально: можно обновлять аватарку при каждом входе если нужно
+            # elif photo_url and user.avatar:
+            #     if TelegramAuthService._download_avatar_from_url(photo_url, user):
+            #         updated = True
+            
+            if updated:
+                user.save()
+                logger.info(f"Данные пользователя обновлены: {user.username}, first_name={user.first_name}, last_name={user.last_name}")
+            
             return user
         
-        # Ищем по username, если он есть
-        if username and username.strip():
-            user = User.objects.filter(username=username).first()
-            if user and (not user.telegram_id or user.telegram_id != telegram_id):
-                # Связываем существующий аккаунт с Telegram
-                logger.info(f"Связывание существующего пользователя {user.username} с telegram_id={telegram_id}")
-                user.telegram_id = telegram_id
-                user.first_name = first_name or user.first_name
-                user.last_name = last_name or user.last_name
-                user.is_telegram_user = True
-                user.save()
-                return user
+        # Ищем по telegram_username в существующих пользователях
+        # Но username из Telegram не должен использоваться для User.username напрямую
+        # так как это может вызвать конфликты
         
-        # Создаем нового пользователя
-        # Генерируем username если его нет
-        if not username or not username.strip():
-            username = f"user_{telegram_id}"
+        # Генерируем уникальный username для User
+        # ВАЖНО: username из Telegram идет в SocialAccount.username, а не в User.username
+        # Для User.username генерируем уникальное имя на основе first_name/last_name или telegram_id
+        if first_name and last_name:
+            # Используем first_name + last_name
+            base_username = f"{first_name}_{last_name}".lower().replace(' ', '_')
+            # Убираем спецсимволы, оставляем только буквы, цифры и подчеркивания
+            base_username = ''.join(c for c in base_username if c.isalnum() or c == '_')
+            # Ограничиваем длину
+            if len(base_username) > 30:
+                base_username = base_username[:30]
+        elif first_name:
+            base_username = first_name.lower().replace(' ', '_')
+            base_username = ''.join(c for c in base_username if c.isalnum() or c == '_')
+            if len(base_username) > 30:
+                base_username = base_username[:30]
+        elif telegram_username:
+            # Используем telegram username как основу, но добавим префикс чтобы избежать конфликтов
+            base_username = f"tg_{telegram_username}"
+        else:
+            base_username = f"user_{telegram_id}"
         
         # Проверяем уникальность username
+        username = base_username
         counter = 1
-        original_username = username
         while User.objects.filter(username=username).exists():
-            username = f"{original_username}_{counter}"
+            username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:  # Защита от бесконечного цикла
                 username = f"user_{telegram_id}_{int(time.time())}"
                 break
         
-        logger.info(f"Создание нового пользователя: username={username}, telegram_id={telegram_id}")
+        logger.info(f"Создание нового пользователя: username={username}, telegram_id={telegram_id}, telegram_username={telegram_username}")
         user = User.objects.create(
             username=username,
             first_name=first_name,
@@ -306,7 +451,11 @@ class TelegramAuthService:
             is_active=True
         )
         
-        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, telegram_id={user.telegram_id}")
+        # Загружаем аватарку если есть
+        if photo_url:
+            TelegramAuthService._download_avatar_from_url(photo_url, user)
+        
+        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, telegram_id={user.telegram_id}, first_name={user.first_name}, last_name={user.last_name}")
         return user
 
 
