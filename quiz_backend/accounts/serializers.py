@@ -659,6 +659,9 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
 class MiniAppTopUserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для топ-пользователей Mini App, включающий рейтинг и базовые данные.
+    
+    Для приватных профилей скрывает чувствительные данные (username, rating, статистику и т.д.)
+    чтобы защитить приватность пользователей.
     """
     avatar_url = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
@@ -666,13 +669,14 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
     average_score = serializers.SerializerMethodField() # Это success_rate
     is_online = serializers.SerializerMethodField()
     age = serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
 
     class Meta:
         model = MiniAppUser
         fields = (
             'id', 'telegram_id', 'username', 'first_name', 'last_name',
             'avatar_url', 'rating', 'quizzes_completed', 'average_score', 'is_online', 'last_seen',
-            'gender', 'birth_date', 'age', 'grade'
+            'gender', 'birth_date', 'age', 'grade', 'is_profile_public'
         )
 
     def get_avatar_url(self, obj):
@@ -771,40 +775,88 @@ class MiniAppTopUserSerializer(serializers.ModelSerializer):
             
         return None
     
+    def get_username(self, obj):
+        """
+        Возвращает username только для публичных профилей.
+        Для приватных профилей возвращает None, чтобы защитить приватность пользователя.
+        """
+        if obj.is_profile_public:
+            return obj.username
+        return None
+    
     def get_rating(self, obj):
         """
         Возвращает рейтинг пользователя Mini App.
+        Для приватных профилей возвращает None.
         """
+        if not obj.is_profile_public:
+            return None
         return obj.calculate_rating()
-
+    
     def get_quizzes_completed(self, obj):
         """
         Возвращает количество завершенных квизов для Mini App пользователя.
+        Для приватных профилей возвращает None.
         """
+        if not obj.is_profile_public:
+            return None
         return obj.quizzes_completed
-
+    
     def get_average_score(self, obj):
         """
         Возвращает средний балл (процент успешности) для Mini App пользователя.
+        Для приватных профилей возвращает None.
         """
+        if not obj.is_profile_public:
+            return None
         return obj.average_score
-
+    
     def get_is_online(self, obj):
         """
         Проверяет, онлайн ли пользователь Mini App.
+        Для приватных профилей возвращает None.
         """
+        if not obj.is_profile_public:
+            return None
         return obj.is_online
-
+    
     def get_age(self, obj):
         """
         Вычисляет возраст пользователя на основе даты рождения.
+        Для приватных профилей возвращает None.
         """
+        if not obj.is_profile_public:
+            return None
         if obj.birth_date:
             from datetime import date
             today = date.today()
             age = today.year - obj.birth_date.year - ((today.month, today.day) < (obj.birth_date.month, obj.birth_date.day))
             return age
         return None
+    
+    def to_representation(self, instance):
+        """
+        Переопределяет представление для скрытия полей приватных профилей.
+        Для приватных профилей скрывает username, rating, статистику и другие чувствительные данные.
+        """
+        data = super().to_representation(instance)
+        
+        # Если профиль приватный, скрываем чувствительные данные
+        if not instance.is_profile_public:
+            # Оставляем только базовую информацию: id, telegram_id, имя, аватар
+            # Явно скрываем username, rating, статистику и личные данные
+            data['username'] = None
+            data['rating'] = None
+            data['quizzes_completed'] = None
+            data['average_score'] = None
+            data['is_online'] = None
+            data['age'] = None
+            data['gender'] = None
+            data['grade'] = None
+            # last_seen можно оставить, но лучше скрыть для консистентности
+            data['last_seen'] = None
+        
+        return data
 
 
 class PublicMiniAppUserSerializer(serializers.ModelSerializer):
