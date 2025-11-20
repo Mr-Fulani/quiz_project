@@ -96,13 +96,14 @@ class TelegramAuthView(APIView):
             logger.info(f"Raw data (обработанные): {raw_data}")
             logger.info(f"Raw data keys: {list(raw_data.keys())}")
             
-            # Дополнительная проверка: может быть данные в request.body или request.META
-            if request.body:
-                try:
-                    body_str = request.body.decode('utf-8')
-                    logger.info(f"Request body (decoded): {body_str[:500]}")
-                except Exception as e:
-                    logger.warning(f"Не удалось декодировать body: {e}")
+            # Дополнительная проверка: может быть данные в _body или request.META
+            # НЕ используем request.body напрямую чтобы избежать RawPostDataException
+            try:
+                if hasattr(request, '_body') and request._body:
+                    body_str = request._body.decode('utf-8', errors='ignore')
+                    logger.info(f"Request _body (decoded): {body_str[:500]}")
+            except Exception as e:
+                logger.warning(f"Не удалось декодировать _body: {e}")
             
             logger.info(f"Request content_type: {request.content_type}")
             
@@ -117,7 +118,14 @@ class TelegramAuthView(APIView):
                 logger.error(f"Request query string: {request.META.get('QUERY_STRING', 'ПУСТО')}")
                 logger.error(f"Request GET: {dict(request.GET)}")
                 logger.error(f"Request POST: {dict(request.POST)}")
-                logger.error(f"Request body: {request.body}")
+                # НЕ используем request.body напрямую чтобы избежать RawPostDataException
+                try:
+                    body_info = 'empty'
+                    if hasattr(request, '_body') and request._body:
+                        body_info = request._body[:500].decode('utf-8', errors='ignore')
+                    logger.error(f"Request _body: {body_info}")
+                except Exception:
+                    logger.error(f"Request _body: cannot read")
                 logger.error(f"Все доступные ключи в raw_data: {list(raw_data.keys()) if raw_data else 'НЕТ ДАННЫХ'}")
                 logger.error(f"Полный URL: {request.build_absolute_uri()}")
                 logger.error(f"Referer: {request.META.get('HTTP_REFERER', 'НЕТ')}")
@@ -896,7 +904,7 @@ def telegram_auth_debug(request):
         'query_string': request.META.get('QUERY_STRING', ''),
         'get_params': dict(request.GET),
         'post_params': dict(request.POST),
-        'body': request.body.decode('utf-8') if request.body else '',
+        'body': request._body.decode('utf-8', errors='ignore') if hasattr(request, '_body') and request._body else '',
         'content_type': request.content_type,
         'headers': {k: v for k, v in request.META.items() if k.startswith('HTTP_')},
         'referer': request.META.get('HTTP_REFERER', ''),
