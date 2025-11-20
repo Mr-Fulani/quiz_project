@@ -53,7 +53,8 @@ class TelegramAuthView(APIView):
             logger.info(f"Request full path: {request.get_full_path()}")
             logger.info(f"Request query string: {request.META.get('QUERY_STRING', '')}")
             logger.info(f"Request host: {request.get_host()}")
-            logger.info(f"Request META: {dict(request.META)}")
+            logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
+            logger.info(f"Request user agent: {request.META.get('HTTP_USER_AGENT', 'N/A')}")
             
             # Проверяем запросы мока на продакшене
             if (request.GET.get('mock') == 'true' or request.GET.get('mock_auth') == 'true'):
@@ -74,21 +75,37 @@ class TelegramAuthView(APIView):
             
             # Для GET запроса данные приходят в query параметрах
             # QueryDict возвращает списки, нужно извлечь первые значения
-            raw_data = dict(request.GET)
+            raw_data = {}
+            
+            # Обрабатываем GET параметры - QueryDict возвращает списки
+            for key, value in request.GET.items():
+                if isinstance(value, list) and len(value) > 0:
+                    raw_data[key] = value[0]
+                elif value:
+                    raw_data[key] = value
             
             # Также проверяем POST на случай если Telegram отправляет через POST
             if request.method == 'POST' and request.POST:
                 logger.info("Обнаружены данные в POST, добавляем к GET данным")
-                raw_data.update(dict(request.POST))
+                for key, value in request.POST.items():
+                    if isinstance(value, list) and len(value) > 0:
+                        raw_data[key] = value[0]
+                    elif value:
+                        raw_data[key] = value
             
-            logger.info(f"Raw data (GET+POST): {raw_data}")
+            logger.info(f"Raw data (обработанные): {raw_data}")
             logger.info(f"Raw data keys: {list(raw_data.keys())}")
-            logger.info(f"Raw data values: {list(raw_data.values())}")
             
-            # Дополнительная проверка: может быть данные в request.body или request.META
-            logger.info(f"Request body (raw): {request.body}")
+            # Дополнительная проверка: может быть данные в _body или request.META
+            # НЕ используем request.body напрямую чтобы избежать RawPostDataException
+            try:
+                if hasattr(request, '_body') and request._body:
+                    body_str = request._body.decode('utf-8', errors='ignore')
+                    logger.info(f"Request _body (decoded): {body_str[:500]}")
+            except Exception as e:
+                logger.warning(f"Не удалось декодировать _body: {e}")
+            
             logger.info(f"Request content_type: {request.content_type}")
-            logger.info(f"Request META HTTP_*: {[(k, v) for k, v in request.META.items() if k.startswith('HTTP_')]}")
             
             # Проверяем, есть ли вообще данные от Telegram
             if not raw_data or 'id' not in raw_data:
@@ -101,7 +118,14 @@ class TelegramAuthView(APIView):
                 logger.error(f"Request query string: {request.META.get('QUERY_STRING', 'ПУСТО')}")
                 logger.error(f"Request GET: {dict(request.GET)}")
                 logger.error(f"Request POST: {dict(request.POST)}")
-                logger.error(f"Request body: {request.body}")
+                # НЕ используем request.body напрямую чтобы избежать RawPostDataException
+                try:
+                    body_info = 'empty'
+                    if hasattr(request, '_body') and request._body:
+                        body_info = request._body[:500].decode('utf-8', errors='ignore')
+                    logger.error(f"Request _body: {body_info}")
+                except Exception:
+                    logger.error(f"Request _body: cannot read")
                 logger.error(f"Все доступные ключи в raw_data: {list(raw_data.keys()) if raw_data else 'НЕТ ДАННЫХ'}")
                 logger.error(f"Полный URL: {request.build_absolute_uri()}")
                 logger.error(f"Referer: {request.META.get('HTTP_REFERER', 'НЕТ')}")
@@ -111,23 +135,36 @@ class TelegramAuthView(APIView):
             # Преобразуем данные в правильные типы
             data = {}
             for key, value in raw_data.items():
-                # QueryDict возвращает списки, берем первое значение
-                val = value[0] if isinstance(value, list) else value
+                # Уже обработали списки выше, но на всякий случай проверяем
+                if isinstance(value, list):
+                    val = value[0] if len(value) > 0 else ''
+                else:
+                    val = value
+                
+                # Пропускаем пустые значения для необязательных полей
+                if val is None or val == '':
+                    if key in ['id', 'auth_date', 'hash']:
+                        # Обязательные поля не могут быть пустыми
+                        logger.error(f"Обязательное поле {key} пустое или отсутствует")
+                        return redirect('/?open_login=true&error=Неверный формат данных')
+                    continue
                 
                 # Преобразуем в нужные типы согласно сериализатору
                 if key == 'id':
                     try:
                         data[key] = int(val)
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"Ошибка преобразования id в int: {e}, значение: {val}")
                         return redirect('/?open_login=true&error=Неверный формат данных')
                 elif key == 'auth_date':
                     try:
                         data[key] = int(val)
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"Ошибка преобразования auth_date в int: {e}, значение: {val}")
                         return redirect('/?open_login=true&error=Неверный формат данных')
                 else:
                     # Остальные поля - строки
-                    data[key] = val if val else ''
+                    data[key] = str(val) if val else ''
             
             logger.info(f"Преобразованные данные для валидации: {data}")
             
@@ -219,9 +256,10 @@ class TelegramAuthView(APIView):
             
         except Exception as e:
             import traceback
-            logger.error(f"Ошибка в GET TelegramAuthView: {e}")
+            logger.error(f"Критическая ошибка в GET TelegramAuthView: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            error_message = 'Внутренняя ошибка сервера'
+            logger.error(f"Request: method={request.method}, path={request.path}, GET={dict(request.GET)}")
+            error_message = 'Внутренняя ошибка сервера при авторизации'
             if settings.DEBUG:
                 error_message = f'Ошибка: {str(e)}'
             return redirect(f'/?open_login=true&error={error_message}')
@@ -307,13 +345,110 @@ class TelegramAuthView(APIView):
         Обрабатывает POST запрос с данными от Telegram Login Widget.
         """
         try:
-            logger.info(f"=== TELEGRAM AUTH POST REQUEST ===")
-            logger.info(f"Request data: {request.data}")
+            # Дублируем вывод в print для гарантии что увидим в логах
+            print("=" * 80, flush=True)
+            print("=== TELEGRAM AUTH POST REQUEST ===", flush=True)
+            print("=" * 80, flush=True)
+            
+            logger.info("=" * 80)
+            logger.info("=== TELEGRAM AUTH POST REQUEST ===")
+            logger.info("=" * 80)
+            logger.info(f"Request method: {request.method}")
             logger.info(f"Request path: {request.path}")
             logger.info(f"Request host: {request.get_host()}")
+            logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
+            
+            print(f"POST Request: {request.method} {request.path}", flush=True)
+            
+            # Логируем request.data и request.POST (безопасно)
+            if hasattr(request, 'data'):
+                logger.info(f"Request data (DRF): {request.data}")
+                print(f"Request data (DRF): {request.data}", flush=True)
+            logger.info(f"Request POST params: {dict(request.POST)}")
+            
+            # НЕ обращаемся к request.body напрямую - это может вызвать RawPostDataException
+            # если body уже был прочитан через request.data
+            try:
+                if hasattr(request, '_body') and request._body:
+                    body_str = request._body.decode('utf-8', errors='ignore')
+                    logger.info(f"Request _body (first 500 chars): {body_str[:500]}")
+                else:
+                    logger.info("Request _body is empty or not accessible")
+            except Exception as e:
+                logger.warning(f"Не удалось прочитать _body: {e}")
+            
+            # Обрабатываем данные из request.data (DRF) или request.POST
+            # ВАЖНО: В DRF нельзя читать request.body после обращения к request.data!
+            # Порядок важен: сначала request.data, потом request.body
+            auth_data = {}
+            
+            # Сначала пробуем request.data (DRF) - это безопасно и не блокирует body
+            if hasattr(request, 'data') and request.data:
+                try:
+                    # request.data может быть QueryDict или dict
+                    if hasattr(request.data, 'dict'):
+                        auth_data = request.data.dict()
+                    else:
+                        auth_data = dict(request.data)
+                    print(f"Данные получены из request.data (DRF): {auth_data}", flush=True)
+                    logger.info(f"Данные получены из request.data (DRF): {auth_data}")
+                except Exception as e:
+                    error_msg = f"Ошибка при обработке request.data: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
+            
+            # Если не получили из request.data, пробуем request.POST
+            if not auth_data and request.POST:
+                try:
+                    # Обрабатываем QueryDict
+                    for key, value in request.POST.items():
+                        if isinstance(value, list) and len(value) > 0:
+                            auth_data[key] = value[0]
+                        elif value:
+                            auth_data[key] = value
+                    print(f"Данные получены из request.POST: {auth_data}", flush=True)
+                    logger.info(f"Данные получены из request.POST: {auth_data}")
+                except Exception as e:
+                    error_msg = f"Ошибка при обработке request.POST: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
+            
+            # Только если не получили данные из request.data и request.POST, пробуем request.body
+            # Но это может вызвать RawPostDataException если body уже был прочитан
+            if not auth_data:
+                try:
+                    # Пытаемся прочитать body только если он еще не был прочитан
+                    if hasattr(request, '_body') and request._body:
+                        body_str = request._body.decode('utf-8')
+                        print(f"Request body (raw from _body): {body_str[:500]}", flush=True)
+                        if body_str.strip():
+                            import json
+                            auth_data = json.loads(body_str)
+                            print(f"Данные получены из request._body (JSON): {auth_data}", flush=True)
+                            logger.info(f"Данные получены из request._body (JSON): {auth_data}")
+                except (AttributeError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                    error_msg = f"Не удалось прочитать body: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
+                except Exception as e:
+                    error_msg = f"Ошибка при обработке body: {e}"
+                    print(f"WARNING: {error_msg}", flush=True)
+                    logger.warning(error_msg)
+            
+            if not auth_data:
+                error_msg = "Не удалось получить данные авторизации ни из одного источника"
+                print(f"ERROR: {error_msg}", flush=True)
+                logger.error(error_msg)
+                return Response({
+                    'success': False,
+                    'error': 'Отсутствуют данные авторизации'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            print(f"Обработанные данные авторизации: {auth_data}", flush=True)
+            logger.info(f"Обработанные данные авторизации: {auth_data}")
             
             # Проверяем мок запросы на продакшене
-            if request.data.get('mock') == 'true':
+            if auth_data.get('mock') == 'true':
                 if not getattr(settings, 'MOCK_TELEGRAM_AUTH', False):
                     logger.warning("Попытка POST мок авторизации на продакшене")
                     return Response({
@@ -323,12 +458,38 @@ class TelegramAuthView(APIView):
             
             # Проверяем режим мока (только для разработки)
             if (getattr(settings, 'MOCK_TELEGRAM_AUTH', False) and 
-                request.data.get('mock') == 'true'):
+                auth_data.get('mock') == 'true'):
                 return self._handle_mock_post(request)
             
+            # Преобразуем данные в правильные типы перед валидацией
+            processed_data = {}
+            for key, value in auth_data.items():
+                if key == 'id':
+                    try:
+                        processed_data[key] = int(value)
+                    except (ValueError, TypeError):
+                        logger.error(f"Неверный формат id: {value}")
+                        return Response({
+                            'success': False,
+                            'error': 'Неверный формат Telegram ID'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                elif key == 'auth_date':
+                    try:
+                        processed_data[key] = int(value)
+                    except (ValueError, TypeError):
+                        logger.error(f"Неверный формат auth_date: {value}")
+                        return Response({
+                            'success': False,
+                            'error': 'Неверный формат даты авторизации'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    processed_data[key] = value if value is not None else ''
+            
+            logger.info(f"Обработанные данные для валидации: {processed_data}")
+            
             # Валидируем данные
-            logger.info(f"Валидация данных: {request.data}")
-            serializer = TelegramAuthSerializer(data=request.data)
+            logger.info(f"Валидация данных: {processed_data}")
+            serializer = TelegramAuthSerializer(data=processed_data)
             if not serializer.is_valid():
                 logger.error(f"Ошибка валидации POST данных: {serializer.errors}")
                 return Response({
@@ -338,14 +499,18 @@ class TelegramAuthView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
+            print(f"Данные прошли валидацию: {serializer.validated_data}", flush=True)
             
             # Обрабатываем авторизацию
+            print("Вызываем TelegramAuthService.process_telegram_auth...", flush=True)
             result = TelegramAuthService.process_telegram_auth(
                 serializer.validated_data, 
                 request
             )
             
-            logger.info(f"Результат обработки POST авторизации: success={result.get('success') if result else False}")
+            result_msg = f"Результат обработки POST авторизации: success={result.get('success') if result else False}"
+            print(result_msg, flush=True)
+            logger.info(result_msg)
             
             if not result or not result.get('success'):
                 return Response({
@@ -355,19 +520,23 @@ class TelegramAuthView(APIView):
             
             # Авторизуем пользователя
             user = result['user']
+            print(f"Пользователь получен: {user.username}, id={user.id}, is_active={user.is_active}", flush=True)
             
             # Убеждаемся что пользователь активен
             if not user.is_active:
                 logger.warning(f"Попытка POST авторизации неактивного пользователя: {user.username}")
+                print(f"ERROR: Пользователь {user.username} неактивен", flush=True)
                 return Response({
                     'success': False,
                     'error': 'Аккаунт неактивен'
                 }, status=status.HTTP_403_FORBIDDEN)
             
+            print(f"Вызываем login() для пользователя {user.username}...", flush=True)
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
             # Явно сохраняем сессию
             request.session.save()
+            print(f"Сессия сохранена: {request.session.session_key}", flush=True)
             
             # Проверяем что сессия создана и сохранена в БД
             session_key_before = request.session.session_key
@@ -389,13 +558,70 @@ class TelegramAuthView(APIView):
                     logger.error(f"POST: Ошибка при проверке сессии в БД: {e}")
             
             # Подготавливаем ответ
+            print("Начинаем сериализацию данных для ответа...", flush=True)
+            try:
+                user_data = UserSocialAccountsSerializer(user).data
+                print(f"Пользователь сериализован: {user.username}", flush=True)
+                logger.info(f"Пользователь сериализован: {user.username}")
+            except Exception as e:
+                import traceback
+                error_tb = traceback.format_exc()
+                print(f"ERROR сериализации пользователя: {e}", flush=True)
+                print(f"Traceback: {error_tb}", flush=True)
+                logger.error(f"Ошибка сериализации пользователя: {e}")
+                logger.error(f"Traceback: {error_tb}")
+                # Fallback: простые данные пользователя
+                user_data = {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': getattr(user, 'email', '') or ''
+                }
+            
+            try:
+                social_account = result.get('social_account')
+                if social_account:
+                    social_account_data = SocialAccountSerializer(social_account).data
+                    print(f"Social account сериализован: {social_account.provider}", flush=True)
+                    logger.info(f"Social account сериализован: {social_account.provider}")
+                else:
+                    print("WARNING: Social account отсутствует в результате", flush=True)
+                    logger.warning("Social account отсутствует в результате")
+                    social_account_data = {}
+            except Exception as e:
+                import traceback
+                error_tb = traceback.format_exc()
+                print(f"ERROR сериализации social_account: {e}", flush=True)
+                print(f"Traceback: {error_tb}", flush=True)
+                logger.error(f"Ошибка сериализации social_account: {e}")
+                logger.error(f"Traceback: {error_tb}")
+                social_account = result.get('social_account')
+                if social_account:
+                    social_account_data = {
+                        'id': social_account.id,
+                        'provider': social_account.provider
+                    }
+                else:
+                    social_account_data = {}
+            
+            # Формируем минимальный ответ чтобы избежать ошибок сериализации
             response_data = {
                 'success': True,
-                'user': UserSocialAccountsSerializer(user).data,
-                'social_account': SocialAccountSerializer(result['social_account']).data,
+                'user': user_data,
                 'is_new_user': result.get('is_new_user', False),
-                'message': _('Успешная авторизация через Telegram') if not result.get('is_new_user') else _('Добро пожаловать! Ваш аккаунт создан.')
             }
+            
+            # Добавляем social_account только если есть
+            if social_account_data:
+                response_data['social_account'] = social_account_data
+            
+            # Добавляем сообщение
+            if result.get('is_new_user'):
+                response_data['message'] = _('Добро пожаловать! Ваш аккаунт создан.')
+            else:
+                response_data['message'] = _('Успешная авторизация через Telegram')
+            
+            logger.info(f"Ответ подготовлен: success=True, user_id={user.id}, username={user.username}")
+            print(f"Ответ подготовлен: success=True, user_id={user.id}, username={user.username}", flush=True)
             
             # Добавляем redirect_url если есть
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -403,7 +629,9 @@ class TelegramAuthView(APIView):
                 response_data['redirect_url'] = next_url
             
             # Создаем Response и устанавливаем куки сессии явно
+            print(f"Создаем Response с данными: {response_data}", flush=True)
             response = Response(response_data, status=status.HTTP_200_OK)
+            print("Response создан успешно", flush=True)
             
             # Устанавливаем куки сессии для гарантированного сохранения
             session_key = session_key_before  # Используем уже полученный session_key
@@ -431,19 +659,62 @@ class TelegramAuthView(APIView):
             
         except Exception as e:
             import traceback
-            logger.error(f"Ошибка в TelegramAuthView: {e}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            error_traceback = traceback.format_exc()
+            
+            # Дублируем в print для гарантии что увидим
+            print("=" * 80, flush=True)
+            print("КРИТИЧЕСКАЯ ОШИБКА В POST TelegramAuthView", flush=True)
+            print(f"Ошибка: {str(e)}", flush=True)
+            print(f"Тип ошибки: {type(e).__name__}", flush=True)
+            print(f"Traceback:\n{error_traceback}", flush=True)
+            
+            logger.error("=" * 80)
+            logger.error("КРИТИЧЕСКАЯ ОШИБКА В POST TelegramAuthView")
+            logger.error("=" * 80)
+            logger.error(f"Ошибка: {str(e)}")
+            logger.error(f"Тип ошибки: {type(e).__name__}")
+            logger.error(f"Traceback:\n{error_traceback}")
+            logger.error(f"Request: method={request.method}, path={request.path}")
+            # Не обращаемся к request.body напрямую чтобы избежать RawPostDataException
+            try:
+                body_info = 'empty'
+                if hasattr(request, '_body') and request._body:
+                    body_info = request._body[:500].decode('utf-8', errors='ignore')
+                logger.error(f"Request _body: {body_info}")
+            except Exception:
+                logger.error(f"Request _body: cannot read")
+            
+            logger.error(f"Request data: {getattr(request, 'data', 'N/A')}")
+            logger.error(f"Request POST: {dict(request.POST) if request.POST else 'empty'}")
+            logger.error("=" * 80)
+            
+            # Возвращаем более детальную ошибку в режиме отладки
+            error_message = 'Внутренняя ошибка сервера при авторизации'
+            if settings.DEBUG:
+                error_message = f'Ошибка: {str(e)}'
+            
             return Response({
                 'success': False,
-                'error': 'Внутренняя ошибка сервера'
+                'error': error_message
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _handle_mock_post(self, request):
         """Обрабатывает POST мок авторизацию"""
         try:
             import time
+            # Получаем данные из запроса
+            auth_data = {}
+            if hasattr(request, 'data') and request.data:
+                auth_data = dict(request.data)
+            elif request.POST:
+                for key, value in request.POST.items():
+                    if isinstance(value, list) and len(value) > 0:
+                        auth_data[key] = value[0]
+                    elif value:
+                        auth_data[key] = value
+            
             # Получаем данные из запроса, преобразуя в правильные типы
-            user_id = request.data.get('user_id', '975113235')
+            user_id = auth_data.get('user_id', '975113235')
             try:
                 user_id = int(user_id) if isinstance(user_id, str) else user_id
             except (ValueError, TypeError):
@@ -451,9 +722,9 @@ class TelegramAuthView(APIView):
             
             mock_data = {
                 'id': user_id,
-                'first_name': request.data.get('first_name', 'TestUser') or '',
-                'last_name': request.data.get('last_name', 'Developer') or '',
-                'username': request.data.get('username', 'testdev') or '',
+                'first_name': auth_data.get('first_name', 'TestUser') or '',
+                'last_name': auth_data.get('last_name', 'Developer') or '',
+                'username': auth_data.get('username', 'testdev') or '',
                 'photo_url': 'https://via.placeholder.com/150',
                 'auth_date': int(time.time()),  # Текущее время
                 'hash': 'mock_hash_for_development'
@@ -633,7 +904,7 @@ def telegram_auth_debug(request):
         'query_string': request.META.get('QUERY_STRING', ''),
         'get_params': dict(request.GET),
         'post_params': dict(request.POST),
-        'body': request.body.decode('utf-8') if request.body else '',
+        'body': request._body.decode('utf-8', errors='ignore') if hasattr(request, '_body') and request._body else '',
         'content_type': request.content_type,
         'headers': {k: v for k, v in request.META.items() if k.startswith('HTTP_')},
         'referer': request.META.get('HTTP_REFERER', ''),
