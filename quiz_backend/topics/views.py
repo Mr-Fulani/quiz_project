@@ -222,6 +222,16 @@ def topics_simple(request):
         # Определяем URL медиа для карточки
         from django.conf import settings
         
+        # Проверяем, есть ли кастомное медиа (загруженное через админку)
+        # Кастомное медиа - это когда media_type не 'default' и есть загруженный файл
+        # В Django ImageField/FileField truthy только если файл загружен
+        has_custom_media = (
+            topic.media_type != 'default' and (
+                (topic.media_type == 'image' and bool(topic.card_image)) or
+                (topic.media_type == 'video' and bool(topic.card_video))
+            )
+        )
+        
         # Для типа "По умолчанию" всегда используем picsum.photos
         if topic.media_type == 'default':
             media_url = f'https://picsum.photos/800/800?{topic.id}'
@@ -248,10 +258,16 @@ def topics_simple(request):
             'image_url': media_url,
             'video_poster_url': video_poster_url,
             'media_type': topic.media_type,  # Добавляем тип медиа
+            'has_custom_media': has_custom_media,  # Флаг наличия кастомного медиа
         }
         if telegram_id:
             topic_data['completed_tasks_count'] = topic.completed_tasks_count
         data.append(topic_data)
+    
+    # Сортируем темы: сначала с кастомным медиа, потом с медиа по умолчанию
+    # В карусели отображаются только первые 6 карточек, поэтому приоритет важен
+    data.sort(key=lambda x: (not x.get('has_custom_media', False), x['name']))
+    
     return Response(data)
 
 # Endpoint для деталей темы без аутентификации
