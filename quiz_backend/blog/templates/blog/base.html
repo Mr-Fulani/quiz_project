@@ -350,16 +350,31 @@
                                 body: JSON.stringify(user),
                                 credentials: 'include'
                             })
-                            .then(response => {
+                            .then(async response => {
                                 console.log('📥 Статус ответа:', response.status, response.statusText);
+                                
                                 if (!response.ok) {
+                                    const errorText = await response.text().catch(() => '');
+                                    console.error('❌ Ошибка HTTP:', response.status, errorText);
                                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                                 }
-                                return response.json();
+                                
+                                try {
+                                    const contentType = response.headers.get('content-type');
+                                    if (contentType && contentType.includes('application/json')) {
+                                        return await response.json();
+                                    } else {
+                                        const text = await response.text();
+                                        return JSON.parse(text);
+                                    }
+                                } catch (parseError) {
+                                    console.error('❌ Ошибка парсинга JSON:', parseError);
+                                    throw new Error('Не удалось распарсить ответ сервера');
+                                }
                             })
                             .then(data => {
                                 console.log('✅ Ответ сервера:', data);
-                                if (data.success) {
+                                if (data && data.success) {
                                     console.log('🎉 Авторизация успешна! Перезагружаем страницу...');
                                     const loginModal = document.getElementById('login-modal');
                                     if (loginModal && loginModal.classList.contains('active')) {
@@ -367,13 +382,17 @@
                                     }
                                     window.location.reload();
                                 } else {
-                                    console.error('❌ Ошибка авторизации:', data.error);
-                                    alert('Ошибка авторизации: ' + (data.error || 'Неизвестная ошибка'));
+                                    console.error('❌ Ошибка авторизации:', data?.error || 'Неизвестная ошибка');
+                                    // Не показываем alert для мимолетных ошибок
+                                    if (data?.error && !data.error.includes('уже')) {
+                                        console.warn('⚠️ Ошибка авторизации:', data.error);
+                                    }
                                 }
                             })
                             .catch(error => {
                                 console.error('❌ Ошибка отправки данных на сервер:', error);
-                                alert('Ошибка отправки данных на сервер: ' + error.message);
+                                // Не показываем alert для мимолетных ошибок
+                                console.warn('⚠️ Ошибка:', error.message);
                             });
                         }
                         
@@ -670,33 +689,79 @@
         console.log('open_register:', urlParams.has('open_register'));
         console.log('error:', urlParams.has('error'));
         
-        // КРИТИЧНО: Проверяем наличие данных от Telegram в URL параметрах
-        // Telegram может делать redirect на главную страницу вместо /api/social-auth/telegram/auth/
-        const telegramId = urlParams.get('id');
-        const telegramHash = urlParams.get('hash');
+        // КРИТИЧНО: Проверяем наличие данных от Telegram
+        // Telegram может передавать данные двумя способами:
+        // 1. В query параметрах: ?id=...&hash=...
+        // 2. В hash fragment: #tgAuthResult=base64_json (новый метод)
         
-        if (telegramId && telegramHash) {
+        let telegramData = null;
+        
+        // Способ 1: Проверяем hash fragment #tgAuthResult=...
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#tgAuthResult=')) {
             console.log('🔐 ============================================');
-            console.log('🔐 ОБНАРУЖЕНЫ ДАННЫЕ ОТ TELEGRAM В URL ПАРАМЕТРАХ!');
+            console.log('🔐 ОБНАРУЖЕНЫ ДАННЫЕ ОТ TELEGRAM В HASH FRAGMENT!');
             console.log('🔐 ============================================');
-            console.log('  - ID:', telegramId);
-            console.log('  - Hash:', telegramHash);
-            console.log('  - Auth Date:', urlParams.get('auth_date'));
-            console.log('  - First Name:', urlParams.get('first_name'));
-            console.log('  - Username:', urlParams.get('username'));
             
-            // Собираем все данные от Telegram
-            const telegramData = {
-                id: parseInt(telegramId),
-                hash: telegramHash,
-                auth_date: urlParams.get('auth_date') ? parseInt(urlParams.get('auth_date')) : null,
-                first_name: urlParams.get('first_name') || '',
-                last_name: urlParams.get('last_name') || '',
-                username: urlParams.get('username') || '',
-                photo_url: urlParams.get('photo_url') || ''
-            };
+            try {
+                const base64Data = hash.substring('#tgAuthResult='.length);
+                console.log('  - Base64 данные:', base64Data.substring(0, 100) + '...');
+                
+                // Декодируем base64
+                const decodedData = atob(base64Data);
+                console.log('  - Декодированные данные:', decodedData.substring(0, 200) + '...');
+                
+                // Парсим JSON
+                telegramData = JSON.parse(decodedData);
+                console.log('  - Распарсенные данные:', telegramData);
+                
+                // Преобразуем в нужный формат (id должен быть числом)
+                if (telegramData.id) {
+                    telegramData.id = parseInt(telegramData.id);
+                }
+                if (telegramData.auth_date) {
+                    telegramData.auth_date = parseInt(telegramData.auth_date);
+                }
+                
+                console.log('  - Обработанные данные:', telegramData);
+            } catch (error) {
+                console.error('❌ Ошибка декодирования данных из hash fragment:', error);
+                telegramData = null;
+            }
+        }
+        
+        // Способ 2: Проверяем query параметры (старый метод)
+        if (!telegramData) {
+            const telegramId = urlParams.get('id');
+            const telegramHash = urlParams.get('hash');
             
-            console.log('  - Собранные данные:', telegramData);
+            if (telegramId && telegramHash) {
+                console.log('🔐 ============================================');
+                console.log('🔐 ОБНАРУЖЕНЫ ДАННЫЕ ОТ TELEGRAM В URL ПАРАМЕТРАХ!');
+                console.log('🔐 ============================================');
+                console.log('  - ID:', telegramId);
+                console.log('  - Hash:', telegramHash);
+                console.log('  - Auth Date:', urlParams.get('auth_date'));
+                console.log('  - First Name:', urlParams.get('first_name'));
+                console.log('  - Username:', urlParams.get('username'));
+                
+                // Собираем все данные от Telegram
+                telegramData = {
+                    id: parseInt(telegramId),
+                    hash: telegramHash,
+                    auth_date: urlParams.get('auth_date') ? parseInt(urlParams.get('auth_date')) : null,
+                    first_name: urlParams.get('first_name') || '',
+                    last_name: urlParams.get('last_name') || '',
+                    username: urlParams.get('username') || '',
+                    photo_url: urlParams.get('photo_url') || ''
+                };
+                
+                console.log('  - Собранные данные:', telegramData);
+            }
+        }
+        
+        // Если нашли данные от Telegram, отправляем на сервер
+        if (telegramData && telegramData.id && telegramData.hash) {
             console.log('  - Отправляем данные на сервер...');
             
             // Отправляем данные на сервер
@@ -712,30 +777,52 @@
                 body: JSON.stringify(telegramData),
                 credentials: 'include'
             })
-            .then(response => {
+            .then(async response => {
                 console.log('📥 Статус ответа:', response.status, response.statusText);
+                
+                // Проверяем статус ответа
                 if (!response.ok) {
+                    const errorText = await response.text().catch(() => '');
+                    console.error('❌ Ошибка HTTP:', response.status, errorText);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                return response.json();
+                
+                // Пытаемся распарсить JSON
+                try {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return await response.json();
+                    } else {
+                        const text = await response.text();
+                        console.warn('⚠️ Ответ не JSON, пытаемся распарсить:', text);
+                        return JSON.parse(text);
+                    }
+                } catch (parseError) {
+                    console.error('❌ Ошибка парсинга JSON:', parseError);
+                    throw new Error('Не удалось распарсить ответ сервера');
+                }
             })
             .then(data => {
                 console.log('✅ Ответ сервера:', data);
-                if (data.success) {
+                if (data && data.success) {
                     console.log('🎉 Авторизация успешна! Перезагружаем страницу...');
-                    // Очищаем URL параметры и перезагружаем страницу
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Очищаем URL параметры и hash, перезагружаем страницу
+                    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
                     setTimeout(function() {
                         window.location.reload();
                     }, 500);
                 } else {
-                    console.error('❌ Ошибка авторизации:', data.error);
-                    alert('Ошибка авторизации: ' + (data.error || 'Неизвестная ошибка'));
+                    console.error('❌ Ошибка авторизации:', data?.error || 'Неизвестная ошибка');
+                    // Не показываем alert для мимолетных ошибок, только логируем
+                    if (data?.error && !data.error.includes('уже')) {
+                        console.warn('⚠️ Ошибка авторизации:', data.error);
+                    }
                 }
             })
             .catch(error => {
                 console.error('❌ Ошибка отправки данных на сервер:', error);
-                alert('Ошибка отправки данных на сервер: ' + error.message);
+                // Не показываем alert для мимолетных ошибок, только логируем
+                console.warn('⚠️ Ошибка:', error.message);
             });
             
             // Останавливаем дальнейшую обработку параметров open_register
