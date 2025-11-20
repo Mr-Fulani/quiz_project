@@ -670,33 +670,79 @@
         console.log('open_register:', urlParams.has('open_register'));
         console.log('error:', urlParams.has('error'));
         
-        // КРИТИЧНО: Проверяем наличие данных от Telegram в URL параметрах
-        // Telegram может делать redirect на главную страницу вместо /api/social-auth/telegram/auth/
-        const telegramId = urlParams.get('id');
-        const telegramHash = urlParams.get('hash');
+        // КРИТИЧНО: Проверяем наличие данных от Telegram
+        // Telegram может передавать данные двумя способами:
+        // 1. В query параметрах: ?id=...&hash=...
+        // 2. В hash fragment: #tgAuthResult=base64_json (новый метод)
         
-        if (telegramId && telegramHash) {
+        let telegramData = null;
+        
+        // Способ 1: Проверяем hash fragment #tgAuthResult=...
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#tgAuthResult=')) {
             console.log('🔐 ============================================');
-            console.log('🔐 ОБНАРУЖЕНЫ ДАННЫЕ ОТ TELEGRAM В URL ПАРАМЕТРАХ!');
+            console.log('🔐 ОБНАРУЖЕНЫ ДАННЫЕ ОТ TELEGRAM В HASH FRAGMENT!');
             console.log('🔐 ============================================');
-            console.log('  - ID:', telegramId);
-            console.log('  - Hash:', telegramHash);
-            console.log('  - Auth Date:', urlParams.get('auth_date'));
-            console.log('  - First Name:', urlParams.get('first_name'));
-            console.log('  - Username:', urlParams.get('username'));
             
-            // Собираем все данные от Telegram
-            const telegramData = {
-                id: parseInt(telegramId),
-                hash: telegramHash,
-                auth_date: urlParams.get('auth_date') ? parseInt(urlParams.get('auth_date')) : null,
-                first_name: urlParams.get('first_name') || '',
-                last_name: urlParams.get('last_name') || '',
-                username: urlParams.get('username') || '',
-                photo_url: urlParams.get('photo_url') || ''
-            };
+            try {
+                const base64Data = hash.substring('#tgAuthResult='.length);
+                console.log('  - Base64 данные:', base64Data.substring(0, 100) + '...');
+                
+                // Декодируем base64
+                const decodedData = atob(base64Data);
+                console.log('  - Декодированные данные:', decodedData.substring(0, 200) + '...');
+                
+                // Парсим JSON
+                telegramData = JSON.parse(decodedData);
+                console.log('  - Распарсенные данные:', telegramData);
+                
+                // Преобразуем в нужный формат (id должен быть числом)
+                if (telegramData.id) {
+                    telegramData.id = parseInt(telegramData.id);
+                }
+                if (telegramData.auth_date) {
+                    telegramData.auth_date = parseInt(telegramData.auth_date);
+                }
+                
+                console.log('  - Обработанные данные:', telegramData);
+            } catch (error) {
+                console.error('❌ Ошибка декодирования данных из hash fragment:', error);
+                telegramData = null;
+            }
+        }
+        
+        // Способ 2: Проверяем query параметры (старый метод)
+        if (!telegramData) {
+            const telegramId = urlParams.get('id');
+            const telegramHash = urlParams.get('hash');
             
-            console.log('  - Собранные данные:', telegramData);
+            if (telegramId && telegramHash) {
+                console.log('🔐 ============================================');
+                console.log('🔐 ОБНАРУЖЕНЫ ДАННЫЕ ОТ TELEGRAM В URL ПАРАМЕТРАХ!');
+                console.log('🔐 ============================================');
+                console.log('  - ID:', telegramId);
+                console.log('  - Hash:', telegramHash);
+                console.log('  - Auth Date:', urlParams.get('auth_date'));
+                console.log('  - First Name:', urlParams.get('first_name'));
+                console.log('  - Username:', urlParams.get('username'));
+                
+                // Собираем все данные от Telegram
+                telegramData = {
+                    id: parseInt(telegramId),
+                    hash: telegramHash,
+                    auth_date: urlParams.get('auth_date') ? parseInt(urlParams.get('auth_date')) : null,
+                    first_name: urlParams.get('first_name') || '',
+                    last_name: urlParams.get('last_name') || '',
+                    username: urlParams.get('username') || '',
+                    photo_url: urlParams.get('photo_url') || ''
+                };
+                
+                console.log('  - Собранные данные:', telegramData);
+            }
+        }
+        
+        // Если нашли данные от Telegram, отправляем на сервер
+        if (telegramData && telegramData.id && telegramData.hash) {
             console.log('  - Отправляем данные на сервер...');
             
             // Отправляем данные на сервер
@@ -723,8 +769,8 @@
                 console.log('✅ Ответ сервера:', data);
                 if (data.success) {
                     console.log('🎉 Авторизация успешна! Перезагружаем страницу...');
-                    // Очищаем URL параметры и перезагружаем страницу
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Очищаем URL параметры и hash, перезагружаем страницу
+                    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
                     setTimeout(function() {
                         window.location.reload();
                     }, 500);
