@@ -163,6 +163,11 @@ class TelegramAuthService:
                 ).first()
                 
                 if social_account:
+                    # Получаем пользователя из social_account сразу
+                    user = social_account.user
+                    is_new_user = False
+                    logger.info(f"Найден существующий социальный аккаунт для telegram_id={telegram_id}, пользователь: {user.username}, is_active={user.is_active}")
+                    
                     # Обновляем данные аккаунта
                     updated = False
                     if data.get('username') and data.get('username') != social_account.username:
@@ -205,10 +210,6 @@ class TelegramAuthService:
                     if user_updated:
                         user.save()
                         logger.info(f"Данные пользователя обновлены: {user.username}, first_name={user.first_name}, last_name={user.last_name}")
-                    
-                    user = social_account.user
-                    is_new_user = False
-                    logger.info(f"Найден существующий социальный аккаунт для telegram_id={telegram_id}, пользователь: {user.username}, is_active={user.is_active}")
                     
                     # Автоматически связываем с существующими пользователями если связи еще не установлены
                     try:
