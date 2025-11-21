@@ -14,3 +14,13 @@ class SocialAuthConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'social_auth'
     verbose_name = 'Социальная аутентификация'
+    
+    def ready(self):
+        """
+        Подключает сигналы при запуске приложения.
+        Этот метод вызывается при инициализации Django.
+        """
+        try:
+            import social_auth.signals  # noqa
+        except ImportError:
+            pass
