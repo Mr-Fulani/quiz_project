@@ -82,6 +82,7 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                 # Список полей социальных сетей для синхронизации
                 social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
                 
+                changed_fields = []
                 for field in social_fields:
                     custom_user_value = getattr(instance, field, None)
                     mini_app_value = getattr(mini_app_user, field, None)
@@ -90,12 +91,13 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                     if custom_user_value and custom_user_value.strip():
                         if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
                             setattr(mini_app_user, field, custom_user_value)
+                            changed_fields.append(field)
                             social_fields_updated = True
                             logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
                 
-                if social_fields_updated:
-                    mini_app_user.save(update_fields=social_fields)
-                    logger.info(f"Синхронизированы поля социальных сетей для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id}, username={instance.username})")
+                if social_fields_updated and changed_fields:
+                    mini_app_user.save(update_fields=changed_fields)
+                    logger.info(f"Синхронизированы поля социальных сетей для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id}, username={instance.username}): {', '.join(changed_fields)}")
             except Exception as sync_error:
                 logger.warning(f"Ошибка при синхронизации полей социальных сетей с MiniAppUser для CustomUser {instance.username}: {sync_error}")
         
