@@ -241,6 +241,8 @@ class TelegramAuthService:
                             
                             # Обновляем данные MiniAppUser из Telegram
                             mini_app_updated = False
+                            changed_social_fields = []  # Инициализируем список измененных полей
+                            
                             if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
                                 mini_app_user.first_name = data.get('first_name')
                                 mini_app_updated = True
@@ -271,6 +273,7 @@ class TelegramAuthService:
                                     if custom_user_value and custom_user_value.strip():
                                         if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
                                             setattr(mini_app_user, field, custom_user_value)
+                                            changed_social_fields.append(field)
                                             social_fields_updated = True
                                             logger.info(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={telegram_id}): {custom_user_value}")
                                 
@@ -278,7 +281,21 @@ class TelegramAuthService:
                                     mini_app_updated = True
                             
                             if mini_app_updated:
-                                mini_app_user.save()
+                                # Сохраняем только измененные поля для оптимизации
+                                update_fields_list = []
+                                if changed_social_fields:
+                                    update_fields_list.extend(changed_social_fields)
+                                if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                                    update_fields_list.append('first_name')
+                                if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                                    update_fields_list.append('last_name')
+                                if photo_url and photo_url != mini_app_user.telegram_photo_url:
+                                    update_fields_list.append('telegram_photo_url')
+                                
+                                if update_fields_list:
+                                    mini_app_user.save(update_fields=update_fields_list)
+                                else:
+                                    mini_app_user.save()
                                 logger.info(f"Обновлены данные MiniAppUser для telegram_id={telegram_id}")
                             
                             # Объединяем статистику Mini App с основной статистикой
@@ -382,6 +399,8 @@ class TelegramAuthService:
                                 
                                 # Обновляем данные MiniAppUser из Telegram
                                 mini_app_updated = False
+                                changed_social_fields = []  # Инициализируем список измененных полей
+                                
                                 if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
                                     mini_app_user.first_name = data.get('first_name')
                                     mini_app_updated = True
@@ -412,6 +431,7 @@ class TelegramAuthService:
                                         if custom_user_value and custom_user_value.strip():
                                             if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
                                                 setattr(mini_app_user, field, custom_user_value)
+                                                changed_social_fields.append(field)
                                                 social_fields_updated = True
                                                 logger.info(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={telegram_id}): {custom_user_value}")
                                     
