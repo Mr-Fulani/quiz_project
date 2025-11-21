@@ -198,6 +198,10 @@ class TelegramAuthService:
                         if TelegramAuthService._download_avatar_from_url(photo_url, user):
                             user_updated = True
                     
+                    # Синхронизируем поля социальных сетей из SocialAccount
+                    if TelegramAuthService._sync_social_fields_from_accounts(user):
+                        user_updated = True
+                    
                     if user_updated:
                         user.save()
                         logger.info(f"Данные пользователя обновлены: {user.username}, first_name={user.first_name}, last_name={user.last_name}")
@@ -322,6 +326,9 @@ class TelegramAuthService:
                             social_account.save()
                             logger.info(f"Данные SocialAccount обновлены для пользователя {user.username}")
                     
+                    # Синхронизируем поля социальных сетей из SocialAccount в CustomUser
+                    TelegramAuthService._sync_social_fields_from_accounts(user)
+                    
                     # Автоматически связываем с существующими пользователями
                     try:
                         linked_count = social_account.auto_link_existing_users()
@@ -418,6 +425,14 @@ class TelegramAuthService:
                     is_successful=True
                 )
                 
+                # Финальная синхронизация полей социальных сетей перед возвратом
+                # Это гарантирует что поля всегда актуальны
+                try:
+                    user.refresh_from_db()
+                    TelegramAuthService._sync_social_fields_from_accounts(user)
+                except Exception as sync_error:
+                    logger.warning(f"Ошибка при финальной синхронизации полей социальных сетей: {sync_error}")
+                
                 logger.info(f"Авторизация успешна: user={user.username}, telegram_id={telegram_id}, session_id={session.session_id}")
                 
                 return {
@@ -434,6 +449,78 @@ class TelegramAuthService:
                 'success': False,
                 'error': 'Внутренняя ошибка сервера'
             }
+    
+    @staticmethod
+    def _sync_social_fields_from_accounts(user: User) -> bool:
+        """
+        Синхронизирует поля социальных сетей в CustomUser из SocialAccount.
+        
+        Если у пользователя есть социальные аккаунты, их данные подтягиваются
+        в соответствующие поля пользователя (telegram, github, etc).
+        
+        Args:
+            user: Пользователь Django (CustomUser)
+            
+        Returns:
+            bool: True если были внесены изменения, False иначе
+        """
+        if not user or not hasattr(user, 'social_accounts'):
+            return False
+        
+        updated = False
+        
+        try:
+            # Получаем все активные социальные аккаунты
+            social_accounts = user.social_accounts.filter(is_active=True)
+            
+            for account in social_accounts:
+                if account.provider == 'telegram' and account.username:
+                    # Для Telegram: username идет в поле telegram
+                    telegram_username = account.username.strip()
+                    # Убираем @ если есть
+                    if telegram_username.startswith('@'):
+                        telegram_username = telegram_username[1:]
+                    
+                    # Всегда обновляем если есть username в SocialAccount
+                    # Это обеспечивает синхронизацию данных между SocialAccount и CustomUser
+                    current_telegram = user.telegram.strip() if user.telegram else ''
+                    if current_telegram != telegram_username:
+                        user.telegram = telegram_username
+                        updated = True
+                        logger.info(f"Синхронизировано поле telegram для пользователя {user.username}: {telegram_username} (было: {current_telegram or 'пусто'})")
+                
+                elif account.provider == 'github' and account.username:
+                    # Для GitHub: username или email может идти в поле github
+                    github_value = account.username.strip()
+                    # Если есть email, можно использовать его
+                    if account.email and not github_value.startswith('http'):
+                        github_value = account.email
+                    
+                    # Формируем URL если это username
+                    if github_value and not github_value.startswith('http'):
+                        github_url = f"https://github.com/{github_value}"
+                    else:
+                        github_url = github_value
+                    
+                    # Всегда обновляем если есть данные в SocialAccount
+                    current_github = user.github.strip() if user.github else ''
+                    if current_github != github_url:
+                        user.github = github_url
+                        updated = True
+                        logger.info(f"Синхронизировано поле github для пользователя {user.username}: {github_url}")
+                
+                # Для других провайдеров можно добавить аналогичную логику
+                # elif account.provider == 'instagram' and account.username:
+                #     ...
+            
+            if updated:
+                user.save(update_fields=['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube'])
+                logger.info(f"Поля социальных сетей синхронизированы для пользователя {user.username}")
+            
+        except Exception as e:
+            logger.warning(f"Ошибка при синхронизации полей социальных сетей для пользователя {user.username}: {e}")
+        
+        return updated
     
     @staticmethod
     def _download_avatar_from_url(photo_url: str, user: User) -> bool:
