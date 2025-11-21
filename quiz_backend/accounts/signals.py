@@ -57,11 +57,13 @@ def _build_admin_removed_message(channel) -> str:
 def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
     """
     Автоматически синхронизирует CustomUser с DjangoAdmin при изменении прав администратора.
+    Также синхронизирует поля социальных сетей с MiniAppUser.
     
     Логика:
     - Если пользователь получает права staff/superuser → создает/обновляет DjangoAdmin
     - Если пользователь теряет права staff → удаляет DjangoAdmin (не деактивирует)
     - Сохраняет связь между разными типами пользователей в системе
+    - Синхронизирует поля социальных сетей с MiniAppUser если есть связь
     
     Args:
         sender: Модель CustomUser
@@ -70,6 +72,33 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
         **kwargs: Дополнительные параметры
     """
     try:
+        # Синхронизируем поля социальных сетей с MiniAppUser
+        # Это обеспечивает что данные соцсетей подтягиваются везде где используется одна БД
+        if hasattr(instance, 'mini_app_profile') and instance.mini_app_profile:
+            try:
+                mini_app_user = instance.mini_app_profile
+                social_fields_updated = False
+                
+                # Список полей социальных сетей для синхронизации
+                social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                
+                for field in social_fields:
+                    custom_user_value = getattr(instance, field, None)
+                    mini_app_value = getattr(mini_app_user, field, None)
+                    
+                    # Обновляем только если в CustomUser есть значение и оно отличается
+                    if custom_user_value and custom_user_value.strip():
+                        if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
+                            setattr(mini_app_user, field, custom_user_value)
+                            social_fields_updated = True
+                            logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                
+                if social_fields_updated:
+                    mini_app_user.save(update_fields=social_fields)
+                    logger.info(f"Синхронизированы поля социальных сетей для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id}, username={instance.username})")
+            except Exception as sync_error:
+                logger.warning(f"Ошибка при синхронизации полей социальных сетей с MiniAppUser для CustomUser {instance.username}: {sync_error}")
+        
         # Проверяем, есть ли у пользователя права администратора
         has_admin_rights = instance.is_staff or instance.is_superuser
         
@@ -121,7 +150,7 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                 pass
                 
     except Exception as e:
-        logger.error(f"Ошибка синхронизации CustomUser {instance.username} с DjangoAdmin: {e}")
+        logger.error(f"Ошибка синхронизации CustomUser {instance.username} с DjangoAdmin и MiniAppUser: {e}")
 
 
 # Импортируем notify_admin только для TelegramAdmin сигналов
