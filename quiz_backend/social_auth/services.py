@@ -254,6 +254,29 @@ class TelegramAuthService:
                                 mini_app_user.telegram_photo_url = photo_url
                                 mini_app_updated = True
                             
+                            # Синхронизируем поля социальных сетей из CustomUser в MiniAppUser
+                            # Это обеспечивает что данные соцсетей подтягиваются везде где используется одна БД
+                            if user:
+                                user.refresh_from_db()
+                                social_fields_updated = False
+                                
+                                # Список полей социальных сетей для синхронизации
+                                social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                                
+                                for field in social_fields:
+                                    custom_user_value = getattr(user, field, None)
+                                    mini_app_value = getattr(mini_app_user, field, None)
+                                    
+                                    # Обновляем только если в CustomUser есть значение и оно отличается
+                                    if custom_user_value and custom_user_value.strip():
+                                        if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
+                                            setattr(mini_app_user, field, custom_user_value)
+                                            social_fields_updated = True
+                                            logger.info(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={telegram_id}): {custom_user_value}")
+                                
+                                if social_fields_updated:
+                                    mini_app_updated = True
+                            
                             if mini_app_updated:
                                 mini_app_user.save()
                                 logger.info(f"Обновлены данные MiniAppUser для telegram_id={telegram_id}")
@@ -371,6 +394,29 @@ class TelegramAuthService:
                                 if photo_url and photo_url != mini_app_user.telegram_photo_url:
                                     mini_app_user.telegram_photo_url = photo_url
                                     mini_app_updated = True
+                                
+                                # Синхронизируем поля социальных сетей из CustomUser в MiniAppUser
+                                # Это обеспечивает что данные соцсетей подтягиваются везде где используется одна БД
+                                if user:
+                                    user.refresh_from_db()
+                                    social_fields_updated = False
+                                    
+                                    # Список полей социальных сетей для синхронизации
+                                    social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                                    
+                                    for field in social_fields:
+                                        custom_user_value = getattr(user, field, None)
+                                        mini_app_value = getattr(mini_app_user, field, None)
+                                        
+                                        # Обновляем только если в CustomUser есть значение и оно отличается
+                                        if custom_user_value and custom_user_value.strip():
+                                            if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
+                                                setattr(mini_app_user, field, custom_user_value)
+                                                social_fields_updated = True
+                                                logger.info(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={telegram_id}): {custom_user_value}")
+                                    
+                                    if social_fields_updated:
+                                        mini_app_updated = True
                                 
                                 if mini_app_updated:
                                     mini_app_user.save()
