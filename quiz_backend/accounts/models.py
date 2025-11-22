@@ -938,7 +938,7 @@ class MiniAppUser(models.Model):
                 updated = True
                 logger.debug(f"Обновлено first_name для MiniAppUser (telegram_id={self.telegram_id}): {first_name}")
             
-            # Обновляем last_name
+            # Обновляем last_name (может быть пустым, но это валидное значение)
             if last_name is not None:
                 last_name_clean = last_name.strip() if last_name else ''
                 current_last_name = (self.last_name or '').strip()
@@ -946,23 +946,83 @@ class MiniAppUser(models.Model):
                     self.last_name = last_name_clean if last_name_clean else None
                     changed_fields.append('last_name')
                     updated = True
-                    logger.debug(f"Обновлено last_name для MiniAppUser (telegram_id={self.telegram_id}): {last_name_clean or 'None'}")
+                    logger.info(f"Обновлено last_name для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}' (было: '{current_last_name}')")
             
             # Обновляем username
             if username is not None:
                 username_clean = username.strip() if username else None
-                if username_clean != (self.username or '').strip() if self.username else None:
+                current_username = (self.username or '').strip() if self.username else None
+                if username_clean != current_username:
                     self.username = username_clean
                     changed_fields.append('username')
                     updated = True
-                    logger.debug(f"Обновлено username для MiniAppUser (telegram_id={self.telegram_id}): {username_clean or 'None'}")
+                    logger.info(f"Обновлено username для MiniAppUser (telegram_id={self.telegram_id}): '{username_clean}' (было: '{current_username}')")
             
-            # Обновляем telegram_photo_url
-            if photo_url and photo_url.strip() and photo_url.strip() != (self.telegram_photo_url or '').strip():
-                self.telegram_photo_url = photo_url.strip()
-                changed_fields.append('telegram_photo_url')
-                updated = True
-                logger.debug(f"Обновлен telegram_photo_url для MiniAppUser (telegram_id={self.telegram_id})")
+            # Обновляем telegram_photo_url и скачиваем аватарку
+            if photo_url and photo_url.strip():
+                photo_url_clean = photo_url.strip()
+                current_photo_url = (self.telegram_photo_url or '').strip()
+                
+                if photo_url_clean != current_photo_url:
+                    self.telegram_photo_url = photo_url_clean
+                    changed_fields.append('telegram_photo_url')
+                    updated = True
+                    logger.info(f"Обновлен telegram_photo_url для MiniAppUser (telegram_id={self.telegram_id}): {photo_url_clean}")
+                
+                # Скачиваем аватарку из Telegram
+                try:
+                    import urllib.request
+                    import urllib.parse
+                    import time
+                    from django.core.files.base import ContentFile
+                    
+                    # Загружаем изображение
+                    req = urllib.request.Request(photo_url_clean)
+                    req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+                    
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        image_data = response.read()
+                        
+                        # Определяем расширение файла
+                        content_type = response.headers.get('Content-Type', '')
+                        ext = 'jpg'  # по умолчанию
+                        if 'jpeg' in content_type or 'jpg' in content_type:
+                            ext = 'jpg'
+                        elif 'png' in content_type:
+                            ext = 'png'
+                        elif 'webp' in content_type:
+                            ext = 'webp'
+                        else:
+                            # Пытаемся определить по URL
+                            parsed_url = urllib.parse.urlparse(photo_url_clean)
+                            path = parsed_url.path.lower()
+                            if path.endswith('.png'):
+                                ext = 'png'
+                            elif path.endswith('.webp'):
+                                ext = 'webp'
+                            elif path.endswith('.jpg') or path.endswith('.jpeg'):
+                                ext = 'jpg'
+                        
+                        # Создаем имя файла
+                        filename = f"telegram_avatar_{self.telegram_id}_{int(time.time())}.{ext}"
+                        
+                        # Сохраняем в поле avatar MiniAppUser
+                        self.avatar.save(filename, ContentFile(image_data), save=False)
+                        changed_fields.append('avatar')
+                        updated = True
+                        logger.info(f"Аватарка загружена из Telegram для MiniAppUser (telegram_id={self.telegram_id}): {filename}")
+                        
+                        # Также скачиваем в CustomUser если есть связь
+                        if hasattr(self, 'linked_custom_user') and self.linked_custom_user:
+                            try:
+                                from social_auth.services import TelegramAuthService
+                                if TelegramAuthService._download_avatar_from_url(photo_url_clean, self.linked_custom_user):
+                                    logger.info(f"Аватарка также загружена для связанного CustomUser (id={self.linked_custom_user.id})")
+                            except Exception as custom_avatar_error:
+                                logger.warning(f"Ошибка при загрузке аватарки в CustomUser: {custom_avatar_error}")
+                        
+                except Exception as avatar_error:
+                    logger.warning(f"Ошибка при скачивании аватарки для MiniAppUser (telegram_id={self.telegram_id}): {avatar_error}")
             
             # Обновляем language
             if language_code and language_code.strip():

@@ -1778,7 +1778,11 @@
                 
                 try {
                     // Получаем актуальные данные из Telegram Mini App
-                    const telegramData = window.Telegram?.WebApp?.initDataUnsafe?.user;
+                    const telegramWebApp = window.Telegram?.WebApp;
+                    const telegramData = telegramWebApp?.initDataUnsafe?.user;
+                    
+                    console.log('🔍 Telegram WebApp:', telegramWebApp);
+                    console.log('🔍 Telegram User Data:', telegramData);
                     
                     // Формируем данные для синхронизации
                     const syncData = {
@@ -1787,10 +1791,17 @@
                         last_name: telegramData?.last_name || null,
                         username: telegramData?.username || null,
                         photo_url: telegramData?.photo_url || null,
-                        language_code: telegramData?.language_code || 'ru'
+                        language_code: telegramData?.language_code || telegramWebApp?.initDataUnsafe?.user?.language_code || 'ru'
                     };
                     
                     console.log('📡 Отправка запроса на обновление данных из Telegram:', syncData);
+                    console.log('📡 Детали данных:', {
+                        'first_name присутствует': !!syncData.first_name,
+                        'last_name присутствует': syncData.last_name !== null,
+                        'username присутствует': !!syncData.username,
+                        'photo_url присутствует': !!syncData.photo_url,
+                        'language_code': syncData.language_code
+                    });
                     
                     // Вызываем endpoint для обновления данных из Telegram
                     const response = await fetch('/api/accounts/miniapp-users/refresh_from_telegram/', {

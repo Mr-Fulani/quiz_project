@@ -741,8 +741,15 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
                 'language_code': request.data.get('language_code', 'ru')
             }
             
+            # Логируем полученные данные для отладки
+            logger.info(f"🔄 Обновление данных из Telegram для telegram_id={telegram_id}")
+            logger.info(f"📝 Полученные данные: first_name={telegram_data.get('first_name')}, last_name={telegram_data.get('last_name')}, username={telegram_data.get('username')}, photo_url={telegram_data.get('photo_url')}")
+            logger.info(f"📝 Текущие данные пользователя: first_name={user.first_name}, last_name={user.last_name}, username={user.username}, telegram_photo_url={user.telegram_photo_url}")
+            
             # Синхронизируем данные из Telegram
             updated = user.sync_from_telegram(telegram_data)
+            
+            logger.info(f"✅ Результат синхронизации: updated={updated}")
             
             if updated:
                 # Обновляем last_seen
