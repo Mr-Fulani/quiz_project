@@ -935,13 +935,20 @@ def github_auth_redirect(request):
     logger.info(f"Request GET params: {dict(request.GET)}")
     
     try:
-        # Получаем текущий домен
-        current_domain = request.get_host()
-        protocol = 'https' if request.is_secure() else 'http'
-        origin = f"{protocol}://{current_domain}"
+        # Используем PUBLIC_URL из настроек для корректного redirect_uri
+        # Это важно для работы за прокси и для правильной настройки в GitHub OAuth App
+        public_url = getattr(settings, 'PUBLIC_URL', None)
+        if not public_url:
+            # Fallback: получаем из запроса
+            current_domain = request.get_host()
+            protocol = 'https' if request.is_secure() else 'http'
+            public_url = f"{protocol}://{current_domain}"
         
-        # URL для возврата после авторизации
-        redirect_uri = f"{origin}/api/social-auth/github/callback/"
+        # Убираем trailing slash если есть, чтобы избежать проблем
+        public_url = public_url.rstrip('/')
+        
+        # URL для возврата после авторизации (без trailing slash)
+        redirect_uri = f"{public_url}/api/social-auth/github/callback"
         
         # Генерируем state для защиты от CSRF
         import secrets
@@ -952,9 +959,10 @@ def github_auth_redirect(request):
         request.session.save()
         
         logger.info(f"🔍 Параметры для GitHub OAuth:")
-        logger.info(f"  - origin: {origin}")
+        logger.info(f"  - public_url: {public_url}")
         logger.info(f"  - redirect_uri: {redirect_uri}")
         logger.info(f"  - state: {state}")
+        logger.info(f"⚠️ ВАЖНО: Убедитесь, что этот redirect_uri настроен в GitHub OAuth App!")
         
         # Генерируем URL для GitHub OAuth
         github_oauth_url = GitHubAuthService.get_auth_url(redirect_uri, state)
@@ -1017,11 +1025,18 @@ class GitHubAuthCallbackView(APIView):
                 del request.session['github_oauth_state']
                 request.session.save()
             
-            # Получаем redirect_uri
-            current_domain = request.get_host()
-            protocol = 'https' if request.is_secure() else 'http'
-            origin = f"{protocol}://{current_domain}"
-            redirect_uri = f"{origin}/api/social-auth/github/callback/"
+            # Получаем redirect_uri (используем тот же, что был при авторизации)
+            # Используем PUBLIC_URL из настроек для консистентности
+            public_url = getattr(settings, 'PUBLIC_URL', None)
+            if not public_url:
+                # Fallback: получаем из запроса
+                current_domain = request.get_host()
+                protocol = 'https' if request.is_secure() else 'http'
+                public_url = f"{protocol}://{current_domain}"
+            
+            # Убираем trailing slash если есть
+            public_url = public_url.rstrip('/')
+            redirect_uri = f"{public_url}/api/social-auth/github/callback"
             
             logger.info(f"Обработка авторизации GitHub: code={code[:20]}..., redirect_uri={redirect_uri}")
             
