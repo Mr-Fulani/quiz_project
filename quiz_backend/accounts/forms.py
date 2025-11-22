@@ -134,6 +134,50 @@ class PersonalInfoForm(forms.ModelForm):
             youtube = f'https://{youtube}'
         return youtube or ''
 
+    def clean_email(self):
+        """
+        Валидация email: проверка уникальности, если email изменился.
+        """
+        email = self.cleaned_data.get('email', '').strip() if self.cleaned_data.get('email') else ''
+        if not email:
+            # Если email пустой, возвращаем текущий email пользователя
+            return self.user.email if self.user and self.user.email else ''
+        
+        # Если email не изменился, возвращаем его как есть
+        if self.user and self.user.email == email:
+            return email
+        
+        # Проверяем уникальность email
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if User.objects.filter(email=email).exclude(id=self.user.id if self.user else None).exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError('Пользователь с таким email уже существует.')
+        
+        return email
+    
+    def clean_username(self):
+        """
+        Валидация username: проверка уникальности, если username изменился.
+        """
+        username = self.cleaned_data.get('username', '').strip() if self.cleaned_data.get('username') else ''
+        if not username:
+            # Если username пустой, возвращаем текущий username пользователя
+            return self.user.username if self.user and self.user.username else ''
+        
+        # Если username не изменился, возвращаем его как есть
+        if self.user and self.user.username == username:
+            return username
+        
+        # Проверяем уникальность username
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if User.objects.filter(username=username).exclude(id=self.user.id if self.user else None).exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError('Пользователь с таким username уже существует.')
+        
+        return username
+    
     def clean(self):
         """
         Валидация формы, установка дефолтных значений.
@@ -141,11 +185,14 @@ class PersonalInfoForm(forms.ModelForm):
         cleaned_data = super().clean()
         if self.avatar_only:
             return cleaned_data
+        
+        # Email и username уже проверены в clean_email и clean_username
+        # Здесь только устанавливаем дефолтные значения если они пустые
         username = cleaned_data.get('username')
         email = cleaned_data.get('email')
-        if not username:
+        if not username and self.user:
             cleaned_data['username'] = self.user.username
-        if not email:
+        if not email and self.user:
             cleaned_data['email'] = self.user.email
         return cleaned_data
 
