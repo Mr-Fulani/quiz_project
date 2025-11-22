@@ -733,9 +733,11 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             user = MiniAppUser.objects.get(telegram_id=telegram_id)
             
             # Получаем данные из запроса (из Mini App initData)
+            # Важно: last_name может быть пустой строкой, поэтому проверяем явно
+            raw_last_name = request.data.get('last_name')
             telegram_data = {
                 'first_name': request.data.get('first_name'),
-                'last_name': request.data.get('last_name'),
+                'last_name': raw_last_name,  # Сохраняем как есть (может быть None, пустая строка или значение)
                 'username': request.data.get('username'),
                 'photo_url': request.data.get('photo_url'),
                 'language_code': request.data.get('language_code', 'ru')
@@ -743,7 +745,8 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             
             # Логируем полученные данные для отладки
             logger.info(f"🔄 Обновление данных из Telegram для telegram_id={telegram_id}")
-            logger.info(f"📝 Полученные данные: first_name={telegram_data.get('first_name')}, last_name={telegram_data.get('last_name')}, username={telegram_data.get('username')}, photo_url={telegram_data.get('photo_url')}")
+            logger.info(f"📝 Полученные данные из request.data: first_name={request.data.get('first_name')}, last_name={raw_last_name} (тип: {type(raw_last_name)}), username={request.data.get('username')}, photo_url={request.data.get('photo_url')}")
+            logger.info(f"📝 Сформированные telegram_data: {telegram_data}")
             logger.info(f"📝 Текущие данные пользователя: first_name={user.first_name}, last_name={user.last_name}, username={user.username}, telegram_photo_url={user.telegram_photo_url}")
             
             # Синхронизируем данные из Telegram
