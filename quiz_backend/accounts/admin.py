@@ -2383,6 +2383,76 @@ class MiniAppUserAdmin(admin.ModelAdmin):
     actions = ['update_last_seen', 'link_to_existing_users', 'merge_statistics_with_custom_user', 
                'ban_user_1_hour', 'ban_user_24_hours', 'ban_user_7_days', 'ban_user_permanent', 'unban_user']
     
+    def save_model(self, request, obj, form, change):
+        """
+        Сохраняет модель MiniAppUser и синхронизирует данные с CustomUser.
+        
+        После сохранения в админке автоматически синхронизирует все поля с CustomUser
+        если есть связь через linked_custom_user.
+        """
+        # Сохраняем объект (сигнал post_save автоматически синхронизирует данные)
+        super().save_model(request, obj, form, change)
+        
+        # Обновляем объект из БД чтобы получить свежие данные
+        obj.refresh_from_db()
+        
+        # Явная синхронизация после сохранения в админке
+        # Это гарантирует, что данные синхронизируются даже если сигнал не сработал
+        if change and hasattr(obj, 'linked_custom_user') and obj.linked_custom_user:
+            try:
+                custom_user = obj.linked_custom_user
+                fields_updated = False
+                changed_fields = []
+                
+                # Список полей для синхронизации
+                social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                basic_fields = ['first_name', 'last_name', 'bio', 'location', 'birth_date', 'language']
+                
+                # Синхронизируем поля социальных сетей
+                for field in social_fields:
+                    mini_app_value = getattr(obj, field, None)
+                    custom_user_value = getattr(custom_user, field, None)
+                    
+                    if mini_app_value and mini_app_value.strip():
+                        if not custom_user_value or custom_user_value.strip() != mini_app_value.strip():
+                            setattr(custom_user, field, mini_app_value)
+                            changed_fields.append(field)
+                            fields_updated = True
+                
+                # Синхронизируем базовые поля
+                for field in basic_fields:
+                    mini_app_value = getattr(obj, field, None)
+                    custom_user_value = getattr(custom_user, field, None)
+                    
+                    if field in ['first_name', 'last_name', 'bio', 'location', 'language']:
+                        if mini_app_value and mini_app_value.strip():
+                            if not custom_user_value or custom_user_value.strip() != mini_app_value.strip():
+                                setattr(custom_user, field, mini_app_value)
+                                changed_fields.append(field)
+                                fields_updated = True
+                    elif field == 'birth_date':
+                        if mini_app_value:
+                            if not custom_user_value or custom_user_value != mini_app_value:
+                                setattr(custom_user, field, mini_app_value)
+                                changed_fields.append(field)
+                                fields_updated = True
+                
+                # Синхронизируем avatar
+                if obj.avatar:
+                    if not custom_user.avatar or custom_user.avatar != obj.avatar:
+                        custom_user.avatar = obj.avatar
+                        changed_fields.append('avatar')
+                        fields_updated = True
+                
+                if fields_updated and changed_fields:
+                    # Используем update_fields чтобы избежать рекурсии
+                    custom_user.save(update_fields=changed_fields)
+                    logger.info(f"✅ Синхронизированы поля для CustomUser (id={custom_user.id}, username={custom_user.username}) из MiniAppUser (telegram_id={obj.telegram_id}) в админке: {', '.join(changed_fields)}")
+                else:
+                    logger.debug(f"Нет изменений для синхронизации CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={obj.telegram_id})")
+            except Exception as e:
+                logger.warning(f"Ошибка при синхронизации MiniAppUser -> CustomUser в админке: {e}")
+    
     def avatars_count(self, obj):
         """
         Отображает количество аватарок пользователя.

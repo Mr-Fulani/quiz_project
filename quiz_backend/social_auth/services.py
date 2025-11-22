@@ -5,6 +5,7 @@ import uuid
 import logging
 import urllib.request
 import urllib.parse
+import os
 from typing import Optional, Dict, Any
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -776,6 +777,534 @@ class TelegramAuthService:
         return user
 
 
+class GitHubAuthService:
+    """
+    Сервис для авторизации через GitHub.
+    
+    Обрабатывает OAuth 2.0 авторизацию через GitHub.
+    """
+    
+    GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
+    GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+    GITHUB_USER_API_URL = "https://api.github.com/user"
+    
+    @staticmethod
+    def get_github_settings() -> Optional[SocialAuthSettings]:
+        """
+        Получает настройки GitHub из базы данных или переменных окружения.
+        
+        Returns:
+            SocialAuthSettings: Настройки GitHub или None
+        """
+        try:
+            # Сначала пытаемся получить из базы данных
+            settings = SocialAuthSettings.objects.filter(
+                provider='github',
+                is_enabled=True
+            ).first()
+            
+            if settings:
+                return settings
+            
+            # Если нет в БД, пытаемся получить из переменных окружения
+            client_id = os.getenv('SOCIAL_AUTH_GITHUB_KEY') or os.getenv('GITHUB_CLIENT_ID')
+            client_secret = os.getenv('SOCIAL_AUTH_GITHUB_SECRET') or os.getenv('GITHUB_CLIENT_SECRET')
+            
+            if client_id and client_secret:
+                # Создаем временный объект настроек
+                settings = SocialAuthSettings(
+                    provider='github',
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    is_enabled=True
+                )
+                return settings
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении настроек GitHub: {e}")
+            return None
+    
+    @staticmethod
+    def get_auth_url(redirect_uri: str, state: str = None) -> Optional[str]:
+        """
+        Генерирует URL для авторизации через GitHub.
+        
+        Args:
+            redirect_uri: URI для перенаправления после авторизации
+            state: Опциональный параметр состояния для защиты от CSRF
+            
+        Returns:
+            str: URL для авторизации или None
+        """
+        try:
+            settings = GitHubAuthService.get_github_settings()
+            if not settings:
+                logger.error("Настройки GitHub не найдены")
+                return None
+            
+            import urllib.parse
+            
+            params = {
+                'client_id': settings.client_id,
+                'redirect_uri': redirect_uri,
+                'scope': 'user:email',
+                'response_type': 'code'
+            }
+            
+            if state:
+                params['state'] = state
+            
+            url = f"{GitHubAuthService.GITHUB_AUTH_URL}?{urllib.parse.urlencode(params)}"
+            logger.info(f"Сгенерирован URL для GitHub авторизации: {url}")
+            return url
+            
+        except Exception as e:
+            logger.error(f"Ошибка при генерации URL для GitHub авторизации: {e}")
+            return None
+    
+    @staticmethod
+    def exchange_code_for_token(code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
+        """
+        Обменивает код авторизации на access token.
+        
+        Args:
+            code: Код авторизации от GitHub
+            redirect_uri: URI для перенаправления (должен совпадать с тем, что был при авторизации)
+            
+        Returns:
+            Dict с токеном или None при ошибке
+        """
+        try:
+            settings = GitHubAuthService.get_github_settings()
+            if not settings:
+                logger.error("Настройки GitHub не найдены для обмена кода на токен")
+                return None
+            
+            import requests
+            
+            response = requests.post(
+                GitHubAuthService.GITHUB_TOKEN_URL,
+                headers={
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'client_id': settings.client_id,
+                    'client_secret': settings.client_secret,
+                    'code': code,
+                    'redirect_uri': redirect_uri
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Ошибка при обмене кода на токен: {response.status_code}, {response.text}")
+                return None
+            
+            data = response.json()
+            
+            if 'error' in data:
+                logger.error(f"GitHub вернул ошибку: {data.get('error')}, {data.get('error_description')}")
+                return None
+            
+            access_token = data.get('access_token')
+            if not access_token:
+                logger.error("Access token не получен от GitHub")
+                return None
+            
+            return {
+                'access_token': access_token,
+                'token_type': data.get('token_type', 'bearer'),
+                'scope': data.get('scope', '')
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обмене кода на токен GitHub: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    @staticmethod
+    def get_user_info(access_token: str) -> Optional[Dict[str, Any]]:
+        """
+        Получает информацию о пользователе из GitHub API.
+        
+        Args:
+            access_token: Access token от GitHub
+            
+        Returns:
+            Dict с информацией о пользователе или None при ошибке
+        """
+        try:
+            import requests
+            
+            # Получаем основную информацию о пользователе
+            response = requests.get(
+                GitHubAuthService.GITHUB_USER_API_URL,
+                headers={
+                    'Authorization': f'token {access_token}',
+                    'Accept': 'application/json'
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Ошибка при получении информации о пользователе: {response.status_code}, {response.text}")
+                return None
+            
+            user_data = response.json()
+            
+            # Получаем email пользователя (если не публичный)
+            email = user_data.get('email')
+            if not email:
+                # Пытаемся получить email через отдельный запрос
+                try:
+                    email_response = requests.get(
+                        'https://api.github.com/user/emails',
+                        headers={
+                            'Authorization': f'token {access_token}',
+                            'Accept': 'application/json'
+                        },
+                        timeout=10
+                    )
+                    if email_response.status_code == 200:
+                        emails = email_response.json()
+                        # Берем первый primary email
+                        primary_email = next((e['email'] for e in emails if e.get('primary')), None)
+                        if primary_email:
+                            email = primary_email
+                except Exception as e:
+                    logger.warning(f"Не удалось получить email пользователя: {e}")
+            
+            return {
+                'id': str(user_data.get('id')),
+                'login': user_data.get('login'),  # username
+                'name': user_data.get('name', '').split(' ', 1) if user_data.get('name') else ['', ''],
+                'email': email,
+                'avatar_url': user_data.get('avatar_url'),
+                'bio': user_data.get('bio'),
+                'location': user_data.get('location'),
+                'company': user_data.get('company'),
+                'blog': user_data.get('blog'),
+                'public_repos': user_data.get('public_repos', 0),
+                'followers': user_data.get('followers', 0),
+                'following': user_data.get('following', 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении информации о пользователе GitHub: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    @staticmethod
+    def process_github_auth(code: str, redirect_uri: str, request) -> Optional[Dict[str, Any]]:
+        """
+        Обрабатывает авторизацию через GitHub.
+        
+        Args:
+            code: Код авторизации от GitHub
+            redirect_uri: URI для перенаправления
+            request: HTTP запрос
+            
+        Returns:
+            Dict с результатом авторизации или None при ошибке
+        """
+        try:
+            # Обмениваем код на токен
+            token_data = GitHubAuthService.exchange_code_for_token(code, redirect_uri)
+            if not token_data:
+                return {
+                    'success': False,
+                    'error': 'Не удалось получить токен от GitHub'
+                }
+            
+            access_token = token_data['access_token']
+            
+            # Получаем информацию о пользователе
+            user_info = GitHubAuthService.get_user_info(access_token)
+            if not user_info:
+                return {
+                    'success': False,
+                    'error': 'Не удалось получить информацию о пользователе'
+                }
+            
+            github_id = user_info['id']
+            github_username = user_info['login']
+            
+            logger.info(f"Обработка авторизации GitHub для github_id={github_id}, username={github_username}")
+            
+            with transaction.atomic():
+                # Ищем существующий социальный аккаунт
+                social_account = SocialAccount.objects.filter(
+                    provider='github',
+                    provider_user_id=github_id,
+                    is_active=True
+                ).first()
+                
+                if social_account:
+                    # Получаем пользователя из social_account
+                    user = social_account.user
+                    is_new_user = False
+                    logger.info(f"Найден существующий социальный аккаунт GitHub для github_id={github_id}, пользователь: {user.username}")
+                    
+                    # Обновляем данные аккаунта
+                    updated = False
+                    if github_username and github_username != social_account.username:
+                        social_account.username = github_username
+                        updated = True
+                    if user_info.get('email') and user_info['email'] != social_account.email:
+                        social_account.email = user_info['email']
+                        updated = True
+                    if user_info.get('name') and user_info['name'][0]:
+                        first_name = user_info['name'][0]
+                        if first_name != social_account.first_name:
+                            social_account.first_name = first_name
+                            updated = True
+                    if user_info.get('name') and len(user_info['name']) > 1 and user_info['name'][1]:
+                        last_name = user_info['name'][1]
+                        if last_name != social_account.last_name:
+                            social_account.last_name = last_name
+                            updated = True
+                    if user_info.get('avatar_url') and user_info['avatar_url'] != social_account.avatar_url:
+                        social_account.avatar_url = user_info['avatar_url']
+                        updated = True
+                    
+                    # Обновляем токен
+                    if access_token != social_account.access_token:
+                        social_account.access_token = access_token
+                        updated = True
+                    
+                    social_account.update_last_login()
+                    if updated:
+                        social_account.save()
+                    
+                    # Обновляем данные пользователя
+                    user_updated = False
+                    if user_info.get('name') and user_info['name'][0] and user_info['name'][0] != user.first_name:
+                        user.first_name = user_info['name'][0]
+                        user_updated = True
+                    if user_info.get('name') and len(user_info['name']) > 1 and user_info['name'][1] and user_info['name'][1] != user.last_name:
+                        user.last_name = user_info['name'][1]
+                        user_updated = True
+                    
+                    # Загружаем аватарку если есть
+                    avatar_url = user_info.get('avatar_url')
+                    if avatar_url and not user.avatar:
+                        if TelegramAuthService._download_avatar_from_url(avatar_url, user):
+                            user_updated = True
+                    
+                    # Синхронизируем поля социальных сетей
+                    if TelegramAuthService._sync_social_fields_from_accounts(user):
+                        user_updated = True
+                    
+                    if user_updated:
+                        user.save()
+                        
+                else:
+                    # Создаем нового пользователя или связываем с существующим
+                    user = GitHubAuthService._get_or_create_user(user_info)
+                    is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                    logger.info(f"Создан/найден пользователь для github_id={github_id}, username: {user.username}")
+                    
+                    # Создаем или обновляем социальный аккаунт
+                    social_account, created = SocialAccount.objects.get_or_create(
+                        user=user,
+                        provider='github',
+                        provider_user_id=github_id,
+                        defaults={
+                            'username': github_username,
+                            'email': user_info.get('email'),
+                            'first_name': user_info.get('name', [''])[0] if user_info.get('name') else '',
+                            'last_name': user_info.get('name', [''])[1] if user_info.get('name') and len(user_info['name']) > 1 else '',
+                            'avatar_url': user_info.get('avatar_url'),
+                            'access_token': access_token
+                        }
+                    )
+                    
+                    # Обновляем данные если аккаунт уже существовал
+                    if not created:
+                        updated = False
+                        if github_username and github_username != social_account.username:
+                            social_account.username = github_username
+                            updated = True
+                        if user_info.get('email') and user_info['email'] != social_account.email:
+                            social_account.email = user_info['email']
+                            updated = True
+                        if user_info.get('name') and user_info['name'][0]:
+                            first_name = user_info['name'][0]
+                            if first_name != social_account.first_name:
+                                social_account.first_name = first_name
+                                updated = True
+                        if user_info.get('name') and len(user_info['name']) > 1 and user_info['name'][1]:
+                            last_name = user_info['name'][1]
+                            if last_name != social_account.last_name:
+                                social_account.last_name = last_name
+                                updated = True
+                        if user_info.get('avatar_url') and user_info['avatar_url'] != social_account.avatar_url:
+                            social_account.avatar_url = user_info['avatar_url']
+                            updated = True
+                        
+                        if access_token != social_account.access_token:
+                            social_account.access_token = access_token
+                            updated = True
+                        
+                        if updated:
+                            social_account.update_last_login()
+                            social_account.save()
+                    
+                    # Синхронизируем поля социальных сетей
+                    TelegramAuthService._sync_social_fields_from_accounts(user)
+                    
+                    # Автоматически связываем с существующими пользователями
+                    try:
+                        linked_count = social_account.auto_link_existing_users()
+                        if linked_count > 0:
+                            logger.info(f"Автоматически связано {linked_count} пользователей для github_id={github_id}")
+                            user.refresh_from_db()
+                            social_account.refresh_from_db()
+                            
+                    except Exception as e:
+                        logger.warning(f"Ошибка при автоматическом связывании для github_id={github_id}: {e}")
+                
+                # Убеждаемся что пользователь активен
+                user.refresh_from_db()
+                if not user.is_active:
+                    logger.error(f"Пользователь {user.username} не активен после авторизации GitHub!")
+                    return {
+                        'success': False,
+                        'error': 'Аккаунт неактивен'
+                    }
+                
+                # Создаем сессию
+                session = SocialLoginSession.objects.create(
+                    session_id=str(uuid.uuid4()),
+                    social_account=social_account,
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    is_successful=True
+                )
+                
+                logger.info(f"Авторизация GitHub успешна: user={user.username}, github_id={github_id}, session_id={session.session_id}")
+                
+                return {
+                    'success': True,
+                    'user': user,
+                    'social_account': social_account,
+                    'is_new_user': is_new_user,
+                    'session_id': session.session_id
+                }
+                
+        except Exception as e:
+            logger.error(f"Ошибка при обработке авторизации GitHub: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                'success': False,
+                'error': 'Внутренняя ошибка сервера'
+            }
+    
+    @staticmethod
+    def _get_or_create_user(user_info: Dict[str, Any]) -> User:
+        """
+        Получает или создает пользователя на основе данных GitHub.
+        
+        Args:
+            user_info: Данные о пользователе от GitHub API
+            
+        Returns:
+            User: Пользователь Django
+        """
+        github_id = user_info['id']
+        github_username = user_info['login']
+        name_parts = user_info.get('name', ['']) if user_info.get('name') else ['']
+        first_name = name_parts[0] if len(name_parts) > 0 else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        email = user_info.get('email', '')
+        avatar_url = user_info.get('avatar_url', '')
+        
+        logger.info(f"Поиск/создание пользователя для github_id={github_id}, github_username={github_username}")
+        
+        # Сначала пытаемся найти существующего пользователя по email (если есть)
+        if email:
+            user = User.objects.filter(email=email).first()
+            if user:
+                logger.info(f"Найден пользователь по email: {user.username}")
+                # Обновляем данные пользователя
+                updated = False
+                if first_name and first_name != user.first_name:
+                    user.first_name = first_name
+                    updated = True
+                if last_name and last_name != user.last_name:
+                    user.last_name = last_name
+                    updated = True
+                if updated:
+                    user.save()
+                
+                # Загружаем аватарку если есть
+                if avatar_url and not user.avatar:
+                    TelegramAuthService._download_avatar_from_url(avatar_url, user)
+                
+                return user
+        
+        # Пытаемся найти по username
+        if github_username:
+            user = User.objects.filter(username=github_username).first()
+            if user:
+                logger.info(f"Найден пользователь по username: {user.username}")
+                # Обновляем данные
+                updated = False
+                if email and email != user.email:
+                    user.email = email
+                    updated = True
+                if first_name and first_name != user.first_name:
+                    user.first_name = first_name
+                    updated = True
+                if last_name and last_name != user.last_name:
+                    user.last_name = last_name
+                    updated = True
+                if updated:
+                    user.save()
+                
+                # Загружаем аватарку если есть
+                if avatar_url and not user.avatar:
+                    TelegramAuthService._download_avatar_from_url(avatar_url, user)
+                
+                return user
+        
+        # Если не нашли существующего пользователя, создаем нового
+        # Генерируем уникальный username
+        base_username = github_username or f"github_{github_id}"
+        
+        # Проверяем уникальность username
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}_{counter}"
+            counter += 1
+            if counter > 1000:
+                username = f"github_user_{github_id}_{int(time.time())}"
+                break
+        
+        logger.info(f"Создание нового пользователя: username={username}, github_id={github_id}, github_username={github_username}")
+        user = User.objects.create(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True
+        )
+        
+        # Загружаем аватарку если есть
+        if avatar_url:
+            TelegramAuthService._download_avatar_from_url(avatar_url, user)
+        
+        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, github_id={github_id}")
+        return user
+
+
 class SocialAuthService:
     """
     Общий сервис для социальной аутентификации.
@@ -834,13 +1363,14 @@ class SocialAuthService:
             return False
     
     @staticmethod
-    def get_auth_url(provider: str, redirect_uri: str = None) -> Optional[str]:
+    def get_auth_url(provider: str, redirect_uri: str = None, state: str = None) -> Optional[str]:
         """
         Возвращает URL для авторизации через провайдера.
         
         Args:
             provider: Провайдер (telegram, github, etc.)
             redirect_uri: URI для перенаправления после авторизации
+            state: Опциональный параметр состояния для защиты от CSRF (для OAuth)
             
         Returns:
             str: URL для авторизации или None
@@ -848,6 +1378,11 @@ class SocialAuthService:
         if provider == 'telegram':
             # Для Telegram используем Login Widget, URL не нужен
             return None
+        
+        if provider == 'github':
+            if not redirect_uri:
+                return None
+            return GitHubAuthService.get_auth_url(redirect_uri, state)
         
         # Для других провайдеров будет реализовано позже
         return None 
