@@ -3,6 +3,7 @@ import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from .models import CustomUser
 
 
@@ -152,7 +153,7 @@ class PersonalInfoForm(forms.ModelForm):
         User = get_user_model()
         if User.objects.filter(email=email).exclude(id=self.user.id if self.user else None).exists():
             from django.core.exceptions import ValidationError
-            raise ValidationError('Пользователь с таким email уже существует.')
+            raise ValidationError(_('A user with this email already exists.'))
         
         return email
     
@@ -174,7 +175,7 @@ class PersonalInfoForm(forms.ModelForm):
         User = get_user_model()
         if User.objects.filter(username=username).exclude(id=self.user.id if self.user else None).exists():
             from django.core.exceptions import ValidationError
-            raise ValidationError('Пользователь с таким username уже существует.')
+            raise ValidationError(_('A user with this username already exists.'))
         
         return username
     
