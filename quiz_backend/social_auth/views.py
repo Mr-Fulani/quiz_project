@@ -18,9 +18,10 @@ from django.conf import settings
 
 from .serializers import (
     TelegramAuthSerializer, SocialAccountSerializer, 
-    UserSocialAccountsSerializer, SocialAuthResponseSerializer
+    UserSocialAccountsSerializer, SocialAuthResponseSerializer,
+    GitHubAuthSerializer
 )
-from .services import TelegramAuthService, SocialAuthService
+from .services import TelegramAuthService, SocialAuthService, GitHubAuthService
 from .models import SocialAccount, SocialAuthSettings
 
 logger = logging.getLogger(__name__)
@@ -917,6 +918,174 @@ def telegram_auth_debug(request):
     logger.error("=" * 60)
     
     return JsonResponse(debug_data, json_dumps_params={'ensure_ascii': False, 'indent': 2})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def github_auth_redirect(request):
+    """
+    Генерирует URL для GitHub OAuth и делает redirect на него.
+    """
+    logger.info("=" * 60)
+    logger.info("🚀 GITHUB OAUTH REDIRECT ЗАПРОС")
+    logger.info("=" * 60)
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request path: {request.path}")
+    logger.info(f"Request host: {request.get_host()}")
+    logger.info(f"Request GET params: {dict(request.GET)}")
+    
+    try:
+        # Получаем текущий домен
+        current_domain = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        origin = f"{protocol}://{current_domain}"
+        
+        # URL для возврата после авторизации
+        redirect_uri = f"{origin}/api/social-auth/github/callback/"
+        
+        # Генерируем state для защиты от CSRF
+        import secrets
+        state = secrets.token_urlsafe(32)
+        
+        # Сохраняем state в сессии для проверки при callback
+        request.session['github_oauth_state'] = state
+        request.session.save()
+        
+        logger.info(f"🔍 Параметры для GitHub OAuth:")
+        logger.info(f"  - origin: {origin}")
+        logger.info(f"  - redirect_uri: {redirect_uri}")
+        logger.info(f"  - state: {state}")
+        
+        # Генерируем URL для GitHub OAuth
+        github_oauth_url = GitHubAuthService.get_auth_url(redirect_uri, state)
+        
+        if not github_oauth_url:
+            logger.error("Не удалось сгенерировать URL для GitHub OAuth")
+            return redirect('/?open_login=true&error=Настройки GitHub не найдены')
+        
+        logger.info(f"🔗 Redirect на GitHub OAuth: {github_oauth_url}")
+        
+        return redirect(github_oauth_url)
+        
+    except Exception as e:
+        logger.error(f"Ошибка при генерации GitHub OAuth URL: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return redirect('/?open_login=true&error=Ошибка при генерации URL авторизации')
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GitHubAuthCallbackView(APIView):
+    """
+    View для обработки callback от GitHub OAuth.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Обрабатывает GET запрос с кодом авторизации от GitHub.
+        """
+        try:
+            logger.info("=" * 60)
+            logger.info("🔵 GITHUB OAUTH CALLBACK")
+            logger.info("=" * 60)
+            logger.info(f"Request GET params: {dict(request.GET)}")
+            
+            # Получаем код и state из query параметров
+            code = request.GET.get('code')
+            state = request.GET.get('state')
+            error = request.GET.get('error')
+            error_description = request.GET.get('error_description')
+            
+            # Проверяем наличие ошибки от GitHub
+            if error:
+                error_msg = error_description or error
+                logger.error(f"GitHub вернул ошибку: {error}, описание: {error_msg}")
+                return redirect(f'/?open_login=true&error={error_msg}')
+            
+            if not code:
+                logger.error("Отсутствует код авторизации от GitHub")
+                return redirect('/?open_login=true&error=Отсутствует код авторизации')
+            
+            # Проверяем state для защиты от CSRF
+            session_state = request.session.get('github_oauth_state')
+            if state and session_state:
+                if state != session_state:
+                    logger.error(f"Неверный state: ожидалось {session_state}, получено {state}")
+                    return redirect('/?open_login=true&error=Неверный параметр состояния')
+                # Удаляем state из сессии после проверки
+                del request.session['github_oauth_state']
+                request.session.save()
+            
+            # Получаем redirect_uri
+            current_domain = request.get_host()
+            protocol = 'https' if request.is_secure() else 'http'
+            origin = f"{protocol}://{current_domain}"
+            redirect_uri = f"{origin}/api/social-auth/github/callback/"
+            
+            logger.info(f"Обработка авторизации GitHub: code={code[:20]}..., redirect_uri={redirect_uri}")
+            
+            # Обрабатываем авторизацию
+            result = GitHubAuthService.process_github_auth(code, redirect_uri, request)
+            
+            logger.info(f"Результат обработки авторизации GitHub: success={result.get('success') if result else False}")
+            
+            if not result or not result.get('success'):
+                error_message = result.get('error', 'Ошибка авторизации') if result else 'Ошибка авторизации'
+                return redirect(f'/?open_login=true&error={error_message}')
+            
+            # Авторизуем пользователя
+            user = result['user']
+            
+            # Убеждаемся что пользователь активен
+            if not user.is_active:
+                logger.warning(f"Попытка авторизации неактивного пользователя: {user.username}")
+                return redirect('/?open_login=true&error=Аккаунт неактивен')
+            
+            # Авторизуем пользователя
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            # Явно сохраняем сессию перед редиректом
+            request.session.save()
+            
+            # Проверяем что сессия создана и сохранена в БД
+            session_key = request.session.session_key
+            logger.info(f"Сессия после login: session_key={session_key}")
+            
+            # Устанавливаем куки явно для обеспечения сохранения сессии
+            response = redirect('/?github_auth_success=true')
+            
+            # Копируем куки сессии в response для гарантированного сохранения
+            if session_key:
+                max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
+                expires = None
+                if max_age:
+                    expires = http_date(time.time() + max_age)
+                
+                response.set_cookie(
+                    settings.SESSION_COOKIE_NAME,
+                    session_key,
+                    max_age=max_age,
+                    expires=expires,
+                    domain=getattr(settings, 'SESSION_COOKIE_DOMAIN', None),
+                    path=getattr(settings, 'SESSION_COOKIE_PATH', '/'),
+                    secure=getattr(settings, 'SESSION_COOKIE_SECURE', False) if not settings.DEBUG else False,
+                    httponly=getattr(settings, 'SESSION_COOKIE_HTTPONLY', True),
+                    samesite=getattr(settings, 'SESSION_COOKIE_SAMESITE', 'Lax')
+                )
+            
+            logger.info(f"Пользователь {user.username} успешно авторизован через GitHub, session_key={session_key}")
+            
+            return response
+            
+        except Exception as e:
+            import traceback
+            logger.error(f"Критическая ошибка в GitHubAuthCallbackView: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            error_message = 'Внутренняя ошибка сервера при авторизации'
+            if settings.DEBUG:
+                error_message = f'Ошибка: {str(e)}'
+            return redirect(f'/?open_login=true&error={error_message}')
 
 
 @api_view(['GET'])
