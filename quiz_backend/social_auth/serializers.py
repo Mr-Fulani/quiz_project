@@ -127,3 +127,22 @@ class SocialAuthResponseSerializer(serializers.Serializer):
     social_account = SocialAccountSerializer()
     message = serializers.CharField(required=False)
     redirect_url = serializers.CharField(required=False)
+
+
+class GitHubAuthSerializer(serializers.Serializer):
+    """
+    Сериализатор для авторизации через GitHub.
+    
+    Обрабатывает данные от GitHub OAuth callback.
+    """
+    code = serializers.CharField(help_text='Код авторизации от GitHub')
+    state = serializers.CharField(required=False, allow_blank=True, help_text='Параметр состояния для защиты от CSRF')
+    
+    def validate(self, data):
+        """
+        Валидирует данные от GitHub OAuth callback.
+        """
+        if not data.get('code'):
+            raise serializers.ValidationError("Код авторизации обязателен")
+        
+        return data
