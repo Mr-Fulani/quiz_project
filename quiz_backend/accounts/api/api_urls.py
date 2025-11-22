@@ -43,6 +43,9 @@ urlpatterns = [
     path('miniapp-users/update-last-seen/', api_views.MiniAppUserViewSet.as_view({
         'post': 'update_last_seen'
     }), name='miniapp-user-update-last-seen'),
+    path('miniapp-users/refresh_from_telegram/', api_views.MiniAppUserViewSet.as_view({
+        'post': 'refresh_from_telegram'
+    }), name='miniapp-user-refresh-from-telegram'),
     path('miniapp-users/link-users/', api_views.MiniAppUserViewSet.as_view({
         'post': 'link_users'
     }), name='miniapp-user-link-users'),

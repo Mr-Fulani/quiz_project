@@ -896,6 +896,124 @@ class MiniAppUser(models.Model):
         """
         self.last_seen = timezone.now()
         self.save(update_fields=['last_seen'])
+    
+    def sync_from_telegram(self, telegram_data: dict = None) -> bool:
+        """
+        Синхронизирует данные пользователя из Telegram.
+        
+        Получает актуальные данные пользователя из Telegram Bot API или использует переданные данные.
+        Обновляет: first_name, last_name, username, telegram_photo_url, language.
+        После синхронизации синхронизирует данные с CustomUser если есть связь.
+        
+        Args:
+            telegram_data (dict, optional): Словарь с данными из Telegram. Если не указан,
+                пытается получить данные через Bot API.
+        
+        Returns:
+            bool: True если данные были обновлены, False в противном случае
+        """
+        updated = False
+        changed_fields = []
+        
+        try:
+            if telegram_data:
+                # Используем переданные данные (например, из Mini App initData)
+                first_name = telegram_data.get('first_name')
+                last_name = telegram_data.get('last_name')
+                username = telegram_data.get('username')
+                photo_url = telegram_data.get('photo_url')
+                language_code = telegram_data.get('language_code', 'ru')
+            else:
+                # Пытаемся получить данные через Bot API
+                # В Telegram Bot API нет прямого метода для получения данных пользователя по ID
+                # без chat_id, поэтому используем данные из telegram_data если они есть
+                # или возвращаем False
+                logger.warning(f"Не удалось получить данные из Telegram для пользователя {self.telegram_id}: требуется telegram_data")
+                return False
+            
+            # Обновляем first_name
+            if first_name and first_name.strip() and first_name.strip() != (self.first_name or '').strip():
+                self.first_name = first_name.strip()
+                changed_fields.append('first_name')
+                updated = True
+                logger.debug(f"Обновлено first_name для MiniAppUser (telegram_id={self.telegram_id}): {first_name}")
+            
+            # Обновляем last_name
+            if last_name is not None:
+                last_name_clean = last_name.strip() if last_name else ''
+                current_last_name = (self.last_name or '').strip()
+                if last_name_clean != current_last_name:
+                    self.last_name = last_name_clean if last_name_clean else None
+                    changed_fields.append('last_name')
+                    updated = True
+                    logger.debug(f"Обновлено last_name для MiniAppUser (telegram_id={self.telegram_id}): {last_name_clean or 'None'}")
+            
+            # Обновляем username
+            if username is not None:
+                username_clean = username.strip() if username else None
+                if username_clean != (self.username or '').strip() if self.username else None:
+                    self.username = username_clean
+                    changed_fields.append('username')
+                    updated = True
+                    logger.debug(f"Обновлено username для MiniAppUser (telegram_id={self.telegram_id}): {username_clean or 'None'}")
+            
+            # Обновляем telegram_photo_url
+            if photo_url and photo_url.strip() and photo_url.strip() != (self.telegram_photo_url or '').strip():
+                self.telegram_photo_url = photo_url.strip()
+                changed_fields.append('telegram_photo_url')
+                updated = True
+                logger.debug(f"Обновлен telegram_photo_url для MiniAppUser (telegram_id={self.telegram_id})")
+            
+            # Обновляем language
+            if language_code and language_code.strip():
+                language = language_code.split('_')[0] if '_' in language_code else language_code
+                if language.strip() != (self.language or 'ru').strip():
+                    self.language = language.strip()
+                    changed_fields.append('language')
+                    updated = True
+                    logger.debug(f"Обновлен language для MiniAppUser (telegram_id={self.telegram_id}): {language}")
+            
+            if updated and changed_fields:
+                self.save(update_fields=changed_fields)
+                logger.info(f"Синхронизированы данные из Telegram для MiniAppUser (telegram_id={self.telegram_id}): {', '.join(changed_fields)}")
+                
+                # Синхронизируем с CustomUser если есть связь
+                if hasattr(self, 'linked_custom_user') and self.linked_custom_user:
+                    try:
+                        custom_user = self.linked_custom_user
+                        custom_updated = False
+                        custom_changed_fields = []
+                        
+                        # Синхронизируем базовые поля
+                        if 'first_name' in changed_fields and self.first_name:
+                            if not custom_user.first_name or custom_user.first_name.strip() != self.first_name.strip():
+                                custom_user.first_name = self.first_name
+                                custom_changed_fields.append('first_name')
+                                custom_updated = True
+                        
+                        if 'last_name' in changed_fields:
+                            if (self.last_name or '').strip() != (custom_user.last_name or '').strip():
+                                custom_user.last_name = self.last_name
+                                custom_changed_fields.append('last_name')
+                                custom_updated = True
+                        
+                        if 'language' in changed_fields and self.language:
+                            if not custom_user.language or custom_user.language.strip() != self.language.strip():
+                                custom_user.language = self.language
+                                custom_changed_fields.append('language')
+                                custom_updated = True
+                        
+                        if custom_updated and custom_changed_fields:
+                            custom_user.save(update_fields=custom_changed_fields)
+                            logger.info(f"Синхронизированы данные из Telegram для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={self.telegram_id}): {', '.join(custom_changed_fields)}")
+                    except Exception as sync_error:
+                        logger.warning(f"Ошибка при синхронизации данных из Telegram с CustomUser для MiniAppUser telegram_id={self.telegram_id}: {sync_error}")
+            
+            return updated
+            
+        except Exception as e:
+            logger.error(f"Ошибка при синхронизации данных из Telegram для MiniAppUser (telegram_id={self.telegram_id}): {e}")
+            return False
 
     def link_to_telegram_user(self, telegram_user):
         """
