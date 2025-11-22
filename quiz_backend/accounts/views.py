@@ -209,6 +209,8 @@ def update_personal_info(request):
                 user=user
             )
             print(f"Form created with data: {form.data}")
+            print(f"POST data keys: {list(request.POST.keys())}")
+            print(f"POST data values: {dict(request.POST)}")
             if form.is_valid():
                 print(f"Form is valid, cleaned data: {form.cleaned_data}")
                 form.save()
@@ -218,7 +220,12 @@ def update_personal_info(request):
                 messages.success(request, 'Профиль успешно обновлён!')
                 return redirect('accounts:dashboard')
             else:
-                print(f"Form errors: {form.errors.as_json()}")
+                print(f"Form errors: {form.errors}")
+                print(f"Form errors as JSON: {form.errors.as_json()}")
+                print(f"Form non_field_errors: {form.non_field_errors()}")
+                # Логируем ошибки по каждому полю
+                for field, errors in form.errors.items():
+                    print(f"Field '{field}' errors: {errors}")
                 if is_ajax:
                     return JsonResponse({
                         'status': 'error',

@@ -93,9 +93,46 @@ class PersonalInfoForm(forms.ModelForm):
         website = self.cleaned_data.get('website')
         if isinstance(website, list):
             website = next((item for item in website if item), '')
-        if website and not website.startswith(('http://', 'https://')):
-            website = f'https://{website}'
-        return website
+        if website:
+            website = website.strip()
+            if website and not website.startswith(('http://', 'https://')):
+                website = f'https://{website}'
+        return website or ''
+    
+    def clean_github(self):
+        """Валидация и нормализация GitHub URL."""
+        github = self.cleaned_data.get('github', '').strip() if self.cleaned_data.get('github') else ''
+        if github and not github.startswith(('http://', 'https://')):
+            github = f'https://{github}'
+        return github or ''
+    
+    def clean_linkedin(self):
+        """Валидация и нормализация LinkedIn URL."""
+        linkedin = self.cleaned_data.get('linkedin', '').strip() if self.cleaned_data.get('linkedin') else ''
+        if linkedin and not linkedin.startswith(('http://', 'https://')):
+            linkedin = f'https://{linkedin}'
+        return linkedin or ''
+    
+    def clean_instagram(self):
+        """Валидация и нормализация Instagram URL."""
+        instagram = self.cleaned_data.get('instagram', '').strip() if self.cleaned_data.get('instagram') else ''
+        if instagram and not instagram.startswith(('http://', 'https://')):
+            instagram = f'https://{instagram}'
+        return instagram or ''
+    
+    def clean_facebook(self):
+        """Валидация и нормализация Facebook URL."""
+        facebook = self.cleaned_data.get('facebook', '').strip() if self.cleaned_data.get('facebook') else ''
+        if facebook and not facebook.startswith(('http://', 'https://')):
+            facebook = f'https://{facebook}'
+        return facebook or ''
+    
+    def clean_youtube(self):
+        """Валидация и нормализация YouTube URL."""
+        youtube = self.cleaned_data.get('youtube', '').strip() if self.cleaned_data.get('youtube') else ''
+        if youtube and not youtube.startswith(('http://', 'https://')):
+            youtube = f'https://{youtube}'
+        return youtube or ''
 
     def clean(self):
         """
