@@ -1400,6 +1400,21 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     )
     actions = ['make_django_admin', 'remove_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
     
+    def save_model(self, request, obj, form, change):
+        """
+        Сохраняет модель CustomUser и синхронизирует данные с MiniAppUser.
+        
+        После сохранения в админке автоматически синхронизирует все поля с MiniAppUser
+        если есть связь через mini_app_profile.
+        """
+        # Сохраняем объект (сигнал post_save автоматически синхронизирует данные)
+        super().save_model(request, obj, form, change)
+        
+        # Дополнительная синхронизация после сохранения в админке
+        # Сигнал post_save уже обработает синхронизацию, но можно добавить логирование
+        if change and hasattr(obj, 'mini_app_profile') and obj.mini_app_profile:
+            logger.info(f"Данные CustomUser (id={obj.id}, username={obj.username}) сохранены в админке. Синхронизация с MiniAppUser выполняется через сигнал post_save.")
+    
     def django_admin_status(self, obj):
         """
         Отображает статус Django администратора.

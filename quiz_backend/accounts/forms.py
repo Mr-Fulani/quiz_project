@@ -115,6 +115,7 @@ class PersonalInfoForm(forms.ModelForm):
     def save(self, commit=True):
         """
         Сохранение изменений в CustomUser.
+        После сохранения автоматически синхронизирует данные с MiniAppUser если есть связь.
         """
         user = super().save(commit=False)
         if not self.avatar_only:
@@ -124,6 +125,12 @@ class PersonalInfoForm(forms.ModelForm):
             user.last_name = self.cleaned_data.get('last_name', '')
         if commit:
             user.save()
+            # Синхронизация с MiniAppUser выполняется автоматически через сигнал post_save
+            # Но можно добавить логирование для отладки
+            if hasattr(user, 'mini_app_profile') and user.mini_app_profile:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Данные CustomUser (id={user.id}, username={user.username}) сохранены через форму. Синхронизация с MiniAppUser выполняется через сигнал post_save.")
         return user
 
 

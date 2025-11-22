@@ -713,6 +713,68 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
                 {'error': str(e)}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+    
+    @action(detail=False, methods=['post'])
+    def refresh_from_telegram(self, request):
+        """
+        Обновляет данные пользователя Mini App из Telegram.
+        
+        Получает актуальные данные пользователя из Telegram и синхронизирует их.
+        Использует данные из request.data (например, из Mini App initData) или пытается получить через Bot API.
+        """
+        telegram_id = request.data.get('telegram_id')
+        if not telegram_id:
+            return Response(
+                {'error': 'telegram_id required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            
+            # Получаем данные из запроса (из Mini App initData)
+            telegram_data = {
+                'first_name': request.data.get('first_name'),
+                'last_name': request.data.get('last_name'),
+                'username': request.data.get('username'),
+                'photo_url': request.data.get('photo_url'),
+                'language_code': request.data.get('language_code', 'ru')
+            }
+            
+            # Синхронизируем данные из Telegram
+            updated = user.sync_from_telegram(telegram_data)
+            
+            if updated:
+                # Обновляем last_seen
+                user.update_last_seen()
+                
+                # Возвращаем обновленные данные
+                serializer = self.get_serializer(user)
+                return Response({
+                    'success': True,
+                    'message': 'Данные успешно обновлены из Telegram',
+                    'user': serializer.data
+                })
+            else:
+                # Данные не изменились, но возвращаем текущие данные
+                serializer = self.get_serializer(user)
+                return Response({
+                    'success': True,
+                    'message': 'Данные актуальны',
+                    'user': serializer.data
+                })
+            
+        except MiniAppUser.DoesNotExist:
+            return Response(
+                {'error': 'User not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении данных из Telegram для telegram_id={telegram_id}: {e}")
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):

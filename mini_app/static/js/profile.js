@@ -1767,32 +1767,77 @@
                     showNotification('refreshing_data', 'info', null, 'Refreshing data...');
                 }
                 
-                // Обновляем статус онлайн
                 const telegramId = window.currentUser?.telegram_id;
-                if (telegramId) {
-                    try {
-                        console.log('🟢 Обновление статуса онлайн для telegram_id:', telegramId);
-                        const response = await fetch('/api/accounts/miniapp-users/update-last-seen/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ telegram_id: telegramId })
-                        });
-                        
-                        if (response.ok) {
-                            console.log('✅ Статус онлайн обновлен успешно');
-                        } else {
-                            console.warn('⚠️ Не удалось обновить статус онлайн:', response.status);
-                        }
-                    } catch (error) {
-                        console.error('❌ Ошибка при обновлении статуса онлайн:', error);
+                if (!telegramId) {
+                    console.warn('⚠️ Не найден telegram_id для обновления данных');
+                    if (window.showNotification) {
+                        window.showNotification('error', 'error');
                     }
-                } else {
-                    console.warn('⚠️ Не найден telegram_id для обновления статуса онлайн');
+                    return;
                 }
                 
-                fetchProfileDataFromServer();
+                try {
+                    // Получаем актуальные данные из Telegram Mini App
+                    const telegramData = window.Telegram?.WebApp?.initDataUnsafe?.user;
+                    
+                    // Формируем данные для синхронизации
+                    const syncData = {
+                        telegram_id: telegramId,
+                        first_name: telegramData?.first_name || null,
+                        last_name: telegramData?.last_name || null,
+                        username: telegramData?.username || null,
+                        photo_url: telegramData?.photo_url || null,
+                        language_code: telegramData?.language_code || 'ru'
+                    };
+                    
+                    console.log('📡 Отправка запроса на обновление данных из Telegram:', syncData);
+                    
+                    // Вызываем endpoint для обновления данных из Telegram
+                    const response = await fetch('/api/accounts/miniapp-users/refresh_from_telegram/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(syncData)
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Данные успешно обновлены из Telegram:', result);
+                        
+                        // Обновляем статус онлайн
+                        try {
+                            await fetch('/api/accounts/miniapp-users/update-last-seen/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ telegram_id: telegramId })
+                            });
+                            console.log('✅ Статус онлайн обновлен успешно');
+                        } catch (error) {
+                            console.warn('⚠️ Не удалось обновить статус онлайн:', error);
+                        }
+                        
+                        // Обновляем данные профиля с сервера
+                        fetchProfileDataFromServer();
+                        
+                        if (window.showNotification) {
+                            window.showNotification('data_refreshed', 'success');
+                        }
+                    } else {
+                        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                        console.error('❌ Ошибка при обновлении данных из Telegram:', errorData);
+                        if (window.showNotification) {
+                            window.showNotification('error', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка при обновлении данных из Telegram:', error);
+                    if (window.showNotification) {
+                        window.showNotification('error', 'error');
+                    }
+                }
             };
         }
         
