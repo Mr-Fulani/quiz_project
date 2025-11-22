@@ -6,6 +6,7 @@ import logging
 import urllib.request
 import urllib.parse
 import os
+import requests
 from typing import Optional, Dict, Any
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -882,8 +883,6 @@ class GitHubAuthService:
                 logger.error("Настройки GitHub не найдены для обмена кода на токен")
                 return None
             
-            import requests
-            
             response = requests.post(
                 GitHubAuthService.GITHUB_TOKEN_URL,
                 headers={
@@ -938,8 +937,6 @@ class GitHubAuthService:
             Dict с информацией о пользователе или None при ошибке
         """
         try:
-            import requests
-            
             # Получаем основную информацию о пользователе
             response = requests.get(
                 GitHubAuthService.GITHUB_USER_API_URL,
