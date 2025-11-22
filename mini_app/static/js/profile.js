@@ -1785,10 +1785,12 @@
                     console.log('🔍 Telegram User Data:', telegramData);
                     
                     // Формируем данные для синхронизации
+                    // Важно: last_name может быть пустой строкой, но это валидное значение
+                    // Используем явную проверку чтобы отличить отсутствие поля от пустой строки
                     const syncData = {
                         telegram_id: telegramId,
                         first_name: telegramData?.first_name || null,
-                        last_name: telegramData?.last_name || null,
+                        last_name: telegramData?.hasOwnProperty('last_name') ? (telegramData.last_name || '') : null,
                         username: telegramData?.username || null,
                         photo_url: telegramData?.photo_url || null,
                         language_code: telegramData?.language_code || telegramWebApp?.initDataUnsafe?.user?.language_code || 'ru'

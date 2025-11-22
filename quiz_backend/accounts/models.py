@@ -939,14 +939,28 @@ class MiniAppUser(models.Model):
                 logger.debug(f"Обновлено first_name для MiniAppUser (telegram_id={self.telegram_id}): {first_name}")
             
             # Обновляем last_name (может быть пустым, но это валидное значение)
+            # Всегда проверяем last_name, даже если он None или пустая строка
+            # Это важно, так как пользователь может удалить фамилию в Telegram
+            last_name_clean = ''
             if last_name is not None:
                 last_name_clean = last_name.strip() if last_name else ''
-                current_last_name = (self.last_name or '').strip()
-                if last_name_clean != current_last_name:
-                    self.last_name = last_name_clean if last_name_clean else None
-                    changed_fields.append('last_name')
-                    updated = True
-                    logger.info(f"Обновлено last_name для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}' (было: '{current_last_name}')")
+            elif telegram_data and 'last_name' in telegram_data:
+                # Если last_name явно передан в telegram_data (может быть None или пустая строка)
+                last_name_value = telegram_data.get('last_name')
+                last_name_clean = last_name_value.strip() if last_name_value else ''
+            
+            current_last_name = (self.last_name or '').strip()
+            
+            logger.info(f"🔍 Проверка last_name для MiniAppUser (telegram_id={self.telegram_id}): новое='{last_name_clean}', текущее='{current_last_name}', last_name из данных={last_name}, в telegram_data={'last_name' in (telegram_data or {})}")
+            
+            # Обновляем если значение изменилось
+            if last_name_clean != current_last_name:
+                self.last_name = last_name_clean if last_name_clean else None
+                changed_fields.append('last_name')
+                updated = True
+                logger.info(f"✅ Обновлено last_name для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}' (было: '{current_last_name}')")
+            else:
+                logger.info(f"⏭️ last_name не изменилось для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}'")
             
             # Обновляем username
             if username is not None:
@@ -1052,10 +1066,15 @@ class MiniAppUser(models.Model):
                                 custom_updated = True
                         
                         if 'last_name' in changed_fields:
-                            if (self.last_name or '').strip() != (custom_user.last_name or '').strip():
+                            new_last_name = (self.last_name or '').strip()
+                            current_custom_last_name = (custom_user.last_name or '').strip()
+                            if new_last_name != current_custom_last_name:
                                 custom_user.last_name = self.last_name
                                 custom_changed_fields.append('last_name')
                                 custom_updated = True
+                                logger.info(f"✅ Синхронизировано last_name для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={self.telegram_id}): '{new_last_name}' (было: '{current_custom_last_name}')")
+                            else:
+                                logger.debug(f"⏭️ last_name не изменилось для CustomUser (id={custom_user.id}): '{new_last_name}'")
                         
                         if 'language' in changed_fields and self.language:
                             if not custom_user.language or custom_user.language.strip() != self.language.strip():
