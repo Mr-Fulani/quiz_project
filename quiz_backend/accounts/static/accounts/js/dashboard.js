@@ -211,6 +211,15 @@ document.addEventListener('DOMContentLoaded', function () {
         personalInfoForm.addEventListener('submit', async function (e) {
             e.preventDefault();
             console.log('Submitting personal-info-form');
+            
+            // Удаляем предыдущие сообщения об ошибках
+            document.querySelectorAll('#personal-info-form .error-message').forEach(el => el.remove());
+            document.querySelectorAll('#personal-info-form .field-error').forEach(el => el.remove());
+            const existingMessages = document.querySelector('.messages');
+            if (existingMessages) {
+                existingMessages.remove();
+            }
+            
             const formData = new FormData(this);
             console.log('Sending form data:', Object.fromEntries(formData));
             try {
@@ -225,18 +234,114 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('Response status:', response.status);
                 const data = await response.json();
                 console.log('Response data:', data);
+                
                 if (response.ok && data.status === 'success') {
-                    alert(messages.profile_updated || 'Профиль успешно обновлен!');
-                    const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/accounts/dashboard/';
-                    window.location.href = dashboardUrl;
+                    // Показываем сообщение об успехе
+                    showSuccessMessage(messages.profile_updated || 'Профиль успешно обновлен!');
+                    // Перезагружаем страницу через небольшую задержку
+                    setTimeout(() => {
+                        const dashboardUrl = document.querySelector('.profile').dataset.dashboardUrl || '/accounts/dashboard/';
+                        window.location.href = dashboardUrl;
+                    }, 1000);
                 } else {
-                    alert(data.message || messages.profile_error || 'Ошибка при обновлении профиля.');
+                    // Обрабатываем ошибки валидации
+                    if (data.errors) {
+                        try {
+                            const errors = typeof data.errors === 'string' ? JSON.parse(data.errors) : data.errors;
+                            displayFormErrors(errors);
+                        } catch (parseError) {
+                            console.error('Error parsing errors:', parseError);
+                            showErrorMessage(data.message || messages.profile_error || 'Ошибка при обновлении профиля.');
+                        }
+                    } else {
+                        showErrorMessage(data.message || messages.profile_error || 'Ошибка при обновлении профиля.');
+                    }
                 }
             } catch (error) {
                 console.error('Personal info form submission error:', error);
-                alert(messages.profile_error || 'Ошибка при обновлении профиля.');
+                showErrorMessage(messages.profile_error || 'Ошибка при обновлении профиля.');
             }
         });
+    }
+    
+    // Функция для отображения ошибок валидации по полям
+    function displayFormErrors(errors) {
+        console.log('Displaying form errors:', errors);
+        
+        // Проходим по всем полям с ошибками
+        for (const fieldName in errors) {
+            if (errors.hasOwnProperty(fieldName)) {
+                const fieldErrors = errors[fieldName];
+                const fieldElement = document.querySelector(`#id_${fieldName}`);
+                
+                if (fieldElement) {
+                    // Создаем элемент для отображения ошибки
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    
+                    // Обрабатываем массив ошибок или строку
+                    let errorText = '';
+                    if (Array.isArray(fieldErrors)) {
+                        errorText = fieldErrors.join(' ');
+                    } else if (typeof fieldErrors === 'object' && fieldErrors.message) {
+                        errorText = fieldErrors.message;
+                    } else {
+                        errorText = String(fieldErrors);
+                    }
+                    
+                    errorDiv.textContent = errorText;
+                    
+                    // Добавляем ошибку после поля
+                    fieldElement.parentNode.insertBefore(errorDiv, fieldElement.nextSibling);
+                    
+                    // Добавляем класс ошибки к полю
+                    fieldElement.classList.add('error');
+                }
+            }
+        }
+        
+        // Показываем общее сообщение об ошибке, если есть
+        if (Object.keys(errors).length > 0) {
+            showErrorMessage(messages.fix_form_errors || 'Please fix the errors in the form.');
+        }
+    }
+    
+    // Функция для показа сообщения об успехе
+    function showSuccessMessage(message) {
+        const messagesContainer = document.querySelector('.profile-content') || document.querySelector('.profile');
+        if (messagesContainer) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'messages';
+            messageDiv.innerHTML = `<div class="message success">${message}</div>`;
+            messagesContainer.insertBefore(messageDiv, messagesContainer.firstChild);
+            
+            // Автоматически скрываем через 5 секунд
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        } else {
+            // Fallback на alert
+            alert(message);
+        }
+    }
+    
+    // Функция для показа сообщения об ошибке
+    function showErrorMessage(message) {
+        const messagesContainer = document.querySelector('.profile-content') || document.querySelector('.profile');
+        if (messagesContainer) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'messages';
+            messageDiv.innerHTML = `<div class="message error">${message}</div>`;
+            messagesContainer.insertBefore(messageDiv, messagesContainer.firstChild);
+            
+            // Автоматически скрываем через 7 секунд
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 7000);
+        } else {
+            // Fallback на alert
+            alert(message);
+        }
     }
 
     // Исправленная функция обработки формы смены пароля (строки ~140-200)
