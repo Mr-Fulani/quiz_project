@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import TelegramAdmin, TelegramAdminGroup, CustomUser, DjangoAdmin
+from .models import TelegramAdmin, TelegramAdminGroup, CustomUser, DjangoAdmin, MiniAppUser
 from aiogram import Bot
 from django.conf import settings
 from html import escape
@@ -80,7 +80,8 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                 social_fields_updated = False
                 
                 # Список полей социальных сетей для синхронизации
-                social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                # Исключаем telegram, так как он управляется через SocialAccount
+                social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
                 
                 changed_fields = []
                 for field in social_fields:
@@ -88,6 +89,7 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                     mini_app_value = getattr(mini_app_user, field, None)
                     
                     # Обновляем только если в CustomUser есть значение и оно отличается
+                    # telegram исключен из списка social_fields, так как он управляется через SocialAccount
                     if custom_user_value and custom_user_value.strip():
                         if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
                             setattr(mini_app_user, field, custom_user_value)
@@ -301,3 +303,55 @@ def notify_admin_rights_removed(sender, instance, **kwargs):
             loop.close()
     except Exception as e:
         logger.error(f"Ошибка при запуске async функции для уведомления о снятии прав: {e}")
+
+
+@receiver(post_save, sender=MiniAppUser)
+def sync_mini_app_user_with_custom_user(sender, instance, created, **kwargs):
+    """
+    Автоматически синхронизирует поля социальных сетей из MiniAppUser в CustomUser.
+    
+    Логика:
+    - При обновлении MiniAppUser синхронизирует поля соцсетей в связанный CustomUser
+    - Обеспечивает двустороннюю синхронизацию данных между сайтом и Mini App
+    - Синхронизирует: telegram, github, instagram, facebook, linkedin, youtube, website
+    
+    Args:
+        sender: Модель MiniAppUser
+        instance: Экземпляр MiniAppUser
+        created: True если создается новый пользователь
+        **kwargs: Дополнительные параметры
+    """
+    try:
+        # Синхронизируем поля социальных сетей из MiniAppUser в CustomUser
+        # Это обеспечивает что данные соцсетей подтягиваются везде где используется одна БД
+        if hasattr(instance, 'linked_custom_user') and instance.linked_custom_user:
+            try:
+                custom_user = instance.linked_custom_user
+                social_fields_updated = False
+                changed_fields = []
+                
+                # Список полей социальных сетей для синхронизации
+                # Исключаем telegram, так как он управляется через SocialAccount
+                social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                
+                for field in social_fields:
+                    mini_app_value = getattr(instance, field, None)
+                    custom_user_value = getattr(custom_user, field, None)
+                    
+                    # Обновляем только если в MiniAppUser есть значение и оно отличается
+                    # telegram исключен из списка social_fields, так как он управляется через SocialAccount
+                    if mini_app_value and mini_app_value.strip():
+                        if not custom_user_value or custom_user_value.strip() != mini_app_value.strip():
+                            setattr(custom_user, field, mini_app_value)
+                            changed_fields.append(field)
+                            social_fields_updated = True
+                            logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                
+                if social_fields_updated and changed_fields:
+                    custom_user.save(update_fields=changed_fields)
+                    logger.info(f"Синхронизированы поля социальных сетей для CustomUser (id={custom_user.id}, username={custom_user.username}) из MiniAppUser (telegram_id={instance.telegram_id}): {', '.join(changed_fields)}")
+            except Exception as sync_error:
+                logger.warning(f"Ошибка при синхронизации полей социальных сетей с CustomUser для MiniAppUser telegram_id={instance.telegram_id}: {sync_error}")
+        
+    except Exception as e:
+        logger.error(f"Ошибка синхронизации MiniAppUser (telegram_id={instance.telegram_id}) с CustomUser: {e}")

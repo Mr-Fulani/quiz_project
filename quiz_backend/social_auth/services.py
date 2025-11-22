@@ -263,7 +263,8 @@ class TelegramAuthService:
                                 social_fields_updated = False
                                 
                                 # Список полей социальных сетей для синхронизации
-                                social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                                # Исключаем telegram, так как он управляется через SocialAccount
+                                social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
                                 
                                 for field in social_fields:
                                     custom_user_value = getattr(user, field, None)
