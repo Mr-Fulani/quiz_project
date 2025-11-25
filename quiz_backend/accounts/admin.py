@@ -1430,11 +1430,25 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
                     custom_user_value = getattr(obj, field, None)
                     mini_app_value = getattr(mini_app_user, field, None)
                     
-                    if custom_user_value and custom_user_value.strip():
-                        if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
+                    # Нормализуем значения для сравнения
+                    if isinstance(custom_user_value, str):
+                        custom_user_value = custom_user_value.strip()
+                    if isinstance(mini_app_value, str):
+                        mini_app_value_normalized = mini_app_value.strip()
+                    else:
+                        mini_app_value_normalized = mini_app_value
+                    
+                    # Если в CustomUser есть значение и оно отличается - обновляем
+                    if custom_user_value:
+                        if not mini_app_value_normalized or mini_app_value_normalized != custom_user_value:
                             setattr(mini_app_user, field, custom_user_value)
                             changed_fields.append(field)
                             fields_updated = True
+                    # Если в CustomUser поле пустое, а в MiniAppUser есть значение - очищаем
+                    elif mini_app_value_normalized:
+                        setattr(mini_app_user, field, '')
+                        changed_fields.append(field)
+                        fields_updated = True
                 
                 # Синхронизируем базовые поля
                 for field in basic_fields:
