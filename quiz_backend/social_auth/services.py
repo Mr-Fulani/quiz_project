@@ -845,8 +845,6 @@ class GitHubAuthService:
                 logger.error("Настройки GitHub не найдены")
                 return None
             
-            import urllib.parse
-            
             params = {
                 'client_id': settings.client_id,
                 'redirect_uri': redirect_uri,
