@@ -560,17 +560,12 @@ class TelegramAuthService:
                         logger.info(f"Синхронизировано поле telegram для пользователя {user.username}: {telegram_username} (было: {current_telegram or 'пусто'})")
                 
                 elif account.provider == 'github' and account.username:
-                    # Для GitHub: username или email может идти в поле github
-                    github_value = account.username.strip()
-                    # Если есть email, можно использовать его
-                    if account.email and not github_value.startswith('http'):
-                        github_value = account.email
+                    # Для GitHub: всегда используем username для формирования URL
+                    # URL GitHub всегда должен быть вида https://github.com/{username}
+                    github_username = account.username.strip()
                     
-                    # Формируем URL если это username
-                    if github_value and not github_value.startswith('http'):
-                        github_url = f"https://github.com/{github_value}"
-                    else:
-                        github_url = github_value
+                    # Формируем URL с username (не используем email!)
+                    github_url = f"https://github.com/{github_username}"
                     
                     # Всегда обновляем если есть данные в SocialAccount
                     current_github = user.github.strip() if user.github else ''
@@ -1037,7 +1032,14 @@ class GitHubAuthService:
             logger.info(f"Обработка авторизации GitHub для github_id={github_id}, username={github_username}")
             
             with transaction.atomic():
-                # Ищем существующий социальный аккаунт
+                # ВАЖНО: Сначала проверяем, авторизован ли уже пользователь
+                # Если пользователь уже авторизован - связываем GitHub с его текущим аккаунтом
+                current_user = None
+                if hasattr(request, 'user') and request.user.is_authenticated:
+                    current_user = request.user
+                    logger.info(f"Пользователь уже авторизован: {current_user.username} (id={current_user.id})")
+                
+                # Ищем существующий социальный аккаунт GitHub
                 social_account = SocialAccount.objects.filter(
                     provider='github',
                     provider_user_id=github_id,
@@ -1104,12 +1106,136 @@ class GitHubAuthService:
                         user.save()
                         
                 else:
-                    # Создаем нового пользователя или связываем с существующим
-                    user = GitHubAuthService._get_or_create_user(user_info)
-                    is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
-                    logger.info(f"Создан/найден пользователь для github_id={github_id}, username: {user.username}")
+                    # SocialAccount не найден - ищем существующего пользователя или создаем нового
+                    user = None
+                    
+                    # ВАЖНО: Сначала пытаемся найти существующего пользователя по email или username
+                    # даже если пользователь не авторизован
+                    email = user_info.get('email', '')
+                    github_username = user_info.get('login', '')
+                    
+                    logger.info(f"🔍 Поиск существующего пользователя: email='{email}', github_username='{github_username}'")
+                    
+                    # ДЛЯ ОТЛАДКИ: Выводим всех пользователей с email для проверки
+                    all_users_with_email = User.objects.exclude(email='').exclude(email__isnull=True)[:10]
+                    logger.info(f"🔍 Всего пользователей с email в базе (первые 10): {all_users_with_email.count()}")
+                    for u in all_users_with_email:
+                        logger.info(f"  - id={u.id}, username='{u.username}', email='{u.email}'")
+                    
+                    # Поиск по email (проверяем, что email не пустой и не None)
+                    if email and email.strip():
+                        email_normalized = email.strip()
+                        logger.info(f"🔍 Ищем пользователя по email: '{email_normalized}'")
+                        
+                        # Пробуем поиск (case-insensitive, без учета регистра)
+                        found_user = User.objects.filter(email__iexact=email_normalized).first()
+                        if found_user:
+                            user = found_user
+                            logger.info(f"✅ Найден существующий пользователь по email: {user.username} (id={user.id}, email={user.email})")
+                        else:
+                            logger.warning(f"❌ Пользователь по email '{email_normalized}' не найден")
+                            # ДЛЯ ОТЛАДКИ: Проверяем, есть ли такой email в базе вообще
+                            all_matching = User.objects.filter(email__iexact=email_normalized)
+                            logger.info(f"🔍 DEBUG: Количество пользователей с таким email (точное совпадение): {all_matching.count()}")
+                            if all_matching.exists():
+                                for u in all_matching:
+                                    logger.info(f"  DEBUG: Найден пользователь id={u.id}, username={u.username}, email='{u.email}', is_active={u.is_active}")
+                    else:
+                        logger.warning(f"⚠️ Email не предоставлен GitHub или пустой: email='{email}'")
+                    
+                    # Если не нашли по email - ищем по username (проверяем, что username не пустой)
+                    if not user and github_username and github_username.strip():
+                        username_normalized = github_username.strip()
+                        logger.info(f"🔍 Ищем пользователя по username: '{username_normalized}'")
+                        
+                        # Пробуем точный поиск (case-insensitive)
+                        found_user = User.objects.filter(username__iexact=username_normalized).first()
+                        if found_user:
+                            user = found_user
+                            logger.info(f"✅ Найден существующий пользователь по username: {user.username} (id={user.id}, email={user.email})")
+                        else:
+                            logger.warning(f"❌ Пользователь по username '{username_normalized}' не найден")
+                            # ДЛЯ ОТЛАДКИ: Проверяем, есть ли такой username в базе вообще
+                            all_matching = User.objects.filter(username__iexact=username_normalized)
+                            logger.info(f"🔍 DEBUG: Количество пользователей с таким username (точное совпадение): {all_matching.count()}")
+                            if all_matching.exists():
+                                for u in all_matching:
+                                    logger.info(f"  DEBUG: Найден пользователь id={u.id}, username={u.username}, email='{u.email}', is_active={u.is_active}")
+                    elif not user and not github_username:
+                        logger.warning(f"⚠️ GitHub username не предоставлен (пустой или None)")
+                    
+                    if not user:
+                        logger.info(f"📝 Пользователь не найден по email/username - будет создан новый")
+                    
+                    # Если пользователь уже авторизован и нашли другого пользователя по email/username
+                    if current_user and user and current_user.id != user.id:
+                        logger.warning(f"⚠️ Конфликт: пользователь {current_user.username} (id={current_user.id}) авторизован, но найден другой пользователь {user.username} (id={user.id}) по email/username")
+                        # Используем авторизованного пользователя
+                        user = current_user
+                        logger.info(f"Используем авторизованного пользователя: {user.username} (id={user.id})")
+                    
+                    # Если пользователь уже авторизован и не нашли другого по email/username
+                    if current_user and not user:
+                        user = current_user
+                        logger.info(f"Используем авторизованного пользователя (другого не найдено): {user.username} (id={user.id})")
+                    
+                    # Если нашли существующего пользователя - обновляем его данные
+                    if user:
+                        is_new_user = False
+                        logger.info(f"Связываем GitHub аккаунт с существующим пользователем: {user.username} (id={user.id})")
+                        
+                        # ВАЖНО: Сохраняем все существующие данные пользователя
+                        # Обновляем только пустые поля или дополнительные данные
+                        user_updated = False
+                        
+                        # Обновляем email только если он пустой
+                        if email and not user.email:
+                            user.email = email
+                            user_updated = True
+                        
+                        # Обновляем имя только если оно пустое
+                        # В user_info['name'] - это список [first_name, last_name]
+                        name_parts = user_info.get('name', ['', ''])
+                        first_name = name_parts[0] if len(name_parts) > 0 else ''
+                        last_name = name_parts[1] if len(name_parts) > 1 else ''
+                        
+                        if first_name and not user.first_name:
+                            user.first_name = first_name
+                            user_updated = True
+                        
+                        if last_name and not user.last_name:
+                            user.last_name = last_name
+                            user_updated = True
+                        
+                        # Загружаем аватарку только если её нет
+                        avatar_url = user_info.get('avatar_url')
+                        if avatar_url and not user.avatar:
+                            if TelegramAuthService._download_avatar_from_url(avatar_url, user):
+                                user_updated = True
+                        
+                        # Обновляем GitHub URL в профиле
+                        github_url = f"https://github.com/{github_username}"
+                        if github_url and not user.github:
+                            user.github = github_url
+                            user_updated = True
+                        
+                        if user_updated:
+                            user.save()
+                            logger.info(f"Обновлены данные пользователя {user.username} при связывании с GitHub")
+                    
+                    else:
+                        # Пользователь не найден - создаем нового через _get_or_create_user
+                        logger.info(f"Пользователь не найден, создаем нового для github_id={github_id}, github_username={github_username}")
+                        user = GitHubAuthService._get_or_create_user(user_info, current_user)
+                        is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                        logger.info(f"Создан/найден пользователь: {user.username} (id={user.id}), is_new_user={is_new_user}")
                     
                     # Создаем или обновляем социальный аккаунт
+                    # В user_info['name'] - это список [first_name, last_name]
+                    name_parts = user_info.get('name', ['', ''])
+                    default_first_name = name_parts[0] if len(name_parts) > 0 and name_parts[0] else ''
+                    default_last_name = name_parts[1] if len(name_parts) > 1 and name_parts[1] else ''
+                    
                     social_account, created = SocialAccount.objects.get_or_create(
                         user=user,
                         provider='github',
@@ -1117,32 +1243,33 @@ class GitHubAuthService:
                         defaults={
                             'username': github_username,
                             'email': user_info.get('email'),
-                            'first_name': user_info.get('name', [''])[0] if user_info.get('name') else '',
-                            'last_name': user_info.get('name', [''])[1] if user_info.get('name') and len(user_info['name']) > 1 else '',
+                            'first_name': default_first_name,
+                            'last_name': default_last_name,
                             'avatar_url': user_info.get('avatar_url'),
                             'access_token': access_token
                         }
                     )
                     
-                    # Обновляем данные если аккаунт уже существовал
+                    # Если аккаунт уже существовал, обновляем его данные
                     if not created:
                         updated = False
+                        # В user_info['name'] - это список [first_name, last_name]
+                        name_parts = user_info.get('name', ['', ''])
+                        first_name = name_parts[0] if len(name_parts) > 0 and name_parts[0] else ''
+                        last_name = name_parts[1] if len(name_parts) > 1 and name_parts[1] else ''
+                        
                         if github_username and github_username != social_account.username:
                             social_account.username = github_username
                             updated = True
                         if user_info.get('email') and user_info['email'] != social_account.email:
                             social_account.email = user_info['email']
                             updated = True
-                        if user_info.get('name') and user_info['name'][0]:
-                            first_name = user_info['name'][0]
-                            if first_name != social_account.first_name:
-                                social_account.first_name = first_name
-                                updated = True
-                        if user_info.get('name') and len(user_info['name']) > 1 and user_info['name'][1]:
-                            last_name = user_info['name'][1]
-                            if last_name != social_account.last_name:
-                                social_account.last_name = last_name
-                                updated = True
+                        if first_name and first_name != social_account.first_name:
+                            social_account.first_name = first_name
+                            updated = True
+                        if last_name and last_name != social_account.last_name:
+                            social_account.last_name = last_name
+                            updated = True
                         if user_info.get('avatar_url') and user_info['avatar_url'] != social_account.avatar_url:
                             social_account.avatar_url = user_info['avatar_url']
                             updated = True
@@ -1207,45 +1334,71 @@ class GitHubAuthService:
             }
     
     @staticmethod
-    def _get_or_create_user(user_info: Dict[str, Any]) -> User:
+    def _get_or_create_user(user_info: Dict[str, Any], current_user: User = None) -> User:
         """
         Получает или создает пользователя на основе данных GitHub.
         
+        ВАЖНО: При поиске/создании пользователя сохраняет всю существующую информацию
+        (статистику, логотип, настройки и т.д.), дополняя только недостающие данные.
+        
         Args:
             user_info: Данные о пользователе от GitHub API
+            current_user: Опционально - уже авторизованный пользователь для связывания
             
         Returns:
             User: Пользователь Django
         """
         github_id = user_info['id']
         github_username = user_info['login']
-        name_parts = user_info.get('name', ['']) if user_info.get('name') else ['']
-        first_name = name_parts[0] if len(name_parts) > 0 else ''
-        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        # В user_info['name'] - это список [first_name, last_name]
+        name_parts = user_info.get('name', ['', ''])
+        first_name = name_parts[0] if len(name_parts) > 0 and name_parts[0] else ''
+        last_name = name_parts[1] if len(name_parts) > 1 and name_parts[1] else ''
         email = user_info.get('email', '')
         avatar_url = user_info.get('avatar_url', '')
         
         logger.info(f"Поиск/создание пользователя для github_id={github_id}, github_username={github_username}")
         
+        # Если передан текущий пользователь - используем его
+        if current_user:
+            logger.info(f"Используется текущий авторизованный пользователь: {current_user.username} (id={current_user.id})")
+            return current_user
+        
         # Сначала пытаемся найти существующего пользователя по email (если есть)
         if email:
             user = User.objects.filter(email=email).first()
             if user:
-                logger.info(f"Найден пользователь по email: {user.username}")
-                # Обновляем данные пользователя
+                logger.info(f"Найден пользователь по email: {user.username} (id={user.id})")
+                logger.info(f"Сохраняем существующую информацию пользователя: статистика, настройки, логотип")
+                
+                # ВАЖНО: Обновляем только пустые поля или дополняем информацию
+                # НЕ перезаписываем существующие данные (статистика, логотип и т.д.)
                 updated = False
-                if first_name and first_name != user.first_name:
+                
+                # Обновляем имя только если оно пустое
+                if first_name and not user.first_name:
                     user.first_name = first_name
                     updated = True
-                if last_name and last_name != user.last_name:
+                
+                # Обновляем фамилию только если она пустая
+                if last_name and not user.last_name:
                     user.last_name = last_name
                     updated = True
-                if updated:
-                    user.save()
                 
-                # Загружаем аватарку если есть
+                # Загружаем аватарку только если её нет
                 if avatar_url and not user.avatar:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
+                    updated = True
+                
+                # Обновляем GitHub URL в профиле если его нет
+                github_url = f"https://github.com/{github_username}"
+                if github_url and not user.github:
+                    user.github = github_url
+                    updated = True
+                
+                if updated:
+                    user.save()
+                    logger.info(f"Обновлены дополнительные данные пользователя {user.username} при связывании с GitHub")
                 
                 return user
         
@@ -1253,24 +1406,41 @@ class GitHubAuthService:
         if github_username:
             user = User.objects.filter(username=github_username).first()
             if user:
-                logger.info(f"Найден пользователь по username: {user.username}")
-                # Обновляем данные
+                logger.info(f"Найден пользователь по username: {user.username} (id={user.id})")
+                logger.info(f"Сохраняем существующую информацию пользователя: статистика, настройки, логотип")
+                
+                # ВАЖНО: Обновляем только пустые поля
                 updated = False
-                if email and email != user.email:
+                
+                # Обновляем email только если он пустой
+                if email and not user.email:
                     user.email = email
                     updated = True
-                if first_name and first_name != user.first_name:
+                
+                # Обновляем имя только если оно пустое
+                if first_name and not user.first_name:
                     user.first_name = first_name
                     updated = True
-                if last_name and last_name != user.last_name:
+                
+                # Обновляем фамилию только если она пустая
+                if last_name and not user.last_name:
                     user.last_name = last_name
                     updated = True
-                if updated:
-                    user.save()
                 
-                # Загружаем аватарку если есть
+                # Загружаем аватарку только если её нет
                 if avatar_url and not user.avatar:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
+                    updated = True
+                
+                # Обновляем GitHub URL в профиле если его нет
+                github_url = f"https://github.com/{github_username}"
+                if github_url and not user.github:
+                    user.github = github_url
+                    updated = True
+                
+                if updated:
+                    user.save()
+                    logger.info(f"Обновлены дополнительные данные пользователя {user.username} при связывании с GitHub")
                 
                 return user
         
