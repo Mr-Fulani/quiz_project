@@ -592,6 +592,9 @@ class TelegramAuthService:
         """
         Загружает аватарку из URL и сохраняет в поле avatar пользователя.
         
+        ВАЖНО: Загружает аватарку ТОЛЬКО если у пользователя еще нет аватарки.
+        Не перезаписывает существующую аватарку, которую пользователь мог загрузить вручную.
+        
         Args:
             photo_url: URL аватарки из Telegram
             user: Пользователь Django
@@ -602,7 +605,14 @@ class TelegramAuthService:
         if not photo_url or not photo_url.strip():
             return False
         
+        # Проверяем, есть ли уже аватарка у пользователя
+        has_existing_avatar = user.avatar and hasattr(user.avatar, 'name') and user.avatar.name
+        if has_existing_avatar:
+            logger.debug(f"⏭️ У пользователя {user.username} (id={user.id}) уже есть аватарка, пропускаем загрузку из Telegram")
+            return False
+        
         try:
+            logger.info(f"📥 Загрузка аватарки из Telegram для пользователя {user.username} (id={user.id})")
             
             # Загружаем изображение
             req = urllib.request.Request(photo_url)
@@ -632,11 +642,11 @@ class TelegramAuthService:
                         ext = 'jpg'
                 
                 # Создаем имя файла
-                filename = f"telegram_avatar_{user.telegram_id}_{int(time.time())}.{ext}"
+                filename = f"telegram_avatar_{user.telegram_id or user.id}_{int(time.time())}.{ext}"
                 
                 # Сохраняем в поле avatar
                 user.avatar.save(filename, ContentFile(image_data), save=True)
-                logger.info(f"Аватарка загружена из Telegram для пользователя {user.username}: {filename}")
+                logger.info(f"✅ Аватарка загружена из Telegram для пользователя {user.username} (id={user.id}): {filename}")
                 return True
                 
         except Exception as e:

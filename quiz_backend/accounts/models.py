@@ -976,67 +976,87 @@ class MiniAppUser(models.Model):
             if photo_url and photo_url.strip():
                 photo_url_clean = photo_url.strip()
                 current_photo_url = (self.telegram_photo_url or '').strip()
+                photo_url_changed = photo_url_clean != current_photo_url
                 
-                if photo_url_clean != current_photo_url:
+                if photo_url_changed:
                     self.telegram_photo_url = photo_url_clean
                     changed_fields.append('telegram_photo_url')
                     updated = True
                     logger.info(f"Обновлен telegram_photo_url для MiniAppUser (telegram_id={self.telegram_id}): {photo_url_clean}")
                 
-                # Скачиваем аватарку из Telegram
-                try:
-                    import urllib.request
-                    import urllib.parse
-                    import time
-                    from django.core.files.base import ContentFile
-                    
-                    # Загружаем изображение
-                    req = urllib.request.Request(photo_url_clean)
-                    req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-                    
-                    with urllib.request.urlopen(req, timeout=10) as response:
-                        image_data = response.read()
+                # Скачиваем аватарку из Telegram только если:
+                # 1. У пользователя нет аватарки (self.avatar пустое)
+                # 2. ИЛИ photo_url изменился (пользователь обновил аватарку в Telegram)
+                has_existing_avatar = self.avatar and hasattr(self.avatar, 'name') and self.avatar.name
+                
+                should_download_avatar = not has_existing_avatar or photo_url_changed
+                
+                if should_download_avatar:
+                    try:
+                        import urllib.request
+                        import urllib.parse
+                        import time
+                        from django.core.files.base import ContentFile
                         
-                        # Определяем расширение файла
-                        content_type = response.headers.get('Content-Type', '')
-                        ext = 'jpg'  # по умолчанию
-                        if 'jpeg' in content_type or 'jpg' in content_type:
-                            ext = 'jpg'
-                        elif 'png' in content_type:
-                            ext = 'png'
-                        elif 'webp' in content_type:
-                            ext = 'webp'
-                        else:
-                            # Пытаемся определить по URL
-                            parsed_url = urllib.parse.urlparse(photo_url_clean)
-                            path = parsed_url.path.lower()
-                            if path.endswith('.png'):
-                                ext = 'png'
-                            elif path.endswith('.webp'):
-                                ext = 'webp'
-                            elif path.endswith('.jpg') or path.endswith('.jpeg'):
+                        logger.info(f"📥 Загрузка аватарки для MiniAppUser (telegram_id={self.telegram_id}): has_existing_avatar={has_existing_avatar}, photo_url_changed={photo_url_changed}")
+                        
+                        # Загружаем изображение
+                        req = urllib.request.Request(photo_url_clean)
+                        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+                        
+                        with urllib.request.urlopen(req, timeout=10) as response:
+                            image_data = response.read()
+                            
+                            # Определяем расширение файла
+                            content_type = response.headers.get('Content-Type', '')
+                            ext = 'jpg'  # по умолчанию
+                            if 'jpeg' in content_type or 'jpg' in content_type:
                                 ext = 'jpg'
-                        
-                        # Создаем имя файла
-                        filename = f"telegram_avatar_{self.telegram_id}_{int(time.time())}.{ext}"
-                        
-                        # Сохраняем в поле avatar MiniAppUser
-                        self.avatar.save(filename, ContentFile(image_data), save=False)
-                        changed_fields.append('avatar')
-                        updated = True
-                        logger.info(f"Аватарка загружена из Telegram для MiniAppUser (telegram_id={self.telegram_id}): {filename}")
-                        
-                        # Также скачиваем в CustomUser если есть связь
-                        if hasattr(self, 'linked_custom_user') and self.linked_custom_user:
-                            try:
-                                from social_auth.services import TelegramAuthService
-                                if TelegramAuthService._download_avatar_from_url(photo_url_clean, self.linked_custom_user):
-                                    logger.info(f"Аватарка также загружена для связанного CustomUser (id={self.linked_custom_user.id})")
-                            except Exception as custom_avatar_error:
-                                logger.warning(f"Ошибка при загрузке аватарки в CustomUser: {custom_avatar_error}")
-                        
-                except Exception as avatar_error:
-                    logger.warning(f"Ошибка при скачивании аватарки для MiniAppUser (telegram_id={self.telegram_id}): {avatar_error}")
+                            elif 'png' in content_type:
+                                ext = 'png'
+                            elif 'webp' in content_type:
+                                ext = 'webp'
+                            else:
+                                # Пытаемся определить по URL
+                                parsed_url = urllib.parse.urlparse(photo_url_clean)
+                                path = parsed_url.path.lower()
+                                if path.endswith('.png'):
+                                    ext = 'png'
+                                elif path.endswith('.webp'):
+                                    ext = 'webp'
+                                elif path.endswith('.jpg') or path.endswith('.jpeg'):
+                                    ext = 'jpg'
+                            
+                            # Создаем имя файла
+                            filename = f"telegram_avatar_{self.telegram_id}_{int(time.time())}.{ext}"
+                            
+                            # Сохраняем в поле avatar MiniAppUser
+                            self.avatar.save(filename, ContentFile(image_data), save=False)
+                            changed_fields.append('avatar')
+                            updated = True
+                            
+                            if not has_existing_avatar:
+                                logger.info(f"✅ Аватарка загружена из Telegram для MiniAppUser (telegram_id={self.telegram_id}): {filename} (аватарки не было)")
+                            else:
+                                logger.info(f"✅ Аватарка обновлена из Telegram для MiniAppUser (telegram_id={self.telegram_id}): {filename} (photo_url изменился)")
+                            
+                            # Также скачиваем в CustomUser если есть связь (только если у CustomUser нет аватарки)
+                            if hasattr(self, 'linked_custom_user') and self.linked_custom_user:
+                                try:
+                                    custom_user_has_avatar = self.linked_custom_user.avatar and hasattr(self.linked_custom_user.avatar, 'name') and self.linked_custom_user.avatar.name
+                                    if not custom_user_has_avatar:
+                                        from social_auth.services import TelegramAuthService
+                                        if TelegramAuthService._download_avatar_from_url(photo_url_clean, self.linked_custom_user):
+                                            logger.info(f"✅ Аватарка также загружена для связанного CustomUser (id={self.linked_custom_user.id}) - аватарки не было")
+                                    else:
+                                        logger.debug(f"⏭️ У CustomUser (id={self.linked_custom_user.id}) уже есть аватарка, пропускаем загрузку")
+                                except Exception as custom_avatar_error:
+                                    logger.warning(f"Ошибка при загрузке аватарки в CustomUser: {custom_avatar_error}")
+                            
+                    except Exception as avatar_error:
+                        logger.warning(f"Ошибка при скачивании аватарки для MiniAppUser (telegram_id={self.telegram_id}): {avatar_error}")
+                else:
+                    logger.debug(f"⏭️ Пропуск загрузки аватарки для MiniAppUser (telegram_id={self.telegram_id}): аватарка уже есть и photo_url не изменился")
             
             # Обновляем language
             if language_code and language_code.strip():
