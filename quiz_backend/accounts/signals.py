@@ -74,9 +74,20 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
     try:
         # Синхронизируем поля с MiniAppUser
         # Это обеспечивает что данные подтягиваются везде где используется одна БД
-        if hasattr(instance, 'mini_app_profile') and instance.mini_app_profile:
+        # Проверяем наличие связи и что она не None
+        try:
+            mini_app_user = getattr(instance, 'mini_app_profile', None)
+        except Exception as attr_error:
+            logger.debug(f"Ошибка при получении mini_app_profile для CustomUser {instance.username}: {attr_error}")
+            mini_app_user = None
+        
+        if mini_app_user:
             try:
-                mini_app_user = instance.mini_app_profile
+                # Защита от циклических вызовов - проверяем флаг в kwargs
+                if kwargs.get('sync_in_progress'):
+                    logger.debug(f"Синхронизация уже выполняется для CustomUser {instance.username}, пропускаем")
+                    return
+                
                 fields_updated = False
                 
                 # Список полей социальных сетей для синхронизации
@@ -91,53 +102,82 @@ def sync_custom_user_with_django_admin(sender, instance, created, **kwargs):
                 
                 # Синхронизируем поля социальных сетей
                 for field in social_fields:
-                    custom_user_value = getattr(instance, field, None)
-                    mini_app_value = getattr(mini_app_user, field, None)
-                    
-                    # Обновляем только если в CustomUser есть значение и оно отличается
-                    if custom_user_value and custom_user_value.strip():
-                        if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
-                            setattr(mini_app_user, field, custom_user_value)
+                    try:
+                        custom_user_value = getattr(instance, field, None)
+                        mini_app_value = getattr(mini_app_user, field, None)
+                        
+                        # Нормализуем значения для сравнения
+                        if isinstance(custom_user_value, str):
+                            custom_user_value = custom_user_value.strip()
+                        if isinstance(mini_app_value, str):
+                            mini_app_value_normalized = mini_app_value.strip()
+                        else:
+                            mini_app_value_normalized = mini_app_value
+                        
+                        # Если в CustomUser есть значение и оно отличается - обновляем
+                        if custom_user_value:
+                            if not mini_app_value_normalized or mini_app_value_normalized != custom_user_value:
+                                setattr(mini_app_user, field, custom_user_value)
+                                changed_fields.append(field)
+                                fields_updated = True
+                                logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id}): {custom_user_value}")
+                        # Если в CustomUser поле пустое, а в MiniAppUser есть значение - очищаем
+                        elif mini_app_value_normalized:
+                            setattr(mini_app_user, field, '')
                             changed_fields.append(field)
                             fields_updated = True
-                            logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                            logger.debug(f"Очищено поле {field} в MiniAppUser (telegram_id={mini_app_user.telegram_id}), так как в CustomUser (id={instance.id}) оно пустое")
+                    except Exception as field_error:
+                        logger.warning(f"Ошибка при синхронизации поля {field} для CustomUser {instance.username}: {field_error}")
+                        continue
                 
                 # Синхронизируем базовые поля
                 for field in basic_fields:
-                    custom_user_value = getattr(instance, field, None)
-                    mini_app_value = getattr(mini_app_user, field, None)
-                    
-                    # Для строковых полей проверяем на пустоту
-                    if field in ['first_name', 'last_name', 'bio', 'location', 'language']:
-                        if custom_user_value and custom_user_value.strip():
-                            if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
-                                setattr(mini_app_user, field, custom_user_value)
-                                changed_fields.append(field)
-                                fields_updated = True
-                                logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
-                    # Для birth_date проверяем на None
-                    elif field == 'birth_date':
-                        if custom_user_value:
-                            if not mini_app_value or mini_app_value != custom_user_value:
-                                setattr(mini_app_user, field, custom_user_value)
-                                changed_fields.append(field)
-                                fields_updated = True
-                                logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                    try:
+                        custom_user_value = getattr(instance, field, None)
+                        mini_app_value = getattr(mini_app_user, field, None)
+                        
+                        # Для строковых полей проверяем на пустоту
+                        if field in ['first_name', 'last_name', 'bio', 'location', 'language']:
+                            if custom_user_value:
+                                if isinstance(custom_user_value, str):
+                                    custom_user_value = custom_user_value.strip()
+                                    if custom_user_value:
+                                        if not mini_app_value or (isinstance(mini_app_value, str) and mini_app_value.strip() != custom_user_value):
+                                            setattr(mini_app_user, field, custom_user_value)
+                                            changed_fields.append(field)
+                                            fields_updated = True
+                                            logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                        # Для birth_date проверяем на None
+                        elif field == 'birth_date':
+                            if custom_user_value:
+                                if not mini_app_value or mini_app_value != custom_user_value:
+                                    setattr(mini_app_user, field, custom_user_value)
+                                    changed_fields.append(field)
+                                    fields_updated = True
+                                    logger.debug(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                    except Exception as field_error:
+                        logger.warning(f"Ошибка при синхронизации поля {field} для CustomUser {instance.username}: {field_error}")
+                        continue
                 
                 # Синхронизируем avatar (приоритет у загруженного файла)
-                if instance.avatar:
-                    # Если в CustomUser есть загруженный avatar, используем его
-                    if not mini_app_user.avatar or mini_app_user.avatar != instance.avatar:
-                        mini_app_user.avatar = instance.avatar
-                        changed_fields.append('avatar')
-                        fields_updated = True
-                        logger.debug(f"Синхронизирован avatar для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                try:
+                    if instance.avatar:
+                        # Если в CustomUser есть загруженный avatar, используем его
+                        if not mini_app_user.avatar or mini_app_user.avatar != instance.avatar:
+                            mini_app_user.avatar = instance.avatar
+                            changed_fields.append('avatar')
+                            fields_updated = True
+                            logger.debug(f"Синхронизирован avatar для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id})")
+                except Exception as avatar_error:
+                    logger.warning(f"Ошибка при синхронизации avatar для CustomUser {instance.username}: {avatar_error}")
                 
                 if fields_updated and changed_fields:
+                    # Устанавливаем флаг для предотвращения циклических вызовов
                     mini_app_user.save(update_fields=changed_fields)
                     logger.info(f"Синхронизированы поля для MiniAppUser (telegram_id={mini_app_user.telegram_id}) из CustomUser (id={instance.id}, username={instance.username}): {', '.join(changed_fields)}")
             except Exception as sync_error:
-                logger.warning(f"Ошибка при синхронизации полей с MiniAppUser для CustomUser {instance.username}: {sync_error}")
+                logger.error(f"Ошибка при синхронизации полей с MiniAppUser для CustomUser {instance.username}: {sync_error}", exc_info=True)
         
         # Проверяем, есть ли у пользователя права администратора
         has_admin_rights = instance.is_staff or instance.is_superuser
@@ -360,9 +400,20 @@ def sync_mini_app_user_with_custom_user(sender, instance, created, **kwargs):
     try:
         # Синхронизируем поля из MiniAppUser в CustomUser
         # Это обеспечивает что данные подтягиваются везде где используется одна БД
-        if hasattr(instance, 'linked_custom_user') and instance.linked_custom_user:
+        # Проверяем наличие связи и что она не None
+        try:
+            custom_user = getattr(instance, 'linked_custom_user', None)
+        except Exception as attr_error:
+            logger.debug(f"Ошибка при получении linked_custom_user для MiniAppUser telegram_id={instance.telegram_id}: {attr_error}")
+            custom_user = None
+        
+        if custom_user:
             try:
-                custom_user = instance.linked_custom_user
+                # Защита от циклических вызовов - проверяем флаг в kwargs
+                if kwargs.get('sync_in_progress'):
+                    logger.debug(f"Синхронизация уже выполняется для MiniAppUser telegram_id={instance.telegram_id}, пропускаем")
+                    return
+                
                 fields_updated = False
                 changed_fields = []
                 
@@ -376,53 +427,72 @@ def sync_mini_app_user_with_custom_user(sender, instance, created, **kwargs):
                 
                 # Синхронизируем поля социальных сетей
                 for field in social_fields:
-                    mini_app_value = getattr(instance, field, None)
-                    custom_user_value = getattr(custom_user, field, None)
-                    
-                    # Обновляем только если в MiniAppUser есть значение и оно отличается
-                    if mini_app_value and mini_app_value.strip():
-                        if not custom_user_value or custom_user_value.strip() != mini_app_value.strip():
-                            setattr(custom_user, field, mini_app_value)
-                            changed_fields.append(field)
-                            fields_updated = True
-                            logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                    try:
+                        mini_app_value = getattr(instance, field, None)
+                        custom_user_value = getattr(custom_user, field, None)
+                        
+                        # Обновляем только если в MiniAppUser есть значение и оно отличается
+                        if mini_app_value:
+                            # Для URL полей проверяем строку
+                            if isinstance(mini_app_value, str):
+                                mini_app_value = mini_app_value.strip()
+                                if mini_app_value:
+                                    if not custom_user_value or (isinstance(custom_user_value, str) and custom_user_value.strip() != mini_app_value):
+                                        setattr(custom_user, field, mini_app_value)
+                                        changed_fields.append(field)
+                                        fields_updated = True
+                                        logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                    except Exception as field_error:
+                        logger.warning(f"Ошибка при синхронизации поля {field} для MiniAppUser telegram_id={instance.telegram_id}: {field_error}")
+                        continue
                 
                 # Синхронизируем базовые поля
                 for field in basic_fields:
-                    mini_app_value = getattr(instance, field, None)
-                    custom_user_value = getattr(custom_user, field, None)
-                    
-                    # Для строковых полей проверяем на пустоту
-                    if field in ['first_name', 'last_name', 'bio', 'location', 'language']:
-                        if mini_app_value and mini_app_value.strip():
-                            if not custom_user_value or custom_user_value.strip() != mini_app_value.strip():
-                                setattr(custom_user, field, mini_app_value)
-                                changed_fields.append(field)
-                                fields_updated = True
-                                logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
-                    # Для birth_date проверяем на None
-                    elif field == 'birth_date':
-                        if mini_app_value:
-                            if not custom_user_value or custom_user_value != mini_app_value:
-                                setattr(custom_user, field, mini_app_value)
-                                changed_fields.append(field)
-                                fields_updated = True
-                                logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                    try:
+                        mini_app_value = getattr(instance, field, None)
+                        custom_user_value = getattr(custom_user, field, None)
+                        
+                        # Для строковых полей проверяем на пустоту
+                        if field in ['first_name', 'last_name', 'bio', 'location', 'language']:
+                            if mini_app_value:
+                                if isinstance(mini_app_value, str):
+                                    mini_app_value = mini_app_value.strip()
+                                    if mini_app_value:
+                                        if not custom_user_value or (isinstance(custom_user_value, str) and custom_user_value.strip() != mini_app_value):
+                                            setattr(custom_user, field, mini_app_value)
+                                            changed_fields.append(field)
+                                            fields_updated = True
+                                            logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                        # Для birth_date проверяем на None
+                        elif field == 'birth_date':
+                            if mini_app_value:
+                                if not custom_user_value or custom_user_value != mini_app_value:
+                                    setattr(custom_user, field, mini_app_value)
+                                    changed_fields.append(field)
+                                    fields_updated = True
+                                    logger.debug(f"Синхронизировано поле {field} для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                    except Exception as field_error:
+                        logger.warning(f"Ошибка при синхронизации поля {field} для MiniAppUser telegram_id={instance.telegram_id}: {field_error}")
+                        continue
                 
                 # Синхронизируем avatar (приоритет у загруженного файла в MiniAppUser)
-                if instance.avatar:
-                    # Если в MiniAppUser есть загруженный avatar, используем его
-                    if not custom_user.avatar or custom_user.avatar != instance.avatar:
-                        custom_user.avatar = instance.avatar
-                        changed_fields.append('avatar')
-                        fields_updated = True
-                        logger.debug(f"Синхронизирован avatar для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                try:
+                    if instance.avatar:
+                        # Если в MiniAppUser есть загруженный avatar, используем его
+                        if not custom_user.avatar or custom_user.avatar != instance.avatar:
+                            custom_user.avatar = instance.avatar
+                            changed_fields.append('avatar')
+                            fields_updated = True
+                            logger.debug(f"Синхронизирован avatar для CustomUser (id={custom_user.id}) из MiniAppUser (telegram_id={instance.telegram_id})")
+                except Exception as avatar_error:
+                    logger.warning(f"Ошибка при синхронизации avatar для MiniAppUser telegram_id={instance.telegram_id}: {avatar_error}")
                 
                 if fields_updated and changed_fields:
+                    # Устанавливаем флаг для предотвращения циклических вызовов
                     custom_user.save(update_fields=changed_fields)
                     logger.info(f"Синхронизированы поля для CustomUser (id={custom_user.id}, username={custom_user.username}) из MiniAppUser (telegram_id={instance.telegram_id}): {', '.join(changed_fields)}")
             except Exception as sync_error:
-                logger.warning(f"Ошибка при синхронизации полей с CustomUser для MiniAppUser telegram_id={instance.telegram_id}: {sync_error}")
+                logger.error(f"Ошибка при синхронизации полей с CustomUser для MiniAppUser telegram_id={instance.telegram_id}: {sync_error}", exc_info=True)
         
     except Exception as e:
-        logger.error(f"Ошибка синхронизации MiniAppUser (telegram_id={instance.telegram_id}) с CustomUser: {e}")
+        logger.error(f"Ошибка синхронизации MiniAppUser (telegram_id={instance.telegram_id}) с CustomUser: {e}", exc_info=True)
