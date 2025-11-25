@@ -137,6 +137,64 @@ class CustomUser(AbstractUser):
         if self.avatar:
             return self.avatar.url
         return '/static/blog/images/avatar/default_avatar.png'
+    
+    @property
+    def get_telegram_url(self):
+        """
+        Возвращает корректный URL для Telegram профиля.
+        Нормализует значение поля telegram, преобразуя @username или username в полный URL.
+        
+        Returns:
+            str: URL в формате https://t.me/username или пустая строка
+        """
+        if not self.telegram:
+            return ''
+        
+        telegram_value = self.telegram.strip()
+        
+        # Если уже полный URL - возвращаем как есть
+        if telegram_value.startswith('http://') or telegram_value.startswith('https://'):
+            return telegram_value
+        
+        # Если начинается с @ - убираем @ и формируем URL
+        if telegram_value.startswith('@'):
+            username = telegram_value[1:].strip()
+            if username:
+                return f'https://t.me/{username}'
+        
+        # Если просто username без @ - формируем URL
+        if telegram_value and not telegram_value.startswith('/'):
+            # Проверяем, что это не относительный путь
+            return f'https://t.me/{telegram_value}'
+        
+        # Если не можем определить - возвращаем пустую строку
+        return ''
+    
+    @property
+    def get_telegram_username(self):
+        """
+        Возвращает username из поля telegram (без @ и URL префиксов).
+        Используется для формирования ссылок типа tg://resolve?domain=username.
+        
+        Returns:
+            str: Username без @ и префиксов или пустая строка
+        """
+        if not self.telegram:
+            return ''
+        
+        telegram_value = self.telegram.strip()
+        
+        # Убираем префиксы URL
+        for prefix in ['https://t.me/', 'http://t.me/', 'https://telegram.me/', 'http://telegram.me/']:
+            if telegram_value.startswith(prefix):
+                return telegram_value[len(prefix):].strip()
+        
+        # Убираем @ если есть
+        if telegram_value.startswith('@'):
+            return telegram_value[1:].strip()
+        
+        # Если уже username без префиксов
+        return telegram_value
 
     @property
     def is_online(self):
