@@ -963,6 +963,7 @@ class MiniAppUser(models.Model):
                 logger.info(f"⏭️ last_name не изменилось для MiniAppUser (telegram_id={self.telegram_id}): '{last_name_clean}'")
             
             # Обновляем username
+            username_clean = None
             if username is not None:
                 username_clean = username.strip() if username else None
                 current_username = (self.username or '').strip() if self.username else None
@@ -971,6 +972,27 @@ class MiniAppUser(models.Model):
                     changed_fields.append('username')
                     updated = True
                     logger.info(f"Обновлено username для MiniAppUser (telegram_id={self.telegram_id}): '{username_clean}' (было: '{current_username}')")
+            
+            # Обновляем поле telegram на основе username
+            # Проверяем, нужно ли обновить поле telegram
+            # Используем username_clean если он был обработан выше, иначе берем текущий username
+            telegram_username = username_clean if username_clean is not None else (self.username.strip() if self.username else None)
+            
+            if telegram_username:
+                telegram_link = f"https://t.me/{telegram_username}"
+                current_telegram = (self.telegram or '').strip()
+                if telegram_link != current_telegram:
+                    self.telegram = telegram_link
+                    changed_fields.append('telegram')
+                    updated = True
+                    logger.info(f"Обновлено поле telegram для MiniAppUser (telegram_id={self.telegram_id}): '{telegram_link}' (было: '{current_telegram}')")
+            elif not telegram_username:
+                # Если username пустой, очищаем поле telegram
+                if self.telegram:
+                    self.telegram = ''
+                    changed_fields.append('telegram')
+                    updated = True
+                    logger.info(f"Очищено поле telegram для MiniAppUser (telegram_id={self.telegram_id}), так как username пустой")
             
             # Обновляем telegram_photo_url и скачиваем аватарку
             if photo_url and photo_url.strip():
