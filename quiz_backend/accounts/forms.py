@@ -92,45 +92,62 @@ class PersonalInfoForm(forms.ModelForm):
         Валидация и нормализация URL сайта.
         """
         website = self.cleaned_data.get('website')
+        if not website:
+            return ''
         if isinstance(website, list):
             website = next((item for item in website if item), '')
         if website:
-            website = website.strip()
+            website = str(website).strip()
             if website and not website.startswith(('http://', 'https://')):
                 website = f'https://{website}'
         return website or ''
     
     def clean_github(self):
         """Валидация и нормализация GitHub URL."""
-        github = self.cleaned_data.get('github', '').strip() if self.cleaned_data.get('github') else ''
+        github = self.cleaned_data.get('github', '')
+        if not github:
+            return ''
+        github = str(github).strip()
         if github and not github.startswith(('http://', 'https://')):
             github = f'https://{github}'
         return github or ''
     
     def clean_linkedin(self):
         """Валидация и нормализация LinkedIn URL."""
-        linkedin = self.cleaned_data.get('linkedin', '').strip() if self.cleaned_data.get('linkedin') else ''
+        linkedin = self.cleaned_data.get('linkedin', '')
+        if not linkedin:
+            return ''
+        linkedin = str(linkedin).strip()
         if linkedin and not linkedin.startswith(('http://', 'https://')):
             linkedin = f'https://{linkedin}'
         return linkedin or ''
     
     def clean_instagram(self):
         """Валидация и нормализация Instagram URL."""
-        instagram = self.cleaned_data.get('instagram', '').strip() if self.cleaned_data.get('instagram') else ''
+        instagram = self.cleaned_data.get('instagram', '')
+        if not instagram:
+            return ''
+        instagram = str(instagram).strip()
         if instagram and not instagram.startswith(('http://', 'https://')):
             instagram = f'https://{instagram}'
         return instagram or ''
     
     def clean_facebook(self):
         """Валидация и нормализация Facebook URL."""
-        facebook = self.cleaned_data.get('facebook', '').strip() if self.cleaned_data.get('facebook') else ''
+        facebook = self.cleaned_data.get('facebook', '')
+        if not facebook:
+            return ''
+        facebook = str(facebook).strip()
         if facebook and not facebook.startswith(('http://', 'https://')):
             facebook = f'https://{facebook}'
         return facebook or ''
     
     def clean_youtube(self):
         """Валидация и нормализация YouTube URL."""
-        youtube = self.cleaned_data.get('youtube', '').strip() if self.cleaned_data.get('youtube') else ''
+        youtube = self.cleaned_data.get('youtube', '')
+        if not youtube:
+            return ''
+        youtube = str(youtube).strip()
         if youtube and not youtube.startswith(('http://', 'https://')):
             youtube = f'https://{youtube}'
         return youtube or ''

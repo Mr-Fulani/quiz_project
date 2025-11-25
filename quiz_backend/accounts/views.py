@@ -208,24 +208,38 @@ def update_personal_info(request):
                 instance=user,
                 user=user
             )
-            print(f"Form created with data: {form.data}")
-            print(f"POST data keys: {list(request.POST.keys())}")
-            print(f"POST data values: {dict(request.POST)}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Form created with data: {form.data}")
+            logger.debug(f"POST data keys: {list(request.POST.keys())}")
+            logger.debug(f"POST data values: {dict(request.POST)}")
+            
             if form.is_valid():
-                print(f"Form is valid, cleaned data: {form.cleaned_data}")
-                form.save()
-                print(f"User {user.username} saved with email: {user.email}, first_name: {user.first_name}")
-                if is_ajax:
-                    return JsonResponse({'status': 'success', 'avatar_url': user.get_avatar_url})
-                messages.success(request, 'Профиль успешно обновлён!')
-                return redirect('accounts:dashboard')
+                logger.debug(f"Form is valid, cleaned data: {form.cleaned_data}")
+                try:
+                    form.save()
+                    logger.info(f"User {user.username} saved with email: {user.email}, first_name: {user.first_name}")
+                    if is_ajax:
+                        return JsonResponse({'status': 'success', 'avatar_url': user.get_avatar_url})
+                    messages.success(request, 'Профиль успешно обновлён!')
+                    return redirect('accounts:dashboard')
+                except Exception as save_error:
+                    logger.error(f"Ошибка при сохранении формы для пользователя {user.username}: {save_error}", exc_info=True)
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f'Ошибка при сохранении данных: {str(save_error)}',
+                            'errors': {}
+                        }, status=500)
+                    messages.error(request, f'Ошибка при сохранении данных: {str(save_error)}')
+                    return redirect('accounts:dashboard')
             else:
-                print(f"Form errors: {form.errors}")
-                print(f"Form errors as JSON: {form.errors.as_json()}")
-                print(f"Form non_field_errors: {form.non_field_errors()}")
+                logger.warning(f"Form errors for user {user.username}: {form.errors}")
+                logger.debug(f"Form errors as JSON: {form.errors.as_json()}")
+                logger.debug(f"Form non_field_errors: {form.non_field_errors()}")
                 # Логируем ошибки по каждому полю
                 for field, errors in form.errors.items():
-                    print(f"Field '{field}' errors: {errors}")
+                    logger.warning(f"Field '{field}' errors: {errors}")
                 if is_ajax:
                     return JsonResponse({
                         'status': 'error',
