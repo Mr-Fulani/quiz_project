@@ -698,28 +698,163 @@ class TelegramAuthService:
             
             return user
         
+        # Пытаемся найти существующего пользователя по email
+        # Ищем среди пользователей, у которых есть SocialAccount с email (например, GitHub)
+        # Это помогает связать существующие аккаунты на сайте или через GitHub с Telegram
+        # ВАЖНО: Telegram Login Widget не предоставляет email, поэтому мы ищем среди всех пользователей
+        # с email, которые еще не связаны с Telegram. Это может быть неидеально, но помогает связать
+        # аккаунты для пользователей, которые уже зарегистрированы через GitHub или сайт.
+        try:
+            # Сначала проверяем email через SocialAccount (например, GitHub аккаунты)
+            # Ищем только среди пользователей, у которых еще нет Telegram SocialAccount
+            social_accounts_with_email = SocialAccount.objects.filter(
+                email__isnull=False,
+                provider='github'  # Ограничиваем поиск только GitHub аккаунтами
+            ).exclude(email='').select_related('user')
+            
+            # Получаем список пользователей, у которых уже есть Telegram SocialAccount
+            users_with_telegram = set(
+                SocialAccount.objects.filter(provider='telegram')
+                .values_list('user_id', flat=True)
+            )
+            
+            # Проверяем пользователей с GitHub аккаунтами
+            for social_account in social_accounts_with_email:
+                existing_user = social_account.user
+                
+                # Пропускаем, если у пользователя уже есть Telegram SocialAccount
+                if existing_user.id in users_with_telegram:
+                    continue
+                
+                # Проверяем, что у пользователя нет telegram_id или он другой
+                if not existing_user.telegram_id or str(existing_user.telegram_id) != telegram_id:
+                    # Проверяем, что пользователь активен
+                    if existing_user.is_active:
+                        logger.info(f"Найден пользователь по email через GitHub SocialAccount: {existing_user.username} (id={existing_user.id}), email={social_account.email}")
+                        logger.info(f"Сохраняем существующую информацию пользователя: статистика, настройки, логотип")
+                        
+                        # ВАЖНО: Обновляем только пустые поля или дополняем информацию
+                        # НЕ перезаписываем существующие данные (статистика, логотип и т.д.)
+                        updated = False
+                        
+                        # Связываем с telegram_id
+                        existing_user.telegram_id = telegram_id
+                        if not existing_user.is_telegram_user:
+                            existing_user.is_telegram_user = True
+                            updated = True
+                        
+                        # Обновляем имя только если оно пустое
+                        if first_name and not existing_user.first_name:
+                            existing_user.first_name = first_name
+                            updated = True
+                        
+                        # Обновляем фамилию только если она пустая
+                        if last_name and not existing_user.last_name:
+                            existing_user.last_name = last_name
+                            updated = True
+                        
+                        # Загружаем аватарку только если её нет
+                        if photo_url and not existing_user.avatar:
+                            if TelegramAuthService._download_avatar_from_url(photo_url, existing_user):
+                                updated = True
+                                logger.info(f"Аватарка загружена для существующего пользователя {existing_user.username}")
+                        
+                        if updated:
+                            existing_user.save()
+                            logger.info(f"Пользователь {existing_user.username} успешно связан с telegram_id={telegram_id} через email={social_account.email}")
+                        
+                        return existing_user
+        except Exception as email_search_error:
+            logger.warning(f"Ошибка при поиске пользователя по email через SocialAccount: {email_search_error}")
+        
+        # Также проверяем email напрямую в User
+        # (для пользователей, зарегистрированных напрямую на сайте)
+        try:
+            # Получаем список пользователей, у которых уже есть Telegram SocialAccount
+            users_with_telegram = set(
+                SocialAccount.objects.filter(provider='telegram')
+                .values_list('user_id', flat=True)
+            )
+            
+            users_with_email = User.objects.filter(
+                email__isnull=False
+            ).exclude(email='').exclude(id__in=users_with_telegram)
+            
+            for existing_user in users_with_email:
+                # Проверяем, что у пользователя нет telegram_id или он другой
+                if not existing_user.telegram_id or str(existing_user.telegram_id) != telegram_id:
+                    # Проверяем, что пользователь активен
+                    if existing_user.is_active:
+                        logger.info(f"Найден пользователь по email в User: {existing_user.username} (id={existing_user.id}), email={existing_user.email}")
+                        logger.info(f"Сохраняем существующую информацию пользователя: статистика, настройки, логотип")
+                        
+                        # ВАЖНО: Обновляем только пустые поля
+                        updated = False
+                        
+                        # Связываем с telegram_id
+                        existing_user.telegram_id = telegram_id
+                        if not existing_user.is_telegram_user:
+                            existing_user.is_telegram_user = True
+                            updated = True
+                        
+                        # Обновляем имя только если оно пустое
+                        if first_name and not existing_user.first_name:
+                            existing_user.first_name = first_name
+                            updated = True
+                        
+                        # Обновляем фамилию только если она пустая
+                        if last_name and not existing_user.last_name:
+                            existing_user.last_name = last_name
+                            updated = True
+                        
+                        # Загружаем аватарку только если её нет
+                        if photo_url and not existing_user.avatar:
+                            if TelegramAuthService._download_avatar_from_url(photo_url, existing_user):
+                                updated = True
+                                logger.info(f"Аватарка загружена для существующего пользователя {existing_user.username}")
+                        
+                        if updated:
+                            existing_user.save()
+                            logger.info(f"Пользователь {existing_user.username} успешно связан с telegram_id={telegram_id} через email={existing_user.email}")
+                        
+                        return existing_user
+        except Exception as email_user_search_error:
+            logger.warning(f"Ошибка при поиске пользователя по email в User: {email_user_search_error}")
+        
         # Пытаемся найти существующего пользователя по username из Telegram
         # Это помогает связать существующие аккаунты на сайте с Telegram
         if telegram_username and telegram_username.strip():
-            existing_user = User.objects.filter(username=telegram_username).first()
+            existing_user = User.objects.filter(username__iexact=telegram_username).first()
             if existing_user:
                 # Если найден пользователь без telegram_id или с другим telegram_id, связываем его
                 if not existing_user.telegram_id or str(existing_user.telegram_id) != telegram_id:
                     logger.info(f"Связывание существующего пользователя {existing_user.username} с telegram_id={telegram_id}")
+                    logger.info(f"Сохраняем существующую информацию пользователя: статистика, настройки, логотип")
+                    
+                    # ВАЖНО: Обновляем только пустые поля
+                    updated = False
+                    
                     existing_user.telegram_id = telegram_id
-                    if first_name and first_name != existing_user.first_name:
-                        existing_user.first_name = first_name
-                    if last_name and last_name != existing_user.last_name:
-                        existing_user.last_name = last_name
                     if not existing_user.is_telegram_user:
                         existing_user.is_telegram_user = True
+                        updated = True
                     
-                    # Загружаем аватарку если есть
+                    if first_name and not existing_user.first_name:
+                        existing_user.first_name = first_name
+                        updated = True
+                    if last_name and not existing_user.last_name:
+                        existing_user.last_name = last_name
+                        updated = True
+                    
+                    # Загружаем аватарку только если её нет
                     if photo_url and not existing_user.avatar:
-                        TelegramAuthService._download_avatar_from_url(photo_url, existing_user)
+                        if TelegramAuthService._download_avatar_from_url(photo_url, existing_user):
+                            updated = True
                     
-                    existing_user.save()
-                    logger.info(f"Пользователь {existing_user.username} успешно связан с telegram_id={telegram_id}")
+                    if updated:
+                        existing_user.save()
+                        logger.info(f"Пользователь {existing_user.username} успешно связан с telegram_id={telegram_id}")
+                    
                     return existing_user
         
         # Если не нашли существующего пользователя, создаем нового
