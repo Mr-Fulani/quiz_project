@@ -946,12 +946,19 @@ section.testimonials-modal.add-testimonials-modal .form-group label {
 
 @media (max-width: 768px) { /* Стили для экранов уже 768px */
     .message-notification { /* Уведомление */
-        top: auto; /* Убирает фиксированное положение сверху */
-        bottom: 20px; /* Прилепляет к нижнему краю с отступом 20px */
-        right: 50%; /* Центрирует по горизонтали */
-        transform: translateX(50%); /* Сдвигает на 50% влево для точного центрирования */
-        width: 90%; /* Ширина 90% */
-        text-align: center; /* Центрирует текст */
+        top: 10px !important; /* Фиксированное положение сверху с небольшим отступом */
+        bottom: auto !important; /* Убираем привязку к нижнему краю */
+        right: 10px !important; /* Отступ справа */
+        left: 10px !important; /* Отступ слева */
+        transform: none !important; /* Убираем трансформацию */
+        width: auto !important; /* Автоматическая ширина */
+        max-width: none !important; /* Убираем ограничение максимальной ширины */
+        max-height: 150px !important; /* Ограничиваем высоту */
+        overflow-y: auto !important; /* Добавляем прокрутку при необходимости */
+        text-align: left !important; /* Выравнивание текста слева */
+        padding: 12px 16px !important; /* Уменьшаем отступы */
+        font-size: 13px !important; /* Уменьшаем размер шрифта */
+        line-height: 1.4 !important; /* Межстрочный интервал */
     }
 }
 

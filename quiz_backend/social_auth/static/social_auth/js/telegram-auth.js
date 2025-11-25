@@ -169,21 +169,47 @@ class TelegramAuth {
         notification.className = `telegram-notification telegram-notification-${type}`;
         notification.textContent = message;
         
+        // Определяем, мобильное ли устройство
+        const isMobile = window.innerWidth <= 768;
+        
         // Добавляем стили
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 10000;
-            max-width: 300px;
-            word-wrap: break-word;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease-out;
-        `;
+        if (isMobile) {
+            notification.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 12px 16px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: none;
+                width: auto;
+                max-height: 150px;
+                overflow-y: auto;
+                word-wrap: break-word;
+                font-size: 13px;
+                line-height: 1.4;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+            `;
+        } else {
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 300px;
+                word-wrap: break-word;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+            `;
+        }
         
         // Цвета для разных типов
         if (type === 'success') {
