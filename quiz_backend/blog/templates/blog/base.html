@@ -686,9 +686,16 @@
             notification.className = 'message-notification success';
             notification.textContent = 'Успешная авторизация через GitHub!';
             document.body.appendChild(notification);
+            
+            // Просто перезагружаем страницу - сессия уже установлена на сервере
+            // Это обновит все элементы интерфейса и проверит авторизацию
             setTimeout(() => {
                 notification.remove();
-            }, 3000);
+                // Удаляем параметр github_auth_success из URL перед перезагрузкой
+                const url = new URL(window.location);
+                url.searchParams.delete('github_auth_success');
+                window.location.href = url.pathname + url.search;
+            }, 1500);
         }
         
         // Показываем уведомление об успешной авторизации через Telegram

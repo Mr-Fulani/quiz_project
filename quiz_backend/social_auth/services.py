@@ -856,7 +856,12 @@ class GitHubAuthService:
                 params['state'] = state
             
             url = f"{GitHubAuthService.GITHUB_AUTH_URL}?{urllib.parse.urlencode(params)}"
-            logger.info(f"Сгенерирован URL для GitHub авторизации: {url}")
+            logger.info(f"🔗 Сгенерирован URL для GitHub авторизации: {url}")
+            logger.info(f"🔍 Параметры запроса к GitHub:")
+            logger.info(f"  - client_id: {settings.client_id}")
+            logger.info(f"  - redirect_uri: {redirect_uri}")
+            logger.info(f"  - state: {state}")
+            logger.info(f"⚠️ ВАЖНО: redirect_uri должен точно совпадать с настройками в GitHub OAuth App!")
             return url
             
         except Exception as e:
