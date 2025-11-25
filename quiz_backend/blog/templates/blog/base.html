@@ -1126,12 +1126,42 @@
         padding: 10px 20px;
         border-radius: 5px;
         z-index: 1000;
+        max-width: 400px;
+        word-wrap: break-word;
+        font-size: 14px;
+        line-height: 1.4;
     }
 
     .message-notification.success {
         background-color: rgba(46, 204, 113, 0.2);
         color: #2ecc71;
         border: 1px solid #2ecc71;
+    }
+    
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+        .message-notification {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+            width: auto;
+            padding: 12px 16px;
+            font-size: 13px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .message-notification {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            max-height: 120px;
+        }
     }
     .home-link {
         display: flex;
