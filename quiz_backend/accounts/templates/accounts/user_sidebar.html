@@ -84,9 +84,15 @@
       <ul class="social-list">
         {% if user_profile.telegram %}
         <li class="social-item">
-            <a href="{% if user_profile.telegram %}tg://resolve?domain={{ user_profile.telegram|cut:'https://t.me/'|cut:'@' }}{% endif %}" class="social-link" target="_blank" rel="noopener noreferrer">
-                <ion-icon name="paper-plane"></ion-icon>
-            </a>
+            {% with telegram_url=user_profile.get_telegram_url %}
+                {% if telegram_url %}
+                    {% with username=telegram_url|cut:'https://t.me/'|cut:'http://t.me/'|cut:'@' %}
+                        <a href="tg://resolve?domain={{ username }}" class="social-link" target="_blank" rel="noopener noreferrer">
+                            <ion-icon name="paper-plane"></ion-icon>
+                        </a>
+                    {% endwith %}
+                {% endif %}
+            {% endwith %}
         </li>
         {% endif %}
         {% if user_profile.github %}

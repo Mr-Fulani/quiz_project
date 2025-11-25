@@ -79,7 +79,7 @@
                             {% endif %}
 
                             {% if profile_user.telegram %}
-                            <a href="{{ profile_user.telegram }}" target="_blank" rel="noopener noreferrer">
+                            <a href="{{ profile_user.get_telegram_url }}" target="_blank" rel="noopener noreferrer">
                                 <ion-icon name="paper-plane"></ion-icon>
                             </a>
                             {% endif %}
