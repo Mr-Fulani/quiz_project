@@ -41,6 +41,39 @@ for arg in "$@"; do
   esac
 done
 
+function clear_all_cache() {
+  echo ""
+  echo "🧹 Автоматическая очистка кэша..."
+  
+  # Очистка Python кэша (.pyc файлы)
+  echo "   🗑️  Очистка Python кэша (.pyc файлы)..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend find . -name "*.pyc" -delete 2>/dev/null || true
+  echo "   ✅ Python кэш очищен"
+  
+  # Очистка статических файлов
+  echo "   🗑️  Очистка статических файлов..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend rm -rf staticfiles/* 2>/dev/null || true
+  echo "   ✅ Старые статические файлы удалены"
+  
+  # Пересборка статики
+  echo "   🔄 Пересборка статических файлов..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput --clear
+  echo "   ✅ Статические файлы пересобраны"
+  
+  # Очистка кэша nginx
+  echo "   🗑️  Очистка кэша nginx..."
+  docker compose -f docker-compose.local-prod.yml exec -T nginx sh -c "rm -rf /var/cache/nginx/* 2>/dev/null || true" || true
+  echo "   ✅ Кэш nginx очищен"
+  
+  # Перезапуск nginx для применения изменений
+  echo "   🔄 Перезапуск nginx..."
+  docker compose -f docker-compose.local-prod.yml restart nginx
+  echo "   ✅ Nginx перезапущен"
+  
+  echo "✅ Автоматическая очистка кэша завершена"
+}
+
 function clear_static_cache() {
   echo "🧹 Запуск очистки статических файлов..."
   docker compose -f docker-compose.local-prod.yml exec -T quiz_backend rm -rf staticfiles/*
@@ -198,8 +231,26 @@ else
     if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 15; fi
 fi
 
-if [ "$CLEAR_CACHE" = "1" ]; then
-  clear_static_cache
+# Автоматическая очистка кэша после запуска (если не включен быстрый режим)
+if [ "$FAST_MODE" != "1" ]; then
+  # Ждем, пока контейнеры точно запустятся и будут готовы
+  echo "⏳ Ожидание готовности контейнеров перед очисткой кэша..."
+  sleep 5
+  
+  # Проверяем, что контейнеры запущены
+  if docker compose -f docker-compose.local-prod.yml ps quiz_backend | grep -q "Up"; then
+    clear_all_cache
+  else
+    echo "⚠️  Контейнер quiz_backend не запущен, пропускаем очистку кэша"
+  fi
+elif [ "$CLEAR_CACHE" = "1" ]; then
+  # Если включен быстрый режим, но явно запрошена очистка кэша
+  sleep 3
+  if docker compose -f docker-compose.local-prod.yml ps quiz_backend | grep -q "Up"; then
+    clear_static_cache
+  else
+    echo "⚠️  Контейнер quiz_backend не запущен, пропускаем очистку кэша"
+  fi
 fi
 
 echo ""
