@@ -33,9 +33,21 @@ echo "🌐 Запуск продакшена..."
 # Быстрый режим: пропускаем тяжёлую очистку и долгие ожидания
 # Использование: ./start-prod.sh --fast или FAST_MODE=1 ./start-prod.sh
 FAST_MODE=${FAST_MODE:-0}
-if [ "$1" = "--fast" ]; then
-  FAST_MODE=1
-fi
+CLEAR_CACHE=${CLEAR_CACHE:-0}
+for arg in "$@"; do
+  case "$arg" in
+    --fast) FAST_MODE=1 ;;
+    --clear-cache) CLEAR_CACHE=1 ;;
+  esac
+done
+
+function clear_static_cache() {
+  echo "🧹 Запуск очистки статических файлов..."
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend rm -rf staticfiles/*
+  docker compose -f docker-compose.local-prod.yml exec -T quiz_backend python manage.py collectstatic --noinput --clear
+  docker compose -f docker-compose.local-prod.yml restart nginx
+  echo "🧹 Очистка статики завершена"
+}
 if [ "$FAST_MODE" = "1" ]; then
   echo "⚡ Включён быстрый режим (без prune/down, сокращённые ожидания)"
 fi
@@ -184,6 +196,10 @@ else
     
     echo "⏳ Ожидание полного запуска всех сервисов..."
     if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 15; fi
+fi
+
+if [ "$CLEAR_CACHE" = "1" ]; then
+  clear_static_cache
 fi
 
 echo ""
