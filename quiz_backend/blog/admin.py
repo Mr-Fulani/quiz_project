@@ -1113,7 +1113,18 @@ class ResumeEducationForm(forms.ModelForm):
         )
         for field_name in optional_fields:
             if field_name in self.fields:
+                # Явно убираем required
                 self.fields[field_name].required = False
+                # Убираем атрибут required из виджета
+                if 'required' in self.fields[field_name].widget.attrs:
+                    del self.fields[field_name].widget.attrs['required']
+    
+    def clean(self):
+        """Дополнительная валидация - разрешаем пустые поля."""
+        cleaned_data = super().clean()
+        # Все поля уже необязательные благодаря blank=True в модели
+        # и required=False в форме, поэтому просто возвращаем данные
+        return cleaned_data
 
 
 class ResumeEducationInline(admin.StackedInline):
