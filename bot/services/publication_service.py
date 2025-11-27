@@ -835,6 +835,7 @@ async def publish_task_by_translation_group(
                             continue
 
                         await bot.send_photo(chat_id=group.group_id, photo=image_message["photo"], parse_mode="MarkdownV2")
+                        await asyncio.sleep(1)
                         await bot.send_message(chat_id=group.group_id, text=text_message["text"], parse_mode="MarkdownV2")
                         poll_msg = await bot.send_poll(
                             chat_id=group.group_id,
@@ -846,6 +847,7 @@ async def publish_task_by_translation_group(
                             type="quiz"
                         )
                         await bot.send_message(chat_id=group.group_id, text=button_message["text"], reply_markup=button_message["reply_markup"])
+                        await asyncio.sleep(1)
 
                         chat = await bot.get_chat(group.group_id)
                         channel_username = chat.username
