@@ -1093,9 +1093,33 @@ class ResumeWorkHistoryInline(admin.StackedInline):
         return formset
 
 
+class ResumeEducationForm(forms.ModelForm):
+    """Форма, делающая поля образования необязательными."""
+
+    class Meta:
+        model = ResumeEducation
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        """Отмечаем все текстовые поля как необязательные."""
+        super().__init__(*args, **kwargs)
+        optional_fields = (
+            'title_en',
+            'title_ru',
+            'period_en',
+            'period_ru',
+            'institution_en',
+            'institution_ru',
+        )
+        for field_name in optional_fields:
+            if field_name in self.fields:
+                self.fields[field_name].required = False
+
+
 class ResumeEducationInline(admin.StackedInline):
     """Inline редактирование образования"""
     model = ResumeEducation
+    form = ResumeEducationForm
     extra = 0
     fields = (
         ('title_en', 'title_ru'),
