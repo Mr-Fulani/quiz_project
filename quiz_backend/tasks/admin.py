@@ -1,4 +1,6 @@
 import os
+import random
+import time
 from django import forms
 from django.contrib import admin, messages
 from django.urls import path
@@ -117,6 +119,18 @@ class TaskAdmin(admin.ModelAdmin):
     ordering = ('-create_date',)
     list_per_page = 20
     
+    def _pause_between_task_publications(self, request, task_id):
+        """
+        Вставляет случайную паузу между публикациями задач (чтобы не воспринималось как спам).
+        """
+        pause_seconds = random.randint(3, 6)
+        time.sleep(pause_seconds)
+        self.message_user(
+            request,
+            f"⏸️ Пауза {pause_seconds} сек перед следующей задачей (последняя: {task_id})",
+            messages.INFO
+        )
+
     # Добавляем поля для редактирования
     fieldsets = (
         ('Основная информация', {
@@ -714,48 +728,45 @@ class TaskAdmin(admin.ModelAdmin):
         published_by_language = {}
         
         for task in all_related_tasks:
-            translation = task.translations.first()
-            if not translation:
-                error_msg = f"Задача {task.id}: отсутствуют переводы"
-                errors.append(error_msg)
-                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                continue
-            
-            language = translation.language.upper()
-            
-            # Проверяем наличие изображения
-            if not task.image_url:
-                error_msg = f"Задача {task.id} ({language}): отсутствует изображение"
-                errors.append(error_msg)
-                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                continue
-            
-            # Находим группу для этого языка и топика
-            telegram_group = TelegramGroup.objects.filter(
-                topic_id=task.topic,
-                language=translation.language
-            ).first()
-            
-            if not telegram_group:
-                error_msg = f"Задача {task.id} ({language}): не найдена Telegram группа для языка {language}"
-                errors.append(error_msg)
-                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                continue
-            
             try:
+                translation = task.translations.first()
+                if not translation:
+                    error_msg = f"Задача {task.id}: отсутствуют переводы"
+                    errors.append(error_msg)
+                    self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                    continue
+
+                language = translation.language.upper()
+
+                if not task.image_url:
+                    error_msg = f"Задача {task.id} ({language}): отсутствует изображение"
+                    errors.append(error_msg)
+                    self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                    continue
+
+                telegram_group = TelegramGroup.objects.filter(
+                    topic_id=task.topic,
+                    language=translation.language
+                ).first()
+
+                if not telegram_group:
+                    error_msg = f"Задача {task.id} ({language}): не найдена Telegram группа для языка {language}"
+                    errors.append(error_msg)
+                    self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                    continue
+
                 self.message_user(
                     request,
                     f"🚀 Публикуем задачу {task.id} ({language}) в канал {telegram_group.group_name}...",
                     messages.INFO
                 )
-                
+
                 result = publish_task_to_telegram(
                     task=task,
                     translation=translation,
                     telegram_group=telegram_group
                 )
-                
-                # Показываем детальные логи публикации
+
                 if result.get('detailed_logs'):
                     for log in result['detailed_logs']:
                         if log.startswith('✅') or log.startswith('🎉'):
@@ -768,42 +779,34 @@ class TaskAdmin(admin.ModelAdmin):
                             self.message_user(request, log, messages.ERROR)
                         else:
                             self.message_user(request, log, messages.INFO)
-                
+
                 if result['success']:
-                    # Обновляем флаг публикации и дату для этой задачи
-                    # message_id и group уже сохранены в publish_task_to_telegram
                     task.published = True
                     task.publish_date = timezone.now()
-                    task.error = False  # Сбрасываем ошибку если публикация успешна
-                    # Обновляем только если message_id еще не сохранен
+                    task.error = False
                     update_fields = ['published', 'publish_date', 'error']
                     if not task.message_id:
-                        # Если message_id не был сохранен в publish_task_to_telegram, пробуем получить из результата
-                        # (но обычно он уже сохранен)
                         update_fields.append('message_id')
                     if not task.group:
                         update_fields.append('group')
                     task.save(update_fields=update_fields)
                     published_count += 1
-                    
-                    # Считаем по языкам
                     if language not in published_by_language:
                         published_by_language[language] = 0
                     published_by_language[language] += 1
                 else:
-                    # Отмечаем ошибку для ЭТОЙ задачи, остальные переводы продолжают публиковаться
                     task.error = True
                     task.save(update_fields=['error'])
                     error_details = ', '.join(result['errors'])
                     errors.append(f"Задача {task.id} ({language}): {error_details}")
-                    
             except Exception as e:
-                # Отмечаем ошибку при исключении
                 task.error = True
                 task.save(update_fields=['error'])
                 error_msg = f"Задача {task.id} ({language}): {str(e)}"
                 errors.append(error_msg)
                 self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+            finally:
+                self._pause_between_task_publications(request, task.id)
         
         # Итоговое сообщение
         self.message_user(request, "=" * 60, messages.INFO)

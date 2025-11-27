@@ -489,6 +489,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         if task.image_url:
             result['detailed_logs'].append(f"📷 Отправка изображения: {task.image_url[:50]}...")
             photo_result = send_photo(chat_id, task.image_url, caption=None)  # Без caption - вопрос будет в опросе
+            time.sleep(1)
             if photo_result:
                 result['image_sent'] = True
                 result['detailed_logs'].append(f"✅ Изображение отправлено (message_id: {photo_result.get('message_id')})")
@@ -514,6 +515,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         
         result['detailed_logs'].append(f"📝 Отправка деталей задачи")
         text_result = send_message(chat_id, task_details_text, "MarkdownV2")
+        time.sleep(1)
         if text_result:
             result['text_sent'] = True
             result['detailed_logs'].append(f"✅ Детали задачи отправлены")
@@ -568,6 +570,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             correct_option_id=correct_option_id,
             explanation=poll_explanation
         )
+        time.sleep(1)
         
         if poll_result:
             result['poll_sent'] = True
@@ -618,6 +621,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             button_url=final_link,
             parse_mode=None  # Без форматирования
         )
+        time.sleep(1)
         
         if button_result:
             result['button_sent'] = True
