@@ -37,7 +37,7 @@ CLEAR_CACHE=${CLEAR_CACHE:-0}
 for arg in "$@"; do
   case "$arg" in
     --fast) FAST_MODE=1 ;;
-    --clear-cache) CLEAR_CACHE=1 ;;
+    --clear-cache|--clean-cache) CLEAR_CACHE=1 ;;
   esac
 done
 
@@ -231,23 +231,18 @@ else
     if [ "$FAST_MODE" = "1" ]; then sleep 5; else sleep 15; fi
 fi
 
-# Автоматическая очистка кэша после запуска (если не включен быстрый режим)
-if [ "$FAST_MODE" != "1" ]; then
-  # Ждем, пока контейнеры точно запустятся и будут готовы
+# Очистка кэша только если явно запрошена через флаг --clear-cache
+if [ "$CLEAR_CACHE" = "1" ]; then
   echo "⏳ Ожидание готовности контейнеров перед очисткой кэша..."
-  sleep 5
+  if [ "$FAST_MODE" = "1" ]; then
+    sleep 3
+  else
+    sleep 5
+  fi
   
-  # Проверяем, что контейнеры запущены
+  # Проверяем, что контейнеры запущены и очищаем кэш
   if docker compose -f docker-compose.local-prod.yml ps quiz_backend | grep -q "Up"; then
     clear_all_cache
-  else
-    echo "⚠️  Контейнер quiz_backend не запущен, пропускаем очистку кэша"
-  fi
-elif [ "$CLEAR_CACHE" = "1" ]; then
-  # Если включен быстрый режим, но явно запрошена очистка кэша
-  sleep 3
-  if docker compose -f docker-compose.local-prod.yml ps quiz_backend | grep -q "Up"; then
-    clear_static_cache
   else
     echo "⚠️  Контейнер quiz_backend не запущен, пропускаем очистку кэша"
   fi
