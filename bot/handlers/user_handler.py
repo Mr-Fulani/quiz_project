@@ -2,19 +2,20 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from aiogram import Router, types
+from aiogram import Router, types, Bot
 from aiogram.filters import Command
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.models import TelegramUser, TelegramGroup, UserChannelSubscription, TelegramAdmin
+from bot.utils.markdownV2 import escape_markdown, format_user_link, format_group_link
 
 logger = logging.getLogger(__name__)
 router = Router()
 
 
 @router.chat_member()
-async def handle_member_update(event: types.ChatMemberUpdated, db_session: AsyncSession):
+async def handle_member_update(event: types.ChatMemberUpdated, db_session: AsyncSession, bot: Bot):
     logger.info("=== ОБРАБОТЧИК ChatMemberUpdated ЗАПУЩЕН ===")
     """
     Обрабатывает изменения статуса пользователя в канале или группе.
@@ -66,17 +67,31 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
 
     # Получаем существующую группу из базы данных
     channel_obj = await get_group(db_session, chat)
+    channel_in_db = channel_obj is not None
+    
+    # Если канала нет в БД, создаем временный объект для уведомлений
+    # но не обновляем подписки в БД
     if not channel_obj:
-        logger.warning(f"Группа с ID {chat.id} не найдена в базе данных. Подписка не обновлена.")
-        return
-
-    # Обновляем запись о подписке пользователя на канал/группу
-    subscription = await db_session.execute(
-        select(UserChannelSubscription)
-        .where(UserChannelSubscription.telegram_user_id == user_obj.id)  # Используем внутренний ID
-        .where(UserChannelSubscription.channel_id == channel_obj.group_id)
-    )
-    sub_obj = subscription.scalar_one_or_none()
+        logger.warning(f"Группа с ID {chat.id} не найдена в базе данных. Подписка не обновлена, но уведомления будут отправлены если бот админ.")
+        # Создаем временный объект TelegramGroup для уведомлений
+        from bot.database.models import TelegramGroup
+        channel_obj = TelegramGroup(
+            group_id=chat.id,
+            group_name=chat.title or f"Канал {chat.id}",
+            username=chat.username,
+            topic_id=1,  # Временное значение
+            language="ru",
+            location_type="channel" if chat.type == "channel" else "group"
+        )
+        sub_obj = None
+    else:
+        # Обновляем запись о подписке пользователя на канал/группу
+        subscription = await db_session.execute(
+            select(UserChannelSubscription)
+            .where(UserChannelSubscription.telegram_user_id == user_obj.id)  # Используем внутренний ID
+            .where(UserChannelSubscription.channel_id == channel_obj.group_id)
+        )
+        sub_obj = subscription.scalar_one_or_none()
 
     logger.info(f"=== ПРОВЕРКА УСЛОВИЙ ===")
     logger.info(f"new_status: '{new_status}', old_status: '{old_status}'")
@@ -167,31 +182,54 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     
     elif new_status == "member":
         # Пользователь подписался на канал/группу
-        if not sub_obj:
-            # Если записи о подписке нет, создаем ее
-            sub_obj = UserChannelSubscription(
-                telegram_user_id=user_obj.id,  # Используем внутренний ID
-                channel_id=channel_obj.group_id,
-                subscription_status="active",
-                subscribed_at=datetime.now(timezone.utc)
-            )
-            db_session.add(sub_obj)
-            logger.info(f"Создана новая подписка: пользователь {user_obj.id} на группу {channel_obj.group_id}")
-        else:
-            # Если запись существует, обновляем статус и дату подписки
-            if sub_obj.subscription_status != "active":
-                sub_obj.subscription_status = "active"
-                sub_obj.subscribed_at = datetime.now(timezone.utc)
-                sub_obj.unsubscribed_at = None
-                logger.info(
-                    f"Обновлена подписка: пользователь {user_obj.id} снова подписался на группу {channel_obj.group_id}")
+        # Обновляем подписку только если канал есть в БД
+        if channel_in_db:
+            if not sub_obj:
+                # Если записи о подписке нет, создаем ее
+                sub_obj = UserChannelSubscription(
+                    telegram_user_id=user_obj.id,  # Используем внутренний ID
+                    channel_id=channel_obj.group_id,
+                    subscription_status="active",
+                    subscribed_at=datetime.now(timezone.utc)
+                )
+                db_session.add(sub_obj)
+                logger.info(f"Создана новая подписка: пользователь {user_obj.id} на группу {channel_obj.group_id}")
+            else:
+                # Если запись существует, обновляем статус и дату подписки
+                if sub_obj.subscription_status != "active":
+                    sub_obj.subscription_status = "active"
+                    sub_obj.subscribed_at = datetime.now(timezone.utc)
+                    sub_obj.unsubscribed_at = None
+                    logger.info(
+                        f"Обновлена подписка: пользователь {user_obj.id} снова подписался на группу {channel_obj.group_id}")
+        
+        # Проверяем, является ли бот админом канала, и отправляем уведомление админам
+        # Уведомления отправляются даже если канала нет в БД
+        await notify_admins_about_channel_subscription(
+            bot=bot,
+            db_session=db_session,
+            user=user,
+            channel=channel_obj,
+            action="subscribed"
+        )
 
     elif new_status in ("left", "kicked"):  # Добавлено "kicked" для большей надёжности
         # Пользователь отписался от канала/группы
-        if sub_obj and sub_obj.subscription_status != "inactive":
+        # Обновляем подписку только если канал есть в БД
+        if channel_in_db and sub_obj and sub_obj.subscription_status != "inactive":
             sub_obj.subscription_status = "inactive"
             sub_obj.unsubscribed_at = datetime.now(timezone.utc)
             logger.info(f"Отписка пользователя {user_obj.id} от группы {channel_obj.group_id}")
+        
+        # Проверяем, является ли бот админом канала, и отправляем уведомление админам
+        # Уведомления отправляются даже если канала нет в БД
+        await notify_admins_about_channel_subscription(
+            bot=bot,
+            db_session=db_session,
+            user=user,
+            channel=channel_obj,
+            action="unsubscribed"
+        )
     
     elif new_status == "administrator":
         # Пользователь стал администратором канала
@@ -262,14 +300,15 @@ async def handle_member_update(event: types.ChatMemberUpdated, db_session: Async
     
 
 
-    # Сохраняем изменения в базе данных
-    try:
-        await db_session.commit()
-        logger.debug("Изменения в подписках успешно сохранены.")
-            
-    except Exception as e:
-        await db_session.rollback()
-        logger.error(f"Ошибка при сохранении изменений в подписках: {e}")
+    # Сохраняем изменения в базе данных только если канал есть в БД
+    if channel_in_db:
+        try:
+            await db_session.commit()
+            logger.debug("Изменения в подписках успешно сохранены.")
+                
+        except Exception as e:
+            await db_session.rollback()
+            logger.error(f"Ошибка при сохранении изменений в подписках: {e}")
 
 
 async def get_or_create_user(db_session: AsyncSession, from_user: types.User) -> TelegramUser | None:
@@ -417,3 +456,87 @@ async def get_or_create_user_for_admin(db_session: AsyncSession, admin: Telegram
         logger.error(f"Ошибка при создании TelegramUser для админа {admin.telegram_id}: {e}")
         await db_session.rollback()
         return None
+
+
+async def notify_admins_about_channel_subscription(
+    bot: Bot,
+    db_session: AsyncSession,
+    user: types.User,
+    channel: TelegramGroup,
+    action: str
+) -> None:
+    """
+    Отправляет уведомление админам о подписке/отписке пользователя на канал,
+    если бот является админом этого канала.
+    
+    Args:
+        bot: Экземпляр бота
+        db_session: Сессия базы данных
+        user: Пользователь, который подписался/отписался
+        channel: Канал/группа
+        action: Действие ('subscribed' или 'unsubscribed')
+    """
+    try:
+        # Проверяем, является ли бот админом канала
+        bot_info = await bot.get_me()
+        try:
+            bot_member = await bot.get_chat_member(chat_id=channel.group_id, user_id=bot_info.id)
+            if bot_member.status not in ("administrator", "creator"):
+                logger.debug(f"Бот не является админом канала {channel.group_id}, уведомление не отправляется")
+                return
+        except Exception as e:
+            logger.warning(f"Не удалось проверить статус бота в канале {channel.group_id}: {e}")
+            return
+        
+        # Получаем всех активных админов из базы данных
+        admins_result = await db_session.execute(
+            select(TelegramAdmin).where(TelegramAdmin.is_active == True)
+        )
+        admins = admins_result.scalars().all()
+        
+        if not admins:
+            logger.debug("Нет активных админов для отправки уведомления")
+            return
+        
+        # Формируем сообщение
+        user_link = format_user_link(user.username, user.id)
+        channel_link = format_group_link(channel)
+        
+        if action == "subscribed":
+            title = escape_markdown("✅ Новая подписка на канал")
+            message_text = (
+                escape_markdown("Пользователь ") + user_link +
+                escape_markdown(" подписался на канал ") + channel_link +
+                escape_markdown(".")
+            )
+        elif action == "unsubscribed":
+            title = escape_markdown("❌ Отписка от канала")
+            message_text = (
+                escape_markdown("Пользователь ") + user_link +
+                escape_markdown(" отписался от канала ") + channel_link +
+                escape_markdown(".")
+            )
+        else:
+            logger.error(f"Некорректное действие: {action}")
+            return
+        
+        # Отправляем уведомление каждому админу
+        sent_count = 0
+        for admin in admins:
+            try:
+                await bot.send_message(
+                    chat_id=admin.telegram_id,
+                    text=message_text,
+                    parse_mode="MarkdownV2"
+                )
+                sent_count += 1
+                logger.debug(f"Уведомление отправлено админу {admin.telegram_id} (@{admin.username or 'None'})")
+            except Exception as e:
+                logger.warning(f"Не удалось отправить уведомление админу {admin.telegram_id}: {e}")
+        
+        logger.info(f"Уведомление о {action} отправлено {sent_count} из {len(admins)} админам")
+        
+    except Exception as e:
+        logger.error(f"Ошибка при отправке уведомлений админам о {action}: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
