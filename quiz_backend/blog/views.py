@@ -985,6 +985,8 @@ def contact_form_submit(request):
     Создаёт сообщение от системного пользователя 'Anonymous' вместо sender=None.
     """
     logger.info("Получен POST-запрос на /contact/submit/")
+    logger.info(f"POST данные: {dict(request.POST)}")
+    
     form = ContactForm(request.POST)
 
     if not form.is_valid():
@@ -992,21 +994,34 @@ def contact_form_submit(request):
         # Возвращаем ошибки в формате JSON
         return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
+    logger.info("Форма прошла валидацию")
     cleaned_data = form.cleaned_data
     fullname = cleaned_data.get('fullname')
     email = cleaned_data.get('email')
     message_text = cleaned_data.get('message')
+    logger.info(f"Обработка сообщения от {fullname} ({email})")
 
     try:
+        # Проверяем настройки email
+        logger.info(f"EMAIL_ADMIN настроен: {settings.EMAIL_ADMIN}")
+        logger.info(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
+        logger.info(f"EMAIL_HOST: {settings.EMAIL_HOST}")
+        logger.info(f"EMAIL_PORT: {settings.EMAIL_PORT}")
+        
         # Находим администратора
-        admin_email = settings.EMAIL_ADMIN[0] if settings.EMAIL_ADMIN else None
+        admin_email = None
+        if settings.EMAIL_ADMIN and len(settings.EMAIL_ADMIN) > 0:
+            admin_email = settings.EMAIL_ADMIN[0]
+        
+        logger.info(f"Email администратора: {admin_email}")
         admin_user = None
         if admin_email:
             admin_user = CustomUser.objects.filter(email=admin_email).first()
             if not admin_user:
-                logger.warning(f"Администратор с email {admin_email} не найден")
+                logger.warning(f"Администратор с email {admin_email} не найден в базе")
 
         # Находим или создаём системного пользователя для анонимных сообщений
+        logger.info("Поиск/создание системного пользователя Anonymous")
         anonymous_user, _ = CustomUser.objects.get_or_create(
             username='Anonymous',
             defaults={
@@ -1015,29 +1030,41 @@ def contact_form_submit(request):
                 'is_staff': False
             }
         )
+        logger.info(f"Системный пользователь найден/создан: {anonymous_user.username}")
 
         # Отправляем письмо (только если настроены email настройки)
-        try:
-            subject = f'Новое сообщение от {fullname} ({email})'
-            message = f'Имя: {fullname}\nEmail: {email}\nСообщение:\n{message_text}'
-            from_email = settings.DEFAULT_FROM_EMAIL
-            recipient_list = settings.EMAIL_ADMIN
+        email_sent = False
+        email_error_msg = None
+        
+        if settings.EMAIL_ADMIN and settings.DEFAULT_FROM_EMAIL:
+            try:
+                subject = f'Новое сообщение от {fullname} ({email})'
+                message = f'Имя: {fullname}\nEmail: {email}\nСообщение:\n{message_text}'
+                from_email = settings.DEFAULT_FROM_EMAIL
+                recipient_list = settings.EMAIL_ADMIN
 
-            logger.info(f"Отправка письма на {recipient_list}")
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email,
-                recipient_list=recipient_list,
-                fail_silently=False,
-            )
-            logger.info(f"Письмо успешно отправлено на {recipient_list}")
-        except Exception as email_error:
-            # Логируем ошибку, но не прерываем выполнение - сообщение всё равно сохранится в БД
-            logger.error(f"Ошибка отправки email: {str(email_error)}")
-            logger.error(f"Email настройки: HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}, FROM={settings.DEFAULT_FROM_EMAIL}")
+                logger.info(f"Отправка письма на {recipient_list} от {from_email}")
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=from_email,
+                    recipient_list=recipient_list,
+                    fail_silently=False,
+                )
+                email_sent = True
+                logger.info(f"✅ Письмо успешно отправлено на {recipient_list}")
+            except Exception as email_error:
+                # Логируем ошибку с полным traceback
+                import traceback
+                email_error_msg = str(email_error)
+                logger.error(f"❌ Ошибка отправки email: {email_error_msg}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                logger.error(f"Email настройки: HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}, FROM={settings.DEFAULT_FROM_EMAIL}, USER={settings.EMAIL_HOST_USER}")
+        else:
+            logger.warning("⚠️ Email настройки не заполнены. EMAIL_ADMIN или DEFAULT_FROM_EMAIL не установлены.")
 
         # Сохраняем сообщение в базе
+        logger.info("Сохранение сообщения в базе данных")
         message_obj = Message.objects.create(
             sender=anonymous_user,  # Используем системного пользователя
             recipient=admin_user,
@@ -1046,12 +1073,23 @@ def contact_form_submit(request):
             email=email,
             is_read=False
         )
-        logger.info(f"Сообщение сохранено в базе от {email} для {admin_user or 'No recipient'}")
+        logger.info(f"✅ Сообщение сохранено в базе (ID: {message_obj.id}) от {email} для {admin_user or 'No recipient'}")
 
-        logger.info(f"Сообщение успешно отправлено от {email}")
-        return JsonResponse({'status': 'success', 'message': 'Сообщение отправлено'})
+        # Формируем ответ
+        if email_sent:
+            logger.info(f"✅ Сообщение успешно отправлено от {email}")
+            return JsonResponse({'status': 'success', 'message': 'Сообщение отправлено'})
+        elif email_error_msg:
+            logger.warning(f"⚠️ Сообщение сохранено в БД, но письмо не отправлено: {email_error_msg}")
+            return JsonResponse({'status': 'success', 'message': 'Сообщение сохранено, но письмо не отправлено'})
+        else:
+            logger.warning("⚠️ Сообщение сохранено в БД, но email настройки не заполнены")
+            return JsonResponse({'status': 'success', 'message': 'Сообщение сохранено'})
+            
     except Exception as e:
-        logger.error(f"Ошибка отправки сообщения: {str(e)}")
+        import traceback
+        logger.error(f"❌ Критическая ошибка отправки сообщения: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return JsonResponse({'status': 'error', 'message': f'Ошибка отправки: {str(e)}'}, status=500)
 
 
