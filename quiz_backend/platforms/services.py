@@ -6,9 +6,11 @@ import tempfile
 import os
 from typing import Optional, List, Dict, Any
 from django.conf import settings
+from django.db.models import Count
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from .models import TelegramGroup
+from accounts.models import TelegramUser
 
 logger = logging.getLogger(__name__)
 
@@ -466,3 +468,435 @@ def send_telegram_post_sync(
         return False
     finally:
         loop.close()
+
+
+async def send_post_to_user_async(
+    user_id: int,
+    text: Optional[str] = None,
+    photos=None,
+    gifs=None,
+    videos=None,
+    buttons: Optional[List[Dict[str, str]]] = None
+) -> bool:
+    """
+    Асинхронная функция для отправки поста пользователю в личные сообщения.
+    
+    Args:
+        user_id (int): Telegram ID пользователя
+        text (str, optional): Текст поста
+        photos: Список файлов изображений
+        gifs: Список файлов GIF
+        videos: Список файлов видео
+        buttons (List[Dict], optional): Список кнопок
+        
+    Returns:
+        bool: True если отправка успешна, False в противном случае
+    """
+    bot_token = get_telegram_bot_token()
+    if not bot_token:
+        logger.error("Токен Telegram бота не настроен")
+        return False
+    
+    bot = Bot(token=bot_token)
+    try:
+        # Создаем inline клавиатуру если есть кнопки
+        reply_markup = None
+        if buttons:
+            keyboard = []
+            for i, button in enumerate(buttons):
+                if button.get('text') and button.get('url'):
+                    emoji = "🔗" if i == 0 else "⚡"
+                    button_text = f"{emoji} {button['text']}"
+                    keyboard.append([
+                        InlineKeyboardButton(
+                            text=button_text,
+                            url=button['url']
+                        )
+                    ])
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard) if keyboard else None
+        
+        temp_files = []
+        text_sent = False
+        
+        try:
+            # Отправляем медиафайлы
+            # Сохраняем файлы во временные файлы перед отправкой
+            if photos:
+                for i, photo in enumerate(photos):
+                    # Сбрасываем позицию файла на начало
+                    if hasattr(photo, 'seek'):
+                        photo.seek(0)
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                        for chunk in photo.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+                        temp_files.append(temp_file_path)
+                    
+                    # Отправляем первое фото с текстом, остальные без
+                    caption = text if i == 0 and text and not text_sent else None
+                    if caption:
+                        text_sent = True
+                    
+                    await bot.send_photo(
+                        chat_id=user_id,
+                        photo=FSInputFile(path=temp_file_path),
+                        caption=caption,
+                        reply_markup=reply_markup if i == len(photos) - 1 and not text_sent else None,
+                        parse_mode="HTML"
+                    )
+            
+            if gifs:
+                for i, gif in enumerate(gifs):
+                    # Сбрасываем позицию файла на начало
+                    if hasattr(gif, 'seek'):
+                        gif.seek(0)
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as temp_file:
+                        for chunk in gif.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+                        temp_files.append(temp_file_path)
+                    
+                    caption = text if i == 0 and text and not text_sent else None
+                    if caption:
+                        text_sent = True
+                    
+                    await bot.send_animation(
+                        chat_id=user_id,
+                        animation=FSInputFile(path=temp_file_path),
+                        caption=caption,
+                        reply_markup=reply_markup if i == len(gifs) - 1 and not text_sent else None,
+                        parse_mode="HTML"
+                    )
+            
+            if videos:
+                for i, video in enumerate(videos):
+                    # Сбрасываем позицию файла на начало
+                    if hasattr(video, 'seek'):
+                        video.seek(0)
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+                        for chunk in video.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+                        temp_files.append(temp_file_path)
+                    
+                    caption = text if i == 0 and text and not text_sent else None
+                    if caption:
+                        text_sent = True
+                    
+                    await bot.send_video(
+                        chat_id=user_id,
+                        video=FSInputFile(path=temp_file_path),
+                        caption=caption,
+                        reply_markup=reply_markup if i == len(videos) - 1 and not text_sent else None,
+                        parse_mode="HTML"
+                    )
+            
+            # Отправляем текст, если он еще не был отправлен
+            if text and not text_sent:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=text,
+                    reply_markup=reply_markup,
+                    parse_mode="HTML"
+                )
+            
+            return True
+            
+        except Exception as e:
+            # Игнорируем ошибки типа "bot was blocked" или "user not found"
+            error_str = str(e).lower()
+            if "bot was blocked" in error_str or "user not found" in error_str or "chat not found" in error_str or "forbidden" in error_str:
+                logger.debug(f"Пользователь {user_id} заблокировал бота или не найден: {e}")
+            else:
+                logger.error(f"Ошибка при отправке поста пользователю {user_id}: {e}")
+            return False
+        finally:
+            # Удаляем временные файлы
+            for temp_file_path in temp_files:
+                try:
+                    os.unlink(temp_file_path)
+                except:
+                    pass
+                    
+    finally:
+        await bot.session.close()
+
+
+def send_post_to_bot_subscribers(
+    text: Optional[str] = None,
+    photos=None,
+    gifs=None,
+    videos=None,
+    buttons: Optional[List[Dict[str, str]]] = None
+) -> int:
+    """
+    Отправляет пост всем активным подписчикам бота в личные сообщения.
+    
+    Args:
+        text (str, optional): Текст поста
+        photos: Список файлов изображений
+        gifs: Список файлов GIF
+        videos: Список файлов видео
+        buttons (List[Dict], optional): Список кнопок
+        
+    Returns:
+        int: Количество успешно отправленных сообщений
+    """
+    # Сохраняем все файлы во временные файлы один раз
+    temp_photo_files = []
+    temp_gif_files = []
+    temp_video_files = []
+    
+    try:
+        # Сохраняем фотографии
+        if photos:
+            for photo in photos:
+                if hasattr(photo, 'seek'):
+                    photo.seek(0)
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                    for chunk in photo.chunks():
+                        temp_file.write(chunk)
+                    temp_photo_files.append(temp_file.name)
+        
+        # Сохраняем GIF
+        if gifs:
+            for gif in gifs:
+                if hasattr(gif, 'seek'):
+                    gif.seek(0)
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as temp_file:
+                    for chunk in gif.chunks():
+                        temp_file.write(chunk)
+                    temp_gif_files.append(temp_file.name)
+        
+        # Сохраняем видео
+        if videos:
+            for video in videos:
+                if hasattr(video, 'seek'):
+                    video.seek(0)
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+                    for chunk in video.chunks():
+                        temp_file.write(chunk)
+                    temp_video_files.append(temp_file.name)
+        
+        # Получаем всех пользователей бота (всех, кто когда-либо взаимодействовал с ботом)
+        # Для отправки подписчикам бота используем всех пользователей с telegram_id,
+        # так как subscription_status относится к подпискам на каналы, а не к подписке на бота
+        subscribers = TelegramUser.objects.filter(telegram_id__isnull=False)
+        total_subscribers = subscribers.count()
+        
+        if total_subscribers == 0:
+            logger.warning("Нет пользователей бота в базе данных для отправки поста")
+            return 0
+        
+        # Логируем статистику по статусам для отладки
+        status_counts = subscribers.values('subscription_status').annotate(
+            count=Count('id')
+        )
+        logger.info(f"Найдено {total_subscribers} пользователей бота для отправки поста")
+        for status_info in status_counts:
+            logger.info(f"  - Статус '{status_info['subscription_status']}': {status_info['count']} пользователей")
+        
+        logger.info(f"Начинаем отправку поста {total_subscribers} подписчикам бота")
+        
+        # Создаем event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        success_count = 0
+        
+        try:
+            # Отправляем каждому подписчику
+            for subscriber in subscribers:
+                try:
+                    result = loop.run_until_complete(
+                        send_post_to_user_with_files(
+                            user_id=subscriber.telegram_id,
+                            text=text,
+                            photo_paths=temp_photo_files,
+                            gif_paths=temp_gif_files,
+                            video_paths=temp_video_files,
+                            buttons=buttons
+                        )
+                    )
+                    if result:
+                        success_count += 1
+                    
+                    # Небольшая задержка между отправками, чтобы не превысить лимиты API
+                    if success_count % 10 == 0:
+                        logger.info(f"Отправлено {success_count} из {total_subscribers} подписчикам")
+                    
+                except Exception as e:
+                    logger.error(f"Ошибка при отправке подписчику {subscriber.telegram_id}: {e}")
+                    continue
+            
+            logger.info(f"Успешно отправлено {success_count} из {total_subscribers} подписчикам бота")
+            return success_count
+            
+        finally:
+            loop.close()
+            
+    except Exception as e:
+        logger.error(f"Ошибка при отправке поста подписчикам бота: {e}")
+        return 0
+    finally:
+        # Удаляем временные файлы
+        for temp_file_path in temp_photo_files + temp_gif_files + temp_video_files:
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
+
+
+async def send_post_to_user_with_files(
+    user_id: int,
+    text: Optional[str] = None,
+    photo_paths: Optional[List[str]] = None,
+    gif_paths: Optional[List[str]] = None,
+    video_paths: Optional[List[str]] = None,
+    buttons: Optional[List[Dict[str, str]]] = None
+) -> bool:
+    """
+    Асинхронная функция для отправки поста пользователю в личные сообщения с использованием путей к файлам.
+    
+    Args:
+        user_id (int): Telegram ID пользователя
+        text (str, optional): Текст поста
+        photo_paths: Список путей к файлам изображений
+        gif_paths: Список путей к файлам GIF
+        video_paths: Список путей к файлам видео
+        buttons (List[Dict], optional): Список кнопок
+        
+    Returns:
+        bool: True если отправка успешна, False в противном случае
+    """
+    bot_token = get_telegram_bot_token()
+    if not bot_token:
+        logger.error("Токен Telegram бота не настроен")
+        return False
+    
+    bot = Bot(token=bot_token)
+    try:
+        # Создаем inline клавиатуру если есть кнопки
+        reply_markup = None
+        if buttons:
+            keyboard = []
+            for i, button in enumerate(buttons):
+                if button.get('text') and button.get('url'):
+                    emoji = "🔗" if i == 0 else "⚡"
+                    button_text = f"{emoji} {button['text']}"
+                    keyboard.append([
+                        InlineKeyboardButton(
+                            text=button_text,
+                            url=button['url']
+                        )
+                    ])
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard) if keyboard else None
+        
+        text_sent = False
+        buttons_sent = False
+        
+        try:
+            # Определяем, есть ли медиафайлы
+            has_media = bool(photo_paths or gif_paths or video_paths)
+            
+            # Отправляем медиафайлы
+            if photo_paths:
+                for i, photo_path in enumerate(photo_paths):
+                    caption = text if i == 0 and text and not text_sent else None
+                    if caption:
+                        text_sent = True
+                    
+                    # Кнопки прикрепляем к первому медиа с caption или к последнему, если нет текста
+                    should_attach_buttons = (
+                        reply_markup and not buttons_sent and (
+                            (caption is not None and i == 0) or  # Кнопки с первым медиа, если есть caption
+                            (not text and i == len(photo_paths) - 1)  # Кнопки с последним медиа, если нет текста
+                        )
+                    )
+                    
+                    if should_attach_buttons:
+                        buttons_sent = True
+                    
+                    await bot.send_photo(
+                        chat_id=user_id,
+                        photo=FSInputFile(path=photo_path),
+                        caption=caption,
+                        reply_markup=reply_markup if should_attach_buttons else None,
+                        parse_mode="HTML"
+                    )
+            
+            if gif_paths:
+                for i, gif_path in enumerate(gif_paths):
+                    caption = text if i == 0 and text and not text_sent else None
+                    if caption:
+                        text_sent = True
+                    
+                    should_attach_buttons = (
+                        reply_markup and not buttons_sent and (
+                            (caption is not None and i == 0) or
+                            (not text and i == len(gif_paths) - 1)
+                        )
+                    )
+                    
+                    if should_attach_buttons:
+                        buttons_sent = True
+                    
+                    await bot.send_animation(
+                        chat_id=user_id,
+                        animation=FSInputFile(path=gif_path),
+                        caption=caption,
+                        reply_markup=reply_markup if should_attach_buttons else None,
+                        parse_mode="HTML"
+                    )
+            
+            if video_paths:
+                for i, video_path in enumerate(video_paths):
+                    caption = text if i == 0 and text and not text_sent else None
+                    if caption:
+                        text_sent = True
+                    
+                    should_attach_buttons = (
+                        reply_markup and not buttons_sent and (
+                            (caption is not None and i == 0) or
+                            (not text and i == len(video_paths) - 1)
+                        )
+                    )
+                    
+                    if should_attach_buttons:
+                        buttons_sent = True
+                    
+                    await bot.send_video(
+                        chat_id=user_id,
+                        video=FSInputFile(path=video_path),
+                        caption=caption,
+                        reply_markup=reply_markup if should_attach_buttons else None,
+                        parse_mode="HTML"
+                    )
+            
+            # Отправляем текст, если он еще не был отправлен
+            if text and not text_sent:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=text,
+                    reply_markup=reply_markup if not buttons_sent else None,
+                    parse_mode="HTML"
+                )
+                if reply_markup and not buttons_sent:
+                    buttons_sent = True
+            
+            return True
+            
+        except Exception as e:
+            # Игнорируем ошибки типа "bot was blocked" или "user not found"
+            error_str = str(e).lower()
+            if "bot was blocked" in error_str or "user not found" in error_str or "chat not found" in error_str or "forbidden" in error_str:
+                logger.debug(f"Пользователь {user_id} заблокировал бота или не найден: {e}")
+            else:
+                logger.error(f"Ошибка при отправке поста пользователю {user_id}: {e}")
+            return False
+                    
+    finally:
+        await bot.session.close()

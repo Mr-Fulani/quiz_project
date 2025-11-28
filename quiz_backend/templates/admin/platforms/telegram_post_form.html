@@ -349,6 +349,26 @@
                 {% endif %}
             </div>
             
+            <!-- Отправка подписчикам бота -->
+            <div class="form-row" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 20px; border-radius: 8px; border: 2px solid #4caf50; margin: 20px 0;">
+                <div style="display: flex; align-items: flex-start;">
+                    <div style="margin-right: 12px; margin-top: 2px;">
+                        {{ form.send_to_bot_subscribers }}
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="{{ form.send_to_bot_subscribers.id_for_label }}" style="display: block; font-weight: 600; color: #2c3e50; margin-bottom: 6px; cursor: pointer;">
+                            🤖 {{ form.send_to_bot_subscribers.label }}
+                        </label>
+                        {% if form.send_to_bot_subscribers.help_text %}
+                            <div class="help" style="color: #555; font-size: 13px; margin-top: 4px;">{{ form.send_to_bot_subscribers.help_text }}</div>
+                        {% endif %}
+                        {% if form.send_to_bot_subscribers.errors %}
+                            <div class="errors">{{ form.send_to_bot_subscribers.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
             <!-- Текст поста -->
             <div class="form-row">
                 {{ form.text.label_tag }}

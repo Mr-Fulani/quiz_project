@@ -6,8 +6,9 @@ from django.template.response import TemplateResponse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from .models import TelegramGroup
-from .services import send_telegram_post_sync
+from .services import send_telegram_post_sync, send_post_to_bot_subscribers
 from topics.models import Topic
+from accounts.models import TelegramUser
 import re
 import asyncio
 import logging
@@ -204,27 +205,59 @@ class TelegramChannelAdmin(admin.ModelAdmin):
                     
                     # Отправляем пост во все выбранные каналы
                     success_count = 0
-                    total_channels = len(channels)
+                    total_channels = len(channels) if channels else 0
+                    bot_subscribers_sent = 0
                     
-                    for channel in channels:
-                        success = send_telegram_post_sync(
-                            channel=channel,
+                    # Отправка в выбранные каналы/группы
+                    if channels:
+                        for channel in channels:
+                            success = send_telegram_post_sync(
+                                channel=channel,
+                                text=text if text else None,
+                                photos=photos_list,
+                                gifs=gifs_list,
+                                videos=videos_list,
+                                buttons=buttons if buttons else None
+                            )
+                            
+                            if success:
+                                success_count += 1
+                    
+                    # Отправка подписчикам бота
+                    send_to_subscribers = form.cleaned_data.get('send_to_bot_subscribers', False)
+                    if send_to_subscribers:
+                        bot_subscribers_sent = send_post_to_bot_subscribers(
                             text=text if text else None,
                             photos=photos_list,
                             gifs=gifs_list,
                             videos=videos_list,
                             buttons=buttons if buttons else None
                         )
-                        
-                        if success:
-                            success_count += 1
                     
-                    if success_count == total_channels:
-                        messages.success(request, _('Пост успешно отправлен во все {} каналов!').format(total_channels))
-                    elif success_count > 0:
-                        messages.warning(request, _('Пост отправлен в {} из {} каналов.').format(success_count, total_channels))
+                    # Формируем сообщения об успехе
+                    success_messages = []
+                    if total_channels > 0:
+                        if success_count == total_channels:
+                            success_messages.append(_('Пост успешно отправлен во все {} каналов!').format(total_channels))
+                        elif success_count > 0:
+                            success_messages.append(_('Пост отправлен в {} из {} каналов.').format(success_count, total_channels))
+                        else:
+                            success_messages.append(_('Ошибка при отправке поста во все каналы.'))
+                    
+                    if send_to_subscribers:
+                        if bot_subscribers_sent > 0:
+                            success_messages.append(_('Пост отправлен {} подписчикам бота.').format(bot_subscribers_sent))
+                        else:
+                            success_messages.append(_('Не удалось отправить пост подписчикам бота.'))
+                    
+                    if not channels and not send_to_subscribers:
+                        messages.error(request, _('Необходимо выбрать хотя бы один канал/группу или включить отправку подписчикам бота.'))
                     else:
-                        messages.error(request, _('Ошибка при отправке поста во все каналы.'))
+                        for msg in success_messages:
+                            if 'Ошибка' in msg or 'Не удалось' in msg:
+                                messages.warning(request, msg)
+                            else:
+                                messages.success(request, msg)
                     
                     return HttpResponseRedirect('../')
                     
@@ -286,7 +319,14 @@ class TelegramPostForm(forms.Form):
         queryset=TelegramGroup.objects.all(),
         label=_('Каналы/Группы'),
         help_text=_('Выберите один или несколько каналов/групп для публикации (можно выбрать несколько, удерживая Ctrl)'),
-        widget=forms.SelectMultiple(attrs={'size': '8', 'class': 'channels-select'})
+        widget=forms.SelectMultiple(attrs={'size': '8', 'class': 'channels-select'}),
+        required=False
+    )
+    
+    send_to_bot_subscribers = forms.BooleanField(
+        required=False,
+        label=_('Отправить подписчикам бота'),
+        help_text=_('Отправить пост всем активным подписчикам бота в личные сообщения')
     )
     
     text = forms.CharField(
@@ -378,9 +418,12 @@ class TelegramPostForm(forms.Form):
         """
         cleaned_data = super().clean()
         text = cleaned_data.get('text')
-        photos = cleaned_data.get('photos')
-        gifs = cleaned_data.get('gifs')
-        videos = cleaned_data.get('videos')
+        channels = cleaned_data.get('channels')
+        send_to_subscribers = cleaned_data.get('send_to_bot_subscribers', False)
+        
+        # Проверяем, что выбран хотя бы один канал или включена отправка подписчикам
+        if not channels and not send_to_subscribers:
+            raise forms.ValidationError(_('Необходимо выбрать хотя бы один канал/группу или включить отправку подписчикам бота.'))
         
         # Проверяем размеры файлов
         photo_fields = ['photo1', 'photo2', 'photo3']
