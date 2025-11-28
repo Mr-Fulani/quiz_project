@@ -1,41 +1,78 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Resume enhancement script loaded');
 
-    // Проверка загрузки html2pdf
-    if (typeof html2pdf === 'undefined') {
-        console.error('html2pdf.js not loaded!');
-        alert('Ошибка: библиотека html2pdf не загрузилась. Проверьте подключение.');
+    // Переключение языков - только для резюме (инициализируем независимо от html2pdf)
+    const resumeContainer = document.getElementById('resume-content');
+    if (!resumeContainer) {
+        console.warn('Resume container not found');
         return;
     }
-    console.log('html2pdf.js loaded successfully');
-
-    // Переключение языков
-    const langButtons = document.querySelectorAll('.lang-btn');
+    
+    const langButtons = resumeContainer.querySelectorAll('.language-switcher .lang-btn');
     let currentLang = 'en';
 
     function setLanguage(lang) {
+        console.log('Setting resume language to:', lang);
         currentLang = lang;
-        document.querySelectorAll('.lang-text').forEach(el => {
+        
+        // Словарь переводов заголовков
+        const translations = {
+            'resume_title': { 'en': 'Resume', 'ru': 'Резюме' },
+            'education_title': { 'en': 'Education', 'ru': 'Образование' },
+            'experience_title': { 'en': 'Work History', 'ru': 'Опыт Работы' },
+            'contact_title': { 'en': 'Contact Information', 'ru': 'Контактная Информация' },
+            'summary_title': { 'en': 'Professional Summary', 'ru': 'Профессиональная Сводка' },
+            'skills_title': { 'en': 'Skills', 'ru': 'Навыки' },
+            'languages_title': { 'en': 'Languages', 'ru': 'Языки' }
+        };
+        
+        // Находим все элементы с переводами только внутри резюме
+        const langTextElements = resumeContainer.querySelectorAll('.lang-text');
+        console.log('Found', langTextElements.length, 'elements with lang-text class');
+        
+        langTextElements.forEach(el => {
             const langAttr = el.getAttribute('data-lang');
+            const langKey = el.getAttribute('data-lang-key');
+            
+            // Если есть data-lang, показываем/скрываем элемент
             if (langAttr) {
                 el.style.display = langAttr === lang ? 'block' : 'none';
-            } else {
-                const key = el.getAttribute('data-lang-key');
-                if (key === 'education_title') el.textContent = lang === 'en' ? 'Education' : 'Образование';
-                if (key === 'experience_title') el.textContent = lang === 'en' ? 'Work History' : 'Опыт работы';
-                if (key === 'contact_title') el.textContent = lang === 'en' ? 'Contact Information' : 'Контактная информация';
-                if (key === 'personal_info.name') el.textContent = document.getElementById('edit-name') ? document.getElementById('edit-name').value : 'Anvar Sharipov';
+            }
+            
+            // Если есть data-lang-key, меняем текст заголовка
+            if (langKey && translations[langKey]) {
+                const translation = translations[langKey][lang];
+                if (translation) {
+                    console.log(`Translating "${langKey}" to "${translation}"`);
+                    el.textContent = translation;
+                }
+            } else if (langKey === 'personal_info.name') {
+                // Специальная обработка для имени
+                el.textContent = document.getElementById('edit-name') ? document.getElementById('edit-name').value : 'Anvar Sharipov';
             }
         });
+        console.log('Language switched to:', lang);
     }
 
-    langButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            langButtons.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            setLanguage(this.getAttribute('data-lang'));
+    if (langButtons.length > 0) {
+        console.log('Found', langButtons.length, 'language buttons in resume');
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetLang = this.getAttribute('data-lang');
+                console.log('Language button clicked:', targetLang);
+                
+                // Обновляем активную кнопку только в переключателе резюме
+                resumeContainer.querySelectorAll('.language-switcher .lang-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                setLanguage(targetLang);
+            });
         });
-    });
+    } else {
+        console.warn('Language buttons not found in resume');
+    }
 
     setLanguage('en');
 
@@ -177,6 +214,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     } else {
         console.warn('Download PDF button not found');
+    }
+    
+    // Проверка загрузки html2pdf (не критична для основной функциональности)
+    if (typeof html2pdf === 'undefined') {
+        console.warn('html2pdf.js not loaded - PDF download via client-side will not work');
+    } else {
+        console.log('html2pdf.js loaded successfully');
     }
 
     // Печать резюме
