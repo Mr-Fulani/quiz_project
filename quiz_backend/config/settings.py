@@ -583,13 +583,17 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 #     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 
-EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_PORT = os.getenv('EMAIL_PORT')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = os.getenv('EMAIL_PORT', '465')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-EMAIL_USE_SSL = True
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
-SERVER_EMAIL = os.getenv('SERVER_EMAIL')
+# Автоматически определяем SSL или TLS в зависимости от порта
+# Порт 465 = SSL, порт 587 = TLS
+EMAIL_PORT_INT = int(EMAIL_PORT) if EMAIL_PORT and EMAIL_PORT.isdigit() else 465
+EMAIL_USE_SSL = EMAIL_PORT_INT == 465
+EMAIL_USE_TLS = EMAIL_PORT_INT == 587
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 EMAIL_ADMIN = ['fulani.dev@gmail.com']
 # EMAIL_ADMIN = [os.getenv('SERVER_EMAIL')]
 
