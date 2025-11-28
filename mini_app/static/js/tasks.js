@@ -500,7 +500,7 @@ if (window.TaskManagerAlreadyLoaded) {
                 
                 if (!telegramId) {
                     console.error('❌ Не удалось получить telegram_id');
-                    this.showToast(window.t ? window.t('error_determine_user', 'Ошибка: не удалось определить пользователя') : 'Ошибка: не удалось определить пользователя', 'error');
+                    this.showToast(window.t ? window.t('error_determine_user', 'Ошибка: не удалось определить пользователя. Пожалуйста, авторизуйтесь, чтобы участвовать в опросах и отслеживать свою статистику.') : 'Ошибка: не удалось определить пользователя. Пожалуйста, авторизуйтесь, чтобы участвовать в опросах и отслеживать свою статистику.', 'error');
                     return { success: false, error: 'telegram_id_not_found' };
                 }
                 

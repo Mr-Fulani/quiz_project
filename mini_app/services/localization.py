@@ -39,7 +39,7 @@ class LocalizationService:
             "submitting_answer": "Submitting answer...",
             "already_answered": "You have already answered this question",
             "error_occurred": "An error occurred. Please try again.",
-            "error_determine_user": "Error: failed to determine user",
+            "error_determine_user": "Error: failed to determine user. Please authorize to participate in quizzes and track your statistics.",
             "network_error": "Network error. Check your connection.",
             
             # Комментарии
@@ -382,7 +382,7 @@ class LocalizationService:
             "submitting_answer": "Отправляем ответ...",
             "already_answered": "Вы уже отвечали на этот вопрос",
             "error_occurred": "Произошла ошибка. Попробуйте еще раз.",
-            "error_determine_user": "Ошибка: не удалось определить пользователя",
+            "error_determine_user": "Ошибка: не удалось определить пользователя. Пожалуйста, авторизуйтесь, чтобы участвовать в опросах и отслеживать свою статистику.",
             "network_error": "Ошибка сети. Проверьте подключение.",
             
             # Комментарии
