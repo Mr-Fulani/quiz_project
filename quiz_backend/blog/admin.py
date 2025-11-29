@@ -777,8 +777,8 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(PageVideo)
 class PageVideoAdmin(admin.ModelAdmin):
-    list_display = ('title', 'page', 'media_type', 'order')
-    list_filter = ('page', 'media_type')
+    list_display = ('title', 'page', 'media_type', 'get_show_media_display', 'get_show_text_display', 'order')
+    list_filter = ('page', 'media_type', 'show_media', 'show_text')
     search_fields = ('title',)
     ordering = ('order', 'title')
     
@@ -789,7 +789,29 @@ class PageVideoAdmin(admin.ModelAdmin):
         ('Медиа контент', {
             'fields': ('media_type', 'video_url', 'video_file', 'gif'),
         }),
+        ('Настройки отображения', {
+            'fields': ('show_media', 'show_text', 'text_content'),
+            'description': 'Выберите, что показывать на странице. Можно показывать медиа и текст вместе, либо по отдельности.'
+        }),
     )
+    
+    def get_show_media_display(self, obj):
+        """Отображает статус показа медиа."""
+        from django.utils.safestring import mark_safe
+        if obj.show_media:
+            return mark_safe('<span style="color: #4CAF50; font-weight: bold;">✓ Медиа</span>')
+        else:
+            return mark_safe('<span style="color: #999;">✗ Медиа</span>')
+    get_show_media_display.short_description = 'Медиа'
+    
+    def get_show_text_display(self, obj):
+        """Отображает статус показа текста."""
+        from django.utils.safestring import mark_safe
+        if obj.show_text:
+            return mark_safe('<span style="color: #4CAF50; font-weight: bold;">✓ Текст</span>')
+        else:
+            return mark_safe('<span style="color: #999;">✗ Текст</span>')
+    get_show_text_display.short_description = 'Текст'
     
     class Media:
         js = ('blog/js/pagevideo_admin.js',)

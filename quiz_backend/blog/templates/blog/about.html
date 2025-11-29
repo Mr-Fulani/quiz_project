@@ -11,9 +11,10 @@
         <h1 class="h2 article-title">{% trans "About me" %}</h1>
     </header>
 
-    <section class="video section-gap">
-        {% with video=page_video %}
-            {% if video %}
+    {% with video=page_video %}
+        {% if video %}
+            {% if video.show_media %}
+            <section class="video section-gap">
                 <div class="content-card">
                     {% if video.media_type == 'video_file' and video.video_file %}
                         <div class="video-banner-box">
@@ -44,17 +45,28 @@
                         </div>
                     {% endif %}
                 </div>
+            </section>
             {% endif %}
-        {% endwith %}
-    </section>
 
-    {% if not page_videos.exists %}
-    <section class="about-text">
-        {% for paragraph in personal_info.about_text %}
-            <p>{{ paragraph }}</p>
-        {% endfor %}
-    </section>
-    {% endif %}
+            {% if video.show_text %}
+            <section class="about-text section-gap">
+                {% if video.text_content %}
+                    {{ video.text_content|linebreaks }}
+                {% else %}
+                    {% for paragraph in personal_info.about_text %}
+                        <p>{{ paragraph }}</p>
+                    {% endfor %}
+                {% endif %}
+            </section>
+            {% endif %}
+        {% else %}
+            <section class="about-text section-gap">
+                {% for paragraph in personal_info.about_text %}
+                    <p>{{ paragraph }}</p>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
 
     <section class="service">
         <h3 class="h3 service-title">{% trans "What I do" %}</h3>

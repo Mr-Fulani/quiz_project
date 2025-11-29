@@ -725,6 +725,22 @@ class PageVideo(models.Model):
         blank=True, null=True,
         verbose_name="GIF-файл",
         help_text="Загрузите GIF-файл. Используется только если выбран тип 'GIF-файл'.")
+    show_media = models.BooleanField(
+        default=True,
+        verbose_name="Показывать медиа",
+        help_text="Отметьте, чтобы показывать медиа на странице."
+    )
+    show_text = models.BooleanField(
+        default=True,
+        verbose_name="Показывать текст",
+        help_text="Отметьте, чтобы показывать текст на странице. Можно показывать вместе с медиа."
+    )
+    text_content = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Текстовый контент",
+        help_text="Введите текст для отображения на странице. Если пусто, будет использован текст по умолчанию. Каждый абзац с новой строки."
+    )
 
     class Meta:
         verbose_name = "Видео для страницы"
