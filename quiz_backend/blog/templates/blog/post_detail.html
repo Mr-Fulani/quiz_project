@@ -115,8 +115,10 @@ All static text is localized using {% trans %} for English msgid and translation
                         <div class="media-wrapper">
                             <iframe id="youtube-player-{{ post.id }}"
                                     src="{{ post.video_url|youtube_embed_url }}"
-                                    frameborder="0"
-                                    allowfullscreen></iframe>
+                                    style="border: none;"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowfullscreen
+                                    loading="lazy"></iframe>
                         </div>
                     </div>
                 </div>

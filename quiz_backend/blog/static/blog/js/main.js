@@ -40,14 +40,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isYouTube) {
                 const videoIdMatch = this.querySelector('.video-banner-box img').src.match(/vi\/(.+?)\/hqdefault/);
                 const videoId = videoIdMatch ? videoIdMatch[1] : '';
-                videoUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1`;
+                // Упрощённый URL без enablejsapi для избежания ошибки 153
+                videoUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0&playsinline=1`;
             } else {
                 videoUrl = this.querySelector('.video-banner-box video source')?.src;
             }
 
             if (videoUrl) {
                 if (isYouTube) {
-                    videoPlayer.innerHTML = `<iframe width="100%" height="400" src="${videoUrl}" frameborder="0" allowfullscreen></iframe>`;
+                    videoPlayer.innerHTML = `<iframe width="100%" height="400" src="${videoUrl}" style="border: none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>`;
                 } else {
                     videoPlayer.innerHTML = `<video width="100%" height="400" controls><source src="${videoUrl}" type="video/mp4"></video>`;
                 }
