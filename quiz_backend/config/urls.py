@@ -31,7 +31,7 @@ from donation.views import (
 )
 from social_auth.views import TelegramAuthView
 
-from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap
+from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap, SubtopicSitemap, TaskImageSitemap
 from django.template.response import TemplateResponse
 
 # Health check endpoint
@@ -132,6 +132,8 @@ sitemaps = {
     'projects': ProjectSitemap,
     'main': MainPagesSitemap,
     'quizzes': QuizSitemap,
+    'subtopics': SubtopicSitemap,  # Подтемы квизов для индексации
+    'task_images': TaskImageSitemap,  # Изображения задач с названиями темы и подтемы
     # 'images': ImageSitemap,  # Временно исключен - дублирует URL из posts/projects
 }
 
