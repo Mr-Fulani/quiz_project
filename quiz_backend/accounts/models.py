@@ -9,6 +9,8 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFit
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,13 @@ class CustomUser(AbstractUser):
 
     # Поля из Profile
     avatar = models.ImageField(upload_to='avatar/', blank=True, null=True, verbose_name="Аватар")
+    # Thumbnail версия аватара для оптимизации загрузки (60x60px для testimonials)
+    avatar_thumbnail = ImageSpecField(
+        source='avatar',
+        processors=[ResizeToFit(120, 120)],  # 120px для retina, отображается как 60px
+        format='JPEG',
+        options={'quality': 85}
+    )
     bio = models.TextField(max_length=500, blank=True, verbose_name="Биография")
     location = models.CharField(max_length=100, blank=True, verbose_name="Местоположение")
     birth_date = models.DateField(null=True, blank=True, verbose_name="Дата рождения")
@@ -136,6 +145,17 @@ class CustomUser(AbstractUser):
         """Возвращает URL аватара или дефолтное изображение."""
         if self.avatar:
             return self.avatar.url
+        return '/static/blog/images/avatar/default_avatar.png'
+    
+    @property
+    def get_avatar_thumbnail_url(self):
+        """Возвращает URL thumbnail версии аватара (120x120px) для оптимизации загрузки."""
+        if self.avatar and hasattr(self, 'avatar_thumbnail'):
+            try:
+                return self.avatar_thumbnail.url
+            except:
+                # Если thumbnail еще не сгенерирован, используем оригинал
+                return self.avatar.url
         return '/static/blog/images/avatar/default_avatar.png'
     
     @property

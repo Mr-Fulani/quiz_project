@@ -19,10 +19,11 @@
                 <div class="content-card" data-testimonials-item>
                     <figure class="testimonials-avatar-box">
                         {% if testimonial.user.avatar %}
-                            <img src="{{ testimonial.user.avatar.url }}"
+                            <img src="{% if testimonial.user.avatar_thumbnail.url %}{{ testimonial.user.avatar_thumbnail.url }}{% else %}{{ testimonial.user.avatar.url }}{% endif %}"
                                  alt="{% trans 'avatar' %}"
                                  data-testimonials-avatar
-                                 width="60" height="60">
+                                 width="60" height="60"
+                                 loading="lazy">
                         {% else %}
                             <img src="{% static 'blog/images/avatar/default_avatar.png' %}"
                                  alt="{% trans 'avatar' %}"
