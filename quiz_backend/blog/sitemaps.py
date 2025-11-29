@@ -4,6 +4,9 @@ from django.conf import settings
 from django.utils import translation
 from django.utils.html import format_html
 from .models import Post, Project
+import logging
+
+logger = logging.getLogger(__name__)
 
 class I18nSitemap(Sitemap):
     """
@@ -175,7 +178,7 @@ class MainPagesSitemap(I18nSitemap):
 
 class QuizSitemap(I18nSitemap):
     """
-    Карта сайта для квизов с поддержкой hreflang.
+    Карта сайта для квизов (тем) с поддержкой hreflang.
     """
     changefreq = "weekly"
     priority = 0.9
@@ -193,6 +196,189 @@ class QuizSitemap(I18nSitemap):
 
     def location(self, obj):
         return reverse('blog:quiz_detail', kwargs={'quiz_type': obj.name})
+
+
+class SubtopicSitemap(I18nSitemap):
+    """
+    Карта сайта для подтем квизов с поддержкой hreflang.
+    Индексирует страницы подтем по каждому уровню сложности для лучшей индексации.
+    """
+    changefreq = "weekly"
+    priority = 0.85
+    protocol = 'https'
+
+    def items(self):
+        """
+        Возвращает список подтем с опубликованными задачами.
+        Группирует по теме и подтеме, чтобы избежать дублей.
+        """
+        try:
+            from topics.models import Subtopic
+            from django.db.models import Q, Count
+            # Получаем только подтемы с опубликованными задачами
+            return Subtopic.objects.filter(
+                tasks__published=True
+            ).distinct().select_related('topic').order_by('topic__name', 'name')
+        except ImportError:
+            return []
+
+    def lastmod(self, obj):
+        """Возвращает дату последнего обновления задачи в подтеме."""
+        try:
+            from tasks.models import Task
+            last_task = Task.objects.filter(
+                subtopic=obj,
+                published=True
+            ).order_by('-publish_date').first()
+            if last_task and last_task.publish_date:
+                return last_task.publish_date
+        except:
+            pass
+        return None
+
+    def location(self, obj):
+        """
+        Возвращает URL для страницы подтемы со сложностью 'easy' (основная страница подтемы).
+        Это позволяет индексировать каждую подтему отдельно.
+        """
+        from django.utils.text import slugify
+        subtopic_slug = slugify(obj.name)
+        return reverse('blog:quiz_subtopic', kwargs={
+            'quiz_type': obj.topic.name.lower(),
+            'subtopic': subtopic_slug,
+            'difficulty': 'easy'  # Используем 'easy' как основную страницу подтемы
+        })
+
+
+class TaskImageSitemap(I18nSitemap):
+    """
+    Карта сайта для изображений задач с поддержкой hreflang.
+    Помогает Google индексировать изображения задач с правильными названиями,
+    содержащими название темы и подтемы.
+    """
+    changefreq = "weekly"
+    priority = 0.7
+    protocol = 'https'
+
+    def items(self):
+        """
+        Возвращает список страниц подтем с группировкой изображений по странице.
+        """
+        try:
+            from topics.models import Subtopic
+            from tasks.models import Task
+            from django.db.models import Q, Count
+            
+            # Получаем все подтемы с опубликованными задачами, имеющими изображения
+            subtopics_with_images = Subtopic.objects.filter(
+                tasks__published=True,
+                tasks__image_url__isnull=False
+            ).distinct().select_related('topic').prefetch_related('tasks').order_by('topic__name', 'name')
+            
+            # Группируем задачи по подтеме и создаем структуру данных
+            pages_with_images = []
+            for subtopic in subtopics_with_images:
+                # Получаем все опубликованные задачи с изображениями для этой подтемы
+                tasks_with_images = Task.objects.filter(
+                    subtopic=subtopic,
+                    published=True,
+                    image_url__isnull=False
+                ).select_related('topic', 'subtopic').prefetch_related('translations')
+                
+                if tasks_with_images.exists():
+                    # Группируем по уровням сложности
+                    for difficulty in ['easy', 'medium', 'hard']:
+                        difficulty_tasks = tasks_with_images.filter(difficulty=difficulty)
+                        if difficulty_tasks.exists():
+                            pages_with_images.append({
+                                'subtopic': subtopic,
+                                'difficulty': difficulty,
+                                'tasks': difficulty_tasks,
+                            })
+            
+            return pages_with_images
+        except ImportError as e:
+            logger.error(f"Error importing models in TaskImageSitemap: {e}")
+            return []
+
+    def location(self, item):
+        """Возвращает URL страницы подтемы с уровнем сложности."""
+        from django.utils.text import slugify
+        subtopic = item['subtopic']
+        difficulty = item['difficulty']
+        subtopic_slug = slugify(subtopic.name)
+        return reverse('blog:quiz_subtopic', kwargs={
+            'quiz_type': subtopic.topic.name.lower(),
+            'subtopic': subtopic_slug,
+            'difficulty': difficulty
+        })
+
+    def lastmod(self, item):
+        """Возвращает дату последнего обновления задачи на странице."""
+        tasks = item.get('tasks', [])
+        if tasks:
+            latest_task = max(tasks, key=lambda t: t.publish_date if t.publish_date else t.create_date)
+            return latest_task.publish_date or latest_task.create_date
+        return None
+    
+    def get_urls(self, page=1, site=None, protocol=None):
+        """
+        Переопределяем get_urls для добавления информации об изображениях.
+        """
+        # Получаем URL с hreflang из родительского класса
+        urls = super().get_urls(page=page, site=site, protocol=protocol)
+        
+        if site is None:
+            from django.contrib.sites.models import Site
+            site = Site.objects.get_current()
+        
+        if protocol is None:
+            protocol = self.protocol or 'https'
+        
+        domain = site.domain
+        
+        # Добавляем информацию об изображениях к каждому URL
+        for url_info in urls:
+            item = url_info.get('item', {})
+            
+            if isinstance(item, dict) and 'tasks' in item:
+                tasks = item['tasks']
+                subtopic = item.get('subtopic')
+                
+                # Собираем данные для всех изображений задач на странице
+                images_data = []
+                for task in tasks:
+                    if task.image_url:
+                        try:
+                            # Получаем название темы и подтемы для заголовка и caption
+                            topic_name = task.topic.name if task.topic else 'Quiz'
+                            subtopic_name = task.subtopic.name if task.subtopic else 'General'
+                            
+                            # Пытаемся получить текст вопроса из первого перевода для caption
+                            caption = f"{topic_name} {subtopic_name}"
+                            try:
+                                translation = task.translations.first()
+                                if translation and translation.question:
+                                    # Ограничиваем длину caption
+                                    question_text = translation.question[:200]
+                                    caption = f"{topic_name} {subtopic_name} - {question_text}"
+                            except:
+                                pass
+                            
+                            images_data.append({
+                                'loc': task.image_url,  # URL изображения уже абсолютный
+                                'title': f"{topic_name} {subtopic_name} Quiz Task {task.id}",  # Название с темой и подтемой
+                                'caption': caption,
+                            })
+                        except Exception as e:
+                            logger.warning(f"Error processing task image {task.id} in sitemap: {e}")
+                            continue
+                
+                # Добавляем изображения к URL информации
+                if images_data:
+                    url_info['images'] = images_data
+        
+        return urls
 
 class ImageSitemap(I18nSitemap):
     """
