@@ -146,7 +146,7 @@ def personal_info(request):
                     'name': 'VKontakte'
                 },
                 'dzen': {
-                    'url': 'https://dzen.ru/yourpage',
+                    'url': 'https://dzen.ru/id/692b2112399a32774d42939f',
                     # Используем thumbnail версию 128px вместо 512px для оптимизации
                     'icon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Yandex_Zen_logo_icon.svg/128px-Yandex_Zen_logo_icon.svg.png',
                     'name': _('Yandex Zen')
@@ -431,6 +431,7 @@ def analytics_context(request):
     ga_id = settings.GOOGLE_ANALYTICS_PROPERTY_ID
     yandex_id = settings.YANDEX_METRICA_ID
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
+    yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
     
     # Отладочное логирование
     logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
@@ -445,6 +446,7 @@ def analytics_context(request):
         'GOOGLE_ANALYTICS_PROPERTY_ID': ga_id,
         'YANDEX_METRICA_ID': yandex_id,
         'YANDEX_VERIFICATION_CODE': yandex_verification,
+        'YANDEX_ZEN_VERIFICATION_CODE': yandex_zen_verification,
         'twitter_username': getattr(settings, 'TWITTER_USERNAME', None),
     }
 

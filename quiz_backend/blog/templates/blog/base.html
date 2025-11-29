@@ -22,6 +22,11 @@
     <meta name="yandex-verification" content="{{ YANDEX_VERIFICATION_CODE }}" />
     {% endif %}
     
+    <!-- Yandex Zen Verification -->
+    {% if YANDEX_ZEN_VERIFICATION_CODE %}
+    <meta name="zen-verification" content="{{ YANDEX_ZEN_VERIFICATION_CODE }}" />
+    {% endif %}
+    
     <!-- Canonical URL -->
     <link rel="canonical" href="{% block canonical_url %}{{ dynamic_seo.canonical_url|default:canonical_url }}{% endblock %}">
     
@@ -95,6 +100,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/png">
     <link rel="icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'blog/favicon/favicon.png' %}">
     {# Для лучшего качества можно добавить иконки других размеров, например: #}
