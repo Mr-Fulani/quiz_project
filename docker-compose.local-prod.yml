@@ -91,6 +91,7 @@ services:
       - ./media:/app/media
       - ./quiz_backend/logs:/app/logs
       - ./bot:/quiz_project/bot
+      - ./scripts:/scripts  # Монтируем scripts для запуска SEO-аудита и других скриптов
     ports:
       - "8001:8000"
     depends_on:

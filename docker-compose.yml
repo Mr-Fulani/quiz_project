@@ -94,6 +94,7 @@ services:
       - static_volume:/app/staticfiles
       - ./media:/app/media
       - ./bot:/quiz_project/bot
+      - ./scripts:/scripts
     ports:
       - "8001:8000"
     depends_on:

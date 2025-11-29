@@ -177,11 +177,13 @@ urlpatterns = [
     path('api/donation/telegram-stars/create-invoice/', create_telegram_stars_invoice, name='api_create_telegram_stars_invoice'),
     
     # Редирект с корневого URL на английский язык (язык по умолчанию)
-    path('', RedirectView.as_view(url='/en/', permanent=False), name='root-redirect'),
+    # Используем permanent=True (301) для SEO, чтобы поисковики индексировали правильный URL
+    path('', RedirectView.as_view(url='/en/', permanent=True), name='root-redirect'),
     
     # Редирект для VK sharing - URL без языкового префикса
-    path('post/<slug:slug>/', RedirectView.as_view(url='/ru/post/%(slug)s/', permanent=False), name='post_no_lang'),
-    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=False), name='project_no_lang'),    
+    # Используем permanent=True (301) для SEO, чтобы поисковики индексировали правильный URL
+    path('post/<slug:slug>/', RedirectView.as_view(url='/ru/post/%(slug)s/', permanent=True), name='post_no_lang'),
+    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=True), name='project_no_lang'),    
 
 
     # Кастомный переключатель языка (вне языковых паттернов для работы с любым языком)
