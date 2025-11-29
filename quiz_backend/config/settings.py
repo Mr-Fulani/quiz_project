@@ -606,6 +606,7 @@ EMAIL_ADMIN = ['fulani.dev@gmail.com']
 GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
 YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', '')  # Замените на ваш ID
 YANDEX_VERIFICATION_CODE = os.getenv('YANDEX_VERIFICATION_CODE', '')  # Код верификации Яндекс для подтверждения прав на сайт
+YANDEX_ZEN_VERIFICATION_CODE = os.getenv('YANDEX_ZEN_VERIFICATION_CODE', '')  # Код верификации Яндекс Дзен
 
 # Отключение аналитики на локальном сервере (опционально)
 ANALYTICAL_INTERNAL_IPS = ['127.0.0.1', 'localhost']
