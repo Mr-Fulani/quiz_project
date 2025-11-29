@@ -710,7 +710,8 @@ if not DEBUG:
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
+    # Изменено с 'DENY' на 'SAMEORIGIN' чтобы разрешить встраивание контента (например, YouTube)
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 
 
