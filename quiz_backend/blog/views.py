@@ -576,7 +576,10 @@ class HomePageView(BreadcrumbsMixin, TemplateView):
         context['posts_with_video'] = Post.objects.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
-        context['page_videos'] = PageVideo.objects.filter(page='index')
+        # Получаем видео с учетом приоритета по order
+        context['page_videos'] = PageVideo.objects.filter(page='index').order_by('order', 'title')
+        # Получаем приоритетное видео для отображения
+        context['page_video'] = PageVideo.get_priority_video('index')
         context['marquee_texts'] = MarqueeText.objects.filter(is_active=True).order_by('order')
         context['meta_title'] = _('Quiz Python, Go, JavaScript, Java, C#')
         return context
@@ -598,7 +601,10 @@ class AboutView(BreadcrumbsMixin, TemplateView):
         context['posts_with_video'] = Post.objects.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
-        context['page_videos'] = PageVideo.objects.filter(page='about')
+        # Получаем видео с учетом приоритета по order
+        context['page_videos'] = PageVideo.objects.filter(page='about').order_by('order', 'title')
+        # Получаем приоритетное видео для отображения
+        context['page_video'] = PageVideo.get_priority_video('about')
         context['testimonials'] = Testimonial.objects.filter(is_approved=True)
         return context
 

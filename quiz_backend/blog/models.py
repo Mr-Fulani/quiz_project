@@ -677,6 +677,12 @@ class PageVideo(models.Model):
         ('index', 'Главная страница'),
         ('about', 'Страница "Обо мне"'),
     )
+    
+    MEDIA_TYPE_CHOICES = (
+        ('video_url', 'YouTube видео'),
+        ('video_file', 'Локальное видео'),
+        ('gif', 'GIF-файл'),
+    )
 
     page = models.CharField(
         max_length=10,
@@ -689,18 +695,25 @@ class PageVideo(models.Model):
         verbose_name="Название видео",
         help_text="Название, которое будет отображаться под видео."
     )
+    media_type = models.CharField(
+        max_length=10,
+        choices=MEDIA_TYPE_CHOICES,
+        default='video_url',
+        verbose_name="Тип медиа",
+        help_text="Выберите, какое медиа отображать."
+    )
     video_url = models.URLField(
         blank=True,
         null=True,
         verbose_name="Ссылка на YouTube",
-        help_text="Вставьте ссылку на YouTube-видео (например, https://www.youtube.com/watch?v=xxx)."
+        help_text="Вставьте ссылку на YouTube-видео (например, https://www.youtube.com/watch?v=xxx). Используется только если выбран тип 'YouTube видео'."
     )
     video_file = models.FileField(
         upload_to='videos/page_videos/',
         blank=True,
         null=True,
         verbose_name="Локальный видеофайл",
-        help_text="Загрузите локальный видеофайл (например, .mp4), если не используете YouTube."
+        help_text="Загрузите локальный видеофайл (например, .mp4). Используется только если выбран тип 'Локальное видео'."
     )
     order = models.PositiveIntegerField(
         default=0,
@@ -710,7 +723,8 @@ class PageVideo(models.Model):
     gif = models.FileField(
         upload_to='gifs/page_videos/',
         blank=True, null=True,
-        verbose_name="GIF-файл")
+        verbose_name="GIF-файл",
+        help_text="Загрузите GIF-файл. Используется только если выбран тип 'GIF-файл'.")
 
     class Meta:
         verbose_name = "Видео для страницы"
@@ -719,6 +733,58 @@ class PageVideo(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.get_page_display()})"
+    
+    def get_media_type(self):
+        """
+        Возвращает тип медиа из поля media_type.
+        """
+        return self.media_type if self.media_type else None
+    
+    
+    def get_active_media_display(self):
+        """
+        Возвращает красиво отформатированное описание активного медиа для админки.
+        """
+        from django.utils.safestring import mark_safe
+        media_type = self.get_media_type()
+        if not media_type:
+            return mark_safe("❌ Нет медиа")
+        
+        media_names = {
+            'video_file': '🎥 <strong style="color: #4CAF50;">Локальное видео</strong>',
+            'video_url': '▶️ <strong style="color: #FF0000;">YouTube видео</strong>',
+            'gif': '🎞️ <strong style="color: #2196F3;">GIF-файл</strong>'
+        }
+        
+        active = media_names.get(media_type, media_type)
+        
+        # Проверяем, заполнено ли несколько полей
+        filled_count = sum([
+            bool(self.video_file),
+            bool(self.video_url),
+            bool(self.gif)
+        ])
+        
+        if filled_count > 1:
+            warnings = []
+            if self.video_file and media_type != 'video_file':
+                warnings.append("⚠️ <span style='color: orange;'>Локальное видео проигнорировано</span>")
+            if self.video_url and media_type != 'video_url':
+                warnings.append("⚠️ <span style='color: orange;'>YouTube видео проигнорировано</span>")
+            if self.gif and media_type != 'gif':
+                warnings.append("⚠️ <span style='color: orange;'>GIF проигнорирован</span>")
+            
+            if warnings:
+                return mark_safe(f"{active}<br><br><strong>Внимание:</strong><br>{'<br>'.join(warnings)}")
+        
+        return mark_safe(active)
+    
+    @classmethod
+    def get_priority_video(cls, page):
+        """
+        Получает первое видео для страницы по полю order (меньше - выше).
+        """
+        return cls.objects.filter(page=page).order_by('order', 'title').first()
 
 
 class Testimonial(models.Model):

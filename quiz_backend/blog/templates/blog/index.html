@@ -19,10 +19,22 @@
     </header>
 
     <section class="video section-gap">
-        {% with video=page_videos.first %}
+        {% with video=page_video %}
             {% if video %}
                 <div class="content-card">
-                    {% if video.video_url %}
+                    {% if video.media_type == 'video_file' and video.video_file %}
+                        <div class="video-banner-box">
+                            <video id="local-video-home"
+                                width="100%" height="400"
+                                autoplay muted loop playsinline
+                                preload="auto"
+                                style="cursor: pointer;"
+                                title="{% trans 'Click to enable sound' %}">
+                                <source src="{{ video.video_file.url }}" type="video/mp4">
+                                {% trans "Your browser does not support the video tag." %}
+                            </video>
+                        </div>
+                    {% elif video.media_type == 'video_url' and video.video_url %}
                         <div class="video-banner-box" id="video-container-home">
                             <iframe id="youtube-player-home"
                                     width="100%" height="400"
@@ -44,19 +56,7 @@
                                 </div>
                             </noscript>
                         </div>
-                    {% elif video.video_file %}
-                        <div class="video-banner-box">
-                            <video id="local-video-home"
-                                width="100%" height="400"
-                                autoplay muted loop playsinline
-                                preload="auto"
-                                style="cursor: pointer;"
-                                title="{% trans 'Click to enable sound' %}">
-                                <source src="{{ video.video_file.url }}" type="video/mp4">
-                                {% trans "Your browser does not support the video tag." %}
-                            </video>
-                        </div>
-                    {% elif video.gif %}
+                    {% elif video.media_type == 'gif' and video.gif %}
                         <div class="video-banner-box">
                             <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
                         </div>

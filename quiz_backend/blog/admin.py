@@ -777,11 +777,22 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(PageVideo)
 class PageVideoAdmin(admin.ModelAdmin):
-    list_display = ('title', 'page', 'video_url', 'video_file', 'gif', 'order')
-    list_filter = ('page',)
+    list_display = ('title', 'page', 'media_type', 'order')
+    list_filter = ('page', 'media_type')
     search_fields = ('title',)
     ordering = ('order', 'title')
-    fields = ('page', 'title', 'video_url', 'video_file', 'gif', 'order')
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('page', 'title', 'order')
+        }),
+        ('Медиа контент', {
+            'fields': ('media_type', 'video_url', 'video_file', 'gif'),
+        }),
+    )
+    
+    class Media:
+        js = ('blog/js/pagevideo_admin.js',)
 
 
 
