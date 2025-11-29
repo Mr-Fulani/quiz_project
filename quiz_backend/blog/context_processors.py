@@ -430,6 +430,7 @@ def analytics_context(request):
     """
     ga_id = settings.GOOGLE_ANALYTICS_PROPERTY_ID
     yandex_id = settings.YANDEX_METRICA_ID
+    yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     
     # Отладочное логирование
     logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
@@ -443,6 +444,7 @@ def analytics_context(request):
     return {
         'GOOGLE_ANALYTICS_PROPERTY_ID': ga_id,
         'YANDEX_METRICA_ID': yandex_id,
+        'YANDEX_VERIFICATION_CODE': yandex_verification,
         'twitter_username': getattr(settings, 'TWITTER_USERNAME', None),
     }
 

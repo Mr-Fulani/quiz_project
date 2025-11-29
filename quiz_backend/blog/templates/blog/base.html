@@ -17,6 +17,11 @@
     <meta name="revisit-after" content="{{ meta_revisit_after|default:'7 days' }}">
     <meta name="robots" content="{% block meta_robots %}{{ dynamic_seo.robots_content|default:robots_content|default:'index, follow' }}{% endblock %}">
     
+    <!-- Yandex Verification -->
+    {% if YANDEX_VERIFICATION_CODE %}
+    <meta name="yandex-verification" content="{{ YANDEX_VERIFICATION_CODE }}" />
+    {% endif %}
+    
     <!-- Canonical URL -->
     <link rel="canonical" href="{% block canonical_url %}{{ dynamic_seo.canonical_url|default:canonical_url }}{% endblock %}">
     
