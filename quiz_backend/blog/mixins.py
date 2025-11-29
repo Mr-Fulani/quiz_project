@@ -1,5 +1,6 @@
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
+import json
 
 class BreadcrumbsMixin:
     """
@@ -41,6 +42,7 @@ class BreadcrumbsMixin:
         context['breadcrumbs'] = breadcrumbs
 
         # Структурированные данные для SEO (schema.org/BreadcrumbList)
+        # ИСПРАВЛЕНИЕ: конвертируем в JSON строку для правильного формата в шаблоне
         breadcrumb_list = {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
@@ -48,11 +50,12 @@ class BreadcrumbsMixin:
                 {
                     "@type": "ListItem",
                     "position": index + 1,
-                    "name": crumb['name'],
-                    "item": self.request.build_absolute_uri(crumb['url']) if crumb['url'] else None
+                    "name": str(crumb['name']),  # Явное преобразование в строку
+                    "item": self.request.build_absolute_uri(crumb['url']) if crumb.get('url') else None
                 }
-                for index, crumb in enumerate(breadcrumbs) if crumb['url']
+                for index, crumb in enumerate(breadcrumbs) if crumb.get('url')
             ]
         }
-        context['breadcrumbs_json_ld'] = breadcrumb_list
+        # Конвертируем словарь в правильный JSON с двойными кавычками
+        context['breadcrumbs_json_ld'] = json.dumps(breadcrumb_list, ensure_ascii=False, indent=2)
         return context
