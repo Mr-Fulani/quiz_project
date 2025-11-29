@@ -672,28 +672,36 @@ class PostDetailView(BreadcrumbsMixin, DetailView):
             canonical_url = current_url
         
         # Генерируем hreflang URLs для всех языков
+        # ИСПРАВЛЕНИЕ: используем request.path как базовый путь и заменяем языковой префикс
+        # reverse() уже добавляет языковой префикс, поэтому не добавляем его дважды
         from django.conf import settings
-        from django.urls import reverse
         current_lang = get_language()[:2]
         hreflang_en = None
         hreflang_ru = None
         
+        # Получаем путь без языкового префикса (например, /post/slug/ из /en/post/slug/)
+        current_path = self.request.path
+        # Убираем языковой префикс если он есть
+        path_without_lang = current_path
+        for lang_code, _ in settings.LANGUAGES:
+            lang_prefix = f"/{lang_code[:2]}/"
+            if current_path.startswith(lang_prefix):
+                path_without_lang = current_path[len(lang_prefix)-1:]  # -1 чтобы сохранить начальный /
+                break
+        
+        if host == 'mini.quiz-code.com':
+            base_domain = 'quiz-code.com'
+        else:
+            base_domain = host
+        
+        # Генерируем URL для каждого языка
         for lang_code, _ in settings.LANGUAGES:
             lang_prefix = lang_code[:2]
-            with translation.override(lang_code):
-                try:
-                    lang_url = reverse('blog:post_detail', kwargs={'slug': post.slug})
-                    if host == 'mini.quiz-code.com':
-                        base_domain = 'quiz-code.com'
-                    else:
-                        base_domain = host
-                    full_lang_url = f"{scheme}://{base_domain}/{lang_prefix}{lang_url}"
-                    if lang_prefix == 'en':
-                        hreflang_en = full_lang_url
-                    elif lang_prefix == 'ru':
-                        hreflang_ru = full_lang_url
-                except Exception:
-                    continue
+            lang_url = f"{scheme}://{base_domain}/{lang_prefix}{path_without_lang}"
+            if lang_prefix == 'en':
+                hreflang_en = lang_url
+            elif lang_prefix == 'ru':
+                hreflang_ru = lang_url
         
         # Мета-теги теперь обрабатываются в context_processors.py
         context['og_url'] = share_url

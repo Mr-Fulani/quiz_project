@@ -194,10 +194,11 @@ class QuizSitemap(I18nSitemap):
     def location(self, obj):
         return reverse('blog:quiz_detail', kwargs={'quiz_type': obj.name})
 
-class ImageSitemap(Sitemap):
+class ImageSitemap(I18nSitemap):
     """
     Карта сайта для изображений постов и проектов.
     Помогает Google индексировать изображения.
+    Наследуется от I18nSitemap для поддержки hreflang тегов.
     """
     changefreq = "weekly"
     priority = 0.5
@@ -258,9 +259,13 @@ class ImageSitemap(Sitemap):
     
     def get_urls(self, page=1, site=None, protocol=None):
         """
-        Переопределяем get_urls для правильной обработки изображений.
-        Группируем изображения по страницам.
+        Переопределяем get_urls для правильной обработки изображений и hreflang тегов.
+        Сначала получаем URL с hreflang из родительского класса I18nSitemap,
+        затем добавляем информацию об изображениях.
         """
+        # Получаем URL с hreflang тегами из родительского класса
+        urls = super().get_urls(page=page, site=site, protocol=protocol)
+        
         if site is None:
             from django.contrib.sites.models import Site
             site = Site.objects.get_current()
@@ -269,41 +274,35 @@ class ImageSitemap(Sitemap):
             protocol = self.protocol or 'https'
         
         domain = site.domain
-        urls = []
         
-        # Получаем все элементы для текущей страницы
-        paginator = self.paginator
-        page_obj = paginator.page(page)
-        
-        for item in page_obj.object_list:
-            loc = f"{protocol}://{domain}{self.location(item)}"
-            priority = self.priority
-            lastmod = self.lastmod(item)
+        # Добавляем информацию об изображениях к каждому URL
+        for url_info in urls:
+            item = url_info.get('item', {})
             
-            # Собираем данные для всех изображений страницы
-            images_data = []
-            for image in item['images']:
-                if image.photo:
-                    try:
-                        photo_url = image.photo.url
-                        images_data.append({
-                            'loc': photo_url if photo_url.startswith('http') else f"{protocol}://{domain}{photo_url}",
-                            'title': item['object'].title,
-                            'caption': image.alt_text or item['object'].title,
-                        })
-                    except (AttributeError, ValueError):
-                        # Пропускаем изображение, если не удалось получить URL
-                        continue
+            # Получаем объект (post или project) из item
+            obj = item.get('object') if isinstance(item, dict) else None
             
-            # Создаем XML-структуру
-            url_info = {
-                'item': item,
-                'location': loc,
-                'lastmod': lastmod,
-                'changefreq': self.changefreq,
-                'priority': f'{priority:.1f}',
-                'images': images_data  # Список всех изображений для одной страницы
-            }
-            urls.append(url_info)
+            if obj:
+                # Собираем данные для всех изображений страницы
+                images_data = []
+                images_list = item.get('images', [])
+                
+                for image in images_list:
+                    if image and hasattr(image, 'photo') and image.photo:
+                        try:
+                            photo_url = image.photo.url
+                            images_data.append({
+                                'loc': photo_url if photo_url.startswith('http') else f"{protocol}://{domain}{photo_url}",
+                                'title': obj.title if hasattr(obj, 'title') else '',
+                                'caption': (image.alt_text if hasattr(image, 'alt_text') and image.alt_text else 
+                                          (obj.title if hasattr(obj, 'title') else '')),
+                            })
+                        except (AttributeError, ValueError):
+                            # Пропускаем изображение, если не удалось получить URL
+                            continue
+                
+                # Добавляем изображения к URL информации
+                if images_data:
+                    url_info['images'] = images_data
         
         return urls

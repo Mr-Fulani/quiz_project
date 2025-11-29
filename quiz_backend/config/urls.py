@@ -125,12 +125,14 @@ schema_view = get_schema_view(
 
 
 # Карта сайта
+# ImageSitemap временно исключен - изображения добавляются через PostSitemap и ProjectSitemap
+# чтобы избежать дублирования URL и проблем с hreflang
 sitemaps = {
     'posts': PostSitemap,
     'projects': ProjectSitemap,
     'main': MainPagesSitemap,
     'quizzes': QuizSitemap,
-    'images': ImageSitemap,
+    # 'images': ImageSitemap,  # Временно исключен - дублирует URL из posts/projects
 }
 
 
