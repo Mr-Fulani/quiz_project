@@ -613,11 +613,36 @@ def dynamic_seo_context(request):
                         
                         logger.info(f"=== DEBUG: Final OG image URL: {og_image_final}")
 
+                        # ИСПРАВЛЕНИЕ: Генерируем hreflang URLs правильно (без двойного языкового префикса)
+                        current_path = request.path
+                        # Убираем языковой префикс из пути
+                        path_without_lang = current_path
+                        from django.conf import settings
+                        for lang_code, _ in settings.LANGUAGES:
+                            lang_prefix = f"/{lang_code[:2]}/"
+                            if current_path.startswith(lang_prefix):
+                                path_without_lang = current_path[len(lang_prefix)-1:]  # -1 чтобы сохранить начальный /
+                                break
+                        
+                        # Генерируем hreflang URLs
+                        hreflang_en = None
+                        hreflang_ru = None
+                        for lang_code, _ in settings.LANGUAGES:
+                            lang_prefix = lang_code[:2]
+                            lang_url = f"{base_url}/{lang_prefix}{path_without_lang}"
+                            if lang_prefix == 'en':
+                                hreflang_en = lang_url
+                            elif lang_prefix == 'ru':
+                                hreflang_ru = lang_url
+                        
                         seo_data.update({
                             'meta_title': f"{post.title} | Quiz Project Blog",
                             'meta_description': meta_description[:160],
                             'meta_keywords': meta_keywords,
                             'canonical_url': base_url + post.get_absolute_url(),
+                            'hreflang_en': hreflang_en,
+                            'hreflang_ru': hreflang_ru,
+                            'hreflang_x_default': hreflang_en or (base_url + post.get_absolute_url()),
                             'og_title': post.title,
                             'og_description': meta_description[:160],
                             'og_image': og_image_final,
