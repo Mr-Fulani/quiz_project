@@ -27,11 +27,12 @@
                             <iframe id="youtube-player-home"
                                     width="100%" height="400"
                                     src="{{ video.video_url|youtube_embed_url }}"
-                                    style="border: none;"
+                                    style="border: none; cursor: pointer;"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowfullscreen
                                     referrerpolicy="strict-origin-when-cross-origin"
-                                    loading="lazy">
+                                    loading="lazy"
+                                    title="{% trans 'Click to enable sound' %}">
                             </iframe>
                             <noscript>
                                 <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px;">
@@ -46,13 +47,18 @@
                     {% elif video.video_file %}
                         <div class="video-banner-box">
                             <video id="local-video-home"
-                                width="100%" height="400" controls>
+                                width="100%" height="400"
+                                autoplay muted loop playsinline
+                                preload="auto"
+                                style="cursor: pointer;"
+                                title="{% trans 'Click to enable sound' %}">
                                 <source src="{{ video.video_file.url }}" type="video/mp4">
+                                {% trans "Your browser does not support the video tag." %}
                             </video>
                         </div>
                     {% elif video.gif %}
                         <div class="video-banner-box">
-                            <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="lazy">
+                            <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
                         </div>
                     {% endif %}
                 </div>

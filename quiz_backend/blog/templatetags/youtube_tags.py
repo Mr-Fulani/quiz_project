@@ -33,6 +33,7 @@ def youtube_embed_url(value):
     """
     Преобразует любую ссылку YouTube (включая Shorts) в embed-формат.
     Использует youtube-nocookie.com для лучшей совместимости и privacy.
+    Автоматически воспроизводит видео без звука.
     
     Использование: {{ url|youtube_embed_url }}
     """
@@ -41,8 +42,16 @@ def youtube_embed_url(value):
         return value  # Если не распознано, возвращаем как есть
     
     # Используем youtube-nocookie.com - часто лучше работает с встраиванием
-    # Минимальные параметры для максимальной совместимости
-    return f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0&modestbranding=1"
+    # Автоплей без звука для автоматического воспроизведения
+    params = [
+        "autoplay=1",
+        "mute=1",
+        "rel=0",
+        "modestbranding=1",
+        "playsinline=1",
+        "loop=1"
+    ]
+    return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
 
 
 @register.simple_tag(takes_context=True)

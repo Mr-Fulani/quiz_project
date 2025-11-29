@@ -83,7 +83,7 @@ All static text is localized using {% trans %} for English msgid and translation
                     <div class="swiper-slide">
                         <figure class="detail-media-box">
                             <div class="media-wrapper">
-                                <img src="{{ media.gif.url }}" alt="{{ post.title }}" loading="lazy">
+                                <img src="{{ media.gif.url }}" alt="{{ post.title }}" loading="eager">
                             </div>
                         </figure>
                     </div>
@@ -92,7 +92,7 @@ All static text is localized using {% trans %} for English msgid and translation
                     <div class="swiper-slide">
                         <figure class="detail-media-box">
                             <div class="media-wrapper">
-                                <video controls>
+                                <video controls autoplay muted loop playsinline preload="auto">
                                     <source src="{{ media.video.url }}" type="video/mp4">
                                     {% trans "Your browser does not support the video tag." %}
                                 </video>
@@ -115,10 +115,12 @@ All static text is localized using {% trans %} for English msgid and translation
                         <div class="media-wrapper">
                             <iframe id="youtube-player-{{ post.id }}"
                                     src="{{ post.video_url|youtube_embed_url }}"
-                                    style="border: none;"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    style="border: none; cursor: pointer;"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowfullscreen
-                                    loading="lazy"></iframe>
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                    loading="lazy"
+                                    title="{% trans 'Click to enable sound' %}"></iframe>
                         </div>
                     </div>
                 </div>
