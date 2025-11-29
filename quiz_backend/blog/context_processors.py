@@ -82,7 +82,16 @@ def personal_info(request):
                         # Используем favorite_topic из предзагруженных данных
                         favorite_category = favorite_topics_data.get(user.id) or user.favorite_category or _("Not determined")
 
-                    avatar_url = user.get_avatar_url
+                    # Используем thumbnail версию аватара для оптимизации (120x120px вместо полного размера)
+                    try:
+                        if user.avatar and hasattr(user, 'avatar_thumbnail'):
+                            avatar_url = user.avatar_thumbnail.url
+                        else:
+                            avatar_url = user.get_avatar_url
+                    except:
+                        # Если thumbnail еще не сгенерирован, используем оригинал
+                        avatar_url = user.get_avatar_url
+                    
                     user_data = {
                         'rank': i,
                         'username': user.username,
