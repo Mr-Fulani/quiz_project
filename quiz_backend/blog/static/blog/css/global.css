@@ -2772,6 +2772,93 @@ article .video .video-banner-box img {
     object-fit: cover;
 }
 
+/* Кнопка включения/выключения звука для видео */
+.video-sound-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.3s ease;
+    padding: 0;
+    outline: none;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.video-sound-toggle:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.6);
+}
+
+.video-sound-toggle:active {
+    transform: scale(0.95);
+}
+
+.video-sound-toggle svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.video-sound-toggle .mute-line {
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    display: none;
+}
+
+.video-sound-toggle.sound-off .mute-line {
+    display: block;
+}
+
+/* Адаптивность для кнопки звука - еще компактнее для мобильных */
+@media (max-width: 580px) {
+    .video-sound-toggle {
+        width: 32px;
+        height: 32px;
+        top: 8px;
+        right: 8px;
+        border-width: 1.5px;
+    }
+    
+    .video-sound-toggle svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .video-sound-toggle:hover {
+        transform: scale(1.05);
+    }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 380px) {
+    .video-sound-toggle {
+        width: 28px;
+        height: 28px;
+        top: 6px;
+        right: 6px;
+    }
+    
+    .video-sound-toggle svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
 /* Отступ для заголовка видео */
 article .video .video-content {
     margin-top: 10px;
