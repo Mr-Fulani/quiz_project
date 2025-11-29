@@ -2125,10 +2125,11 @@ def get_unread_messages_count(request):
 def custom_404(request, exception=None):
     """
     Обрабатывает ошибку 404.
-
-    Перенаправляет на страницу '404'.
+    
+    Рендерит кастомную страницу 404 со статусом 404.
+    Не использует редирект, чтобы избежать цепочек редиректов и проблем с SEO.
     """
-    return redirect('404')
+    return render(request, '404.html', status=404)
 
 
 def custom_413(request, exception=None):
