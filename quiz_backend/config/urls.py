@@ -41,6 +41,65 @@ from django.contrib.sites.shortcuts import get_current_site
 def health_check(request):
     return HttpResponse("OK", status=200)
 
+def root_with_verification(request):
+    """
+    Специальный view для корневой страницы, который отдает HTML с метатегами верификации
+    для роботов (Яндекс Дзен, Яндекс Вебмастер) и делает 301 редирект для обычных пользователей.
+    Сохраняет SEO качество используя правильные редиректы.
+    """
+    from django.conf import settings
+    
+    # Получаем коды верификации
+    yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
+    yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
+    
+    # Проверяем User-Agent - определяем, является ли запрос от робота
+    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+    is_bot = any(bot in user_agent for bot in [
+        'yandex', 'yandexbot', 'yandexzen', 'googlebot', 'bingbot', 
+        'slurp', 'duckduckbot', 'baiduspider', 'facebot', 'ia_archiver',
+        'facebookexternalhit', 'twitterbot', 'linkedinbot', 'whatsapp',
+        'telegrambot', 'crawler', 'spider', 'bot'
+    ])
+    
+    # Если это робот и есть коды верификации, отдаем HTML с метатегами
+    # Роботы смогут прочитать метатеги перед редиректом
+    if is_bot and (yandex_verification or yandex_zen_verification):
+        scheme = 'https' if request.is_secure() else 'http'
+        host = request.get_host()
+        canonical_url = f"{scheme}://{host}/en/"
+        
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizHub - Programming Quizzes & Learning</title>
+    <link rel="canonical" href="{canonical_url}">"""
+        
+        if yandex_verification:
+            html += f'\n    <meta name="yandex-verification" content="{yandex_verification}" />'
+        
+        if yandex_zen_verification:
+            html += f'\n    <meta name="zen-verification" content="{yandex_zen_verification}" />'
+        
+        # Для роботов делаем редирект через meta refresh с небольшой задержкой
+        # чтобы они успели прочитать метатеги
+        html += f"""
+    <meta http-equiv="refresh" content="1; url={canonical_url}">
+    <script>setTimeout(function(){{window.location.href = '{canonical_url}';}}, 1000);</script>
+</head>
+<body>
+    <p>Redirecting to <a href="{canonical_url}">main page</a>...</p>
+</body>
+</html>"""
+        
+        return HttpResponse(html, content_type='text/html')
+    
+    # Для обычных пользователей используем 301 редирект (лучше для SEO)
+    from django.shortcuts import redirect
+    return redirect('/en/', permanent=True)
+
 def robots_txt_view(request):
     """
     Генерирует robots.txt динамически с правильным доменом для sitemap.
@@ -180,9 +239,9 @@ urlpatterns = [
     # Telegram Stars donation API endpoints
     path('api/donation/telegram-stars/create-invoice/', create_telegram_stars_invoice, name='api_create_telegram_stars_invoice'),
     
-    # Редирект с корневого URL на английский язык (язык по умолчанию)
-    # Используем permanent=True (301) для SEO, чтобы поисковики индексировали правильный URL
-    path('', RedirectView.as_view(url='/en/', permanent=True), name='root-redirect'),
+    # Специальный view для корневой страницы с метатегами верификации для роботов
+    # Отдает HTML с метатегами для Яндекс Дзен и Яндекс Вебмастер, делает редирект для пользователей
+    path('', root_with_verification, name='root-redirect'),
     
     # Редирект для VK sharing - URL без языкового префикса
     # Используем permanent=True (301) для SEO, чтобы поисковики индексировали правильный URL
