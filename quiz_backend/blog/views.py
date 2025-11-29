@@ -2110,18 +2110,6 @@ def get_unread_messages_count(request):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 def custom_404(request, exception=None):
     """
     Обрабатывает ошибку 404.
