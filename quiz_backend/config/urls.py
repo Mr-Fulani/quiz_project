@@ -44,7 +44,7 @@ def health_check(request):
 def root_with_verification(request):
     """
     Специальный view для корневой страницы, который отдает HTML с метатегами верификации
-    для роботов (Яндекс Дзен, Яндекс Вебмастер) и делает 301 редирект для обычных пользователей.
+    для всех запросов (включая роботов Яндекс Дзен, Яндекс Вебмастер) и делает редирект для пользователей.
     Сохраняет SEO качество используя правильные редиректы.
     """
     from django.conf import settings
@@ -53,21 +53,21 @@ def root_with_verification(request):
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
     
-    # Проверяем User-Agent - определяем, является ли запрос от робота
-    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-    is_bot = any(bot in user_agent for bot in [
-        'yandex', 'yandexbot', 'yandexzen', 'googlebot', 'bingbot', 
-        'slurp', 'duckduckbot', 'baiduspider', 'facebot', 'ia_archiver',
-        'facebookexternalhit', 'twitterbot', 'linkedinbot', 'whatsapp',
-        'telegrambot', 'crawler', 'spider', 'bot'
-    ])
-    
-    # Если это робот и есть коды верификации, отдаем HTML с метатегами
-    # Роботы смогут прочитать метатеги перед редиректом
-    if is_bot and (yandex_verification or yandex_zen_verification):
+    # Если есть коды верификации, ВСЕГДА отдаем HTML с метатегами на корневой странице
+    # Это гарантирует, что роботы Яндекс Дзен и Яндекс Вебмастер увидят метатеги
+    if yandex_verification or yandex_zen_verification:
         scheme = 'https' if request.is_secure() else 'http'
         host = request.get_host()
         canonical_url = f"{scheme}://{host}/en/"
+        
+        # Проверяем User-Agent для определения типа клиента
+        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+        is_bot = any(bot in user_agent for bot in [
+            'yandex', 'yandexbot', 'yandexzen', 'googlebot', 'bingbot', 
+            'slurp', 'duckduckbot', 'baiduspider', 'facebot', 'ia_archiver',
+            'facebookexternalhit', 'twitterbot', 'linkedinbot', 'whatsapp',
+            'telegrambot', 'crawler', 'spider', 'bot'
+        ])
         
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -83,11 +83,12 @@ def root_with_verification(request):
         if yandex_zen_verification:
             html += f'\n    <meta name="zen-verification" content="{yandex_zen_verification}" />'
         
-        # Для роботов делаем редирект через meta refresh с небольшой задержкой
-        # чтобы они успели прочитать метатеги
+        # Для роботов делаем редирект с задержкой, чтобы они успели прочитать метатеги
+        # Для обычных пользователей - быстрый редирект
+        delay = '2' if is_bot else '0'
         html += f"""
-    <meta http-equiv="refresh" content="1; url={canonical_url}">
-    <script>setTimeout(function(){{window.location.href = '{canonical_url}';}}, 1000);</script>
+    <meta http-equiv="refresh" content="{delay}; url={canonical_url}">
+    <script>setTimeout(function(){{window.location.href = '{canonical_url}';}}, {delay}000);</script>
 </head>
 <body>
     <p>Redirecting to <a href="{canonical_url}">main page</a>...</p>
@@ -96,7 +97,7 @@ def root_with_verification(request):
         
         return HttpResponse(html, content_type='text/html')
     
-    # Для обычных пользователей используем 301 редирект (лучше для SEO)
+    # Если кодов верификации нет, используем обычный 301 редирект
     from django.shortcuts import redirect
     return redirect('/en/', permanent=True)
 
