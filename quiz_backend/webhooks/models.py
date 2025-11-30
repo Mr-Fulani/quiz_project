@@ -32,6 +32,20 @@ class Webhook(models.Model):
         null=True,
         help_text='Название сервиса (например, make.com, Zapier)'
     )
+    webhook_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('social_media', 'Социальные сети'),
+            ('other', 'Другое'),
+        ],
+        default='other',
+        help_text='Тип webhook'
+    )
+    target_platforms = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Список платформ для этого webhook (например: ["instagram", "tiktok", "youtube_shorts"])'
+    )
     is_active = models.BooleanField(
         default=True,
         help_text='Активен ли вебхук'
@@ -113,3 +127,67 @@ class MainFallbackLink(models.Model):
 
     def __str__(self):
         return f"Резервная ссылка для {self.language}: {self.link}"
+
+
+class SocialMediaCredentials(models.Model):
+    """
+    Учетные данные для API социальных сетей.
+    Используется для платформ с прямой интеграцией через API.
+    """
+    
+    PLATFORM_CHOICES = [
+        ('pinterest', 'Pinterest'),
+        ('yandex_dzen', 'Яндекс Дзен'),
+        ('facebook', 'Facebook'),
+    ]
+    
+    class Meta:
+        db_table = 'social_media_credentials'
+        verbose_name = 'Учетные данные соцсети'
+        verbose_name_plural = 'Учетные данные соцсетей'
+        indexes = [
+            models.Index(fields=['platform']),
+            models.Index(fields=['is_active']),
+        ]
+
+    id = models.AutoField(primary_key=True)
+    platform = models.CharField(
+        max_length=50,
+        choices=PLATFORM_CHOICES,
+        unique=True,
+        help_text='Платформа социальной сети'
+    )
+    access_token = models.TextField(
+        help_text='Access token для API'
+    )
+    refresh_token = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Refresh token для обновления access token'
+    )
+    token_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Дата истечения access token'
+    )
+    extra_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Дополнительные параметры (board_id для Pinterest, channel_id для Дзен и т.д.)'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Активны ли учетные данные'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Дата создания'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text='Дата последнего обновления'
+    )
+
+    def __str__(self):
+        status = "Активно" if self.is_active else "Неактивно"
+        return f"{self.get_platform_display()} ({status})"
