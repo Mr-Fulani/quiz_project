@@ -181,7 +181,13 @@ class TaskAdmin(admin.ModelAdmin):
     actions = [
         'publish_to_telegram',
         'generate_images',
-        'publish_to_social_networks',
+        'publish_to_all_social_networks',
+        'publish_to_pinterest',
+        'publish_to_facebook',
+        'publish_to_yandex_dzen',
+        'publish_to_instagram',
+        'publish_to_tiktok',
+        'publish_to_youtube_shorts',
         'clear_error_flag'
     ]
     
@@ -934,10 +940,10 @@ class TaskAdmin(admin.ModelAdmin):
         self.message_user(request, "=" * 60, messages.INFO)
         self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
     
-    @admin.action(description='📱 Опубликовать в соцсети')
-    def publish_to_social_networks(self, request, queryset):
+    @admin.action(description='📱 Опубликовать во все соцсети')
+    def publish_to_all_social_networks(self, request, queryset):
         """
-        Публикует выбранные задачи в социальные сети.
+        Публикует выбранные задачи во все активные социальные сети.
         Работает через API (Pinterest, Дзен, Facebook) и webhook (Instagram, TikTok, YouTube).
         """
         from .services.social_media_service import publish_to_social_media
@@ -947,7 +953,7 @@ class TaskAdmin(admin.ModelAdmin):
         
         self.message_user(
             request,
-            f"📊 Начинаем публикацию {total_tasks} задач в социальные сети...",
+            f"📊 Начинаем публикацию {total_tasks} задач во все социальные сети...",
             messages.INFO
         )
         
@@ -1003,6 +1009,119 @@ class TaskAdmin(admin.ModelAdmin):
             f"🎉 Готово! Опубликовано {published_tasks} из {total_tasks} задач",
             messages.SUCCESS if published_tasks > 0 else messages.WARNING
         )
+    
+    def _publish_to_platform_action(self, request, queryset, platform: str, platform_name: str):
+        """
+        Вспомогательная функция для публикации в конкретную платформу.
+        """
+        from .services.social_media_service import publish_to_platform
+        
+        total_tasks = queryset.count()
+        published_tasks = 0
+        
+        self.message_user(
+            request,
+            f"📊 Начинаем публикацию {total_tasks} задач в {platform_name}...",
+            messages.INFO
+        )
+        
+        for task in queryset:
+            try:
+                # Проверяем наличие изображения
+                if not task.image_url:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет изображения, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Получаем перевод
+                translation = task.translations.first()
+                if not translation:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет переводов, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Публикуем в конкретную платформу
+                result = publish_to_platform(task, translation, platform)
+                
+                if result.get('success'):
+                    published_tasks += 1
+                    status = result.get('status', 'published')
+                    if status == 'already_published':
+                        self.message_user(
+                            request,
+                            f"ℹ️ Задача {task.id}: уже опубликована в {platform_name}",
+                            messages.INFO
+                        )
+                    elif status == 'sent_to_webhook':
+                        self.message_user(
+                            request,
+                            f"✅ Задача {task.id}: отправлена в {platform_name} через webhook",
+                            messages.SUCCESS
+                        )
+                    else:
+                        post_url = result.get('post_url', '')
+                        self.message_user(
+                            request,
+                            f"✅ Задача {task.id}: опубликована в {platform_name}" + (f" - {post_url}" if post_url else ""),
+                            messages.SUCCESS
+                        )
+                else:
+                    error = result.get('error', 'Неизвестная ошибка')
+                    self.message_user(
+                        request,
+                        f"❌ Задача {task.id}: ошибка публикации в {platform_name} - {error}",
+                        messages.ERROR
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Ошибка публикации задачи {task.id} в {platform_name}: {e}", exc_info=True)
+                self.message_user(
+                    request,
+                    f"❌ Задача {task.id}: ошибка публикации в {platform_name} - {str(e)}",
+                    messages.ERROR
+                )
+        
+        self.message_user(
+            request,
+            f"📊 Публикация в {platform_name} завершена: {published_tasks}/{total_tasks} задач опубликовано",
+            messages.SUCCESS if published_tasks > 0 else messages.WARNING
+        )
+    
+    @admin.action(description='📌 Опубликовать в Pinterest')
+    def publish_to_pinterest(self, request, queryset):
+        """Публикует выбранные задачи в Pinterest."""
+        self._publish_to_platform_action(request, queryset, 'pinterest', 'Pinterest')
+    
+    @admin.action(description='👤 Опубликовать в Facebook')
+    def publish_to_facebook(self, request, queryset):
+        """Публикует выбранные задачи в Facebook."""
+        self._publish_to_platform_action(request, queryset, 'facebook', 'Facebook')
+    
+    @admin.action(description='📰 Опубликовать в Яндекс Дзен')
+    def publish_to_yandex_dzen(self, request, queryset):
+        """Публикует выбранные задачи в Яндекс Дзен."""
+        self._publish_to_platform_action(request, queryset, 'yandex_dzen', 'Яндекс Дзен')
+    
+    @admin.action(description='📸 Опубликовать в Instagram')
+    def publish_to_instagram(self, request, queryset):
+        """Публикует выбранные задачи в Instagram через webhook."""
+        self._publish_to_platform_action(request, queryset, 'instagram', 'Instagram')
+    
+    @admin.action(description='🎵 Опубликовать в TikTok')
+    def publish_to_tiktok(self, request, queryset):
+        """Публикует выбранные задачи в TikTok через webhook."""
+        self._publish_to_platform_action(request, queryset, 'tiktok', 'TikTok')
+    
+    @admin.action(description='🎬 Опубликовать в YouTube Shorts')
+    def publish_to_youtube_shorts(self, request, queryset):
+        """Публикует выбранные задачи в YouTube Shorts через webhook."""
+        self._publish_to_platform_action(request, queryset, 'youtube_shorts', 'YouTube Shorts')
     
     @admin.action(description='Снять флаг ошибки')
     def clear_error_flag(self, request, queryset):
