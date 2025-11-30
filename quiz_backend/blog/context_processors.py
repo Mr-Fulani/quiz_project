@@ -429,6 +429,7 @@ def analytics_context(request):
     Добавляет переменные аналитики и социальных сетей в контекст всех шаблонов
     """
     ga_id = settings.GOOGLE_ANALYTICS_PROPERTY_ID
+    gtm_id = getattr(settings, 'GOOGLE_TAG_MANAGER_ID', '')
     yandex_id = settings.YANDEX_METRICA_ID
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
@@ -436,6 +437,7 @@ def analytics_context(request):
     
     # Отладочное логирование
     logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
+    logger.info(f"=== DEBUG: analytics_context - GOOGLE_TAG_MANAGER_ID: '{gtm_id}'")
     logger.info(f"=== DEBUG: analytics_context - YANDEX_METRICA_ID: '{yandex_id}'")
     
     # Проверяем переменные окружения напрямую
@@ -445,6 +447,7 @@ def analytics_context(request):
     
     return {
         'GOOGLE_ANALYTICS_PROPERTY_ID': ga_id,
+        'GOOGLE_TAG_MANAGER_ID': gtm_id,
         'YANDEX_METRICA_ID': yandex_id,
         'YANDEX_VERIFICATION_CODE': yandex_verification,
         'YANDEX_ZEN_VERIFICATION_CODE': yandex_zen_verification,
