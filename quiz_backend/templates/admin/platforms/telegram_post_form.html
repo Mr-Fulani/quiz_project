@@ -373,9 +373,13 @@
             <div class="form-row">
                 {{ form.text.label_tag }}
                 {{ form.text }}
-                {% if form.text.help_text %}
-                    <div class="help">{{ form.text.help_text }}</div>
-                {% endif %}
+                <div class="help">
+                    {{ form.text.help_text }}
+                    <br>
+                    <span id="char-counter" style="font-weight: bold; color: #2c3e50;">
+                        Символов: <span id="char-count">0</span> / 1024
+                    </span>
+                </div>
                 {% if form.text.errors %}
                     <div class="errors">{{ form.text.errors }}</div>
                 {% endif %}
@@ -389,83 +393,39 @@
                     Большие файлы могут загружаться медленно и вызывать ошибки.
                 </div>
                 
-                <!-- Фотографии -->
+                <!-- Фотография -->
                 <div class="form-row">
-                    {{ form.photo1.label_tag }}
-                    {{ form.photo1 }}
-                    {% if form.photo1.help_text %}
-                        <div class="help">{{ form.photo1.help_text }}</div>
+                    {{ form.photo.label_tag }}
+                    {{ form.photo }}
+                    {% if form.photo.help_text %}
+                        <div class="help">{{ form.photo.help_text }}</div>
                     {% endif %}
-                    {% if form.photo1.errors %}
-                        <div class="errors">{{ form.photo1.errors }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-row">
-                    {{ form.photo2.label_tag }}
-                    {{ form.photo2 }}
-                    {% if form.photo2.help_text %}
-                        <div class="help">{{ form.photo2.help_text }}</div>
-                    {% endif %}
-                    {% if form.photo2.errors %}
-                        <div class="errors">{{ form.photo2.errors }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-row">
-                    {{ form.photo3.label_tag }}
-                    {{ form.photo3 }}
-                    {% if form.photo3.help_text %}
-                        <div class="help">{{ form.photo3.help_text }}</div>
-                    {% endif %}
-                    {% if form.photo3.errors %}
-                        <div class="errors">{{ form.photo3.errors }}</div>
+                    {% if form.photo.errors %}
+                        <div class="errors">{{ form.photo.errors }}</div>
                     {% endif %}
                 </div>
                 
                 <!-- GIF -->
                 <div class="form-row">
-                    {{ form.gif1.label_tag }}
-                    {{ form.gif1 }}
-                    {% if form.gif1.help_text %}
-                        <div class="help">{{ form.gif1.help_text }}</div>
+                    {{ form.gif.label_tag }}
+                    {{ form.gif }}
+                    {% if form.gif.help_text %}
+                        <div class="help">{{ form.gif.help_text }}</div>
                     {% endif %}
-                    {% if form.gif1.errors %}
-                        <div class="errors">{{ form.gif1.errors }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-row">
-                    {{ form.gif2.label_tag }}
-                    {{ form.gif2 }}
-                    {% if form.gif2.help_text %}
-                        <div class="help">{{ form.gif2.help_text }}</div>
-                    {% endif %}
-                    {% if form.gif2.errors %}
-                        <div class="errors">{{ form.gif2.errors }}</div>
+                    {% if form.gif.errors %}
+                        <div class="errors">{{ form.gif.errors }}</div>
                     {% endif %}
                 </div>
                 
                 <!-- Видео -->
                 <div class="form-row">
-                    {{ form.video1.label_tag }}
-                    {{ form.video1 }}
-                    {% if form.video1.help_text %}
-                        <div class="help">{{ form.video1.help_text }}</div>
+                    {{ form.video.label_tag }}
+                    {{ form.video }}
+                    {% if form.video.help_text %}
+                        <div class="help">{{ form.video.help_text }}</div>
                     {% endif %}
-                    {% if form.video1.errors %}
-                        <div class="errors">{{ form.video1.errors }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="form-row">
-                    {{ form.video2.label_tag }}
-                    {{ form.video2 }}
-                    {% if form.video2.help_text %}
-                        <div class="help">{{ form.video2.help_text }}</div>
-                    {% endif %}
-                    {% if form.video2.errors %}
-                        <div class="errors">{{ form.video2.errors }}</div>
+                    {% if form.video.errors %}
+                        <div class="errors">{{ form.video.errors }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -526,4 +486,66 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textField = document.getElementById('id_text');
+    const charCount = document.getElementById('char-count');
+    const charCounter = document.getElementById('char-counter');
+    
+    if (textField && charCount) {
+        // Функция для упрощенной конвертации Markdown в HTML (как на сервере)
+        function markdownToHtml(text) {
+            if (!text) return '';
+            
+            // 1. Блоки кода: ```python\nкод\n``` → <pre>код</pre>
+            text = text.replace(/```(\w+)?[\r\n]+([\s\S]*?)[\r\n]+```/g, function(match, lang, code) {
+                code = code.trim();
+                return '<pre>' + code + '</pre>';
+            });
+            
+            // 2. Inline код: `код` → <code>код</code>
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // 3. Заголовки: ## текст → <b>текст</b>
+            text = text.replace(/^#{1,6}\s+(.+)$/gm, '<b>$1</b>');
+            
+            // 4. Жирный текст: **текст** → <b>текст</b>
+            text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            
+            // 5. Курсив: *текст* → <i>текст</i>
+            text = text.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<i>$1</i>');
+            
+            // 6. Ссылки: [текст](url) → <a href="url">текст</a>
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+            
+            return text;
+        }
+        
+        function updateCounter() {
+            const originalText = textField.value;
+            const htmlText = markdownToHtml(originalText);
+            const length = htmlText.length;
+            
+            charCount.textContent = length;
+            
+            // Меняем цвет в зависимости от количества символов (лимит 1024 для caption)
+            if (length > 1024) {
+                charCounter.style.color = '#e74c3c';  // Красный - превышен лимит
+            } else if (length > 950) {
+                charCounter.style.color = '#f39c12';  // Оранжевый - близко к лимиту
+            } else {
+                charCounter.style.color = '#27ae60';  // Зеленый - норма
+            }
+        }
+        
+        // Обновляем счетчик при вводе
+        textField.addEventListener('input', updateCounter);
+        textField.addEventListener('change', updateCounter);
+        
+        // Инициализируем счетчик
+        updateCounter();
+    }
+});
+</script>
 {% endblock %}
