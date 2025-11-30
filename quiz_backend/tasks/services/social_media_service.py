@@ -60,6 +60,263 @@ def publish_to_social_media(task: Task, translation: TaskTranslation) -> Dict:
     }
 
 
+def publish_to_platform(task: Task, translation: TaskTranslation, platform: str) -> Dict:
+    """
+    Публикует задачу в конкретную социальную сеть.
+    
+    Args:
+        task: Объект задачи
+        translation: Объект перевода задачи
+        platform: Название платформы ('pinterest', 'facebook', 'yandex_dzen', 'instagram', 'tiktok', 'youtube_shorts')
+        
+    Returns:
+        Dict: {'platform': 'pinterest', 'success': True/False, 'post_id': '...', 'error': '...'}
+    """
+    logger.info(f"🌐 Публикация задачи {task.id} в {platform}")
+    
+    # Проверяем наличие изображения
+    if not task.image_url:
+        error_msg = "Нет изображения"
+        logger.warning(f"⚠️ Задача {task.id}: {error_msg}")
+        return {
+            'platform': platform,
+            'success': False,
+            'error': error_msg
+        }
+    
+    # Публикация через API
+    if platform in API_PLATFORMS:
+        return _publish_single_platform_api(task, translation, platform)
+    
+    # Публикация через webhook
+    elif platform in WEBHOOK_PLATFORMS:
+        return _publish_single_platform_webhook(task, translation, platform)
+    
+    else:
+        error_msg = f"Неизвестная платформа: {platform}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            'platform': platform,
+            'success': False,
+            'error': error_msg
+        }
+
+
+def _publish_single_platform_api(task: Task, translation: TaskTranslation, platform: str) -> Dict:
+    """Публикация в конкретную платформу через API."""
+    try:
+        # Проверяем наличие credentials
+        creds = SocialMediaCredentials.objects.filter(
+            platform=platform,
+            is_active=True
+        ).first()
+        
+        if not creds:
+            error_msg = f"Нет активных credentials для {platform}"
+            logger.warning(f"⚠️ {error_msg}")
+            return {
+                'platform': platform,
+                'success': False,
+                'error': error_msg
+            }
+        
+        # Получаем или создаем запись о публикации
+        social_post, created = SocialMediaPost.objects.get_or_create(
+            task=task,
+            platform=platform,
+            defaults={
+                'method': 'api',
+                'status': 'pending'
+            }
+        )
+        
+        # Если уже опубликована, пропускаем
+        if not created and social_post.status == 'published':
+            logger.info(f"ℹ️ Задача {task.id} уже опубликована в {platform}, пропускаем")
+            return {
+                'platform': platform,
+                'success': True,
+                'status': 'already_published',
+                'post_id': social_post.post_id,
+                'post_url': social_post.post_url
+            }
+        
+        # Если в обработке, пропускаем
+        if not created and social_post.status == 'processing':
+            logger.info(f"ℹ️ Задача {task.id} уже обрабатывается для {platform}, пропускаем")
+            return {
+                'platform': platform,
+                'success': False,
+                'error': 'Уже обрабатывается'
+            }
+        
+        # Сохраняем старый статус
+        old_status = social_post.status if not created else None
+        
+        # Обновляем статус
+        social_post.status = 'processing'
+        social_post.method = 'api'
+        
+        if not created and old_status == 'failed':
+            social_post.retry_count += 1
+            logger.info(f"🔄 Повторная попытка публикации задачи {task.id} в {platform} (попытка #{social_post.retry_count})")
+        
+        social_post.save()
+        
+        # Публикуем в зависимости от платформы
+        if platform == 'pinterest':
+            result = _publish_to_pinterest(task, translation, creds, social_post)
+        elif platform == 'yandex_dzen':
+            result = _publish_to_yandex_dzen(task, translation, creds, social_post)
+        elif platform == 'facebook':
+            result = _publish_to_facebook(task, translation, creds, social_post)
+        else:
+            result = {'platform': platform, 'success': False, 'error': 'Unknown platform'}
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка публикации в {platform}: {e}", exc_info=True)
+        # Обновляем статус на failed
+        if 'social_post' in locals():
+            social_post.status = 'failed'
+            social_post.error_message = str(e)
+            social_post.save()
+        return {
+            'platform': platform,
+            'success': False,
+            'error': str(e)
+        }
+
+
+def _publish_single_platform_webhook(task: Task, translation: TaskTranslation, platform: str) -> Dict:
+    """Публикация в конкретную платформу через webhook."""
+    try:
+        # Ищем активные webhook для этой платформы
+        webhooks = Webhook.objects.filter(
+            is_active=True,
+            webhook_type='social_media',
+            target_platforms__contains=[platform]
+        )
+        
+        if not webhooks.exists():
+            error_msg = f"Нет активных webhook для {platform}"
+            logger.warning(f"⚠️ {error_msg}")
+            return {
+                'platform': platform,
+                'success': False,
+                'error': error_msg
+            }
+        
+        # Используем первый доступный webhook
+        webhook = webhooks.first()
+        
+        # Получаем или создаем запись о публикации
+        social_post, created = SocialMediaPost.objects.get_or_create(
+            task=task,
+            platform=platform,
+            defaults={
+                'method': 'webhook',
+                'status': 'pending'
+            }
+        )
+        
+        # Если уже опубликована, пропускаем
+        if not created and social_post.status == 'published':
+            logger.info(f"ℹ️ Задача {task.id} уже опубликована в {platform}, пропускаем")
+            return {
+                'platform': platform,
+                'success': True,
+                'status': 'already_published',
+                'post_id': social_post.post_id,
+                'post_url': social_post.post_url
+            }
+        
+        # Если в обработке, пропускаем
+        if not created and social_post.status == 'processing':
+            logger.info(f"ℹ️ Задача {task.id} уже обрабатывается для {platform}, пропускаем")
+            return {
+                'platform': platform,
+                'success': False,
+                'error': 'Уже обрабатывается'
+            }
+        
+        # Сохраняем старый статус
+        old_status = social_post.status if not created else None
+        
+        # Обновляем статус
+        social_post.status = 'processing'
+        social_post.method = 'webhook'
+        
+        if not created and old_status == 'failed':
+            social_post.retry_count += 1
+            logger.info(f"🔄 Повторная попытка публикации задачи {task.id} в {platform} через webhook (попытка #{social_post.retry_count})")
+        
+        social_post.save()
+        
+        # Подготавливаем payload
+        payload = _prepare_webhook_payload(task, translation, platform)
+        
+        logger.info(f"📤 Отправка в webhook для {platform}: {webhook.url[:50]}...")
+        
+        response = requests.post(webhook.url, json=payload, timeout=30)
+        
+        if response.status_code in [200, 201, 202]:
+            social_post.status = 'sent'  # Отправлено в webhook, ждем callback
+            social_post.save()
+            return {
+                'platform': platform,
+                'success': True,
+                'status': 'sent_to_webhook'
+            }
+        else:
+            error_msg = f"HTTP {response.status_code}: {response.text}"
+            social_post.status = 'failed'
+            social_post.error_message = error_msg
+            social_post.save()
+            return {
+                'platform': platform,
+                'success': False,
+                'error': error_msg
+            }
+            
+    except requests.exceptions.Timeout:
+        error_msg = "Webhook: Превышено время ожидания запроса"
+        logger.error(f"❌ {error_msg} для {platform}")
+        if 'social_post' in locals():
+            social_post.status = 'failed'
+            social_post.error_message = error_msg
+            social_post.save()
+        return {
+            'platform': platform,
+            'success': False,
+            'error': error_msg
+        }
+    except requests.exceptions.ConnectionError:
+        error_msg = "Webhook: Ошибка соединения с сервером"
+        logger.error(f"❌ {error_msg} для {platform}")
+        if 'social_post' in locals():
+            social_post.status = 'failed'
+            social_post.error_message = error_msg
+            social_post.save()
+        return {
+            'platform': platform,
+            'success': False,
+            'error': error_msg
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка webhook для {platform}: {e}", exc_info=True)
+        if 'social_post' in locals():
+            social_post.status = 'failed'
+            social_post.error_message = str(e)
+            social_post.save()
+        return {
+            'platform': platform,
+            'success': False,
+            'error': str(e)
+        }
+
+
 def _publish_via_api(task: Task, translation: TaskTranslation) -> List[Dict]:
     """
     Публикация через прямое API.
