@@ -1,0 +1,154 @@
+{% extends "blog/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block content %}
+<article class="privacy-policy active" data-page="privacy-policy">
+    <header>
+        <h1 class="h2 article-title">{% trans "Privacy Policy" %}</h1>
+    </header>
+
+    <section class="privacy-content">
+        <div class="content-card">
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "1. Introduction" %}</h2>
+                <p>
+                    {% trans "This Privacy Policy describes how QuizHub ('we', 'our', or 'us') collects, uses, and protects your personal information when you use our website and services. By using our services, you agree to the collection and use of information in accordance with this policy." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "2. Information We Collect" %}</h2>
+                <p>{% trans "We collect the following types of information:" %}</p>
+                <ul>
+                    <li>{% trans "Personal Information: Username, email address, and profile information you provide when creating an account." %}</li>
+                    <li>{% trans "Usage Data: Information about how you interact with our website, including quiz results, progress, and preferences." %}</li>
+                    <li>{% trans "Technical Data: IP address, browser type, device information, and cookies." %}</li>
+                </ul>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "3. How We Use Your Information" %}</h2>
+                <p>{% trans "We use the collected information for the following purposes:" %}</p>
+                <ul>
+                    <li>{% trans "To provide and maintain our services" %}</li>
+                    <li>{% trans "To improve user experience and personalize content" %}</li>
+                    <li>{% trans "To track your progress and provide statistics" %}</li>
+                    <li>{% trans "To communicate with you about your account and our services" %}</li>
+                    <li>{% trans "To ensure security and prevent fraud" %}</li>
+                </ul>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "4. Data Protection" %}</h2>
+                <p>
+                    {% trans "We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet is 100% secure." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "5. Cookies" %}</h2>
+                <p>
+                    {% trans "We use cookies to enhance your experience, analyze site usage, and assist in our marketing efforts. You can control cookies through your browser settings, but this may affect the functionality of our website." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "6. Third-Party Services" %}</h2>
+                <p>
+                    {% trans "We may use third-party services for analytics, authentication, and payment processing. These services have their own privacy policies governing the use of your information." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "7. Your Rights" %}</h2>
+                <p>{% trans "You have the right to:" %}</p>
+                <ul>
+                    <li>{% trans "Access your personal information" %}</li>
+                    <li>{% trans "Correct inaccurate data" %}</li>
+                    <li>{% trans "Request deletion of your data" %}</li>
+                    <li>{% trans "Object to processing of your data" %}</li>
+                    <li>{% trans "Data portability" %}</li>
+                </ul>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "8. Data Retention" %}</h2>
+                <p>
+                    {% trans "We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When you delete your account, we will delete or anonymize your personal data." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "9. Children's Privacy" %}</h2>
+                <p>
+                    {% trans "Our services are not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "10. Changes to This Policy" %}</h2>
+                <p>
+                    {% trans "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the 'Last Updated' date." %}
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <h2 class="h3">{% trans "11. Contact Us" %}</h2>
+                <p>
+                    {% trans "If you have any questions about this Privacy Policy, please contact us at:" %}
+                </p>
+                <p>
+                    <strong>{% trans "Email:" %}</strong> fulani.dev@gmail.com<br>
+                    <strong>{% trans "Website:" %}</strong> <a href="{% url 'blog:contact' %}">{% trans "Contact Page" %}</a>
+                </p>
+            </div>
+
+            <div class="privacy-section">
+                <p class="last-updated">
+                    <em>{% trans "Last Updated:" %} {{ "now"|date:"F d, Y" }}</em>
+                </p>
+            </div>
+        </div>
+    </section>
+</article>
+
+<style>
+    .privacy-content {
+        padding: 20px 0;
+    }
+
+    .privacy-section {
+        margin-bottom: 30px;
+    }
+
+    .privacy-section h2 {
+        margin-bottom: 15px;
+        color: var(--text-color);
+    }
+
+    .privacy-section p {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .privacy-section ul {
+        margin-left: 20px;
+        margin-bottom: 15px;
+    }
+
+    .privacy-section li {
+        margin-bottom: 8px;
+        line-height: 1.6;
+    }
+
+    .last-updated {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+        font-style: italic;
+        color: var(--text-color-secondary);
+    }
+</style>
+{% endblock %}
+

@@ -3,7 +3,7 @@ from django.urls import path, include
 from .views import (
     HomePageView, PostDetailView, ProjectDetailView,
     ResumeView, PortfolioView, BlogView, AboutView,
-    ContactView, QuizesView, QuizDetailView, inbox,
+    ContactView, PrivacyPolicyView, QuizesView, QuizDetailView, inbox,
     send_message, delete_message, download_attachment,
     get_unread_messages_count, statistics_view, submit_task_answer,
     MaintenanceView, get_conversation, add_testimonial, AllTestimonialsView, contact_form_submit, quiz_subtopic,
@@ -51,6 +51,9 @@ urlpatterns = [
 
     path('contact/', ContactView.as_view(), name='contact'),
     #   -> Страница "Контакты"
+
+    path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy_policy'),
+    #   -> Страница "Политика конфиденциальности"
 
     path('debug/', debug_view, name='debug_view'),
     path('quizes/', QuizesView.as_view(), name='quizes'),

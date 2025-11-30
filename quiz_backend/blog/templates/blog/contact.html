@@ -32,6 +32,14 @@
                 <ion-icon name="paper-plane"></ion-icon>
                 <span>{% trans "Send Message" %}</span>
             </button>
+
+            <!-- Политика конфиденциальности внутри формы -->
+            <div class="privacy-link-wrapper">
+                <a href="{% url 'blog:privacy_policy' %}" class="privacy-link-logo" title="{% trans 'Privacy Policy' %}">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>{% trans "Privacy Policy" %}</span>
+                </a>
+            </div>
         </form>
     </section>
 </article>
@@ -98,4 +106,62 @@
         checkInputs();
     });
 </script>
+
+<style>
+    .privacy-link-wrapper {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    .privacy-link-logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--bg-color-secondary, rgba(255, 255, 255, 0.05));
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-color, #fff);
+        font-size: 13px;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    }
+
+    .privacy-link-logo:hover {
+        background: var(--bg-color-hover, rgba(255, 255, 255, 0.1));
+        transform: translateY(-1px);
+        border-color: var(--primary-color, #00ff0a);
+    }
+
+    .privacy-link-logo i {
+        font-size: 16px;
+        color: var(--primary-color, #00ff0a);
+    }
+
+    .privacy-link-logo span {
+        font-weight: 400;
+        font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+        .privacy-link-wrapper {
+            margin-top: 15px;
+        }
+
+        .privacy-link-logo {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .privacy-link-logo span {
+            font-size: 12px;
+        }
+
+        .privacy-link-logo i {
+            font-size: 14px;
+        }
+    }
+</style>
 {% endblock %}
