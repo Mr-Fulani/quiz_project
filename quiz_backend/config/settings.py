@@ -604,6 +604,7 @@ EMAIL_ADMIN = ['fulani.dev@gmail.com']
 
 # Analytics settings
 GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
+GOOGLE_TAG_MANAGER_ID = os.getenv('GOOGLE_TAG_MANAGER_ID', 'GTM-PXS2VSTT')  # Google Tag Manager ID
 YANDEX_METRICA_ID = os.getenv('YANDEX_METRICA_ID', '')  # Замените на ваш ID
 YANDEX_VERIFICATION_CODE = os.getenv('YANDEX_VERIFICATION_CODE', '')  # Код верификации Яндекс для подтверждения прав на сайт
 YANDEX_ZEN_VERIFICATION_CODE = os.getenv('YANDEX_ZEN_VERIFICATION_CODE', '')  # Код верификации Яндекс Дзен
