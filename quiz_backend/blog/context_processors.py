@@ -437,13 +437,15 @@ def analytics_context(request):
     
     # Отладочное логирование
     logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
-    logger.info(f"=== DEBUG: analytics_context - GOOGLE_TAG_MANAGER_ID: '{gtm_id}'")
+    logger.info(f"=== DEBUG: analytics_context - GOOGLE_TAG_MANAGER_ID: '{gtm_id}' (type: {type(gtm_id).__name__})")
     logger.info(f"=== DEBUG: analytics_context - YANDEX_METRICA_ID: '{yandex_id}'")
     
     # Проверяем переменные окружения напрямую
     import os
     env_ga_id = os.getenv('GOOGLE_ANALYTICS_ID', 'NOT_SET')
+    env_gtm_id = os.getenv('GOOGLE_TAG_MANAGER_ID', 'NOT_SET')
     logger.info(f"=== DEBUG: analytics_context - env GOOGLE_ANALYTICS_ID: '{env_ga_id}'")
+    logger.info(f"=== DEBUG: analytics_context - env GOOGLE_TAG_MANAGER_ID: '{env_gtm_id}'")
     
     return {
         'GOOGLE_ANALYTICS_PROPERTY_ID': ga_id,
