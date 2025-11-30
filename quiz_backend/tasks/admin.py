@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics, TaskComment, TaskCommentImage, TaskCommentReport
+from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics, TaskComment, TaskCommentImage, TaskCommentReport, SocialMediaPost
 from .services.task_import_service import import_tasks_from_json
 from accounts.models import MiniAppUser
 from .services.s3_service import delete_image_from_s3
@@ -29,6 +29,31 @@ class TaskTranslationInline(admin.TabularInline):
     extra = 0
     fields = ('language', 'question', 'answers', 'correct_answer', 'explanation')
     readonly_fields = ('publish_date',)
+
+
+class SocialMediaPostInline(admin.TabularInline):
+    """
+    Inline для отображения публикаций в социальных сетях.
+    """
+    model = SocialMediaPost
+    extra = 0
+    fields = ('platform', 'method', 'status', 'post_url_display', 'created_at', 'published_at', 'retry_count', 'error_message')
+    readonly_fields = ('platform', 'method', 'status', 'post_url_display', 'created_at', 'published_at', 'retry_count', 'error_message')
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        """Запрещаем добавление публикаций вручную"""
+        return False
+    
+    def post_url_display(self, obj):
+        """Отображение ссылки на пост"""
+        if obj.post_url:
+            return format_html(
+                '<a href="{}" target="_blank">🔗 Открыть пост</a>',
+                obj.post_url
+            )
+        return '—'
+    post_url_display.short_description = 'Ссылка на пост'
 
 
 class TaskAdminForm(forms.ModelForm):
@@ -150,12 +175,13 @@ class TaskAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display')
     
-    # Inline редактирование переводов
-    inlines = [TaskTranslationInline]
+    # Inline редактирование переводов и соцсетей
+    inlines = [TaskTranslationInline, SocialMediaPostInline]
     
     actions = [
         'publish_to_telegram',
         'generate_images',
+        'publish_to_social_networks',
         'clear_error_flag'
     ]
     
@@ -908,6 +934,76 @@ class TaskAdmin(admin.ModelAdmin):
         self.message_user(request, "=" * 60, messages.INFO)
         self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
     
+    @admin.action(description='📱 Опубликовать в соцсети')
+    def publish_to_social_networks(self, request, queryset):
+        """
+        Публикует выбранные задачи в социальные сети.
+        Работает через API (Pinterest, Дзен, Facebook) и webhook (Instagram, TikTok, YouTube).
+        """
+        from .services.social_media_service import publish_to_social_media
+        
+        total_tasks = queryset.count()
+        published_tasks = 0
+        
+        self.message_user(
+            request,
+            f"📊 Начинаем публикацию {total_tasks} задач в социальные сети...",
+            messages.INFO
+        )
+        
+        for task in queryset:
+            try:
+                # Проверяем наличие изображения
+                if not task.image_url:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет изображения, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Получаем перевод
+                translation = task.translations.first()
+                if not translation:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет переводов, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Публикуем
+                result = publish_to_social_media(task, translation)
+                
+                if result['success'] > 0:
+                    published_tasks += 1
+                    self.message_user(
+                        request,
+                        f"✅ Задача {task.id}: опубликовано в {result['success']}/{result['total']} платформ",
+                        messages.SUCCESS
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        f"❌ Задача {task.id}: не удалось опубликовать ни в одной платформе",
+                        messages.ERROR
+                    )
+                
+            except Exception as e:
+                logger.error(f"Ошибка публикации задачи {task.id}: {e}", exc_info=True)
+                self.message_user(
+                    request,
+                    f"❌ Задача {task.id}: ошибка - {str(e)[:100]}",
+                    messages.ERROR
+                )
+        
+        # Итоговое сообщение
+        self.message_user(
+            request,
+            f"🎉 Готово! Опубликовано {published_tasks} из {total_tasks} задач",
+            messages.SUCCESS if published_tasks > 0 else messages.WARNING
+        )
+    
     @admin.action(description='Снять флаг ошибки')
     def clear_error_flag(self, request, queryset):
         """
@@ -1408,6 +1504,143 @@ class TaskCommentAdmin(admin.ModelAdmin):
         """Восстановление удалённых комментариев."""
         updated = queryset.update(is_deleted=False)
         self.message_user(request, f'Восстановлено {updated} комментариев', messages.SUCCESS)
+
+
+@admin.register(SocialMediaPost)
+class SocialMediaPostAdmin(admin.ModelAdmin):
+    """Админка для просмотра всех публикаций в соцсетях."""
+    list_display = ('id', 'task_link', 'platform', 'method', 'status_display', 'post_url_link', 'created_at', 'published_at', 'retry_count')
+    list_filter = ('platform', 'method', 'status', 'created_at')
+    search_fields = ('task__id', 'post_id', 'error_message')
+    readonly_fields = ('task', 'platform', 'method', 'status', 'post_id', 'post_url', 'created_at', 'published_at', 'error_message', 'retry_count')
+    date_hierarchy = 'created_at'
+    list_per_page = 30
+    ordering = ('-created_at',)
+    actions = ['retry_failed_posts']
+    
+    def has_add_permission(self, request):
+        """Запрещаем создание публикаций вручную."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Запрещаем удаление публикаций."""
+        return False
+    
+    @admin.action(description='🔄 Повторить публикацию failed записей')
+    def retry_failed_posts(self, request, queryset):
+        """
+        Повторно публикует выбранные failed записи в социальные сети.
+        """
+        from .services.social_media_service import publish_to_social_media
+        
+        # Фильтруем только failed записи
+        failed_posts = queryset.filter(status='failed')
+        
+        if not failed_posts.exists():
+            self.message_user(
+                request,
+                "⚠️ Среди выбранных записей нет failed записей для повторной публикации",
+                messages.WARNING
+            )
+            return
+        
+        total = failed_posts.count()
+        success_count = 0
+        
+        for post in failed_posts:
+            try:
+                task = post.task
+                translation = task.translations.first()
+                
+                if not translation or not task.image_url:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет перевода или изображения, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Публикуем только для конкретной платформы
+                result = publish_to_social_media(task, translation)
+                
+                # Проверяем результат для этой платформы
+                platform_result = next(
+                    (r for r in result.get('results', []) if r.get('platform') == post.platform),
+                    None
+                )
+                
+                if platform_result and platform_result.get('success'):
+                    success_count += 1
+                    self.message_user(
+                        request,
+                        f"✅ Задача {task.id} ({post.platform}): успешно опубликована",
+                        messages.SUCCESS
+                    )
+                else:
+                    error = platform_result.get('error', 'Неизвестная ошибка') if platform_result else 'Результат не найден'
+                    self.message_user(
+                        request,
+                        f"❌ Задача {task.id} ({post.platform}): {error}",
+                        messages.ERROR
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Ошибка при повторной публикации {post.id}: {e}", exc_info=True)
+                self.message_user(
+                    request,
+                    f"❌ Ошибка при повторной публикации записи {post.id}: {str(e)}",
+                    messages.ERROR
+                )
+        
+        self.message_user(
+            request,
+            f"📊 Повторная публикация завершена: {success_count}/{total} успешно",
+            messages.SUCCESS if success_count > 0 else messages.WARNING
+        )
+    
+    def task_link(self, obj):
+        """Ссылка на задачу."""
+        return format_html(
+            '<a href="/admin/tasks/task/{}/change/" target="_blank">Задача #{}</a>',
+            obj.task_id,
+            obj.task_id
+        )
+    task_link.short_description = 'Задача'
+    
+    def status_display(self, obj):
+        """Отображение статуса с цветовой индикацией."""
+        colors = {
+            'pending': '#6c757d',
+            'processing': '#17a2b8',
+            'published': '#28a745',
+            'failed': '#dc3545',
+        }
+        icons = {
+            'pending': '⏳',
+            'processing': '🔄',
+            'published': '✅',
+            'failed': '❌',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        icon = icons.get(obj.status, '•')
+        
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} {}</span>',
+            color,
+            icon,
+            obj.get_status_display()
+        )
+    status_display.short_description = 'Статус'
+    
+    def post_url_link(self, obj):
+        """Ссылка на пост в соцсети."""
+        if obj.post_url:
+            return format_html(
+                '<a href="{}" target="_blank" style="color: #007bff;">🔗 Открыть</a>',
+                obj.post_url
+            )
+        return '—'
+    post_url_link.short_description = 'Ссылка'
 
 
 @admin.register(TaskCommentReport)

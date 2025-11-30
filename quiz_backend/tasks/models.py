@@ -815,3 +815,101 @@ class TaskCommentReport(models.Model):
             # Увеличиваем счётчик жалоб
             self.comment.reports_count = self.comment.reports.count()
             self.comment.save(update_fields=['reports_count'])
+
+
+class SocialMediaPost(models.Model):
+    """
+    Отслеживание публикаций задач в социальных сетях.
+    Поддерживает как прямую интеграцию через API, так и webhook.
+    """
+    
+    PLATFORM_CHOICES = [
+        ('pinterest', 'Pinterest'),
+        ('instagram', 'Instagram'),
+        ('tiktok', 'TikTok'),
+        ('yandex_dzen', 'Яндекс Дзен'),
+        ('youtube_shorts', 'YouTube Shorts'),
+        ('facebook', 'Facebook'),
+    ]
+    
+    METHOD_CHOICES = [
+        ('api', 'Прямое API'),
+        ('webhook', 'Webhook'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Ожидает'),
+        ('processing', 'Обрабатывается'),
+        ('published', 'Опубликовано'),
+        ('failed', 'Ошибка'),
+    ]
+    
+    class Meta:
+        db_table = 'social_media_posts'
+        verbose_name = 'Публикация в соцсетях'
+        verbose_name_plural = 'Публикации в соцсетях'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['task', 'platform']),
+            models.Index(fields=['status']),
+            models.Index(fields=['created_at']),
+        ]
+        unique_together = [('task', 'platform')]
+
+    id = models.AutoField(primary_key=True)
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='social_media_posts',
+        help_text='Связанная задача'
+    )
+    platform = models.CharField(
+        max_length=50,
+        choices=PLATFORM_CHOICES,
+        help_text='Платформа социальной сети'
+    )
+    method = models.CharField(
+        max_length=20,
+        choices=METHOD_CHOICES,
+        default='api',
+        help_text='Метод публикации (API или webhook)'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text='Статус публикации'
+    )
+    post_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='ID поста в соцсети'
+    )
+    post_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text='Ссылка на пост'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Дата создания записи'
+    )
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Дата фактической публикации'
+    )
+    error_message = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Сообщение об ошибке'
+    )
+    retry_count = models.IntegerField(
+        default=0,
+        help_text='Количество попыток публикации'
+    )
+
+    def __str__(self):
+        return f"{self.get_platform_display()} - Задача {self.task_id} ({self.get_status_display()})"
