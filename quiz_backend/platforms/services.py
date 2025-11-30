@@ -4,6 +4,7 @@ import asyncio
 import logging
 import tempfile
 import os
+import re
 from typing import Optional, List, Dict, Any
 from django.conf import settings
 from django.db.models import Count
@@ -13,6 +14,85 @@ from .models import TelegramGroup
 from accounts.models import TelegramUser
 
 logger = logging.getLogger(__name__)
+
+
+def markdown_to_telegram_html(text: str) -> str:
+    """
+    Конвертирует Markdown разметку в HTML для Telegram.
+    
+    Поддерживает:
+    - Заголовки: ## текст → <b>текст</b>
+    - Inline код: `код` → <code>код</code>
+    - Блоки кода: ```python\nкод\n``` → <pre>код</pre>
+    - Жирный текст: **текст** → <b>текст</b>
+    - Курсив: *текст* → <i>текст</i>
+    - Ссылки: [текст](url) → <a href="url">текст</a>
+    
+    Args:
+        text (str): Текст с Markdown разметкой
+        
+    Returns:
+        str: Текст с HTML разметкой для Telegram
+    """
+    if not text:
+        return text
+    
+    logger.info(f"Конвертация Markdown → HTML. Исходная длина: {len(text)} символов")
+    original_text = text
+    
+    # 1. Обрабатываем блоки кода: ```language\nкод\n```
+    # Паттерн должен быть гибким: ```python или ``` затем любой текст до ```
+    def replace_code_block(match):
+        language = match.group(1) or ''
+        code = match.group(2).strip()
+        # Экранируем HTML в коде
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        logger.info(f"Найден блок кода (язык: {language or 'не указан'}), длина: {len(code)} символов")
+        return f'<pre>{code}</pre>'
+    
+    # Ищем ```язык или просто ``` , затем любой текст (включая переносы), затем ```
+    text = re.sub(r'```(\w+)?[\r\n]+(.*?)[\r\n]+```', replace_code_block, text, flags=re.DOTALL)
+    
+    # 2. Inline код: `код`
+    def replace_inline_code(match):
+        code = match.group(1)
+        # Экранируем HTML в коде
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        return f'<code>{code}</code>'
+    
+    inline_code_count = len(re.findall(r'`([^`]+)`', text))
+    if inline_code_count > 0:
+        logger.info(f"Найдено inline кода: {inline_code_count}")
+    text = re.sub(r'`([^`]+)`', replace_inline_code, text)
+    
+    # 3. Заголовки: ## текст → жирный текст (Telegram не поддерживает h1-h6)
+    headers_count = len(re.findall(r'^#{1,6}\s+(.+)$', text, flags=re.MULTILINE))
+    if headers_count > 0:
+        logger.info(f"Найдено заголовков: {headers_count}")
+    text = re.sub(r'^#{1,6}\s+(.+)$', r'<b>\1</b>', text, flags=re.MULTILINE)
+    
+    # 4. Жирный текст: **текст**
+    bold_count = len(re.findall(r'\*\*(.*?)\*\*', text, flags=re.DOTALL))
+    if bold_count > 0:
+        logger.info(f"Найдено жирного текста (**): {bold_count}")
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text, flags=re.DOTALL)
+    
+    # 5. Курсив: *текст* (но не **текст**)
+    italic_count = len(re.findall(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', text))
+    if italic_count > 0:
+        logger.info(f"Найдено курсива (*): {italic_count}")
+    text = re.sub(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', r'<i>\1</i>', text)
+    
+    # 6. Ссылки: [текст](url)
+    links_count = len(re.findall(r'\[([^\]]+)\]\(([^)]+)\)', text))
+    if links_count > 0:
+        logger.info(f"Найдено ссылок: {links_count}")
+    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)
+    
+    logger.info(f"Конвертация завершена. HTML длина: {len(text)} символов (было {len(original_text)})")
+    logger.debug(f"Первые 200 символов HTML: {text[:200]}")
+    
+    return text
 
 
 class TelegramPostService:
@@ -110,133 +190,116 @@ class TelegramPostService:
         reply_markup: Optional[InlineKeyboardMarkup] = None
     ) -> bool:
         """
-        Отправляет медиафайлы в канал (каждый тип отдельно).
+        Отправляет одно медиа в канал с текстом и кнопками.
+        Приоритет: фото > GIF > видео. Текст и кнопки всегда прикрепляются к медиа.
+        Если текст превышает лимит Telegram (1024 символа), он обрезается или отправляется отдельно.
         """
         try:
-            from aiogram.types import InputMediaPhoto, InputMediaAnimation, InputMediaVideo
-            
             logger.info(f"Начинаем отправку медиа в канал {channel.group_name}")
             logger.info(f"Photos count: {len(photos) if photos else 0}")
             logger.info(f"Gifs count: {len(gifs) if gifs else 0}")
             logger.info(f"Videos count: {len(videos) if videos else 0}")
             
-            temp_files = []
-            text_sent = False
+            # Telegram ограничение на длину caption: 1024 символа
+            MAX_CAPTION_LENGTH = 1024
             
-            # Отправляем фотографии как медиагруппу
-            if photos:
-                logger.info(f"Обрабатываем {len(photos)} фотографий")
-                photo_group = []
-                for i, photo in enumerate(photos):
-                    logger.info(f"Обрабатываем фото {i+1}: {photo.name}, размер: {photo.size}")
+            # Конвертируем Markdown в HTML для Telegram
+            caption = markdown_to_telegram_html(text) if text else None
+            
+            if caption:
+                logger.debug(f"HTML для отправки (первые 300 символов): {caption[:300]}")
+                if len(caption) > 1024:
+                    logger.warning(f"Текст превышает лимит caption: {len(caption)} символов")
+                else:
+                    logger.info(f"Длина caption: {len(caption)} символов (в пределах лимита)")
+            
+            temp_file_path = None
+            
+            try:
+                # Отправляем только первое фото (если есть)
+                if photos and len(photos) > 0:
+                    photo = photos[0]
+                    logger.info(f"Обрабатываем фото: {photo.name}, размер: {photo.size}")
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
                         for chunk in photo.chunks():
                             temp_file.write(chunk)
                         temp_file_path = temp_file.name
-                        temp_files.append(temp_file_path)
                         logger.info(f"Создан временный файл: {temp_file_path}")
                     
-                    # Медиа отправляем без текста
-                    photo_group.append(InputMediaPhoto(
-                        media=FSInputFile(path=temp_file_path)
-                    ))
+                    await self.bot.send_photo(
+                        chat_id=channel.group_id,
+                        photo=FSInputFile(path=temp_file_path),
+                        caption=caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
+                    logger.info("Фото успешно отправлено с текстом и кнопками")
+                    return True
                 
-                logger.info(f"Отправляем группу из {len(photo_group)} фотографий")
-                if photo_group:
-                    try:
-                        await self.bot.send_media_group(
-                            chat_id=channel.group_id,
-                            media=photo_group
-                        )
-                        logger.info("Медиагруппа успешно отправлена")
-                        text_sent = True
-                    except Exception as e:
-                        logger.error(f"Ошибка при отправке медиагруппы: {e}")
-                        raise
-            
-            # Отправляем GIF отдельно (не в медиагруппе)
-            if gifs:
-                for i, gif in enumerate(gifs):
+                # Отправляем только первый GIF (если нет фото)
+                if gifs and len(gifs) > 0:
+                    gif = gifs[0]
+                    logger.info(f"Обрабатываем GIF: {gif.name}")
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.gif') as temp_file:
                         for chunk in gif.chunks():
                             temp_file.write(chunk)
                         temp_file_path = temp_file.name
-                        temp_files.append(temp_file_path)
                     
                     await self.bot.send_animation(
                         chat_id=channel.group_id,
-                        animation=FSInputFile(path=temp_file_path)
+                        animation=FSInputFile(path=temp_file_path),
+                        caption=caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
                     )
-            
-            # Отправляем видео как медиагруппу
-            if videos:
-                video_group = []
-                for i, video in enumerate(videos):
+                    logger.info("GIF успешно отправлен с текстом и кнопками")
+                    return True
+                
+                # Отправляем только первое видео (если нет фото и GIF)
+                if videos and len(videos) > 0:
+                    video = videos[0]
+                    logger.info(f"Обрабатываем видео: {video.name}")
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
                         for chunk in video.chunks():
                             temp_file.write(chunk)
                         temp_file_path = temp_file.name
-                        temp_files.append(temp_file_path)
                     
-                    # Создаем обложку для видео (первый кадр)
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as thumb_file:
-                        # Для простоты используем тот же файл как обложку
-                        # В реальности здесь должна быть генерация thumbnail
-                        thumb_file_path = temp_file_path
-                        temp_files.append(thumb_file_path)
-                    
-                    # Медиа отправляем без текста, но с обложкой
-                    video_group.append(InputMediaVideo(
-                        media=FSInputFile(path=temp_file_path),
-                        thumb=FSInputFile(path=thumb_file_path)
-                    ))
-                
-                if video_group:
-                    await self.bot.send_media_group(
+                    await self.bot.send_video(
                         chat_id=channel.group_id,
-                        media=video_group
-                    )
-                    text_sent = True
-            
-            # Если есть кнопки, отправляем их отдельным сообщением
-            if reply_markup:
-                if text:
-                    # Отправляем текст с кнопками
-                    await self.bot.send_message(
-                        chat_id=channel.group_id,
-                        text=text,
+                        video=FSInputFile(path=temp_file_path),
+                        caption=caption,
                         reply_markup=reply_markup,
                         parse_mode="HTML"
                     )
-                else:
-                    # Если нет текста, отправляем только кнопки с минимальным символом
+                    logger.info("Видео успешно отправлено с текстом и кнопками")
+                    return True
+                
+                # Если нет медиа, но есть текст - отправляем только текст с кнопками
+                if caption:
                     await self.bot.send_message(
                         chat_id=channel.group_id,
-                        text="🔗",
-                        reply_markup=reply_markup
+                        text=caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
                     )
-            elif text:
-                # Если есть текст, но нет кнопок
-                await self.bot.send_message(
-                    chat_id=channel.group_id,
-                    text=text,
-                    parse_mode="HTML"
-                )
-            
-            # Удаляем временные файлы
-            for temp_file_path in temp_files:
-                try:
-                    os.unlink(temp_file_path)
-                except:
-                    pass
-            
-            logger.info(f"Медиафайлы успешно отправлены в канал {channel.group_name}")
-            return True
+                    logger.info("Текст успешно отправлен с кнопками")
+                    return True
+                
+                logger.error("Не указан текст или медиафайл для отправки")
+                return False
+                
+            finally:
+                # Удаляем временный файл
+                if temp_file_path:
+                    try:
+                        os.unlink(temp_file_path)
+                    except:
+                        pass
             
         except Exception as e:
             logger.error(f"Ошибка при отправке медиафайлов в канал {channel.group_name}: {e}")
-            # Удаляем временные файлы в случае ошибки
-            for temp_file_path in temp_files:
+            # Удаляем временный файл в случае ошибки
+            if temp_file_path:
                 try:
                     os.unlink(temp_file_path)
                 except:
@@ -515,10 +578,19 @@ async def send_post_to_user_async(
                     ])
             reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard) if keyboard else None
         
+        # Telegram ограничение на длину caption: 1024 символа
+        MAX_CAPTION_LENGTH = 1024
+        # Telegram ограничение на длину текстового сообщения: 4096 символов
+        MAX_MESSAGE_LENGTH = 4096
+        
         temp_files = []
         text_sent = False
+        remaining_text = None
         
         try:
+            # Конвертируем Markdown в HTML для Telegram
+            caption_text = markdown_to_telegram_html(text) if text else None
+            
             # Отправляем медиафайлы
             # Сохраняем файлы во временные файлы перед отправкой
             if photos:
@@ -534,7 +606,7 @@ async def send_post_to_user_async(
                         temp_files.append(temp_file_path)
                     
                     # Отправляем первое фото с текстом, остальные без
-                    caption = text if i == 0 and text and not text_sent else None
+                    caption = caption_text if i == 0 and caption_text and not text_sent else None
                     if caption:
                         text_sent = True
                     
@@ -558,7 +630,7 @@ async def send_post_to_user_async(
                         temp_file_path = temp_file.name
                         temp_files.append(temp_file_path)
                     
-                    caption = text if i == 0 and text and not text_sent else None
+                    caption = caption_text if i == 0 and caption_text and not text_sent else None
                     if caption:
                         text_sent = True
                     
@@ -582,7 +654,7 @@ async def send_post_to_user_async(
                         temp_file_path = temp_file.name
                         temp_files.append(temp_file_path)
                     
-                    caption = text if i == 0 and text and not text_sent else None
+                    caption = caption_text if i == 0 and caption_text and not text_sent else None
                     if caption:
                         text_sent = True
                     
@@ -595,10 +667,10 @@ async def send_post_to_user_async(
                     )
             
             # Отправляем текст, если он еще не был отправлен
-            if text and not text_sent:
+            if caption_text and not text_sent:
                 await bot.send_message(
                     chat_id=user_id,
-                    text=text,
+                    text=caption_text,
                     reply_markup=reply_markup,
                     parse_mode="HTML"
                 )
@@ -795,6 +867,14 @@ async def send_post_to_user_with_files(
                     ])
             reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard) if keyboard else None
         
+        # Telegram ограничение на длину caption: 1024 символа
+        MAX_CAPTION_LENGTH = 1024
+        # Telegram ограничение на длину текстового сообщения: 4096 символов
+        MAX_MESSAGE_LENGTH = 4096
+        
+        # Конвертируем Markdown в HTML для Telegram
+        caption_text = markdown_to_telegram_html(text) if text else None
+        
         text_sent = False
         buttons_sent = False
         
@@ -805,7 +885,7 @@ async def send_post_to_user_with_files(
             # Отправляем медиафайлы
             if photo_paths:
                 for i, photo_path in enumerate(photo_paths):
-                    caption = text if i == 0 and text and not text_sent else None
+                    caption = caption_text if i == 0 and caption_text and not text_sent else None
                     if caption:
                         text_sent = True
                     
@@ -830,7 +910,7 @@ async def send_post_to_user_with_files(
             
             if gif_paths:
                 for i, gif_path in enumerate(gif_paths):
-                    caption = text if i == 0 and text and not text_sent else None
+                    caption = caption_text if i == 0 and caption_text and not text_sent else None
                     if caption:
                         text_sent = True
                     
@@ -854,7 +934,7 @@ async def send_post_to_user_with_files(
             
             if video_paths:
                 for i, video_path in enumerate(video_paths):
-                    caption = text if i == 0 and text and not text_sent else None
+                    caption = caption_text if i == 0 and caption_text and not text_sent else None
                     if caption:
                         text_sent = True
                     
@@ -877,10 +957,10 @@ async def send_post_to_user_with_files(
                     )
             
             # Отправляем текст, если он еще не был отправлен
-            if text and not text_sent:
+            if caption_text and not text_sent:
                 await bot.send_message(
                     chat_id=user_id,
-                    text=text,
+                    text=caption_text,
                     reply_markup=reply_markup if not buttons_sent else None,
                     parse_mode="HTML"
                 )

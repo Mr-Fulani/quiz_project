@@ -164,29 +164,28 @@ class TelegramChannelAdmin(admin.ModelAdmin):
                     channels = form.cleaned_data['channels']
                     text = form.cleaned_data.get('text', '').strip()
                     
-                    # Собираем все файлы
+                    # Собираем файлы (только по одному каждого типа)
                     photos_list = []
                     gifs_list = []
                     videos_list = []
                     
-                    # Фотографии
-                    for i in range(1, 4):
-                        photo = form.cleaned_data.get(f'photo{i}')
-                        if photo:
-                            photos_list.append(photo)
+                    # Фотография (только одно)
+                    photo = form.cleaned_data.get('photo')
+                    if photo:
+                        photos_list.append(photo)
+                        logger.info(f"Добавлено фото: {photo.name}")
                     
-                    # GIF
-                    for i in range(1, 3):
-                        gif = form.cleaned_data.get(f'gif{i}')
-                        if gif:
-                            gifs_list.append(gif)
+                    # GIF (только один)
+                    gif = form.cleaned_data.get('gif')
+                    if gif:
+                        gifs_list.append(gif)
+                        logger.info(f"Добавлен GIF: {gif.name}")
                     
-                    # Видео
-                    for i in range(1, 3):
-                        video = form.cleaned_data.get(f'video{i}')
-                        if video:
-                            videos_list.append(video)
-                            logger.info(f"Добавлено видео {i}: {video.name}")
+                    # Видео (только одно)
+                    video = form.cleaned_data.get('video')
+                    if video:
+                        videos_list.append(video)
+                        logger.info(f"Добавлено видео: {video.name}")
                     
                     logger.info(f"Всего собрано: фото={len(photos_list)}, gif={len(gifs_list)}, видео={len(videos_list)}")
                     
@@ -330,57 +329,34 @@ class TelegramPostForm(forms.Form):
     )
     
     text = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': 5, 'cols': 80}),
+        widget=forms.Textarea(attrs={
+            'rows': 5, 
+            'cols': 80,
+            'id': 'id_text'
+        }),
         label=_('Текст поста'),
-        help_text=_('Введите текст поста. Поддерживается Markdown форматирование.')
+        help_text=_('Введите текст поста (макс. 1024 символа после конвертации). Поддерживается Markdown: ## заголовок, **жирный**, *курсив*, `код`, ```python\nблок кода\n```'),
+        required=False
     )
     
-    # Медиафайлы
-    photo1 = forms.FileField(
+    # Медиафайлы (только по одному файлу каждого типа)
+    photo = forms.FileField(
         required=False,
-        label=_('Фотография 1'),
+        label=_('Фотография'),
         help_text=_('Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'image/*'})
     )
     
-    photo2 = forms.FileField(
+    gif = forms.FileField(
         required=False,
-        label=_('Фотография 2'),
-        help_text=_('Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ'),
-        widget=forms.FileInput(attrs={'accept': 'image/*'})
-    )
-    
-    photo3 = forms.FileField(
-        required=False,
-        label=_('Фотография 3'),
-        help_text=_('Загрузите изображение (JPG, PNG). Максимальный размер: 20 МБ'),
-        widget=forms.FileInput(attrs={'accept': 'image/*'})
-    )
-    
-    gif1 = forms.FileField(
-        required=False,
-        label=_('GIF анимация 1'),
+        label=_('GIF анимация'),
         help_text=_('Загрузите GIF анимацию. Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': '.gif'})
     )
     
-    gif2 = forms.FileField(
+    video = forms.FileField(
         required=False,
-        label=_('GIF анимация 2'),
-        help_text=_('Загрузите GIF анимацию. Максимальный размер: 20 МБ'),
-        widget=forms.FileInput(attrs={'accept': '.gif'})
-    )
-    
-    video1 = forms.FileField(
-        required=False,
-        label=_('Видео 1'),
-        help_text=_('Загрузите видео (MP4). Максимальный размер: 20 МБ'),
-        widget=forms.FileInput(attrs={'accept': 'video/*'})
-    )
-    
-    video2 = forms.FileField(
-        required=False,
-        label=_('Видео 2'),
+        label=_('Видео'),
         help_text=_('Загрузите видео (MP4). Максимальный размер: 20 МБ'),
         widget=forms.FileInput(attrs={'accept': 'video/*'})
     )
@@ -426,24 +402,17 @@ class TelegramPostForm(forms.Form):
             raise forms.ValidationError(_('Необходимо выбрать хотя бы один канал/группу или включить отправку подписчикам бота.'))
         
         # Проверяем размеры файлов
-        photo_fields = ['photo1', 'photo2', 'photo3']
-        gif_fields = ['gif1', 'gif2']
-        video_fields = ['video1', 'video2']
+        if cleaned_data.get('photo') and cleaned_data['photo'].size > 20 * 1024 * 1024:  # 20MB
+            raise forms.ValidationError(_('Размер фотографии не должен превышать 20 МБ'))
         
-        for field_name in photo_fields:
-            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 20 * 1024 * 1024:  # 20MB
-                raise forms.ValidationError(_(f'Размер фотографии {field_name} не должен превышать 20 МБ'))
+        if cleaned_data.get('gif') and cleaned_data['gif'].size > 20 * 1024 * 1024:  # 20MB
+            raise forms.ValidationError(_('Размер GIF не должен превышать 20 МБ'))
         
-        for field_name in gif_fields:
-            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 20 * 1024 * 1024:  # 20MB
-                raise forms.ValidationError(_(f'Размер GIF {field_name} не должен превышать 20 МБ'))
-        
-        for field_name in video_fields:
-            if cleaned_data.get(field_name) and cleaned_data[field_name].size > 20 * 1024 * 1024:  # 20MB
-                raise forms.ValidationError(_(f'Размер видео {field_name} не должен превышать 20 МБ'))
+        if cleaned_data.get('video') and cleaned_data['video'].size > 20 * 1024 * 1024:  # 20MB
+            raise forms.ValidationError(_('Размер видео не должен превышать 20 МБ'))
         
         # Проверяем, что есть хотя бы текст или один медиафайл
-        has_media = any(cleaned_data.get(field) for field in photo_fields + gif_fields + video_fields)
+        has_media = any(cleaned_data.get(field) for field in ['photo', 'gif', 'video'])
         if not text and not has_media:
             raise forms.ValidationError(_('Необходимо указать текст поста или загрузить медиафайл.'))
         
