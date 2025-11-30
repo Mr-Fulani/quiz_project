@@ -429,7 +429,7 @@ def analytics_context(request):
     Добавляет переменные аналитики и социальных сетей в контекст всех шаблонов
     """
     ga_id = settings.GOOGLE_ANALYTICS_PROPERTY_ID
-    gtm_id = getattr(settings, 'GOOGLE_TAG_MANAGER_ID', '')
+    gtm_id = settings.GOOGLE_TAG_MANAGER_ID
     yandex_id = settings.YANDEX_METRICA_ID
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
