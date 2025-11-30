@@ -27,6 +27,11 @@
     <meta name="zen-verification" content="{{ YANDEX_ZEN_VERIFICATION_CODE }}" />
     {% endif %}
     
+    <!-- Pinterest Verification -->
+    {% if PINTEREST_VERIFICATION_CODE %}
+    <meta name="p:domain_verify" content="{{ PINTEREST_VERIFICATION_CODE }}" />
+    {% endif %}
+    
     <!-- Canonical URL -->
     <link rel="canonical" href="{% block canonical_url %}{{ dynamic_seo.canonical_url|default:canonical_url }}{% endblock %}">
     

@@ -432,6 +432,7 @@ def analytics_context(request):
     yandex_id = settings.YANDEX_METRICA_ID
     yandex_verification = getattr(settings, 'YANDEX_VERIFICATION_CODE', '')
     yandex_zen_verification = getattr(settings, 'YANDEX_ZEN_VERIFICATION_CODE', '')
+    pinterest_verification = getattr(settings, 'PINTEREST_VERIFICATION_CODE', '')
     
     # Отладочное логирование
     logger.info(f"=== DEBUG: analytics_context - GOOGLE_ANALYTICS_PROPERTY_ID: '{ga_id}'")
@@ -447,6 +448,7 @@ def analytics_context(request):
         'YANDEX_METRICA_ID': yandex_id,
         'YANDEX_VERIFICATION_CODE': yandex_verification,
         'YANDEX_ZEN_VERIFICATION_CODE': yandex_zen_verification,
+        'PINTEREST_VERIFICATION_CODE': pinterest_verification,
         'twitter_username': getattr(settings, 'TWITTER_USERNAME', None),
     }
 

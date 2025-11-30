@@ -986,6 +986,24 @@ class ContactView(BreadcrumbsMixin, TemplateView):
         return context
 
 
+class PrivacyPolicyView(BreadcrumbsMixin, TemplateView):
+    """
+    Отображает страницу "Политика конфиденциальности".
+    Использует шаблон blog/privacy_policy.html.
+    """
+    template_name = 'blog/privacy_policy.html'
+    breadcrumbs = [
+        {'name': _('Главная'), 'url': reverse_lazy('blog:home')},
+        {'name': _('Политика конфиденциальности'), 'url': reverse_lazy('blog:privacy_policy')},
+    ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['meta_description'] = _('Privacy Policy - Learn how we collect, use, and protect your personal information.')
+        context['meta_keywords'] = _('privacy policy, data protection, personal information, confidentiality')
+        return context
+
+
 
 
 
