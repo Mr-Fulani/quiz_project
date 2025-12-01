@@ -1,7 +1,19 @@
+import logging
+import time
+import uuid
+from typing import Any, Dict, List
+
 import requests
 from django.conf import settings
 from platforms.models import TelegramGroup
 from accounts.models import CustomUser
+from tasks.models import Task
+from tasks.services.webhook_service import create_full_webhook_data, create_bulk_webhook_data
+
+from webhooks.models import Webhook
+
+logger = logging.getLogger(__name__)
+
 
 class TelegramWebhookHandler:
     """
@@ -76,3 +88,142 @@ class TelegramWebhookHandler:
         
         response = requests.post(url, json=data)
         return response.status_code == 200 
+
+
+WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 30)
+WEBHOOK_RETRIES = getattr(settings, "WEBHOOK_RETRIES", 3)
+WEBHOOK_RETRY_DELAY = getattr(settings, "WEBHOOK_RETRY_DELAY", 2)
+
+
+def _build_headers(payload: Dict[str, Any]) -> Dict[str, str]:
+    """Формирует заголовки для каждой отправки вебхука."""
+    return {
+        'Content-Type': 'application/json',
+        'X-Request-ID': str(uuid.uuid4()),
+        'X-Webhook-ID': payload.get("id", ""),
+        'X-Webhook-Type': payload.get("type", ""),
+        'X-Webhook-Timestamp': payload.get("timestamp", ""),
+    }
+
+
+def send_task_published_webhook(webhook_url: str, data: Dict[str, Any]) -> bool:
+    """
+    Отправляет один вебхук с повтором при ошибках.
+
+    Возвращает True только если получен успешный HTTP-ответ.
+    """
+    headers = _build_headers(data)
+    for attempt in range(1, WEBHOOK_RETRIES + 1):
+        try:
+            logger.info("Попытка %s/%s отправки вебхука на %s", attempt, WEBHOOK_RETRIES, webhook_url)
+            response = requests.post(
+                webhook_url,
+                json=data,
+                headers=headers,
+                timeout=WEBHOOK_TIMEOUT
+            )
+
+            logger.info(
+                "Вебхук %s: статус=%s, тело=%s",
+                webhook_url,
+                response.status_code,
+                response.text[:400]
+            )
+
+            if response.status_code in {200, 201, 202, 204}:
+                logger.info("✅ Вебхук отправлен: %s", webhook_url)
+                return True
+        except requests.RequestException as exc:
+            logger.warning("⚠️ Ошибка при попытке %s отправки на %s: %s", attempt, webhook_url, exc)
+
+        if attempt < WEBHOOK_RETRIES:
+            delay = WEBHOOK_RETRY_DELAY * attempt
+            logger.info("⏳ Ожидание %s секунд перед повторной попыткой", delay)
+            time.sleep(delay)
+
+    logger.error("❌ Все попытки отправки вебхука на %s провалились", webhook_url)
+    return False
+
+
+def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
+    """
+    Формирует данные задачи и отправляет их на все активные вебхуки.
+    """
+    payload = create_full_webhook_data(task)
+
+    webhooks = list(Webhook.objects.filter(is_active=True))
+    if not webhooks:
+        logger.info("Нет активных вебхуков для задачи %s", task.id)
+        return {"total": 0, "success": 0, "failed": 0, "details": []}
+
+    results: List[Dict[str, Any]] = []
+    success_count = 0
+
+    for webhook in webhooks:
+        success = send_task_published_webhook(webhook.url, payload)
+        results.append({
+            "url": webhook.url,
+            "service": webhook.service_name or "Неизвестный сервис",
+            "success": success,
+        })
+        if success:
+            success_count += 1
+
+    failed_count = len(webhooks) - success_count
+    logger.info(
+        "Вебхуки: отправлено=%s, неудачных=%s, всего=%s",
+        success_count,
+        failed_count,
+        len(webhooks),
+    )
+
+    return {
+        "total": len(webhooks),
+        "success": success_count,
+        "failed": failed_count,
+        "details": results,
+    }
+
+
+def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
+    """
+    Формирует агрегированные данные и отправляет их на все активные вебхуки.
+    """
+    if not tasks:
+        logger.info("Нет опубликованных задач для отправки сводного вебхука.")
+        return {"total": 0, "success": 0, "failed": 0, "details": []}
+
+    payload = create_bulk_webhook_data(tasks)
+
+    webhooks = list(Webhook.objects.filter(is_active=True))
+    if not webhooks:
+        logger.info("Нет активных вебхуков для сводной отправки")
+        return {"total": 0, "success": 0, "failed": 0, "details": []}
+
+    results: List[Dict[str, Any]] = []
+    success_count = 0
+
+    for webhook in webhooks:
+        success = send_task_published_webhook(webhook.url, payload)
+        results.append({
+            "url": webhook.url,
+            "service": webhook.service_name or "Неизвестный сервис",
+            "success": success,
+        })
+        if success:
+            success_count += 1
+
+    failed_count = len(webhooks) - success_count
+    logger.info(
+        "Сводные вебхуки: отправлено=%s, неудачных=%s, всего=%s",
+        success_count,
+        failed_count,
+        len(webhooks),
+    )
+
+    return {
+        "total": len(webhooks),
+        "success": success_count,
+        "failed": failed_count,
+        "details": results,
+    }

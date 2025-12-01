@@ -129,6 +129,22 @@ class MainFallbackLink(models.Model):
         return f"Резервная ссылка для {self.language}: {self.link}"
 
 
+class GlobalWebhookLink(models.Model):
+    class Meta:
+        db_table = 'global_webhook_links'
+        verbose_name = 'Глобальная ссылка для вебхуков'
+        verbose_name_plural = 'Глобальные ссылки для вебхуков'
+        ordering = ['name']
+
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100, help_text='Название ссылки (для удобства)')
+    url = models.URLField(max_length=500, help_text='URL ссылки')
+    is_active = models.BooleanField(default=True, help_text='Активна ли ссылка')
+
+    def __str__(self):
+        return f"{self.name} ({self.url})"
+
+
 class SocialMediaCredentials(models.Model):
     """
     Учетные данные для API социальных сетей.

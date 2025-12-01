@@ -12,16 +12,17 @@ from django.utils import timezone
 from webhooks.models import SocialMediaCredentials, Webhook
 from ..models import Task, TaskTranslation, SocialMediaPost
 from .platforms.pinterest_api import PinterestAPI
-from .platforms.yandex_dzen_api import YandexDzenAPI
 from .platforms.facebook_api import FacebookAPI
+# Яндекс Дзен API недоступен, используется только webhook
+# from .platforms.yandex_dzen_api import YandexDzenAPI
 
 logger = logging.getLogger(__name__)
 
 # Платформы с прямой интеграцией через API
-API_PLATFORMS = ['pinterest', 'yandex_dzen', 'facebook']
+API_PLATFORMS = ['pinterest', 'facebook']
 
 # Платформы через webhook
-WEBHOOK_PLATFORMS = ['instagram', 'tiktok', 'youtube_shorts']
+WEBHOOK_PLATFORMS = ['yandex_dzen', 'instagram', 'tiktok', 'youtube_shorts']
 
 
 def publish_to_social_media(task: Task, translation: TaskTranslation) -> Dict:
@@ -166,12 +167,10 @@ def _publish_single_platform_api(task: Task, translation: TaskTranslation, platf
         # Публикуем в зависимости от платформы
         if platform == 'pinterest':
             result = _publish_to_pinterest(task, translation, creds, social_post)
-        elif platform == 'yandex_dzen':
-            result = _publish_to_yandex_dzen(task, translation, creds, social_post)
         elif platform == 'facebook':
             result = _publish_to_facebook(task, translation, creds, social_post)
         else:
-            result = {'platform': platform, 'success': False, 'error': 'Unknown platform'}
+            result = {'platform': platform, 'success': False, 'error': 'Unknown platform or platform uses webhook'}
         
         return result
         
@@ -377,8 +376,6 @@ def _publish_via_api(task: Task, translation: TaskTranslation) -> List[Dict]:
             try:
                 if platform == 'pinterest':
                     result = _publish_to_pinterest(task, translation, creds, social_post)
-                elif platform == 'yandex_dzen':
-                    result = _publish_to_yandex_dzen(task, translation, creds, social_post)
                 elif platform == 'facebook':
                     result = _publish_to_facebook(task, translation, creds, social_post)
                 else:
@@ -545,43 +542,44 @@ def _publish_to_pinterest(task, translation, creds, social_post) -> Dict:
     }
 
 
-def _publish_to_yandex_dzen(task, translation, creds, social_post) -> Dict:
-    """Публикация в Яндекс Дзен."""
-    api = YandexDzenAPI(creds.access_token)
-    
-    channel_id = creds.extra_data.get('channel_id')
-    if not channel_id:
-        raise ValueError("channel_id не указан в credentials.extra_data")
-    
-    # Формируем контент
-    title = translation.question[:150]
-    content = _format_dzen_content(translation)
-    link = task.external_link or f"{getattr(settings, 'SITE_URL', 'https://your-site.com')}/task/{task.id}"
-    
-    # Создаем статью
-    article_data = api.create_article(
-        channel_id=channel_id,
-        title=title,
-        content=content,
-        image_url=task.image_url,
-        link=link
-    )
-    
-    # Обновляем запись
-    social_post.status = 'published'
-    social_post.post_id = article_data.get('id')
-    social_post.post_url = article_data.get('url') or f"https://dzen.ru/id/{channel_id}/post/{article_data.get('id')}"
-    social_post.published_at = timezone.now()
-    social_post.save()
-    
-    logger.info(f"✅ Яндекс Дзен: статья создана {social_post.post_url}")
-    
-    return {
-        'platform': 'yandex_dzen',
-        'success': True,
-        'post_id': article_data.get('id'),
-        'post_url': social_post.post_url
-    }
+# Яндекс Дзен API недоступен, используется только webhook
+# def _publish_to_yandex_dzen(task, translation, creds, social_post) -> Dict:
+#     """Публикация в Яндекс Дзен через API (недоступно)."""
+#     api = YandexDzenAPI(creds.access_token)
+#     
+#     channel_id = creds.extra_data.get('channel_id')
+#     if not channel_id:
+#         raise ValueError("channel_id не указан в credentials.extra_data")
+#     
+#     # Формируем контент
+#     title = translation.question[:150]
+#     content = _format_dzen_content(translation)
+#     link = task.external_link or f"{getattr(settings, 'SITE_URL', 'https://your-site.com')}/task/{task.id}"
+#     
+#     # Создаем статью
+#     article_data = api.create_article(
+#         channel_id=channel_id,
+#         title=title,
+#         content=content,
+#         image_url=task.image_url,
+#         link=link
+#     )
+#     
+#     # Обновляем запись
+#     social_post.status = 'published'
+#     social_post.post_id = article_data.get('id')
+#     social_post.post_url = article_data.get('url') or f"https://dzen.ru/id/{channel_id}/post/{article_data.get('id')}"
+#     social_post.published_at = timezone.now()
+#     social_post.save()
+#     
+#     logger.info(f"✅ Яндекс Дзен: статья создана {social_post.post_url}")
+#     
+#     return {
+#         'platform': 'yandex_dzen',
+#         'success': True,
+#         'post_id': article_data.get('id'),
+#         'post_url': social_post.post_url
+#     }
 
 
 def _publish_to_facebook(task, translation, creds, social_post) -> Dict:

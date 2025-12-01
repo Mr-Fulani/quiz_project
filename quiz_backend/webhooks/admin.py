@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.html import format_html
 
-from .models import Webhook, DefaultLink, MainFallbackLink, SocialMediaCredentials
+from .models import Webhook, DefaultLink, MainFallbackLink, SocialMediaCredentials, GlobalWebhookLink
 
 logger = logging.getLogger(__name__)
 
@@ -173,23 +173,18 @@ class SocialMediaCredentialsAdmin(admin.ModelAdmin):
     Админка для учетных данных API социальных сетей.
     Используется для платформ с прямой интеграцией: Pinterest, Яндекс Дзен, Facebook.
     """
-    list_display = ('platform', 'is_active', 'token_status_display', 'updated_at')
+    list_display = ('platform', 'is_active', 'token_expires_at', 'updated_at')
     list_filter = ('platform', 'is_active')
     search_fields = ('platform',)
     ordering = ('platform',)
     
     fieldsets = (
-        ('Платформа', {
-            'fields': ('platform', 'is_active'),
-            'description': 'Выберите платформу и активируйте учетные данные'
+        ('Основная информация', {
+            'fields': ('platform', 'access_token', 'refresh_token', 'is_active')
         }),
-        ('Токены доступа', {
-            'fields': ('access_token', 'refresh_token', 'token_expires_at'),
-            'description': 'Получите токены из разработческого портала соответствующей платформы'
-        }),
-        ('Дополнительные параметры', {
-            'fields': ('extra_data',),
-            'description': 'JSON данные: board_id для Pinterest, channel_id для Дзен, page_id для Facebook'
+        ('Дополнительные данные', {
+            'fields': ('token_expires_at', 'extra_data'),
+            'description': 'Для Pinterest здесь хранится `board_id`, для Дзена — `channel_id`.'
         }),
         ('Системная информация', {
             'fields': ('created_at', 'updated_at'),
@@ -237,3 +232,11 @@ class SocialMediaCredentialsAdmin(admin.ModelAdmin):
         )
         
         return form
+
+
+@admin.register(GlobalWebhookLink)
+class GlobalWebhookLinkAdmin(admin.ModelAdmin):
+    list_display = ('name', 'url', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'url')
+    ordering = ('name',)

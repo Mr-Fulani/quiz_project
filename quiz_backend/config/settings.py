@@ -95,6 +95,11 @@ elif not PUBLIC_URL:
     # В продакшене используем основной домен
     PUBLIC_URL = "https://quiz-code.com"
 
+# Константы для отправки вебхуков
+WEBHOOK_TIMEOUT = int(os.getenv('WEBHOOK_TIMEOUT', '30'))
+WEBHOOK_RETRIES = int(os.getenv('WEBHOOK_RETRIES', '3'))
+WEBHOOK_RETRY_DELAY = int(os.getenv('WEBHOOK_RETRY_DELAY', '2'))
+
 # Настройки для работы за прокси-сервером (Nginx)
 CSRF_TRUSTED_ORIGINS = [
     'https://quiz-code.com',

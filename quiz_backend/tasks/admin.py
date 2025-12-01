@@ -15,6 +15,7 @@ from .services.s3_service import delete_image_from_s3
 from .services.telegram_service import publish_task_to_telegram, delete_message
 from .services.image_generation_service import generate_image_for_task
 from .services.s3_service import upload_image_to_s3
+from webhooks.services import send_webhooks_for_task, send_webhooks_for_bulk_tasks
 import uuid
 import logging
 
@@ -64,6 +65,9 @@ class TaskAdminForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = '__all__'
+        widgets = {
+            'custom_webhook_links': forms.Textarea(attrs={'rows': 3}),
+        }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -758,6 +762,7 @@ class TaskAdmin(admin.ModelAdmin):
         published_count = 0
         errors = []
         published_by_language = {}
+        published_tasks = []
         
         for task in all_related_tasks:
             try:
@@ -826,6 +831,7 @@ class TaskAdmin(admin.ModelAdmin):
                     if language not in published_by_language:
                         published_by_language[language] = 0
                     published_by_language[language] += 1
+                    published_tasks.append(task)
                 else:
                     task.error = True
                     task.save(update_fields=['error'])
@@ -842,7 +848,35 @@ class TaskAdmin(admin.ModelAdmin):
         
         # Итоговое сообщение
         self.message_user(request, "=" * 60, messages.INFO)
-        
+
+        if published_tasks:
+            # Обновляем задачи из БД, чтобы подтянуть `TaskPoll`
+            published_task_ids = [task.id for task in published_tasks]
+            refreshed_tasks = list(Task.objects.filter(id__in=published_task_ids).prefetch_related('translations__taskpoll_set'))
+
+            try:
+                webhook_result = send_webhooks_for_bulk_tasks(refreshed_tasks)
+                if webhook_result.get('total'):
+                    level = messages.SUCCESS if webhook_result['failed'] == 0 else messages.WARNING
+                    self.message_user(
+                        request,
+                        f"🛰️ Сводный вебхук: успешно {webhook_result['success']}, неудачных {webhook_result['failed']}",
+                        level
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        "ℹ️ Нет активных вебхуков для отправки",
+                        messages.INFO
+                    )
+            except Exception as exc:
+                logger.exception("Ошибка при отправке сводного вебхука: %s", exc)
+                self.message_user(
+                    request,
+                    f"❌ Ошибка при отправке сводного вебхука: {exc}",
+                    messages.ERROR
+                )
+
         if published_count > 0:
             # Формируем информацию по языкам
             lang_stats = ", ".join([f"{lang}: {count}" for lang, count in sorted(published_by_language.items())])
