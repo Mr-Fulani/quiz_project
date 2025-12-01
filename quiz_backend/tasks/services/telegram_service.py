@@ -201,6 +201,7 @@ def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Di
     
     try:
         response = requests.post(url, data=data, timeout=30)
+        
         response.raise_for_status()
         result = response.json()
         

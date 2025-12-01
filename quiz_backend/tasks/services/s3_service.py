@@ -124,12 +124,12 @@ def upload_image_to_s3(image: Image.Image, image_name: str) -> Optional[str]:
             else:
                 raise e
         
-        # Формируем URL
-        public_domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', settings.AWS_S3_CUSTOM_DOMAIN)
-        image_url = f"https://{public_domain}/{image_name}"
-        logger.info(f"✅ Изображение успешно загружено в S3: {image_url}")
-        
-        return image_url
+        # Конструируем и возвращаем полный URL
+        domain = settings.AWS_PUBLIC_MEDIA_DOMAIN or settings.AWS_S3_CUSTOM_DOMAIN
+        full_url = f"https://{domain}/{image_name}"
+
+        logger.info(f"✅ Изображение загружено в S3. URL: {full_url}")
+        return full_url
         
     except ClientError as e:
         error_code = e.response.get('Error', {}).get('Code', 'Unknown')
