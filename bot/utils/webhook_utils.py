@@ -1,81 +1,139 @@
+# bot/utils/webhook_utils.py
+
+import json
+import logging
+import uuid
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import List, Dict, Any
 
-from bot.database.models import TelegramGroup
-from bot.handlers.webhook_handler import get_incorrect_answers
+import pytz
+from aiogram.types import Message
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from bot.database.models import TaskTranslation, TelegramGroup, Task, Topic, Subtopic, GlobalWebhookLink, TaskPoll
+from bot.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 
-async def create_webhook_data(
-    task_id: int,
-    channel_username: str,
-    poll_msg,        # dict или объект Aiogram
-    image_url: str,  # финальная ссылка на картинку
-    poll_message: Dict,
-    translation,
-    group: TelegramGroup,
-    image_message,   # dict или объект
-    dont_know_option: str,
-    external_link: str
-) -> Tuple[Dict, str]:
+async def create_bulk_webhook_data(tasks: List[Task], db_session: AsyncSession) -> Dict[str, Any]:
     """
-    Создаёт данные для вебхука на основе информации о задаче и опросе.
-
-    Args:
-        task_id (int): ID задачи.
-        channel_username (str|None): Имя пользователя канала (например, '@ChannelName') или None если нет username.
-        poll_msg: Сообщение с опросом (dict или объект Aiogram).
-        image_url (str): URL изображения задачи.
-        poll_message (Dict): Данные сообщения с опросом.
-        translation: Объект перевода задачи (содержит вопрос, ответы, язык).
-        group (TelegramGroup): Объект группы/канала Telegram.
-        image_message: Сообщение с изображением (dict или объект Aiogram).
-        dont_know_option (str): Текст варианта "Не знаю".
-        external_link (str): Внешняя ссылка для варианта "Не знаю".
-
-    Returns:
-        Tuple[Dict, str]: Словарь с данными для вебхука и ссылка на опрос.
+    Создает сводный payload для вебхука, аналогично Django.
     """
-    message_id = None
-    if isinstance(poll_msg, dict):
-        message_id = poll_msg.get("message_id")
-    else:
-        # poll_msg может быть aiogram.types.Message / или Poll / etc.
-        message_id = getattr(poll_msg, "message_id", None)
+    logger.debug("Формируем сводный вебхук для %s задач", len(tasks))
+    tasks_payload = []
 
-    # Формируем ссылку на опрос - используем username если есть, иначе group_id
-    if channel_username and channel_username.strip():
-        poll_link = f"https://t.me/{channel_username.lstrip('@')}/{message_id}"
-    else:
-        # Для каналов без username используем group_id (работает для публичных каналов)
-        poll_link = f"https://t.me/c/{str(group.group_id).replace('-100', '')}/{message_id}"
+    for task in tasks:
+        full_data = await _create_full_webhook_data_for_task(task, db_session)
+        tasks_payload.append({
+            "task": full_data.get("task"),
+            "translations": full_data.get("translations")
+        })
 
-    if isinstance(image_message, dict):
-        caption = image_message.get("caption", "")
-    else:
-        caption = getattr(image_message, "caption", "")
+    # Получаем глобальные ссылки
+    result = await db_session.execute(
+        select(GlobalWebhookLink).where(GlobalWebhookLink.is_active == True)
+    )
+    global_links_db = result.scalars().all()
+    global_links_payload = [{"name": link.name, "url": link.url} for link in global_links_db]
 
-    # Список неправильных ответов (без правильного)
-    incorrects = await get_incorrect_answers(translation.answers, translation.correct_answer)
+    bulk_payload = {
+        "type": "quiz_published_bulk",
+        "id": str(uuid.uuid4()),
+        "timestamp": datetime.now(tz=pytz.utc).isoformat(),
+        "published_tasks": tasks_payload,
+        "global_custom_links": global_links_payload,
+    }
+    logger.debug("Сводный payload готов.")
+    return bulk_payload
 
-    webhook_data = {
-        "type": "quiz_published",
-        "task_id": task_id,
-        "poll_link": poll_link,
+
+def _serialize_datetime(value: datetime) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _normalize_answers(answers: Any) -> List[str]:
+    if isinstance(answers, str):
+        try:
+            return json.loads(answers)
+        except json.JSONDecodeError:
+            return []
+    return list(answers) if answers else []
+
+
+def _get_incorrect_answers(answers: Any, correct_answer: str) -> List[str]:
+    normalized_answers = _normalize_answers(answers)
+    return [ans for ans in normalized_answers if ans != correct_answer]
+
+
+async def _create_full_webhook_data_for_task(task: Task, db_session: AsyncSession) -> Dict[str, Any]:
+    """
+    Создает полный payload для одной задачи, включая все ее переводы.
+    """
+    settings = get_settings()
+
+    # Формируем URL изображения с учетом окружения
+    image_url = task.image_url
+    if image_url and not settings.DEBUG and settings.AWS_PUBLIC_MEDIA_DOMAIN:
+        # В боте image_url уже полный, но может быть не от того бакета
+        # Просто заменяем домен
+        from urllib.parse import urlparse, urlunparse
+        try:
+            parsed_url = urlparse(image_url)
+            prod_url_parts = parsed_url._replace(netloc=settings.AWS_PUBLIC_MEDIA_DOMAIN)
+            image_url = urlunparse(prod_url_parts)
+        except Exception as e:
+            logger.error(f"Ошибка при формировании URL изображения для вебхука (бот): {e}")
+
+    task_payload = {
+        "id": task.id,
+        "difficulty": task.difficulty,
+        "published": task.published,
+        "create_date": _serialize_datetime(task.create_date),
+        "publish_date": _serialize_datetime(task.publish_date),
         "image_url": image_url,
-        "question": poll_message["question"],
-        "correct_answer": translation.correct_answer,
-        "incorrect_answers": incorrects,  # без "не знаю"
-        "language": translation.language,
+        "external_link": task.external_link,
+        "translation_group_id": str(task.translation_group_id),
+        "message_id": task.message_id,
+        "error": task.error,
+        "topic": {"id": task.topic.id, "name": task.topic.name} if task.topic else None,
+        "subtopic": {"id": task.subtopic.id, "name": task.subtopic.name} if task.subtopic else None,
         "group": {
-            "id": group.id,
-            "name": group.group_name
-        },
-        "caption": caption,
-        "published_at": datetime.utcnow().isoformat()
+            "id": task.group.id,
+            "group_name": task.group.group_name,
+            "group_id": task.group.group_id,
+            "username": task.group.username,
+            "language": task.group.language,
+            "location_type": task.group.location_type,
+        } if task.group else None,
     }
 
-    # добавляем "не знаю" с ссылкой
-    dont_know_with_link = f"{dont_know_option} ({external_link})"
-    webhook_data["incorrect_answers"].append(dont_know_with_link)
+    translations_payload = []
+    for trans in task.translations:
+        polls_payload = []
+        if trans.taskpoll_set:
+            for poll in trans.taskpoll_set:
+                polls_payload.append({
+                    "id": poll.id,
+                    "poll_id": poll.poll_id,
+                    "poll_question": poll.poll_question,
+                    "poll_link": poll.poll_link,
+                })
 
-    return webhook_data, poll_link
+        translations_payload.append({
+            "id": trans.id,
+            "language": trans.language,
+            "question": trans.question,
+            "answers": _normalize_answers(trans.answers),
+            "correct_answer": trans.correct_answer,
+            "incorrect_answers": _get_incorrect_answers(trans.answers, trans.correct_answer),
+            "explanation": trans.explanation,
+            "publish_date": _serialize_datetime(trans.publish_date),
+            "polls": polls_payload,
+        })
+    
+    return {
+        "task": task_payload,
+        "translations": translations_payload,
+    }

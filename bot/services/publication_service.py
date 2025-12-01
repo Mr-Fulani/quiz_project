@@ -4,7 +4,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import Tuple, List
 from uuid import UUID
 
 import pytz
@@ -22,7 +22,7 @@ from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
 from bot.utils.logging_utils import log_final_summary, log_pause, \
     log_username_received, log_publication_start, log_publication_failure, log_webhook_data, log_publication_success
-from bot.utils.webhook_utils import create_webhook_data
+from bot.utils.webhook_utils import create_bulk_webhook_data
 
 
 
@@ -226,7 +226,7 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         channel_username = None  # Передаем None, webhook_utils обработает это
 
                     # Формируем webhook_data
-                    webhook_data, poll_link = await create_webhook_data(
+                    webhook_data, poll_link = await create_bulk_webhook_data(
                         task_id=task.id,
                         channel_username=channel_username,
                         poll_msg=poll_msg,
@@ -321,6 +321,38 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
             except Exception as e:
                 logger.error(f"❌ Ошибка при отправке вебхуков: {e}")
                 await message.answer(f"❌ Ошибка при отправке вебхуков: {e}")
+
+        # Собираем все опубликованные задачи для сводного вебхука
+        published_tasks = []
+        for task_id in set(published_task_ids):
+            result = await db_session.execute(
+                select(Task).options(
+                    joinedload(Task.translations).joinedload(TaskTranslation.taskpoll_set),
+                    joinedload(Task.topic),
+                    joinedload(Task.subtopic),
+                    joinedload(Task.group)
+                ).where(Task.id == task_id)
+            )
+            task = result.unique().scalar_one_or_none()
+            if task:
+                published_tasks.append(task)
+
+        # Отправка сводного вебхука
+        if published_tasks and active_webhooks:
+            logger.info(f"📤 Отправка сводного вебхука на {len(active_webhooks)} сервисов для {len(published_tasks)} задач.")
+            await message.answer(f"📤 Отправка сводного вебхука на {len(active_webhooks)} сервисов.")
+
+            try:
+                await webhook_service.send_bulk_webhook_for_tasks(
+                    tasks=published_tasks,
+                    webhooks=active_webhooks,
+                    bot=bot,
+                    admin_chat_id=user_chat_id
+                )
+            except Exception as e:
+                logger.error(f"❌ Ошибка при отправке сводного вебхука: {e}")
+                await message.answer(f"❌ Ошибка при отправке сводного вебхука: {e}")
+
 
         # Обновление статуса задач
         if published_count > 0:
@@ -573,7 +605,7 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
         # Формирование данных для вебхука
         group = ...
         channel_username = ...
-        webhook_data, poll_link = await create_webhook_data(
+        webhook_data, poll_link = await create_bulk_webhook_data(
             task_id=translation.task.id,
             channel_username=channel_username,
             poll_msg=poll_msg,
@@ -857,7 +889,7 @@ async def publish_task_by_translation_group(
 
                         await message.answer(log_username_received(group.group_name, channel_username))
 
-                        webhook_data, _ = await create_webhook_data(
+                        webhook_data, _ = await create_bulk_webhook_data(
                             task_id=task_in_group.id,
                             channel_username=channel_username,
                             poll_msg=poll_msg,
@@ -916,18 +948,39 @@ async def publish_task_by_translation_group(
                         await message.answer(error_msg)
                         continue
 
-        if webhook_data_list and active_webhooks:
-            logger.info(f"📤 Отправка вебхуков на {len(active_webhooks)} сервисов.")
-            await message.answer(f"📤 Отправка вебхуков на {len(active_webhooks)} сервисов.")
-            log_webhook_data(webhook_data_list)
-            results = await webhook_service.send_webhooks(
-                webhooks_data=webhook_data_list,
-                webhooks=active_webhooks,
-                bot=bot,
-                admin_chat_id=admin_chat_id
-            )
-            success_count = sum(1 for r in results if r)
-            logger.info(f"📊 Вебхуки: успешно={success_count}, неудачно={len(results) - success_count}")
+        # Собираем все опубликованные задачи
+        published_tasks_map = {}
+        for task_id in set(published_task_ids):
+            if task_id not in published_tasks_map:
+                result = await db_session.execute(
+                    select(Task).options(
+                        joinedload(Task.translations).joinedload(TaskTranslation.taskpoll_set),
+                        joinedload(Task.topic),
+                        joinedload(Task.subtopic),
+                        joinedload(Task.group)
+                    ).where(Task.id == task_id)
+                )
+                task = result.unique().scalar_one_or_none()
+                if task:
+                    published_tasks_map[task_id] = task
+        
+        published_tasks = list(published_tasks_map.values())
+
+        if published_tasks and active_webhooks:
+            logger.info(f"📤 Отправка сводного вебхука на {len(active_webhooks)} сервисов для {len(published_tasks)} задач.")
+            await message.answer(f"📤 Отправка сводного вебхука на {len(active_webhooks)} сервисов.")
+            
+            try:
+                await webhook_service.send_bulk_webhook_for_tasks(
+                    tasks=published_tasks,
+                    webhooks=active_webhooks,
+                    bot=bot,
+                    admin_chat_id=admin_chat_id
+                )
+            except Exception as e:
+                logger.error(f"❌ Ошибка при отправке сводного вебхука: {e}", exc_info=True)
+                await message.answer(f"❌ Ошибка при отправке сводного вебхука: {e}")
+
 
         if published_count > 0:
             try:

@@ -5,22 +5,22 @@ import uuid
 from datetime import datetime
 from typing import List, Optional, Dict
 
+import pytz
 from aiogram import Bot
 from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.database.models import Webhook, TelegramAdmin
+from bot.database.models import Webhook, TelegramAdmin, Task
 from bot.services.webhook_sender import (
     notify_admin,
     send_quiz_published_webhook
 )
 from bot.utils.logging_utils import log_webhook_summary
-
+from bot.utils.webhook_utils import create_bulk_webhook_data
 
 
 logger = logging.getLogger(__name__)
-
 
 
 class WebhookService:
@@ -262,3 +262,57 @@ class WebhookService:
         query = select(TelegramAdmin.id)
         result = await self.db_session.execute(query)
         return [row[0] for row in result.fetchall()]
+
+    async def send_bulk_webhook_for_tasks(
+        self,
+        tasks: List[Task],
+        webhooks: List[Webhook],
+        bot: Bot,
+        admin_chat_id: int
+    ) -> None:
+        """
+        Формирует и отправляет единый сводный вебхук для списка задач.
+        """
+        if not tasks:
+            logger.info("Нет опубликованных задач для отправки сводного вебхука.")
+            return
+
+        # 1. Сформировать единый payload
+        payload = await create_bulk_webhook_data(tasks, self.db_session)
+
+        if not payload:
+            logger.error("Не удалось сформировать payload для сводного вебхука.")
+            return
+
+        # 2. Отправить на все активные вебхуки
+        success_count = 0
+        failed_count = 0
+
+        for webhook in webhooks:
+            if not webhook.is_active:
+                continue
+
+            try:
+                logger.info(f"📤 Отправка сводного вебхука на {webhook.url}...")
+                ok = await send_quiz_published_webhook(webhook.url, payload)
+                if ok:
+                    success_count += 1
+                    logger.info(f"✅ Успешно отправлено на {webhook.url}")
+                    await notify_admin(bot, admin_chat_id, f"✅ Сводный вебхук успешно отправлен на: {webhook.url}")
+                else:
+                    failed_count += 1
+                    logger.error(f"❌ Не удалось отправить на {webhook.url}")
+                    await notify_admin(bot, admin_chat_id, f"❌ Ошибка при отправке сводного вебхука на: {webhook.url}")
+            except Exception as e:
+                failed_count += 1
+                logger.exception(f"Исключение при отправке сводного вебхука на {webhook.url}: {e}")
+                await notify_admin(bot, admin_chat_id, f"🔥 Исключение при отправке на {webhook.url}: {e}")
+
+        summary_message = (
+            f"🛰️ Отправка сводных вебхуков завершена.\n"
+            f"Всего вебхуков: {len(webhooks)}\n"
+            f"✅ Успешно: {success_count}\n"
+            f"❌ Неудачно: {failed_count}"
+        )
+        logger.info(summary_message)
+        await notify_admin(bot, admin_chat_id, summary_message)
