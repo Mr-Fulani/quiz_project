@@ -59,13 +59,54 @@ docker compose down
 
 ### Ручное обновление сертификатов
 ```bash
-# Остановить сервисы
-docker compose down
+# Использовать скрипт для обновления (рекомендуется)
+./renew-ssl.sh
 
-# Удалить старые сертификаты (ОСТОРОЖНО!)
+# Или вручную через docker compose
+docker compose -f docker-compose.local-prod.yml run --rm --entrypoint "" certbot sh -c "/usr/local/bin/certbot renew"
+docker compose -f docker-compose.local-prod.yml exec nginx nginx -s reload
+```
+
+### Автоматическое обновление сертификатов
+
+Let's Encrypt сертификаты действительны 90 дней. Рекомендуется настроить автоматическое обновление.
+
+#### Настройка автоматического обновления через cron
+
+```bash
+# Запустите скрипт настройки (один раз)
+./setup-ssl-auto-renewal.sh
+```
+
+Этот скрипт:
+- Создаст cron задачу для ежедневной проверки и обновления сертификатов (в 03:00)
+- Настроит логирование в `/var/log/ssl-renewal.log`
+- Автоматически перезагрузит nginx после обновления
+
+#### Проверка статуса автоматического обновления
+
+```bash
+# Просмотр cron задач
+crontab -l | grep renew-ssl
+
+# Просмотр логов
+tail -f /var/log/ssl-renewal.log
+
+# Ручной запуск автоматического скрипта
+./renew-ssl-auto.sh
+```
+
+#### Удаление автоматического обновления
+
+```bash
+# Удалить cron задачу
+crontab -l | grep -v "renew-ssl-auto.sh" | crontab -
+```
+
+### Сброс сертификатов (полное удаление)
+```bash
+# ОСТОРОЖНО! Это удалит все сертификаты
 sudo rm -rf ./certbot/conf/
-
-# Запустить получение новых сертификатов
 ./start-prod.sh
 ```
 
@@ -83,6 +124,9 @@ sudo rm -rf ./certbot/conf/
 ### Скрипты
 - `start-local.sh` - запуск локальной разработки
 - `start-prod.sh` - запуск продакшена
+- `renew-ssl.sh` - ручное обновление SSL сертификатов (с dry-run)
+- `renew-ssl-auto.sh` - автоматическое обновление SSL сертификатов (для cron)
+- `setup-ssl-auto-renewal.sh` - настройка автоматического обновления через cron
 
 ## ⚠️ Важные замечания
 
