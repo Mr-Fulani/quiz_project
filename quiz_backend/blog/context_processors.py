@@ -628,7 +628,7 @@ def dynamic_seo_context(request):
                         current_path = request.path
                         # Убираем языковой префикс из пути
                         path_without_lang = current_path
-                        from django.conf import settings
+                        # settings уже импортирован в начале файла
                         for lang_code, _ in settings.LANGUAGES:
                             lang_prefix = f"/{lang_code[:2]}/"
                             if current_path.startswith(lang_prefix):
