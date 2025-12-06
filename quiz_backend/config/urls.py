@@ -30,6 +30,7 @@ from donation.views import (
     create_telegram_stars_invoice,
 )
 from social_auth.views import TelegramAuthView
+from webhooks.pinterest_oauth import pinterest_oauth_authorize, pinterest_oauth_callback
 
 from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSitemap, ImageSitemap, SubtopicSitemap, TaskImageSitemap
 from django.template.response import TemplateResponse
@@ -220,6 +221,10 @@ urlpatterns = [
     
     # Telegram Auth - прямой путь к TelegramAuthView
     path('auth/telegram/', TelegramAuthView.as_view(), name='telegram_auth_direct'),
+    
+    # Pinterest OAuth endpoints
+    path('auth/pinterest/authorize/', pinterest_oauth_authorize, name='pinterest-oauth-authorize'),
+    path('auth/pinterest/callback/', pinterest_oauth_callback, name='pinterest-oauth-callback'),
     
     # Donation API endpoints (вне языковых паттернов)
     path('donation/create-payment-intent/', create_payment_intent, name='create_payment_intent'),

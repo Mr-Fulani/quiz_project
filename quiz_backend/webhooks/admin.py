@@ -226,9 +226,13 @@ class SocialMediaCredentialsAdmin(admin.ModelAdmin):
         
         form.base_fields['extra_data'].help_text = (
             'Примеры:\n'
-            '• Pinterest: {"board_id": "123456789"}\n'
+            '• Pinterest: {"board_id": "123456789", "manual_boards_cache": {"Python": "123456789", "JavaScript": "987654321", "code": "111222333"}}\n'
             '• Дзен: {"channel_id": "your-channel-id"}\n'
-            '• Facebook: {"page_id": "123456789"}'
+            '• Facebook: {"page_id": "123456789"}\n'
+            '\n'
+            'Для Pinterest:\n'
+            '- board_id: доска по умолчанию\n'
+            '- manual_boards_cache: словарь {название_доски: board_id} для динамического выбора по теме задачи'
         )
         
         return form
