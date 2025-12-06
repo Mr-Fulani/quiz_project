@@ -89,6 +89,11 @@ class Task(models.Model):
         null=True,
         help_text='ID связанного сообщения'
     )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Описание задачи (из JSON)'
+    )
 
 
     def clean(self):

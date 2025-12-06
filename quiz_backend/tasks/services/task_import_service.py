@@ -103,6 +103,9 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                 if not translation_group_id:
                     translation_group_id = str(uuid.uuid4())
                 
+                # Получаем description из JSON
+                task_description = task_data.get('description')
+                
                 logger.debug(f"📁 Используем translation_group_id: {translation_group_id}")
                 
                 # Обрабатываем каждый перевод
@@ -179,7 +182,8 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                                 difficulty=difficulty,
                                 published=False,
                                 translation_group_id=translation_group_id,
-                                external_link=external_link
+                                external_link=external_link,
+                                description=task_description
                             )
                             
                             logger.info(f"✅ Создана задача с ID {task.id}")
