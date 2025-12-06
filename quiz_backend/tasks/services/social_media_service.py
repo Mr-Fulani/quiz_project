@@ -698,64 +698,116 @@ def _get_pinterest_board_by_topic(api: PinterestAPI, topic_name: str, creds) -> 
     Returns:
         board_id (str) или None, если доска не найдена
     """
-    # Сначала проверяем, есть ли сохраненный список досок в extra_data
+    from django.utils import timezone
+    from datetime import timedelta, datetime
+    
+    # Инициализируем extra_data, если его нет
+    if not creds.extra_data:
+        creds.extra_data = {}
+    
+    # Проверяем кэш досок
     boards_cache = creds.extra_data.get('boards_cache')
     boards_cache_time = creds.extra_data.get('boards_cache_time')
     
-    # Если кэш старше 1 часа, обновляем
-    from django.utils import timezone
-    from datetime import timedelta, datetime
-    if not boards_cache or not boards_cache_time:
-        boards_cache = None
-    else:
-        # Парсим время из ISO формата
-        if isinstance(boards_cache_time, str):
-            cache_time = datetime.fromisoformat(boards_cache_time.replace('Z', '+00:00'))
-            if cache_time.tzinfo is None:
-                cache_time = timezone.make_aware(cache_time)
-        else:
-            cache_time = boards_cache_time
-        
-        if timezone.now() - cache_time > timedelta(hours=1):
-            boards_cache = None
+    # Проверяем, нужно ли обновить кэш:
+    # 1. Кэш пустой или отсутствует
+    # 2. Кэш старше 1 часа
+    # 3. Кэш не является словарем
+    should_refresh = False
     
-    # Получаем список досок, если кэша нет
-    if not boards_cache:
+    if not boards_cache or not isinstance(boards_cache, dict) or len(boards_cache) == 0:
+        logger.info("Кэш досок пустой или отсутствует, обновляем...")
+        should_refresh = True
+    elif boards_cache_time:
+        # Парсим время из ISO формата
+        try:
+            if isinstance(boards_cache_time, str):
+                cache_time = datetime.fromisoformat(boards_cache_time.replace('Z', '+00:00'))
+                if cache_time.tzinfo is None:
+                    cache_time = timezone.make_aware(cache_time)
+            else:
+                cache_time = boards_cache_time
+            
+            if timezone.now() - cache_time > timedelta(hours=1):
+                logger.info("Кэш досок устарел (старше 1 часа), обновляем...")
+                should_refresh = True
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Ошибка парсинга времени кэша: {e}, обновляем кэш...")
+            should_refresh = True
+    
+    # Получаем список досок, если нужно обновить
+    if should_refresh:
+        logger.info("Получение списка досок Pinterest...")
         boards_data = api.get_boards()
         if boards_data:
             items = boards_data.get('items', [])
-            boards_cache = {board.get('name'): str(board.get('id')) for board in items}
-            # Сохраняем в кэш
-            if not creds.extra_data:
-                creds.extra_data = {}
-            creds.extra_data['boards_cache'] = boards_cache
-            creds.extra_data['boards_cache_time'] = timezone.now().isoformat()
-            creds.save(update_fields=['extra_data'])
+            if items:
+                boards_cache = {}
+                for board in items:
+                    board_name = board.get('name')
+                    board_id = board.get('id')
+                    if board_name and board_id:
+                        boards_cache[board_name] = str(board_id)
+                
+                logger.info(f"Получено досок: {len(boards_cache)}")
+                if boards_cache:
+                    # Сохраняем в кэш
+                    creds.extra_data['boards_cache'] = boards_cache
+                    creds.extra_data['boards_cache_time'] = timezone.now().isoformat()
+                    creds.save(update_fields=['extra_data'])
+                    logger.info(f"✅ Кэш досок обновлен. Доски: {list(boards_cache.keys())}")
+                else:
+                    logger.warning("⚠️ Не удалось извлечь доски из ответа API (нет name или id)")
+            else:
+                logger.warning(f"⚠️ Список досок пустой в ответе API. Полный ответ: {boards_data}")
+        else:
+            logger.error("❌ Не удалось получить список досок от Pinterest API")
     
-    if not boards_cache:
-        logger.warning("Не удалось получить список досок Pinterest")
-        # Используем доску по умолчанию из настроек
-        return creds.extra_data.get('board_id')
+    if not boards_cache or len(boards_cache) == 0:
+        logger.warning("Не удалось получить список досок Pinterest через API")
+        # Проверяем, есть ли сохраненный кэш досок (вручную указанный или через скрипт)
+        # Сначала проверяем boards_cache (может быть сохранен через скрипт)
+        saved_boards_cache = creds.extra_data.get('boards_cache')
+        if saved_boards_cache and isinstance(saved_boards_cache, dict) and len(saved_boards_cache) > 0:
+            logger.info(f"Используется сохраненный кэш досок: {list(saved_boards_cache.keys())}")
+            boards_cache = saved_boards_cache
+        else:
+            # Проверяем manual_boards_cache (старый способ)
+            manual_boards = creds.extra_data.get('manual_boards_cache')
+            if manual_boards and isinstance(manual_boards, dict) and len(manual_boards) > 0:
+                logger.info(f"Используется вручную указанный список досок: {list(manual_boards.keys())}")
+                boards_cache = manual_boards
+            else:
+                # Используем доску по умолчанию из настроек
+                default_board = creds.extra_data.get('board_id')
+                if default_board:
+                    logger.warning(f"Используется доска по умолчанию из настроек: {default_board}")
+                    return default_board
+                return None
     
     # Ищем доску по названию темы (регистронезависимо)
-    topic_name_lower = topic_name.lower()
+    topic_name_lower = topic_name.lower().strip()
+    logger.debug(f"Поиск доски для темы '{topic_name}' (нормализовано: '{topic_name_lower}')")
+    logger.debug(f"Доступные доски: {list(boards_cache.keys())}")
+    
     for board_name, board_id in boards_cache.items():
-        if board_name.lower() == topic_name_lower:
-            logger.info(f"Найдена доска '{board_name}' для темы '{topic_name}': {board_id}")
+        if board_name.lower().strip() == topic_name_lower:
+            logger.info(f"✅ Найдена доска '{board_name}' для темы '{topic_name}': {board_id}")
             return board_id
     
     # Если не найдена, ищем доску "code"
     for board_name, board_id in boards_cache.items():
-        if board_name.lower() == "code":
-            logger.info(f"Используется доска по умолчанию 'code': {board_id}")
+        if board_name.lower().strip() == "code":
+            logger.info(f"✅ Используется доска по умолчанию 'code': {board_id}")
             return board_id
     
     # Если ничего не найдено, используем доску из настроек
     default_board = creds.extra_data.get('board_id')
     if default_board:
-        logger.warning(f"Доска для темы '{topic_name}' не найдена, используется доска из настроек: {default_board}")
+        logger.warning(f"⚠️ Доска для темы '{topic_name}' не найдена, используется доска из настроек: {default_board}")
         return default_board
     
+    logger.error(f"❌ Доска для темы '{topic_name}' не найдена, и доска по умолчанию не настроена")
     return None
 
 

@@ -6,7 +6,6 @@ from .views import (
     TelegramWebhookSetupView,
     SocialMediaCallbackView
 )
-
 app_name = 'webhooks'
 
 router = DefaultRouter()
