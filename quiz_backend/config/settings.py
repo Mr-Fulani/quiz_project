@@ -311,20 +311,34 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'postgres_db'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-        'CONN_MAX_AGE': 0 if DEBUG else 600,  # Connection pooling в продакшене
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
+# Настройка базы данных
+# Если USE_SQLITE_FOR_TESTS=True, используем SQLite для тестов (решает проблему с collation)
+USE_SQLITE_FOR_TESTS = os.getenv('USE_SQLITE_FOR_TESTS', 'False').lower() == 'true'
+
+if USE_SQLITE_FOR_TESTS and 'test' in sys.argv:
+    # Используем SQLite для тестов (быстрее и без проблем с collation)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',  # In-memory база для тестов
+        }
     }
-}
+else:
+    # Используем PostgreSQL для продакшена и разработки
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', 'postgres_db'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 0 if DEBUG else 600,  # Connection pooling в продакшене
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+        }
+    }
 
 
 # Password validation
