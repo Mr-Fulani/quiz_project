@@ -5,7 +5,7 @@
 import json
 import logging
 import requests
-from typing import Dict, List
+from typing import Dict, List, Optional
 from django.conf import settings
 from django.utils import timezone
 
@@ -505,16 +505,82 @@ def _publish_via_webhook(task: Task, translation: TaskTranslation) -> List[Dict]
 
 def _publish_to_pinterest(task, translation, creds, social_post) -> Dict:
     """Публикация в Pinterest."""
+    # Проверяем, что токен не истек
+    from django.utils import timezone
+    if creds.token_expires_at and creds.token_expires_at < timezone.now():
+        raise Exception(
+            f"Pinterest токен истек (истек: {creds.token_expires_at}). "
+            f"Получите новый токен через OAuth: /auth/pinterest/authorize/"
+        )
+    
+    # Проверяем наличие токена
+    if not creds.access_token:
+        raise Exception(
+            "Pinterest access token не установлен. "
+            "Получите токен через OAuth: /auth/pinterest/authorize/"
+        )
+    
     api = PinterestAPI(creds.access_token)
     
-    board_id = creds.extra_data.get('board_id')
-    if not board_id:
-        raise ValueError("board_id не указан в credentials.extra_data")
+    # Получаем название темы
+    topic_name = task.topic.name if task.topic else "code"
     
-    # Формируем контент
-    title = translation.question[:100]
-    description = _format_pinterest_description(translation)
-    link = task.external_link or f"{getattr(settings, 'SITE_URL', 'https://your-site.com')}/task/{task.id}"
+    # Выбираем доску динамически по названию темы
+    board_id = _get_pinterest_board_by_topic(api, topic_name, creds)
+    if not board_id:
+        raise ValueError(f"Не найдена доска для темы '{topic_name}' и доска по умолчанию 'code'")
+    
+    # Формируем заголовок: "Что вернет этот код {название темы}?"
+    title = f"Что вернет этот код {topic_name}?"
+    if len(title) > 100:
+        title = title[:97] + "..."
+    
+    # Описание всегда "Выбери правильный ответ"
+    description = "Выбери правильный ответ"
+    
+    # Добавляем варианты ответов, каждый с новой строки
+    try:
+        # Парсим answers (может быть строкой JSON или списком)
+        if isinstance(translation.answers, str):
+            answers = json.loads(translation.answers)
+        else:
+            answers = translation.answers
+        
+        if answers and isinstance(answers, list) and len(answers) > 0:
+            answers_text = "\n\n"  # Добавляем отступ перед вариантами
+            answer_lines = [f"• {ans}" for ans in answers]
+            answers_text += "\n".join(answer_lines)
+            
+            # Проверяем, поместится ли description + варианты ответов в 500 символов
+            if len(description) + len(answers_text) <= 500:
+                description += answers_text
+            else:
+                # Если не помещается, обрезаем description, чтобы поместились варианты
+                max_desc_length = 500 - len(answers_text)
+                if max_desc_length > 50:  # Минимум 50 символов для description
+                    description = description[:max_desc_length] + answers_text
+                else:
+                    # Если варианты ответов слишком длинные, обрезаем их
+                    description += "\n\n"
+                    remaining = 500 - len(description)
+                    for ans in answers:
+                        answer_line = f"• {ans}\n"
+                        if len(description) + len(answer_line) <= 500:
+                            description += answer_line
+                        else:
+                            break
+                    description = description.rstrip()  # Убираем последний \n
+    except (json.JSONDecodeError, TypeError, AttributeError) as e:
+        logger.warning(f"Ошибка парсинга answers для задачи {task.id}: {e}")
+    
+    # Финальная проверка длины (на всякий случай)
+    if len(description) > 500:
+        description = description[:500]
+    elif not description:
+        description = ""
+    
+    # Ссылка всегда на mini.quiz-code.com
+    link = "https://mini.quiz-code.com"
     
     # Создаем пин
     pin_data = api.create_pin(
@@ -618,21 +684,79 @@ def _publish_to_facebook(task, translation, creds, social_post) -> Dict:
     }
 
 
-def _format_pinterest_description(translation: TaskTranslation) -> str:
-    """Форматирует описание для Pinterest."""
-    # Парсим ответы
-    answers = translation.answers if isinstance(translation.answers, list) else json.loads(translation.answers)
+def _get_pinterest_board_by_topic(api: PinterestAPI, topic_name: str, creds) -> Optional[str]:
+    """
+    Получает board_id для доски по названию темы.
+    Ищет доску с названием, совпадающим с названием темы.
+    Если не найдена, использует доску "code" по умолчанию.
     
-    # Форматируем варианты ответов
-    answer_lines = [f"• {ans}" for ans in answers[:4]]
-    answer_text = "\n".join(answer_lines)
+    Args:
+        api: Экземпляр PinterestAPI
+        topic_name: Название темы (например, "Python", "Golang")
+        creds: SocialMediaCredentials объект
+        
+    Returns:
+        board_id (str) или None, если доска не найдена
+    """
+    # Сначала проверяем, есть ли сохраненный список досок в extra_data
+    boards_cache = creds.extra_data.get('boards_cache')
+    boards_cache_time = creds.extra_data.get('boards_cache_time')
     
-    description = f"{translation.question}\n\n{answer_text}\n\n💡 Правильный ответ: {translation.correct_answer}"
+    # Если кэш старше 1 часа, обновляем
+    from django.utils import timezone
+    from datetime import timedelta, datetime
+    if not boards_cache or not boards_cache_time:
+        boards_cache = None
+    else:
+        # Парсим время из ISO формата
+        if isinstance(boards_cache_time, str):
+            cache_time = datetime.fromisoformat(boards_cache_time.replace('Z', '+00:00'))
+            if cache_time.tzinfo is None:
+                cache_time = timezone.make_aware(cache_time)
+        else:
+            cache_time = boards_cache_time
+        
+        if timezone.now() - cache_time > timedelta(hours=1):
+            boards_cache = None
     
-    # Добавляем хештеги
-    description += "\n\n#programming #coding #quiz"
+    # Получаем список досок, если кэша нет
+    if not boards_cache:
+        boards_data = api.get_boards()
+        if boards_data:
+            items = boards_data.get('items', [])
+            boards_cache = {board.get('name'): str(board.get('id')) for board in items}
+            # Сохраняем в кэш
+            if not creds.extra_data:
+                creds.extra_data = {}
+            creds.extra_data['boards_cache'] = boards_cache
+            creds.extra_data['boards_cache_time'] = timezone.now().isoformat()
+            creds.save(update_fields=['extra_data'])
     
-    return description[:500]
+    if not boards_cache:
+        logger.warning("Не удалось получить список досок Pinterest")
+        # Используем доску по умолчанию из настроек
+        return creds.extra_data.get('board_id')
+    
+    # Ищем доску по названию темы (регистронезависимо)
+    topic_name_lower = topic_name.lower()
+    for board_name, board_id in boards_cache.items():
+        if board_name.lower() == topic_name_lower:
+            logger.info(f"Найдена доска '{board_name}' для темы '{topic_name}': {board_id}")
+            return board_id
+    
+    # Если не найдена, ищем доску "code"
+    for board_name, board_id in boards_cache.items():
+        if board_name.lower() == "code":
+            logger.info(f"Используется доска по умолчанию 'code': {board_id}")
+            return board_id
+    
+    # Если ничего не найдено, используем доску из настроек
+    default_board = creds.extra_data.get('board_id')
+    if default_board:
+        logger.warning(f"Доска для темы '{topic_name}' не найдена, используется доска из настроек: {default_board}")
+        return default_board
+    
+    return None
 
 
 def _format_dzen_content(translation: TaskTranslation) -> str:
