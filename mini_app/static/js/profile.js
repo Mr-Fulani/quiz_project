@@ -1070,29 +1070,18 @@
         const elements = getDOMElements();
         if (elements.editProfileBtn) {
             elements.editProfileBtn.onclick = () => {
-                elements.editModal.style.display = 'block';
+                elements.editModal.style.display = 'flex';
                 
-                // Улучшенное позиционирование для мобильных устройств
-                const modalContent = elements.editModal.querySelector('.modal-content');
-                if (modalContent) {
-                    // Сбрасываем любые предыдущие стили позиционирования
-                    modalContent.style.position = '';
-                    modalContent.style.top = '';
-                    modalContent.style.left = '';
-                    modalContent.style.transform = '';
-                    
-                    // Для мобильных устройств добавляем специальное позиционирование
-                    if (window.innerWidth <= 768) {
-                        // Прокручиваем к началу страницы для лучшего отображения
-                        window.scrollTo(0, 0);
-                        
-                        // Добавляем небольшую задержку для корректного отображения
-                        setTimeout(() => {
-                            modalContent.style.position = 'relative';
-                            modalContent.style.top = '10px';
-                        }, 50);
-                    }
-                }
+                // Добавляем класс для анимации появления
+                setTimeout(() => {
+                    elements.editModal.classList.add('show');
+                }, 10);
+                
+                // Блокируем скролл body когда модальное окно открыто
+                document.body.style.overflow = 'hidden';
+                
+                // Прокручиваем к началу страницы для лучшего отображения модального окна
+                window.scrollTo(0, 0);
                 
                 // Заполняем поля формы текущими данными профиля
                 const currentUser = window.currentUser; // Глобальная переменная из base.html
@@ -1211,13 +1200,27 @@
 
         if (elements.closeModalBtn) {
             elements.closeModalBtn.onclick = () => {
-                elements.editModal.style.display = 'none';
+                // Убираем класс для анимации исчезновения
+                elements.editModal.classList.remove('show');
+                // Ждем завершения анимации перед скрытием
+                setTimeout(() => {
+                    elements.editModal.style.display = 'none';
+                    // Разблокируем скролл body когда модальное окно закрыто
+                    document.body.style.overflow = '';
+                }, 300);
             };
         }
 
         if (elements.cancelEditBtn) {
             elements.cancelEditBtn.onclick = () => {
-                elements.editModal.style.display = 'none';
+                // Убираем класс для анимации исчезновения
+                elements.editModal.classList.remove('show');
+                // Ждем завершения анимации перед скрытием
+                setTimeout(() => {
+                    elements.editModal.style.display = 'none';
+                    // Разблокируем скролл body когда модальное окно закрыто
+                    document.body.style.overflow = '';
+                }, 300);
             };
         }
 
@@ -1478,8 +1481,14 @@
                         console.log('🔍 programming_languages в ответе сервера:', updatedUserData.programming_languages);
                         showNotification('profile_update_success', 'success', null, getTranslation('profile_update_success', 'Профиль успешно обновлен!'));
                         
-                        // Закрываем модальное окно сначала
-                        elements.editModal.style.display = 'none';
+                        // Убираем класс для анимации исчезновения
+                        elements.editModal.classList.remove('show');
+                        // Ждем завершения анимации перед скрытием
+                        setTimeout(() => {
+                            elements.editModal.style.display = 'none';
+                            // Разблокируем скролл body когда модальное окно закрыто
+                            document.body.style.overflow = '';
+                        }, 300);
                         
                         // Обновляем глобальный объект currentUser
                         window.currentUser = updatedUserData;
@@ -1658,54 +1667,27 @@
         // Переинициализируем обработчики событий
         const elements = getDOMElements();
         
-        // Добавляем обработчик изменения размера окна для корректного позиционирования модального окна
+        // Обработчик изменения размера окна - позиционирование теперь через CSS flex
         window.addEventListener('resize', () => {
-            if (elements.editModal && elements.editModal.style.display === 'block') {
-                const modalContent = elements.editModal.querySelector('.modal-content');
-                if (modalContent) {
-                    // Сбрасываем стили позиционирования при изменении размера
-                    modalContent.style.position = '';
-                    modalContent.style.top = '';
-                    modalContent.style.left = '';
-                    modalContent.style.transform = '';
-                    
-                    // Применяем новое позиционирование для мобильных устройств
-                    if (window.innerWidth <= 768) {
-                        setTimeout(() => {
-                            modalContent.style.position = 'relative';
-                            modalContent.style.top = '10px';
-                        }, 100);
-                    }
-                }
-            }
+            // Позиционирование модального окна теперь полностью управляется CSS
+            // Никаких дополнительных действий не требуется
         });
         
         // Переинициализируем обработчик кнопки редактирования
         if (elements.editProfileBtn) {
             elements.editProfileBtn.onclick = () => {
-                elements.editModal.style.display = 'block';
+                elements.editModal.style.display = 'flex';
                 
-                // Улучшенное позиционирование для мобильных устройств
-                const modalContent = elements.editModal.querySelector('.modal-content');
-                if (modalContent) {
-                    // Сбрасываем любые предыдущие стили позиционирования
-                    modalContent.style.position = '';
-                    modalContent.style.top = '';
-                    modalContent.style.left = '';
-                    modalContent.style.transform = '';
-                    
-                    // Для мобильных устройств добавляем специальное позиционирование
-                    if (window.innerWidth <= 768) {
-                        // Прокручиваем к началу страницы для лучшего отображения
-                        window.scrollTo(0, 0);
-                        
-                        // Добавляем небольшую задержку для корректного отображения
-                        setTimeout(() => {
-                            modalContent.style.position = 'relative';
-                            modalContent.style.top = '10px';
-                        }, 50);
-                    }
-                }
+                // Добавляем класс для анимации появления
+                setTimeout(() => {
+                    elements.editModal.classList.add('show');
+                }, 10);
+                
+                // Блокируем скролл body когда модальное окно открыто
+                document.body.style.overflow = 'hidden';
+                
+                // Прокручиваем к началу страницы для лучшего отображения модального окна
+                window.scrollTo(0, 0);
                 
                 // Заполняем поля формы текущими данными профиля
                 const currentUser = window.currentUser;

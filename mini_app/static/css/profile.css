@@ -374,56 +374,102 @@
 
 /* Стили для модального окна */
 .modal {
-    display: none;
+    display: none; /* По умолчанию скрыто, JavaScript установит flex при открытии */
     position: fixed;
     z-index: 999999;
     left: 0;
     top: 0;
     width: 100%;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+    overflow: hidden; /* Убираем скролл у модального окна */
     /* Учитываем safe areas Telegram */
     padding-top: var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px)));
     padding-bottom: var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
     padding-left: var(--tg-safe-area-inset-left, var(--safe-area-left, env(safe-area-inset-left, 0px)));
     padding-right: var(--tg-safe-area-inset-right, var(--safe-area-right, env(safe-area-inset-right, 0px)));
+    /* Центрируем контент - применяется когда display: flex */
+    align-items: center;
+    justify-content: center;
+    /* Анимация появления */
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+/* Анимация появления модального окна */
+.modal.show {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.modal.show .modal-content {
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal:not(.show) .modal-content {
+    animation: modalFadeOut 0.3s ease-in;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
 }
 
 .modal-content {
     background: rgba(21, 31, 40, 0.95);
     border: 1px solid rgba(0, 255, 0, 0.4);
-    margin: 2% auto 100px auto; /* Увеличиваем нижний отступ, чтобы не перекрывалось навигацией */
+    margin: 0;
     padding: 0;
     border-radius: 20px;
     width: 90%;
     max-width: 500px;
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
-    overflow-y: auto;
-    max-height: calc(80vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))); /* Уменьшаем высоту, чтобы поместиться выше навигации */
     backdrop-filter: blur(15px);
-    position: relative;
-    z-index: 1000000; /* Еще больше увеличиваем z-index */
+    position: absolute; /* Абсолютное позиционирование внутри фиксированного .modal */
+    top: 40%; /* Поднимаем окно выше центра */
+    left: 50%;
+    transform: translate(-50%, -50%); /* Центрируем */
+    z-index: 1000000;
+    /* Фиксируем модальное окно и делаем скролл только для контента */
+    /* Учитываем навигационное меню (70px) + safe areas + отступы */
+    max-height: calc(100vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) - 70px - 60px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* Медиа-запросы для мобильных устройств */
 @media (max-width: 768px) {
     .modal-content {
-        margin: 10px auto 20px auto; /* Уменьшаем отступы для мобильных устройств */
         width: 95%;
         max-width: 400px;
-        max-height: 85vh; /* Увеличиваем высоту для мобильных устройств */
+        max-height: calc(100vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) - 70px - 50px);
         border-radius: 15px;
     }
 }
 
 @media (max-width: 480px) {
     .modal-content {
-        margin: 5px auto 15px auto; /* Еще меньше отступы для маленьких экранов */
         width: 98%;
         max-width: 350px;
-        max-height: 90vh; /* Максимальная высота для маленьких экранов */
+        max-height: calc(100vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) - 70px - 40px);
         border-radius: 12px;
     }
 }
@@ -431,10 +477,9 @@
 /* Дополнительные стили для очень маленьких экранов */
 @media (max-width: 360px) {
     .modal-content {
-        margin: 2px auto 10px auto; /* Минимальные отступы */
         width: 99%;
         max-width: 320px;
-        max-height: 95vh; /* Почти на весь экран */
+        max-height: calc(100vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) - 70px - 30px);
     }
 }
 
@@ -446,6 +491,7 @@
     background: rgba(0, 255, 0, 0.1);
     border-bottom: 1px solid rgba(0, 255, 0, 0.3);
     color: var(--active-color);
+    flex-shrink: 0; /* Заголовок не сжимается и не скроллится */
 }
 
 .modal-header h2 {
@@ -481,6 +527,11 @@
 /* Стили для формы */
 #edit-profile-form {
     padding: 25px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0; /* Важно для правильной работы flexbox скролла */
+    /* Плавный скролл */
+    -webkit-overflow-scrolling: touch;
 }
 
 .form-group {
@@ -723,7 +774,6 @@
     
     .modal-content {
         width: 95%;
-        margin: 10% auto;
     }
 }
 
@@ -745,8 +795,7 @@
     
     /* Специальные стили для модального окна на мобильных */
     .modal-content {
-        margin: 1% auto 120px auto; /* Еще больше отступ снизу на мобильных */
-        max-height: 70vh; /* Еще меньше высота на мобильных */
+        max-height: calc(100vh - var(--tg-safe-area-inset-top, var(--safe-area-top, env(safe-area-inset-top, 0px))) - var(--tg-safe-area-inset-bottom, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) - 70px - 40px);
     }
     
     .profile-avatar {
@@ -774,7 +823,6 @@
     
     .modal-content {
         width: 98%;
-        margin: 15% auto;
     }
     
     .modal-header {
