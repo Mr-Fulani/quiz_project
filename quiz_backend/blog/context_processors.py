@@ -121,10 +121,12 @@ def personal_info(request):
             'location': 'Istanbul, Turkey',
             'avatar': 'blog/images/avatar/my-avatar.png',
             'social_links': {
-                'facebook': 'https://www.facebook.com/badr.commerce.3',
+                'facebook': 'https://www.facebook.com/Mr.Fulani.Developer/',
                 'telegram': 'https://t.me/Mr_Fulani',
                 'whatsapp': 'whatsapp://send?phone=05525821497',
                 'instagram': 'https://www.instagram.com/fulani_developer',
+                'github': 'https://github.com/Mr-Fulani',
+                'linkedin': 'https://www.linkedin.com/in/mr-fulani/',
             },
             'resources': {
                 'youtube': {
