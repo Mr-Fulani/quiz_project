@@ -46,8 +46,8 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
     const height = isMobile ? '515px' : '445px';
     
     // Позиционирование - центрирование с учетом Safe Areas Telegram (задано в CSS)
-    // Используем проценты для корректного центрирования
-    const topPosition = '50%';
+    // Используем проценты для корректного центрирования - поднято выше
+    const topPosition = '46%';
     const leftPosition = '50%';
     
     // ПРИНУДИТЕЛЬНОЕ ПРИМЕНЕНИЕ СТИЛЕЙ С ВЫСОКОЙ СПЕЦИФИЧНОСТЬЮ
@@ -151,7 +151,7 @@ window.openSwiperAtIndex = function(slideIndex = 3) {
                             const width = '330px';
                             const height = isMobile ? '515px' : '445px';
                             // Центрирование
-                            const topPosition = '50%';
+                            const topPosition = '46%';
                             const leftPosition = '50%';
                             
                             carousel.style.setProperty('width', width, 'important');
