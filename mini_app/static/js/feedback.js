@@ -457,8 +457,13 @@ if (document.readyState === 'loading') {
 }
 
 // Обработчик для позиционирования формы обратной связи при появлении клавиатуры
-let activeFeedbackForm = null;
-let feedbackViewportResizeHandler = null;
+// Используем window для предотвращения повторного объявления при SPA-навигации
+if (typeof window.activeFeedbackForm === 'undefined') {
+    window.activeFeedbackForm = null;
+}
+if (typeof window.feedbackViewportResizeHandler === 'undefined') {
+    window.feedbackViewportResizeHandler = null;
+}
 
 document.addEventListener('focusin', (e) => {
     const textarea = e.target.closest('.feedback-message');
@@ -471,19 +476,19 @@ document.addEventListener('focusin', (e) => {
         }
         
         const form = textarea.closest('.feedback-container');
-        activeFeedbackForm = form;
+        window.activeFeedbackForm = form;
         
         // Подписываемся на изменение viewport (появление клавиатуры)
         if (window.visualViewport) {
             // Удаляем предыдущий обработчик если есть
-            if (feedbackViewportResizeHandler) {
-                window.visualViewport.removeEventListener('resize', feedbackViewportResizeHandler);
+            if (window.feedbackViewportResizeHandler) {
+                window.visualViewport.removeEventListener('resize', window.feedbackViewportResizeHandler);
             }
             
             const initialHeight = window.visualViewport.height;
             
-            feedbackViewportResizeHandler = () => {
-                if (!activeFeedbackForm) return;
+            window.feedbackViewportResizeHandler = () => {
+                if (!window.activeFeedbackForm) return;
                 
                 const currentHeight = window.visualViewport.height;
                 const keyboardHeight = initialHeight - currentHeight;
@@ -493,7 +498,7 @@ document.addEventListener('focusin', (e) => {
                 // Если клавиатура появилась (viewport уменьшился > 100px)
                 if (keyboardHeight > 100) {
                     // Вычисляем положение формы
-                    const formRect = activeFeedbackForm.getBoundingClientRect();
+                    const formRect = window.activeFeedbackForm.getBoundingClientRect();
                     const viewportBottom = window.visualViewport.height;
                     const formBottom = formRect.bottom;
                     
@@ -508,10 +513,10 @@ document.addEventListener('focusin', (e) => {
                 }
             };
             
-            window.visualViewport.addEventListener('resize', feedbackViewportResizeHandler);
+            window.visualViewport.addEventListener('resize', window.feedbackViewportResizeHandler);
             
             // Вызываем обработчик сразу после небольшой задержки
-            setTimeout(feedbackViewportResizeHandler, 300);
+            setTimeout(window.feedbackViewportResizeHandler, 300);
         }
     }
 });
@@ -522,12 +527,12 @@ document.addEventListener('focusout', (e) => {
         console.log('⌨️ Feedback textarea blurred');
         
         // Отписываемся от событий viewport
-        if (window.visualViewport && feedbackViewportResizeHandler) {
-            window.visualViewport.removeEventListener('resize', feedbackViewportResizeHandler);
-            feedbackViewportResizeHandler = null;
+        if (window.visualViewport && window.feedbackViewportResizeHandler) {
+            window.visualViewport.removeEventListener('resize', window.feedbackViewportResizeHandler);
+            window.feedbackViewportResizeHandler = null;
         }
         
-        activeFeedbackForm = null;
+        window.activeFeedbackForm = null;
     }
 });
 

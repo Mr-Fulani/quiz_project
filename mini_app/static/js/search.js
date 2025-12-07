@@ -3,9 +3,24 @@
 if (typeof window.searchTimeout === 'undefined') {
     window.searchTimeout = null;
 }
-const searchInput = document.getElementById('search-input');
-const searchResults = document.getElementById('search-results');
-const gallery = document.getElementById('gallery');
+// Используем window для предотвращения повторного объявления при SPA-навигации
+if (typeof window.searchInput === 'undefined') {
+    window.searchInput = null;
+}
+if (typeof window.searchResults === 'undefined') {
+    window.searchResults = null;
+}
+if (typeof window.searchGallery === 'undefined') {
+    window.searchGallery = null;
+}
+// Получаем элементы, если они есть (используем let для возможности переопределения)
+let searchInput = document.getElementById('search-input');
+let searchResults = document.getElementById('search-results');
+let gallery = document.getElementById('gallery');
+// Сохраняем в window для повторного использования
+if (searchInput) window.searchInput = searchInput;
+if (searchResults) window.searchResults = searchResults;
+if (gallery) window.searchGallery = gallery;
 
 async function handleSearch(event) {
     const query = event.target.value.trim();
@@ -71,7 +86,8 @@ function updateGallery(topics) {
     console.log('🎨 Обновляем галерею с темами:', topics);
     
     // Сохраняем состояние поля поиска
-    const searchInput = document.getElementById('search-input');
+    // Используем window.searchInput или получаем элемент заново
+    const searchInput = window.searchInput || document.getElementById('search-input');
     const wasFocused = searchInput === document.activeElement;
     const searchValue = searchInput ? searchInput.value : '';
     
@@ -148,6 +164,7 @@ function initializeCardHandlers() {
 
 // Обработчик для скрытия клавиатуры
 function hideKeyboard() {
+    const searchInput = window.searchInput || document.getElementById('search-input');
     if (searchInput) {
         searchInput.blur();
     }
@@ -166,8 +183,9 @@ document.addEventListener('click', function(event) {
 document.addEventListener('scroll', hideKeyboard);
 
 // Скрываем клавиатуру при нажатии Enter
-if (searchInput) {
-    searchInput.addEventListener('keydown', function(event) {
+const searchInputForEnter = window.searchInput || document.getElementById('search-input');
+if (searchInputForEnter) {
+    searchInputForEnter.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
             hideKeyboard();
         }

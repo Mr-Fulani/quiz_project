@@ -723,7 +723,10 @@ console.log('✅ Emergency global click handler added');
 
 // Экспортируем функцию глобально для доступа из других скриптов
 window.initTopicCards = initTopicCards;
-window.goBackFromCard = goBackFromCard;
+// goBackFromCard уже экспортирована выше (строка 537), не экспортируем повторно
+if (typeof window.goBackFromCard === 'undefined') {
+    window.goBackFromCard = goBackFromCard;
+}
 
 // Инициализируем при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {

@@ -76,10 +76,43 @@ class DonationSystem {
         console.log('🔧 Checking external scripts...');
         const scriptsToLoad = [];
         
-        // Проверяем Stripe.js
-        if (typeof Stripe === 'undefined') {
-            console.log('📦 Loading Stripe.js...');
-            scriptsToLoad.push(this.loadScript('https://js.stripe.com/v3/'));
+        // Проверяем Stripe.js - сначала проверяем глобальную переменную
+        const stripeScriptSrc = 'https://js.stripe.com/v3/';
+        
+        // Если Stripe уже определен, ничего не делаем
+        if (typeof Stripe !== 'undefined') {
+            console.log('✅ Stripe.js already loaded (global variable exists)');
+        } else {
+            // Проверяем наличие скрипта в DOM
+            const stripeScriptExists = document.querySelector(`script[src="${stripeScriptSrc}"]`);
+            if (stripeScriptExists) {
+                console.log('⏳ Stripe.js script tag exists, waiting for it to load...');
+                // Ждем загрузки существующего скрипта
+                await new Promise((resolve) => {
+                    // Проверяем сразу, может быть уже загружен
+                    if (typeof Stripe !== 'undefined') {
+                        resolve();
+                        return;
+                    }
+                    // Ждем события onload
+                    const originalOnload = stripeScriptExists.onload;
+                    stripeScriptExists.onload = () => {
+                        if (originalOnload) originalOnload();
+                        resolve();
+                    };
+                    // Таймаут на случай если скрипт уже загружен, но событие не сработало
+                    setTimeout(() => {
+                        if (typeof Stripe !== 'undefined') {
+                            resolve();
+                        }
+                    }, 1000);
+                });
+                console.log('✅ Stripe.js loaded from existing script tag');
+            } else {
+                // Скрипта нет, загружаем
+                console.log('📦 Loading Stripe.js...');
+                scriptsToLoad.push(this.loadScript(stripeScriptSrc));
+            }
         }
         
         // Проверяем QRCode.js
@@ -101,8 +134,23 @@ class DonationSystem {
             // Проверяем не загружается ли уже этот скрипт
             const existing = document.querySelector(`script[src="${src}"]`);
             if (existing) {
-                console.log(`ℹ️ Script already loading: ${src}`);
-                existing.onload = resolve;
+                console.log(`ℹ️ Script already exists in DOM: ${src}`);
+                // Если скрипт уже загружен (для Stripe проверяем глобальную переменную)
+                if (src.includes('stripe.com') && typeof Stripe !== 'undefined') {
+                    console.log(`✅ Stripe.js already loaded, resolving immediately`);
+                    resolve();
+                    return;
+                }
+                // Ждем загрузки существующего скрипта
+                if (existing.onload) {
+                    const originalOnload = existing.onload;
+                    existing.onload = () => {
+                        if (originalOnload) originalOnload();
+                        resolve();
+                    };
+                } else {
+                    existing.onload = resolve;
+                }
                 existing.onerror = reject;
                 return;
             }
