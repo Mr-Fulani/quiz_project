@@ -266,6 +266,14 @@ window.closeCarousel = function() {
     const prevScroll = typeof window.scrollPositionBeforeSwiper !== 'undefined' ? window.scrollPositionBeforeSwiper : 0;
 
     // Убираем фиксацию тела и очищаем top, затем восстанавливаем позицию скролла
+    // Используем removeProperty для полного удаления стилей
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('top');
+    document.body.style.removeProperty('left');
+    document.body.style.removeProperty('right');
+    document.body.style.removeProperty('width');
+    // Также устанавливаем пустые значения для гарантии
     document.body.style.overflow = '';
     document.body.style.position = '';
     document.body.style.top = '';
@@ -283,6 +291,11 @@ window.closeCarousel = function() {
         showBtn.classList.remove('hidden');
     }
     
+    // Дополнительно вызываем глобальную функцию восстановления состояния
+    if (typeof window.restoreBodyState === 'function') {
+        window.restoreBodyState();
+    }
+    
     // Принудительно переприменяем все стили после манипуляций с document.body
     setTimeout(() => {
         // Триггерим reflow для переприменения CSS
@@ -294,6 +307,11 @@ window.closeCarousel = function() {
         const resetBtn = document.getElementById('reset-filters');
         if (resetBtn) {
             void resetBtn.offsetHeight;
+        }
+        
+        // Еще раз восстанавливаем состояние для гарантии
+        if (typeof window.restoreBodyState === 'function') {
+            window.restoreBodyState();
         }
         
         console.log('✅ Карусель закрыта, стили восстановлены и переприменены');
