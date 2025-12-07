@@ -85,8 +85,8 @@
    ======================================== */
 .all-users-carousel {
     position: fixed !important;
-    /* Центрирование с учетом Telegram Safe Areas */
-    top: calc(50% + env(safe-area-inset-top) / 2 - env(safe-area-inset-bottom) / 2) !important;
+    /* Центрирование с учетом Telegram Safe Areas - поднято выше */
+    top: calc(46% + env(safe-area-inset-top) / 2 - env(safe-area-inset-bottom) / 2) !important;
     left: 50% !important;
     right: auto !important;
     bottom: auto !important;
@@ -111,7 +111,7 @@
 .all-users-carousel.all-users-carousel,
 div#all-users-carousel.all-users-carousel {
     position: fixed !important;
-    top: calc(50% + env(safe-area-inset-top) / 2 - env(safe-area-inset-bottom) / 2) !important;
+    top: calc(46% + env(safe-area-inset-top) / 2 - env(safe-area-inset-bottom) / 2) !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
 }
