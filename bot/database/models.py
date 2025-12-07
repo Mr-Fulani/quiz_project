@@ -294,6 +294,23 @@ class MainFallbackLink(Base):
     def __repr__(self):
         return f"<MainFallbackLink(language={self.language}, link={self.link})>"
 
+
+class GlobalWebhookLink(Base):
+    """
+    Модель для хранения глобальных ссылок, которые добавляются в вебхуки.
+    Синхронизирована с Django моделью GlobalWebhookLink.
+    """
+    __tablename__ = 'global_webhook_links'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, help_text='Название ссылки (для удобства)')
+    url = Column(String(500), nullable=False, help_text='URL ссылки')
+    is_active = Column(Boolean, default=True, nullable=False, help_text='Активна ли ссылка')
+
+    def __repr__(self):
+        return f"<GlobalWebhookLink(name={self.name}, url={self.url}, is_active={self.is_active})>"
+
+
 class FeedbackMessage(Base):
     __tablename__ = 'feedback_messages'
 
