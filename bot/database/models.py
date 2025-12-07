@@ -303,9 +303,9 @@ class GlobalWebhookLink(Base):
     __tablename__ = 'global_webhook_links'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False, help_text='Название ссылки (для удобства)')
-    url = Column(String(500), nullable=False, help_text='URL ссылки')
-    is_active = Column(Boolean, default=True, nullable=False, help_text='Активна ли ссылка')
+    name = Column(String(100), nullable=False)
+    url = Column(String(500), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
 
     def __repr__(self):
         return f"<GlobalWebhookLink(name={self.name}, url={self.url}, is_active={self.is_active})>"
