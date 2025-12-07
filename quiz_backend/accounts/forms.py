@@ -56,6 +56,7 @@ class PersonalInfoForm(forms.ModelForm):
             'avatar', 'bio', 'location', 'birth_date', 'website', 'github', 'linkedin',
             'telegram', 'instagram', 'facebook', 'youtube'
         ]
+        exclude = ['telegram_user']  # Исключаем поле telegram_user, так как его нет в CustomUser
 
     def __init__(self, *args, **kwargs):
         """
