@@ -209,12 +209,4 @@ docker compose logs --tail=100 quiz_backend
 
 1. Проверьте статистику в конце выполнения
 2. Опубликуйте задачи через Django Admin (изображения уже готовы)
-3. Или используйте скрипт `reset_tasks_for_republication.py` для сброса и повторной публикации
-
-```bash
-# Сброс задач для повторной публикации
-docker compose exec quiz_backend python manage.py reset_tasks_for_republication
-
-# Затем публикуйте через Django Admin
-```
 
