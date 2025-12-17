@@ -163,6 +163,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                     await message.answer(publication_start_msg)
 
                     # Подготовка публикации
+                    await message.answer(f"🔧 Начало подготовки публикации для задачи ID {task_in_group.id} с переводом ID {translation.id} на языке {translation.language}")
+                    
                     image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
                         task=task_in_group,
                         translation=translation,
@@ -171,6 +173,14 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         default_link_service=default_link_service,
                         user_chat_id=user_chat_id
                     )
+                    
+                    await message.answer(f"✅ Подготовка публикации завершена для задачи ID {task_in_group.id}")
+                    
+                    # Отправляем информацию об изображении
+                    if task_in_group.image_url:
+                        await message.answer(f"✅ Используем существующее изображение из задачи: {task_in_group.image_url}")
+                    else:
+                        await message.answer(f"🎨 Изображение сгенерировано и загружено в S3/R2")
 
                     # Добавляем URL изображения для возможного отката (используем task.image_url после загрузки)
                     if task_in_group.image_url:
@@ -191,18 +201,23 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         continue
 
                     # Публикация контента
+                    await message.answer(f"📷 Отправка изображения в канал {group.group_name}...")
                     await bot.send_photo(
                         chat_id=group.group_id,
                         photo=image_message["photo"],
                         parse_mode="MarkdownV2"
                     )
+                    await message.answer(f"✅ Изображение отправлено")
 
+                    await message.answer(f"📝 Отправка деталей задачи...")
                     await bot.send_message(
                         chat_id=group.group_id,
                         text=text_message["text"],
                         parse_mode=text_message.get("parse_mode", "MarkdownV2")
                     )
+                    await message.answer(f"✅ Детали задачи отправлены")
 
+                    await message.answer(f"📊 Отправка quiz опроса (вопрос: '{poll_message['question'][:50]}...', вариантов: {len(poll_message['options'])})...")
                     poll_msg = await bot.send_poll(
                         chat_id=group.group_id,
                         question=poll_message["question"],
@@ -212,12 +227,15 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         is_anonymous=True,
                         type="quiz"
                     )
+                    await message.answer(f"✅ Опрос отправлен (poll_id: {poll_msg.poll.id if hasattr(poll_msg, 'poll') and hasattr(poll_msg.poll, 'id') else 'N/A'}, message_id: {poll_msg.message_id})")
 
+                    await message.answer(f"🔗 Отправка кнопки 'Узнать больше'...")
                     await bot.send_message(
                         chat_id=group.group_id,
                         text=button_message["text"],
                         reply_markup=button_message["reply_markup"]
                     )
+                    await message.answer(f"✅ Кнопка отправлена")
 
                     # Получение username канала (если есть)
                     chat = await bot.get_chat(group.group_id)
@@ -279,6 +297,16 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         f"✅ Публикована задача с ID {task_in_group.id} на канал '{group.group_name}' "
                         f"({translation.language})."
                     )
+                    
+                    # Уведомление об успешной публикации
+                    success_detail_msg = (
+                        f"🎉 Задача {task_in_group.id} ПОЛНОСТЬЮ опубликована!\n"
+                        f"📷 Изображение: ✅\n"
+                        f"📝 Детали: ✅\n"
+                        f"📊 Опрос: ✅ (poll_id: {poll_msg.poll.id if hasattr(poll_msg, 'poll') and hasattr(poll_msg.poll, 'id') else 'N/A'})\n"
+                        f"🔗 Кнопка: ✅"
+                    )
+                    await message.answer(success_detail_msg)
 
                     # Логирование и пауза
                     sleep_time = random.randint(3, 6)
@@ -844,6 +872,8 @@ async def publish_task_by_translation_group(
                         logger.info(start_msg)
                         await message.answer(start_msg)
 
+                        await message.answer(f"🔧 Начало подготовки публикации для задачи ID {task_in_group.id} с переводом ID {translation.id} на языке {translation.language}")
+                        
                         image_message, text_message, poll_message, button_message, external_link, dont_know_option = await prepare_publication(
                             task=task_in_group,
                             translation=translation,
@@ -852,6 +882,14 @@ async def publish_task_by_translation_group(
                             default_link_service=default_link_service,
                             user_chat_id=admin_chat_id
                         )
+                        
+                        await message.answer(f"✅ Подготовка публикации завершена для задачи ID {task_in_group.id}")
+                        
+                        if task_in_group.image_url:
+                            await message.answer(f"✅ Используем существующее изображение из задачи: {task_in_group.image_url}")
+                        else:
+                            await message.answer(f"🎨 Изображение сгенерировано и загружено в S3/R2")
+                        
                         if not group:
                             error_msg = f"🚫 Группа не найдена для задачи {task_in_group.id} (перевод {translation.id}, язык {translation.language})"
                             logger.error(f"❌ {error_msg}")
@@ -923,6 +961,16 @@ async def publish_task_by_translation_group(
                         )
                         logger.info(success_msg)
                         await message.answer(success_msg)
+                        
+                        # Уведомление об успешной публикации
+                        success_detail_msg = (
+                            f"🎉 Задача {task_in_group.id} ПОЛНОСТЬЮ опубликована!\n"
+                            f"📷 Изображение: ✅\n"
+                            f"📝 Детали: ✅\n"
+                            f"📊 Опрос: ✅ (poll_id: {poll_msg.poll.id if hasattr(poll_msg, 'poll') and hasattr(poll_msg.poll, 'id') else 'N/A'})\n"
+                            f"🔗 Кнопка: ✅"
+                        )
+                        await message.answer(success_detail_msg)
 
                         sleep_time = random.randint(3, 6)
                         pause_msg = (
