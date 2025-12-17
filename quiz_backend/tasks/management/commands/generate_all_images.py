@@ -103,6 +103,15 @@ class Command(BaseCommand):
         batch_test = options.get('batch_test', False)
         batch_size = options.get('batch_size', 100)
         check_urls = options.get('check_urls', False)
+        
+        # Автоматически включаем проверку URL при batch-test, если не указано явно
+        if batch_test and not check_urls and not force:
+            check_urls = True
+            self.stdout.write(
+                self.style.INFO(
+                    '💡 Автоматически включена проверка URL (--check-urls) для режима --batch-test'
+                )
+            )
 
         # Формируем queryset
         queryset = Task.objects.select_related('topic', 'subtopic').prefetch_related('translations')
@@ -151,8 +160,20 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING('⚠️ Не найдено задач для обработки')
             )
-            if not force:
-                self.stdout.write('💡 Используйте --force для регенерации существующих изображений')
+            if not force and not check_urls:
+                self.stdout.write('')
+                self.stdout.write('💡 Возможные причины:')
+                self.stdout.write('   1. Все задачи уже имеют image_url (даже если ссылки нерабочие)')
+                self.stdout.write('   2. Используйте --check-urls для проверки и регенерации нерабочих ссылок')
+                self.stdout.write('   3. Или используйте --force для принудительной регенерации всех изображений')
+                self.stdout.write('')
+                self.stdout.write('📝 Рекомендуемая команда:')
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'   docker compose exec quiz_backend python manage.py generate_all_images '
+                        f'--batch-test --check-urls --pause 0.5'
+                    )
+                )
             return
 
         self.stdout.write('=' * 60)

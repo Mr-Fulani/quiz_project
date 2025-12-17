@@ -174,7 +174,7 @@ class WebhookService:
                     await notify_admin(
                         bot,
                         admin_chat_id,
-                        f"⚠️ Этот вебхук {webhook.url} уже ошибся раньше, пропускаем остальные."
+                        f"⚠️ Этот вебхук {webhook.url} уже отмечен ошибкой раньше, пропускаем остальные."
                     )
                     break
 
