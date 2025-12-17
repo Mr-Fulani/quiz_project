@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.models import TaskTranslation, TelegramGroup, Task, Topic, Subtopic, GlobalWebhookLink, TaskPoll
+from sqlalchemy import select
 from bot.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ async def create_bulk_webhook_data(tasks: List[Task], db_session: AsyncSession) 
     tasks_payload = []
 
     for task in tasks:
-        full_data = await _create_full_webhook_data_for_task(task, db_session)
+        full_data = await create_full_webhook_data_for_task(task, db_session)
         tasks_payload.append({
             "task": full_data.get("task"),
             "translations": full_data.get("translations")
@@ -67,7 +68,7 @@ def _get_incorrect_answers(answers: Any, correct_answer: str) -> List[str]:
     return [ans for ans in normalized_answers if ans != correct_answer]
 
 
-async def _create_full_webhook_data_for_task(task: Task, db_session: AsyncSession) -> Dict[str, Any]:
+async def create_full_webhook_data_for_task(task: Task, db_session: AsyncSession) -> Dict[str, Any]:
     """
     Создает полный payload для одной задачи, включая все ее переводы.
     """
@@ -110,10 +111,17 @@ async def _create_full_webhook_data_for_task(task: Task, db_session: AsyncSessio
     }
 
     translations_payload = []
+    # Загружаем все опросы для задачи явно через db_session
+    polls_result = await db_session.execute(
+        select(TaskPoll).where(TaskPoll.task_id == task.id)
+    )
+    all_polls = polls_result.scalars().all()
+    
     for trans in task.translations:
         polls_payload = []
-        if trans.taskpoll_set:
-            for poll in trans.taskpoll_set:
+        # Фильтруем опросы по translation_id
+        for poll in all_polls:
+            if poll.translation_id == trans.id:
                 polls_payload.append({
                     "id": poll.id,
                     "poll_id": poll.poll_id,
