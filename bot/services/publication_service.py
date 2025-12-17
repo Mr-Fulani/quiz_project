@@ -21,7 +21,7 @@ from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
 from bot.utils.logging_utils import log_final_summary, log_pause, \
     log_username_received, log_publication_start, log_publication_failure, log_webhook_data, log_publication_success
-from bot.utils.webhook_utils import create_bulk_webhook_data
+from bot.utils.webhook_utils import create_bulk_webhook_data, create_full_webhook_data_for_task
 
 
 
@@ -172,7 +172,9 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         user_chat_id=user_chat_id
                     )
 
-                    uploaded_images.append(image_message["photo"])
+                    # Добавляем URL изображения для возможного отката (используем task.image_url после загрузки)
+                    if task_in_group.image_url:
+                        uploaded_images.append(task_in_group.image_url)
 
                     if not group:
                         failed_count += 1
@@ -225,18 +227,19 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                         channel_username = None  # Передаем None, webhook_utils обработает это
 
                     # Формируем webhook_data
-                    webhook_data, poll_link = await create_bulk_webhook_data(
-                        task_id=task.id,
-                        channel_username=channel_username,
-                        poll_msg=poll_msg,
-                        image_url=task.image_url,  # <-- берем URL из базы
-                        poll_message=poll_message,
-                        translation=translation,
-                        group=group,
-                        image_message=image_message,  # caption и т.п. пусть берется как раньше
-                        dont_know_option=dont_know_option,
-                        external_link=external_link
-                    )
+                    full_data = await create_full_webhook_data_for_task(task, db_session)
+                    webhook_data = {
+                        "task": full_data.get("task"),
+                        "translations": full_data.get("translations")
+                    }
+                    
+                    # Формируем poll_link
+                    if channel_username:
+                        poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
+                    else:
+                        # Используем group_id для формирования ссылки (убираем -100 в начале)
+                        group_id_str = str(group.group_id).replace('-100', '')
+                        poll_link = f"https://t.me/c/{group_id_str}/{poll_msg.message_id}"
                     log_webhook_data(webhook_data)
                     webhook_data_list.append(webhook_data)
 
@@ -326,7 +329,8 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
         for task_id in set(published_task_ids):
             result = await db_session.execute(
                 select(Task).options(
-                    joinedload(Task.translations).joinedload(TaskTranslation.taskpoll_set),
+                    joinedload(Task.translations),
+                    joinedload(Task.polls),
                     joinedload(Task.topic),
                     joinedload(Task.subtopic),
                     joinedload(Task.group)
@@ -467,7 +471,9 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             user_chat_id=user_chat_id
         )
 
-        uploaded_images.append(image_message["photo"])
+        # Добавляем URL изображения для возможного отката (используем task.image_url после загрузки)
+        if translation.task.image_url:
+            uploaded_images.append(translation.task.image_url)
 
         # Поиск группы для публикации
         result = await db_session.execute(
@@ -598,20 +604,19 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
             return False
 
         # Формирование данных для вебхука
-        group = ...
-        channel_username = ...
-        webhook_data, poll_link = await create_bulk_webhook_data(
-            task_id=translation.task.id,
-            channel_username=channel_username,
-            poll_msg=poll_msg,
-            image_url=translation.task.image_url,  # <-- берем URL из базы
-            poll_message=poll_message,
-            translation=translation,
-            group=group,
-            image_message=image_message,  # caption и т.п. пусть берется как раньше
-            dont_know_option=dont_know_option,
-            external_link=external_link
-        )
+        full_data = await create_full_webhook_data_for_task(translation.task, db_session)
+        webhook_data = {
+            "task": full_data.get("task"),
+            "translations": full_data.get("translations")
+        }
+        
+        # Формируем poll_link
+        if channel_username:
+            poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
+        else:
+            # Используем group_id для формирования ссылки (убираем -100 в начале)
+            group_id_str = str(group.group_id).replace('-100', '')
+            poll_link = f"https://t.me/c/{group_id_str}/{poll_msg.message_id}"
         webhook_data_list.append(webhook_data)
         logger.info(f"✅ Публикован перевод задачи ID {translation.task_id} (Перевод ID: {translation.id}).")
 
@@ -819,7 +824,12 @@ async def publish_task_by_translation_group(
                     await db_session.commit()
                     continue
 
-                uploaded_images.append(image_object)
+                # Добавляем URL изображения для возможного отката (используем task.image_url после загрузки)
+                # image_object может быть PIL Image или URL строкой, поэтому проверяем тип
+                if isinstance(image_object, str):
+                    uploaded_images.append(image_object)
+                elif task_in_group.image_url:
+                    uploaded_images.append(task_in_group.image_url)
 
                 for translation in task_in_group.translations:
                     try:
@@ -880,18 +890,20 @@ async def publish_task_by_translation_group(
 
                         await message.answer(log_username_received(group.group_name, channel_username))
 
-                        webhook_data, _ = await create_bulk_webhook_data(
-                            task_id=task_in_group.id,
-                            channel_username=channel_username,
-                            poll_msg=poll_msg,
-                            image_url=task_in_group.image_url,
-                            poll_message=poll_message,
-                            translation=translation,
-                            group=group,
-                            image_message=image_message,
-                            dont_know_option=dont_know_option,
-                            external_link=external_link
-                        )
+                        # Формируем webhook_data
+                        full_data = await create_full_webhook_data_for_task(task_in_group, db_session)
+                        webhook_data = {
+                            "task": full_data.get("task"),
+                            "translations": full_data.get("translations")
+                        }
+                        
+                        # Формируем poll_link (не используется в этом месте, но оставляем для совместимости)
+                        if channel_username:
+                            poll_link = f"https://t.me/{channel_username}/{poll_msg.message_id}"
+                        else:
+                            # Используем group_id для формирования ссылки (убираем -100 в начале)
+                            group_id_str = str(group.group_id).replace('-100', '')
+                            poll_link = f"https://t.me/c/{group_id_str}/{poll_msg.message_id}"
                         webhook_data_list.append(webhook_data)
 
                         # Обновление статуса перевода и задачи
@@ -945,7 +957,8 @@ async def publish_task_by_translation_group(
             if task_id not in published_tasks_map:
                 result = await db_session.execute(
                     select(Task).options(
-                        joinedload(Task.translations).joinedload(TaskTranslation.taskpoll_set),
+                        joinedload(Task.translations),
+                    joinedload(Task.polls),
                         joinedload(Task.topic),
                         joinedload(Task.subtopic),
                         joinedload(Task.group)

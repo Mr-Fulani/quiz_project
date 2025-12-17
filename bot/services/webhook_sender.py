@@ -61,6 +61,14 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
     перед этим проверяем поля.
     """
     try:
+        # Проверяем тип вебхука
+        webhook_type = data.get("type", "")
+        
+        # Если это bulk вебхук, используем отдельную функцию
+        if webhook_type == "quiz_published_bulk":
+            return await send_quiz_published_bulk_webhook(webhook_url, data)
+        
+        # Иначе проверяем поля для обычного вебхука
         required_fields = [
             "type", "poll_link", "image_url", "question",
             "correct_answer", "incorrect_answers", "language",
@@ -111,6 +119,37 @@ async def send_quiz_published_webhook(webhook_url: str, data: Dict) -> bool:
         return await send_webhook(webhook_url, data, headers)
     except Exception as e:
         logger.exception(f"❌ Ошибка при подготовке вебхука quiz_published: {e}")
+        return False
+
+
+async def send_quiz_published_bulk_webhook(webhook_url: str, data: Dict) -> bool:
+    """
+    Отправка bulk вебхука для нескольких задач.
+    Формат: {"type": "quiz_published_bulk", "published_tasks": [...], ...}
+    """
+    try:
+        # Проверяем только основные поля для bulk формата
+        if data.get("type") != "quiz_published_bulk":
+            logger.error(f"❌ Неверный тип вебхука для bulk отправки: {data.get('type')}")
+            return False
+        
+        if "published_tasks" not in data:
+            logger.error("❌ Отсутствует поле 'published_tasks' в bulk вебхуке")
+            return False
+
+        logger.info(f"📤 Подготовка отправки bulk вебхука 'quiz_published_bulk' → {webhook_url} [Tasks={len(data.get('published_tasks', []))}]")
+
+        headers = {
+            'Content-Type': 'application/json',
+            'X-Request-ID': str(uuid.uuid4()),
+            'X-Webhook-ID': data.get('id', ''),
+            'X-Webhook-Type': 'bulk',
+            'X-Webhook-Timestamp': data.get('timestamp', '')
+        }
+
+        return await send_webhook(webhook_url, data, headers)
+    except Exception as e:
+        logger.exception(f"❌ Ошибка при подготовке bulk вебхука quiz_published_bulk: {e}")
         return False
 
 
