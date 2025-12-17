@@ -34,6 +34,9 @@
     
     <!-- Additional meta tags -->
     <meta name="description" content="{{ og_description }}" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png" />
 
     {% block extra_head %}{% endblock %}
 
@@ -1284,19 +1287,36 @@
                 console.log('🧹 Clearing old statisticsManagerInstance...');
                 window.statisticsManagerInstance = null;
                 
-                // CSS для статистики уже загружен в base.html head, не дублируем
-                // Для статистики загружаем только скрипт
-                const script = document.createElement('script');
-                script.setAttribute('data-dynamic', 'true');
-                script.src = '{{ get_js_url("statistics.js") }}';
-                script.onload = function() {
-                    console.log('✅ Statistics script loaded via base template');
-                    console.log('🔄 Statistics will auto-initialize');
-                };
-                script.onerror = function() {
-                    console.error('❌ Failed to load statistics.js');
-                };
-                document.head.appendChild(script);
+                // Проверяем, не загружен ли уже скрипт (проверяем и DOM, и наличие класса)
+                const existingScript = document.querySelector('script[src*="statistics.js"]');
+                const isClassLoaded = typeof window.StatisticsManager !== 'undefined';
+                
+                if (existingScript || isClassLoaded) {
+                    console.log('✅ Statistics.js already loaded, skipping duplicate load');
+                    // Если скрипт уже загружен, просто инициализируем менеджер
+                    if (isClassLoaded) {
+                        console.log('🔄 Reinitializing StatisticsManager...');
+                        setTimeout(() => {
+                            if (!window.statisticsManagerInstance) {
+                                window.statisticsManagerInstance = new window.StatisticsManager();
+                            }
+                        }, 100);
+                    }
+                } else {
+                    // CSS для статистики уже загружен в base.html head, не дублируем
+                    // Для статистики загружаем только скрипт
+                    const script = document.createElement('script');
+                    script.setAttribute('data-dynamic', 'true');
+                    script.src = '{{ get_js_url("statistics.js") }}';
+                    script.onload = function() {
+                        console.log('✅ Statistics script loaded via base template');
+                        console.log('🔄 Statistics will auto-initialize');
+                    };
+                    script.onerror = function() {
+                        console.error('❌ Failed to load statistics.js');
+                    };
+                    document.head.appendChild(script);
+                }
             } else if (url === '/top_users' || url.startsWith('/top_users')) {
                 // Загружаем CSS для топ пользователей
                 const topUsersCSS = document.createElement('link');

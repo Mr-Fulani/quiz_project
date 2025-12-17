@@ -100,36 +100,7 @@ class Command(BaseCommand):
     def download_official_icon(self, topic_name, output_path):
         """Скачивает официальную PNG иконку для темы"""
         
-        # URL для devicons
-        devicon_name = topic_name.lower().replace(' ', '').replace('.', '').replace('#', 'sharp').replace('+', 'plus')
-        devicon_url = f'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/{devicon_name}/{devicon_name}-original.svg'
-        
-        # Сначала пытаемся скачать SVG из devicons и конвертировать в PNG
-        try:
-            response = requests.get(devicon_url, stream=True, timeout=15)
-            response.raise_for_status()
-            
-            content_type = response.headers.get('Content-Type', '')
-            if 'image/svg' in content_type:
-                if CAIROSVG_AVAILABLE:
-                    try:
-                        png_data = cairosvg.svg2png(bytestring=response.content, output_width=64, output_height=64)
-                        with open(output_path, 'wb') as f:
-                            f.write(png_data)
-                        
-                        if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
-                            self.stdout.write(f"    ✅ Успешно скачано и конвертировано из devicons")
-                            return True
-                    except Exception as e:
-                        self.stdout.write(f"    ❌ Ошибка конвертации SVG из devicons: {e}")
-                else:
-                    self.stdout.write(f"    ⚠️  cairosvg не установлен, не могу конвертировать SVG из devicons")
-        except Exception as e:
-            self.stdout.write(f"    ℹ️  Не удалось скачать с devicons: {e}")
-
-        # Если devicons не сработал, используем старый список официальных URL
-        self.stdout.write(f"    ℹ️  Пробую найти по официальному URL...")
-        # Специальные URL для известных технологий (используем простые и надежные источники)
+        # Сначала проверяем, есть ли официальный URL (приоритет)
         official_urls = {
             'Python': 'https://www.python.org/static/img/python-logo.png',
             'JavaScript': 'https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png',
@@ -258,9 +229,10 @@ class Command(BaseCommand):
             'Bun': 'https://bun.sh/logo.svg',
         }
         
-        # Если есть официальный URL для темы
+        # Если есть официальный URL для темы, используем его в первую очередь
         if topic_name in official_urls:
             url = official_urls[topic_name]
+            self.stdout.write(f"    ℹ️  Использую официальный URL для {topic_name}...")
             try:
                 response = requests.get(url, stream=True, timeout=15)
                 response.raise_for_status()
@@ -275,28 +247,58 @@ class Command(BaseCommand):
                             png_data = cairosvg.svg2png(bytestring=response.content, output_width=64, output_height=64)
                             with open(output_path, 'wb') as f:
                                 f.write(png_data)
+                            
+                            if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                                self.stdout.write(f"    ✅ Успешно скачано и конвертировано из официального URL")
+                                return True
                         except Exception as e:
                             self.stdout.write(f"    ❌ Ошибка конвертации SVG: {e}")
-                            return False
                     else:
                         self.stdout.write(f"    ⚠️  cairosvg не установлен, пропускаю SVG для {topic_name}")
-                        return False
                 else:
                     with open(output_path, 'wb') as f:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
-                
-                # Проверяем, что файл скачался и не пустой
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 100:  # Минимум 100 байт
-                    return True
-                else:
-                    # Удаляем пустой файл
-                    if os.path.exists(output_path):
-                        os.remove(output_path)
-                        self.stdout.write(f"    ⚠️  Удален пустой файл для {topic_name}")
                     
+                    # Проверяем, что файл скачался и не пустой
+                    if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                        self.stdout.write(f"    ✅ Успешно скачано из официального URL")
+                        return True
+                    else:
+                        # Удаляем пустой файл
+                        if os.path.exists(output_path):
+                            os.remove(output_path)
+                            self.stdout.write(f"    ⚠️  Удален пустой файл для {topic_name}")
+                        
             except Exception as e:
                 self.stdout.write(f"    ❌ Ошибка скачивания с официального URL: {e}")
+        
+        # Если официальный URL не сработал, пробуем devicons
+        self.stdout.write(f"    ℹ️  Пробую найти через devicons...")
+        devicon_name = topic_name.lower().replace(' ', '').replace('.', '').replace('#', 'sharp').replace('+', 'plus')
+        devicon_url = f'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/{devicon_name}/{devicon_name}-original.svg'
+        
+        try:
+            response = requests.get(devicon_url, stream=True, timeout=15)
+            response.raise_for_status()
+            
+            content_type = response.headers.get('Content-Type', '')
+            if 'image/svg' in content_type:
+                if CAIROSVG_AVAILABLE:
+                    try:
+                        png_data = cairosvg.svg2png(bytestring=response.content, output_width=64, output_height=64)
+                        with open(output_path, 'wb') as f:
+                            f.write(png_data)
+                        
+                        if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                            self.stdout.write(f"    ✅ Успешно скачано и конвертировано из devicons")
+                            return True
+                    except Exception as e:
+                        self.stdout.write(f"    ❌ Ошибка конвертации SVG из devicons: {e}")
+                else:
+                    self.stdout.write(f"    ⚠️  cairosvg не установлен, не могу конвертировать SVG из devicons")
+        except Exception as e:
+            self.stdout.write(f"    ℹ️  Не удалось скачать с devicons: {e}")
         
         # Если ничего не сработало
         return False
