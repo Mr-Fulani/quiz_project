@@ -6,7 +6,10 @@ from aiogram import Router
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.config import S3_BUCKET_NAME, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+from bot.config import (
+    S3_BUCKET_NAME, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+    USE_R2_STORAGE, R2_ENDPOINT_URL
+)
 from bot.database.models import Task, Topic, TaskTranslation, TaskPoll, TelegramGroup
 from bot.services.s3_services import extract_s3_key_from_url
 
@@ -22,10 +25,11 @@ router = Router()
 
 async def delete_from_s3(image_url: str) -> bool:
     """
-    Удаляет изображение из S3 хранилища по указанному URL.
+    Удаляет изображение или видео из S3/R2 хранилища по указанному URL.
+    Поддерживает как изображения, так и видео файлы.
 
     Args:
-        image_url (str): URL изображения в S3.
+        image_url (str): URL изображения или видео в S3/R2.
 
     Returns:
         bool: True, если удаление успешно, иначе False.
@@ -34,27 +38,39 @@ async def delete_from_s3(image_url: str) -> bool:
         if not image_url:
             return True
 
+        storage_name = 'R2' if USE_R2_STORAGE else 'S3'
+        
         s3_key = extract_s3_key_from_url(image_url)
         if not s3_key:
-            logger.warning("Не удалось извлечь ключ S3 из URL")
+            logger.warning(f"Не удалось извлечь ключ из URL")
             return False
 
+        # Настройки клиента
+        client_kwargs = {
+            'service_name': 's3',
+            'aws_access_key_id': AWS_ACCESS_KEY_ID,
+            'aws_secret_access_key': AWS_SECRET_ACCESS_KEY,
+        }
+        
+        # Для R2 добавляем endpoint URL
+        if USE_R2_STORAGE and R2_ENDPOINT_URL:
+            client_kwargs['endpoint_url'] = R2_ENDPOINT_URL
+        # Для S3 добавляем region
+        elif not USE_R2_STORAGE:
+            client_kwargs['region_name'] = S3_REGION
+
         session = aioboto3.Session()
-        async with session.client(
-                's3',
-                aws_access_key_id=AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                region_name=S3_REGION
-        ) as s3:
+        async with session.client(**client_kwargs) as s3:
             await s3.delete_object(
                 Bucket=S3_BUCKET_NAME,
                 Key=s3_key
             )
-            logger.info(f"✅ Изображение успешно удалено из S3: {s3_key}")
+            logger.info(f"✅ Файл успешно удален из {storage_name}: {s3_key}")
             return True
 
     except Exception as e:
-        logger.error(f"❌ Ошибка при удалении изображения из S3: {e}")
+        storage_name = 'R2' if USE_R2_STORAGE else 'S3'
+        logger.error(f"❌ Ошибка при удалении файла из {storage_name}: {e}")
         return False
 
 

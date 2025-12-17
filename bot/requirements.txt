@@ -23,9 +23,9 @@ django-filter==24.3
 django-cors-headers==4.6.0
 django-tinymce==4.1.0
 django-imagekit==5.0.0
-# AWS и другие системные зависимости
-boto3==1.34.0
-aioboto3==12.3.0
+# AWS S3 и Cloudflare R2 (R2 совместим с S3 API)
+boto3==1.34.0  # Поддерживает как AWS S3, так и Cloudflare R2 через endpoint_url
+aioboto3==12.3.0  # Асинхронная версия boto3, поддерживает R2
 requests==2.31.0
 aiogram==3.22.0
 aiohappyeyeballs==2.6.1
