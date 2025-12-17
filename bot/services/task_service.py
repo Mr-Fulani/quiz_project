@@ -640,11 +640,10 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     error_messages.append(error_msg)
                     failed_tasks += 1
 
-                    # Откат: удаляем загруженное изображение из S3, если оно было загружено
+                    # Откат: удаляем загруженное изображение из S3/R2, если оно было загружено
                     if new_task.image_url:
-                        s3_key = new_task.image_url.split(f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/")[-1]
-                        await delete_from_s3(s3_key)
-                        logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
+                        await delete_from_s3(new_task.image_url)
+                        logger.info(f"🗑️ Изображение удалено из S3/R2: {new_task.image_url}")
 
                     # Откат: удаляем созданную задачу и перевод
                     await db_session.delete(new_translation)

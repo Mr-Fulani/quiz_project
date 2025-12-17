@@ -766,58 +766,135 @@ class TaskAdmin(admin.ModelAdmin):
         
         for task in all_related_tasks:
             try:
-                translation = task.translations.first()
-                if not translation:
+                # Получаем ВСЕ переводы задачи
+                translations = task.translations.all()
+                if not translations:
                     error_msg = f"Задача {task.id}: отсутствуют переводы"
                     errors.append(error_msg)
                     self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                    logger.warning(f"Пропуск задачи {task.id}: нет переводов")
                     continue
 
-                language = translation.language.upper()
-
+                # Автоматическая генерация изображения, если его нет (используем логику из generate_images)
                 if not task.image_url:
-                    error_msg = f"Задача {task.id} ({language}): отсутствует изображение"
-                    errors.append(error_msg)
-                    self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                    continue
+                    # Получаем первый перевод для генерации
+                    first_translation = translations.first()
+                    if not first_translation:
+                        error_msg = f"Задача {task.id}: нет переводов для генерации изображения"
+                        errors.append(error_msg)
+                        self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+                        logger.error(f"Ошибка генерации изображения для задачи {task.id}: нет переводов")
+                        continue
 
-                telegram_group = TelegramGroup.objects.filter(
-                    topic_id=task.topic,
-                    language=translation.language
-                ).first()
-
-                if not telegram_group:
-                    error_msg = f"Задача {task.id} ({language}): не найдена Telegram группа для языка {language}"
-                    errors.append(error_msg)
-                    self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
-                    continue
-
-                self.message_user(
-                    request,
-                    f"🚀 Публикуем задачу {task.id} ({language}) в канал {telegram_group.group_name}...",
-                    messages.INFO
-                )
-
-                result = publish_task_to_telegram(
-                    task=task,
-                    translation=translation,
-                    telegram_group=telegram_group
-                )
-
-                if result.get('detailed_logs'):
-                    for log in result['detailed_logs']:
-                        if log.startswith('✅') or log.startswith('🎉'):
-                            self.message_user(request, log, messages.SUCCESS)
-                        elif log.startswith('🚀') or log.startswith('📷') or log.startswith('📝') or log.startswith('📊') or log.startswith('🔗'):
-                            self.message_user(request, log, messages.INFO)
-                        elif log.startswith('⚠️'):
-                            self.message_user(request, log, messages.WARNING)
-                        elif log.startswith('❌'):
-                            self.message_user(request, log, messages.ERROR)
+                    topic_name = task.topic.name if task.topic else 'python'
+                    
+                    self.message_user(
+                        request,
+                        f"🎨 Генерация изображения для задачи {task.id} (язык: {topic_name})...",
+                        messages.INFO
+                    )
+                    logger.info(f"Генерация изображения для задачи {task.id} (язык: {topic_name})")
+                    
+                    try:
+                        # Генерируем изображение (используем логику из generate_images)
+                        image = generate_image_for_task(first_translation.question, topic_name)
+                        
+                        if image:
+                            # Формируем имя файла в формате, как в боте (используем логику из generate_images)
+                            language_code = first_translation.language or "unknown"
+                            subtopic_name = task.subtopic.name if task.subtopic else 'general'
+                            image_name = f"{task.topic.name}_{subtopic_name}_{language_code}_{task.id}.png"
+                            image_name = image_name.replace(" ", "_").lower()
+                            
+                            self.message_user(request, f"☁️ Загрузка в S3: {image_name}...", messages.INFO)
+                            
+                            image_url = upload_image_to_s3(image, image_name)
+                            
+                            if image_url:
+                                task.image_url = image_url
+                                task.error = False  # Сбрасываем ошибку если генерация успешна
+                                task.save(update_fields=['image_url', 'error'])
+                                self.message_user(request, f"✅ Задача {task.id}: изображение загружено в S3", messages.SUCCESS)
+                                self.message_user(request, f"   URL: {image_url}", messages.INFO)
+                                logger.info(f"✅ Изображение успешно сгенерировано для задачи {task.id}")
+                            else:
+                                task.error = True
+                                task.save(update_fields=['error'])
+                                error_msg = f"Задача {task.id}: не удалось загрузить в S3"
+                                errors.append(error_msg)
+                                self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+                                logger.error(f"Ошибка загрузки изображения для задачи {task.id}")
+                                continue
                         else:
-                            self.message_user(request, log, messages.INFO)
+                            task.error = True
+                            task.save(update_fields=['error'])
+                            error_msg = f"Задача {task.id}: не удалось сгенерировать изображение"
+                            errors.append(error_msg)
+                            self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+                            logger.error(f"Ошибка генерации изображения для задачи {task.id}")
+                            continue
+                    except Exception as e:
+                        task.error = True
+                        task.save(update_fields=['error'])
+                        error_msg = f"Задача {task.id}: {str(e)}"
+                        errors.append(error_msg)
+                        self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+                        logger.error(f"Исключение при генерации изображения для задачи {task.id}: {e}", exc_info=True)
+                        continue
 
-                if result['success']:
+                # Публикуем каждый перевод в свой канал
+                task_published_any_language = False
+                for translation in translations:
+                    language = translation.language.upper()
+
+                    telegram_group = TelegramGroup.objects.filter(
+                        topic_id=task.topic,
+                        language=translation.language
+                    ).first()
+
+                    if not telegram_group:
+                        error_msg = f"Задача {task.id} ({language}): не найдена Telegram группа для языка {language} (topic_id={task.topic.id if task.topic else None})"
+                        errors.append(error_msg)
+                        self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                        logger.warning(f"Пропуск задачи {task.id} ({language}): не найдена TelegramGroup для topic_id={task.topic.id if task.topic else None}, language={translation.language}")
+                        continue
+
+                    self.message_user(
+                        request,
+                        f"🚀 Публикуем задачу {task.id} ({language}) в канал {telegram_group.group_name}...",
+                        messages.INFO
+                    )
+
+                    result = publish_task_to_telegram(
+                        task=task,
+                        translation=translation,
+                        telegram_group=telegram_group
+                    )
+
+                    if result.get('detailed_logs'):
+                        for log in result['detailed_logs']:
+                            if log.startswith('✅') or log.startswith('🎉'):
+                                self.message_user(request, log, messages.SUCCESS)
+                            elif log.startswith('🚀') or log.startswith('📷') or log.startswith('📝') or log.startswith('📊') or log.startswith('🔗'):
+                                self.message_user(request, log, messages.INFO)
+                            elif log.startswith('⚠️'):
+                                self.message_user(request, log, messages.WARNING)
+                            elif log.startswith('❌'):
+                                self.message_user(request, log, messages.ERROR)
+                            else:
+                                self.message_user(request, log, messages.INFO)
+
+                    if result['success']:
+                        task_published_any_language = True
+                        if language not in published_by_language:
+                            published_by_language[language] = 0
+                        published_by_language[language] += 1
+                    else:
+                        error_details = ', '.join(result['errors'])
+                        errors.append(f"Задача {task.id} ({language}): {error_details}")
+                        self.message_user(request, f"❌ Задача {task.id} ({language}): {error_details}", messages.ERROR)
+
+                if task_published_any_language:
                     task.published = True
                     task.publish_date = timezone.now()
                     task.error = False
@@ -828,21 +905,20 @@ class TaskAdmin(admin.ModelAdmin):
                         update_fields.append('group')
                     task.save(update_fields=update_fields)
                     published_count += 1
-                    if language not in published_by_language:
-                        published_by_language[language] = 0
-                    published_by_language[language] += 1
                     published_tasks.append(task)
                 else:
                     task.error = True
                     task.save(update_fields=['error'])
-                    error_details = ', '.join(result['errors'])
-                    errors.append(f"Задача {task.id} ({language}): {error_details}")
+                    errors.append(f"Задача {task.id}: не удалось опубликовать ни один перевод")
+                    self.message_user(request, f"❌ Задача {task.id}: не удалось опубликовать ни один перевод", messages.ERROR)
+
             except Exception as e:
                 task.error = True
                 task.save(update_fields=['error'])
-                error_msg = f"Задача {task.id} ({language}): {str(e)}"
+                error_msg = f"Задача {task.id}: {str(e)}"
                 errors.append(error_msg)
                 self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+                logger.error(f"Исключение при публикации задачи {task.id}: {e}", exc_info=True)
             finally:
                 self._pause_between_task_publications(request, task.id)
         

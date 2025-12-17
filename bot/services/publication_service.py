@@ -17,7 +17,6 @@ from bot.database.models import Task, TelegramGroup, TaskTranslation, TaskPoll, 
 from bot.services.default_link_service import DefaultLinkService
 from bot.services.deletion_service import delete_from_s3
 from bot.services.image_service import generate_image_if_needed
-from bot.services.s3_services import extract_s3_key_from_url
 from bot.services.task_service import prepare_publication
 from bot.services.webhook_service import WebhookService
 from bot.utils.logging_utils import log_final_summary, log_pause, \
@@ -383,15 +382,11 @@ async def publish_task_by_id(task_id: int, message, db_session: AsyncSession, bo
                             logger.error(f"Некорректный URL в uploaded_images: {s3_url} (тип: {type(s3_url)})")
                             continue
 
-                        # Извлечение ключа с помощью extract_s3_key_from_url
-                        s3_key = extract_s3_key_from_url(s3_url)
-
-                        if not s3_key:
-                            logger.warning(f"Не удалось извлечь ключ из URL: {s3_url}")
-                            continue
-
-                        await delete_from_s3(s3_key)
-                        logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
+                        # Удаляем изображение из S3/R2 по URL
+                        if await delete_from_s3(s3_url):
+                            logger.info(f"🗑️ Изображение удалено из S3/R2: {s3_url}")
+                        else:
+                            logger.warning(f"⚠️ Не удалось удалить изображение из S3/R2: {s3_url}")
                     except Exception as del_e:
                         logger.error(f"❌ Не удалось удалить изображение из S3 по URL {s3_url}: {del_e}")
 
@@ -653,15 +648,11 @@ async def publish_translation(translation: TaskTranslation, bot: Bot, db_session
                         logger.error(f"Некорректный URL в uploaded_images: {s3_url} (тип: {type(s3_url)})")
                         continue
 
-                    # Извлечение ключа с помощью extract_s3_key_from_url
-                    s3_key = extract_s3_key_from_url(s3_url)
-
-                    if not s3_key:
-                        logger.warning(f"Не удалось извлечь ключ из URL: {s3_url}")
-                        continue
-
-                    await delete_from_s3(s3_key)
-                    logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
+                    # Удаляем изображение из S3/R2 по URL
+                    if await delete_from_s3(s3_url):
+                        logger.info(f"🗑️ Изображение удалено из S3/R2: {s3_url}")
+                    else:
+                        logger.warning(f"⚠️ Не удалось удалить изображение из S3/R2: {s3_url}")
                 except Exception as del_e:
                     logger.error(f"❌ Не удалось удалить изображение из S3 по URL {s3_url}: {del_e}")
 
@@ -1002,10 +993,10 @@ async def publish_task_by_translation_group(
                     logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
                 for s3_url in uploaded_images:
                     try:
-                        s3_key = extract_s3_key_from_url(s3_url)
-                        if s3_key:
-                            await delete_from_s3(s3_key)
-                            logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
+                        if await delete_from_s3(s3_url):
+                            logger.info(f"🗑️ Изображение удалено из S3/R2: {s3_url}")
+                        else:
+                            logger.warning(f"⚠️ Не удалось удалить изображение из S3/R2: {s3_url}")
                     except Exception as del_e:
                         logger.error(f"❌ Не удалось удалить изображение из S3 по URL {s3_url}: {del_e}")
                 await message.answer(f"❌ Ошибка при обновлении статуса задач: {e}")
@@ -1039,10 +1030,10 @@ async def publish_task_by_translation_group(
             logger.error(f"❌ Ошибка при откате транзакции: {rollback_error}")
         for s3_url in uploaded_images:
             try:
-                s3_key = extract_s3_key_from_url(s3_url)
-                if s3_key:
-                    await delete_from_s3(s3_key)
-                    logger.info(f"🗑️ Изображение удалено из S3: {s3_key}")
+                if await delete_from_s3(s3_url):
+                    logger.info(f"🗑️ Изображение удалено из S3/R2: {s3_url}")
+                else:
+                    logger.warning(f"⚠️ Не удалось удалить изображение из S3/R2: {s3_url}")
             except Exception as del_e:
                 logger.error(f"❌ Не удалось удалить изображение из S3 по URL {s3_url}: {del_e}")
         await message.answer(error_msg)
