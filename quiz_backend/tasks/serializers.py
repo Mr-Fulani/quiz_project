@@ -31,6 +31,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'create_date',
             'publish_date',
             'image_url',
+            'video_url',
             'external_link',
             'translations',
             'error',

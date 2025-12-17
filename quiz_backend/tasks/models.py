@@ -72,6 +72,12 @@ class Task(models.Model):
         null=True,
         help_text='URL изображения задачи'
     )
+    video_url = models.URLField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='URL видео задачи (для будущей генерации видео)'
+    )
     external_link = models.URLField(
         max_length=255,
         null=True,

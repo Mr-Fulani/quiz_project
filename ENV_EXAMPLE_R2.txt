@@ -1,0 +1,20 @@
+# ============================================
+# Cloudflare R2 настройки
+# ============================================
+# Добавьте эти строки в ваш .env файл
+
+USE_R2_STORAGE=True
+R2_ACCOUNT_ID=13aa721907ca2aca27b63758d980ff74
+R2_ACCESS_KEY_ID=bcf1a859a54ebecb0c7e18d93be51c6e
+R2_SECRET_ACCESS_KEY=9d1c8a7a8b5e6d82395af52a1586b968c7a609372bfcb43d628fb72047c63af7
+R2_BUCKET_NAME=quiz-hub-prod
+
+# ============================================
+# Примечания:
+# ============================================
+# - Account ID извлечен из endpoint URL
+# - Используйте S3 credentials (Access Key ID и Secret Access Key)
+# - Token value НЕ используется для S3 API
+# - После добавления перезапустите контейнеры:
+#   docker compose restart quiz_backend telegram_bot
+

@@ -686,13 +686,62 @@ TELEGRAM_WEBHOOK_SECRET = os.getenv('TELEGRAM_WEBHOOK_SECRET', '')
 SOCIAL_AUTH_TELEGRAM_ENABLED = True
 SOCIAL_AUTH_TELEGRAM_BOT_NAME = os.getenv('TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
 
-# AWS S3 Settings
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.getenv('S3_REGION', 'us-east-1')
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
-AWS_PUBLIC_MEDIA_DOMAIN = os.getenv('AWS_PUBLIC_MEDIA_DOMAIN', AWS_S3_CUSTOM_DOMAIN)
+# Cloudflare R2 / AWS S3 Settings
+# Поддержка переключения между R2 и S3 через флаг USE_R2_STORAGE
+USE_R2_STORAGE = os.getenv('USE_R2_STORAGE', 'False').lower() == 'true'
+
+if USE_R2_STORAGE:
+    # Настройки Cloudflare R2
+    R2_ACCOUNT_ID = os.getenv('R2_ACCOUNT_ID')
+    R2_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID')
+    R2_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY')
+    R2_BUCKET_NAME = os.getenv('R2_BUCKET_NAME', 'quiz-hub-prod')
+    R2_PUBLIC_DOMAIN = os.getenv('R2_PUBLIC_DOMAIN')
+    
+    # Определяем окружение (prod или dev) на основе DEBUG
+    # prod/ для продакшена, dev/ для разработки
+    R2_ENVIRONMENT_PREFIX = 'prod' if not DEBUG else 'dev'
+    
+    # Используем R2 credentials
+    AWS_ACCESS_KEY_ID = R2_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = R2_SECRET_ACCESS_KEY
+    AWS_STORAGE_BUCKET_NAME = R2_BUCKET_NAME
+    
+    # R2 endpoint URL (формат: https://<ACCOUNT_ID>.r2.cloudflarestorage.com)
+    if R2_ACCOUNT_ID:
+        AWS_S3_ENDPOINT_URL = f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com'
+    else:
+        AWS_S3_ENDPOINT_URL = None
+        logger.warning("R2_ACCOUNT_ID не установлен, endpoint URL не будет использоваться")
+    
+    # Публичный домен для R2 (если настроен кастомный домен)
+    if R2_PUBLIC_DOMAIN:
+        AWS_PUBLIC_MEDIA_DOMAIN = R2_PUBLIC_DOMAIN
+        AWS_S3_CUSTOM_DOMAIN = R2_PUBLIC_DOMAIN
+    else:
+        # Fallback на endpoint URL если кастомный домен не настроен
+        if AWS_S3_ENDPOINT_URL:
+            # Для R2 без кастомного домена используем публичный endpoint
+            AWS_PUBLIC_MEDIA_DOMAIN = f'{R2_BUCKET_NAME}.r2.cloudflarestorage.com'
+            AWS_S3_CUSTOM_DOMAIN = AWS_PUBLIC_MEDIA_DOMAIN
+        else:
+            AWS_PUBLIC_MEDIA_DOMAIN = None
+            AWS_S3_CUSTOM_DOMAIN = None
+    
+    # R2 не требует region, но boto3 может требовать - используем 'auto'
+    AWS_S3_REGION_NAME = 'auto'
+    
+    logger.info(f"R2 хранилище настроено: бакет={R2_BUCKET_NAME}, окружение={R2_ENVIRONMENT_PREFIX}")
+else:
+    # Настройки AWS S3 (старые, для обратной совместимости)
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
+    AWS_S3_REGION_NAME = os.getenv('S3_REGION', 'us-east-1')
+    AWS_S3_ENDPOINT_URL = None  # S3 использует стандартный endpoint
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+    AWS_PUBLIC_MEDIA_DOMAIN = os.getenv('AWS_PUBLIC_MEDIA_DOMAIN', AWS_S3_CUSTOM_DOMAIN)
+    R2_ENVIRONMENT_PREFIX = None
 
 # Logo path for image generation
 LOGO_PATH = os.path.join(MEDIA_ROOT, 'logos/logo.png')
