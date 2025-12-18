@@ -109,8 +109,8 @@ def _generate_console_frame_vertical(
             line_number_start=1,
             line_number_fg='#888888',
             line_number_bg='#272822',
-            image_pad=15,
-            line_pad=8,
+            image_pad=8,  # Уменьшено с 15 до 8 для большего размера кода
+            line_pad=4,   # Уменьшено с 8 до 4 для большего размера кода
             background_color='#272822'
         )
         code_image_io = io.BytesIO()
@@ -118,9 +118,9 @@ def _generate_console_frame_vertical(
         code_image_io.seek(0)
         tmp_code_img = Image.open(code_image_io).convert("RGBA")
         
-        # Проверяем, помещается ли изображение кода в консоль (увеличены размеры для большого шрифта)
-        max_code_width = MIN_CONSOLE_WIDTH - 160
-        max_code_height = MIN_CONSOLE_HEIGHT - 200
+        # Проверяем, помещается ли изображение кода в консоль (уменьшены отступы для большего размера)
+        max_code_width = MIN_CONSOLE_WIDTH - 120  # Уменьшено с 160 до 120
+        max_code_height = MIN_CONSOLE_HEIGHT - 160  # Уменьшено с 200 до 160
         
         if tmp_code_img.width <= max_code_width and tmp_code_img.height <= max_code_height:
             code_img = tmp_code_img
@@ -131,8 +131,8 @@ def _generate_console_frame_vertical(
     if code_img is None:
         code_img = tmp_code_img
         # Если код не помещается, масштабируем только если он сильно превышает размеры
-        max_code_width = MIN_CONSOLE_WIDTH - 160
-        max_code_height = MIN_CONSOLE_HEIGHT - 200
+        max_code_width = MIN_CONSOLE_WIDTH - 120  # Уменьшено с 160 до 120
+        max_code_height = MIN_CONSOLE_HEIGHT - 160  # Уменьшено с 200 до 160
         if code_img.width > max_code_width or code_img.height > max_code_height:
             scale_w = max_code_width / code_img.width if code_img.width > max_code_width else 1.0
             scale_h = max_code_height / code_img.height if code_img.height > max_code_height else 1.0
@@ -143,9 +143,10 @@ def _generate_console_frame_vertical(
                 code_img = code_img.resize((new_width, new_height), Resampling.LANCZOS)
     
     # Рассчитываем размеры консоли (но не больше ширины экрана)
+    # Уменьшены отступы внутри консоли для большего размера кода
     max_console_width = video_width - 100  # Оставляем отступы по бокам
-    console_width = min(max_console_width, max(MIN_CONSOLE_WIDTH, code_img.width + 180))
-    console_height = max(MIN_CONSOLE_HEIGHT, code_img.height + 240)
+    console_width = min(max_console_width, max(MIN_CONSOLE_WIDTH, code_img.width + 140))  # Уменьшено с 180 до 140
+    console_height = max(MIN_CONSOLE_HEIGHT, code_img.height + 180)  # Уменьшено с 240 до 180
     
     # Создаем изображение фона
     background_color = (173, 216, 230)
@@ -186,22 +187,23 @@ def _generate_console_frame_vertical(
             circle_y + 2 * circle_radius
         ), fill=color)
     
-    # Добавляем логотип если есть
+    # Добавляем логотип если есть (опускаем ниже, ближе к консоли)
     if logo_path and os.path.exists(logo_path):
         try:
             logo = Image.open(logo_path).convert("RGBA")
             logo_size = (180, 180)  # Меньше для вертикального формата
             logo = logo.resize(logo_size, Resampling.LANCZOS)
             logo_x = video_width - logo.width - 20
-            logo_y = 10
+            # Размещаем логотип ближе к консоли (примерно на уровне верхнего края консоли)
+            logo_y = max(console_y0 - logo.height - 30, 50)  # На 30px выше консоли, минимум 50px от верха
             image.paste(logo, (logo_x, logo_y), logo)
         except Exception as e:
             logger.error(f"Ошибка при загрузке логотипа: {e}")
     
-    # Вставляем код в консоль
+    # Вставляем код в консоль (уменьшены отступы для большего размера кода)
     shift_left = 40
     padding_left = (console_width - code_img.width) // 2 - shift_left
-    padding_top = 120
+    padding_top = 80  # Уменьшено с 120 до 80 для большего размера кода
     code_x = console_x0 + padding_left
     code_y = console_y0 + padding_top
     image.paste(code_img, (code_x, code_y), code_img)
