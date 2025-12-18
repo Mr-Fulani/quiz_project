@@ -190,7 +190,7 @@ def _generate_console_frame_vertical(
     # ВАЖНО: Рассчитываем высоту консоли ПОСЛЕ добавления пустых строк
     # Сначала рассчитываем необходимую высоту консоли на основе кода и отступов
     padding_top = 100  # Отступ сверху, чтобы код был ниже
-    bottom_padding = 20  # Отступ снизу, чтобы код не прилипал к низу консоли
+    bottom_padding = 70  # Отступ снизу, такой же как сверху для симметрии
     needed_height = code_img.height + padding_top + bottom_padding
     # НЕ используем MIN_CONSOLE_HEIGHT - консоль должна быть ровно такой, какая нужна
     console_height = needed_height
@@ -210,8 +210,10 @@ def _generate_console_frame_vertical(
     # Размещаем консоль выше, чтобы под ней было место для текста вопроса
     # Высота текста вопроса примерно 70px + gap 40px = 110px
     question_text_height = 80
-    available_height = video_height - question_text_height - question_text_gap - 80  # 80 - отступ снизу для запаса
-    console_y0 = max(50, (available_height - console_height) // 2)  # Минимум 50px от верха
+    top_margin = 50  # Отступ сверху от края экрана
+    bottom_margin = 50  # Отступ снизу от края экрана (такой же как сверху)
+    available_height = video_height - question_text_height - question_text_gap - top_margin - bottom_margin
+    console_y0 = top_margin + (available_height - console_height) // 2  # Симметричные отступы сверху и снизу
     console_x1 = console_x0 + console_width
     console_y1 = console_y0 + console_height
     
@@ -360,7 +362,7 @@ def generate_code_typing_video(
             return None
         
         # Получаем настройки
-        typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 20)  # символов в секунду (увеличено для меньшего количества кадров)
+        typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 35)  # символов в секунду (увеличено для ускорения рендеринга)
         fps = getattr(settings, 'VIDEO_FPS', 24)
         max_video_duration = 30  # Максимальная длительность видео в секундах
         
