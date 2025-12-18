@@ -385,13 +385,20 @@ def generate_code_typing_video(
         return None
 
 
-def generate_video_for_task(task_question: str, topic_name: str) -> Optional[str]:
+def generate_video_for_task(
+    task_question: str, 
+    topic_name: str,
+    subtopic_name: str = None,
+    difficulty: str = None
+) -> Optional[str]:
     """
     Генерирует видео для задачи в формате reels.
     
     Args:
         task_question: Текст вопроса задачи (может содержать markdown блоки кода)
         topic_name: Название темы (например, 'Python', 'JavaScript')
+        subtopic_name: Название подтемы (опционально)
+        difficulty: Сложность задачи (опционально)
         
     Returns:
         URL видео в S3/R2 или None при ошибке
@@ -445,6 +452,44 @@ def generate_video_for_task(task_question: str, topic_name: str) -> Optional[str
         video_name = video_name.replace(" ", "_")
         
         video_url = upload_video_to_s3(video_path, video_name)
+        
+        # Отправляем видео админу в Telegram
+        admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+        
+        # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
+        if not admin_chat_id:
+            try:
+                from accounts.models import TelegramAdmin
+                admin = TelegramAdmin.objects.filter(is_active=True).first()
+                if admin:
+                    admin_chat_id = str(admin.telegram_id)
+                    logger.info(f"📱 Используется chat_id первого активного админа: {admin_chat_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
+        
+        if video_url and admin_chat_id:
+            try:
+                from .telegram_service import send_video, send_message
+                
+                # Отправляем видео
+                caption = f"🎬 Видео сгенерировано для задачи"
+                send_video(str(admin_chat_id), video_url, caption)
+                logger.info(f"✅ Видео отправлено админу в Telegram (chat_id: {admin_chat_id})")
+                
+                # Формируем и отправляем детали задачи
+                task_details = f"🖥️ Язык: {topic_name}"
+                if subtopic_name:
+                    task_details += f"\n📂 Тема: {subtopic_name}"
+                if difficulty:
+                    task_details += f"\n🎯 Сложность: {difficulty}"
+                task_details += f"\n🔗 URL: {video_url}"
+                
+                # Отправляем детали задачи текстовым сообщением (без parse_mode для корректного отображения emoji)
+                send_message(str(admin_chat_id), task_details, parse_mode=None)
+                logger.info(f"✅ Детали задачи отправлены админу")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось отправить видео админу: {e}")
         
         # Удаляем временный файл
         try:
