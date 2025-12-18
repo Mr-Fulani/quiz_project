@@ -131,6 +131,7 @@ services:
     volumes:
       - ./quiz_backend:/app
       - ./media:/app/media
+      - ./bot:/quiz_project/bot
     depends_on:
       - database
       - redis

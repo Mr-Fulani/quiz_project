@@ -634,13 +634,14 @@ class TaskAdmin(admin.ModelAdmin):
             task.video_generation_logs = None
             task.save(update_fields=['video_generation_logs'])
             
-            # Запускаем асинхронную генерацию видео через Celery
+            # Запускаем асинхронную генерацию видео через Celery (с принудительной перегенерацией)
             celery_task = generate_video_for_task_async.delay(
                 task_id=task.id,
                 task_question=translation.question,
                 topic_name=topic_name,
                 subtopic_name=subtopic_name,
-                difficulty=difficulty
+                difficulty=difficulty,
+                force_regenerate=True  # Принудительная перегенерация при ручном запуске
             )
             
             messages.success(request, f'✅ Генерация видео для задачи {task.id} запущена!')
@@ -1298,13 +1299,14 @@ class TaskAdmin(admin.ModelAdmin):
                 task.video_generation_logs = None
                 task.save(update_fields=['video_generation_logs'])
                 
-                # Запускаем асинхронную генерацию видео через Celery
+                # Запускаем асинхронную генерацию видео через Celery (с принудительной перегенерацией)
                 celery_task = generate_video_for_task_async.delay(
                     task_id=task.id,
                     task_question=translation.question,
                     topic_name=topic_name,
                     subtopic_name=subtopic_name,
-                    difficulty=difficulty
+                    difficulty=difficulty,
+                    force_regenerate=True  # Принудительная перегенерация при ручном запуске
                 )
                 
                 generated_count += 1

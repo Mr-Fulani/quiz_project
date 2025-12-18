@@ -195,7 +195,7 @@ def process_uploaded_file(self, file_path, user_id):
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=300)
-def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None):
+def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False):
     """
     Асинхронная генерация видео для задачи.
     
@@ -209,6 +209,7 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         topic_name: Название темы
         subtopic_name: Название подтемы (опционально)
         difficulty: Сложность задачи (опционально)
+        force_regenerate: Если True, перегенерирует видео даже если оно уже существует
     
     Returns:
         URL видео или None при ошибке
@@ -247,14 +248,35 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         task.video_generation_logs = log_text
         task.save(update_fields=['video_generation_logs'])
         
-        # Если видео уже есть, пропускаем
-        if task.video_url:
+        # Если видео уже есть и не требуется принудительная перегенерация, пропускаем
+        if task.video_url and not force_regenerate:
             info_msg = f"ℹ️ Задача {task_id} уже имеет видео: {task.video_url}"
             logger.info(f"ℹ️ [Celery] {info_msg}")
             logs.append(info_msg)
             task.video_generation_logs = "\n".join(logs)
             task.save(update_fields=['video_generation_logs'])
             return task.video_url
+        
+        # Если требуется перегенерация и есть старое видео, удаляем его
+        if task.video_url and force_regenerate:
+            old_video_url = task.video_url
+            logs.append(f"🔄 Принудительная перегенерация видео")
+            logs.append(f"🗑️ Удаление старого видео: {old_video_url}")
+            from tasks.services.s3_service import delete_image_from_s3
+            if delete_image_from_s3(old_video_url):
+                logger.info(f"🗑️ [Celery] Старое видео удалено: {old_video_url}")
+                logs.append(f"✅ Старое видео успешно удалено")
+            else:
+                logger.warning(f"⚠️ [Celery] Не удалось удалить старое видео: {old_video_url}")
+                logs.append(f"⚠️ Не удалось удалить старое видео (продолжаем генерацию)")
+            # Очищаем video_url
+            task.video_url = None
+            # Обновляем логи
+            log_text = "\n".join(logs)
+            if len(log_text) > MAX_LOG_LENGTH:
+                log_text = "..." + log_text[-MAX_LOG_LENGTH:]
+            task.video_generation_logs = log_text
+            task.save(update_fields=['video_url', 'video_generation_logs'])
         
         logs.append("📝 Этап 1/4: Извлечение кода из вопроса...")
         log_text = "\n".join(logs)
