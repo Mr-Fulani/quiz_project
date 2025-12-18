@@ -193,3 +193,83 @@ def process_uploaded_file(self, file_path, user_id):
         logger.error(f"Ошибка обработки файла: {str(exc)}")
         raise self.retry(exc=exc, countdown=30)
 
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
+def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None):
+    """
+    Асинхронная генерация видео для задачи.
+    
+    Генерирует видео в фоне, чтобы не блокировать публикацию задач.
+    Видео автоматически отправляется админу после генерации.
+    Все этапы логируются для отслеживания в админке.
+    
+    Args:
+        task_id: ID задачи
+        task_question: Текст вопроса задачи
+        topic_name: Название темы
+        subtopic_name: Название подтемы (опционально)
+        difficulty: Сложность задачи (опционально)
+    
+    Returns:
+        URL видео или None при ошибке
+    """
+    try:
+        from tasks.models import Task
+        from tasks.services.video_generation_service import generate_video_for_task
+        from django.contrib import messages
+        from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
+        
+        logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
+        logger.info(f"🎬 [Celery] Начало генерации видео для задачи {task_id}")
+        logger.info(f"🎬 [Celery] Параметры: тема={topic_name}, подтема={subtopic_name}, сложность={difficulty}")
+        
+        # Проверяем, что задача еще существует и не имеет видео
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            logger.warning(f"⚠️ [Celery] Задача {task_id} не найдена, пропускаем генерацию видео")
+            return None
+        
+        # Если видео уже есть, пропускаем
+        if task.video_url:
+            logger.info(f"ℹ️ [Celery] Задача {task_id} уже имеет видео: {task.video_url}")
+            return task.video_url
+        
+        logger.info(f"📝 [Celery] Этап 1/4: Извлечение кода из вопроса...")
+        # Генерируем видео (внутри функции уже есть отправка админу)
+        video_url = generate_video_for_task(
+            task_question,
+            topic_name,
+            subtopic_name=subtopic_name,
+            difficulty=difficulty
+        )
+        
+        if video_url:
+            logger.info(f"📝 [Celery] Этап 2/4: Видео сгенерировано")
+            logger.info(f"📝 [Celery] Этап 3/4: Загрузка в S3/R2...")
+            
+            # Сохраняем URL видео в задачу
+            task.video_url = video_url
+            task.save(update_fields=['video_url'])
+            
+            logger.info(f"📝 [Celery] Этап 4/4: Видео отправлено админу в Telegram")
+            logger.info(f"✅ [Celery] Видео успешно сгенерировано для задачи {task_id}")
+            logger.info(f"   🔗 URL: {video_url}")
+            logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
+            return video_url
+        else:
+            logger.warning(f"⚠️ [Celery] Не удалось сгенерировать видео для задачи {task_id}")
+            logger.warning(f"   🔍 Проверьте логи выше для деталей ошибки")
+            logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
+            return None
+            
+    except Exception as exc:
+        logger.error(f"❌ [Celery] ════════════════════════════════════════════════")
+        logger.error(f"❌ [Celery] ОШИБКА генерации видео для задачи {task_id}")
+        logger.error(f"   📋 Тип ошибки: {type(exc).__name__}")
+        logger.error(f"   📝 Сообщение: {str(exc)}")
+        logger.error(f"   🔍 Полный traceback будет в логах выше")
+        logger.error(f"❌ [Celery] ════════════════════════════════════════════════")
+        # Повторная попытка через 5 минут (если не превышен лимит)
+        raise self.retry(exc=exc, countdown=300)
+
