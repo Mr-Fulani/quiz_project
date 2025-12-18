@@ -219,6 +219,13 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         from django.contrib import messages
         from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
         
+        # Инициализируем логи для админки (максимум 5000 символов для экономии памяти)
+        MAX_LOG_LENGTH = 5000
+        logs = []
+        logs.append("🎬 ════════════════════════════════════════════════")
+        logs.append(f"🎬 Начало генерации видео для задачи {task_id}")
+        logs.append(f"📋 Параметры: тема={topic_name}, подтема={subtopic_name}, сложность={difficulty}")
+        
         logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
         logger.info(f"🎬 [Celery] Начало генерации видео для задачи {task_id}")
         logger.info(f"🎬 [Celery] Параметры: тема={topic_name}, подтема={subtopic_name}, сложность={difficulty}")
@@ -227,15 +234,36 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         try:
             task = Task.objects.get(id=task_id)
         except Task.DoesNotExist:
-            logger.warning(f"⚠️ [Celery] Задача {task_id} не найдена, пропускаем генерацию видео")
+            error_msg = f"⚠️ Задача {task_id} не найдена, пропускаем генерацию видео"
+            logger.warning(f"⚠️ [Celery] {error_msg}")
+            logs.append(error_msg)
             return None
+        
+        # Обновляем логи в задаче (с ограничением размера)
+        log_text = "\n".join(logs)
+        if len(log_text) > MAX_LOG_LENGTH:
+            # Обрезаем до последних MAX_LOG_LENGTH символов
+            log_text = "..." + log_text[-MAX_LOG_LENGTH:]
+        task.video_generation_logs = log_text
+        task.save(update_fields=['video_generation_logs'])
         
         # Если видео уже есть, пропускаем
         if task.video_url:
-            logger.info(f"ℹ️ [Celery] Задача {task_id} уже имеет видео: {task.video_url}")
+            info_msg = f"ℹ️ Задача {task_id} уже имеет видео: {task.video_url}"
+            logger.info(f"ℹ️ [Celery] {info_msg}")
+            logs.append(info_msg)
+            task.video_generation_logs = "\n".join(logs)
+            task.save(update_fields=['video_generation_logs'])
             return task.video_url
         
+        logs.append("📝 Этап 1/4: Извлечение кода из вопроса...")
+        log_text = "\n".join(logs)
+        if len(log_text) > MAX_LOG_LENGTH:
+            log_text = "..." + log_text[-MAX_LOG_LENGTH:]
+        task.video_generation_logs = log_text
+        task.save(update_fields=['video_generation_logs'])
         logger.info(f"📝 [Celery] Этап 1/4: Извлечение кода из вопроса...")
+        
         # Генерируем видео (внутри функции уже есть отправка админу)
         video_url = generate_video_for_task(
             task_question,
@@ -245,12 +273,29 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         )
         
         if video_url:
+            logs.append("📝 Этап 2/4: Видео сгенерировано")
+            logs.append("📝 Этап 3/4: Загрузка в S3/R2...")
+            log_text = "\n".join(logs)
+            if len(log_text) > MAX_LOG_LENGTH:
+                log_text = "..." + log_text[-MAX_LOG_LENGTH:]
+            task.video_generation_logs = log_text
+            task.save(update_fields=['video_generation_logs'])
             logger.info(f"📝 [Celery] Этап 2/4: Видео сгенерировано")
             logger.info(f"📝 [Celery] Этап 3/4: Загрузка в S3/R2...")
             
             # Сохраняем URL видео в задачу
             task.video_url = video_url
-            task.save(update_fields=['video_url'])
+            task.save(update_fields=['video_url', 'video_generation_logs'])
+            
+            logs.append("📝 Этап 4/4: Видео отправлено админу в Telegram")
+            logs.append(f"✅ Видео успешно сгенерировано для задачи {task_id}")
+            logs.append(f"🔗 URL: {video_url}")
+            logs.append("🎬 ════════════════════════════════════════════════")
+            log_text = "\n".join(logs)
+            if len(log_text) > MAX_LOG_LENGTH:
+                log_text = "..." + log_text[-MAX_LOG_LENGTH:]
+            task.video_generation_logs = log_text
+            task.save(update_fields=['video_generation_logs'])
             
             logger.info(f"📝 [Celery] Этап 4/4: Видео отправлено админу в Telegram")
             logger.info(f"✅ [Celery] Видео успешно сгенерировано для задачи {task_id}")
@@ -258,12 +303,42 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
             return video_url
         else:
+            logs.append("⚠️ Не удалось сгенерировать видео")
+            logs.append("🔍 Проверьте логи Celery для деталей ошибки")
+            logs.append("🎬 ════════════════════════════════════════════════")
+            log_text = "\n".join(logs)
+            if len(log_text) > MAX_LOG_LENGTH:
+                log_text = "..." + log_text[-MAX_LOG_LENGTH:]
+            task.video_generation_logs = log_text
+            task.save(update_fields=['video_generation_logs'])
+            
             logger.warning(f"⚠️ [Celery] Не удалось сгенерировать видео для задачи {task_id}")
             logger.warning(f"   🔍 Проверьте логи выше для деталей ошибки")
             logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
             return None
             
     except Exception as exc:
+        error_logs = []
+        error_logs.append("❌ ════════════════════════════════════════════════")
+        error_logs.append(f"❌ ОШИБКА генерации видео для задачи {task_id}")
+        error_logs.append(f"📋 Тип ошибки: {type(exc).__name__}")
+        error_logs.append(f"📝 Сообщение: {str(exc)}")
+        error_logs.append(f"🔍 Полный traceback будет в логах Celery")
+        error_logs.append("❌ ════════════════════════════════════════════════")
+        
+        # Сохраняем логи ошибки в задачу (с ограничением размера)
+        try:
+            task = Task.objects.get(id=task_id)
+            existing_logs = task.video_generation_logs or ""
+            new_logs = existing_logs + "\n" + "\n".join(error_logs) if existing_logs else "\n".join(error_logs)
+            # Ограничиваем размер логов
+            if len(new_logs) > MAX_LOG_LENGTH:
+                new_logs = "..." + new_logs[-MAX_LOG_LENGTH:]
+            task.video_generation_logs = new_logs
+            task.save(update_fields=['video_generation_logs'])
+        except Exception:
+            pass  # Если не удалось сохранить логи, продолжаем
+        
         logger.error(f"❌ [Celery] ════════════════════════════════════════════════")
         logger.error(f"❌ [Celery] ОШИБКА генерации видео для задачи {task_id}")
         logger.error(f"   📋 Тип ошибки: {type(exc).__name__}")
@@ -272,4 +347,79 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         logger.error(f"❌ [Celery] ════════════════════════════════════════════════")
         # Повторная попытка через 5 минут (если не превышен лимит)
         raise self.retry(exc=exc, countdown=300)
+
+
+@shared_task
+def delete_old_videos_from_r2():
+    """
+    Удаляет видео из R2, которые старше 10 дней.
+    Запускается автоматически каждый день в 4:00.
+    
+    Returns:
+        int: Количество удаленных видео
+    """
+    from tasks.models import Task
+    from tasks.services.s3_service import delete_image_from_s3
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    try:
+        # Вычисляем дату 10 дней назад
+        cutoff_date = timezone.now() - timedelta(days=10)
+        
+        # Находим задачи с видео, которые старше 10 дней
+        # Используем publish_date если есть, иначе create_date
+        from django.db.models import Q, F
+        old_tasks = Task.objects.filter(
+            video_url__isnull=False
+        ).exclude(video_url='').filter(
+            Q(publish_date__lt=cutoff_date) | 
+            Q(publish_date__isnull=True, create_date__lt=cutoff_date)
+        )
+        
+        deleted_count = 0
+        failed_count = 0
+        
+        logger.info(f"🗑️ [Celery] ════════════════════════════════════════════════")
+        logger.info(f"🗑️ [Celery] Начинаем удаление старых видео (старше 10 дней)")
+        logger.info(f"   📅 Дата отсечки: {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"   📊 Найдено задач с видео: {old_tasks.count()}")
+        
+        for task in old_tasks:
+            try:
+                video_url = task.video_url
+                if delete_image_from_s3(video_url):
+                    # Очищаем video_url в задаче
+                    task.video_url = None
+                    task.save(update_fields=['video_url'])
+                    deleted_count += 1
+                    logger.info(f"✅ [Celery] Видео удалено для задачи {task.id}")
+                else:
+                    failed_count += 1
+                    logger.warning(f"⚠️ [Celery] Не удалось удалить видео для задачи {task.id}")
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"❌ [Celery] Ошибка при удалении видео для задачи {task.id}: {e}")
+        
+        logger.info(f"🎉 [Celery] Удаление завершено: удалено {deleted_count}, ошибок {failed_count}")
+        
+        # Очищаем старые логи генерации видео (старше 7 дней)
+        logs_cutoff_date = timezone.now() - timedelta(days=7)
+        old_logs_tasks = Task.objects.filter(
+            video_generation_logs__isnull=False
+        ).exclude(video_generation_logs='').filter(
+            Q(publish_date__lt=logs_cutoff_date) | 
+            Q(publish_date__isnull=True, create_date__lt=logs_cutoff_date)
+        )
+        
+        logs_cleared_count = old_logs_tasks.update(video_generation_logs=None)
+        if logs_cleared_count > 0:
+            logger.info(f"🧹 [Celery] Очищено старых логов генерации видео: {logs_cleared_count}")
+        
+        logger.info(f"🗑️ [Celery] ════════════════════════════════════════════════")
+        return deleted_count
+        
+    except Exception as e:
+        logger.error(f"❌ [Celery] Критическая ошибка при удалении старых видео: {e}", exc_info=True)
+        return 0
 

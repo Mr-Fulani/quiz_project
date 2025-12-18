@@ -3,7 +3,7 @@ import random
 import time
 from django import forms
 from django.contrib import admin, messages
-from django.urls import path
+from django.urls import path, reverse
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.utils.html import format_html
@@ -140,7 +140,7 @@ class TaskAdmin(admin.ModelAdmin):
     form = TaskAdminForm
     change_list_template = 'admin/tasks/task_changelist.html'
     
-    list_display = ('id', 'topic', 'subtopic', 'get_language', 'difficulty', 'published', 'error_status', 'create_date', 'publish_date', 'has_image', 'has_external_link')
+    list_display = ('id', 'topic', 'subtopic', 'get_language', 'difficulty', 'published', 'error_status', 'create_date', 'publish_date', 'has_image', 'has_video', 'has_external_link')
     list_filter = ('published', 'difficulty', 'topic', 'subtopic', 'error', 'translations__language')
     search_fields = ('id', 'topic__name', 'subtopic__name', 'translation_group_id', 'external_link', 'translations__language')
     raw_id_fields = ('topic', 'subtopic', 'group')
@@ -176,8 +176,16 @@ class TaskAdmin(admin.ModelAdmin):
             'fields': ('translation_group_id', 'message_id', 'create_date', 'publish_date'),
             'classes': ('collapse',)
         }),
+        ('Действия', {
+            'fields': ('generate_video_button',),
+            'description': 'Быстрые действия для задачи'
+        }),
+        ('Видео', {
+            'fields': ('video_url', 'video_generation_logs_display'),
+            'description': 'Информация о видео задачи'
+        }),
     )
-    readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display')
+    readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display', 'generate_video_button', 'video_generation_logs_display')
     
     # Inline редактирование переводов и соцсетей
     inlines = [TaskTranslationInline, SocialMediaPostInline]
@@ -185,6 +193,7 @@ class TaskAdmin(admin.ModelAdmin):
     actions = [
         'publish_to_telegram',
         'generate_images',
+        'generate_videos',
         'publish_to_all_social_networks',
         'publish_to_pinterest',
         'publish_to_facebook',
@@ -205,6 +214,12 @@ class TaskAdmin(admin.ModelAdmin):
         return bool(obj.image_url)
     has_image.boolean = True
     has_image.short_description = 'Изображение'
+    
+    def has_video(self, obj):
+        """Проверка наличия видео."""
+        return bool(obj.video_url)
+    has_video.boolean = True
+    has_video.short_description = 'Видео'
     
     def has_external_link(self, obj):
         """Проверка наличия внешней ссылки."""
@@ -336,11 +351,159 @@ class TaskAdmin(admin.ModelAdmin):
         )
     get_final_link_display.short_description = 'Итоговая ссылка'
     
+    def video_generation_logs_display(self, obj):
+        """Отображение логов генерации видео с форматированием для светлой и темной темы."""
+        if not obj.video_generation_logs:
+            return format_html('<span style="color: #999;">Логи генерации видео отсутствуют</span>')
+        
+        from django.utils.safestring import mark_safe
+        from django.utils.html import escape
+        
+        # Обрабатываем логи
+        logs_text = obj.video_generation_logs
+        
+        # Если в логах есть <br> как текст, заменяем на реальные переносы
+        logs_text = logs_text.replace('<br>', '\n').replace('<br />', '\n').replace('<BR>', '\n')
+        
+        # Разбиваем на строки для обработки
+        lines = logs_text.split('\n')
+        processed_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Обрабатываем разделители (строки с символами ═)
+            if '════════════════════════════════════════════════' in line:
+                # Если есть emoji в начале, оставляем его
+                if line.startswith('🎬') or line.startswith('❌'):
+                    processed_lines.append(f'<div class="log-separator-line">{escape(line[:2])}</div>')
+                else:
+                    processed_lines.append('<div class="log-separator-line"></div>')
+            else:
+                # Обычная строка - экранируем и добавляем
+                processed_lines.append(escape(line))
+        
+        # Объединяем строки с правильными переносами
+        logs_html = mark_safe('<br>'.join(processed_lines))
+        
+        # Универсальные стили, которые работают в любой теме админки
+        return format_html(
+            '<style>'
+            '.video-logs-container {{'
+            '  padding: 15px;'
+            '  border-radius: 5px;'
+            '  font-family: "Consolas", "Monaco", "Courier New", monospace;'
+            '  font-size: 13px;'
+            '  line-height: 1.8;'
+            '  max-height: 400px;'
+            '  overflow-y: auto;'
+            '  word-wrap: break-word;'
+            '  border: 1px solid #dee2e6;'
+            '  background: #f8f9fa;'
+            '  color: #212529;'
+            '  box-shadow: 0 1px 3px rgba(0,0,0,0.1);'
+            '}}'
+            '.video-logs-container br {{'
+            '  display: block;'
+            '  margin: 2px 0;'
+            '}}'
+            # Стили для разделителей
+            '.video-logs-container .log-separator-line {{'
+            '  margin: 12px 0;'
+            '  padding: 8px 0;'
+            '  border-top: 1px solid #dee2e6;'
+            '  text-align: center;'
+            '  color: #6c757d;'
+            '  font-size: 12px;'
+            '}}'
+            # Темная тема - различные варианты определения
+            'body.dark-theme .video-logs-container,'
+            'body[data-theme="dark"] .video-logs-container,'
+            '.theme-dark .video-logs-container,'
+            '.admin-dark .video-logs-container {{'
+            '  background: #1e1e1e !important;'
+            '  color: #d4d4d4 !important;'
+            '  border-color: #3c3c3c !important;'
+            '  box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;'
+            '}}'
+            'body.dark-theme .video-logs-container .log-separator-line,'
+            'body[data-theme="dark"] .video-logs-container .log-separator-line,'
+            '.theme-dark .video-logs-container .log-separator-line,'
+            '.admin-dark .video-logs-container .log-separator-line {{'
+            '  border-top-color: #3c3c3c !important;'
+            '  color: #888 !important;'
+            '}}'
+            # Если body имеет темный фон
+            'body[style*="background"][style*="dark"] .video-logs-container,'
+            'body[style*="background-color: #121212"] .video-logs-container,'
+            'body[style*="background-color: #1a1a1a"] .video-logs-container {{'
+            '  background: #1e1e1e !important;'
+            '  color: #d4d4d4 !important;'
+            '  border-color: #3c3c3c !important;'
+            '}}'
+            # Медиа-запрос для системной темной темы
+            '@media (prefers-color-scheme: dark) {{'
+            '  .video-logs-container {{'
+            '    background: #1e1e1e;'
+            '    color: #d4d4d4;'
+            '    border-color: #3c3c3c;'
+            '  }}'
+            '  .video-logs-container .log-separator-line {{'
+            '    border-top-color: #3c3c3c;'
+            '    color: #888;'
+            '  }}'
+            '}}'
+            '</style>'
+            '<div class="video-logs-container">{}</div>',
+            logs_html
+        )
+    video_generation_logs_display.short_description = 'Логи генерации видео'
+    
+    def generate_video_button(self, obj):
+        """Кнопка для генерации видео в детальном просмотре задачи."""
+        if not obj.pk:
+            return "—"
+        
+        # Проверяем, есть ли переводы
+        translation = obj.translations.first()
+        if not translation:
+            return format_html('<span style="color: #dc3545;">⚠️ Нет переводов для генерации видео</span>')
+        
+        # URL для генерации видео
+        generate_url = reverse('admin:tasks_task_generate_video', args=[obj.pk])
+        
+        # Проверяем, есть ли уже видео
+        if obj.video_url:
+            return format_html(
+                '<div style="margin: 10px 0;">'
+                '<a href="{}" class="button" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">'
+                '🎬 Перегенерировать видео'
+                '</a>'
+                '<a href="{}" target="_blank" style="color: #007bff; text-decoration: none;">🔗 Текущее видео</a>'
+                '</div>',
+                generate_url,
+                obj.video_url
+            )
+        else:
+            return format_html(
+                '<div style="margin: 10px 0;">'
+                '<a href="{}" class="button" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">'
+                '🎬 Сгенерировать видео'
+                '</a>'
+                '<p style="margin-top: 10px; color: #666; font-size: 12px;">Видео будет сгенерировано в фоне и отправлено админу в личку бота</p>'
+                '</div>',
+                generate_url
+            )
+    generate_video_button.short_description = 'Генерация видео'
+    
     def get_urls(self):
-        """Добавляем URL для импорта JSON."""
+        """Добавляем URL для импорта JSON и генерации видео."""
         urls = super().get_urls()
         custom_urls = [
             path('import-json/', self.admin_site.admin_view(self.import_json_view), name='tasks_task_import_json'),
+            path('<path:object_id>/generate-video/', self.admin_site.admin_view(self.generate_video_view), name='tasks_task_generate_video'),
         ]
         return custom_urls + urls
     
@@ -441,6 +604,55 @@ class TaskAdmin(admin.ModelAdmin):
                     os.remove(temp_path)
         
         return render(request, 'admin/tasks/import_json.html')
+    
+    def generate_video_view(self, request, object_id):
+        """
+        Представление для генерации видео для конкретной задачи.
+        Генерирует видео асинхронно через Celery и отправляет админу в личку.
+        """
+        from config.tasks import generate_video_for_task_async
+        
+        try:
+            task = Task.objects.get(pk=object_id)
+        except Task.DoesNotExist:
+            messages.error(request, f'Задача с ID {object_id} не найдена.')
+            return redirect('admin:tasks_task_changelist')
+        
+        # Получаем первый перевод
+        translation = task.translations.first()
+        if not translation:
+            messages.error(request, f'Задача {task.id} не имеет переводов.')
+            return redirect('admin:tasks_task_change', object_id)
+        
+        try:
+            # Получаем информацию о теме и подтеме
+            topic_name = task.topic.name if task.topic else 'unknown'
+            subtopic_name = task.subtopic.name if task.subtopic else None
+            difficulty = task.difficulty if hasattr(task, 'difficulty') else None
+            
+            # Очищаем старые логи перед запуском новой генерации
+            task.video_generation_logs = None
+            task.save(update_fields=['video_generation_logs'])
+            
+            # Запускаем асинхронную генерацию видео через Celery
+            celery_task = generate_video_for_task_async.delay(
+                task_id=task.id,
+                task_question=translation.question,
+                topic_name=topic_name,
+                subtopic_name=subtopic_name,
+                difficulty=difficulty
+            )
+            
+            messages.success(request, f'✅ Генерация видео для задачи {task.id} запущена!')
+            messages.info(request, f'📝 Celery task ID: {celery_task.id}')
+            messages.info(request, f'💡 Видео будет сгенерировано в фоне и отправлено админу в личку бота')
+            messages.info(request, f'🔍 Статус генерации можно отследить в разделе "Видео" ниже')
+            
+        except Exception as e:
+            logger.error(f"Ошибка запуска генерации видео для задачи {task.id}: {e}", exc_info=True)
+            messages.error(request, f'❌ Ошибка запуска генерации видео: {str(e)}')
+        
+        return redirect('admin:tasks_task_change', object_id)
     
     def get_deleted_objects(self, objs, request):
         """
@@ -1049,6 +1261,66 @@ class TaskAdmin(admin.ModelAdmin):
         # Итоговое сообщение
         self.message_user(request, "=" * 60, messages.INFO)
         self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
+    
+    @admin.action(description='🎬 Сгенерировать видео для выбранных задач')
+    def generate_videos(self, request, queryset):
+        """
+        Генерирует видео для выбранных задач и отправляет админу в личку.
+        Работает для задач любого языка и темы.
+        """
+        from config.tasks import generate_video_for_task_async
+        
+        generated_count = 0
+        skipped_count = 0
+        errors = []
+        total_tasks = queryset.count()
+        
+        self.message_user(request, f"📊 Начинаем генерацию видео для {total_tasks} задач...", messages.INFO)
+        
+        for task in queryset:
+            # Получаем первый перевод для генерации
+            translation = task.translations.first()
+            if not translation:
+                error_msg = f"Задача {task.id}: отсутствуют переводы"
+                errors.append(error_msg)
+                self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                continue
+            
+            try:
+                # Получаем информацию о теме и подтеме
+                topic_name = task.topic.name if task.topic else 'unknown'
+                subtopic_name = task.subtopic.name if task.subtopic else None
+                difficulty = task.difficulty if hasattr(task, 'difficulty') else None
+                
+                self.message_user(request, f"🎬 Запуск генерации видео для задачи {task.id} (язык: {translation.language})...", messages.INFO)
+                
+                # Очищаем старые логи перед запуском новой генерации
+                task.video_generation_logs = None
+                task.save(update_fields=['video_generation_logs'])
+                
+                # Запускаем асинхронную генерацию видео через Celery
+                celery_task = generate_video_for_task_async.delay(
+                    task_id=task.id,
+                    task_question=translation.question,
+                    topic_name=topic_name,
+                    subtopic_name=subtopic_name,
+                    difficulty=difficulty
+                )
+                
+                generated_count += 1
+                self.message_user(request, f"✅ Задача {task.id}: генерация видео запущена (Celery task: {celery_task.id})", messages.SUCCESS)
+                self.message_user(request, f"   📝 Видео будет сгенерировано в фоне и отправлено админу в личку", messages.INFO)
+                self.message_user(request, f"   🔍 Логи процесса можно увидеть в детальном просмотре задачи в разделе 'Видео'", messages.INFO)
+                
+            except Exception as e:
+                error_msg = f"Задача {task.id}: {str(e)}"
+                errors.append(error_msg)
+                self.message_user(request, f"❌ {error_msg}", messages.ERROR)
+                logger.error(f"Ошибка генерации видео для задачи {task.id}: {e}", exc_info=True)
+        
+        # Итоговое сообщение
+        self.message_user(request, "=" * 60, messages.INFO)
+        self.message_user(request, f"🎉 ЗАВЕРШЕНО: Запущено генераций {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
     
     @admin.action(description='📱 Опубликовать во все соцсети')
     def publish_to_all_social_networks(self, request, queryset):

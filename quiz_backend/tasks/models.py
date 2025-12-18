@@ -100,6 +100,11 @@ class Task(models.Model):
         blank=True,
         help_text='Описание задачи (из JSON)'
     )
+    video_generation_logs = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Логи процесса генерации видео (обновляется автоматически)'
+    )
 
 
     def clean(self):

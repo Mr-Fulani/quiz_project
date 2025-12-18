@@ -39,6 +39,11 @@ app.conf.beat_schedule = {
         'task': 'config.tasks.update_user_statistics_cache',
         'schedule': crontab(minute='*/30'),
     },
+    # Удаление старых видео из R2 каждый день в 4:00
+    'delete-old-videos': {
+        'task': 'config.tasks.delete_old_videos_from_r2',
+        'schedule': crontab(hour=4, minute=0),
+    },
 }
 
 

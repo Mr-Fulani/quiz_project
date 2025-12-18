@@ -423,20 +423,31 @@ def generate_video_for_task(
         
         logger.info(f"Генерация видео, язык: {detected_language}, вопрос: {question_text}")
         
-        # Получаем путь к логотипу
+        # Получаем путь к логотипу (та же логика, что и в generate_image_for_task)
         logo_path = os.getenv('LOGO_PATH')
         if not logo_path:
             logo_path = getattr(settings, 'LOGO_PATH', None)
         
+        # Если путь из настроек есть, но файл не существует - пробуем fallback
         if logo_path and not os.path.exists(logo_path):
-            logger.warning(f"⚠️ Логотип по пути из настроек не найден: {logo_path}")
+            logger.warning(f"⚠️ Логотип по пути из настроек не найден: {logo_path}, пробуем fallback...")
             logo_path = None
         
         if not logo_path:
-            base_dir = settings.BASE_DIR.parent
+            # Fallback: ищем логотип в bot/assets/logo.png (как в боте)
+            # BASE_DIR в settings = quiz_backend, нужно подняться на уровень вверх
+            base_dir = settings.BASE_DIR.parent  # Корень проекта
             fallback_logo_path = base_dir / 'bot' / 'assets' / 'logo.png'
             if fallback_logo_path.exists():
                 logo_path = str(fallback_logo_path)
+                logger.info(f"🔍 Использован fallback путь к логотипу: {logo_path}")
+            else:
+                logger.warning(f"⚠️ Логотип не найден по пути: {fallback_logo_path}")
+        
+        if logo_path:
+            logger.info(f"✅ Логотип будет использован: {logo_path}")
+        else:
+            logger.warning(f"⚠️ Логотип не найден, видео будет сгенерировано без логотипа")
         
         # Генерируем видео
         video_path = generate_code_typing_video(code, detected_language, logo_path, question_text)
