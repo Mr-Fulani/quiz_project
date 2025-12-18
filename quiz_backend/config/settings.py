@@ -746,6 +746,14 @@ else:
 # Logo path for image generation
 LOGO_PATH = os.path.join(MEDIA_ROOT, 'logos/logo.png')
 
+# Video generation settings
+VIDEO_GENERATION_ENABLED = os.getenv('VIDEO_GENERATION_ENABLED', 'True').lower() == 'true'
+VIDEO_WIDTH = int(os.getenv('VIDEO_WIDTH', '1080'))
+VIDEO_HEIGHT = int(os.getenv('VIDEO_HEIGHT', '1920'))
+VIDEO_TYPING_SPEED = float(os.getenv('VIDEO_TYPING_SPEED', '20'))  # символов в секунду (увеличено для меньшего количества кадров)
+VIDEO_FPS = int(os.getenv('VIDEO_FPS', '24'))
+KEYBOARD_AUDIO_PATH = os.getenv('KEYBOARD_AUDIO_PATH', None)  # опционально, если нет - видео без звука
+
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB

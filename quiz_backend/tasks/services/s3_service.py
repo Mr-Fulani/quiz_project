@@ -5,6 +5,7 @@
 """
 import io
 import logging
+import os
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -248,6 +249,143 @@ def delete_image_from_s3(image_url: str) -> bool:
     except Exception as e:
         logger.error(f"❌ Ошибка при удалении файла из {storage_name}: {e}")
         return False
+
+
+def upload_video_to_s3(video_path: str, video_name: str) -> Optional[str]:
+    """
+    Загружает видео файл в S3 или R2 и возвращает публичный URL.
+    Автоматически определяет хранилище на основе настроек USE_R2_STORAGE.
+    
+    Args:
+        video_path: Путь к видео файлу на диске
+        video_name: Имя файла для сохранения (может включать путь, например 'videos/task.mp4')
+        
+    Returns:
+        URL загруженного видео или None при ошибке
+    """
+    if not video_path or not os.path.exists(video_path):
+        logger.error(f"Видео файл не найден: {video_path}")
+        return None
+    
+    # Определяем используемое хранилище
+    use_r2 = getattr(settings, 'USE_R2_STORAGE', False)
+    storage_name = 'R2' if use_r2 else 'S3'
+    
+    # Проверяем наличие всех необходимых настроек
+    missing_settings = []
+    if not settings.AWS_ACCESS_KEY_ID:
+        missing_settings.append('AWS_ACCESS_KEY_ID' if not use_r2 else 'R2_ACCESS_KEY_ID')
+    if not settings.AWS_SECRET_ACCESS_KEY:
+        missing_settings.append('AWS_SECRET_ACCESS_KEY' if not use_r2 else 'R2_SECRET_ACCESS_KEY')
+    if not settings.AWS_STORAGE_BUCKET_NAME:
+        missing_settings.append('AWS_STORAGE_BUCKET_NAME' if not use_r2 else 'R2_BUCKET_NAME')
+    
+    if missing_settings:
+        error_msg = f"❌ {storage_name} настройки не сконфигурированы. Отсутствуют: {', '.join(missing_settings)}"
+        logger.error(error_msg)
+        return None
+    
+    try:
+        # Читаем видео файл
+        with open(video_path, 'rb') as f:
+            video_bytes = f.read()
+        
+        # Формируем путь с учетом окружения (prod/ или dev/) и типа файла
+        if use_r2:
+            # Для R2 используем структуру: {env}/videos/
+            env_prefix = getattr(settings, 'R2_ENVIRONMENT_PREFIX', 'prod')
+            if not video_name.startswith(f'{env_prefix}/') and not video_name.startswith('videos/') and not video_name.startswith('images/'):
+                video_key = f'{env_prefix}/videos/{video_name}'
+            elif video_name.startswith('videos/') or video_name.startswith('images/'):
+                # Если уже есть videos/ или images/, добавляем только env_prefix
+                video_key = f'{env_prefix}/{video_name}'
+            else:
+                video_key = video_name
+        else:
+            # Для S3 используем простую структуру videos/
+            if not video_name.startswith('videos/') and not video_name.startswith('images/'):
+                video_key = f'videos/{video_name}'
+            else:
+                video_key = video_name
+        
+        # Определяем ContentType по расширению
+        if video_name.endswith('.mp4'):
+            content_type = 'video/mp4'
+        elif video_name.endswith('.webm'):
+            content_type = 'video/webm'
+        else:
+            content_type = 'video/mp4'  # По умолчанию
+        
+        # Создаем клиент S3/R2
+        client_kwargs = {
+            'service_name': 's3',
+            'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
+            'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
+        }
+        
+        # Для R2 добавляем endpoint URL
+        if use_r2 and hasattr(settings, 'AWS_S3_ENDPOINT_URL') and settings.AWS_S3_ENDPOINT_URL:
+            client_kwargs['endpoint_url'] = settings.AWS_S3_ENDPOINT_URL
+        # Для S3 добавляем region
+        elif not use_r2:
+            client_kwargs['region_name'] = getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1')
+        
+        s3_client = boto3.client(**client_kwargs)
+        
+        try:
+            # Попытка загрузить с ACL (R2 может не поддерживать)
+            s3_client.put_object(
+                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                Key=video_key,
+                Body=video_bytes,
+                ContentType=content_type,
+                ACL='public-read'
+            )
+        except ClientError as e:
+            # Проверка на ошибку с ACL
+            if e.response['Error']['Code'] == 'AccessControlListNotSupported':
+                logger.warning(
+                    f"Бакет {settings.AWS_STORAGE_BUCKET_NAME} не поддерживает ACL. "
+                    f"Повторная загрузка без ACL."
+                )
+                s3_client.put_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=video_key,
+                    Body=video_bytes,
+                    ContentType=content_type
+                )
+            else:
+                raise e
+        
+        # Конструируем и возвращаем полный URL
+        domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', None) or getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
+        if not domain:
+            logger.error(f"❌ Публичный домен не настроен для {storage_name}")
+            return None
+        
+        full_url = f"https://{domain}/{video_key}"
+        logger.info(f"✅ Видео загружено в {storage_name}. URL: {full_url}")
+        return full_url
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        error_message = e.response.get('Error', {}).get('Message', str(e))
+        storage_name = 'R2' if getattr(settings, 'USE_R2_STORAGE', False) else 'S3'
+        logger.error(
+            f"❌ Ошибка при загрузке видео в {storage_name}: {error_code} - {error_message}. "
+            f"Бакет: {settings.AWS_STORAGE_BUCKET_NAME}, "
+            f"Ключ: {video_key if 'video_key' in locals() else video_name}"
+        )
+        return None
+    except Exception as e:
+        storage_name = 'R2' if getattr(settings, 'USE_R2_STORAGE', False) else 'S3'
+        logger.error(
+            f"❌ Неожиданная ошибка при загрузке видео в {storage_name}: {type(e).__name__}: {e}. "
+            f"Бакет: {settings.AWS_STORAGE_BUCKET_NAME}, "
+            f"Ключ: {video_key if 'video_key' in locals() else video_name}",
+            exc_info=True
+        )
+        return None
 
 
 def upload_video_to_r2(video_bytes: bytes, video_name: str) -> Optional[str]:
