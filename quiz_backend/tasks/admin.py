@@ -182,7 +182,8 @@ class TaskAdmin(admin.ModelAdmin):
         }),
         ('Видео', {
             'fields': ('video_url', 'video_generation_logs_display'),
-            'description': 'Информация о видео задачи'
+            'description': 'Информация о видео задачи. Логи генерации видео отображаются ниже.',
+            'classes': ()  # Убираем collapse, чтобы секция всегда была видна
         }),
     )
     readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display', 'generate_video_button', 'video_generation_logs_display')
@@ -354,7 +355,12 @@ class TaskAdmin(admin.ModelAdmin):
     def video_generation_logs_display(self, obj):
         """Отображение логов генерации видео с форматированием для светлой и темной темы."""
         if not obj.video_generation_logs:
-            return format_html('<span style="color: #999;">Логи генерации видео отсутствуют</span>')
+            return format_html(
+                '<div style="padding: 15px; border: 1px solid #dee2e6; border-radius: 5px; background: #f8f9fa; color: #6c757d;">'
+                '📋 <strong>Логи генерации видео отсутствуют</strong><br>'
+                'Логи появятся здесь после запуска генерации видео через кнопку "Сгенерировать видео" выше.'
+                '</div>'
+            )
         
         from django.utils.safestring import mark_safe
         from django.utils.html import escape

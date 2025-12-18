@@ -494,14 +494,21 @@ def generate_image_for_task(task_question: str, topic_name: str) -> Optional[Ima
         
         if not logo_path:
             # Fallback: ищем логотип в bot/assets/logo.png (как в боте)
-            # BASE_DIR в settings = quiz_backend, нужно подняться на уровень вверх
-            base_dir = settings.BASE_DIR.parent  # Корень проекта
-            fallback_logo_path = base_dir / 'bot' / 'assets' / 'logo.png'
-            if fallback_logo_path.exists():
-                logo_path = str(fallback_logo_path)
-                logger.info(f"🔍 Использован fallback путь к логотипу: {logo_path}")
-            else:
-                logger.warning(f"⚠️ Логотип не найден по пути: {fallback_logo_path}")
+            # Список возможных путей в порядке приоритета
+            possible_paths = [
+                '/quiz_project/bot/assets/logo.png',  # Docker контейнер (volume)
+                '/app/../bot/assets/logo.png',  # Относительно /app
+                str(settings.BASE_DIR.parent / 'bot' / 'assets' / 'logo.png'),  # Локальная разработка
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    logo_path = path
+                    logger.info(f"🔍 Использован путь к логотипу: {logo_path}")
+                    break
+            
+            if not logo_path:
+                logger.warning(f"⚠️ Логотип не найден. Проверены пути: {', '.join(possible_paths)}")
         
         if logo_path and os.path.exists(logo_path):
             logger.info(f"🖼️ Путь к логотипу: {logo_path}")

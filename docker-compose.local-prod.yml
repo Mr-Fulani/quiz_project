@@ -116,8 +116,10 @@ services:
     container_name: celery_worker_prod
     # Запуск от непривилегированного пользователя для безопасности
     user: "1000:1000"
+    entrypoint: ["/celery_entrypoint.sh"]
     command: python -m celery -A config worker --loglevel=info --concurrency=1
     environment:
+      - TMPDIR=/app/tmp
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
       - DATABASE_ENGINE=${DATABASE_ENGINE:-django.db.backends.postgresql}
@@ -148,6 +150,7 @@ services:
       - ./quiz_backend:/app
       - ./media:/app/media
       - ./quiz_backend/logs:/app/logs
+      - ./bot:/quiz_project/bot  # Монтируем бот для доступа к логотипу
     depends_on:
       - postgres_db
       - redis
