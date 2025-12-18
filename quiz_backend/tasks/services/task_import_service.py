@@ -260,7 +260,16 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                                     detailed_logs.append(f"🎬 Генерация видео для задачи {task.id} (русский язык)")
                                     
                                     try:
-                                        video_url = generate_video_for_task(question, topic_name)
+                                        # Получаем информацию о подтеме и сложности
+                                        subtopic_name = task.subtopic.name if task.subtopic else None
+                                        difficulty = task.difficulty if hasattr(task, 'difficulty') else None
+                                        
+                                        video_url = generate_video_for_task(
+                                            question, 
+                                            topic_name,
+                                            subtopic_name=subtopic_name,
+                                            difficulty=difficulty
+                                        )
                                         
                                         if video_url:
                                             task.video_url = video_url

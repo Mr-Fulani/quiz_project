@@ -6,6 +6,7 @@ import logging
 from django.core.management.base import BaseCommand
 from tasks.models import Task, TaskTranslation
 from tasks.services.video_generation_service import generate_video_for_task
+from tasks.services.telegram_service import send_video
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -93,8 +94,17 @@ class Command(BaseCommand):
         try:
             self.stdout.write(f'🎬 Генерация видео для задачи {task.id} (тема: {topic_name})...')
             
-            # Генерируем видео
-            video_url = generate_video_for_task(ru_translation.question, topic_name)
+            # Получаем информацию о подтеме и сложности
+            subtopic_name = task.subtopic.name if task.subtopic else None
+            difficulty = task.difficulty if hasattr(task, 'difficulty') else None
+            
+            # Генерируем видео (внутри функции уже есть отправка админу)
+            video_url = generate_video_for_task(
+                ru_translation.question, 
+                topic_name,
+                subtopic_name=subtopic_name,
+                difficulty=difficulty
+            )
             
             if video_url:
                 # Сохраняем URL видео

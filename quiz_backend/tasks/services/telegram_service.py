@@ -217,6 +217,50 @@ def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Di
         return None
 
 
+def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Dict]:
+    """
+    Отправляет видео в Telegram чат.
+    
+    Args:
+        chat_id: ID чата или канала
+        video_url: URL видео
+        caption: Подпись к видео
+        
+    Returns:
+        Результат отправки или None при ошибке
+    """
+    if not settings.TELEGRAM_BOT_TOKEN:
+        logger.error("TELEGRAM_BOT_TOKEN не настроен")
+        return None
+    
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendVideo"
+    
+    data = {
+        'chat_id': chat_id,
+        'video': video_url,
+    }
+    
+    if caption:
+        data['caption'] = caption
+    
+    try:
+        response = requests.post(url, data=data, timeout=60)  # Увеличен таймаут для видео
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        if result.get('ok'):
+            logger.info(f"✅ Видео успешно отправлено в {chat_id}")
+            return result['result']
+        else:
+            logger.error(f"❌ Ошибка отправки видео: {result.get('description')}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ Исключение при отправке видео: {e}")
+        return None
+
+
 def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2") -> Optional[Dict]:
     """
     Отправляет текстовое сообщение в Telegram канал.
