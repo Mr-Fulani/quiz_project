@@ -74,7 +74,7 @@ def format_python_code(code: str) -> str:
     try:
         import black
         mode = black.Mode(
-            line_length=79,
+            line_length=65,
             string_normalization=False,
             is_pyi=False,
         )
@@ -92,7 +92,7 @@ def format_python_code(code: str) -> str:
         formatted = autopep8.fix_code(
             code,
             options={
-                'max_line_length': 79,
+                'max_line_length': 65,
                 'aggressive': 2,
                 'experimental': True,
             }

@@ -60,7 +60,8 @@ def _generate_console_frame_vertical(
     language: str,
     visible_chars: int,
     logo_path: Optional[str] = None,
-    question_text: str = "Каким будет результат кода?"
+    question_text: str = "Каким будет результат кода?",
+    frame_index: int = 0
 ) -> Image.Image:
     """
     Генерирует кадр консоли с кодом в вертикальном формате (9:16, 1080x1920).
@@ -87,14 +88,35 @@ def _generate_console_frame_vertical(
     # Вырезаем видимую часть кода (код уже отформатирован)
     # Убеждаемся, что последний кадр покажет весь код
     if visible_chars >= len(formatted_code_text):
+        # Показываем весь код
         visible_code = formatted_code_text
     else:
-        # Берем видимую часть без обрезки до последней строки - показываем весь код до visible_chars
-        visible_code = formatted_code_text[:visible_chars]
+        # Берем видимую часть, но обрезаем по строкам, а не по символам
+        # Это гарантирует, что всегда показываются полные строки
+        visible_text = formatted_code_text[:visible_chars]
+        # Находим последний перенос строки в видимой части
+        last_newline = visible_text.rfind('\n')
+        if last_newline > 0:
+            # Обрезаем до последней полной строки
+            visible_code = visible_text[:last_newline + 1]
+        else:
+            # Если переноса строки нет, берем как есть (первая строка)
+            visible_code = visible_text
+    
+    # ВСЕГДА добавляем две пустые строки в конец кода для лучшей читаемости
+    # Удаляем все переносы строк в конце, чтобы добавить точно \n\n
+    visible_code = visible_code.rstrip('\n')
+    visible_code += '\n\n'  # Всегда добавляем две пустые строки
+    
+    # Проверяем, что пустые строки действительно добавлены
+    if not visible_code.endswith('\n\n'):
+        logger.warning(f"⚠️ Пустые строки не добавлены! Код заканчивается на: {repr(visible_code[-10:])}")
+        visible_code = visible_code.rstrip('\n') + '\n\n'
     
     # Настройки для вертикального формата (размеры консоли для вертикального экрана)
     MIN_CONSOLE_WIDTH = 950  # Уменьшено чтобы поместилось на экране
-    MIN_CONSOLE_HEIGHT = 1000  # Уменьшено чтобы поместилось на экране
+    MIN_CONSOLE_HEIGHT = 1000  # Минимальная высота, но будет увеличиваться если код длиннее
+    MAX_CONSOLE_HEIGHT = video_height - 300  # Максимальная высота с учетом текста вопроса и отступов
     
     lexer = get_lexer(language)
     
@@ -114,13 +136,16 @@ def _generate_console_frame_vertical(
             background_color='#272822'
         )
         code_image_io = io.BytesIO()
-        highlight(visible_code.strip(), lexer, formatter, outfile=code_image_io)
+        # НЕ используем rstrip() - передаем код как есть, с пустыми строками в конце
+        # Pygments должен сохранить пустые строки
+        highlight(visible_code, lexer, formatter, outfile=code_image_io)
         code_image_io.seek(0)
         tmp_code_img = Image.open(code_image_io).convert("RGBA")
         
         # Проверяем, помещается ли изображение кода в консоль (уменьшены отступы для большего размера)
         max_code_width = MIN_CONSOLE_WIDTH - 120  # Уменьшено с 160 до 120
-        max_code_height = MIN_CONSOLE_HEIGHT - 160  # Уменьшено с 200 до 160
+        # Используем динамическую высоту вместо фиксированной MIN_CONSOLE_HEIGHT
+        max_code_height = video_height - 400  # Оставляем место для текста вопроса и отступов
         
         if tmp_code_img.width <= max_code_width and tmp_code_img.height <= max_code_height:
             code_img = tmp_code_img
@@ -130,23 +155,58 @@ def _generate_console_frame_vertical(
     
     if code_img is None:
         code_img = tmp_code_img
-        # Если код не помещается, масштабируем только если он сильно превышает размеры
-        max_code_width = MIN_CONSOLE_WIDTH - 120  # Уменьшено с 160 до 120
-        max_code_height = MIN_CONSOLE_HEIGHT - 160  # Уменьшено с 200 до 160
-        if code_img.width > max_code_width or code_img.height > max_code_height:
-            scale_w = max_code_width / code_img.width if code_img.width > max_code_width else 1.0
-            scale_h = max_code_height / code_img.height if code_img.height > max_code_height else 1.0
-            scale = min(scale_w, scale_h, 1.0)
-            if scale < 1.0:
-                new_width = int(code_img.width * scale)
-                new_height = int(code_img.height * scale)
-                code_img = code_img.resize((new_width, new_height), Resampling.LANCZOS)
+        # Не масштабируем код - пусть консоль увеличивается по высоте
+        # Масштабируем только по ширине если код слишком широкий
+        max_code_width = MIN_CONSOLE_WIDTH - 120
+        if code_img.width > max_code_width:
+            scale = max_code_width / code_img.width
+            new_width = int(code_img.width * scale)
+            new_height = int(code_img.height * scale)
+            code_img = code_img.resize((new_width, new_height), Resampling.LANCZOS)
+            logger.debug(f"Код масштабирован по ширине: {code_img.width}x{code_img.height}")
     
-    # Рассчитываем размеры консоли (но не больше ширины экрана)
-    # Уменьшены отступы внутри консоли для большего размера кода
+    # Рассчитываем ширину консоли (но не больше ширины экрана)
     max_console_width = video_width - 100  # Оставляем отступы по бокам
-    console_width = min(max_console_width, max(MIN_CONSOLE_WIDTH, code_img.width + 140))  # Уменьшено с 180 до 140
-    console_height = max(MIN_CONSOLE_HEIGHT, code_img.height + 180)  # Уменьшено с 240 до 180
+    console_width = min(max_console_width, max(MIN_CONSOLE_WIDTH, code_img.width + 140))
+    
+    # ВСЕГДА добавляем две пустые строки внизу изображения кода ПЕРЕД расчетом высоты консоли
+    # Вычисляем высоту одной строки на основе высоты изображения и количества строк кода
+    # Подсчитываем количество строк в коде (включая пустые)
+    code_lines = visible_code.split('\n')
+    num_lines = len(code_lines)
+    
+    # Логируем информацию о коде и пустых строках (только для первого кадра, чтобы не засорять логи)
+    if frame_index == 0:
+        logger.info(f"📊 Код содержит {num_lines} строк, заканчивается на: {repr(visible_code[-20:])}")
+        logger.info(f"📏 Высота изображения кода после рендеринга: {code_img.height}px")
+    
+    if num_lines > 0:
+        # Вычисляем среднюю высоту одной строки
+        avg_line_height = code_img.height / num_lines
+        # Добавляем две пустые строки - используем минимум 80px для гарантии видимости
+        empty_lines_height = max(int(avg_line_height * 2), 80)
+    else:
+        # Fallback: используем фиксированную высоту
+        empty_lines_height = 80  # Гарантированно видимые две пустые строки
+    
+    # Создаем новое изображение с дополнительным пространством внизу
+    old_height = code_img.height
+    new_height = code_img.height + empty_lines_height
+    new_img = Image.new("RGBA", (code_img.width, new_height), (0x27, 0x28, 0x22, 255))  # #272822 - цвет фона консоли
+    new_img.paste(code_img, (0, 0))
+    code_img = new_img
+    
+    # Логируем только для первого кадра
+    if frame_index == 0:
+        logger.info(f"✅ Добавлены две пустые строки: высота={empty_lines_height}px, общая высота={new_height}px (было {old_height}px)")
+    
+    # ВАЖНО: Рассчитываем высоту консоли ПОСЛЕ добавления пустых строк
+    # Сначала рассчитываем необходимую высоту консоли на основе кода и отступов
+    padding_top = 100  # Отступ сверху, чтобы код был ниже
+    bottom_padding = 5  # Минимальный отступ снизу для компактной консоли
+    needed_height = code_img.height + padding_top + bottom_padding
+    # НЕ используем MIN_CONSOLE_HEIGHT - консоль должна быть ровно такой, какая нужна
+    console_height = needed_height
     
     # Создаем изображение фона
     background_color = (173, 216, 230)
@@ -188,24 +248,43 @@ def _generate_console_frame_vertical(
         ), fill=color)
     
     # Добавляем логотип если есть (опускаем ниже, ближе к консоли)
-    if logo_path and os.path.exists(logo_path):
-        try:
-            logo = Image.open(logo_path).convert("RGBA")
-            logo_size = (180, 180)  # Меньше для вертикального формата
-            logo = logo.resize(logo_size, Resampling.LANCZOS)
-            logo_x = video_width - logo.width - 20
-            # Размещаем логотип ближе к консоли (примерно на уровне верхнего края консоли)
-            logo_y = max(console_y0 - logo.height - 30, 50)  # На 30px выше консоли, минимум 50px от верха
-            image.paste(logo, (logo_x, logo_y), logo)
-        except Exception as e:
-            logger.error(f"Ошибка при загрузке логотипа: {e}")
+    if logo_path:
+        # Проверяем существование файла несколькими способами
+        logo_exists = os.path.exists(logo_path) or Path(logo_path).exists()
+        if logo_exists:
+            try:
+                logo = Image.open(logo_path).convert("RGBA")
+                logo_size = (180, 180)  # Меньше для вертикального формата
+                logo = logo.resize(logo_size, Resampling.LANCZOS)
+                logo_x = video_width - logo.width - 20
+                # Размещаем логотип ближе к консоли (примерно на уровне верхнего края консоли)
+                logo_y = max(console_y0 - logo.height - 30, 50)  # На 30px выше консоли, минимум 50px от верха
+                image.paste(logo, (logo_x, logo_y), logo)
+            except Exception as e:
+                logger.error(f"Ошибка при загрузке логотипа: {e}")
     
-    # Вставляем код в консоль (уменьшены отступы для большего размера кода)
+    # Вставляем код в консоль
     shift_left = 40
     padding_left = (console_width - code_img.width) // 2 - shift_left
-    padding_top = 80  # Уменьшено с 120 до 80 для большего размера кода
     code_x = console_x0 + padding_left
     code_y = console_y0 + padding_top
+    
+    # Перерисовываем консоль с точной высотой
+    draw.rounded_rectangle(
+        (console_x0, console_y0, console_x1, console_y1),
+        radius=corner_radius,
+        fill=console_color
+    )
+    # Перерисовываем кнопки
+    for i, color in enumerate([red, yellow, green]):
+        draw.ellipse((
+            console_x0 + (2 * i + 1) * circle_spacing,
+            circle_y,
+            console_x0 + (2 * i + 1) * circle_spacing + 2 * circle_radius,
+            circle_y + 2 * circle_radius
+        ), fill=color)
+    
+    # Вставляем код в консоль - ВЕСЬ код должен быть виден, включая пустые строки
     image.paste(code_img, (code_x, code_y), code_img)
     
     # Добавляем текст вопроса прямо под консолью жирным шрифтом
@@ -300,8 +379,14 @@ def generate_code_typing_video(
         
         # Форматируем код ОДИН РАЗ перед генерацией кадров
         formatted_code = smart_format_code(code, language)
-        # Обрезаем длинные строки для вертикального формата
-        formatted_code = wrap_text(formatted_code, max_line_length=50)
+        # Обрезаем длинные строки для вертикального формата (65 символов для большего шрифта)
+        formatted_code = wrap_text(formatted_code, max_line_length=65)
+        # Добавляем две пустые строки в конец кода для лучшей читаемости
+        if not formatted_code.endswith('\n\n'):
+            if formatted_code.endswith('\n'):
+                formatted_code += '\n'  # Добавляем еще одну пустую строку
+            else:
+                formatted_code += '\n\n'  # Добавляем две пустые строки если их нет
         total_chars = len(formatted_code)
         
         # Рассчитываем количество кадров с ограничением максимальной длительности
@@ -319,13 +404,18 @@ def generate_code_typing_video(
         
         # Генерируем кадры и сразу сохраняем на диск (не накапливаем в памяти)
         logger.info(f"Генерация {total_frames} кадров для видео...")
+        # Последние 15% кадров показывают весь код полностью
+        full_code_start_frame = int(total_frames * 0.85)
+        
         for frame_num in range(total_frames):
-            # Для последнего кадра показываем весь код, иначе пропорционально
-            if frame_num == total_frames - 1:
-                visible_chars = total_chars  # Последний кадр - весь код
+            # Для последних 15% кадров показываем весь код полностью
+            if frame_num >= full_code_start_frame:
+                visible_chars = total_chars  # Весь код
             else:
-                visible_chars = int((frame_num / total_frames) * total_chars)
-            frame = _generate_console_frame_vertical(formatted_code, language, visible_chars, logo_path, question_text)
+                # Пропорционально показываем код
+                progress = (frame_num + 1) / full_code_start_frame
+                visible_chars = int(progress * total_chars)
+            frame = _generate_console_frame_vertical(formatted_code, language, visible_chars, logo_path, question_text, frame_num)
             
             # Сразу сохраняем кадр на диск
             frame_path = os.path.join(temp_dir, f"frame_{frame_num:06d}.png")
@@ -423,7 +513,7 @@ def generate_video_for_task(
         
         logger.info(f"Генерация видео, язык: {detected_language}, вопрос: {question_text}")
         
-        # Получаем путь к логотипу (та же логика, что и в generate_image_for_task)
+        # Получаем путь к логотипу (ТОЧНО ТА ЖЕ логика, что и в generate_image_for_task)
         logo_path = os.getenv('LOGO_PATH')
         if not logo_path:
             logo_path = getattr(settings, 'LOGO_PATH', None)
@@ -435,14 +525,31 @@ def generate_video_for_task(
         
         if not logo_path:
             # Fallback: ищем логотип в bot/assets/logo.png (как в боте)
-            # BASE_DIR в settings = quiz_backend, нужно подняться на уровень вверх
-            base_dir = settings.BASE_DIR.parent  # Корень проекта
-            fallback_logo_path = base_dir / 'bot' / 'assets' / 'logo.png'
-            if fallback_logo_path.exists():
-                logo_path = str(fallback_logo_path)
-                logger.info(f"🔍 Использован fallback путь к логотипу: {logo_path}")
+            # Сначала пробуем путь в Docker контейнере (/quiz_project/bot/assets/logo.png)
+            docker_path_str = '/quiz_project/bot/assets/logo.png'
+            if os.path.exists(docker_path_str):
+                logo_path = docker_path_str
+                logger.info(f"🔍 Использован Docker путь к логотипу: {logo_path}")
             else:
-                logger.warning(f"⚠️ Логотип не найден по пути: {fallback_logo_path}")
+                # Пробуем путь через BASE_DIR.parent (для локальной разработки)
+                base_dir = settings.BASE_DIR.parent  # Корень проекта
+                fallback_logo_path = base_dir / 'bot' / 'assets' / 'logo.png'
+                if os.path.exists(str(fallback_logo_path)):
+                    logo_path = str(fallback_logo_path)
+                    logger.info(f"🔍 Использован fallback путь к логотипу: {logo_path}")
+                else:
+                    logger.warning(f"⚠️ Логотип не найден. Проверены пути: {docker_path_str}, {fallback_logo_path}")
+        
+        if logo_path:
+            # Проверяем существование файла несколькими способами
+            exists_os = os.path.exists(logo_path)
+            exists_path = Path(logo_path).exists()
+            if exists_os or exists_path:
+                logger.info(f"✅ Логотип найден: {logo_path} (os.path.exists={exists_os}, Path.exists={exists_path})")
+            else:
+                logger.warning(f"⚠️ Логотип не найден по пути: {logo_path} (os.path.exists={exists_os}, Path.exists={exists_path})")
+        else:
+            logger.warning("⚠️ Путь к логотипу не установлен, видео будет сгенерировано без логотипа")
         
         if logo_path:
             logger.info(f"✅ Логотип будет использован: {logo_path}")
