@@ -40,13 +40,17 @@ RUN mkdir -p /app/templates
 COPY . /app/
 COPY templates /app/templates
 
-# Копируем entrypoint скрипт
+# Копируем entrypoint скрипты
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY celery_entrypoint.sh /celery_entrypoint.sh
+RUN chmod +x /entrypoint.sh /celery_entrypoint.sh
 
 # Создаем непривилегированного пользователя для Celery worker (безопасность)
 RUN useradd -m -u 1000 celeryuser && \
-    chown -R celeryuser:celeryuser /app
+    chown -R celeryuser:celeryuser /app && \
+    mkdir -p /app/tmp && \
+    chown celeryuser:celeryuser /app/tmp && \
+    chmod 777 /app/tmp
 
 # Команда по умолчанию
 CMD ["/entrypoint.sh"]

@@ -386,7 +386,22 @@ def generate_code_typing_video(
             logger.info(f"Код слишком длинный ({total_chars} символов), увеличена скорость набора до {typing_speed:.1f} символов/сек")
         
         # Создаем временную директорию для кадров
-        temp_dir = tempfile.mkdtemp()
+        # Используем TMPDIR из окружения или /app/tmp вместо /tmp для избежания проблем с правами доступа
+        base_temp_dir = os.getenv('TMPDIR', '/app/tmp')
+        try:
+            os.makedirs(base_temp_dir, exist_ok=True)
+            # Устанавливаем права доступа на директорию (rwxrwxrwx)
+            os.chmod(base_temp_dir, 0o777)
+        except PermissionError:
+            # Если нет прав на /app/tmp, используем системную /tmp
+            logger.warning(f"Нет прав на создание {base_temp_dir}, используем /tmp")
+            base_temp_dir = '/tmp'
+        temp_dir = tempfile.mkdtemp(dir=base_temp_dir)
+        # Устанавливаем права доступа на созданную директорию
+        try:
+            os.chmod(temp_dir, 0o777)
+        except PermissionError:
+            logger.warning(f"Не удалось установить права на {temp_dir}, продолжаем")
         frame_paths = []
         
         # Генерируем кадры и сразу сохраняем на диск (не накапливаем в памяти)
@@ -437,15 +452,51 @@ def generate_code_typing_video(
             logger.info("Аудиофайл не найден, создается видео без звука")
         
         # Экспортируем видео
-        output_path = os.path.join(temp_dir, "output.mp4")
-        clip.write_videofile(
-            output_path,
-            fps=fps,
-            codec='libx264',
-            audio_codec='aac' if audio_path else None,
-            preset='medium',
-            ffmpeg_params=['-pix_fmt', 'yuv420p']  # Для совместимости
-        )
+        # Убеждаемся, что temp_dir существует и имеет правильные права
+        try:
+            os.makedirs(temp_dir, exist_ok=True)
+            # Пытаемся установить права на temp_dir
+            try:
+                os.chmod(temp_dir, 0o777)
+            except PermissionError:
+                logger.warning(f"Не удалось установить права на {temp_dir}, продолжаем")
+        except Exception as e:
+            logger.error(f"Ошибка при создании/проверке {temp_dir}: {e}")
+            raise
+        
+        # Сохраняем текущую рабочую директорию
+        original_cwd = os.getcwd()
+        
+        # Устанавливаем TMPDIR для MoviePy явно перед вызовом
+        old_tmpdir = os.environ.get('TMPDIR')
+        os.environ['TMPDIR'] = temp_dir
+        
+        try:
+            # Меняем рабочую директорию на temp_dir, чтобы MoviePy создавал временные файлы там
+            os.chdir(temp_dir)
+            
+            # Используем относительный путь, так как мы уже в temp_dir
+            output_filename = "output.mp4"
+            
+            clip.write_videofile(
+                output_filename,
+                fps=fps,
+                codec='libx264',
+                audio_codec='aac' if audio_path else None,
+                preset='medium',
+                ffmpeg_params=['-pix_fmt', 'yuv420p']  # Для совместимости
+            )
+            
+            # Получаем абсолютный путь к созданному файлу (пока мы еще в temp_dir)
+            output_path = os.path.abspath(output_filename)
+        finally:
+            # Восстанавливаем рабочую директорию
+            os.chdir(original_cwd)
+            # Восстанавливаем TMPDIR
+            if old_tmpdir:
+                os.environ['TMPDIR'] = old_tmpdir
+            elif 'TMPDIR' in os.environ:
+                del os.environ['TMPDIR']
         
         # Очищаем временные файлы кадров
         for frame_path in frame_paths:
@@ -512,20 +563,21 @@ def generate_video_for_task(
         
         if not logo_path:
             # Fallback: ищем логотип в bot/assets/logo.png (как в боте)
-            # Сначала пробуем путь в Docker контейнере (/quiz_project/bot/assets/logo.png)
-            docker_path_str = '/quiz_project/bot/assets/logo.png'
-            if os.path.exists(docker_path_str):
-                logo_path = docker_path_str
-                logger.info(f"🔍 Использован Docker путь к логотипу: {logo_path}")
-            else:
-                # Пробуем путь через BASE_DIR.parent (для локальной разработки)
-                base_dir = settings.BASE_DIR.parent  # Корень проекта
-                fallback_logo_path = base_dir / 'bot' / 'assets' / 'logo.png'
-                if os.path.exists(str(fallback_logo_path)):
-                    logo_path = str(fallback_logo_path)
-                    logger.info(f"🔍 Использован fallback путь к логотипу: {logo_path}")
-                else:
-                    logger.warning(f"⚠️ Логотип не найден. Проверены пути: {docker_path_str}, {fallback_logo_path}")
+            # Список возможных путей в порядке приоритета
+            possible_paths = [
+                '/quiz_project/bot/assets/logo.png',  # Docker контейнер (volume)
+                '/app/../bot/assets/logo.png',  # Относительно /app
+                str(settings.BASE_DIR.parent / 'bot' / 'assets' / 'logo.png'),  # Локальная разработка
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    logo_path = path
+                    logger.info(f"🔍 Использован путь к логотипу: {logo_path}")
+                    break
+            
+            if not logo_path:
+                logger.warning(f"⚠️ Логотип не найден. Проверены пути: {', '.join(possible_paths)}")
         
         if logo_path:
             # Проверяем существование файла несколькими способами
