@@ -453,7 +453,7 @@ def generate_video_for_task(
         
         video_url = upload_video_to_s3(video_path, video_name)
         
-        # Отправляем видео админу в Telegram
+        # Отправляем видео админу в Telegram (ПЕРЕД удалением файла!)
         admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
         
         # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
@@ -467,38 +467,57 @@ def generate_video_for_task(
             except Exception as e:
                 logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
         
-        if video_url and admin_chat_id:
+        # Отправляем видео файл напрямую админу (если есть chat_id и файл существует)
+        if admin_chat_id and video_path and os.path.exists(video_path):
             try:
-                from .telegram_service import send_video, send_message
+                from .telegram_service import send_video_file, send_message
                 
-                # Отправляем видео
+                # Отправляем видео файл напрямую
                 caption = f"🎬 Видео сгенерировано для задачи"
-                send_video(str(admin_chat_id), video_url, caption)
-                logger.info(f"✅ Видео отправлено админу в Telegram (chat_id: {admin_chat_id})")
+                result = send_video_file(str(admin_chat_id), video_path, caption)
                 
-                # Формируем и отправляем детали задачи
-                task_details = f"🖥️ Язык: {topic_name}"
-                if subtopic_name:
-                    task_details += f"\n📂 Тема: {subtopic_name}"
-                if difficulty:
-                    task_details += f"\n🎯 Сложность: {difficulty}"
-                task_details += f"\n🔗 URL: {video_url}"
-                
-                # Отправляем детали задачи текстовым сообщением (без parse_mode для корректного отображения emoji)
-                send_message(str(admin_chat_id), task_details, parse_mode=None)
-                logger.info(f"✅ Детали задачи отправлены админу")
+                if result:
+                    logger.info(f"✅ Видео файл отправлен админу в Telegram (chat_id: {admin_chat_id})")
+                    
+                    # Формируем и отправляем детали задачи
+                    task_details = f"🖥️ Язык: {topic_name}"
+                    if subtopic_name:
+                        task_details += f"\n📂 Тема: {subtopic_name}"
+                    if difficulty:
+                        task_details += f"\n🎯 Сложность: {difficulty}"
+                    if video_url:
+                        task_details += f"\n🔗 URL: {video_url}"
+                    
+                    # Отправляем детали задачи текстовым сообщением (без parse_mode для корректного отображения emoji)
+                    send_message(str(admin_chat_id), task_details, parse_mode=None)
+                    logger.info(f"✅ Детали задачи отправлены админу")
+                else:
+                    logger.warning(f"⚠️ Не удалось отправить видео файл админу, пробуем по URL...")
+                    # Пробуем отправить по URL как fallback
+                    if video_url:
+                        from .telegram_service import send_video
+                        send_video(str(admin_chat_id), video_url, caption)
+                        logger.info(f"✅ Видео отправлено админу по URL (chat_id: {admin_chat_id})")
                 
             except Exception as e:
                 logger.warning(f"⚠️ Не удалось отправить видео админу: {e}")
+                logger.exception(e)  # Логируем полный traceback для отладки
+        elif admin_chat_id:
+            logger.warning(f"⚠️ Не удалось отправить видео админу: файл не найден по пути {video_path}")
+        elif not admin_chat_id:
+            logger.warning(f"⚠️ Не удалось отправить видео админу: chat_id не найден")
         
-        # Удаляем временный файл
+        # Удаляем временный файл ПОСЛЕ отправки
         try:
-            os.remove(video_path)
+            if os.path.exists(video_path):
+                os.remove(video_path)
+                logger.debug(f"🗑️ Временный файл видео удален: {video_path}")
             # Удаляем временную директорию если пустая
             temp_dir = os.path.dirname(video_path)
             if os.path.exists(temp_dir):
                 try:
                     os.rmdir(temp_dir)
+                    logger.debug(f"🗑️ Временная директория удалена: {temp_dir}")
                 except OSError:
                     pass  # Директория не пустая
         except Exception as e:

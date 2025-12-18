@@ -4,6 +4,7 @@
 """
 import json
 import logging
+import os
 import random
 import time
 from typing import Dict, List, Optional
@@ -219,7 +220,7 @@ def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Di
 
 def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Dict]:
     """
-    Отправляет видео в Telegram чат.
+    Отправляет видео в Telegram чат по URL.
     
     Args:
         chat_id: ID чата или канала
@@ -258,6 +259,56 @@ def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Di
             
     except Exception as e:
         logger.error(f"❌ Исключение при отправке видео: {e}")
+        return None
+
+
+def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optional[Dict]:
+    """
+    Отправляет видео файл напрямую в Telegram чат.
+    
+    Args:
+        chat_id: ID чата или канала
+        video_path: Путь к файлу видео на диске
+        caption: Подпись к видео
+        
+    Returns:
+        Результат отправки или None при ошибке
+    """
+    if not settings.TELEGRAM_BOT_TOKEN:
+        logger.error("TELEGRAM_BOT_TOKEN не настроен")
+        return None
+    
+    if not os.path.exists(video_path):
+        logger.error(f"❌ Файл видео не найден: {video_path}")
+        return None
+    
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendVideo"
+    
+    data = {
+        'chat_id': chat_id,
+    }
+    
+    if caption:
+        data['caption'] = caption
+    
+    try:
+        with open(video_path, 'rb') as video_file:
+            files = {'video': video_file}
+            response = requests.post(url, data=data, files=files, timeout=120)  # Увеличен таймаут для загрузки файла
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        if result.get('ok'):
+            logger.info(f"✅ Видео файл успешно отправлен в {chat_id}")
+            return result['result']
+        else:
+            logger.error(f"❌ Ошибка отправки видео файла: {result.get('description')}")
+            logger.error(f"   Детали ответа: {result}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ Исключение при отправке видео файла: {e}")
         return None
 
 
@@ -680,6 +731,51 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             result['success'] = True
             logger.info(f"✅ Задача {task.id} успешно опубликована в {chat_id}")
             result['detailed_logs'].append(f"🎉 Задача {task.id} ПОЛНОСТЬЮ опубликована!")
+            
+            # Автоматическая генерация видео для русской версии задачи (асинхронно через Celery)
+            if language == 'ru' and not task.video_url:
+                # Проверяем, включена ли генерация видео
+                video_generation_enabled = getattr(settings, 'VIDEO_GENERATION_ENABLED', True)
+                if video_generation_enabled:
+                    try:
+                        from config.tasks import generate_video_for_task_async
+                        
+                        # Получаем информацию о теме и подтеме
+                        topic_name = task.topic.name if task.topic else 'unknown'
+                        subtopic_name = task.subtopic.name if task.subtopic else None
+                        difficulty = task.difficulty if hasattr(task, 'difficulty') else None
+                        
+                        result['detailed_logs'].append(f"🎬 Начинаем генерацию видео для русской версии задачи {task.id}")
+                        result['detailed_logs'].append(f"   📋 Параметры: тема={topic_name}, подтема={subtopic_name or 'нет'}, сложность={difficulty or 'не указана'}")
+                        result['detailed_logs'].append(f"   ⏳ Запуск асинхронной задачи через Celery...")
+                        
+                        # Запускаем асинхронную генерацию видео через Celery
+                        celery_task = generate_video_for_task_async.delay(
+                            task_id=task.id,
+                            task_question=translation.question,
+                            topic_name=topic_name,
+                            subtopic_name=subtopic_name,
+                            difficulty=difficulty
+                        )
+                        
+                        result['detailed_logs'].append(f"✅ Задача Celery запущена (ID: {celery_task.id})")
+                        result['detailed_logs'].append(f"   📝 Видео будет сгенерировано в фоне и отправлено админу")
+                        result['detailed_logs'].append(f"   💡 Статус генерации можно отследить в логах Celery")
+                        logger.info(f"🎬 [Async] Запущена генерация видео для задачи {task.id} (русский язык) через Celery, task_id={celery_task.id}")
+                            
+                    except Exception as video_error:
+                        error_msg = f"❌ Ошибка при запуске генерации видео для задачи {task.id}: {video_error}"
+                        logger.error(error_msg, exc_info=True)
+                        result['detailed_logs'].append(error_msg)
+                        result['detailed_logs'].append(f"   🔍 Проверьте логи Celery для деталей")
+                        # Не добавляем в errors, чтобы не помечать публикацию как неудачную
+                else:
+                    result['detailed_logs'].append(f"ℹ️ Генерация видео отключена в настройках (VIDEO_GENERATION_ENABLED=False)")
+            elif language == 'ru' and task.video_url:
+                result['detailed_logs'].append(f"ℹ️ Видео уже существует для задачи {task.id}")
+                result['detailed_logs'].append(f"   🔗 URL: {task.video_url}")
+            elif language != 'ru':
+                result['detailed_logs'].append(f"ℹ️ Генерация видео только для русской версии (текущий язык: {language})")
         else:
             logger.warning(f"⚠️ Задача {task.id} опубликована частично: {result}")
             result['detailed_logs'].append(f"⚠️ Задача {task.id} опубликована ЧАСТИЧНО")
