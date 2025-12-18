@@ -92,7 +92,7 @@ def format_python_code(code: str) -> str:
         formatted = autopep8.fix_code(
             code,
             options={
-                'max_line_length': 65,
+                'max_line_length': 50,
                 'aggressive': 2,
                 'experimental': True,
             }
@@ -358,7 +358,7 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     formatted_text = smart_format_code(task_text, language)
     
     # Дополнительно оборачиваем длинные строки если нужно
-    formatted_text = wrap_text(formatted_text, max_line_length=79)
+    formatted_text = wrap_text(formatted_text, max_line_length=50)
 
     # Минимальные размеры
     MIN_WIDTH, MIN_HEIGHT = 1600, 1000

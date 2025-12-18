@@ -104,6 +104,7 @@ class Task(Base):
     publish_date = Column(DateTime(timezone=True), nullable=True)
     image_url = Column(String, nullable=True)
     external_link = Column(String, nullable=True)
+    video_url = Column(String, nullable=True)
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)
     message_id = Column(Integer, unique=False, nullable=True)

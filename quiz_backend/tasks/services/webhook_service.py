@@ -148,6 +148,7 @@ def create_full_webhook_data(task: Task) -> Dict[str, Any]:
             "publish_date": _serialize_datetime(task.publish_date),
             "image_url": image_url,
             "external_link": task.external_link,
+            "video_url": task.video_url,
             "translation_group_id": str(task.translation_group_id),
             "message_id": task.message_id,
             "error": task.error,
