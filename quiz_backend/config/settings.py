@@ -753,6 +753,7 @@ VIDEO_HEIGHT = int(os.getenv('VIDEO_HEIGHT', '1920'))
 VIDEO_TYPING_SPEED = float(os.getenv('VIDEO_TYPING_SPEED', '20'))  # символов в секунду (увеличено для меньшего количества кадров)
 VIDEO_FPS = int(os.getenv('VIDEO_FPS', '24'))
 KEYBOARD_AUDIO_PATH = os.getenv('KEYBOARD_AUDIO_PATH', None)  # опционально, если нет - видео без звука
+TELEGRAM_ADMIN_CHAT_ID = os.getenv('TELEGRAM_ADMIN_CHAT_ID', None)  # Chat ID админа для отправки сгенерированных видео
 
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
