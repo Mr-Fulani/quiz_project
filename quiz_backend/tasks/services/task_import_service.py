@@ -9,11 +9,13 @@ import uuid
 from typing import Dict, List
 
 from django.db import transaction
+from django.conf import settings
 from topics.models import Topic, Subtopic
 from platforms.models import TelegramGroup
 from tasks.models import Task, TaskTranslation
 from .s3_service import upload_image_to_s3
 from .image_generation_service import generate_image_for_task
+from .video_generation_service import generate_video_for_task
 from .telegram_service import publish_task_to_telegram
 
 logger = logging.getLogger(__name__)
@@ -248,6 +250,33 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                             
                             successfully_loaded += 1
                             successfully_loaded_ids.append(task.id)
+                            
+                            # Генерируем видео только для русского языка
+                            if language == 'ru' and not task.video_url:
+                                # Проверяем, включена ли генерация видео
+                                video_generation_enabled = getattr(settings, 'VIDEO_GENERATION_ENABLED', True)
+                                if video_generation_enabled:
+                                    logger.info(f"🎬 Генерация видео для задачи {task.id} (русский язык)")
+                                    detailed_logs.append(f"🎬 Генерация видео для задачи {task.id} (русский язык)")
+                                    
+                                    try:
+                                        video_url = generate_video_for_task(question, topic_name)
+                                        
+                                        if video_url:
+                                            task.video_url = video_url
+                                            task.save(update_fields=['video_url'])
+                                            logger.info(f"✅ Видео загружено: {video_url}")
+                                            detailed_logs.append(f"✅ Видео загружено в S3 для задачи {task.id}")
+                                            detailed_logs.append(f"   URL: {video_url}")
+                                        else:
+                                            error_msg = f"⚠️ Не удалось сгенерировать/загрузить видео для задачи {task.id}"
+                                            logger.warning(error_msg)
+                                            detailed_logs.append(error_msg)
+                                    
+                                    except Exception as video_error:
+                                        error_msg = f"❌ Ошибка генерации/загрузки видео для задачи {task.id}: {video_error}"
+                                        logger.error(error_msg, exc_info=True)
+                                        detailed_logs.append(error_msg)
                             
                             # Публикуем в Telegram если требуется
                             if publish and telegram_group and task.image_url:

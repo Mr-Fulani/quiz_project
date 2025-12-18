@@ -69,3 +69,6 @@ wrapt==1.16.0
 whitenoise==6.8.2
 yarl==1.20.1
 qrcode[pil]>=7.4
+# Видео генерация
+moviepy==1.0.3
+imageio-ffmpeg==0.4.9
