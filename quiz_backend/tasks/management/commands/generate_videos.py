@@ -103,7 +103,8 @@ class Command(BaseCommand):
                 ru_translation.question, 
                 topic_name,
                 subtopic_name=subtopic_name,
-                difficulty=difficulty
+                difficulty=difficulty,
+                task_id=task.id  # Передаем task_id для формирования понятного имени файла
             )
             
             if video_url:

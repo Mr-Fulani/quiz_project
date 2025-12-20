@@ -195,7 +195,7 @@ def process_uploaded_file(self, file_path, user_id):
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=300)
-def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False):
+def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False, admin_chat_id=None):
     """
     Асинхронная генерация видео для задачи.
     
@@ -210,6 +210,7 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         subtopic_name: Название подтемы (опционально)
         difficulty: Сложность задачи (опционально)
         force_regenerate: Если True, перегенерирует видео даже если оно уже существует
+        admin_chat_id: ID чата админа для отправки видео (опционально, если не указан, будет получен из настроек/БД)
     
     Returns:
         URL видео или None при ошибке
@@ -287,11 +288,14 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         logger.info(f"📝 [Celery] Этап 1/4: Извлечение кода из вопроса...")
         
         # Генерируем видео (внутри функции уже есть отправка админу)
+        # Передаем admin_chat_id и task_id для формирования понятного имени файла
         video_url = generate_video_for_task(
             task_question,
             topic_name,
             subtopic_name=subtopic_name,
-            difficulty=difficulty
+            difficulty=difficulty,
+            admin_chat_id=admin_chat_id,
+            task_id=task_id
         )
         
         if video_url:

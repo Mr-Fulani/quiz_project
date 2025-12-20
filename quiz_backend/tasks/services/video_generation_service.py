@@ -29,6 +29,33 @@ from .image_generation_service import (
 logger = logging.getLogger(__name__)
 
 
+def sanitize_filename(text: str, max_length: int = 100) -> str:
+    """
+    Очищает строку для использования в имени файла.
+    Удаляет специальные символы, оставляет только буквы, цифры, дефисы и подчеркивания.
+    
+    Args:
+        text: Исходная строка
+        max_length: Максимальная длина результата
+        
+    Returns:
+        Очищенная строка, пригодная для имени файла
+    """
+    if not text:
+        return ""
+    
+    # Заменяем пробелы и специальные символы на подчеркивания
+    text = re.sub(r'[^\w\s-]', '', text)  # Удаляем все кроме букв, цифр, пробелов, дефисов и подчеркиваний
+    text = re.sub(r'[\s_-]+', '_', text)  # Заменяем пробелы и множественные подчеркивания на одно
+    text = text.strip('_-')  # Удаляем подчеркивания и дефисы с краев
+    
+    # Ограничиваем длину
+    if len(text) > max_length:
+        text = text[:max_length].rstrip('_-')
+    
+    return text.lower()
+
+
 def _get_keyboard_audio_path() -> Optional[str]:
     """
     Возвращает путь к аудиофайлу со звуком клавиатуры, если он существует.
@@ -517,7 +544,9 @@ def generate_video_for_task(
     task_question: str, 
     topic_name: str,
     subtopic_name: str = None,
-    difficulty: str = None
+    difficulty: str = None,
+    admin_chat_id: str = None,
+    task_id: int = None
 ) -> Optional[str]:
     """
     Генерирует видео для задачи в формате reels.
@@ -527,6 +556,8 @@ def generate_video_for_task(
         topic_name: Название темы (например, 'Python', 'JavaScript')
         subtopic_name: Название подтемы (опционально)
         difficulty: Сложность задачи (опционально)
+        admin_chat_id: ID чата админа для отправки видео (опционально, если не указан, будет получен из настроек/БД)
+        task_id: ID задачи для использования в имени файла (опционально)
         
     Returns:
         URL видео в S3/R2 или None при ошибке
@@ -603,26 +634,74 @@ def generate_video_for_task(
         # Загружаем в S3/R2
         from .s3_service import upload_video_to_s3
         
-        # Формируем имя файла (уникальное для избежания конфликтов)
-        unique_id = str(uuid.uuid4())[:8]
-        video_name = f"task_video_{topic_name.lower()}_{detected_language}_{unique_id}.mp4"
-        video_name = video_name.replace(" ", "_")
+        # Формируем понятное имя файла на основе темы видео
+        # Формат: video_{topic}_{subtopic}_{language}_{difficulty}_{task_id}.mp4
+        name_parts = ["video"]
+        
+        # Добавляем тему (обязательно)
+        if topic_name:
+            name_parts.append(sanitize_filename(topic_name, max_length=30))
+        
+        # Добавляем подтему (если есть)
+        if subtopic_name:
+            name_parts.append(sanitize_filename(subtopic_name, max_length=30))
+        
+        # Добавляем язык программирования
+        if detected_language:
+            name_parts.append(sanitize_filename(detected_language, max_length=20))
+        
+        # Добавляем сложность (если есть)
+        if difficulty:
+            name_parts.append(sanitize_filename(difficulty, max_length=15))
+        
+        # Добавляем ID задачи или короткий уникальный ID для уникальности
+        if task_id:
+            name_parts.append(str(task_id))
+        else:
+            # Если task_id не передан, используем короткий уникальный ID
+            unique_id = str(uuid.uuid4())[:8]
+            name_parts.append(unique_id)
+        
+        # Собираем имя файла
+        video_name = "_".join(name_parts) + ".mp4"
+        
+        logger.info(f"📝 Сформировано имя файла видео: {video_name}")
+        
+        # Переименовываем файл с output.mp4 на правильное имя перед загрузкой
+        video_dir = os.path.dirname(video_path)
+        new_video_path = os.path.join(video_dir, video_name)
+        
+        try:
+            # Переименовываем файл
+            os.rename(video_path, new_video_path)
+            logger.info(f"✅ Файл переименован: {os.path.basename(video_path)} -> {video_name}")
+            video_path = new_video_path  # Используем новый путь для загрузки
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось переименовать файл {video_path} в {new_video_path}: {e}")
+            logger.info(f"   Продолжаем с исходным именем файла")
+            # Если не удалось переименовать, используем исходный путь, но имя для S3 будет правильным
         
         video_url = upload_video_to_s3(video_path, video_name)
         
         # Отправляем видео админу в Telegram (ПЕРЕД удалением файла!)
-        admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
-        
-        # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
+        # Если admin_chat_id не передан явно, получаем из настроек или базы данных
         if not admin_chat_id:
-            try:
-                from accounts.models import TelegramAdmin
-                admin = TelegramAdmin.objects.filter(is_active=True).first()
-                if admin:
-                    admin_chat_id = str(admin.telegram_id)
-                    logger.info(f"📱 Используется chat_id первого активного админа: {admin_chat_id}")
-            except Exception as e:
-                logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
+            admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+            
+            # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
+            if not admin_chat_id:
+                try:
+                    from accounts.models import TelegramAdmin
+                    admin = TelegramAdmin.objects.filter(is_active=True).first()
+                    if admin:
+                        admin_chat_id = str(admin.telegram_id)
+                        logger.info(f"📱 Используется chat_id первого активного админа: {admin_chat_id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
+        else:
+            # Преобразуем в строку, если передан как число
+            admin_chat_id = str(admin_chat_id)
+            logger.info(f"📱 Используется переданный admin_chat_id: {admin_chat_id}")
         
         # Отправляем видео файл напрямую админу (если есть chat_id и файл существует)
         if admin_chat_id and video_path and os.path.exists(video_path):
