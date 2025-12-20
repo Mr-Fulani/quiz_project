@@ -636,6 +636,21 @@ class TaskAdmin(admin.ModelAdmin):
             subtopic_name = task.subtopic.name if task.subtopic else None
             difficulty = task.difficulty if hasattr(task, 'difficulty') else None
             
+            # Получаем admin_chat_id для отправки видео админу
+            from django.conf import settings
+            admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+            
+            # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
+            if not admin_chat_id:
+                try:
+                    from accounts.models import TelegramAdmin
+                    admin = TelegramAdmin.objects.filter(is_active=True).first()
+                    if admin:
+                        admin_chat_id = str(admin.telegram_id)
+                        logger.info(f"📱 Используется chat_id первого активного админа для генерации видео: {admin_chat_id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
+            
             # Очищаем старые логи перед запуском новой генерации
             task.video_generation_logs = None
             task.save(update_fields=['video_generation_logs'])
@@ -647,7 +662,8 @@ class TaskAdmin(admin.ModelAdmin):
                 topic_name=topic_name,
                 subtopic_name=subtopic_name,
                 difficulty=difficulty,
-                force_regenerate=True  # Принудительная перегенерация при ручном запуске
+                force_regenerate=True,  # Принудительная перегенерация при ручном запуске
+                admin_chat_id=admin_chat_id  # Передаем admin_chat_id для отправки видео
             )
             
             messages.success(request, f'✅ Генерация видео для задачи {task.id} запущена!')
@@ -1282,6 +1298,21 @@ class TaskAdmin(admin.ModelAdmin):
         errors = []
         total_tasks = queryset.count()
         
+        # Получаем admin_chat_id для отправки видео админу (один раз для всех задач)
+        from django.conf import settings
+        admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+        
+        # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
+        if not admin_chat_id:
+            try:
+                from accounts.models import TelegramAdmin
+                admin = TelegramAdmin.objects.filter(is_active=True).first()
+                if admin:
+                    admin_chat_id = str(admin.telegram_id)
+                    logger.info(f"📱 Используется chat_id первого активного админа для массовой генерации видео: {admin_chat_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
+        
         self.message_user(request, f"📊 Начинаем генерацию видео для {total_tasks} задач...", messages.INFO)
         
         for task in queryset:
@@ -1312,7 +1343,8 @@ class TaskAdmin(admin.ModelAdmin):
                     topic_name=topic_name,
                     subtopic_name=subtopic_name,
                     difficulty=difficulty,
-                    force_regenerate=True  # Принудительная перегенерация при ручном запуске
+                    force_regenerate=True,  # Принудительная перегенерация при ручном запуске
+                    admin_chat_id=admin_chat_id  # Передаем admin_chat_id для отправки видео
                 )
                 
                 generated_count += 1
