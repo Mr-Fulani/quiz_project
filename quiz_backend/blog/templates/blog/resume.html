@@ -88,6 +88,27 @@
                 <h3 class="h3 lang-text" data-lang-key="experience_title">Work History</h3>
             </div>
             <ol class="timeline-list">
+                {% if work_history %}
+                    {% for job in work_history %}
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">{{ job.title_en|default:'Job Title' }}</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">{{ job.title_ru|default:'Должность' }}</h4>
+                    <span class="lang-text" data-lang="en">{{ job.period_en|default:'Period' }}</span>
+                    <span class="lang-text" data-lang="ru">{{ job.period_ru|default:'Период' }}</span>
+                    <p class="timeline-text lang-text" data-lang="en">{{ job.company_en|default:'Company Name' }}</p>
+                    <p class="timeline-text lang-text" data-lang="ru">{{ job.company_ru|default:'Название компании' }}</p>
+                    <ul class="responsibilities">
+                        {% for resp in job.responsibilities.all %}
+                        <li class="lang-text" data-lang="en">{{ resp.text_en|default:'Responsibility' }}</li>
+                        <li class="lang-text" data-lang="ru">{{ resp.text_ru|default:'Обязанность' }}</li>
+                        {% empty %}
+                        <li class="lang-text" data-lang="en">Professional experience in software development</li>
+                        <li class="lang-text" data-lang="ru">Профессиональный опыт в разработке программного обеспечения</li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                    {% endfor %}
+                {% else %}
                 <li class="timeline-item">
                     <h4 class="h4 timeline-item-title lang-text" data-lang="en">Private Practice / Freelancing Remote</h4>
                     <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Частная практика / Фриланс удалённо</h4>
@@ -142,6 +163,7 @@
                         <li class="lang-text" data-lang="ru">Создавал базы данных и структуры таблиц для веб-приложений.</li>
                     </ul>
                 </li>
+                {% endif %}
             </ol>
         </div>
 
@@ -153,6 +175,18 @@
                 <h3 class="h3 lang-text" data-lang-key="education_title">Education</h3>
             </div>
             <ol class="timeline-list">
+                {% if education %}
+                    {% for edu in education %}
+                <li class="timeline-item">
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">{{ edu.title_en|default:'Education Title' }}</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">{{ edu.title_ru|default:'Название образования' }}</h4>
+                    <span class="lang-text" data-lang="en">{{ edu.period_en|default:'Period' }}</span>
+                    <span class="lang-text" data-lang="ru">{{ edu.period_ru|default:'Период' }}</span>
+                    <p class="timeline-text lang-text" data-lang="en">{{ edu.institution_en|default:'Institution Name' }}</p>
+                    <p class="timeline-text lang-text" data-lang="ru">{{ edu.institution_ru|default:'Название учебного заведения' }}</p>
+                </li>
+                    {% endfor %}
+                {% else %}
                 <li class="timeline-item">
                     <h4 class="h4 timeline-item-title lang-text" data-lang="en">Master of Arts: Information Systems And Technologies, Development</h4>
                     <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Магистр искусств: Информационные системы и технологии, разработка</h4>
@@ -161,6 +195,7 @@
                     <p class="timeline-text lang-text" data-lang="en">National R. University of Information Technologies, St. Petersburg, Russia</p>
                     <p class="timeline-text lang-text" data-lang="ru">Национальный университет информационных технологий, Санкт-Петербург, Россия</p>
                 </li>
+                {% endif %}
             </ol>
         </div>
 
@@ -172,6 +207,22 @@
                 <h3 class="h3 lang-text" data-lang-key="languages_title">Languages</h3>
             </div>
             <div class="languages-container">
+                {% if languages %}
+                    {% for lang in languages %}
+                <div class="language-item lang-text" data-lang="en">
+                    <span>{{ lang.name_en|default:'Language Name' }}</span>
+                    <div class="skills-progress-bg">
+                        <div class="skills-progress-fill" data-level="{{ lang.level|default:50 }}" style="width: {{ lang.level|default:50 }}%;"></div>
+                    </div>
+                </div>
+                <div class="language-item lang-text" data-lang="ru">
+                    <span>{{ lang.name_ru|default:'Название языка' }}</span>
+                    <div class="skills-progress-bg">
+                        <div class="skills-progress-fill" data-level="{{ lang.level|default:50 }}" style="width: {{ lang.level|default:50 }}%;"></div>
+                    </div>
+                </div>
+                    {% endfor %}
+                {% else %}
                 <div class="language-item lang-text" data-lang="en">
                     <span>Russian: Native</span>
                     <div class="skills-progress-bg">
@@ -220,6 +271,7 @@
                         <div class="skills-progress-fill" style="width: 80%;"></div>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </section>

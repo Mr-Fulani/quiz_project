@@ -837,11 +837,11 @@ class ResumeView(BreadcrumbsMixin, TemplateView):
         # Если есть резюме, подготавливаем данные для удобного отображения
         if resume:
             # Преобразуем в формат для обратной совместимости с шаблоном
-            context['websites'] = list(resume.website_links.all())
-            context['skills'] = list(resume.skill_list.all())
-            context['work_history'] = list(resume.work_history_items.all())
-            context['education'] = list(resume.education_items.all())
-            context['languages'] = list(resume.language_skills.all())
+            context['websites'] = list(resume.website_links.order_by('order'))
+            context['skills'] = list(resume.skill_list.order_by('order'))
+            context['work_history'] = list(resume.work_history_items.order_by('order'))
+            context['education'] = list(resume.education_items.order_by('order'))
+            context['languages'] = list(resume.language_skills.order_by('order'))
         
         return context
 
@@ -857,7 +857,10 @@ def download_resume_pdf(request):
     from django.template.loader import get_template
     from django.conf import settings
     from weasyprint import HTML
-    from .models import Resume, ResumeWorkHistory
+    from .models import (
+        Resume, ResumeWebsite, ResumeSkill, ResumeWorkHistory,
+        ResumeResponsibility, ResumeEducation, ResumeLanguage
+    )
     
     # Получаем язык из параметров или используем по умолчанию
     lang = request.GET.get('lang', 'en')
@@ -865,14 +868,16 @@ def download_resume_pdf(request):
     # Загружаем резюме с полной оптимизацией запросов
     # Используем select_related и prefetch_related для минимизации запросов
     resume = Resume.objects.filter(is_active=True).prefetch_related(
-        'website_links',
-        'skill_list',
+        Prefetch('website_links', queryset=ResumeWebsite.objects.order_by('order')),
+        Prefetch('skill_list', queryset=ResumeSkill.objects.order_by('order')),
         Prefetch(
             'work_history_items',
-            queryset=ResumeWorkHistory.objects.prefetch_related('responsibilities')
+            queryset=ResumeWorkHistory.objects.order_by('order').prefetch_related(
+                Prefetch('responsibilities', queryset=ResumeResponsibility.objects.order_by('order'))
+            )
         ),
-        'education_items',
-        'language_skills'
+        Prefetch('education_items', queryset=ResumeEducation.objects.order_by('order')),
+        Prefetch('language_skills', queryset=ResumeLanguage.objects.order_by('order'))
     ).first()
     
     if not resume:
@@ -880,14 +885,14 @@ def download_resume_pdf(request):
     
     # Принудительно загружаем все связанные данные заранее (evaluating querysets)
     # Это гарантирует, что все запросы выполняются здесь, а не в шаблоне
-    websites = list(resume.website_links.all())
-    skills = list(resume.skill_list.all())
-    work_history = list(resume.work_history_items.all())
+    websites = list(resume.website_links.order_by('order'))
+    skills = list(resume.skill_list.order_by('order'))
+    work_history = list(resume.work_history_items.order_by('order'))
     # Загружаем responsibilities для каждой записи истории работы
     for work_item in work_history:
-        list(work_item.responsibilities.all())  # Принудительная загрузка
-    education = list(resume.education_items.all())
-    languages = list(resume.language_skills.all())
+        list(work_item.responsibilities.order_by('order'))  # Принудительная загрузка с сортировкой
+    education = list(resume.education_items.order_by('order'))
+    languages = list(resume.language_skills.order_by('order'))
     
     # Готовим минимальный контекст как словарь
     # Передаем request=None, чтобы template.render() не вызывал контекстные процессоры
