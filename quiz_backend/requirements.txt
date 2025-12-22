@@ -29,10 +29,9 @@ django-tinymce==4.1.0
 djangorestframework==3.15.2
 duckduckgo-search==6.1.12
 cairosvg==2.7.1
-weasyprint==62.3
+weasyprint==67.0
 drf-yasg==1.21.8
 frozenlist==1.4.1
-greenlet==3.1.1
 gunicorn==23.0.0
 idna==3.10
 inflection==0.5.1
@@ -72,3 +71,9 @@ qrcode[pil]>=7.4
 # Видео генерация
 moviepy==1.0.3
 imageio-ffmpeg==0.4.9
+
+# Браузерная автоматизация
+playwright==1.40.0
+selenium==4.15.0
+webdriver-manager==4.0.1
+undetected-chromedriver==3.5.4
