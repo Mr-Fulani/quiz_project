@@ -76,6 +76,8 @@ class WebhookAdmin(admin.ModelAdmin):
         if obj.webhook_type == 'social_media' and obj.target_platforms:
             platforms = ', '.join(obj.target_platforms)
             return format_html('<span style="color: #007bff;">{}</span>', platforms)
+        elif obj.webhook_type == 'russian_only':
+            return format_html('<span style="color: #28a745;">🇷🇺 Только русский язык</span>')
         return '—'
     
     platforms_display.short_description = 'Платформы'
@@ -172,19 +174,28 @@ class SocialMediaCredentialsAdmin(admin.ModelAdmin):
     """
     Админка для учетных данных API социальных сетей.
     Используется для платформ с прямой интеграцией: Pinterest, Яндекс Дзен, Facebook.
+    Для браузерной автоматизации (Instagram, TikTok и др.) access_token не требуется - используется авторизация через браузер.
     """
-    list_display = ('platform', 'is_active', 'token_expires_at', 'updated_at')
-    list_filter = ('platform', 'is_active')
+    list_display = ('platform', 'is_active', 'browser_type', 'headless_mode', 'token_expires_at', 'updated_at')
+    list_filter = ('platform', 'is_active', 'browser_type', 'headless_mode')
     search_fields = ('platform',)
     ordering = ('platform',)
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('platform', 'access_token', 'refresh_token', 'is_active')
+            'fields': ('platform', 'is_active')
+        }),
+        ('API учетные данные', {
+            'fields': ('access_token', 'refresh_token', 'token_expires_at'),
+            'description': 'Для платформ с API (Pinterest, Facebook, Яндекс Дзен). Для браузерной автоматизации (Instagram и др.) не требуется.'
+        }),
+        ('Браузерная автоматизация', {
+            'fields': ('browser_type', 'headless_mode'),
+            'description': 'Настройки для платформ с браузерной автоматизацией (Instagram Reels, TikTok, YouTube Shorts и др.).'
         }),
         ('Дополнительные данные', {
-            'fields': ('token_expires_at', 'extra_data'),
-            'description': 'Для Pinterest здесь хранится `board_id`, для Дзена — `channel_id`.'
+            'fields': ('extra_data',),
+            'description': 'Для Pinterest здесь хранится `board_id`, для Дзена — `channel_id`. Для браузерной автоматизации здесь сохраняются сессии браузера (cookies).'
         }),
         ('Системная информация', {
             'fields': ('created_at', 'updated_at'),
@@ -224,11 +235,29 @@ class SocialMediaCredentialsAdmin(admin.ModelAdmin):
         form.base_fields['access_token'].widget.attrs['rows'] = 3
         form.base_fields['refresh_token'].widget.attrs['rows'] = 2
         
+        # Платформы с браузерной автоматизацией
+        browser_platforms = ['instagram', 'tiktok', 'youtube_shorts', 'twitter']
+        
+        # Для браузерных платформ делаем access_token необязательным с подсказкой
+        if obj and obj.platform in browser_platforms:
+            form.base_fields['access_token'].help_text = (
+                '⚠️ Для браузерной автоматизации access_token не требуется. '
+                'Авторизация происходит через браузер. Можно оставить пустым.'
+            )
+            form.base_fields['browser_type'].help_text = 'Выберите тип браузера для автоматизации. Рекомендуется Playwright.'
+            form.base_fields['headless_mode'].help_text = 'False для отладки (видно браузер), True для продакшена.'
+        else:
+            # Универсальная подсказка для всех платформ
+            form.base_fields['access_token'].help_text = (
+                'Access token для API. Для браузерной автоматизации (Instagram, TikTok и др.) можно оставить пустым.'
+            )
+        
         form.base_fields['extra_data'].help_text = (
             'Примеры:\n'
             '• Pinterest: {"board_id": "123456789", "manual_boards_cache": {"Python": "123456789", "JavaScript": "987654321", "code": "111222333"}}\n'
             '• Дзен: {"channel_id": "your-channel-id"}\n'
             '• Facebook: {"page_id": "123456789"}\n'
+            '• Instagram/TikTok и др.: здесь автоматически сохраняются сессии браузера (cookies) после первой авторизации\n'
             '\n'
             'Для Pinterest:\n'
             '- board_id: доска по умолчанию\n'

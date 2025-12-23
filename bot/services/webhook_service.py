@@ -17,7 +17,7 @@ from bot.services.webhook_sender import (
     send_quiz_published_webhook
 )
 from bot.utils.logging_utils import log_webhook_summary
-from bot.utils.webhook_utils import create_bulk_webhook_data
+from bot.utils.webhook_utils import create_bulk_webhook_data, create_russian_only_webhook_data
 
 
 logger = logging.getLogger(__name__)
@@ -272,44 +272,67 @@ class WebhookService:
     ) -> None:
         """
         Формирует и отправляет единый сводный вебхук для списка задач.
+        Для вебхуков типа 'russian_only' отправляет только русские данные.
         """
         if not tasks:
             logger.info("Нет опубликованных задач для отправки сводного вебхука.")
             return
 
-        # 1. Сформировать единый payload
-        payload = await create_bulk_webhook_data(tasks, self.db_session)
-
-        if not payload:
-            logger.error("Не удалось сформировать payload для сводного вебхука.")
-            return
-
-        # 2. Отправить на все активные вебхуки
-        success_count = 0
-        failed_count = 0
+        # Группируем вебхуки по типу
+        regular_webhooks = []
+        russian_only_webhooks = []
 
         for webhook in webhooks:
             if not webhook.is_active:
                 continue
+            if webhook.webhook_type == 'russian_only':
+                russian_only_webhooks.append(webhook)
+            else:
+                regular_webhooks.append(webhook)
 
+        # Отправка для обычных вебхуков
+        if regular_webhooks:
+            payload = await create_bulk_webhook_data(tasks, self.db_session)
+            if payload:
+                await self._send_webhook_batch(payload, regular_webhooks, bot, admin_chat_id, "сводного")
+
+        # Отправка для русскоязычных вебхуков
+        if russian_only_webhooks:
+            russian_payload = await create_russian_only_webhook_data(tasks, self.db_session)
+            if russian_payload:
+                await self._send_webhook_batch(russian_payload, russian_only_webhooks, bot, admin_chat_id, "русского")
+
+    async def _send_webhook_batch(
+        self,
+        payload: Dict,
+        webhooks: List[Webhook],
+        bot: Bot,
+        admin_chat_id: int,
+        webhook_type_name: str
+    ) -> None:
+        """Вспомогательный метод для отправки батча вебхуков."""
+        success_count = 0
+        failed_count = 0
+
+        for webhook in webhooks:
             try:
-                logger.info(f"📤 Отправка сводного вебхука на {webhook.url}...")
+                logger.info(f"📤 Отправка {webhook_type_name} вебхука на {webhook.url}...")
                 ok = await send_quiz_published_webhook(webhook.url, payload)
                 if ok:
                     success_count += 1
                     logger.info(f"✅ Успешно отправлено на {webhook.url}")
-                    await notify_admin(bot, admin_chat_id, f"✅ Сводный вебхук успешно отправлен на: {webhook.url}")
+                    await notify_admin(bot, admin_chat_id, f"✅ {webhook_type_name.title()} вебхук успешно отправлен на: {webhook.url}")
                 else:
                     failed_count += 1
                     logger.error(f"❌ Не удалось отправить на {webhook.url}")
-                    await notify_admin(bot, admin_chat_id, f"❌ Ошибка при отправке сводного вебхука на: {webhook.url}")
+                    await notify_admin(bot, admin_chat_id, f"❌ Ошибка при отправке {webhook_type_name} вебхука на: {webhook.url}")
             except Exception as e:
                 failed_count += 1
-                logger.exception(f"Исключение при отправке сводного вебхука на {webhook.url}: {e}")
+                logger.exception(f"Исключение при отправке {webhook_type_name} вебхука на {webhook.url}: {e}")
                 await notify_admin(bot, admin_chat_id, f"🔥 Исключение при отправке на {webhook.url}: {e}")
 
         summary_message = (
-            f"🛰️ Отправка сводных вебхуков завершена.\n"
+            f"🛰️ Отправка {webhook_type_name} вебхуков завершена.\n"
             f"Всего вебхуков: {len(webhooks)}\n"
             f"✅ Успешно: {success_count}\n"
             f"❌ Неудачно: {failed_count}"

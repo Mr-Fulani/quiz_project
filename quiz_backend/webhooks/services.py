@@ -8,7 +8,7 @@ from django.conf import settings
 from platforms.models import TelegramGroup
 from accounts.models import CustomUser
 from tasks.models import Task
-from tasks.services.webhook_service import create_full_webhook_data, create_bulk_webhook_data
+from tasks.services.webhook_service import create_full_webhook_data, create_bulk_webhook_data, create_russian_only_webhook_data
 
 from webhooks.models import Webhook
 
@@ -148,37 +148,72 @@ def send_task_published_webhook(webhook_url: str, data: Dict[str, Any]) -> bool:
 def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
     """
     Формирует данные задачи и отправляет их на все активные вебхуки.
+    Для вебхуков типа 'russian_only' отправляет только русские данные.
     """
-    payload = create_full_webhook_data(task)
-
+    # Группируем вебхуки по типу
     webhooks = list(Webhook.objects.filter(is_active=True))
     if not webhooks:
         logger.info("Нет активных вебхуков для задачи %s", task.id)
         return {"total": 0, "success": 0, "failed": 0, "details": []}
 
+    regular_webhooks = []
+    russian_only_webhooks = []
+
+    for webhook in webhooks:
+        if webhook.webhook_type == 'russian_only':
+            russian_only_webhooks.append(webhook)
+        else:
+            regular_webhooks.append(webhook)
+
     results: List[Dict[str, Any]] = []
     success_count = 0
 
-    for webhook in webhooks:
-        success = send_task_published_webhook(webhook.url, payload)
-        results.append({
-            "url": webhook.url,
-            "service": webhook.service_name or "Неизвестный сервис",
-            "success": success,
-        })
-        if success:
-            success_count += 1
+    # Отправка на обычные вебхуки
+    if regular_webhooks:
+        payload = create_full_webhook_data(task)
+        for webhook in regular_webhooks:
+            success = send_task_published_webhook(webhook.url, payload)
+            results.append({
+                "url": webhook.url,
+                "service": webhook.service_name or "Неизвестный сервис",
+                "type": webhook.webhook_type,
+                "success": success,
+            })
+            if success:
+                success_count += 1
 
-    failed_count = len(webhooks) - success_count
+    # Отправка на русскоязычные вебхуки
+    if russian_only_webhooks:
+        # Создаем payload только с русскими данными
+        full_payload = create_full_webhook_data(task)
+        russian_translations = [trans for trans in full_payload.get("translations", []) if trans.get("language") == "ru"]
+
+        if russian_translations:  # Отправляем только если есть русский перевод
+            russian_payload = full_payload.copy()
+            russian_payload["type"] = "quiz_published_russian_only"
+            russian_payload["translations"] = russian_translations
+
+            for webhook in russian_only_webhooks:
+                success = send_task_published_webhook(webhook.url, russian_payload)
+                results.append({
+                    "url": webhook.url,
+                    "service": webhook.service_name or "Неизвестный сервис",
+                    "type": webhook.webhook_type,
+                    "success": success,
+                })
+                if success:
+                    success_count += 1
+
+    failed_count = len(results) - success_count
     logger.info(
         "Вебхуки: отправлено=%s, неудачных=%s, всего=%s",
         success_count,
         failed_count,
-        len(webhooks),
+        len(results),
     )
 
     return {
-        "total": len(webhooks),
+        "total": len(results),
         "success": success_count,
         "failed": failed_count,
         "details": results,
@@ -188,41 +223,69 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
 def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
     """
     Формирует агрегированные данные и отправляет их на все активные вебхуки.
+    Для вебхуков типа 'russian_only' отправляет только русские данные.
     """
     if not tasks:
         logger.info("Нет опубликованных задач для отправки сводного вебхука.")
         return {"total": 0, "success": 0, "failed": 0, "details": []}
-
-    payload = create_bulk_webhook_data(tasks)
 
     webhooks = list(Webhook.objects.filter(is_active=True))
     if not webhooks:
         logger.info("Нет активных вебхуков для сводной отправки")
         return {"total": 0, "success": 0, "failed": 0, "details": []}
 
+    # Группируем вебхуки по типу
+    regular_webhooks = []
+    russian_only_webhooks = []
+
+    for webhook in webhooks:
+        if webhook.webhook_type == 'russian_only':
+            russian_only_webhooks.append(webhook)
+        else:
+            regular_webhooks.append(webhook)
+
     results: List[Dict[str, Any]] = []
     success_count = 0
 
-    for webhook in webhooks:
-        success = send_task_published_webhook(webhook.url, payload)
-        results.append({
-            "url": webhook.url,
-            "service": webhook.service_name or "Неизвестный сервис",
-            "success": success,
-        })
-        if success:
-            success_count += 1
+    # Отправка на обычные вебхуки
+    if regular_webhooks:
+        payload = create_bulk_webhook_data(tasks)
+        for webhook in regular_webhooks:
+            success = send_task_published_webhook(webhook.url, payload)
+            results.append({
+                "url": webhook.url,
+                "service": webhook.service_name or "Неизвестный сервис",
+                "type": webhook.webhook_type,
+                "success": success,
+            })
+            if success:
+                success_count += 1
 
-    failed_count = len(webhooks) - success_count
+    # Отправка на русскоязычные вебхуки
+    if russian_only_webhooks:
+        russian_payload = create_russian_only_webhook_data(tasks)
+        if russian_payload.get("published_tasks"):  # Отправляем только если есть задачи с русским переводом
+            for webhook in russian_only_webhooks:
+                success = send_task_published_webhook(webhook.url, russian_payload)
+                results.append({
+                    "url": webhook.url,
+                    "service": webhook.service_name or "Неизвестный сервис",
+                    "type": webhook.webhook_type,
+                    "success": success,
+                })
+                if success:
+                    success_count += 1
+
+    failed_count = len(results) - success_count
     logger.info(
         "Сводные вебхуки: отправлено=%s, неудачных=%s, всего=%s",
         success_count,
         failed_count,
-        len(webhooks),
+        len(results),
     )
 
     return {
-        "total": len(webhooks),
+        "total": len(results),
         "success": success_count,
         "failed": failed_count,
         "details": results,

@@ -68,6 +68,41 @@ def _get_incorrect_answers(answers: Any, correct_answer: str) -> List[str]:
     return [ans for ans in normalized_answers if ans != correct_answer]
 
 
+async def create_russian_only_webhook_data(tasks: List[Task], db_session: AsyncSession) -> Dict[str, Any]:
+    """
+    Создает payload для вебхука с данными только на русском языке.
+    """
+    logger.debug("Формируем русский вебхук для %s задач", len(tasks))
+    tasks_payload = []
+
+    for task in tasks:
+        full_data = await create_full_webhook_data_for_task(task, db_session)
+        # Фильтруем переводы, оставляя только русский язык
+        russian_translations = [trans for trans in full_data.get("translations", []) if trans.get("language") == "ru"]
+        if russian_translations:  # Отправляем задачу только если есть русский перевод
+            tasks_payload.append({
+                "task": full_data.get("task"),
+                "translations": russian_translations
+            })
+
+    # Получаем глобальные ссылки
+    result = await db_session.execute(
+        select(GlobalWebhookLink).where(GlobalWebhookLink.is_active == True)
+    )
+    global_links_db = result.scalars().all()
+    global_links_payload = [{"name": link.name, "url": link.url} for link in global_links_db]
+
+    bulk_payload = {
+        "type": "quiz_published_russian_only",
+        "id": str(uuid.uuid4()),
+        "timestamp": datetime.now(tz=pytz.utc).isoformat(),
+        "published_tasks": tasks_payload,
+        "global_custom_links": global_links_payload,
+    }
+    logger.debug("Русский payload готов.")
+    return bulk_payload
+
+
 async def create_full_webhook_data_for_task(task: Task, db_session: AsyncSession) -> Dict[str, Any]:
     """
     Создает полный payload для одной задачи, включая все ее переводы.
