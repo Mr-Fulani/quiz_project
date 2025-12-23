@@ -78,6 +78,8 @@ class WebhookAdmin(admin.ModelAdmin):
             return format_html('<span style="color: #007bff;">{}</span>', platforms)
         elif obj.webhook_type == 'russian_only':
             return format_html('<span style="color: #28a745;">🇷🇺 Только русский язык</span>')
+        elif obj.webhook_type == 'english_only':
+            return format_html('<span style="color: #007bff;">🇺🇸 Только английский язык</span>')
         return '—'
     
     platforms_display.short_description = 'Платформы'

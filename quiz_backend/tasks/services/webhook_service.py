@@ -203,6 +203,38 @@ def create_russian_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
     return bulk_payload
 
 
+def create_english_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
+    """
+    Формирует payload для вебхука с данными только на английском языке.
+    """
+    logger.debug("Формируем английский вебхук для %s задач", len(tasks))
+
+    tasks_payload = []
+    for task in tasks:
+        full_data = create_full_webhook_data(task)
+        # Фильтруем переводы, оставляя только английский язык
+        english_translations = [trans for trans in full_data.get("translations", []) if trans.get("language") == "en"]
+        if english_translations:  # Отправляем задачу только если есть английский перевод
+            tasks_payload.append({
+                "task": full_data.get("task"),
+                "translations": english_translations
+            })
+
+    # Get global custom links
+    global_links = GlobalWebhookLink.objects.filter(is_active=True).values('name', 'url')
+
+    bulk_payload = {
+        "type": "quiz_published_english_only",
+        "id": str(uuid.uuid4()),
+        "timestamp": timezone.now().isoformat(),
+        "published_tasks": tasks_payload,
+        "global_custom_links": list(global_links),
+    }
+
+    logger.debug("Английский payload готов.")
+    return bulk_payload
+
+
 def create_bulk_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
     """
     Формирует агрегированный payload для списка опубликованных задач.
