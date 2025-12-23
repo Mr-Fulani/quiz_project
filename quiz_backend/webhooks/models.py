@@ -36,6 +36,7 @@ class Webhook(models.Model):
         max_length=50,
         choices=[
             ('social_media', 'Социальные сети'),
+            ('russian_only', 'Только русский язык'),
             ('other', 'Другое'),
         ],
         default='other',
@@ -155,6 +156,15 @@ class SocialMediaCredentials(models.Model):
         ('pinterest', 'Pinterest'),
         ('yandex_dzen', 'Яндекс Дзен'),
         ('facebook', 'Facebook'),
+        ('instagram', 'Instagram'),
+        ('tiktok', 'TikTok'),
+        ('youtube_shorts', 'YouTube Shorts'),
+        ('twitter', 'Twitter/X'),
+    ]
+    
+    BROWSER_TYPE_CHOICES = [
+        ('playwright', 'Playwright'),
+        ('selenium', 'Selenium'),
     ]
     
     class Meta:
@@ -170,11 +180,12 @@ class SocialMediaCredentials(models.Model):
     platform = models.CharField(
         max_length=50,
         choices=PLATFORM_CHOICES,
-        unique=True,
         help_text='Платформа социальной сети'
     )
     access_token = models.TextField(
-        help_text='Access token для API'
+        null=True,
+        blank=True,
+        help_text='Access token для API (не требуется для браузерной автоматизации)'
     )
     refresh_token = models.TextField(
         null=True,
@@ -190,6 +201,17 @@ class SocialMediaCredentials(models.Model):
         default=dict,
         blank=True,
         help_text='Дополнительные параметры (board_id для Pinterest, channel_id для Дзен и т.д.)'
+    )
+    browser_type = models.CharField(
+        max_length=20,
+        choices=BROWSER_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Тип браузера для автоматизации (playwright/selenium)'
+    )
+    headless_mode = models.BooleanField(
+        default=True,
+        help_text='Использовать headless режим браузера'
     )
     is_active = models.BooleanField(
         default=True,
