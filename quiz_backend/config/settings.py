@@ -648,6 +648,12 @@ COINGATE_RECEIVE_CURRENCY = os.getenv('COINGATE_RECEIVE_CURRENCY', 'DO_NOT_CONVE
 WALLET_PAY_API_KEY = os.getenv('WALLET_PAY_API_KEY', '')
 WALLET_PAY_STORE_ID = os.getenv('WALLET_PAY_STORE_ID', '')
 
+# Browser Automation Settings
+BROWSER_AUTOMATION_ENABLED = os.getenv('BROWSER_AUTOMATION_ENABLED', 'true').lower() == 'true'
+BROWSER_HEADLESS = os.getenv('BROWSER_HEADLESS', 'true').lower() == 'true'
+BROWSER_TIMEOUT = int(os.getenv('BROWSER_TIMEOUT', '60'))
+BROWSER_RETRY_COUNT = int(os.getenv('BROWSER_RETRY_COUNT', '3'))
+
 
 
 
@@ -777,6 +783,18 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 # Исправление предупреждения о broker_connection_retry для Celery 6.0+
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# WEBHOOK SETTINGS
+# Режим отправки вебхуков: sync (синхронно) или async (асинхронно через Celery)
+WEBHOOK_SEND_MODE = os.getenv('WEBHOOK_SEND_MODE', 'async').lower()
+# Максимальное количество задач для синхронной отправки
+WEBHOOK_SYNC_MAX_TASKS = int(os.getenv('WEBHOOK_SYNC_MAX_TASKS', '5'))
+# Таймаут для одного вебхука (секунды)
+WEBHOOK_TIMEOUT = int(os.getenv('WEBHOOK_TIMEOUT', '30'))
+# Количество попыток отправки одного вебхука
+WEBHOOK_RETRIES = int(os.getenv('WEBHOOK_RETRIES', '3'))
+# Задержка между попытками (секунды)
+WEBHOOK_RETRY_DELAY = int(os.getenv('WEBHOOK_RETRY_DELAY', '2'))
 
 # ============================================================
 # SESSION SETTINGS (оптимизация)

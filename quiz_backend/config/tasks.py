@@ -375,6 +375,92 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         raise self.retry(exc=exc, countdown=300)
 
 
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
+def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=None):
+    """
+    Асинхронная отправка вебхуков для списка задач.
+
+    Args:
+        task_ids: Список ID задач для отправки
+        webhook_type_filter: Фильтр по типу вебхуков ('russian_only', 'english_only', etc.)
+        admin_chat_id: ID чата админа для уведомлений
+
+    Returns:
+        Dict с результатами отправки
+    """
+    try:
+        from tasks.models import Task
+        from webhooks.services import send_webhooks_for_bulk_tasks
+        from django.contrib import messages
+        from django.contrib.admin.models import LogEntry, ADDITION
+
+        logger.info(f"🛰️ [Celery] Начало асинхронной отправки вебхуков для {len(task_ids)} задач")
+        if webhook_type_filter:
+            logger.info(f"   🎯 Фильтр по типу: {webhook_type_filter}")
+
+        # Получаем задачи из БД с необходимыми связями
+        tasks = Task.objects.filter(id__in=task_ids).select_related('topic', 'group').prefetch_related('translations')
+
+        if not tasks:
+            logger.warning("⚠️ [Celery] Не найдено задач для отправки вебхуков")
+            return {"total": 0, "success": 0, "failed": 0, "details": []}
+
+        # Отправляем вебхуки
+        result = send_webhooks_for_bulk_tasks(tasks)
+
+        # Логируем результат
+        logger.info("✅ [Celery] Отправка вебхуков завершена: "
+                   f"успешно {result['success']}, неудачно {result['failed']}")
+
+        # Если указан admin_chat_id, отправляем уведомление в Telegram
+        if admin_chat_id and (result['success'] > 0 or result['failed'] > 0):
+            try:
+                from aiogram import Bot
+                from aiogram.exceptions import TelegramBadRequest
+                import asyncio
+
+                # Создаем новый event loop для асинхронного кода
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+                async def send_notification():
+                    try:
+                        # Получаем токен бота из настроек
+                        from django.conf import settings
+                        bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+                        if not bot_token:
+                            logger.warning("⚠️ [Celery] Не найден TELEGRAM_BOT_TOKEN для уведомления")
+                            return
+
+                        bot = Bot(token=bot_token)
+
+                        message = ("🛰️ Вебхуки отправлены\n\n"
+                                  f"📊 Всего: {result['total']}\n"
+                                  f"✅ Успешно: {result['success']}\n"
+                                  f"❌ Ошибок: {result['failed']}\n"
+                                  f"🎯 Фильтр: {webhook_type_filter or 'все типы'}")
+
+                        await bot.send_message(chat_id=admin_chat_id, text=message)
+                        logger.info(f"📨 [Celery] Уведомление отправлено в Telegram (chat_id: {admin_chat_id})")
+
+                    except Exception as e:
+                        logger.error(f"❌ [Celery] Ошибка отправки уведомления в Telegram: {e}")
+
+                # Запускаем асинхронную функцию
+                loop.run_until_complete(send_notification())
+                loop.close()
+
+            except Exception as e:
+                logger.error(f"❌ [Celery] Критическая ошибка при отправке уведомления: {e}")
+
+        return result
+
+    except Exception as exc:
+        logger.error(f"❌ [Celery] Критическая ошибка в send_webhooks_async: {str(exc)}")
+        # Повторная попытка через 1 минуту
+        raise self.retry(exc=exc, countdown=60)
+
+
 @shared_task
 def delete_old_videos_from_r2():
     """
