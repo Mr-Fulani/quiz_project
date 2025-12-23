@@ -434,11 +434,56 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
 
                         bot = Bot(token=bot_token)
 
-                        message = ("🛰️ Вебхуки отправлены\n\n"
-                                  f"📊 Всего: {result['total']}\n"
-                                  f"✅ Успешно: {result['success']}\n"
-                                  f"❌ Ошибок: {result['failed']}\n"
-                                  f"🎯 Фильтр: {webhook_type_filter or 'все типы'}")
+                        # Группируем результаты по типам вебхуков
+                        webhook_stats = {}
+                        for detail in result['details']:
+                            webhook_type = detail['type']
+                            if webhook_type not in webhook_stats:
+                                webhook_stats[webhook_type] = {'total': 0, 'success': 0, 'failed': 0, 'webhooks': []}
+                            webhook_stats[webhook_type]['total'] += 1
+                            if detail['success']:
+                                webhook_stats[webhook_type]['success'] += 1
+                            else:
+                                webhook_stats[webhook_type]['failed'] += 1
+                            webhook_stats[webhook_type]['webhooks'].append(detail)
+
+                        # Формируем сообщение
+                        message_parts = ["🛰️ Вебхуки отправлены\n"]
+
+                        # Общая статистика
+                        message_parts.append(f"📊 Всего: {result['total']}")
+                        message_parts.append(f"✅ Успешно: {result['success']}")
+                        message_parts.append(f"❌ Ошибок: {result['failed']}")
+                        if webhook_type_filter:
+                            message_parts.append(f"🎯 Фильтр: {webhook_type_filter}")
+                        message_parts.append("")
+
+                        # Статистика по типам
+                        for webhook_type, stats in webhook_stats.items():
+                            type_name = {
+                                'social_media': '📱 Соцсети',
+                                'russian_only': '🇷🇺 Только русский',
+                                'english_only': '🇺🇸 Только английский',
+                                'other': '🔄 Общие'
+                            }.get(webhook_type, webhook_type)
+
+                            status_icon = "✅" if stats['failed'] == 0 else "⚠️"
+                            message_parts.append(f"{status_icon} {type_name}: {stats['success']}/{stats['total']}")
+
+                            # Показываем детали по каждому вебхуку (с ограничением)
+                            for webhook_detail in stats['webhooks'][:5]:  # Максимум 5 вебхуков на тип
+                                status = "✅" if webhook_detail['success'] else "❌"
+                                service_name = webhook_detail['service'][:25] + "..." if len(webhook_detail['service']) > 25 else webhook_detail['service']
+                                message_parts.append(f"  {status} {service_name}")
+
+                            if len(stats['webhooks']) > 5:
+                                message_parts.append(f"  ... и ещё {len(stats['webhooks']) - 5}")
+
+                        message = "\n".join(message_parts)
+
+                        # Ограничиваем длину сообщения (Telegram limit ~4096 chars)
+                        if len(message) > 3500:
+                            message = message[:3500] + "\n\n... (сообщение обрезано)"
 
                         await bot.send_message(chat_id=admin_chat_id, text=message)
                         logger.info(f"📨 [Celery] Уведомление отправлено в Telegram (chat_id: {admin_chat_id})")

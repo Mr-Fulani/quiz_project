@@ -1178,7 +1178,7 @@ class TaskAdmin(admin.ModelAdmin):
                     from accounts.models import TelegramAdmin
                     admin = TelegramAdmin.objects.filter(is_active=True).first()
                     if admin:
-                        admin_chat_id = admin.chat_id
+                        admin_chat_id = str(admin.telegram_id)
                 except Exception:
                     pass  # Не критично, если не найдется
 
@@ -1757,29 +1757,36 @@ class TaskAdmin(admin.ModelAdmin):
                 from accounts.models import TelegramAdmin
                 admin = TelegramAdmin.objects.filter(is_active=True).first()
                 if admin:
-                    admin_chat_id = admin.chat_id
+                    admin_chat_id = str(admin.telegram_id)
             except Exception:
                 pass  # Не критично, если не найдется
 
-            # Запускаем Celery задачу
+            # Запускаем Celery задачу (полностью асинхронно)
             webhook_task = send_webhooks_async.delay(
                 task_ids=task_ids,
                 webhook_type_filter=None,  # Отправляем на все типы вебхуков
                 admin_chat_id=admin_chat_id
             )
 
-            # Немедленно информируем пользователя
+            # Немедленно информируем пользователя (без блокировки)
             self.message_user(
                 request,
-                f"🛰️ Вебхуки отправляются асинхронно через Celery (ID задачи: {webhook_task.id})",
+                f"🛰️ Вебхуки отправляются асинхронно (задача: {webhook_task.id})",
                 messages.SUCCESS
             )
 
-            self.message_user(
-                request,
-                f"📨 Результаты будут отправлены в Telegram, если настроен чат администратора",
-                messages.INFO
-            )
+            if admin_chat_id:
+                self.message_user(
+                    request,
+                    "📨 Подробные результаты будут отправлены в Telegram",
+                    messages.INFO
+                )
+            else:
+                self.message_user(
+                    request,
+                    "📋 Результаты будут доступны в логах Celery",
+                    messages.INFO
+                )
 
             self.message_user(request, "=" * 60, messages.INFO)
 
