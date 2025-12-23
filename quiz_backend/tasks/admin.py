@@ -193,6 +193,7 @@ class TaskAdmin(admin.ModelAdmin):
     
     actions = [
         'publish_to_telegram',
+        'send_webhooks_separately',
         'generate_images',
         'generate_videos',
         'publish_to_all_social_networks',
@@ -202,6 +203,11 @@ class TaskAdmin(admin.ModelAdmin):
         'publish_to_instagram',
         'publish_to_tiktok',
         'publish_to_youtube_shorts',
+        'publish_to_instagram_reels',
+        'publish_to_instagram_stories',
+        'publish_to_facebook_stories',
+        'publish_to_facebook_reels',
+        'publish_with_auto_reshare',
         'clear_error_flag'
     ]
     
@@ -1545,6 +1551,103 @@ class TaskAdmin(admin.ModelAdmin):
         """Публикует выбранные задачи в YouTube Shorts через webhook."""
         self._publish_to_platform_action(request, queryset, 'youtube_shorts', 'YouTube Shorts')
     
+    @admin.action(description='🎥 Опубликовать в Instagram Reels')
+    def publish_to_instagram_reels(self, request, queryset):
+        """Публикует выбранные задачи в Instagram Reels через браузерную автоматизацию."""
+        self._publish_to_platform_action(request, queryset, 'instagram_reels', 'Instagram Reels')
+    
+    @admin.action(description='📸 Опубликовать в Instagram Stories')
+    def publish_to_instagram_stories(self, request, queryset):
+        """Публикует выбранные задачи в Instagram Stories через браузерную автоматизацию."""
+        self._publish_to_platform_action(request, queryset, 'instagram_stories', 'Instagram Stories')
+    
+    @admin.action(description='👤 Опубликовать в Facebook Stories')
+    def publish_to_facebook_stories(self, request, queryset):
+        """Публикует выбранные задачи в Facebook Stories через браузерную автоматизацию."""
+        self._publish_to_platform_action(request, queryset, 'facebook_stories', 'Facebook Stories')
+    
+    @admin.action(description='🎬 Опубликовать в Facebook Reels')
+    def publish_to_facebook_reels(self, request, queryset):
+        """Публикует выбранные задачи в Facebook Reels через браузерную автоматизацию."""
+        self._publish_to_platform_action(request, queryset, 'facebook_reels', 'Facebook Reels')
+    
+    @admin.action(description='🚀 Опубликовать Reels с автоматическим репостом')
+    def publish_with_auto_reshare(self, request, queryset):
+        """
+        Публикует Reels в Instagram с автоматическим кросспостингом в Facebook и добавлением в Stories.
+        """
+        from .services.social_media_service import publish_to_platform
+        
+        total_tasks = queryset.count()
+        published_tasks = 0
+        
+        self.message_user(
+            request,
+            f"📊 Начинаем публикацию {total_tasks} задач в Instagram Reels с автоматическим репостом...",
+            messages.INFO
+        )
+        
+        for task in queryset:
+            try:
+                # Проверяем наличие видео
+                if not task.video_url:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет видео, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Получаем перевод
+                translation = task.translations.first()
+                if not translation:
+                    self.message_user(
+                        request,
+                        f"⚠️ Задача {task.id}: нет переводов, пропускаем",
+                        messages.WARNING
+                    )
+                    continue
+                
+                # Публикуем в Instagram Reels (с автоматическим кросспостингом)
+                result = publish_to_platform(task, translation, 'instagram_reels')
+                
+                if result.get('success'):
+                    published_tasks += 1
+                    post_url = result.get('post_url', '')
+                    facebook_id = result.get('facebook_post_id')
+                    story_id = result.get('instagram_story_id')
+                    
+                    msg = f"✅ Задача {task.id}: опубликована в Instagram Reels"
+                    if post_url:
+                        msg += f" - {post_url}"
+                    if facebook_id:
+                        msg += f" | Facebook Reels: {facebook_id}"
+                    if story_id:
+                        msg += f" | Instagram Story: {story_id}"
+                    
+                    self.message_user(request, msg, messages.SUCCESS)
+                else:
+                    error = result.get('error', 'Неизвестная ошибка')
+                    self.message_user(
+                        request,
+                        f"❌ Задача {task.id}: ошибка - {error}",
+                        messages.ERROR
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Ошибка публикации задачи {task.id}: {e}", exc_info=True)
+                self.message_user(
+                    request,
+                    f"❌ Задача {task.id}: ошибка - {str(e)[:100]}",
+                    messages.ERROR
+                )
+        
+        self.message_user(
+            request,
+            f"🎉 Готово! Опубликовано {published_tasks} из {total_tasks} задач",
+            messages.SUCCESS if published_tasks > 0 else messages.WARNING
+        )
+    
     @admin.action(description='Снять флаг ошибки')
     def clear_error_flag(self, request, queryset):
         """
@@ -1578,7 +1681,118 @@ class TaskAdmin(admin.ModelAdmin):
             f"✅ Флаг ошибки сброшен для {updated_count} задач ({lang_info})",
             messages.SUCCESS
         )
-    
+
+    def send_webhooks_separately(self, request, queryset):
+        """
+        Отправляет выбранные задачи только на вебхуки (без публикации в соцсети).
+        Полезно для повторной отправки на вебхуки без повторной публикации.
+        """
+        from webhooks.services import send_webhooks_for_bulk_tasks
+
+        # Собираем все translation_group_id
+        translation_group_ids = set(
+            queryset.values_list('translation_group_id', flat=True)
+        )
+
+        # Находим все связанные задачи
+        all_related_tasks = Task.objects.filter(
+            translation_group_id__in=translation_group_ids
+        ).select_related('topic', 'group').prefetch_related('translations')
+
+        # Группируем задачи по языкам для информирования
+        tasks_by_language = {}
+        for task in all_related_tasks:
+            translation = task.translations.first()
+            if translation:
+                lang = translation.language.upper()
+                if lang not in tasks_by_language:
+                    tasks_by_language[lang] = []
+                tasks_by_language[lang].append(task)
+
+        total_tasks = all_related_tasks.count()
+        selected_count = queryset.count()
+
+        # Информируем пользователя о масштабе операции
+        self.message_user(
+            request,
+            f"📊 Выбрано задач: {selected_count}",
+            messages.INFO
+        )
+        self.message_user(
+            request,
+            f"🌍 Найдено связанных переводов: {total_tasks} задач на языках: {', '.join(sorted(tasks_by_language.keys()))}",
+            messages.INFO
+        )
+        self.message_user(request, "=" * 60, messages.INFO)
+
+        # Отправляем на вебхуки
+        try:
+            result = send_webhooks_for_bulk_tasks(all_related_tasks)
+
+            # Группируем результаты по типам вебхуков
+            webhook_stats = {}
+            for detail in result['details']:
+                webhook_type = detail['type']
+                if webhook_type not in webhook_stats:
+                    webhook_stats[webhook_type] = {'total': 0, 'success': 0, 'failed': 0, 'webhooks': []}
+                webhook_stats[webhook_type]['total'] += 1
+                if detail['success']:
+                    webhook_stats[webhook_type]['success'] += 1
+                else:
+                    webhook_stats[webhook_type]['failed'] += 1
+                webhook_stats[webhook_type]['webhooks'].append(detail)
+
+            # Показываем общую статистику
+            self.message_user(
+                request,
+                f"📤 Общая статистика: отправлено {result['success']} из {result['total']} вебхуков",
+                messages.SUCCESS if result['failed'] == 0 else messages.WARNING
+            )
+
+            # Показываем статистику по типам вебхуков
+            for webhook_type, stats in webhook_stats.items():
+                type_name = {
+                    'social_media': '📱 Соцсети',
+                    'russian_only': '🇷🇺 Только русский',
+                    'english_only': '🇺🇸 Только английский',
+                    'other': '🔄 Общие'
+                }.get(webhook_type, webhook_type)
+
+                status_icon = "✅" if stats['failed'] == 0 else "⚠️"
+                self.message_user(
+                    request,
+                    f"{status_icon} {type_name}: {stats['success']}/{stats['total']} (успешно/всего)",
+                    messages.SUCCESS if stats['failed'] == 0 else messages.WARNING
+                )
+
+                # Показываем детали по каждому вебхуку в этом типе
+                for webhook_detail in stats['webhooks']:
+                    status = "✅" if webhook_detail['success'] else "❌"
+                    service_name = webhook_detail['service'][:30] + "..." if len(webhook_detail['service']) > 30 else webhook_detail['service']
+                    url_short = webhook_detail['url'][:50] + "..." if len(webhook_detail['url']) > 50 else webhook_detail['url']
+
+                    self.message_user(
+                        request,
+                        f"  {status} {service_name} → {url_short}",
+                        messages.SUCCESS if webhook_detail['success'] else messages.ERROR
+                    )
+
+            if result['failed'] > 0:
+                self.message_user(
+                    request,
+                    f"⚠️ Проверьте логи сервера для подробностей ошибок",
+                    messages.WARNING
+                )
+
+        except Exception as e:
+            self.message_user(
+                request,
+                f"❌ Ошибка при отправке на вебхуки: {str(e)}",
+                messages.ERROR
+            )
+            logger.error(f"Ошибка отправки на вебхуки: {e}")
+
+    send_webhooks_separately.short_description = "📤 Отправить хуки отдельно"
 
 
 @admin.register(TaskTranslation)
