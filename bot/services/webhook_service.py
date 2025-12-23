@@ -17,7 +17,7 @@ from bot.services.webhook_sender import (
     send_quiz_published_webhook
 )
 from bot.utils.logging_utils import log_webhook_summary
-from bot.utils.webhook_utils import create_bulk_webhook_data, create_russian_only_webhook_data
+from bot.utils.webhook_utils import create_bulk_webhook_data, create_russian_only_webhook_data, create_english_only_webhook_data
 
 
 logger = logging.getLogger(__name__)
@@ -281,12 +281,15 @@ class WebhookService:
         # Группируем вебхуки по типу
         regular_webhooks = []
         russian_only_webhooks = []
+        english_only_webhooks = []
 
         for webhook in webhooks:
             if not webhook.is_active:
                 continue
             if webhook.webhook_type == 'russian_only':
                 russian_only_webhooks.append(webhook)
+            elif webhook.webhook_type == 'english_only':
+                english_only_webhooks.append(webhook)
             else:
                 regular_webhooks.append(webhook)
 
@@ -301,6 +304,12 @@ class WebhookService:
             russian_payload = await create_russian_only_webhook_data(tasks, self.db_session)
             if russian_payload:
                 await self._send_webhook_batch(russian_payload, russian_only_webhooks, bot, admin_chat_id, "русского")
+
+        # Отправка для англоязычных вебхуков
+        if english_only_webhooks:
+            english_payload = await create_english_only_webhook_data(tasks, self.db_session)
+            if english_payload:
+                await self._send_webhook_batch(english_payload, english_only_webhooks, bot, admin_chat_id, "английского")
 
     async def _send_webhook_batch(
         self,

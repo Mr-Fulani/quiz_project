@@ -37,6 +37,7 @@ class Webhook(models.Model):
         choices=[
             ('social_media', 'Социальные сети'),
             ('russian_only', 'Только русский язык'),
+            ('english_only', 'Только английский язык'),
             ('other', 'Другое'),
         ],
         default='other',

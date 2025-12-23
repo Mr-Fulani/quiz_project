@@ -8,7 +8,7 @@ from django.conf import settings
 from platforms.models import TelegramGroup
 from accounts.models import CustomUser
 from tasks.models import Task
-from tasks.services.webhook_service import create_full_webhook_data, create_bulk_webhook_data, create_russian_only_webhook_data
+from tasks.services.webhook_service import create_full_webhook_data, create_bulk_webhook_data, create_russian_only_webhook_data, create_english_only_webhook_data
 
 from webhooks.models import Webhook
 
@@ -158,10 +158,13 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
 
     regular_webhooks = []
     russian_only_webhooks = []
+    english_only_webhooks = []
 
     for webhook in webhooks:
         if webhook.webhook_type == 'russian_only':
             russian_only_webhooks.append(webhook)
+        elif webhook.webhook_type == 'english_only':
+            english_only_webhooks.append(webhook)
         else:
             regular_webhooks.append(webhook)
 
@@ -204,6 +207,28 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
                 if success:
                     success_count += 1
 
+    # Отправка на англоязычные вебхуки
+    if english_only_webhooks:
+        # Создаем payload только с английскими данными
+        full_payload = create_full_webhook_data(task)
+        english_translations = [trans for trans in full_payload.get("translations", []) if trans.get("language") == "en"]
+
+        if english_translations:  # Отправляем только если есть английский перевод
+            english_payload = full_payload.copy()
+            english_payload["type"] = "quiz_published_english_only"
+            english_payload["translations"] = english_translations
+
+            for webhook in english_only_webhooks:
+                success = send_task_published_webhook(webhook.url, english_payload)
+                results.append({
+                    "url": webhook.url,
+                    "service": webhook.service_name or "Неизвестный сервис",
+                    "type": webhook.webhook_type,
+                    "success": success,
+                })
+                if success:
+                    success_count += 1
+
     failed_count = len(results) - success_count
     logger.info(
         "Вебхуки: отправлено=%s, неудачных=%s, всего=%s",
@@ -237,10 +262,13 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
     # Группируем вебхуки по типу
     regular_webhooks = []
     russian_only_webhooks = []
+    english_only_webhooks = []
 
     for webhook in webhooks:
         if webhook.webhook_type == 'russian_only':
             russian_only_webhooks.append(webhook)
+        elif webhook.webhook_type == 'english_only':
+            english_only_webhooks.append(webhook)
         else:
             regular_webhooks.append(webhook)
 
@@ -267,6 +295,21 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
         if russian_payload.get("published_tasks"):  # Отправляем только если есть задачи с русским переводом
             for webhook in russian_only_webhooks:
                 success = send_task_published_webhook(webhook.url, russian_payload)
+                results.append({
+                    "url": webhook.url,
+                    "service": webhook.service_name or "Неизвестный сервис",
+                    "type": webhook.webhook_type,
+                    "success": success,
+                })
+                if success:
+                    success_count += 1
+
+    # Отправка на англоязычные вебхуки
+    if english_only_webhooks:
+        english_payload = create_english_only_webhook_data(tasks)
+        if english_payload.get("published_tasks"):  # Отправляем только если есть задачи с английским переводом
+            for webhook in english_only_webhooks:
+                success = send_task_published_webhook(webhook.url, english_payload)
                 results.append({
                     "url": webhook.url,
                     "service": webhook.service_name or "Неизвестный сервис",
