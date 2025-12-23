@@ -1172,20 +1172,43 @@ class TaskAdmin(admin.ModelAdmin):
             refreshed_tasks = list(Task.objects.filter(id__in=published_task_ids).prefetch_related('translations__taskpoll_set'))
 
             try:
-                webhook_result = send_webhooks_for_bulk_tasks(refreshed_tasks)
-                if webhook_result.get('total'):
-                    level = messages.SUCCESS if webhook_result['failed'] == 0 else messages.WARNING
+                # Получаем admin_chat_id для уведомлений о результатах
+                admin_chat_id = None
+                try:
+                    from accounts.models import TelegramAdmin
+                    admin = TelegramAdmin.objects.filter(is_active=True).first()
+                    if admin:
+                        admin_chat_id = admin.chat_id
+                except Exception:
+                    pass  # Не критично, если не найдется
+
+                # Запускаем отправку вебхуков асинхронно через Celery
+                from config.tasks import send_webhooks_async
+                webhook_task = send_webhooks_async.delay(
+                    task_ids=[task.id for task in refreshed_tasks],
+                    webhook_type_filter=None,  # Отправляем на все типы вебхуков
+                    admin_chat_id=admin_chat_id
+                )
+
+                self.message_user(
+                    request,
+                    f"🛰️ Вебхуки отправляются асинхронно (Celery ID: {webhook_task.id})",
+                    messages.SUCCESS
+                )
+
+                if admin_chat_id:
                     self.message_user(
                         request,
-                        f"🛰️ Сводный вебхук: успешно {webhook_result['success']}, неудачных {webhook_result['failed']}",
-                        level
+                        "📨 Результаты будут отправлены в Telegram",
+                        messages.INFO
                     )
                 else:
                     self.message_user(
                         request,
-                        "ℹ️ Нет активных вебхуков для отправки",
-                        messages.INFO
+                        "ℹ️ Настройте Telegram админа для получения уведомлений о результатах",
+                        messages.WARNING
                     )
+
             except Exception as exc:
                 logger.exception("Ошибка при отправке сводного вебхука: %s", exc)
                 self.message_user(
@@ -1686,8 +1709,9 @@ class TaskAdmin(admin.ModelAdmin):
         """
         Отправляет выбранные задачи только на вебхуки (без публикации в соцсети).
         Полезно для повторной отправки на вебхуки без повторной публикации.
+        Теперь работает асинхронно через Celery.
         """
-        from webhooks.services import send_webhooks_for_bulk_tasks
+        from config.tasks import send_webhooks_async
 
         # Собираем все translation_group_id
         translation_group_ids = set(
@@ -1711,6 +1735,7 @@ class TaskAdmin(admin.ModelAdmin):
 
         total_tasks = all_related_tasks.count()
         selected_count = queryset.count()
+        task_ids = [task.id for task in all_related_tasks]
 
         # Информируем пользователя о масштабе операции
         self.message_user(
@@ -1723,74 +1748,48 @@ class TaskAdmin(admin.ModelAdmin):
             f"🌍 Найдено связанных переводов: {total_tasks} задач на языках: {', '.join(sorted(tasks_by_language.keys()))}",
             messages.INFO
         )
-        self.message_user(request, "=" * 60, messages.INFO)
 
-        # Отправляем на вебхуки
+        # Запускаем асинхронную задачу через Celery
         try:
-            result = send_webhooks_for_bulk_tasks(all_related_tasks)
+            # Получаем admin_chat_id для уведомлений
+            admin_chat_id = None
+            try:
+                from accounts.models import TelegramAdmin
+                admin = TelegramAdmin.objects.filter(is_active=True).first()
+                if admin:
+                    admin_chat_id = admin.chat_id
+            except Exception:
+                pass  # Не критично, если не найдется
 
-            # Группируем результаты по типам вебхуков
-            webhook_stats = {}
-            for detail in result['details']:
-                webhook_type = detail['type']
-                if webhook_type not in webhook_stats:
-                    webhook_stats[webhook_type] = {'total': 0, 'success': 0, 'failed': 0, 'webhooks': []}
-                webhook_stats[webhook_type]['total'] += 1
-                if detail['success']:
-                    webhook_stats[webhook_type]['success'] += 1
-                else:
-                    webhook_stats[webhook_type]['failed'] += 1
-                webhook_stats[webhook_type]['webhooks'].append(detail)
-
-            # Показываем общую статистику
-            self.message_user(
-                request,
-                f"📤 Общая статистика: отправлено {result['success']} из {result['total']} вебхуков",
-                messages.SUCCESS if result['failed'] == 0 else messages.WARNING
+            # Запускаем Celery задачу
+            webhook_task = send_webhooks_async.delay(
+                task_ids=task_ids,
+                webhook_type_filter=None,  # Отправляем на все типы вебхуков
+                admin_chat_id=admin_chat_id
             )
 
-            # Показываем статистику по типам вебхуков
-            for webhook_type, stats in webhook_stats.items():
-                type_name = {
-                    'social_media': '📱 Соцсети',
-                    'russian_only': '🇷🇺 Только русский',
-                    'english_only': '🇺🇸 Только английский',
-                    'other': '🔄 Общие'
-                }.get(webhook_type, webhook_type)
+            # Немедленно информируем пользователя
+            self.message_user(
+                request,
+                f"🛰️ Вебхуки отправляются асинхронно через Celery (ID задачи: {webhook_task.id})",
+                messages.SUCCESS
+            )
 
-                status_icon = "✅" if stats['failed'] == 0 else "⚠️"
-                self.message_user(
-                    request,
-                    f"{status_icon} {type_name}: {stats['success']}/{stats['total']} (успешно/всего)",
-                    messages.SUCCESS if stats['failed'] == 0 else messages.WARNING
-                )
+            self.message_user(
+                request,
+                f"📨 Результаты будут отправлены в Telegram, если настроен чат администратора",
+                messages.INFO
+            )
 
-                # Показываем детали по каждому вебхуку в этом типе
-                for webhook_detail in stats['webhooks']:
-                    status = "✅" if webhook_detail['success'] else "❌"
-                    service_name = webhook_detail['service'][:30] + "..." if len(webhook_detail['service']) > 30 else webhook_detail['service']
-                    url_short = webhook_detail['url'][:50] + "..." if len(webhook_detail['url']) > 50 else webhook_detail['url']
-
-                    self.message_user(
-                        request,
-                        f"  {status} {service_name} → {url_short}",
-                        messages.SUCCESS if webhook_detail['success'] else messages.ERROR
-                    )
-
-            if result['failed'] > 0:
-                self.message_user(
-                    request,
-                    f"⚠️ Проверьте логи сервера для подробностей ошибок",
-                    messages.WARNING
-                )
+            self.message_user(request, "=" * 60, messages.INFO)
 
         except Exception as e:
             self.message_user(
                 request,
-                f"❌ Ошибка при отправке на вебхуки: {str(e)}",
+                f"❌ Ошибка при запуске задачи Celery: {str(e)}",
                 messages.ERROR
             )
-            logger.error(f"Ошибка отправки на вебхуки: {e}")
+            logger.error(f"Ошибка запуска Celery задачи для вебхуков: {e}")
 
     send_webhooks_separately.short_description = "📤 Отправить хуки отдельно"
 
