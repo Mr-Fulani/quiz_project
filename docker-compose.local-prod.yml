@@ -71,8 +71,8 @@ services:
       - REDIS_URL=redis://redis_cache_prod:6379/1
       - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
       - CELERY_RESULT_BACKEND=redis://redis_cache_prod:6379/0
-      - GUNICORN_WORKERS=2  # Оптимизировано для лучшей производительности
-      - GUNICORN_THREADS=4  # Увеличено для параллельной обработки
+      - GUNICORN_WORKERS=6  # Оптимизировано для лучшей производительности
+      - GUNICORN_THREADS=8  # Увеличено для параллельной обработки
       - GUNICORN_TIMEOUT=120
       - LOGO_PATH=/quiz_project/bot/assets/logo.png
       # AWS S3 настройки для загрузки изображений
