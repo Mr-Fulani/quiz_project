@@ -10,6 +10,7 @@ import tempfile
 import uuid
 from pathlib import Path
 from typing import Optional
+import numpy as np
 
 from PIL import Image, ImageDraw, ImageFont
 from PIL.Image import Resampling
@@ -59,7 +60,7 @@ def sanitize_filename(text: str, max_length: int = 100) -> str:
 def _get_keyboard_audio_path() -> Optional[str]:
     """
     Возвращает путь к аудиофайлу со звуком клавиатуры, если он существует.
-    
+
     Returns:
         Путь к аудиофайлу или None если файл не найден
     """
@@ -67,18 +68,43 @@ def _get_keyboard_audio_path() -> Optional[str]:
     audio_path = getattr(settings, 'KEYBOARD_AUDIO_PATH', None)
     if audio_path and os.path.exists(audio_path):
         return audio_path
-    
+
     # Затем проверяем в static директории
     base_dir = settings.BASE_DIR
     static_audio_path = base_dir / 'tasks' / 'static' / 'tasks' / 'keyboard_sounds' / 'keyboard_typing.wav'
     if static_audio_path.exists():
         return str(static_audio_path)
-    
+
     # Пробуем mp3 версию
     static_audio_path_mp3 = base_dir / 'tasks' / 'static' / 'tasks' / 'keyboard_sounds' / 'keyboard_typing.mp3'
     if static_audio_path_mp3.exists():
         return str(static_audio_path_mp3)
-    
+
+    return None
+
+
+def _get_background_audio_path() -> Optional[str]:
+    """
+    Возвращает путь к аудиофайлу фоновой музыки, если он существует.
+
+    Returns:
+        Путь к аудиофайлу или None если файл не найден
+    """
+    # Сначала проверяем настройку BACKGROUND_AUDIO_PATH
+    audio_path = getattr(settings, 'BACKGROUND_AUDIO_PATH', None)
+    if audio_path and os.path.exists(audio_path):
+        return audio_path
+
+    # Затем проверяем в static директории все поддерживаемые форматы
+    base_dir = settings.BASE_DIR
+    background_dir = base_dir / 'tasks' / 'static' / 'tasks' / 'background_music'
+
+    # Проверяем все распространенные форматы аудио
+    for ext in ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac']:
+        static_audio_path_ext = background_dir / f'background.{ext}'
+        if static_audio_path_ext.exists():
+            return str(static_audio_path_ext)
+
     return None
 
 
@@ -380,7 +406,7 @@ def generate_code_typing_video(
             return None
         
         # Получаем настройки
-        typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 45)  # символов в секунду (быстрое печатание)
+        typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 25)  # символов в секунду (побуквенное печатание)
         fps = getattr(settings, 'VIDEO_FPS', 24)
         max_video_duration = 30  # Максимальная длительность видео в секундах
         
@@ -438,8 +464,11 @@ def generate_code_typing_video(
                 visible_chars = total_chars  # Весь код (пауза)
             else:
                 # Пропорционально показываем код во время печати
+                # Используем более плавную интерполяцию для побуквенного эффекта
                 progress = (frame_num + 1) / typing_frames
-                visible_chars = int(progress * total_chars)
+                # Добавляем небольшую нелинейность для более естественного эффекта
+                smooth_progress = progress ** 0.95  # слегка замедляем в конце
+                visible_chars = max(1, int(smooth_progress * total_chars))
             frame = _generate_console_frame_vertical(formatted_code, language, visible_chars, logo_path, question_text, frame_num)
             
             # Сразу сохраняем кадр на диск
@@ -459,20 +488,135 @@ def generate_code_typing_video(
         # Создаем видео из кадров
         clip = ImageSequenceClip(frame_paths, fps=fps)
         
-        # Добавляем аудио если есть
-        audio_path = _get_keyboard_audio_path()
-        if audio_path:
-            try:
-                logger.info(f"Добавление аудио из {audio_path}...")
-                audio = AudioFileClip(audio_path)
-                # Обрезаем аудио до длины видео если оно длиннее
-                if audio.duration > clip.duration:
-                    audio = audio.subclip(0, clip.duration)
-                clip = clip.set_audio(audio)
-            except Exception as e:
-                logger.info(f"Не удалось добавить аудио (видео будет без звука): {e}")
+        # Добавляем аудио: фоновая музыка + звук клавиатуры
+        background_audio_path = _get_background_audio_path()
+        keyboard_audio_path = _get_keyboard_audio_path()
+
+        logger.info(f"Поиск аудио: фон={background_audio_path}, клавиатура={keyboard_audio_path}")
+        if background_audio_path:
+            logger.info(f"Путь к фоновой музыке найден: {background_audio_path}")
         else:
-            logger.info("Аудиофайл не найден, создается видео без звука")
+            logger.warning("Путь к фоновой музыке НЕ найден")
+
+        if background_audio_path or keyboard_audio_path:
+            try:
+                # Получаем настройки громкости
+                background_volume = getattr(settings, 'BACKGROUND_AUDIO_VOLUME', 0.3)
+
+                # Загружаем фоновую музыку (если есть)
+                background_audio = None
+                if background_audio_path:
+                    logger.info(f"Пытаюсь загрузить фоновую музыку: {background_audio_path}")
+                    logger.info(f"Файл существует: {os.path.exists(background_audio_path)}")
+                    try:
+                        background_audio = AudioFileClip(background_audio_path)
+                        logger.info(f"Фоновая музыка загружена: длительность={background_audio.duration:.1f}сек, fps={getattr(background_audio, 'fps', 'unknown')}")
+                        # Обрезаем или зацикливаем до длительности видео
+                        if background_audio.duration < clip.duration:
+                            # Если фоновая музыка короче, повторяем ее
+                            repeats = int(clip.duration // background_audio.duration) + 1
+                            background_audio = background_audio.loop(repeats).subclip(0, clip.duration)
+                            logger.info(f"Фоновая музыка зациклена: {repeats} раз")
+                        else:
+                            background_audio = background_audio.subclip(0, clip.duration)
+                        # Устанавливаем громкость
+                        try:
+                            # Пробуем multiply_volume
+                            background_audio = background_audio.multiply_volume(background_volume)
+                        except (AttributeError, Exception) as vol_error:
+                            logger.warning(f"multiply_volume не сработал ({vol_error}), пробую альтернативный метод")
+                            try:
+                                # Альтернативный метод через AudioClip
+                                from moviepy.audio.AudioClip import AudioClip
+                                import numpy as np
+
+                                def apply_volume(get_frame, t):
+                                    frame = get_frame(t)
+                                    if isinstance(frame, np.ndarray):
+                                        return frame * background_volume
+                                    return frame
+
+                                background_audio = background_audio.fl(lambda gf, t: apply_volume(gf, t))
+                                logger.info("Альтернативный метод изменения громкости применен")
+                            except Exception as alt_error:
+                                logger.warning(f"Альтернативный метод тоже не сработал ({alt_error}), использую оригинальную громкость")
+                        logger.info(f"Фоновая музыка настроена: громкость={background_volume}")
+                    except Exception as bg_error:
+                        logger.error(f"Не удалось загрузить фоновую музыку {background_audio_path}: {bg_error}")
+                        background_audio = None
+
+                # Загружаем аудио клавиатуры (если есть)
+                keyboard_audio = None
+                if keyboard_audio_path:
+                    try:
+                        keyboard_audio = AudioFileClip(keyboard_audio_path)
+
+                        # Рассчитываем длительность печати
+                        typing_duration = typing_frames / fps  # секунды печати
+
+                        # Обрезаем аудио до длительности печати
+                        if keyboard_audio.duration > typing_duration:
+                            keyboard_audio = keyboard_audio.subclip(0, typing_duration)
+                        else:
+                            logger.warning(f"Аудио клавиатуры короче чем нужно: {keyboard_audio.duration:.1f}сек вместо {typing_duration:.1f}сек")
+                        logger.info(f"Аудио клавиатуры загружено: {keyboard_audio_path}")
+                    except Exception as kb_error:
+                        logger.warning(f"Не удалось загрузить аудио клавиатуры: {kb_error}")
+                        keyboard_audio = None
+
+                # Создаем финальное аудио
+                final_audio = None
+
+                if background_audio and keyboard_audio:
+                    # Смешиваем фоновую музыку и звук клавиатуры
+                    try:
+                        from moviepy.audio.AudioClip import CompositeAudioClip
+                        final_audio = CompositeAudioClip([background_audio, keyboard_audio])
+                        logger.info("Аудио: фоновая музыка + звук клавиатуры (CompositeAudioClip)")
+                    except Exception as mix_error:
+                        logger.warning(f"CompositeAudioClip не сработал: {mix_error}, пробую простое сложение")
+                        # Пробуем простое сложение аудио
+                        try:
+                            final_audio = background_audio + keyboard_audio
+                            logger.info("Аудио: фоновая музыка + звук клавиатуры (простое сложение)")
+                        except Exception as add_error:
+                            logger.error(f"Простое сложение тоже не сработало: {add_error}")
+                            final_audio = background_audio  # Используем только фоновую музыку
+
+                elif background_audio:
+                    # Только фоновая музыка
+                    final_audio = background_audio
+                    logger.info("Аудио: только фоновая музыка")
+                elif keyboard_audio:
+                    # Только звук клавиатуры (с тишиной в конце)
+                    pause_duration_actual = pause_frames / fps  # секунды паузы
+                    audio_fps = keyboard_audio.fps if hasattr(keyboard_audio, 'fps') and keyboard_audio.fps else 44100
+
+                    # Создаем тишину для паузы
+                    silence_samples = int(pause_duration_actual * audio_fps)
+                    silence_array = np.zeros((silence_samples, 2))  # stereo silence
+
+                    from moviepy.audio.AudioClip import AudioArrayClip
+                    silence = AudioArrayClip(silence_array, fps=audio_fps)
+
+                    # Объединяем: печать + тишина
+                    from moviepy.audio.AudioClip import concatenate_audioclips
+                    final_audio = concatenate_audioclips([keyboard_audio, silence])
+                    logger.info("Аудио: звук клавиатуры + тишина")
+
+                # Применяем финальное аудио к видео
+                if final_audio:
+                    logger.info(f"Применяю финальное аудио к видео: длительность аудио={final_audio.duration:.1f}сек, видео={clip.duration:.1f}сек")
+                    clip = clip.set_audio(final_audio)
+                    logger.info(f"Аудио добавлено к видео (длительность: {clip.duration:.1f}сек)")
+                else:
+                    logger.warning("Не удалось создать аудио для видео")
+
+            except Exception as e:
+                logger.error(f"Критическая ошибка при обработке аудио: {e}")
+                logger.info("Видео будет создано без звука")
+        else:
+            logger.info("Аудиофайлы не найдены, создается видео без звука")
         
         # Экспортируем видео
         # Убеждаемся, что temp_dir существует и имеет правильные права
@@ -505,7 +649,7 @@ def generate_code_typing_video(
                 output_filename,
                 fps=fps,
                 codec='libx264',
-                audio_codec='aac' if audio_path else None,
+                audio_codec='aac' if final_audio is not None else None,
                 preset='medium',
                 ffmpeg_params=['-pix_fmt', 'yuv420p']  # Для совместимости
             )
