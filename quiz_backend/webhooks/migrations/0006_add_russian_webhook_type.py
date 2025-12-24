@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("webhooks", "0005_make_access_token_optional"),
+        ("webhooks", "0004_add_browser_automation_fields"),
     ]
 
     operations = [
