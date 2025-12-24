@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("webhooks", "0007_alter_webhook_webhook_type"),
+        ("webhooks", "0006_add_russian_webhook_type"),
     ]
 
     operations = [
