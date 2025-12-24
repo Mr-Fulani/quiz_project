@@ -117,7 +117,7 @@ services:
     # Запуск от непривилегированного пользователя для безопасности
     user: "1000:1000"
     entrypoint: ["/celery_entrypoint.sh"]
-    command: python -m celery -A config worker --loglevel=info --concurrency=1
+    command: python -m celery -A config worker --loglevel=info --concurrency=4
     environment:
       - TMPDIR=/app/tmp
       - DEBUG=False
