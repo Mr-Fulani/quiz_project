@@ -756,7 +756,7 @@ LOGO_PATH = os.path.join(MEDIA_ROOT, 'logos/logo.png')
 VIDEO_GENERATION_ENABLED = os.getenv('VIDEO_GENERATION_ENABLED', 'True').lower() == 'true'
 VIDEO_WIDTH = int(os.getenv('VIDEO_WIDTH', '1080'))
 VIDEO_HEIGHT = int(os.getenv('VIDEO_HEIGHT', '1920'))
-VIDEO_TYPING_SPEED = float(os.getenv('VIDEO_TYPING_SPEED', '20'))  # символов в секунду (увеличено для меньшего количества кадров)
+VIDEO_TYPING_SPEED = float(os.getenv('VIDEO_TYPING_SPEED', '45'))  # символов в секунду (увеличено для более быстрого печатания)
 VIDEO_FPS = int(os.getenv('VIDEO_FPS', '24'))
 KEYBOARD_AUDIO_PATH = os.getenv('KEYBOARD_AUDIO_PATH', None)  # опционально, если нет - видео без звука
 TELEGRAM_ADMIN_CHAT_ID = os.getenv('TELEGRAM_ADMIN_CHAT_ID', None)  # Chat ID админа для отправки сгенерированных видео

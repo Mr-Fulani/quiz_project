@@ -118,17 +118,8 @@ def _generate_console_frame_vertical(
         # Показываем весь код
         visible_code = formatted_code_text
     else:
-        # Берем видимую часть, но обрезаем по строкам, а не по символам
-        # Это гарантирует, что всегда показываются полные строки
-        visible_text = formatted_code_text[:visible_chars]
-        # Находим последний перенос строки в видимой части
-        last_newline = visible_text.rfind('\n')
-        if last_newline > 0:
-            # Обрезаем до последней полной строки
-            visible_code = visible_text[:last_newline + 1]
-        else:
-            # Если переноса строки нет, берем как есть (первая строка)
-            visible_code = visible_text
+        # Показываем код посимвольно для плавной анимации печати
+        visible_code = formatted_code_text[:visible_chars]
     
     # Пустые строки уже добавлены в formatted_code перед генерацией кадров
     # Здесь мы только обрезаем код до visible_chars, но сохраняем пустые строки если они есть
@@ -389,7 +380,7 @@ def generate_code_typing_video(
             return None
         
         # Получаем настройки
-        typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 35)  # символов в секунду (увеличено для ускорения рендеринга)
+        typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 45)  # символов в секунду (быстрое печатание)
         fps = getattr(settings, 'VIDEO_FPS', 24)
         max_video_duration = 30  # Максимальная длительность видео в секундах
         
@@ -403,10 +394,17 @@ def generate_code_typing_video(
         formatted_code += '\n\n'  # Добавляем точно две пустые строки
         total_chars = len(formatted_code)
         
-        # Рассчитываем количество кадров с ограничением максимальной длительности
-        duration = min(total_chars / typing_speed, max_video_duration)  # секунды
-        total_frames = int(duration * fps)
-        
+        # Рассчитываем количество кадров для печати с ограничением максимальной длительности
+        typing_duration = min(total_chars / typing_speed, max_video_duration)  # секунды на печать
+        typing_frames = int(typing_duration * fps)
+
+        # Добавляем 5 секунд паузы
+        pause_duration = 5  # секунды паузы после завершения печати
+        pause_frames = int(pause_duration * fps)
+
+        # Общее количество кадров
+        total_frames = typing_frames + pause_frames
+
         # Если код очень длинный, увеличиваем скорость для укладывания в максимальную длительность
         if total_chars / typing_speed > max_video_duration:
             typing_speed = total_chars / max_video_duration
@@ -432,17 +430,15 @@ def generate_code_typing_video(
         frame_paths = []
         
         # Генерируем кадры и сразу сохраняем на диск (не накапливаем в памяти)
-        logger.info(f"Генерация {total_frames} кадров для видео...")
-        # Последние 15% кадров показывают весь код полностью
-        full_code_start_frame = int(total_frames * 0.85)
-        
+        logger.info(f"Генерация {total_frames} кадров для видео (печать: {typing_frames}, пауза: {pause_frames})...")
+
         for frame_num in range(total_frames):
-            # Для последних 15% кадров показываем весь код полностью
-            if frame_num >= full_code_start_frame:
-                visible_chars = total_chars  # Весь код
+            # После завершения печати показываем весь код полностью
+            if frame_num >= typing_frames:
+                visible_chars = total_chars  # Весь код (пауза)
             else:
-                # Пропорционально показываем код
-                progress = (frame_num + 1) / full_code_start_frame
+                # Пропорционально показываем код во время печати
+                progress = (frame_num + 1) / typing_frames
                 visible_chars = int(progress * total_chars)
             frame = _generate_console_frame_vertical(formatted_code, language, visible_chars, logo_path, question_text, frame_num)
             
@@ -721,9 +717,23 @@ def generate_video_for_task(
                         task_details += f"\n📂 Тема: {subtopic_name}"
                     if difficulty:
                         task_details += f"\n🎯 Сложность: {difficulty}"
-                    if video_url:
-                        task_details += f"\n🔗 URL: {video_url}"
-                    
+                    task_details += f"\n🔗 URL: https://mini.quiz-code.com"
+
+                    # Генерируем хэштеги
+                    hashtags = ["code", "quizes", "programming", "coding", "learntocode"]
+                    if topic_name:
+                        # Добавляем хештег языка программирования
+                        topic_hashtag = topic_name.lower().replace(' ', '').replace('+', 'plus')
+                        hashtags.append(topic_hashtag)
+                    if subtopic_name:
+                        # Добавляем хештег подтемы
+                        subtopic_hashtag = subtopic_name.lower().replace(' ', '').replace('-', '')
+                        hashtags.append(subtopic_hashtag)
+
+                    # Форматируем хэштеги
+                    hashtags_text = ' '.join([f'#{tag}' for tag in hashtags])
+                    task_details += f"\n\n{hashtags_text}"
+
                     # Отправляем детали задачи текстовым сообщением (без parse_mode для корректного отображения emoji)
                     send_message(str(admin_chat_id), task_details, parse_mode=None)
                     logger.info(f"✅ Детали задачи отправлены админу")
