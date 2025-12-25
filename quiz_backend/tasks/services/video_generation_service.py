@@ -6,6 +6,7 @@ import gc
 import io
 import logging
 import os
+import random
 import re
 import tempfile
 import uuid
@@ -86,25 +87,36 @@ def _get_keyboard_audio_path() -> Optional[str]:
 
 def _get_background_audio_path() -> Optional[str]:
     """
-    Возвращает путь к аудиофайлу фоновой музыки, если он существует.
+    Возвращает путь к случайно выбранному аудиофайлу фоновой музыки, если файлы существуют.
 
     Returns:
-        Путь к аудиофайлу или None если файл не найден
+        Путь к случайно выбранному аудиофайлу или None если файлы не найдены
     """
     # Сначала проверяем настройку BACKGROUND_AUDIO_PATH
     audio_path = getattr(settings, 'BACKGROUND_AUDIO_PATH', None)
     if audio_path and os.path.exists(audio_path):
         return audio_path
 
-    # Затем проверяем в static директории все поддерживаемые форматы
+    # Затем ищем все аудиофайлы в директории background_music
     base_dir = settings.BASE_DIR
     background_dir = base_dir / 'tasks' / 'static' / 'tasks' / 'background_music'
 
-    # Проверяем все распространенные форматы аудио
-    for ext in ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac']:
-        static_audio_path_ext = background_dir / f'background.{ext}'
-        if static_audio_path_ext.exists():
-            return str(static_audio_path_ext)
+    if not background_dir.exists():
+        return None
+
+    # Поддерживаемые форматы аудио
+    supported_extensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac']
+
+    # Находим все аудиофайлы
+    audio_files = []
+    for ext in supported_extensions:
+        audio_files.extend(background_dir.glob(f'*.{ext}'))
+
+    # Если файлы найдены, выбираем случайный
+    if audio_files:
+        selected_file = random.choice(audio_files)
+        logger.info(f"🎵 Выбрана фоновая музыка: {selected_file.name}")
+        return str(selected_file)
 
     return None
 
