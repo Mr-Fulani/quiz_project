@@ -122,7 +122,7 @@ services:
     # Запуск от непривилегированного пользователя для безопасности
     user: "1000:1000"
     entrypoint: ["/celery_entrypoint.sh"]
-    command: python -m celery -A config worker --loglevel=info --concurrency=2 --pool=prefork
+    command: python -m celery -A config worker --loglevel=info --concurrency=1 --pool=prefork --exclude-queues=video_queue,webhooks_queue
     deploy:
       resources:
         limits:
@@ -178,7 +178,7 @@ services:
     container_name: celery_worker_video_prod
     user: "1000:1000"
     entrypoint: ["/celery_entrypoint.sh"]
-    command: python -m celery -A config worker --loglevel=info --concurrency=1 --pool=solo -Q video_queue --hostname=video@%h
+    command: python -m celery -A config worker --loglevel=info --concurrency=3 --pool=solo --max-tasks-per-child=5 -Q video_queue --hostname=video@%h
     deploy:
       resources:
         limits:
@@ -232,7 +232,7 @@ services:
     container_name: celery_worker_webhooks_prod
     user: "1000:1000"
     entrypoint: ["/celery_entrypoint.sh"]
-    command: python -m celery -A config worker --loglevel=info --concurrency=2 --pool=prefork -Q webhooks_queue --hostname=webhooks@%h
+    command: python -m celery -A config worker --loglevel=info --concurrency=1 --pool=prefork --max-tasks-per-child=100 -Q webhooks_queue --hostname=webhooks@%h
     deploy:
       resources:
         limits:
