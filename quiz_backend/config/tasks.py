@@ -440,8 +440,12 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
             logger.warning(f"⚠️ [Rate Limit] Слишком много активных вебхуков ({active_count}/{MAX_CONCURRENT_WEBHOOKS}), откладываем на 2 минуты")
             raise self.retry(countdown=120, exc=Exception(f"Rate limit exceeded: {active_count} active webhooks"))
 
-        # Увеличиваем счетчик активных задач
-        cache.incr(active_webhooks_key, 1)
+        # Увеличиваем счетчик активных задач (инициализируем если ключ не существует)
+        try:
+            cache.incr(active_webhooks_key, 1)
+        except ValueError:
+            # Ключ не существует, создаем его со значением 1
+            cache.set(active_webhooks_key, 1, 600)
         cache.expire(active_webhooks_key, 600)  # Автоматический сброс через 10 минут
 
         logger.info(f"🛰️ [Celery] Начало асинхронной отправки вебхуков для {len(task_ids)} задач (активных: {active_count + 1}/{MAX_CONCURRENT_WEBHOOKS})")
