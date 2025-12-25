@@ -5,6 +5,7 @@ Celery задачи для фоновой обработки.
 чтобы не блокировать HTTP-запросы.
 """
 import logging
+import os
 from celery import shared_task
 from django.core.mail import send_mail
 from django.conf import settings
@@ -198,7 +199,7 @@ def process_uploaded_file(self, file_path, user_id):
     bind=True,
     max_retries=1,  # Уменьшаем количество повторных попыток для видео
     default_retry_delay=600,  # Увеличиваем задержку до 10 минут
-    queue='video_queue',  # Продакшен очередь для видео
+    queue='celery' if os.getenv('DEBUG') == 'True' else 'video_queue',  # Локально celery, на проде video_queue
     time_limit=900,      # Hard limit: 15 минут (принудительное завершение)
     soft_time_limit=600  # Soft limit: 10 минут (graceful завершение)
 )
