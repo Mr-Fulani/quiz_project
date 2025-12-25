@@ -270,10 +270,14 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
     }
 
 
-def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
+def send_webhooks_for_bulk_tasks(tasks: List["Task"], include_video: bool = False) -> Dict[str, Any]:
     """
     Формирует агрегированные данные и отправляет их на все активные вебхуки.
     Для вебхуков типа 'russian_only' отправляет только русские данные.
+
+    Args:
+        tasks: Список задач для отправки
+        include_video: Если True, включает видео URL в payload
     """
     if not tasks:
         logger.info("Нет опубликованных задач для отправки сводного вебхука.")

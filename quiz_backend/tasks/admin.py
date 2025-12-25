@@ -1182,17 +1182,27 @@ class TaskAdmin(admin.ModelAdmin):
                 except Exception:
                     pass  # Не критично, если не найдется
 
-                # Запускаем отправку вебхуков асинхронно через Celery
-                from config.tasks import send_webhooks_async
-                webhook_task = send_webhooks_async.delay(
-                    task_ids=[task.id for task in refreshed_tasks],
-                    webhook_type_filter=None,  # Отправляем на все типы вебхуков
-                    admin_chat_id=admin_chat_id
-                )
-
+                # Автоматически запускаем генерацию видео для опубликованных задач
+                from config.tasks import generate_video_for_task_async
+                
+                for task in refreshed_tasks:
+                    # Находим перевод для задачи
+                    translation = task.translations.first()
+                    if translation:
+                        # Запускаем генерацию видео
+                        generate_video_for_task_async.delay(
+                            task_id=task.id,
+                            task_question=translation.question,
+                            topic_name=task.topic.name,
+                            subtopic_name=task.subtopic.name if task.subtopic else None,
+                            difficulty=task.difficulty,
+                            admin_chat_id=admin_chat_id
+                        )
+                
+                # Вебхуки отправляются только после генерации видео
                 self.message_user(
                     request,
-                    f"🛰️ Вебхуки отправляются асинхронно (Celery ID: {webhook_task.id})",
+                    f"🎬 Запущена генерация видео и вебхуки будут отправлены с видео для {len(refreshed_tasks)} задач",
                     messages.SUCCESS
                 )
 
@@ -1761,17 +1771,10 @@ class TaskAdmin(admin.ModelAdmin):
             except Exception:
                 pass  # Не критично, если не найдется
 
-            # Запускаем Celery задачу (полностью асинхронно)
-            webhook_task = send_webhooks_async.delay(
-                task_ids=task_ids,
-                webhook_type_filter=None,  # Отправляем на все типы вебхуков
-                admin_chat_id=admin_chat_id
-            )
-
-            # Немедленно информируем пользователя (без блокировки)
+            # Вебхуки отправляются только после генерации видео
             self.message_user(
                 request,
-                f"🛰️ Вебхуки отправляются асинхронно (задача: {webhook_task.id})",
+                f"🛰️ Вебхуки будут отправлены с видео после генерации видео для {len(all_related_tasks)} задач",
                 messages.SUCCESS
             )
 
