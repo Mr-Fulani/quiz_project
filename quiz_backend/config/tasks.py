@@ -556,6 +556,12 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
             except Exception as e:
                 logger.error(f"❌ [Celery] Критическая ошибка при отправке уведомления: {e}")
 
+        # Уменьшаем счетчик активных задач после успешного выполнения
+        try:
+            cache.decr(active_webhooks_key)
+        except:
+            pass  # Игнорируем ошибки декремента
+
         return result
 
     except Exception as exc:
