@@ -471,8 +471,14 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         raise self.retry(exc=exc, countdown=300)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=60, queue='webhooks_queue')
+@shared_task(bind=True, max_retries=2, default_retry_delay=60, queue='webhooks_queue' if os.getenv('DEBUG') != 'True' else 'celery')
 def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=None, include_video=False):
+    """
+    Асинхронная отправка вебхуков для списка задач.
+
+    ОЧЕРЕДЬ: webhooks_queue (продакшен) или celery (локальная разработка)
+    Это обеспечивает совместимость с разными конфигурациями Celery worker'ов.
+    """
     """
     Асинхронная отправка вебхуков для списка задач.
 
@@ -507,7 +513,13 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         except ValueError:
             # Ключ не существует, создаем его со значением 1
             cache.set(active_webhooks_key, 1, 600)
-        cache.expire(active_webhooks_key, 600)  # Автоматический сброс через 10 минут
+
+        # Автоматический сброс через 10 минут (работает только с Redis, игнорируется для LocMemCache)
+        try:
+            cache.expire(active_webhooks_key, 600)
+        except AttributeError:
+            # LocMemCache не поддерживает expire, игнорируем
+            pass
 
         logger.info(f"🛰️ [Celery] Начало асинхронной отправки вебхуков для {len(task_ids)} задач (активных: {active_count + 1}/{MAX_CONCURRENT_WEBHOOKS})")
         if webhook_type_filter:
