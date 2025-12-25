@@ -36,7 +36,7 @@ echo "📦 Создание squash миграции для topics..."
 python manage.py squashmigrations topics 0001 0004 --noinput
 
 echo "📦 Создание squash миграции для webhooks..."
-python manage.py squashmigrations webhooks 0001 0005 --noinput
+python manage.py squashmigrations webhooks 0001 0009 --noinput
 
 echo "✅ Squash миграции созданы!"
 echo ""

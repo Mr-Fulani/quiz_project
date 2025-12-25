@@ -185,6 +185,14 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
             })
             if success:
                 success_count += 1
+            else:
+                # 🛑 Автоматическая деактивация при неудаче
+                try:
+                    webhook.is_active = False
+                    webhook.save(update_fields=['is_active'])
+                    logger.warning(f"🛑 Вебхук '{webhook.service_name or 'Неизвестный'}' ({webhook.url}) деактивирован после неудачной отправки")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка при деактивации вебхука {webhook.url}: {e}")
 
     # Отправка на русскоязычные вебхуки
     if russian_only_webhooks:
@@ -207,6 +215,14 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
                 })
                 if success:
                     success_count += 1
+                else:
+                    # 🛑 Автоматическая деактивация при неудаче
+                    try:
+                        webhook.is_active = False
+                        webhook.save(update_fields=['is_active'])
+                        logger.warning(f"🛑 Русскоязычный вебхук '{webhook.service_name or 'Неизвестный'}' ({webhook.url}) деактивирован после неудачной отправки")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка при деактивации русскоязычного вебхука {webhook.url}: {e}")
 
     # Отправка на англоязычные вебхуки
     if english_only_webhooks:
@@ -229,6 +245,14 @@ def send_webhooks_for_task(task: "Task") -> Dict[str, Any]:
                 })
                 if success:
                     success_count += 1
+                else:
+                    # 🛑 Автоматическая деактивация при неудаче
+                    try:
+                        webhook.is_active = False
+                        webhook.save(update_fields=['is_active'])
+                        logger.warning(f"🛑 Англоязычный вебхук '{webhook.service_name or 'Неизвестный'}' ({webhook.url}) деактивирован после неудачной отправки")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка при деактивации англоязычного вебхука {webhook.url}: {e}")
 
     failed_count = len(results) - success_count
     logger.info(
@@ -289,6 +313,14 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
             })
             if success:
                 success_count += 1
+            else:
+                # 🛑 Автоматическая деактивация при неудаче
+                try:
+                    webhook.is_active = False
+                    webhook.save(update_fields=['is_active'])
+                    logger.warning(f"🛑 Вебхук '{webhook.service_name or 'Неизвестный'}' ({webhook.url}) деактивирован после неудачной отправки")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка при деактивации вебхука {webhook.url}: {e}")
 
     # Отправка на русскоязычные вебхуки
     if russian_only_webhooks:
@@ -306,6 +338,14 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
                 })
                 if success:
                     success_count += 1
+                else:
+                    # 🛑 Автоматическая деактивация при неудаче
+                    try:
+                        webhook.is_active = False
+                        webhook.save(update_fields=['is_active'])
+                        logger.warning(f"🛑 Русскоязычный вебхук '{webhook.service_name or 'Неизвестный'}' ({webhook.url}) деактивирован после неудачной отправки")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка при деактивации русскоязычного вебхука {webhook.url}: {e}")
         else:
             logger.info("🇷🇺 Русские вебхуки: пропущены - нет задач с русским переводом")
 
@@ -325,6 +365,14 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
                 })
                 if success:
                     success_count += 1
+                else:
+                    # 🛑 Автоматическая деактивация при неудаче
+                    try:
+                        webhook.is_active = False
+                        webhook.save(update_fields=['is_active'])
+                        logger.warning(f"🛑 Англоязычный вебхук '{webhook.service_name or 'Неизвестный'}' ({webhook.url}) деактивирован после неудачной отправки")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка при деактивации англоязычного вебхука {webhook.url}: {e}")
         else:
             logger.info("🇺🇸 Английские вебхуки: пропущены - нет задач с английским переводом")
 
