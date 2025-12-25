@@ -194,7 +194,7 @@ def process_uploaded_file(self, file_path, user_id):
         raise self.retry(exc=exc, countdown=30)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300, queue='video_queue')
 def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False, admin_chat_id=None):
     """
     Асинхронная генерация видео для задачи.
@@ -375,7 +375,7 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         raise self.retry(exc=exc, countdown=300)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60, queue='webhooks_queue')
 def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=None):
     """
     Асинхронная отправка вебхуков для списка задач.
@@ -404,6 +404,14 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         if not tasks:
             logger.warning("⚠️ [Celery] Не найдено задач для отправки вебхуков")
             return {"total": 0, "success": 0, "failed": 0, "details": []}
+
+        # Логируем информацию о задачах и их переводах для диагностики
+        logger.info(f"📋 [Celery] Отправка {len(tasks)} задач на вебхуки")
+        for task in tasks:
+            translations_info = []
+            for trans in task.translations.all():
+                translations_info.append(f"{trans.language}")
+            logger.info(f"   Задача {task.id}: переводы {', '.join(translations_info) if translations_info else 'отсутствуют'}")
 
         # Отправляем вебхуки
         result = send_webhooks_for_bulk_tasks(tasks)

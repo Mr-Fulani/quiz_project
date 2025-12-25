@@ -25,9 +25,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis_cache_prod
-    # Исправление предупреждения о memory overcommit (требует настроек хоста)
-    # Для полного исправления выполните на хосте: sysctl vm.overcommit_memory=1
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save ""
+    # Увеличена память для Celery + кэша, политика удаления старых ключей
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru --save ""
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 512m
     sysctls:
       - net.core.somaxconn=1024
     ports:
@@ -117,7 +122,15 @@ services:
     # Запуск от непривилегированного пользователя для безопасности
     user: "1000:1000"
     entrypoint: ["/celery_entrypoint.sh"]
-    command: python -m celery -A config worker --loglevel=info --concurrency=4
+    command: python -m celery -A config worker --loglevel=info --concurrency=2 --pool=prefork
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+          cpus: '1.5'
+        reservations:
+          memory: 1g
+          cpus: '0.5'
     environment:
       - TMPDIR=/app/tmp
       - DEBUG=False
@@ -151,6 +164,108 @@ services:
       - ./media:/app/media
       - ./quiz_backend/logs:/app/logs
       - ./bot:/quiz_project/bot  # Монтируем бот для доступа к логотипу
+    depends_on:
+      - postgres_db
+      - redis
+    networks:
+      - quiz_network_local_prod
+    restart: unless-stopped
+
+  celery_worker_video:
+    build:
+      context: ./quiz_backend
+      dockerfile: Dockerfile
+    container_name: celery_worker_video_prod
+    user: "1000:1000"
+    entrypoint: ["/celery_entrypoint.sh"]
+    command: python -m celery -A config worker --loglevel=info --concurrency=1 --pool=solo -Q video_queue --hostname=video@%h
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: '2.0'
+        reservations:
+          memory: 2g
+          cpus: '1.0'
+    environment:
+      - TMPDIR=/app/tmp
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
+      - DATABASE_ENGINE=${DATABASE_ENGINE:-django.db.backends.postgresql}
+      - DB_NAME=${DB_NAME:-fulani_quiz_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis_cache_prod:6379/1
+      - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_cache_prod:6379/0
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
+      - GOOGLE_TAG_MANAGER_ID=${GOOGLE_TAG_MANAGER_ID}
+      - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
+    env_file:
+      - .env
+    volumes:
+      - ./quiz_backend:/app
+      - ./media:/app/media
+      - ./quiz_backend/logs:/app/logs
+      - ./bot:/quiz_project/bot
+    depends_on:
+      - postgres_db
+      - redis
+    networks:
+      - quiz_network_local_prod
+    restart: unless-stopped
+
+  celery_worker_webhooks:
+    build:
+      context: ./quiz_backend
+      dockerfile: Dockerfile
+    container_name: celery_worker_webhooks_prod
+    user: "1000:1000"
+    entrypoint: ["/celery_entrypoint.sh"]
+    command: python -m celery -A config worker --loglevel=info --concurrency=2 --pool=prefork -Q webhooks_queue --hostname=webhooks@%h
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: '1.0'
+        reservations:
+          memory: 512m
+          cpus: '0.5'
+    environment:
+      - TMPDIR=/app/tmp
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
+      - DATABASE_ENGINE=${DATABASE_ENGINE:-django.db.backends.postgresql}
+      - DB_NAME=${DB_NAME:-fulani_quiz_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis_cache_prod:6379/1
+      - CELERY_BROKER_URL=redis://redis_cache_prod:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_cache_prod:6379/0
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}
+      - GOOGLE_TAG_MANAGER_ID=${GOOGLE_TAG_MANAGER_ID}
+      - YANDEX_METRICA_ID=${YANDEX_METRICA_ID}
+    env_file:
+      - .env
+    volumes:
+      - ./quiz_backend:/app
+      - ./quiz_backend/logs:/app/logs
     depends_on:
       - postgres_db
       - redis
