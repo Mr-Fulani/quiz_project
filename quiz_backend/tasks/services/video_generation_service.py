@@ -496,7 +496,7 @@ def generate_code_typing_video(
             logger.info("Оптимизация памяти: MAX_MEMORY_CACHE=512MB")
 
             # Ограничиваем количество ядер CPU для стабильности
-            import os
+            # os уже импортирован в начале файла
             os.environ['MOVIEPY_NUM_THREADS'] = '1'
             logger.info("Оптимизация CPU: MOVIEPY_NUM_THREADS=1")
         
