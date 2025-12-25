@@ -485,8 +485,20 @@ def generate_code_typing_video(
         
         logger.info(f"Создание видео из {len(frame_paths)} кадров...")
         
-        # Создаем видео из кадров
+        # Создаем видео из кадров с оптимизацией памяти
         clip = ImageSequenceClip(frame_paths, fps=fps)
+
+        # Оптимизация памяти и CPU для продакшена
+        if os.getenv('DEBUG') != 'True':
+            # Ограничиваем использование памяти MoviePy
+            import moviepy.config as mp_config
+            mp_config.MAX_MEMORY_CACHE = 512 * 1024 * 1024  # 512MB вместо дефолтных 2GB
+            logger.info("Оптимизация памяти: MAX_MEMORY_CACHE=512MB")
+
+            # Ограничиваем количество ядер CPU для стабильности
+            import os
+            os.environ['MOVIEPY_NUM_THREADS'] = '1'
+            logger.info("Оптимизация CPU: MOVIEPY_NUM_THREADS=1")
         
         # Добавляем аудио: фоновая музыка + звук клавиатуры
         background_audio_path = _get_background_audio_path()
@@ -528,7 +540,7 @@ def generate_code_typing_video(
                             try:
                                 # Альтернативный метод через AudioClip
                                 from moviepy.audio.AudioClip import AudioClip
-                                import numpy as np
+                                # numpy уже импортирован в начале файла
 
                                 def apply_volume(get_frame, t):
                                     frame = get_frame(t)
@@ -645,14 +657,23 @@ def generate_code_typing_video(
             # Используем относительный путь, так как мы уже в temp_dir
             output_filename = "output.mp4"
             
-            clip.write_videofile(
-                output_filename,
-                fps=fps,
-                codec='libx264',
-                audio_codec='aac' if final_audio is not None else None,
-                preset='medium',
-                ffmpeg_params=['-pix_fmt', 'yuv420p']  # Для совместимости
-            )
+            # Параметры записи с оптимизацией для продакшена
+            write_params = {
+                'output_filename': output_filename,
+                'fps': fps,
+                'codec': 'libx264',
+                'audio_codec': 'aac' if final_audio is not None else None,
+                'preset': 'medium',
+                'ffmpeg_params': ['-pix_fmt', 'yuv420p']
+            }
+
+            if os.getenv('DEBUG') != 'True':
+                # Продакшен: меньше логов, стабильнее работа
+                write_params['verbose'] = False
+                write_params['threads'] = 1
+                logger.info("Оптимизация записи: verbose=False, threads=1")
+
+            clip.write_videofile(**write_params)
             
             # Получаем абсолютный путь к созданному файлу (пока мы еще в temp_dir)
             output_path = os.path.abspath(output_filename)
