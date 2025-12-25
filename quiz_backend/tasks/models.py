@@ -76,7 +76,17 @@ class Task(models.Model):
         max_length=255,
         null=True,
         blank=True,
-        help_text='URL видео задачи (для будущей генерации видео)'
+        help_text='URL видео задачи (для совместимости, основное видео)'
+    )
+    video_urls = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='URL видео по языкам: {"ru": "url1", "en": "url2"}'
+    )
+    video_generation_progress = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Прогресс генерации видео: {"ru": true, "en": false}'
     )
     external_link = models.URLField(
         max_length=255,

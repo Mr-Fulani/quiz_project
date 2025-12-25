@@ -203,14 +203,14 @@ def process_uploaded_file(self, file_path, user_id):
     time_limit=900,      # Hard limit: 15 минут (принудительное завершение)
     soft_time_limit=600  # Soft limit: 10 минут (graceful завершение)
 )
-def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False, admin_chat_id=None):
+def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False, admin_chat_id=None, video_language='ru', expected_languages=None):
     """
     Асинхронная генерация видео для задачи.
-    
+
     Генерирует видео в фоне, чтобы не блокировать публикацию задач.
     Видео автоматически отправляется админу после генерации.
     Все этапы логируются для отслеживания в админке.
-    
+
     Args:
         task_id: ID задачи
         task_question: Текст вопроса задачи
@@ -219,7 +219,9 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         difficulty: Сложность задачи (опционально)
         force_regenerate: Если True, перегенерирует видео даже если оно уже существует
         admin_chat_id: ID чата админа для отправки видео (опционально, если не указан, будет получен из настроек/БД)
-    
+        video_language: Язык видео ('ru', 'en') - определяет в какое поле сохранить URL
+        expected_languages: Набор языков, которые должны быть сгенерированы для этой задачи
+
     Returns:
         URL видео или None при ошибке
     """
@@ -314,7 +316,8 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             subtopic_name=subtopic_name,
             difficulty=difficulty,
             admin_chat_id=admin_chat_id,
-            task_id=task_id
+            task_id=task_id,
+            video_language=video_language
         )
         
         if video_url:
@@ -328,12 +331,52 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             logger.info(f"📝 [Celery] Этап 2/4: Видео сгенерировано")
             logger.info(f"📝 [Celery] Этап 3/4: Загрузка в S3/R2...")
             
-            # Сохраняем URL видео в задачу
-            task.video_url = video_url
-            task.save(update_fields=['video_url', 'video_generation_logs'])
+            # Сохраняем URL видео в задачу по языку
+            task.video_urls = task.video_urls or {}
+            task.video_urls[video_language] = video_url
+
+            # Отмечаем язык как готовый
+            task.video_generation_progress = task.video_generation_progress or {}
+            task.video_generation_progress[video_language] = True
+            task.save(update_fields=['video_urls', 'video_generation_progress', 'video_generation_logs'])
+
+            # Проверяем, все ли ожидаемые языки готовы
+            if expected_languages:
+                all_ready = all(task.video_generation_progress.get(lang, False) for lang in expected_languages)
+                if all_ready:
+                    # Все видео готовы - отправляем вебхуки
+                    try:
+                        logger.info(f"🛰️ [Celery] Все видео для задачи {task_id} готовы ({', '.join(expected_languages)}), отправляем вебхуки с видео...")
+                        from config.tasks import send_webhooks_async
+                        webhook_task = send_webhooks_async.delay(
+                            task_ids=[task_id],
+                            webhook_type_filter=None,
+                            admin_chat_id=admin_chat_id,
+                            include_video=True
+                        )
+                        logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
+                    except Exception as webhook_exc:
+                        logger.error(f"❌ [Celery] Ошибка запуска вебхуков для задачи {task_id}: {webhook_exc}")
+                else:
+                    ready_langs = [lang for lang in expected_languages if task.video_generation_progress.get(lang, False)]
+                    logger.info(f"📋 [Celery] Видео для языка {video_language} готово. Прогресс: {ready_langs}/{list(expected_languages)}")
+            else:
+                # Старая логика для совместимости - отправляем вебхуки сразу
+                try:
+                    logger.info(f"🛰️ [Celery] Задача {task_id} опубликована, отправляем вебхуки с видео...")
+                    from config.tasks import send_webhooks_async
+                    webhook_task = send_webhooks_async.delay(
+                        task_ids=[task_id],
+                        webhook_type_filter=None,
+                        admin_chat_id=admin_chat_id,
+                        include_video=True
+                    )
+                    logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
+                except Exception as webhook_exc:
+                    logger.error(f"❌ [Celery] Ошибка запуска вебхуков для задачи {task_id}: {webhook_exc}")
             
             logs.append("📝 Этап 4/4: Видео отправлено админу в Telegram")
-            logs.append(f"✅ Видео успешно сгенерировано для задачи {task_id}")
+            logs.append(f"✅ Видео успешно сгенерировано для задачи {task_id} (язык: {video_language})")
             logs.append(f"🔗 URL: {video_url}")
             logs.append("🎬 ════════════════════════════════════════════════")
             log_text = "\n".join(logs)
@@ -529,7 +572,16 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
                             webhook_stats[webhook_type]['webhooks'].append(detail)
 
                         # Формируем сообщение
-                        message_parts = ["🛰️ Вебхуки отправлены\n"]
+                        video_status = "🎬 С видео" if include_video else "📄 Без видео"
+                        message_parts = [f"🛰️ Вебхуки отправлены ({video_status})\n"]
+
+                        # Информация о задачах
+                        message_parts.append(f"📋 Задач: {len(tasks)}")
+                        task_ids_str = ', '.join(str(task.id) for task in tasks[:5])  # Показываем максимум 5 ID
+                        if len(tasks) > 5:
+                            task_ids_str += f" ... и ещё {len(tasks) - 5}"
+                        message_parts.append(f"🆔 ID: {task_ids_str}")
+                        message_parts.append("")
 
                         # Общая статистика
                         message_parts.append(f"📊 Всего: {result['total']}")
@@ -542,10 +594,10 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
                         # Статистика по типам
                         for webhook_type, stats in webhook_stats.items():
                             type_name = {
-                                'social_media': '📱 Соцсети',
+                                'regular': '🔄 Regular',
                                 'russian_only': '🇷🇺 Только русский',
                                 'english_only': '🇺🇸 Только английский',
-                                'other': '🔄 Общие'
+                                'social_media': '📱 Соцсети'
                             }.get(webhook_type, webhook_type)
 
                             status_icon = "✅" if stats['failed'] == 0 else "⚠️"

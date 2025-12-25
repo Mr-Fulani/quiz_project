@@ -707,16 +707,17 @@ def generate_code_typing_video(
 
 
 def generate_video_for_task(
-    task_question: str, 
+    task_question: str,
     topic_name: str,
     subtopic_name: str = None,
     difficulty: str = None,
     admin_chat_id: str = None,
-    task_id: int = None
+    task_id: int = None,
+    video_language: str = 'ru'
 ) -> Optional[str]:
     """
     Генерирует видео для задачи в формате reels.
-    
+
     Args:
         task_question: Текст вопроса задачи (может содержать markdown блоки кода)
         topic_name: Название темы (например, 'Python', 'JavaScript')
@@ -724,7 +725,8 @@ def generate_video_for_task(
         difficulty: Сложность задачи (опционально)
         admin_chat_id: ID чата админа для отправки видео (опционально, если не указан, будет получен из настроек/БД)
         task_id: ID задачи для использования в имени файла (опционально)
-        
+        video_language: Язык видео ('ru', 'en') - для правильного отображения в caption
+
     Returns:
         URL видео в S3/R2 или None при ошибке
     """
@@ -875,7 +877,8 @@ def generate_video_for_task(
                 from .telegram_service import send_video_file, send_message
                 
                 # Отправляем видео файл напрямую
-                caption = f"🎬 Видео сгенерировано для задачи"
+                language_name = {'ru': '🇷🇺 Русский', 'en': '🇺🇸 English'}.get(video_language, video_language.upper())
+                caption = f"🎬 Видео сгенерировано для задачи (язык: {language_name})"
                 result = send_video_file(str(admin_chat_id), video_path, caption)
                 
                 if result:
