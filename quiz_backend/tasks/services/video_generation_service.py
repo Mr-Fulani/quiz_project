@@ -674,7 +674,7 @@ def generate_code_typing_video(
             
             # Параметры записи с оптимизацией для продакшена
             write_params = {
-                'output_filename': output_filename,
+                'filename': output_filename,
                 'fps': fps,
                 'codec': 'libx264',
                 'audio_codec': 'aac' if final_audio is not None else None,
