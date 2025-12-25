@@ -1240,7 +1240,7 @@ class TaskAdmin(admin.ModelAdmin):
                                     difficulty=task.difficulty,
                                     admin_chat_id=admin_chat_id,
                                     video_language=language,  # Передаем язык для видео
-                                    expected_languages=languages_to_generate  # Передаем все ожидаемые языки
+                                    expected_languages=list(languages_to_generate)  # Передаем все ожидаемые языки как список
                                 )
 
                     video_count = len(refreshed_tasks) * len(languages_to_generate)
@@ -1813,7 +1813,15 @@ class TaskAdmin(admin.ModelAdmin):
         webhook_types = set(webhook.webhook_type for webhook in active_webhooks)
 
         # Определяем стратегию генерации видео
+        # Видео генерируется только если есть языковые вебхуки (russian_only, english_only)
         needs_video_generation = bool(webhook_types.intersection({'russian_only', 'english_only'}))
+
+        # Логируем для отладки
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"send_webhooks_separately: Активных вебхуков: {len(active_webhooks)}")
+        logger.info(f"send_webhooks_separately: Типы вебхуков: {webhook_types}")
+        logger.info(f"send_webhooks_separately: Нужна генерация видео: {needs_video_generation}")
 
         try:
             # Получаем admin_chat_id для уведомлений
@@ -1823,11 +1831,16 @@ class TaskAdmin(admin.ModelAdmin):
                 admin = TelegramAdmin.objects.filter(is_active=True).first()
                 if admin:
                     admin_chat_id = str(admin.telegram_id)
-            except Exception:
+                    logger.info(f"send_webhooks_separately: Найден admin_chat_id: {admin_chat_id}")
+                else:
+                    logger.warning("send_webhooks_separately: TelegramAdmin не найден")
+            except Exception as e:
+                logger.error(f"send_webhooks_separately: Ошибка при поиске admin_chat_id: {e}")
                 pass  # Не критично, если не найдется
 
             if not active_webhooks:
                 # Нет активных вебхуков - просто сообщаем
+                logger.info("send_webhooks_separately: Нет активных вебхуков")
                 self.message_user(
                     request,
                     f"⚠️ Нет активных вебхуков для отправки",
@@ -1837,12 +1850,14 @@ class TaskAdmin(admin.ModelAdmin):
 
             elif not needs_video_generation:
                 # Только regular вебхуки - отправляем без видео
+                logger.info("send_webhooks_separately: Запуск отправки regular вебхуков без видео")
                 webhook_task = send_webhooks_async.delay(
                     task_ids=[task.id for task in all_related_tasks],
                     webhook_type_filter=None,
                     admin_chat_id=admin_chat_id,
                     include_video=False
                 )
+                logger.info(f"send_webhooks_separately: Regular вебхуки запущены (ID: {webhook_task.id})")
                 self.message_user(
                     request,
                     f"🛰️ Regular вебхуки отправлены без видео (ID: {webhook_task.id})",
@@ -1851,12 +1866,15 @@ class TaskAdmin(admin.ModelAdmin):
 
             else:
                 # Есть языковые вебхуки - генерируем видео для нужных языков
+                logger.info("send_webhooks_separately: Запуск генерации видео для языковых вебхуков")
                 languages_to_generate = set()
 
                 if 'russian_only' in webhook_types:
                     languages_to_generate.add('ru')
                 if 'english_only' in webhook_types:
                     languages_to_generate.add('en')
+
+                logger.info(f"send_webhooks_separately: Языки для генерации: {languages_to_generate}")
 
                 # Генерируем видео для каждого нужного языка
                 for task in all_related_tasks:
@@ -1872,7 +1890,7 @@ class TaskAdmin(admin.ModelAdmin):
                                 difficulty=task.difficulty,
                                 admin_chat_id=admin_chat_id,
                                 video_language=language,  # Передаем язык для видео
-                                expected_languages=languages_to_generate  # Передаем все ожидаемые языки
+                                expected_languages=list(languages_to_generate)  # Передаем все ожидаемые языки как список
                             )
 
                 video_count = len(all_related_tasks) * len(languages_to_generate)
