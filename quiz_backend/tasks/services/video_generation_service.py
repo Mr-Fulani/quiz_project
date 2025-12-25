@@ -738,9 +738,13 @@ def generate_video_for_task(
         
         # Извлекаем код из markdown блоков
         code, detected_language = extract_code_from_markdown(task_question)
-        
-        # Используем фиксированный текст вопроса как просил пользователь
-        question_text = "Каким будет результат кода?"
+
+        # Выбираем текст вопроса в зависимости от языка видео
+        question_texts = {
+            'ru': "Каким будет результат кода?",
+            'en': "What will be the result?"
+        }
+        question_text = question_texts.get(video_language, question_texts['ru'])
         
         # Если язык не определён из markdown, используем topic
         if detected_language == 'python' and topic_name:
