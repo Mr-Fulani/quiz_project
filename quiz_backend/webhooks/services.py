@@ -90,9 +90,10 @@ class TelegramWebhookHandler:
         return response.status_code == 200 
 
 
-WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 30)
-WEBHOOK_RETRIES = getattr(settings, "WEBHOOK_RETRIES", 3)
-WEBHOOK_RETRY_DELAY = getattr(settings, "WEBHOOK_RETRY_DELAY", 2)
+WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 15)  # Уменьшен таймаут
+WEBHOOK_RETRIES = getattr(settings, "WEBHOOK_RETRIES", 2)  # Уменьшено количество повторных попыток
+WEBHOOK_RETRY_DELAY = getattr(settings, "WEBHOOK_RETRY_DELAY", 1)  # Уменьшена задержка
+WEBHOOK_MAX_CONCURRENT = getattr(settings, "WEBHOOK_MAX_CONCURRENT", 3)  # Максимум одновременных запросов
 
 
 def _build_headers(payload: Dict[str, Any]) -> Dict[str, str]:
@@ -292,6 +293,8 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
     # Отправка на русскоязычные вебхуки
     if russian_only_webhooks:
         russian_payload = create_russian_only_webhook_data(tasks)
+        published_tasks_count = len(russian_payload.get("published_tasks", []))
+        logger.info(f"🇷🇺 Русские вебхуки: {len(russian_only_webhooks)} вебхуков, {published_tasks_count} задач для отправки")
         if russian_payload.get("published_tasks"):  # Отправляем только если есть задачи с русским переводом
             for webhook in russian_only_webhooks:
                 success = send_task_published_webhook(webhook.url, russian_payload)
@@ -303,10 +306,14 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
                 })
                 if success:
                     success_count += 1
+        else:
+            logger.info("🇷🇺 Русские вебхуки: пропущены - нет задач с русским переводом")
 
     # Отправка на англоязычные вебхуки
     if english_only_webhooks:
         english_payload = create_english_only_webhook_data(tasks)
+        published_tasks_count = len(english_payload.get("published_tasks", []))
+        logger.info(f"🇺🇸 Английские вебхуки: {len(english_only_webhooks)} вебхуков, {published_tasks_count} задач для отправки")
         if english_payload.get("published_tasks"):  # Отправляем только если есть задачи с английским переводом
             for webhook in english_only_webhooks:
                 success = send_task_published_webhook(webhook.url, english_payload)
@@ -318,6 +325,8 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"]) -> Dict[str, Any]:
                 })
                 if success:
                     success_count += 1
+        else:
+            logger.info("🇺🇸 Английские вебхуки: пропущены - нет задач с английским переводом")
 
     failed_count = len(results) - success_count
     logger.info(
