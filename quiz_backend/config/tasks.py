@@ -198,7 +198,7 @@ def process_uploaded_file(self, file_path, user_id):
     bind=True,
     max_retries=1,  # Уменьшаем количество повторных попыток для видео
     default_retry_delay=600,  # Увеличиваем задержку до 10 минут
-    queue='video_queue',
+    queue='video_queue',  # Продакшен очередь для видео
     time_limit=900,      # Hard limit: 15 минут (принудительное завершение)
     soft_time_limit=600  # Soft limit: 10 минут (graceful завершение)
 )
