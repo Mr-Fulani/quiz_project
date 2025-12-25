@@ -6,7 +6,7 @@ from django.contrib import admin, messages
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from django.utils import timezone
 from .models import Task, TaskTranslation, TaskStatistics, TaskPoll, MiniAppTaskStatistics, TaskComment, TaskCommentImage, TaskCommentReport, SocialMediaPost
 from .services.task_import_service import import_tasks_from_json
@@ -498,17 +498,17 @@ class TaskAdmin(admin.ModelAdmin):
             video_links = []
             for lang in existing_videos:
                 if lang in obj.video_urls:
-                    video_links.append(f'<a href="{obj.video_urls[lang]}" target="_blank" style="color: #007bff; text-decoration: none; margin-right: 10px;">🔗 Видео {lang.upper()}</a>')
+                    video_links.append(f'<a href="{obj.video_urls[lang]}" target="_blank" style="color: #007bff; text-decoration: none; margin-right: 10px; font-weight: bold;">🔗 Видео {lang.upper()}</a>')
 
             return format_html(
                 '<div style="margin: 10px 0;">'
                 '<a href="{}" class="button" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">'
                 '🎬 Перегенерировать видео'
                 '</a>'
-                '{}'
+                '<div style="display: inline-block; vertical-align: top; margin-top: 10px;">{}</div>'
                 '</div>',
                 generate_url,
-                ''.join(video_links)
+                mark_safe(''.join(video_links))
             )
         else:
             return format_html(
@@ -531,11 +531,11 @@ class TaskAdmin(admin.ModelAdmin):
         html_parts = []
         if obj.video_urls:
             for lang, url in obj.video_urls.items():
-                html_parts.append(f'<div><strong>{lang.upper()}:</strong> <a href="{url}" target="_blank">{url}</a></div>')
+                html_parts.append(f'<div><strong>{lang.upper()}:</strong> <a href="{url}" target="_blank" style="color: #007bff; text-decoration: underline;">{url}</a></div>')
         elif obj.video_url:
-            html_parts.append(f'<div><strong>RU (старое поле):</strong> <a href="{obj.video_url}" target="_blank">{obj.video_url}</a></div>')
+            html_parts.append(f'<div><strong>RU (старое поле):</strong> <a href="{obj.video_url}" target="_blank" style="color: #007bff; text-decoration: underline;">{obj.video_url}</a></div>')
 
-        return format_html(''.join(html_parts))
+        return mark_safe(''.join(html_parts))
 
     def get_urls(self):
         """Добавляем URL для импорта JSON и генерации видео."""
