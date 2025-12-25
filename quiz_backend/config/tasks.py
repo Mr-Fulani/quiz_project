@@ -564,7 +564,8 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         try:
             cache.decr(active_webhooks_key)
         except:
-            pass  # Игнорируем ошибки декремента
+            # Если ключ не существует, сбрасываем в 0
+            cache.set(active_webhooks_key, 0, 600)
 
         return result
 
@@ -573,7 +574,8 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         try:
             cache.decr(active_webhooks_key)
         except:
-            pass  # Игнорируем ошибки декремента
+            # Если ключ не существует, сбрасываем в 0
+            cache.set(active_webhooks_key, 0, 600)
 
         logger.error(f"❌ [Celery] Критическая ошибка в send_webhooks_async: {str(exc)}")
         # Повторная попытка через 1 минуту
@@ -584,7 +586,8 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         try:
             cache.decr(active_webhooks_key)
         except:
-            pass  # Игнорируем ошибки декремента
+            # Если ключ не существует, сбрасываем в 0
+            cache.set(active_webhooks_key, 0, 600)
 
 
 @shared_task
