@@ -178,14 +178,14 @@ services:
     container_name: celery_worker_video_prod
     user: "1000:1000"
     entrypoint: ["/celery_entrypoint.sh"]
-    command: python -m celery -A config worker --loglevel=info --concurrency=1 --pool=solo --max-tasks-per-child=50 -Q video_queue --hostname=video@%h
+    command: python -m celery -A config worker --loglevel=info --concurrency=1 --pool=solo --max-tasks-per-child=10 -Q video_queue --hostname=video@%h
     deploy:
       resources:
         limits:
-          memory: 1.5g
+          memory: 1g
           cpus: '1.0'
         reservations:
-          memory: 512m
+          memory: 256m
           cpus: '0.5'
     environment:
       - TMPDIR=/app/tmp

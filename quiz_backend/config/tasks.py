@@ -431,8 +431,8 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         from django.contrib.admin.models import LogEntry, ADDITION
         from django.core.cache import cache
 
-        # 🔒 Rate limiting: максимум 5 одновременных отправок вебхуков
-        MAX_CONCURRENT_WEBHOOKS = 5
+        # 🔒 Rate limiting: адаптивно по окружению
+        MAX_CONCURRENT_WEBHOOKS = 5 if os.getenv('DEBUG') == 'True' else 1
         active_webhooks_key = "webhooks_active_count"
 
         active_count = cache.get(active_webhooks_key, 0)
