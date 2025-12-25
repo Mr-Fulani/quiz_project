@@ -2,6 +2,7 @@
 Сервис генерации видео из кода для задач.
 Создает видео в формате reels (9:16, 1080x1920) с анимацией появления кода.
 """
+import gc
 import io
 import logging
 import os
@@ -204,8 +205,15 @@ def _generate_console_frame_vertical(
             scale = max_code_width / code_img.width
             new_width = int(code_img.width * scale)
             new_height = int(code_img.height * scale)
-            code_img = code_img.resize((new_width, new_height), Resampling.LANCZOS)
+            # Создаем новое изображение вместо изменения существующего
+            new_code_img = code_img.resize((new_width, new_height), Resampling.LANCZOS)
+            code_img.close()  # Закрываем старое изображение
+            code_img = new_code_img
             logger.debug(f"Код масштабирован по ширине: {code_img.width}x{code_img.height}")
+    else:
+        # Если code_img был присвоен из tmp_code_img, закрываем tmp_code_img
+        if 'tmp_code_img' in locals() and tmp_code_img != code_img:
+            tmp_code_img.close()
     
     # Рассчитываем ширину консоли (но не больше ширины экрана)
     max_console_width = video_width - 100  # Оставляем отступы по бокам
@@ -375,7 +383,13 @@ def _generate_console_frame_vertical(
     for adj in [(-2, -2), (-2, 2), (2, -2), (2, 2), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
         draw.text((text_x + adj[0], text_y + adj[1]), question_text, font=font, fill=outline_color)
     draw.text((text_x, text_y), question_text, font=font, fill=text_color)
-    
+
+    # Освобождаем память от изображений
+    if 'logo' in locals():
+        logo.close()
+    if 'code_img' in locals():
+        code_img.close()
+
     return image
 
 
@@ -478,6 +492,7 @@ def generate_code_typing_video(
             
             # Освобождаем память
             del frame
+            gc.collect()  # Принудительная сборка мусора после каждого кадра
             
             # Прогресс каждые 50 кадров
             if (frame_num + 1) % 50 == 0:
