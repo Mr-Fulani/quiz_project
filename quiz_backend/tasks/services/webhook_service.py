@@ -116,7 +116,7 @@ def _build_translations_payload(task: Task) -> List[Dict[str, Any]]:
     return translations_payload
 
 
-def create_full_webhook_data(task: Task) -> Dict[str, Any]:
+def create_full_webhook_data(task: Task, video_language: str = None) -> Dict[str, Any]:
     """
     Формирует полный полезный груз вебхука для задачи.
 
@@ -148,7 +148,7 @@ def create_full_webhook_data(task: Task) -> Dict[str, Any]:
             "publish_date": _serialize_datetime(task.publish_date),
             "image_url": image_url,
             "external_link": task.external_link,
-            "video_url": task.video_url,
+            "video_url": task.video_urls.get(video_language) if video_language else task.video_url,
             "translation_group_id": str(task.translation_group_id),
             "message_id": task.message_id,
             "error": task.error,
@@ -179,7 +179,7 @@ def create_russian_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
 
     tasks_payload = []
     for task in tasks:
-        full_data = create_full_webhook_data(task)
+        full_data = create_full_webhook_data(task, 'ru')
         # Фильтруем переводы, оставляя только русский язык
         russian_translations = [trans for trans in full_data.get("translations", []) if trans.get("language") == "ru"]
         if russian_translations:  # Отправляем задачу только если есть русский перевод
@@ -211,7 +211,7 @@ def create_english_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
 
     tasks_payload = []
     for task in tasks:
-        full_data = create_full_webhook_data(task)
+        full_data = create_full_webhook_data(task, 'en')
         # Фильтруем переводы, оставляя только английский язык
         english_translations = [trans for trans in full_data.get("translations", []) if trans.get("language") == "en"]
         if english_translations:  # Отправляем задачу только если есть английский перевод
@@ -235,7 +235,7 @@ def create_english_only_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
     return bulk_payload
 
 
-def create_bulk_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
+def create_bulk_webhook_data(tasks: List[Task], include_video: bool = False) -> Dict[str, Any]:
     """
     Формирует агрегированный payload для списка опубликованных задач.
     """
@@ -243,7 +243,7 @@ def create_bulk_webhook_data(tasks: List[Task]) -> Dict[str, Any]:
 
     tasks_payload = []
     for task in tasks:
-        full_data = create_full_webhook_data(task)
+        full_data = create_full_webhook_data(task, None if not include_video else None)
         # Убираем внешнюю обертку, оставляя только 'task' и 'translations'
         tasks_payload.append({
             "task": full_data.get("task"),

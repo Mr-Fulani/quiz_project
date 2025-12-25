@@ -1182,29 +1182,78 @@ class TaskAdmin(admin.ModelAdmin):
                 except Exception:
                     pass  # Не критично, если не найдется
 
-                # Автоматически запускаем генерацию видео для опубликованных задач
+                # Анализируем активные вебхуки для определения стратегии генерации видео
+                from webhooks.models import Webhook
                 from config.tasks import generate_video_for_task_async
-                
-                for task in refreshed_tasks:
-                    # Находим перевод для задачи
-                    translation = task.translations.first()
-                    if translation:
-                        # Запускаем генерацию видео
-                        generate_video_for_task_async.delay(
-                            task_id=task.id,
-                            task_question=translation.question,
-                            topic_name=task.topic.name,
-                            subtopic_name=task.subtopic.name if task.subtopic else None,
-                            difficulty=task.difficulty,
-                            admin_chat_id=admin_chat_id
-                        )
-                
-                # Вебхуки отправляются только после генерации видео
-                self.message_user(
-                    request,
-                    f"🎬 Запущена генерация видео и вебхуки будут отправлены с видео для {len(refreshed_tasks)} задач",
-                    messages.SUCCESS
-                )
+
+                active_webhooks = list(Webhook.objects.filter(is_active=True))
+                webhook_types = set(webhook.webhook_type for webhook in active_webhooks)
+
+                # Определяем стратегию генерации видео
+                needs_video_generation = bool(webhook_types.intersection({'russian_only', 'english_only'}))
+
+                if not active_webhooks:
+                    # Нет активных вебхуков - просто публикуем без генерации видео
+                    self.message_user(
+                        request,
+                        f"✅ Задачи опубликованы. Нет активных вебхуков - генерация видео пропущена",
+                        messages.SUCCESS
+                    )
+                elif not needs_video_generation:
+                    # Только regular вебхуки - отправляем без видео
+                    from config.tasks import send_webhooks_async
+                    webhook_task = send_webhooks_async.delay(
+                        task_ids=[task.id for task in refreshed_tasks],
+                        webhook_type_filter=None,
+                        admin_chat_id=admin_chat_id,
+                        include_video=False
+                    )
+                    self.message_user(
+                        request,
+                        f"🛰️ Regular вебхуки отправлены без видео (ID: {webhook_task.id})",
+                        messages.SUCCESS
+                    )
+                else:
+                    # Есть языковые вебхуки - генерируем видео для нужных языков
+                    languages_to_generate = set()
+
+                    if 'russian_only' in webhook_types:
+                        languages_to_generate.add('ru')
+                    if 'english_only' in webhook_types:
+                        languages_to_generate.add('en')
+
+                    # Генерируем видео для каждого нужного языка
+                    for task in refreshed_tasks:
+                        # Отмечаем какие языки планируются к генерации
+                        task.video_generation_progress = {lang: False for lang in languages_to_generate}
+                        task.save(update_fields=['video_generation_progress'])
+
+                        for language in languages_to_generate:
+                            translation = task.translations.filter(language=language).first()
+                            if translation:
+                                # Запускаем генерацию видео для этого языка
+                                generate_video_for_task_async.delay(
+                                    task_id=task.id,
+                                    task_question=translation.question,
+                                    topic_name=task.topic.name,
+                                    subtopic_name=task.subtopic.name if task.subtopic else None,
+                                    difficulty=task.difficulty,
+                                    admin_chat_id=admin_chat_id,
+                                    video_language=language,  # Передаем язык для видео
+                                    expected_languages=languages_to_generate  # Передаем все ожидаемые языки
+                                )
+
+                    video_count = len(refreshed_tasks) * len(languages_to_generate)
+                    self.message_user(
+                        request,
+                        f"🎬 Запущена генерация {video_count} видео для языков: {', '.join(languages_to_generate)}",
+                        messages.SUCCESS
+                    )
+                    self.message_user(
+                        request,
+                        f"🛰️ Вебхуки будут отправлены с видео после завершения генерации",
+                        messages.INFO
+                    )
 
                 if admin_chat_id:
                     self.message_user(
@@ -1718,10 +1767,10 @@ class TaskAdmin(admin.ModelAdmin):
     def send_webhooks_separately(self, request, queryset):
         """
         Отправляет выбранные задачи только на вебхуки (без публикации в соцсети).
-        Полезно для повторной отправки на вебхуки без повторной публикации.
-        Теперь работает асинхронно через Celery.
+        Следует новой логике: проверяет активные вебхуки, генерирует видео только для нужных языков,
+        отправляет вебхуки с видео после завершения генерации.
         """
-        from config.tasks import send_webhooks_async
+        from config.tasks import send_webhooks_async, generate_video_for_task_async
 
         # Собираем все translation_group_id
         translation_group_ids = set(
@@ -1745,7 +1794,6 @@ class TaskAdmin(admin.ModelAdmin):
 
         total_tasks = all_related_tasks.count()
         selected_count = queryset.count()
-        task_ids = [task.id for task in all_related_tasks]
 
         # Информируем пользователя о масштабе операции
         self.message_user(
@@ -1759,7 +1807,14 @@ class TaskAdmin(admin.ModelAdmin):
             messages.INFO
         )
 
-        # Запускаем асинхронную задачу через Celery
+        # Анализируем активные вебхуки для определения стратегии
+        from webhooks.models import Webhook
+        active_webhooks = list(Webhook.objects.filter(is_active=True))
+        webhook_types = set(webhook.webhook_type for webhook in active_webhooks)
+
+        # Определяем стратегию генерации видео
+        needs_video_generation = bool(webhook_types.intersection({'russian_only', 'english_only'}))
+
         try:
             # Получаем admin_chat_id для уведомлений
             admin_chat_id = None
@@ -1771,12 +1826,66 @@ class TaskAdmin(admin.ModelAdmin):
             except Exception:
                 pass  # Не критично, если не найдется
 
-            # Вебхуки отправляются только после генерации видео
-            self.message_user(
-                request,
-                f"🛰️ Вебхуки будут отправлены с видео после генерации видео для {len(all_related_tasks)} задач",
-                messages.SUCCESS
-            )
+            if not active_webhooks:
+                # Нет активных вебхуков - просто сообщаем
+                self.message_user(
+                    request,
+                    f"⚠️ Нет активных вебхуков для отправки",
+                    messages.WARNING
+                )
+                return
+
+            elif not needs_video_generation:
+                # Только regular вебхуки - отправляем без видео
+                webhook_task = send_webhooks_async.delay(
+                    task_ids=[task.id for task in all_related_tasks],
+                    webhook_type_filter=None,
+                    admin_chat_id=admin_chat_id,
+                    include_video=False
+                )
+                self.message_user(
+                    request,
+                    f"🛰️ Regular вебхуки отправлены без видео (ID: {webhook_task.id})",
+                    messages.SUCCESS
+                )
+
+            else:
+                # Есть языковые вебхуки - генерируем видео для нужных языков
+                languages_to_generate = set()
+
+                if 'russian_only' in webhook_types:
+                    languages_to_generate.add('ru')
+                if 'english_only' in webhook_types:
+                    languages_to_generate.add('en')
+
+                # Генерируем видео для каждого нужного языка
+                for task in all_related_tasks:
+                    for language in languages_to_generate:
+                        translation = task.translations.filter(language=language).first()
+                        if translation:
+                            # Запускаем генерацию видео для этого языка
+                            generate_video_for_task_async.delay(
+                                task_id=task.id,
+                                task_question=translation.question,
+                                topic_name=task.topic.name,
+                                subtopic_name=task.subtopic.name if task.subtopic else None,
+                                difficulty=task.difficulty,
+                                admin_chat_id=admin_chat_id,
+                                video_language=language,  # Передаем язык для видео
+                                expected_languages=languages_to_generate  # Передаем все ожидаемые языки
+                            )
+
+                video_count = len(all_related_tasks) * len(languages_to_generate)
+                self.message_user(
+                    request,
+                    f"🎬 Запущена генерация {video_count} видео для языков: {', '.join(languages_to_generate)}",
+                    messages.SUCCESS
+                )
+                self.message_user(
+                    request,
+                    f"🛰️ Вебхуки будут отправлены с видео после завершения генерации",
+                    messages.INFO
+                )
 
             if admin_chat_id:
                 self.message_user(
@@ -1801,7 +1910,7 @@ class TaskAdmin(admin.ModelAdmin):
             )
             logger.error(f"Ошибка запуска Celery задачи для вебхуков: {e}")
 
-    send_webhooks_separately.short_description = "📤 Отправить хуки отдельно"
+    send_webhooks_separately.short_description = "🛰️ Отправить вебхуки с видео"
 
 
 @admin.register(TaskTranslation)

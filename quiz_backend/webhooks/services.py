@@ -306,7 +306,7 @@ def send_webhooks_for_bulk_tasks(tasks: List["Task"], include_video: bool = Fals
 
     # Отправка на обычные вебхуки
     if regular_webhooks:
-        payload = create_bulk_webhook_data(tasks)
+        payload = create_bulk_webhook_data(tasks, include_video=include_video)
         for webhook in regular_webhooks:
             success = send_task_published_webhook(webhook.url, payload)
             results.append({
