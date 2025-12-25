@@ -99,7 +99,10 @@ docker compose exec -T quiz_backend python manage.py download_official_icons --d
 echo "  🔧 Сопоставление иконок с темами..."
 docker compose exec -T quiz_backend python manage.py fix_icon_mapping
 
-echo "✅ Логотипы языков проверены и обновлены"
+echo "  📁 Пересборка статических файлов после загрузки иконок..."
+docker compose exec -T quiz_backend python manage.py collectstatic --noinput --clear
+
+echo "✅ Логотипы языков скачаны, сопоставлены и статические файлы пересобраны"
 
 echo ""
 echo "✅ Локальная разработка готова!"
