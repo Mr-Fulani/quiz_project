@@ -268,9 +268,9 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         task.video_generation_logs = log_text
         task.save(update_fields=['video_generation_logs'])
         
-        # Если видео уже есть и не требуется принудительная перегенерация, пропускаем
-        if task.video_url and not force_regenerate:
-            info_msg = f"ℹ️ Задача {task_id} уже имеет видео: {task.video_url}"
+        # Если видео уже есть и задача не опубликована, пропускаем генерацию
+        if task.video_url and not task.published:
+            info_msg = f"ℹ️ Задача {task_id} уже имеет видео и не опубликована: {task.video_url}"
             logger.info(f"ℹ️ [Celery] {info_msg}")
             logs.append(info_msg)
             task.video_generation_logs = "\n".join(logs)
@@ -354,6 +354,23 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             except Exception as cache_exc:
                 logger.error(f"❌ Ошибка сброса circuit breaker: {cache_exc}")
 
+            # 📡 Если задача опубликована - отправляем вебхуки с видео
+            if task.published:
+                try:
+                    logger.info(f"🛰️ [Celery] Задача {task_id} опубликована, отправляем вебхуки с видео...")
+                    from config.tasks import send_webhooks_async
+                    webhook_task = send_webhooks_async.delay(
+                        task_ids=[task_id],
+                        webhook_type_filter=None,
+                        admin_chat_id=admin_chat_id,
+                        include_video=True
+                    )
+                    logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
+                except Exception as webhook_exc:
+                    logger.error(f"❌ [Celery] Ошибка запуска вебхуков для задачи {task_id}: {webhook_exc}")
+            else:
+                logger.info(f"ℹ️ [Celery] Задача {task_id} не опубликована, вебхуки не отправляются")
+
             return video_url
         else:
             logs.append("⚠️ Не удалось сгенерировать видео")
@@ -412,7 +429,7 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=60, queue='webhooks_queue')
-def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=None):
+def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=None, include_video=False):
     """
     Асинхронная отправка вебхуков для списка задач.
 
@@ -420,6 +437,7 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         task_ids: Список ID задач для отправки
         webhook_type_filter: Фильтр по типу вебхуков ('russian_only', 'english_only', etc.)
         admin_chat_id: ID чата админа для уведомлений
+        include_video: Если True, включает видео URL в payload вебхуков
 
     Returns:
         Dict с результатами отправки
@@ -468,10 +486,11 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
             logger.info(f"   Задача {task.id}: переводы {', '.join(translations_info) if translations_info else 'отсутствуют'}")
 
         # Отправляем вебхуки
-        result = send_webhooks_for_bulk_tasks(tasks)
+        result = send_webhooks_for_bulk_tasks(tasks, include_video=include_video)
 
         # Логируем результат
-        logger.info("✅ [Celery] Отправка вебхуков завершена: "
+        video_status = "с видео" if include_video else "без видео"
+        logger.info(f"✅ [Celery] Отправка вебхуков {video_status} завершена: "
                    f"успешно {result['success']}, неудачно {result['failed']}")
 
         # Если указан admin_chat_id, отправляем уведомление в Telegram
