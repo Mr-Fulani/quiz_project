@@ -166,12 +166,13 @@ if DEBUG:
     except ImportError:
         logger.warning("debug_toolbar not installed, skipping")
     
-    # Добавляем silk только если он установлен
-    try:
-        import silk
-        INSTALLED_APPS.extend(['silk'])
-    except ImportError:
-        logger.warning("silk not installed, skipping")
+    # Добавляем silk только если он установлен и не продакшен
+    if DEBUG:  # Silk только для разработки
+        try:
+            import silk
+            INSTALLED_APPS.extend(['silk'])
+        except ImportError:
+            logger.warning("silk not installed, skipping")
 
 TINYMCE_DEFAULT_CONFIG = {
     'height': 400,
@@ -253,11 +254,12 @@ if DEBUG:
     except ImportError:
         pass
     
-    try:
-        import silk
-        MIDDLEWARE.extend(['silk.middleware.SilkyMiddleware'])
-    except ImportError:
-        pass
+    if DEBUG:  # Silk middleware только для разработки
+        try:
+            import silk
+            MIDDLEWARE.extend(['silk.middleware.SilkyMiddleware'])
+        except ImportError:
+            pass
 
 ROOT_URLCONF = 'config.urls'
 
