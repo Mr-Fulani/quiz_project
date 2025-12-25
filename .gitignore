@@ -48,4 +48,7 @@ local_settings.py
 uploads/
 bot/uploads/
 
+# Generated icons - динамически генерируемые логотипы языков
+quiz_backend/blog/static/blog/images/icons/
+
 # Docker
