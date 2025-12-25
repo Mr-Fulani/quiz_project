@@ -771,11 +771,8 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                         # Не добавляем в errors, чтобы не помечать публикацию как неудачную
                 else:
                     result['detailed_logs'].append(f"ℹ️ Генерация видео отключена в настройках (VIDEO_GENERATION_ENABLED=False)")
-            elif language == 'ru' and task.video_url:
-                result['detailed_logs'].append(f"ℹ️ Видео уже существует для задачи {task.id}")
-                result['detailed_logs'].append(f"   🔗 URL: {task.video_url}")
-            elif language != 'ru':
-                result['detailed_logs'].append(f"ℹ️ Генерация видео только для русской версии (текущий язык: {language})")
+            # Видео теперь генерируется отдельно через вебхуки, а не во время публикации
+            # Логика видео генерации перемещена в admin.py в publish_to_telegram
         else:
             logger.warning(f"⚠️ Задача {task.id} опубликована частично: {result}")
             result['detailed_logs'].append(f"⚠️ Задача {task.id} опубликована ЧАСТИЧНО")

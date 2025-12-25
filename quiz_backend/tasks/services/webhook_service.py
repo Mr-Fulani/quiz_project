@@ -243,7 +243,8 @@ def create_bulk_webhook_data(tasks: List[Task], include_video: bool = False) -> 
 
     tasks_payload = []
     for task in tasks:
-        full_data = create_full_webhook_data(task, None if not include_video else None)
+        # Для общего хука передаем все переводы, включая видео если оно есть
+        full_data = create_full_webhook_data(task, include_video=include_video)
         # Убираем внешнюю обертку, оставляя только 'task' и 'translations'
         tasks_payload.append({
             "task": full_data.get("task"),

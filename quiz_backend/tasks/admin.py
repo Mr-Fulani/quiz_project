@@ -181,12 +181,12 @@ class TaskAdmin(admin.ModelAdmin):
             'description': 'Быстрые действия для задачи'
         }),
         ('Видео', {
-            'fields': ('video_url', 'video_generation_logs_display'),
+            'fields': ('video_urls_display', 'video_generation_logs_display'),
             'description': 'Информация о видео задачи. Логи генерации видео отображаются ниже.',
             'classes': ()  # Убираем collapse, чтобы секция всегда была видна
         }),
     )
-    readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display', 'generate_video_button', 'video_generation_logs_display')
+    readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display', 'generate_video_button', 'video_urls_display', 'video_generation_logs_display')
     
     # Inline редактирование переводов и соцсетей
     inlines = [TaskTranslationInline, SocialMediaPostInline]
@@ -224,7 +224,8 @@ class TaskAdmin(admin.ModelAdmin):
     
     def has_video(self, obj):
         """Проверка наличия видео."""
-        return bool(obj.video_url)
+        # Проверяем наличие видео в новом поле video_urls или старом video_url
+        return bool(obj.video_urls) or bool(obj.video_url)
     has_video.boolean = True
     has_video.short_description = 'Видео'
     
@@ -486,17 +487,28 @@ class TaskAdmin(admin.ModelAdmin):
         # URL для генерации видео
         generate_url = reverse('admin:tasks_task_generate_video', args=[obj.pk])
         
-        # Проверяем, есть ли уже видео
-        if obj.video_url:
+        # Проверяем, есть ли уже видео (в новом или старом поле)
+        existing_videos = []
+        if obj.video_urls:
+            existing_videos = list(obj.video_urls.keys())
+        elif obj.video_url:
+            existing_videos = ['ru']  # Старое видео считается русским
+
+        if existing_videos:
+            video_links = []
+            for lang in existing_videos:
+                if lang in obj.video_urls:
+                    video_links.append(f'<a href="{obj.video_urls[lang]}" target="_blank" style="color: #007bff; text-decoration: none; margin-right: 10px;">🔗 Видео {lang.upper()}</a>')
+
             return format_html(
                 '<div style="margin: 10px 0;">'
                 '<a href="{}" class="button" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">'
                 '🎬 Перегенерировать видео'
                 '</a>'
-                '<a href="{}" target="_blank" style="color: #007bff; text-decoration: none;">🔗 Текущее видео</a>'
+                '{}'
                 '</div>',
                 generate_url,
-                obj.video_url
+                ''.join(video_links)
             )
         else:
             return format_html(
@@ -509,7 +521,22 @@ class TaskAdmin(admin.ModelAdmin):
                 generate_url
             )
     generate_video_button.short_description = 'Генерация видео'
-    
+
+    @admin.display(description='URL видео по языкам')
+    def video_urls_display(self, obj):
+        """Отображение всех URL видео по языкам."""
+        if not obj.video_urls and not obj.video_url:
+            return "Видео не сгенерировано"
+
+        html_parts = []
+        if obj.video_urls:
+            for lang, url in obj.video_urls.items():
+                html_parts.append(f'<div><strong>{lang.upper()}:</strong> <a href="{url}" target="_blank">{url}</a></div>')
+        elif obj.video_url:
+            html_parts.append(f'<div><strong>RU (старое поле):</strong> <a href="{obj.video_url}" target="_blank">{obj.video_url}</a></div>')
+
+        return format_html(''.join(html_parts))
+
     def get_urls(self):
         """Добавляем URL для импорта JSON и генерации видео."""
         urls = super().get_urls()
