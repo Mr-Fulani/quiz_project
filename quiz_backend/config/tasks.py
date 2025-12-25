@@ -194,7 +194,14 @@ def process_uploaded_file(self, file_path, user_id):
         raise self.retry(exc=exc, countdown=30)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=300, queue='video_queue')
+@shared_task(
+    bind=True,
+    max_retries=1,  # Уменьшаем количество повторных попыток для видео
+    default_retry_delay=600,  # Увеличиваем задержку до 10 минут
+    queue='video_queue',
+    time_limit=900,      # Hard limit: 15 минут (принудительное завершение)
+    soft_time_limit=600  # Soft limit: 10 минут (graceful завершение)
+)
 def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False, admin_chat_id=None):
     """
     Асинхронная генерация видео для задачи.
@@ -220,7 +227,18 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         from tasks.services.video_generation_service import generate_video_for_task
         from django.contrib import messages
         from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
-        
+        from django.core.cache import cache
+
+        # 🛡️ Circuit Breaker: проверка на частые ошибки видео генерации
+        circuit_breaker_key = "video_generation_failures"
+        max_failures = 5
+        failures_count = cache.get(circuit_breaker_key, 0)
+
+        if failures_count >= max_failures:
+            logger.error(f"🚫 [Circuit Breaker] Видео генерация отключена из-за {failures_count} последовательных ошибок")
+            logs.append(f"🚫 Circuit Breaker: {failures_count} ошибок подряд, генерация отключена")
+            return None
+
         # Инициализируем логи для админки (максимум 5000 символов для экономии памяти)
         MAX_LOG_LENGTH = 5000
         logs = []
@@ -327,6 +345,14 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             logger.info(f"✅ [Celery] Видео успешно сгенерировано для задачи {task_id}")
             logger.info(f"   🔗 URL: {video_url}")
             logger.info(f"🎬 [Celery] ════════════════════════════════════════════════")
+
+            # 🛡️ Circuit Breaker: сбрасываем счетчик ошибок при успехе
+            try:
+                cache.set(circuit_breaker_key, 0, timeout=3600)
+                logger.info("🔄 [Circuit Breaker] Счетчик ошибок видео генерации сброшен")
+            except Exception as cache_exc:
+                logger.error(f"❌ Ошибка сброса circuit breaker: {cache_exc}")
+
             return video_url
         else:
             logs.append("⚠️ Не удалось сгенерировать видео")
@@ -371,6 +397,15 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
         logger.error(f"   📝 Сообщение: {str(exc)}")
         logger.error(f"   🔍 Полный traceback будет в логах выше")
         logger.error(f"❌ [Celery] ════════════════════════════════════════════════")
+
+        # 🛡️ Circuit Breaker: увеличиваем счетчик ошибок
+        try:
+            current_failures = cache.get(circuit_breaker_key, 0)
+            cache.set(circuit_breaker_key, current_failures + 1, timeout=3600)  # 1 час
+            logger.warning(f"⚠️ [Circuit Breaker] Счетчик ошибок видео генерации: {current_failures + 1}/{max_failures}")
+        except Exception as cache_exc:
+            logger.error(f"❌ Ошибка обновления circuit breaker: {cache_exc}")
+
         # Повторная попытка через 5 минут (если не превышен лимит)
         raise self.retry(exc=exc, countdown=300)
 
@@ -393,8 +428,22 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         from webhooks.services import send_webhooks_for_bulk_tasks
         from django.contrib import messages
         from django.contrib.admin.models import LogEntry, ADDITION
+        from django.core.cache import cache
 
-        logger.info(f"🛰️ [Celery] Начало асинхронной отправки вебхуков для {len(task_ids)} задач")
+        # 🔒 Rate limiting: максимум 5 одновременных отправок вебхуков
+        MAX_CONCURRENT_WEBHOOKS = 5
+        active_webhooks_key = "webhooks_active_count"
+
+        active_count = cache.get(active_webhooks_key, 0)
+        if active_count >= MAX_CONCURRENT_WEBHOOKS:
+            logger.warning(f"⚠️ [Rate Limit] Слишком много активных вебхуков ({active_count}/{MAX_CONCURRENT_WEBHOOKS}), откладываем на 2 минуты")
+            raise self.retry(countdown=120, exc=Exception(f"Rate limit exceeded: {active_count} active webhooks"))
+
+        # Увеличиваем счетчик активных задач
+        cache.incr(active_webhooks_key, 1)
+        cache.expire(active_webhooks_key, 600)  # Автоматический сброс через 10 минут
+
+        logger.info(f"🛰️ [Celery] Начало асинхронной отправки вебхуков для {len(task_ids)} задач (активных: {active_count + 1}/{MAX_CONCURRENT_WEBHOOKS})")
         if webhook_type_filter:
             logger.info(f"   🎯 Фильтр по типу: {webhook_type_filter}")
 
@@ -509,9 +558,22 @@ def send_webhooks_async(self, task_ids, webhook_type_filter=None, admin_chat_id=
         return result
 
     except Exception as exc:
+        # Уменьшаем счетчик активных задач при ошибке
+        try:
+            cache.decr(active_webhooks_key)
+        except:
+            pass  # Игнорируем ошибки декремента
+
         logger.error(f"❌ [Celery] Критическая ошибка в send_webhooks_async: {str(exc)}")
         # Повторная попытка через 1 минуту
         raise self.retry(exc=exc, countdown=60)
+
+    finally:
+        # 🔓 Гарантированно уменьшаем счетчик активных задач
+        try:
+            cache.decr(active_webhooks_key)
+        except:
+            pass  # Игнорируем ошибки декремента
 
 
 @shared_task
