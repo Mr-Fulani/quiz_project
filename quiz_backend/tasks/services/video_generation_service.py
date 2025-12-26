@@ -754,7 +754,9 @@ def generate_video_for_task(
         # Выбираем текст вопроса в зависимости от языка видео
         question_texts = {
             'ru': "Каким будет результат кода?",
-            'en': "What will be the result?"
+            'en': "What will be the result?",
+            'ar': "ما سيكون نتيجة الكود؟",
+            'tr': "Kodun sonucu ne olacak?"
         }
         question_text = question_texts.get(video_language, question_texts['ru'])
 
