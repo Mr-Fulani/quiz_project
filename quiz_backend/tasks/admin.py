@@ -484,10 +484,6 @@ class TaskAdmin(admin.ModelAdmin):
         if not translations:
             return format_html('<span style="color: #dc3545;">⚠️ Нет переводов для генерации видео</span>')
 
-        # URL для генерации видео
-        generate_url = reverse('admin:tasks_task_generate_video', args=[obj.pk])
-        generate_all_url = f"{generate_url}?all_languages=1"
-
         # Проверяем, есть ли уже видео (в новом или старом поле)
         existing_videos = []
         if obj.video_urls:
@@ -495,40 +491,24 @@ class TaskAdmin(admin.ModelAdmin):
         elif obj.video_url:
             existing_videos = ['ru']  # Старое видео считается русским
 
-        # Определяем тексты кнопок
-        first_translation = translations[0]
-        has_multiple_translations = len(translations) > 1
-
-        buttons_html = []
+        # Основной перевод (первый)
+        main_translation = translations[0]
+        main_lang = main_translation.language
+        generate_url = reverse('admin:tasks_task_generate_video', args=[obj.pk])
 
         # Кнопка для основного языка
-        if existing_videos and first_translation.language in existing_videos:
-            buttons_html.append(
-                f'<a href="{generate_url}" class="button" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px; margin-bottom: 5px;">'
-                f'🎬 Перегенерировать ({first_translation.language.upper()})'
+        if main_lang in existing_videos:
+            button_html = (
+                f'<a href="{generate_url}" class="button" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">'
+                f'🎬 Перегенерировать видео ({main_lang.upper()})'
                 '</a>'
             )
         else:
-            buttons_html.append(
-                f'<a href="{generate_url}" class="button" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px; margin-bottom: 5px;">'
-                f'🎬 Сгенерировать ({first_translation.language.upper()})'
+            button_html = (
+                f'<a href="{generate_url}" class="button" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">'
+                f'🎬 Сгенерировать видео ({main_lang.upper()})'
                 '</a>'
             )
-
-        # Кнопка для всех языков (если есть несколько переводов)
-        if has_multiple_translations:
-            if existing_videos and len(existing_videos) == len(translations):
-                buttons_html.append(
-                    f'<a href="{generate_all_url}" class="button" style="background: #ffc107; color: black; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px; margin-bottom: 5px;">'
-                    '🎬 Перегенерировать все языки'
-                    '</a>'
-                )
-            else:
-                buttons_html.append(
-                    f'<a href="{generate_all_url}" class="button" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px; margin-bottom: 5px;">'
-                    '🎬 Сгенерировать все языки'
-                    '</a>'
-                )
 
         # Ссылки на существующие видео
         video_links = []
@@ -540,10 +520,10 @@ class TaskAdmin(admin.ModelAdmin):
             '<div style="margin: 10px 0;">'
             '{}'
             '{}'
-            '<p style="margin-top: 10px; color: #666; font-size: 12px;">Видео генерируется в фоне и отправляется админу в Telegram</p>'
+            '<p style="margin-top: 10px; color: #666; font-size: 12px;">Видео генерируется для основного языка задачи</p>'
             '</div>',
-            mark_safe(''.join(buttons_html)),
-            mark_safe('<div style="margin-top: 10px;">' + ''.join(video_links) + '</div>') if video_links else ''
+            mark_safe(button_html),
+            mark_safe('<div style="margin-top: 8px;">' + ''.join(video_links) + '</div>') if video_links else ''
         )
     generate_video_button.short_description = 'Генерация видео'
 
@@ -672,8 +652,7 @@ class TaskAdmin(admin.ModelAdmin):
     def generate_video_view(self, request, object_id):
         """
         Представление для генерации видео для конкретной задачи.
-        По умолчанию генерирует видео только для основного языка (первого перевода).
-        Если передан параметр all_languages=1, генерирует для всех языков.
+        Поддерживает генерацию для конкретного языка через параметр language=xx
         """
         from config.tasks import generate_video_for_task_async
 
@@ -683,22 +662,25 @@ class TaskAdmin(admin.ModelAdmin):
             messages.error(request, f'Задача с ID {object_id} не найдена.')
             return redirect('admin:tasks_task_changelist')
 
-        # Проверяем параметр all_languages
-        generate_all_languages = request.GET.get('all_languages') == '1'
+        # Получаем параметр языка
+        requested_language = request.GET.get('language')
 
-        # Получаем переводы
-        if generate_all_languages:
-            translations = list(task.translations.all())
-            if not translations:
-                messages.error(request, f'Задача {task.id} не имеет переводов.')
+        # Если указан конкретный язык, генерируем только для него
+        if requested_language:
+            translation = task.translations.filter(language=requested_language).first()
+            if not translation:
+                messages.error(request, f'Задача {task.id} не имеет перевода на язык {requested_language}.')
                 return redirect('admin:tasks_task_change', object_id)
+            translations = [translation]
+            mode_text = f"для языка {requested_language}"
         else:
-            # Только первый перевод (основной язык)
+            # По умолчанию генерируем для первого перевода (основной язык)
             translation = task.translations.first()
             if not translation:
                 messages.error(request, f'Задача {task.id} не имеет переводов.')
                 return redirect('admin:tasks_task_change', object_id)
             translations = [translation]
+            mode_text = f"для языка {translation.language}"
 
         try:
             # Получаем информацию о теме и подтеме
@@ -747,7 +729,6 @@ class TaskAdmin(admin.ModelAdmin):
                 celery_tasks.append(celery_task)
 
             languages_text = ", ".join(languages_to_generate)
-            mode_text = "для всех языков" if generate_all_languages else f"для языка {languages_to_generate[0]}"
             messages.success(request, f'✅ Генерация видео для задачи {task.id} запущена {mode_text}: {languages_text}!')
             messages.info(request, f'📝 Celery tasks: {", ".join([str(task.id) for task in celery_tasks])}')
             messages.info(request, f'💡 Видео будет сгенерировано в фоне и отправлено админу в личку бота')
@@ -1449,82 +1430,81 @@ class TaskAdmin(admin.ModelAdmin):
         self.message_user(request, "=" * 60, messages.INFO)
         self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
     
-    @admin.action(description='🎬 Сгенерировать видео для выбранных задач')
+    @admin.action(description='🎬 Сгенерировать видео')
     def generate_videos(self, request, queryset):
         """
-        Генерирует видео для выбранных задач и отправляет админу в личку.
-        Работает для задач любого языка и темы.
+        Генерирует видео для выбранных задач.
+        Каждая задача имеет один перевод, поэтому генерируется одно видео на задачу.
         """
         from config.tasks import generate_video_for_task_async
-        
+
         generated_count = 0
         skipped_count = 0
         errors = []
         total_tasks = queryset.count()
-        
-        # Получаем admin_chat_id для отправки видео админу (один раз для всех задач)
+
+        # Получаем admin_chat_id для отправки видео админу
         from django.conf import settings
         admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
-        
-        # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
+
         if not admin_chat_id:
             try:
                 from accounts.models import TelegramAdmin
                 admin = TelegramAdmin.objects.filter(is_active=True).first()
                 if admin:
                     admin_chat_id = str(admin.telegram_id)
-                    logger.info(f"📱 Используется chat_id первого активного админа для массовой генерации видео: {admin_chat_id}")
             except Exception as e:
-                logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
-        
-        self.message_user(request, f"📊 Начинаем генерацию видео для {total_tasks} задач...", messages.INFO)
-        
+                logger.warning(f"⚠️ Не удалось получить chat_id админа: {e}")
+
+        self.message_user(request, f"📊 Генерация видео для {total_tasks} выбранных задач...", messages.INFO)
+
         for task in queryset:
-            # Получаем первый перевод для генерации
+            # Каждая задача имеет только один перевод
             translation = task.translations.first()
             if not translation:
-                error_msg = f"Задача {task.id}: отсутствуют переводы"
+                error_msg = f"Задача {task.id}: отсутствует перевод"
                 errors.append(error_msg)
                 self.message_user(request, f"⚠️ {error_msg}", messages.WARNING)
+                skipped_count += 1
                 continue
-            
+
+            language = translation.language
+            self.message_user(request, f"🎬 Задача {task.id} ({language}): генерация видео...", messages.INFO)
+
             try:
                 # Получаем информацию о теме и подтеме
                 topic_name = task.topic.name if task.topic else 'unknown'
                 subtopic_name = task.subtopic.name if task.subtopic else None
                 difficulty = task.difficulty if hasattr(task, 'difficulty') else None
-                
-                self.message_user(request, f"🎬 Запуск генерации видео для задачи {task.id} (язык: {translation.language})...", messages.INFO)
-                
-                # Очищаем старые логи перед запуском новой генерации
+
+                # Очищаем логи
                 task.video_generation_logs = None
-                task.save(update_fields=['video_generation_logs'])
-                
-                # Запускаем асинхронную генерацию видео через Celery (с принудительной перегенерацией)
+                task.video_generation_progress = {language: False}
+                task.save(update_fields=['video_generation_logs', 'video_generation_progress'])
+
+                # Запускаем генерацию видео
                 celery_task = generate_video_for_task_async.delay(
                     task_id=task.id,
                     task_question=translation.question,
                     topic_name=topic_name,
                     subtopic_name=subtopic_name,
                     difficulty=difficulty,
-                    force_regenerate=True,  # Принудительная перегенерация при ручном запуске
-                    admin_chat_id=admin_chat_id  # Передаем admin_chat_id для отправки видео
+                    force_regenerate=True,
+                    admin_chat_id=admin_chat_id,
+                    video_language=language,
+                    expected_languages=[language]
                 )
-                
+
                 generated_count += 1
-                self.message_user(request, f"✅ Задача {task.id}: генерация видео запущена (Celery task: {celery_task.id})", messages.SUCCESS)
-                self.message_user(request, f"   📝 Видео будет сгенерировано в фоне и отправлено админу в личку", messages.INFO)
-                self.message_user(request, f"   🔍 Логи процесса можно увидеть в детальном просмотре задачи в разделе 'Видео'", messages.INFO)
-                
+                self.message_user(request, f"✅ Задача {task.id} ({language}): генерация запущена (Celery task: {celery_task.id})", messages.SUCCESS)
+
             except Exception as e:
                 error_msg = f"Задача {task.id}: {str(e)}"
                 errors.append(error_msg)
                 self.message_user(request, f"❌ {error_msg}", messages.ERROR)
-                logger.error(f"Ошибка генерации видео для задачи {task.id}: {e}", exc_info=True)
-        
-        # Итоговое сообщение
+
         self.message_user(request, "=" * 60, messages.INFO)
-        self.message_user(request, f"🎉 ЗАВЕРШЕНО: Запущено генераций {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
+        self.message_user(request, f"🎉 Готово: {generated_count} генераций запущено, {skipped_count} пропущено, {len(errors)} ошибок", messages.SUCCESS if generated_count > 0 else messages.INFO)
     
     @admin.action(description='📱 Опубликовать во все соцсети')
     def publish_to_all_social_networks(self, request, queryset):
