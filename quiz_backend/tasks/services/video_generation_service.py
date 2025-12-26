@@ -757,14 +757,14 @@ def generate_video_for_task(
             'en': "What will be the result?"
         }
         question_text = question_texts.get(video_language, question_texts['ru'])
-        
+
         # Если язык не определён из markdown, используем topic
         if detected_language == 'python' and topic_name:
             topic_lower = topic_name.lower()
             if topic_lower in ['python', 'java', 'javascript', 'go', 'golang', 'rust', 'sql', 'php']:
                 detected_language = topic_lower
-        
-        logger.info(f"Генерация видео, язык: {detected_language}, вопрос: {question_text}")
+
+        logger.info(f"Генерация видео, video_language: {video_language}, detected_language: {detected_language}, вопрос: {question_text}")
         
         # Получаем путь к логотипу (ТОЧНО ТА ЖЕ логика, что и в generate_image_for_task)
         logo_path = os.getenv('LOGO_PATH')
@@ -819,25 +819,29 @@ def generate_video_for_task(
         from .s3_service import upload_video_to_s3
         
         # Формируем понятное имя файла на основе темы видео
-        # Формат: video_{topic}_{subtopic}_{language}_{difficulty}_{task_id}.mp4
+        # Формат: video_{topic}_{subtopic}_{programming_language}_{difficulty}_{video_language}_{task_id}.mp4
         name_parts = ["video"]
-        
+
         # Добавляем тему (обязательно)
         if topic_name:
             name_parts.append(sanitize_filename(topic_name, max_length=30))
-        
+
         # Добавляем подтему (если есть)
         if subtopic_name:
             name_parts.append(sanitize_filename(subtopic_name, max_length=30))
-        
+
         # Добавляем язык программирования
         if detected_language:
             name_parts.append(sanitize_filename(detected_language, max_length=20))
-        
+
         # Добавляем сложность (если есть)
         if difficulty:
             name_parts.append(sanitize_filename(difficulty, max_length=15))
-        
+
+        # Добавляем язык видео (для различения видео на разных языках)
+        if video_language:
+            name_parts.append(sanitize_filename(video_language, max_length=5))
+
         # Добавляем ID задачи или короткий уникальный ID для уникальности
         if task_id:
             name_parts.append(str(task_id))
