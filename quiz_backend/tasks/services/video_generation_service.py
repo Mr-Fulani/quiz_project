@@ -906,12 +906,30 @@ def generate_video_for_task(
                 if result:
                     logger.info(f"✅ Видео файл отправлен админу в Telegram (chat_id: {admin_chat_id})")
                     
+                    # Локализация заголовков для описания задачи
+                    task_labels = {
+                        'ru': {
+                            'language': 'Язык',
+                            'topic': 'Тема',
+                            'difficulty': 'Сложность'
+                        },
+                        'en': {
+                            'language': 'Language',
+                            'topic': 'Topic',
+                            'difficulty': 'Difficulty'
+                        }
+                    }
+
+                    labels = task_labels.get(video_language, task_labels['ru'])
+
                     # Формируем и отправляем детали задачи
-                    task_details = f"🖥️ Язык: {topic_name}"
+                    task_details = f"🖥️ {labels['language']}: {topic_name}"
                     if subtopic_name:
-                        task_details += f"\n📂 Тема: {subtopic_name}"
+                        task_details += f"\n📂 {labels['topic']}: {subtopic_name}"
                     if difficulty:
-                        task_details += f"\n🎯 Сложность: {difficulty}"
+                        # Для английского капитализируем сложность
+                        difficulty_text = difficulty.title() if video_language == 'en' else difficulty
+                        task_details += f"\n🎯 {labels['difficulty']}: {difficulty_text}"
                     task_details += f"\n🔗 URL: https://mini.quiz-code.com"
 
                     # Генерируем хэштеги
