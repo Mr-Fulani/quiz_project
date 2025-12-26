@@ -647,32 +647,32 @@ class TaskAdmin(admin.ModelAdmin):
     def generate_video_view(self, request, object_id):
         """
         Представление для генерации видео для конкретной задачи.
-        Генерирует видео асинхронно через Celery и отправляет админу в личку.
+        Генерирует видео асинхронно через Celery для всех доступных языков и отправляет админу в личку.
         """
         from config.tasks import generate_video_for_task_async
-        
+
         try:
             task = Task.objects.get(pk=object_id)
         except Task.DoesNotExist:
             messages.error(request, f'Задача с ID {object_id} не найдена.')
             return redirect('admin:tasks_task_changelist')
-        
-        # Получаем первый перевод
-        translation = task.translations.first()
-        if not translation:
+
+        # Получаем все переводы
+        translations = list(task.translations.all())
+        if not translations:
             messages.error(request, f'Задача {task.id} не имеет переводов.')
             return redirect('admin:tasks_task_change', object_id)
-        
+
         try:
             # Получаем информацию о теме и подтеме
             topic_name = task.topic.name if task.topic else 'unknown'
             subtopic_name = task.subtopic.name if task.subtopic else None
             difficulty = task.difficulty if hasattr(task, 'difficulty') else None
-            
+
             # Получаем admin_chat_id для отправки видео админу
             from django.conf import settings
             admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
-            
+
             # Если не задан в настройках, пытаемся получить из базы (первый активный админ)
             if not admin_chat_id:
                 try:
@@ -683,31 +683,41 @@ class TaskAdmin(admin.ModelAdmin):
                         logger.info(f"📱 Используется chat_id первого активного админа для генерации видео: {admin_chat_id}")
                 except Exception as e:
                     logger.warning(f"⚠️ Не удалось получить chat_id админа из базы: {e}")
-            
+
             # Очищаем старые логи перед запуском новой генерации
             task.video_generation_logs = None
             task.save(update_fields=['video_generation_logs'])
-            
-            # Запускаем асинхронную генерацию видео через Celery (с принудительной перегенерацией)
-            celery_task = generate_video_for_task_async.delay(
-                task_id=task.id,
-                task_question=translation.question,
-                topic_name=topic_name,
-                subtopic_name=subtopic_name,
-                difficulty=difficulty,
-                force_regenerate=True,  # Принудительная перегенерация при ручном запуске
-                admin_chat_id=admin_chat_id  # Передаем admin_chat_id для отправки видео
-            )
-            
-            messages.success(request, f'✅ Генерация видео для задачи {task.id} запущена!')
-            messages.info(request, f'📝 Celery task ID: {celery_task.id}')
+
+            # Определяем языки для генерации видео (все доступные переводы)
+            languages_to_generate = [trans.language for trans in translations]
+            task.video_generation_progress = {lang: False for lang in languages_to_generate}
+            task.save(update_fields=['video_generation_progress'])
+
+            # Запускаем асинхронную генерацию видео для каждого языка
+            celery_tasks = []
+            for translation in translations:
+                celery_task = generate_video_for_task_async.delay(
+                    task_id=task.id,
+                    task_question=translation.question,
+                    topic_name=topic_name,
+                    subtopic_name=subtopic_name,
+                    difficulty=difficulty,
+                    force_regenerate=True,  # Принудительная перегенерация при ручном запуске
+                    admin_chat_id=admin_chat_id,  # Передаем admin_chat_id для отправки видео
+                    video_language=translation.language,  # Язык видео
+                    expected_languages=languages_to_generate  # Все ожидаемые языки
+                )
+                celery_tasks.append(celery_task)
+
+            messages.success(request, f'✅ Генерация видео для задачи {task.id} запущена для языков: {", ".join(languages_to_generate)}!')
+            messages.info(request, f'📝 Celery tasks: {", ".join([str(task.id) for task in celery_tasks])}')
             messages.info(request, f'💡 Видео будет сгенерировано в фоне и отправлено админу в личку бота')
             messages.info(request, f'🔍 Статус генерации можно отследить в разделе "Видео" ниже')
-            
+
         except Exception as e:
             logger.error(f"Ошибка запуска генерации видео для задачи {task.id}: {e}", exc_info=True)
             messages.error(request, f'❌ Ошибка запуска генерации видео: {str(e)}')
-        
+
         return redirect('admin:tasks_task_change', object_id)
     
     def get_deleted_objects(self, objs, request):
