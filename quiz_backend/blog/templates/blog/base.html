@@ -315,8 +315,56 @@
                 <!-- Telegram Login Widget -->
                 <div class="inputBx" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px;">
 
-                    <!-- Telegram Iframe Widget (работает без настройки домена в BotFather) -->
-                    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="{{ TELEGRAM_BOT_USERNAME }}" data-size="large" data-onauth="handleTelegramAuth(user)" data-request-access="write"></script>
+                    <!-- Telegram Button - opens in popup window -->
+                    <button onclick="openTelegramAuth()" type="button"
+                            class="telegram-auth-button"
+                            style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #0088cc; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 300px; cursor: pointer;"
+                            onmouseover="this.style.background='#0077b5'"
+                            onmouseout="this.style.background='#0088cc'">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.174 1.858-.924 6.365-1.305 8.443-.152.84-.45 1.12-.74 1.147-.63.056-1.108-.416-1.718-.816-.952-.64-1.49-1.038-2.414-1.663-1.091-.69-.384-1.07.238-1.69.164-.163 2.99-2.744 3.04-2.976.007-.03.014-.15-.056-.212-.07-.062-.173-.041-.248-.024-.106.024-1.794 1.14-5.063 3.345-.48.33-.914.49-1.302.482-.428-.01-1.25-.241-1.86-.44-.752-.245-1.35-.375-1.297-.79.027-.216.325-.437.895-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.024.465.14.118.095.151.223.167.312.016.09.036.295.02.455z"/>
+                        </svg>
+                        <span>{% trans "Login with Telegram" %}</span>
+                    </button>
+
+                    <script>
+                        function openTelegramAuth() {
+                            // Открываем Telegram авторизацию в popup окне
+                            const width = 500;
+                            const height = 600;
+                            const left = (window.innerWidth - width) / 2;
+                            const top = (window.innerHeight - height) / 2;
+
+                            const authWindow = window.open(
+                                '{% url "social_auth:telegram_oauth_redirect" %}',
+                                'telegram-auth',
+                                `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+                            );
+
+                            // Проверяем, закрылось ли окно авторизации
+                            const checkClosed = setInterval(() => {
+                                if (authWindow.closed) {
+                                    clearInterval(checkClosed);
+                                    // Проверяем, авторизовался ли пользователь
+                                    fetch('/api/social-auth/status/', {
+                                        credentials: 'include'
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.is_authenticated) {
+                                            // Пользователь авторизовался - закрываем модальное окно и перезагружаем
+                                            const loginModal = document.getElementById('login-modal');
+                                            if (loginModal && loginModal.classList.contains('active')) {
+                                                loginModal.classList.remove('active');
+                                            }
+                                            window.location.reload();
+                                        }
+                                    })
+                                    .catch(err => console.log('Ошибка проверки статуса:', err));
+                                }
+                            }, 1000);
+                        }
+                    </script>
 
                     <!-- Глобальная функция ДО загрузки виджета -->
                     <script>
