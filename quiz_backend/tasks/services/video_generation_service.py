@@ -579,14 +579,18 @@ def generate_code_typing_video(
                             logger.info(f"Загрузка фоновой музыки из storage для BackgroundMusic id={bgm_obj.id}")
                             try:
                                 file_name = bgm_obj.audio_file.name
+                                logger.info(f"Путь к файлу в storage: {file_name}")
+                                logger.info(f"URL файла: {bgm_obj.audio_file.url}")
                                 with default_storage.open(file_name, 'rb') as f:
+                                    file_content = f.read()
+                                    logger.info(f"Прочитано {len(file_content)} байт из storage")
                                     # создаём временный файл в temp_dir
                                     background_temp = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=os.path.splitext(file_name)[1])
-                                    background_temp.write(f.read())
+                                    background_temp.write(file_content)
                                     background_temp.flush()
                                     background_temp_path = background_temp.name
                                     background_temp.close()
-                                    logger.info(f"Фоновая музыка сохранена во временный файл: {background_temp_path}")
+                                    logger.info(f"Фоновая музыка сохранена во временный файл: {background_temp_path} (размер: {len(file_content)} байт)")
                                 background_audio = AudioFileClip(background_temp_path)
                             except Exception as stor_err:
                                 logger.error(f"Не удалось загрузить фон из storage: {stor_err}")
@@ -599,9 +603,17 @@ def generate_code_typing_video(
                             logger.info(f"Фоновая музыка загружена: длительность={background_audio.duration:.1f}сек")
                             # Обрезаем или зацикливаем до длительности видео
                             if background_audio.duration < clip.duration:
-                                repeats = int(clip.duration // background_audio.duration) + 1
-                                background_audio = background_audio.loop(repeats).subclip(0, clip.duration)
-                                logger.info(f"Фоновая музыка зациклена: {repeats} раз")
+                                # В moviepy 1.0.3+ используем loop() с duration
+                                try:
+                                    background_audio = background_audio.loop(duration=clip.duration)
+                                    logger.info(f"Фоновая музыка зациклена до длительности {clip.duration:.1f} сек")
+                                except AttributeError as loop_error:
+                                    # Fallback: используем concatenate_audioclips для зацикливания
+                                    from moviepy.editor import concatenate_audioclips
+                                    repeats = int(clip.duration // background_audio.duration) + 1
+                                    clips = [background_audio] * repeats
+                                    background_audio = concatenate_audioclips(clips).subclip(0, clip.duration)
+                                    logger.info(f"Фоновая музыка зациклена через concatenate_audioclips: {repeats} раз")
                             else:
                                 background_audio = background_audio.subclip(0, clip.duration)
                             # Устанавливаем громкость

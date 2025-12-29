@@ -3,16 +3,6 @@
 {% get_current_language as language %}
 <html lang="{{ language }}">
 <head>
-    <!-- Google Tag Manager -->
-    {% if GOOGLE_TAG_MANAGER_ID %}
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','{{ GOOGLE_TAG_MANAGER_ID }}');</script>
-    {% endif %}
-    <!-- End Google Tag Manager -->
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ dynamic_seo.meta_title|default:meta_title|default:"QuizHub - Programming Quizzes & Learning" }}{% endblock %}</title>
@@ -26,21 +16,6 @@
     <meta name="distribution" content="{{ meta_distribution|default:'global' }}">
     <meta name="revisit-after" content="{{ meta_revisit_after|default:'7 days' }}">
     <meta name="robots" content="{% block meta_robots %}{{ dynamic_seo.robots_content|default:robots_content|default:'index, follow' }}{% endblock %}">
-    
-    <!-- Yandex Verification -->
-    {% if YANDEX_VERIFICATION_CODE %}
-    <meta name="yandex-verification" content="{{ YANDEX_VERIFICATION_CODE }}" />
-    {% endif %}
-    
-    <!-- Yandex Zen Verification -->
-    {% if YANDEX_ZEN_VERIFICATION_CODE %}
-    <meta name="zen-verification" content="{{ YANDEX_ZEN_VERIFICATION_CODE }}" />
-    {% endif %}
-    
-    <!-- Pinterest Verification -->
-    {% if PINTEREST_VERIFICATION_CODE %}
-    <meta name="p:domain_verify" content="{{ PINTEREST_VERIFICATION_CODE }}" />
-    {% endif %}
     
     <!-- Canonical URL -->
     <link rel="canonical" href="{% block canonical_url %}{{ dynamic_seo.canonical_url|default:canonical_url }}{% endblock %}">
@@ -115,7 +90,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Favicon -->
-    <link rel="icon" href="/favicon.ico" type="image/png">
     <link rel="icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'blog/favicon/favicon.png' %}">
     {# Для лучшего качества можно добавить иконки других размеров, например: #}
@@ -124,29 +98,22 @@
     {# <link rel="manifest" href="{% static 'path/to/site.webmanifest' %}"> #}
     {# <link rel="mask-icon" href="{% static 'path/to/safari-pinned-tab.svg' %}" color="#5bbad5"> #}
 
-    <!-- Критические CSS файлы загружаются синхронно для предотвращения FOUC -->
+    <!-- CSS файлы загружаются синхронно для предотвращения FOUC -->
     <link rel="stylesheet" href="{% static 'blog/css/global.css' %}">
     <link rel="stylesheet" href="{% static 'blog/css/header-spacing.css' %}">
-    
-    <!-- Preload Font Awesome шрифты для улучшения производительности -->
-    <link rel="preload" href="{% static 'blog/webfonts/fa-solid-900.woff2' %}" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="{% static 'blog/webfonts/fa-brands-400.woff2' %}" as="font" type="font/woff2" crossorigin>
-    
-    <!-- Font Awesome CSS загружается асинхронно для уменьшения блокировки отрисовки -->
-    <!-- Убран JS файл font-awesome.min.js (536 КБ) - используем только CSS версию -->
-    <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}"></noscript>
-    
-    <!-- Некритичные CSS загружаются асинхронно -->
-    <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}"></noscript>
-    
+    <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
     {% block extra_css %}{% endblock %}
 
     <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}" defer></script>
     <script nomodule src="{% static 'blog/js/ionicons/ionicons.js' %}" defer></script>
     
     <!-- Глобальная функция для Telegram авторизации (перенесено в конец body для избежания render-blocking) -->
+
+    <!-- Preload Font Awesome для улучшения производительности -->
+    <link rel="preload" href="{% static 'blog/webfonts/fa-solid-900.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}">
+    <script src="{% static 'blog/js/font-awesome.min.js' %}" defer></script>
+    <!-- Font Awesome уже имеет font-display в CSS, preload ускоряет загрузку -->
 
     <!-- GSAP будет подключен в футере для анимации пчелы -->
 
@@ -237,12 +204,6 @@
 
 </head>
 <body data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}">
-    <!-- Google Tag Manager (noscript) -->
-    {% if GOOGLE_TAG_MANAGER_ID %}
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ GOOGLE_TAG_MANAGER_ID }}"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
-    {% endif %}
 <main>
     {% block sidebar %}
     {% include 'accounts/sidebar.html' %}
@@ -522,14 +483,13 @@
                         });
                     </script>
                     
-                    <!-- КНОПКИ АВТОРИЗАЦИИ ЧЕРЕЗ СОЦИАЛЬНЫЕ СЕТИ -->
-                    <!-- Вместо неработающего виджета iframe используем прямые кнопки с redirect -->
+                    <!-- ПРЯМАЯ КНОПКА АВТОРИЗАЦИИ TELEGRAM -->
+                    <!-- Вместо неработающего виджета iframe используем прямую кнопку с redirect -->
                     <!-- Это работает надежнее, так как не зависит от ограничений безопасности iframe -->
-                    <div style="text-align: center; margin: 20px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;">
-                        <!-- Кнопка Telegram -->
+                    <div style="text-align: center; margin: 20px 0;">
                         <a href="{% url 'social_auth:telegram_oauth_redirect' %}" 
                            class="telegram-auth-button"
-                           style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #0088cc; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 500; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 300px;"
+                           style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #0088cc; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 500; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
                            onmouseover="this.style.background='#0077b5'"
                            onmouseout="this.style.background='#0088cc'">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
@@ -537,21 +497,9 @@
                             </svg>
                             <span>{% trans "Login with Telegram" %}</span>
                         </a>
-                        
-                        <!-- Кнопка GitHub -->
-                        <a href="{% url 'social_auth:github_oauth_redirect' %}" 
-                           class="github-auth-button"
-                           style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #24292e; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 500; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 300px;"
-                           onmouseover="this.style.background='#171a1d'"
-                           onmouseout="this.style.background='#24292e'">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            <span>{% trans "Login with GitHub" %}</span>
-                        </a>
                     </div>
                     <p style="text-align: center; color: #666; font-size: 12px; margin-top: 10px;">
-                        {% trans "Click to authorize via Telegram or GitHub" %}
+                        {% trans "Click to authorize via Telegram" %}
                     </p>
                     
                     <!-- Дополнительная проверка после загрузки скрипта -->
@@ -701,48 +649,15 @@
         console.log('🚀 DOMContentLoaded сработал');
         const urlParams = new URLSearchParams(window.location.search);
         
-        const authMessages = {
-            registrationSuccess: "{% trans 'Registration successful! Welcome!' %}",
-            githubAuthSuccess: "{% trans 'GitHub login successful!' %}",
-            telegramAuthSuccess: "{% trans 'Telegram login successful!' %}",
-            telegramAuthFailure: "{% trans 'Telegram authorization failed' %}",
-            authErrorDefault: "{% trans 'Authentication error' %}"
-        };
-
         // Показываем уведомление об успешной регистрации
         if (urlParams.has('registration_success')) {
             const notification = document.createElement('div');
             notification.className = 'message-notification success';
-            notification.textContent = authMessages.registrationSuccess;
+            notification.textContent = 'Registration successful! Welcome!';
             document.body.appendChild(notification);
             setTimeout(() => {
                 notification.remove();
             }, 3000);
-        }
-        
-        // Показываем уведомление об успешной авторизации через GitHub
-        if (urlParams.has('github_auth_success')) {
-            // Закрываем модальное окно входа если оно открыто
-            const loginModal = document.getElementById('login-modal');
-            if (loginModal && loginModal.classList.contains('active')) {
-                loginModal.classList.remove('active');
-            }
-            
-            // Показываем уведомление
-            const notification = document.createElement('div');
-            notification.className = 'message-notification success';
-            notification.textContent = authMessages.githubAuthSuccess;
-            document.body.appendChild(notification);
-            
-            // Просто перезагружаем страницу - сессия уже установлена на сервере
-            // Это обновит все элементы интерфейса и проверит авторизацию
-            setTimeout(() => {
-                notification.remove();
-                // Удаляем параметр github_auth_success из URL перед перезагрузкой
-                const url = new URL(window.location);
-                url.searchParams.delete('github_auth_success');
-                window.location.href = url.pathname + url.search;
-            }, 1500);
         }
         
         // Показываем уведомление об успешной авторизации через Telegram
@@ -756,7 +671,7 @@
             // Показываем уведомление об успехе
             const notification = document.createElement('div');
             notification.className = 'message-notification success';
-            notification.textContent = authMessages.telegramAuthSuccess;
+            notification.textContent = 'Успешная авторизация через Telegram!';
             document.body.appendChild(notification);
             setTimeout(() => {
                 notification.remove();
@@ -773,18 +688,6 @@
         console.log('URL params:', urlParams.toString());
         console.log('open_register:', urlParams.has('open_register'));
         console.log('error:', urlParams.has('error'));
-        if (urlParams.has('error')) {
-            const errorMessage = urlParams.get('error');
-            const notification = document.createElement('div');
-            notification.className = 'message-notification error';
-            notification.textContent = errorMessage
-                ? decodeURIComponent(errorMessage)
-                : authMessages.authErrorDefault;
-            document.body.appendChild(notification);
-            setTimeout(() => {
-                notification.remove();
-            }, 4000);
-        }
         
         // КРИТИЧНО: Проверяем наличие данных от Telegram
         // Telegram может передавать данные двумя способами:
@@ -1185,42 +1088,12 @@
         padding: 10px 20px;
         border-radius: 5px;
         z-index: 1000;
-        max-width: 400px;
-        word-wrap: break-word;
-        font-size: 14px;
-        line-height: 1.4;
     }
 
     .message-notification.success {
         background-color: rgba(46, 204, 113, 0.2);
         color: #2ecc71;
         border: 1px solid #2ecc71;
-    }
-    
-    /* Адаптивные стили для мобильных устройств */
-    @media (max-width: 768px) {
-        .message-notification {
-            top: 10px;
-            right: 10px;
-            left: 10px;
-            max-width: none;
-            width: auto;
-            padding: 12px 16px;
-            font-size: 13px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .message-notification {
-            top: 10px;
-            right: 10px;
-            left: 10px;
-            padding: 10px 14px;
-            font-size: 12px;
-            max-height: 120px;
-        }
     }
     .home-link {
         display: flex;
@@ -2056,7 +1929,7 @@
                 // Показываем уведомление об успешной авторизации
                 const notification = document.createElement('div');
                 notification.className = 'message-notification success';
-                notification.textContent = data.message || authMessages.telegramAuthSuccess;
+                notification.textContent = data.message || 'Успешная авторизация через Telegram!';
                 document.body.appendChild(notification);
                 // Перенаправляем на главную страницу или указанный URL
                 setTimeout(() => {
@@ -2068,12 +1941,12 @@
                 }, 1000);
             } else {
                 console.error('❌ Ошибка авторизации:', data.error);
-            alert(data.error || authMessages.authErrorDefault);
+                alert(data.error || 'Ошибка авторизации');
             }
         })
         .catch(error => {
             console.error('Network error:', error);
-            alert(authMessages.telegramAuthFailure + ': ' + error.message);
+            alert('Ошибка сети: ' + error.message);
         });
     };
 </script>
