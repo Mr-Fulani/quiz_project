@@ -200,8 +200,8 @@ def process_uploaded_file(self, file_path, user_id):
     max_retries=1,  # Уменьшаем количество повторных попыток для видео
     default_retry_delay=600,  # Увеличиваем задержку до 10 минут
     queue='celery' if os.getenv('DEBUG') == 'True' else 'video_queue',  # Локально celery, на проде video_queue
-    time_limit=1800,     # Hard limit: 30 минут (принудительное завершение)
-    soft_time_limit=1200 # Soft limit: 20 минут (graceful завершение)
+    time_limit=2200,     # Hard limit: 2200 секунд (принудительное завершение)
+    soft_time_limit=2000 # Soft limit: 2000 секунд (graceful завершение)
 )
 def generate_video_for_task_async(self, task_id, task_question, topic_name, subtopic_name=None, difficulty=None, force_regenerate=False, admin_chat_id=None, video_language='ru', expected_languages=None):
     """

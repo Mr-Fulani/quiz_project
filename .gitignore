@@ -53,3 +53,4 @@ quiz_backend/blog/static/blog/images/icons/
 
 # Dockerquiz_backend/tmp/
 quiz_backend/tasks/static/tasks/background_music/
+quiz_backend/tmp/
