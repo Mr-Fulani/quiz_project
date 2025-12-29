@@ -67,10 +67,12 @@ class TelegramAuthService:
             allowed_keys = ['id', 'first_name', 'last_name', 'username', 'photo_url', 'auth_date']
             check_data = {}
             for k in allowed_keys:
-                if k in data and data[k] is not None and data[k] != '':
-                    # Преобразуем в строку, как требует Telegram
-                    check_data[k] = str(data[k])
-            
+                if k in data and data[k] is not None and str(data[k]) != '':
+                    # Преобразуем в строку, декодируем URL-encoding и убираем лишние пробелы
+                    raw_val = str(data[k])
+                    val = urllib.parse.unquote_plus(raw_val).strip()
+                    check_data[k] = val
+
             # Telegram требует сортировку ключей по алфавиту
             check_string = '\n'.join([
                 f"{k}={check_data[k]}" for k in sorted(check_data.keys())
@@ -83,15 +85,16 @@ class TelegramAuthService:
                 secret,
                 check_string.encode('utf-8'),
                 hashlib.sha256
-            ).hexdigest()
-            
-            received_hash = data.get('hash', '')
-            
+            ).hexdigest().lower()
+
+            # Нормализуем полученный hash (убираем url-encoding, переводим в нижний регистр)
+            received_hash = urllib.parse.unquote_plus(str(data.get('hash', ''))).strip().lower()
+
             logger.info(f"Computed hash: {computed_hash[:20]}..., received hash: {received_hash[:20]}...")
             
-            # Сравниваем с полученным хешем
-            is_valid = computed_hash == received_hash
-            
+            # Сравниваем с полученным хешем безопасно
+            is_valid = hmac.compare_digest(computed_hash, received_hash)
+
             if not is_valid:
                 logger.warning(f"Неверная подпись Telegram. Computed: {computed_hash}, Received: {received_hash}")
                 logger.warning(f"Данные для проверки: {check_data}")
