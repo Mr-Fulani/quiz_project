@@ -6,6 +6,10 @@ from django.core.cache import cache
 from django.db.models import Count, Q
 import logging
 from django.db.models.functions import TruncDate
+from django.core.validators import FileExtensionValidator
+from django.conf import settings
+import mimetypes
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +86,15 @@ class Task(models.Model):
         default=dict,
         blank=True,
         help_text='URL видео по языкам: {"ru": "url1", "en": "url2"}'
+    )
+    # Позволяет привязать конкретную фон. музыку к задаче (переопределяет автоматический выбор)
+    background_music = models.ForeignKey(
+        'BackgroundMusic',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='tasks',
+        help_text='Выбрать фоновую музыку для этой задачи (переопределяет автоматический выбор)'
     )
     video_generation_progress = models.JSONField(
         default=dict,
@@ -939,3 +952,85 @@ class SocialMediaPost(models.Model):
 
     def __str__(self):
         return f"{self.get_platform_display()} - Задача {self.task_id} ({self.get_status_display()})"
+
+
+class BackgroundMusic(models.Model):
+    """Фоновая музыка для видео.
+
+    Поддерживаемая загрузка через стандартный FileField. Модель хранит метаданные
+    (размер, длительность в секундах) и флаг активности для выбора в генераторе видео.
+    """
+
+    class Meta:
+        db_table = 'background_music'
+        verbose_name = 'Фоновая музыка'
+        verbose_name_plural = 'Фоновая музыка'
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+        ]
+
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255, help_text='Название трека')
+    audio_file = models.FileField(
+        upload_to='background_music/',
+        validators=[FileExtensionValidator(allowed_extensions=['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'])],
+        help_text='Аудиофайл (поддерживается: mp3, wav, m4a, aac, ogg, flac)'
+    )
+    size = models.BigIntegerField(null=True, blank=True, help_text='Размер файла в байтах')
+    content_type = models.CharField(max_length=100, blank=True, null=True)
+    duration_seconds = models.IntegerField(null=True, blank=True, help_text='Длительность в секундах (вычисляется автоматически если возможно)')
+    is_active = models.BooleanField(default=True, help_text='Включен ли трек для автоматического выбора')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.id})"
+
+    def clean(self):
+        # Проверка размера
+        max_bytes = getattr(settings, 'BG_MUSIC_MAX_BYTES', 50 * 1024 * 1024)  # 50MB по умолчанию
+        try:
+            f = self.audio_file
+            if f and hasattr(f, 'size') and f.size is not None:
+                if f.size > max_bytes:
+                    raise ValidationError({'audio_file': f'Максимальный размер файла — {max_bytes} байт'})
+        except Exception:
+            # Если файл недоступен на этапе валидации — пропускаем проверку размера
+            pass
+
+        # Проверка расширения (FileExtensionValidator уже делает часть работы)
+        if self.audio_file:
+            ext = os.path.splitext(self.audio_file.name)[1].lower().lstrip('.')
+            allowed = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac']
+            if ext not in allowed:
+                raise ValidationError({'audio_file': 'Неподдерживаемый формат файла'})
+
+    def save(self, *args, **kwargs):
+        # При сохранении заполняем размер и content_type, пытаемся вычислить длительность
+        try:
+            f = self.audio_file
+            if f and hasattr(f, 'size'):
+                self.size = f.size
+            if f and hasattr(f, 'name'):
+                ctype, _ = mimetypes.guess_type(f.name)
+                self.content_type = ctype or ''
+
+            # Сохраняем сначала, чтобы файл был доступен в storage
+            super().save(*args, **kwargs)
+
+            # Попытка вычислить длительность через mutagen/pydub
+            try:
+                from mutagen import File as MutagenFile
+                mf = MutagenFile(self.audio_file.path if hasattr(self.audio_file, 'path') else self.audio_file.file)
+                if mf is not None and hasattr(mf, 'info') and getattr(mf.info, 'length', None) is not None:
+                    self.duration_seconds = int(getattr(mf.info, 'length'))
+                    # Обновляем только поле длительности
+                    BackgroundMusic.objects.filter(pk=self.pk).update(duration_seconds=self.duration_seconds)
+            except Exception:
+                # Если mutagen недоступен или не смог прочитать, игнорируем — длительность может быть заполнена позже
+                pass
+
+        except Exception:
+            # На случай неожиданных ошибок — всё равно вызываем базовый save(), чтобы не сломать поток
+            super().save(*args, **kwargs)

@@ -20,6 +20,7 @@ from pygments import highlight
 from pygments.formatters import ImageFormatter
 from pygments.styles import get_style_by_name
 from django.conf import settings
+from django.core.files.storage import default_storage
 
 # Импортируем функции из image_generation_service для переиспользования
 from .image_generation_service import (
@@ -87,15 +88,30 @@ def _get_keyboard_audio_path() -> Optional[str]:
 
 def _get_background_audio_path() -> Optional[str]:
     """
-    Возвращает путь к случайно выбранному аудиофайлу фоновой музыки, если файлы существуют.
+    Возвращает источник фоновой музыки.
 
-    Returns:
-        Путь к случайно выбранному аудиофайлу или None если файлы не найдены
+    Возможные варианты возврата:
+      - None: не найден трек
+      - экземпляр BackgroundMusic: если в БД найдена активная запись (будет обработана через storage)
+      - локальный путь (str): если найден файл на диске через BACKGROUND_AUDIO_PATH или static
     """
-    # Сначала проверяем настройку BACKGROUND_AUDIO_PATH
+    try:
+        # Попытка использовать записи из БД — предпочтительный вариант
+        from ..models import BackgroundMusic
+        candidates = BackgroundMusic.objects.filter(is_active=True)
+        if candidates.exists():
+            # Выбираем случайную активную запись
+            bgm = random.choice(list(candidates))
+            logger.info(f"🎵 Выбран фон из БД: {bgm.name} (id={bgm.id})")
+            return bgm
+    except Exception as e:
+        # Если что-то не так с доступом к БД — логируем и продолжаем fallback
+        logger.debug(f"Не удалось получить BackgroundMusic из БД: {e}")
+
+    # Фоллбек на настройку BACKGROUND_AUDIO_PATH (локальный путь)
     audio_path = getattr(settings, 'BACKGROUND_AUDIO_PATH', None)
     if audio_path and os.path.exists(audio_path):
-        return audio_path
+        return str(audio_path)
 
     # Затем ищем все аудиофайлы в директории background_music
     base_dir = settings.BASE_DIR
@@ -115,7 +131,7 @@ def _get_background_audio_path() -> Optional[str]:
     # Если файлы найдены, выбираем случайный
     if audio_files:
         selected_file = random.choice(audio_files)
-        logger.info(f"🎵 Выбрана фоновая музыка: {selected_file.name}")
+        logger.info(f"🎵 Выбрана фоновая музыка (static): {selected_file.name}")
         return str(selected_file)
 
     return None
@@ -399,7 +415,8 @@ def generate_code_typing_video(
     code: str,
     language: str,
     logo_path: Optional[str] = None,
-    question_text: str = "Каким будет результат кода?"
+    question_text: str = "Каким будет результат кода?",
+    selected_bgm: Optional[object] = None,
 ) -> Optional[str]:
     """
     Создает видео с анимацией набора кода в формате reels (9:16, 1080x1920).
@@ -409,7 +426,8 @@ def generate_code_typing_video(
         language: Язык программирования
         logo_path: Путь к логотипу (опционально)
         question_text: Текст вопроса для отображения внизу экрана
-        
+        selected_bgm: Экземпляр BackgroundMusic или путь к аудиофайлу (опционально)
+
     Returns:
         Путь к временному файлу видео или None при ошибке
     """
@@ -424,8 +442,9 @@ def generate_code_typing_video(
         # Получаем настройки
         typing_speed = getattr(settings, 'VIDEO_TYPING_SPEED', 25)  # символов в секунду (побуквенное печатание)
         fps = getattr(settings, 'VIDEO_FPS', 24)
-        max_video_duration = 30  # Максимальная длительность видео в секундах
-        
+        # Максимальная длительность видео в секундах. По умолчанию 30s — можно переопределить через settings.MAX_VIDEO_DURATION
+        max_video_duration = getattr(settings, 'MAX_VIDEO_DURATION', 30)
+
         # Форматируем код ОДИН РАЗ перед генерацией кадров
         formatted_code = smart_format_code(code, language)
         # Обрезаем длинные строки для вертикального формата (45 символов для большего шрифта)
@@ -436,22 +455,25 @@ def generate_code_typing_video(
         formatted_code += '\n\n'  # Добавляем точно две пустые строки
         total_chars = len(formatted_code)
         
-        # Рассчитываем количество кадров для печати с ограничением максимальной длительности
-        typing_duration = min(total_chars / typing_speed, max_video_duration)  # секунды на печать
-        typing_frames = int(typing_duration * fps)
+        # Если код очень длинный — предварительно увеличиваем скорость, чтобы укладываться в max_video_duration
+        # Это нужно сделать до расчёта количества кадров, чтобы избежать рассинхрона и деления на ноль.
+        if total_chars > 0 and (total_chars / typing_speed) > max_video_duration:
+            typing_speed = total_chars / max_video_duration
+            logger.info(f"Код слишком длинный ({total_chars} символов), увеличена скорость набора до {typing_speed:.1f} символов/сек")
 
-        # Добавляем 5 секунд паузы
-        pause_duration = 5  # секунды паузы после завершения печати
+        # Рассчитываем количество кадров для печати с ограничением максимальной длительности
+        typing_duration = min(total_chars / typing_speed if typing_speed > 0 else max_video_duration, max_video_duration)  # секунды на печать
+        typing_frames = max(1, int(typing_duration * fps))  # гарантируем минимум 1 кадр, чтобы не было деления на ноль
+
+        # Вычисляем паузу так, чтобы общее время было ровно max_video_duration
+        pause_duration = max(0, max_video_duration - typing_duration)
         pause_frames = int(pause_duration * fps)
 
         # Общее количество кадров
         total_frames = typing_frames + pause_frames
 
-        # Если код очень длинный, увеличиваем скорость для укладывания в максимальную длительность
-        if total_chars / typing_speed > max_video_duration:
-            typing_speed = total_chars / max_video_duration
-            logger.info(f"Код слишком длинный ({total_chars} символов), увеличена скорость набора до {typing_speed:.1f} символов/сек")
-        
+        logger.info(f"Видео длительностью: max={max_video_duration}s, печать={typing_duration:.1f}s, пауза={pause_duration:.1f}s, fps={fps}, frames={total_frames}")
+
         # Создаем временную директорию для кадров
         # Используем TMPDIR из окружения или /app/tmp вместо /tmp для избежания проблем с правами доступа
         base_temp_dir = os.getenv('TMPDIR', '/app/tmp')
@@ -518,14 +540,26 @@ def generate_code_typing_video(
             logger.info("Оптимизация CPU: MOVIEPY_NUM_THREADS=1")
         
         # Добавляем аудио: фоновая музыка + звук клавиатуры
-        background_audio_path = _get_background_audio_path()
+        # Если передан selected_bgm (экземпляр BackgroundMusic или путь) — используем его
+        if selected_bgm:
+            background_audio_path = selected_bgm
+            try:
+                if hasattr(selected_bgm, 'name'):
+                    logger.info(f"🎵 Использован трек, переданный в функцию: {getattr(selected_bgm, 'name', str(selected_bgm))}")
+                else:
+                    logger.info(f"🎵 Использован трек, переданный в функцию: {str(selected_bgm)}")
+            except Exception:
+                logger.debug("Не удалось залогировать selected_bgm")
+        else:
+            background_audio_path = _get_background_audio_path()
+
         keyboard_audio_path = _get_keyboard_audio_path()
 
         logger.info(f"Поиск аудио: фон={background_audio_path}, клавиатура={keyboard_audio_path}")
         if background_audio_path:
             logger.info(f"Путь к фоновой музыке найден: {background_audio_path}")
         else:
-            logger.warning("Путь к фоновой музыке НЕ найден")
+            logger.warning("Путь к фоновой музыки НЕ найден")
 
         if background_audio_path or keyboard_audio_path:
             try:
@@ -534,42 +568,48 @@ def generate_code_typing_video(
 
                 # Загружаем фоновую музыку (если есть)
                 background_audio = None
+                background_temp_path = None
+                bgm_obj = None
                 if background_audio_path:
-                    logger.info(f"Пытаюсь загрузить фоновую музыку: {background_audio_path}")
-                    logger.info(f"Файл существует: {os.path.exists(background_audio_path)}")
                     try:
-                        background_audio = AudioFileClip(background_audio_path)
-                        logger.info(f"Фоновая музыка загружена: длительность={background_audio.duration:.1f}сек, fps={getattr(background_audio, 'fps', 'unknown')}")
-                        # Обрезаем или зацикливаем до длительности видео
-                        if background_audio.duration < clip.duration:
-                            # Если фоновая музыка короче, повторяем ее
-                            repeats = int(clip.duration // background_audio.duration) + 1
-                            background_audio = background_audio.loop(repeats).subclip(0, clip.duration)
-                            logger.info(f"Фоновая музыка зациклена: {repeats} раз")
-                        else:
-                            background_audio = background_audio.subclip(0, clip.duration)
-                        # Устанавливаем громкость
-                        try:
-                            # Пробуем multiply_volume
-                            background_audio = background_audio.multiply_volume(background_volume)
-                        except (AttributeError, Exception) as vol_error:
-                            logger.warning(f"multiply_volume не сработал ({vol_error}), пробую альтернативный метод")
+                        # Если background_audio_path — экземпляр модели BackgroundMusic
+                        if hasattr(background_audio_path, 'audio_file'):
+                            bgm_obj = background_audio_path
+                            # Открываем файл через default_storage
+                            logger.info(f"Загрузка фоновой музыки из storage для BackgroundMusic id={bgm_obj.id}")
                             try:
-                                # Альтернативный метод через AudioClip
-                                from moviepy.audio.AudioClip import AudioClip
-                                # numpy уже импортирован в начале файла
+                                file_name = bgm_obj.audio_file.name
+                                with default_storage.open(file_name, 'rb') as f:
+                                    # создаём временный файл в temp_dir
+                                    background_temp = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=os.path.splitext(file_name)[1])
+                                    background_temp.write(f.read())
+                                    background_temp.flush()
+                                    background_temp_path = background_temp.name
+                                    background_temp.close()
+                                    logger.info(f"Фоновая музыка сохранена во временный файл: {background_temp_path}")
+                                background_audio = AudioFileClip(background_temp_path)
+                            except Exception as stor_err:
+                                logger.error(f"Не удалось загрузить фон из storage: {stor_err}")
+                                background_audio = None
+                        else:
+                            # background_audio_path — локальный путь
+                            background_audio = AudioFileClip(str(background_audio_path))
 
-                                def apply_volume(get_frame, t):
-                                    frame = get_frame(t)
-                                    if isinstance(frame, np.ndarray):
-                                        return frame * background_volume
-                                    return frame
+                        if background_audio:
+                            logger.info(f"Фоновая музыка загружена: длительность={background_audio.duration:.1f}сек")
+                            # Обрезаем или зацикливаем до длительности видео
+                            if background_audio.duration < clip.duration:
+                                repeats = int(clip.duration // background_audio.duration) + 1
+                                background_audio = background_audio.loop(repeats).subclip(0, clip.duration)
+                                logger.info(f"Фоновая музыка зациклена: {repeats} раз")
+                            else:
+                                background_audio = background_audio.subclip(0, clip.duration)
+                            # Устанавливаем громкость
+                            try:
+                                background_audio = background_audio.multiply_volume(background_volume)
+                            except (AttributeError, Exception) as vol_error:
+                                logger.warning(f"multiply_volume не сработал ({vol_error})")
 
-                                background_audio = background_audio.fl(lambda gf, t: apply_volume(gf, t))
-                                logger.info("Альтернативный метод изменения громкости применен")
-                            except Exception as alt_error:
-                                logger.warning(f"Альтернативный метод тоже не сработал ({alt_error}), использую оригинальную громкость")
-                        logger.info(f"Фоновая музыка настроена: громкость={background_volume}")
                     except Exception as bg_error:
                         logger.error(f"Не удалось загрузить фоновую музыку {background_audio_path}: {bg_error}")
                         background_audio = None
@@ -709,7 +749,15 @@ def generate_code_typing_video(
                 os.remove(frame_path)
             except Exception:
                 pass
-        
+
+        # Удаляем временный файл фоновой музыки, если был создан из storage
+        try:
+            if 'background_temp_path' in locals() and background_temp_path and os.path.exists(background_temp_path):
+                os.remove(background_temp_path)
+                logger.debug(f"🗑️ Удален временный фоновой файл: {background_temp_path}")
+        except Exception:
+            logger.warning("Не удалось удалить временный файл фоновой музыки")
+
         logger.info(f"✅ Видео создано: {output_path}")
         return output_path
         
@@ -725,7 +773,8 @@ def generate_video_for_task(
     difficulty: str = None,
     admin_chat_id: str = None,
     task_id: int = None,
-    video_language: str = 'ru'
+    video_language: str = 'ru',
+    selected_bgm: Optional[object] = None,
 ) -> Optional[str]:
     """
     Генерирует видео для задачи в формате reels.
@@ -738,6 +787,7 @@ def generate_video_for_task(
         admin_chat_id: ID чата админа для отправки видео (опционально, если не указан, будет получен из настроек/БД)
         task_id: ID задачи для использования в имени файла (опционально)
         video_language: Язык видео ('ru', 'en') - для правильного отображения в caption
+        selected_bgm: Экземпляр BackgroundMusic или путь к аудиофайлу (опционально)
 
     Returns:
         URL видео в S3/R2 или None при ошибке
@@ -812,8 +862,19 @@ def generate_video_for_task(
         else:
             logger.warning(f"⚠️ Логотип не найден, видео будет сгенерировано без логотипа")
         
+        # Если task_id передан и selected_bgm не передан — пробуем получить трек из задачи
+        if task_id and not selected_bgm:
+            try:
+                from ..models import Task as TaskModel
+                task_obj = TaskModel.objects.filter(id=task_id).select_related('background_music').first()
+                if task_obj and getattr(task_obj, 'background_music', None):
+                    selected_bgm = task_obj.background_music
+                    logger.info(f"🎵 Использован трек, привязанный к задаче: id={task_obj.id}, bgm_id={selected_bgm.id}")
+            except Exception as e:
+                logger.debug(f"Не удалось получить background_music из задачи {task_id}: {e}")
+
         # Генерируем видео
-        video_path = generate_code_typing_video(code, detected_language, logo_path, question_text)
+        video_path = generate_code_typing_video(code, detected_language, logo_path, question_text, selected_bgm=selected_bgm)
         if not video_path:
             return None
         
