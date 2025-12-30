@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import timedelta, datetime
 from django.contrib.auth import login
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.utils.http import http_date
@@ -1152,15 +1152,91 @@ class TelegramAuthCallbackView(APIView):
             logger.info(f"Request path: {request.path}")
             logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
             
-            # Проверяем наличие данных от Telegram
+            # Если Telegram вернул пустые query, возможно данные в hash fragment
             telegram_id = request.GET.get('id')
             telegram_hash = request.GET.get('hash')
             
-            if not telegram_id or not telegram_hash:
-                logger.error("Отсутствуют обязательные данные от Telegram (id или hash)")
-                return redirect('/?open_login=true&error=Отсутствуют данные авторизации от Telegram')
+            if not telegram_id and not telegram_hash:
+                logger.warning("Нет query-параметров от Telegram, отдаём HTML для обработки hash fragment")
+                html = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Telegram OAuth Callback</title>
+</head>
+<body>
+  <script>
+    (function() {
+      function redirectError(msg) {
+        window.location.href = '/?open_login=true&error=' + encodeURIComponent(msg || 'Ошибка авторизации Telegram');
+      }
+      function redirectSuccess() {
+        window.location.href = '/?telegram_auth_success=true';
+      }
+      function decodeTelegramDataFromHash() {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#tgAuthResult=')) {
+          try {
+            const base64Data = hash.substring('#tgAuthResult='.length);
+            const decoded = atob(base64Data);
+            const data = JSON.parse(decoded);
+            if (data.id) data.id = parseInt(data.id);
+            if (data.auth_date) data.auth_date = parseInt(data.auth_date);
+            return data;
+          } catch (e) {
+            console.error('Decode hash error', e);
+            return null;
+          }
+        }
+        return null;
+      }
+      function collectFromQuery() {
+        const url = new URL(window.location.href);
+        const id = url.searchParams.get('id');
+        const hash = url.searchParams.get('hash');
+        if (!id || !hash) return null;
+        return {
+          id: parseInt(id),
+          hash: hash,
+          auth_date: url.searchParams.get('auth_date') ? parseInt(url.searchParams.get('auth_date')) : null,
+          first_name: url.searchParams.get('first_name') || '',
+          last_name: url.searchParams.get('last_name') || '',
+          username: url.searchParams.get('username') || '',
+          photo_url: url.searchParams.get('photo_url') || ''
+        };
+      }
+      const data = decodeTelegramDataFromHash() || collectFromQuery();
+      if (!data || !data.id || !data.hash) {
+        redirectError('Отсутствуют данные авторизации от Telegram');
+        return;
+      }
+      fetch('/api/social-auth/telegram/auth/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+        credentials: 'include'
+      })
+      .then(async (response) => {
+        let body = null;
+        try { body = await response.json(); } catch (e) {}
+        if (response.ok && body && body.success) {
+          redirectSuccess();
+          return;
+        }
+        const message = (body && body.error) ? body.error : ('HTTP ' + response.status);
+        redirectError(message);
+      })
+      .catch(() => redirectError('Ошибка сети при авторизации'));
+    })();
+  </script>
+  <p>Авторизация через Telegram...</p>
+</body>
+</html>
+"""
+                return HttpResponse(html)
             
-            # Собираем все данные от Telegram
+            # Собираем все данные от Telegram (query вариант)
             raw_data = {}
             for key, value in request.GET.items():
                 if isinstance(value, list) and len(value) > 0:
@@ -1230,7 +1306,6 @@ class TelegramAuthCallbackView(APIView):
             # Устанавливаем куки явно для обеспечения сохранения сессии
             response = redirect('/?telegram_auth_success=true')
             
-            # Копируем куки сессии в response для гарантированного сохранения
             if session_key:
                 max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
                 expires = None
