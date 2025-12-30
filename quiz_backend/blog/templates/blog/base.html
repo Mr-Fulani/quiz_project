@@ -313,267 +313,46 @@
                 </div>
                 
                 <!-- Telegram Login Widget -->
-                <div class="inputBx" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px;">
+                <div class="inputBx" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px;">
 
-                    <!-- Telegram Button - simple redirect -->
+                    <!-- Telegram (официальный стиль) -->
                     <a href="{% url 'social_auth:telegram_oauth_redirect' %}"
-                       class="telegram-auth-button"
-                       style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #0088cc; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 500; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 300px;"
-                       onmouseover="this.style.background='#0077b5'"
-                       onmouseout="this.style.background='#0088cc'">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
-                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.174 1.858-.924 6.365-1.305 8.443-.152.84-.45 1.12-.74 1.147-.63.056-1.108-.416-1.718-.816-.952-.64-1.49-1.038-2.414-1.663-1.091-.69-.384-1.07.238-1.69.164-.163 2.99-2.744 3.04-2.976.007-.03.014-.15-.056-.212-.07-.062-.173-.041-.248-.024-.106.024-1.794 1.14-5.063 3.345-.48.33-.914.49-1.302.482-.428-.01-1.25-.241-1.86-.44-.752-.245-1.35-.375-1.297-.79.027-.216.325-.437.895-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.024.465.14.118.095.151.223.167.312.016.09.036.295.02.455z"/>
+                       style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #229ED9; color: #fff; text-decoration: none; border-radius: 12px; font-size: 15px; font-weight: 600; transition: transform 0.1s ease, box-shadow 0.2s ease; box-shadow: 0 4px 10px rgba(34,158,217,0.35); width: 100%; max-width: 320px;"
+                       onmouseover="this.style.boxShadow='0 6px 14px rgba(34,158,217,0.45)'; this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.boxShadow='0 4px 10px rgba(34,158,217,0.35)'; this.style.transform='translateY(0)'">
+                        <svg width="22" height="22" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+                            <circle cx="120" cy="120" r="120" fill="white"/>
+                            <path d="M48 119.2c42.4-18.4 70.7-30.5 84.9-36.2 40.4-16.8 48.8-19.7 54.3-19.8 1.2 0 3.8.3 5.5 1.8 1.4 1.2 1.8 2.8 2 3.9.2 1 .4 3.3.2 5.1-1.9 20-10.2 68.5-14.4 90.9-1.8 9.7-5.8 12.9-9.5 13.3-8.1.7-14.2-5.2-22-10.2-12.2-7.7-19.1-12.5-30.8-20-13.9-8.9-4.9-13.8 3.1-21.8 2.2-2.2 40.1-36.7 40.9-39.8.1-.4.1-1.9-.8-2.6-.9-.7-2.3-.5-3.3-.3-1.4.3-23.5 15-66.5 43.8-6.3 4.4-12 6.6-17.1 6.5-5.6-.1-16.4-3.3-24.5-6.1-9.9-3.2-17.8-5-17-10.5.3-2.9 4.3-5.8 11.7-8.8Z" fill="#229ED9"/>
                         </svg>
                         <span>{% trans "Login with Telegram" %}</span>
                     </a>
 
-                    <!-- Глобальная функция ДО загрузки виджета -->
-                    <script>
-                        // Определяем функцию ДО загрузки виджета Telegram
-                        // Это критически важно - функция должна быть доступна глобально
-                        // Определяем в нескольких местах для максимальной совместимости
-                        function handleTelegramAuth(user) {
-                            console.log('🔐 ============================================');
-                            console.log('🔐 Telegram auth callback вызван ПРЯМЫМ ВЫЗОВОМ!');
-                            console.log('🔐 ============================================');
-                            console.log('📦 Данные пользователя:', user);
-                            console.log('📦 Тип данных:', typeof user);
-                            console.log('📦 Полные данные:', JSON.stringify(user, null, 2));
-                            console.log('📦 Вызвано из:', new Error().stack);
-                            console.log('📦 Режим браузера:', navigator.cookieEnabled ? 'Обычный' : 'Инкогнито/Приватный');
-                            console.log('📦 User Agent:', navigator.userAgent);
-                            
-                            if (!user || !user.id) {
-                                console.error('❌ Некорректные данные пользователя:', user);
-                                alert('Ошибка: некорректные данные пользователя');
-                                return;
-                            }
-                            
-                            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                                             document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-                            
-                            console.log('📡 Отправка данных на сервер: /api/social-auth/telegram/auth/');
-                            
-                            fetch('/api/social-auth/telegram/auth/', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify(user),
-                                credentials: 'include'
-                            })
-                            .then(async response => {
-                                console.log('📥 Статус ответа:', response.status, response.statusText);
-                                
-                                if (!response.ok) {
-                                    const errorText = await response.text().catch(() => '');
-                                    console.error('❌ Ошибка HTTP:', response.status, errorText);
-                                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                                }
-                                
-                                try {
-                                    const contentType = response.headers.get('content-type');
-                                    if (contentType && contentType.includes('application/json')) {
-                                        return await response.json();
-                                    } else {
-                                        const text = await response.text();
-                                        return JSON.parse(text);
-                                    }
-                                } catch (parseError) {
-                                    console.error('❌ Ошибка парсинга JSON:', parseError);
-                                    throw new Error('Не удалось распарсить ответ сервера');
-                                }
-                            })
-                            .then(data => {
-                                console.log('✅ Ответ сервера:', data);
-                                if (data && data.success) {
-                                    console.log('🎉 Авторизация успешна! Перезагружаем страницу...');
-                                    const loginModal = document.getElementById('login-modal');
-                                    if (loginModal && loginModal.classList.contains('active')) {
-                                        loginModal.classList.remove('active');
-                                    }
-                                    window.location.reload();
-                                } else {
-                                    console.error('❌ Ошибка авторизации:', data?.error || 'Неизвестная ошибка');
-                                    // Не показываем alert для мимолетных ошибок
-                                    if (data?.error && !data.error.includes('уже')) {
-                                        console.warn('⚠️ Ошибка авторизации:', data.error);
-                                    }
-                                }
-                            })
-                            .catch(error => {
-                                console.error('❌ Ошибка отправки данных на сервер:', error);
-                                // Не показываем alert для мимолетных ошибок
-                                console.warn('⚠️ Ошибка:', error.message);
-                            });
-                        }
-                        
-                        // Явно устанавливаем в window для максимальной совместимости
-                        // Telegram виджет может искать функцию в window объекте
-                        window.handleTelegramAuth = handleTelegramAuth;
-                        window.onTelegramAuth = handleTelegramAuth; // Альтернативное имя для совместимости
-                        
-        // Делаем функцию доступной для вызова из iframe (если страница загружена в iframe)
-        try {
-            if (window.parent && window.parent !== window && typeof window.parent.handleTelegramAuth === 'undefined') {
-                window.parent.handleTelegramAuth = handleTelegramAuth;
-                window.parent.onTelegramAuth = handleTelegramAuth;
-            }
-            if (window.top && window.top !== window && typeof window.top.handleTelegramAuth === 'undefined') {
-                window.top.handleTelegramAuth = handleTelegramAuth;
-                window.top.onTelegramAuth = handleTelegramAuth;
-            }
-        } catch (e) {
-            // Игнорируем ошибки CORS
-            console.log('⚠️ Не удалось установить функцию в parent/top (CORS):', e.message);
-                        }
-                        
-                        console.log('✅ Функция handleTelegramAuth определена глобально:', typeof handleTelegramAuth);
-                        console.log('✅ window.handleTelegramAuth:', typeof window.handleTelegramAuth);
-                        console.log('✅ window.onTelegramAuth:', typeof window.onTelegramAuth);
-                        
-                        // Убеждаемся, что функция доступна глобально даже после загрузки виджета
-                        // Telegram виджет может вызывать функцию асинхронно
-                        setTimeout(function() {
-                            if (typeof window.handleTelegramAuth !== 'function') {
-                                console.error('❌ Функция handleTelegramAuth потеряна! Восстанавливаем...');
-                                window.handleTelegramAuth = handleTelegramAuth;
-                                window.onTelegramAuth = handleTelegramAuth;
-                            }
-                        }, 2000);
-                        
-                        // Переинициализация виджета при открытии модального окна
-                        // Это гарантирует, что callback функция доступна когда виджет активируется
-                        document.addEventListener('DOMContentLoaded', function() {
-            const telegramWidgetElement = document.querySelector('script[data-telegram-login]');
-            const telegramWidgetIframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
-            if (!telegramWidgetElement && !telegramWidgetIframe) {
-                console.log('ℹ️ Telegram iframe виджет отключен (используем кнопку с redirect). Наблюдатель для перезагрузки виджета не требуется.');
-                return;
-            }
-            
-                            const loginModal = document.getElementById('login-modal');
-                            if (loginModal) {
-                                // Используем MutationObserver для отслеживания изменений класса модального окна
-                                const observer = new MutationObserver(function(mutations) {
-                                    mutations.forEach(function(mutation) {
-                                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                                            const isActive = loginModal.classList.contains('active');
-                                            if (isActive) {
-                                                console.log('🔓 Модальное окно открыто, проверяем Telegram виджет...');
-                                                
-                                                // Убеждаемся, что функция доступна
-                                                if (typeof window.handleTelegramAuth !== 'function') {
-                                                    console.error('❌ Функция handleTelegramAuth не найдена! Восстанавливаем...');
-                                                    window.handleTelegramAuth = handleTelegramAuth;
-                                                    window.onTelegramAuth = handleTelegramAuth;
-                                                }
-                                                
-                                                // Переинициализируем виджет если нужно
-                                                setTimeout(function() {
-                                                    const widgetIframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
-                                                    if (widgetIframe && window.Telegram && window.Telegram.LoginWidget) {
-                                                        console.log('🔄 Переинициализация Telegram виджета...');
-                                                        window.Telegram.LoginWidget.dataOnauth = handleTelegramAuth;
-                                                        if (window.Telegram.LoginWidget.reload) {
-                                                            window.Telegram.LoginWidget.reload();
-                                                        }
-                                                    }
-                                                }, 500);
-                                            }
-                                        }
-                                    });
-                                });
-                                
-                                observer.observe(loginModal, {
-                                    attributes: true,
-                                    attributeFilter: ['class']
-                                });
-                                
-                                console.log('✅ Наблюдатель за модальным окном установлен');
-                            }
-                        });
-                    </script>
-                    
-                    <!-- КНОПКИ АВТОРИЗАЦИИ ЧЕРЕЗ СОЦИАЛЬНЫЕ СЕТИ -->
-                    <div style="text-align: center; margin: 20px 0; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                    <!-- GitHub (официальный стиль) -->
+                    <a href="{% url 'social_auth:github_oauth_redirect' %}"
+                       style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #24292e; color: #fff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; transition: transform 0.1s ease, box-shadow 0.2s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.25); width: 100%; max-width: 320px;"
+                       onmouseover="this.style.boxShadow='0 6px 14px rgba(0,0,0,0.35)'; this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.boxShadow='0 4px 10px rgba(0,0,0,0.25)'; this.style.transform='translateY(0)'">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 .296c-6.627 0-12 5.373-12 12 0 5.303 3.438 9.8 8.207 11.387.6.111.793-.261.793-.58 0-.287-.011-1.244-.016-2.255-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.73.083-.73 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.774.418-1.305.762-1.606-2.665-.304-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.236-3.22-.124-.303-.536-1.524.117-3.176 0 0 1.008-.322 3.301 1.23a11.52 11.52 0 0 1 3.003-.404c1.018.004 2.045.137 3.003.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.652.241 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.104.823 2.227 0 1.608-.014 2.904-.014 3.3 0 .321.192.697.799.579C20.565 22.092 24 17.592 24 12.296c0-6.627-5.373-12-12-12Z"/>
+                        </svg>
+                        <span>{% trans "Login with GitHub" %}</span>
+                    </a>
 
-                        <!-- Кнопка GitHub -->
-                        <a href="{% url 'social_auth:github_oauth_redirect' %}"
-                           class="github-auth-button"
-                           style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #24292e; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 500; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 300px;"
-                           onmouseover="this.style.background='#171a1d'"
-                           onmouseout="this.style.background='#24292e'">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            <span>{% trans "Login with GitHub" %}</span>
-                        </a>
-                    </div>
-                    <p style="text-align: center; color: #666; font-size: 12px; margin-top: 10px;">
-                        {% trans "Click to authorize via Telegram or GitHub" %}
-                    </p>
-                    
-                    <!-- Дополнительная проверка после загрузки скрипта -->
-                    <script>
-                        // Проверяем после полной загрузки страницы
-                        window.addEventListener('load', function() {
-                            setTimeout(function() {
-                                const widgetScript = document.querySelector('script[data-telegram-login]') || document.querySelector('script[src*="telegram-widget.js"]');
-                                const widgetIframe = document.querySelector('iframe[src*="oauth.telegram.org"]');
-                                
-                                if (!widgetScript && !widgetIframe) {
-                                    console.log('ℹ️ Telegram iframe виджет отсутствует (используется прямая кнопка авторизации). Финальная проверка пропущена.');
-                                    return;
-                                }
-                                
-                                console.log('🔍 Финальная проверка Telegram виджета:');
-                                console.log('  - window.handleTelegramAuth:', typeof window.handleTelegramAuth);
-                                console.log('  - window.Telegram:', typeof window.Telegram);
-                                console.log('  - window.Telegram.LoginWidget:', window.Telegram && typeof window.Telegram.LoginWidget);
-                                
-                                // Устанавливаем обработчик если доступен новый API
-                                if (window.Telegram && window.Telegram.LoginWidget && window.handleTelegramAuth) {
-                                    window.Telegram.LoginWidget.dataOnauth = window.handleTelegramAuth;
-                                    console.log('✅ Обработчик установлен для window.Telegram.LoginWidget');
-                                }
-                                
-                                // Проверяем iframe виджета
-                                if (widgetIframe) {
-                                    console.log('✅ Iframe виджета найден:', widgetIframe.src);
-                                } else {
-                                    console.error('❌ Iframe виджета НЕ найден! Возможные причины:');
-                                    console.error('  1. Домен не настроен в BotFather для бота {{ TELEGRAM_BOT_USERNAME }}');
-                                    console.error('  2. Выполните в @BotFather: /setdomain');
-                                    console.error('  3. Укажите домен: ' + window.location.hostname);
-                                }
-                            }, 1000);
-                        });
-                    </script>
-                    
-                    
-                    <!-- Кнопка для локального тестирования (показывается через JS если DEBUG=True) -->
-                    <div id="telegram-mock-auth-container" style="text-align: center; margin-top: 10px; display: none;">
-                        <a href="{% url 'social_auth:telegram_auth_api' %}?mock=true" 
-                           class="telegram-mock-auth-btn"
-                           style="display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; transition: background 0.3s;"
-                           title="Тестовая авторизация для локальной разработки">
-                            🧪 Тестовая авторизация (локально)
-                        </a>
-                    </div>
-                    
-                    {% if debug or DEBUG %}
-                    <!-- Fallback: показываем кнопку если debug доступен в шаблоне -->
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            const container = document.getElementById('telegram-mock-auth-container');
-                            if (container) {
-                                container.style.display = 'block';
-                            }
-                        });
-                    </script>
-                    {% endif %}
+                    <!-- Google -->
+                    <a href="{% url 'social_auth:google_oauth_redirect' %}"
+                       style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; background: #fff; color: #3c4043; text-decoration: none; border: 1px solid #dadce0; border-radius: 10px; font-size: 15px; font-weight: 600; transition: transform 0.1s ease, box-shadow 0.2s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.08); width: 100%; max-width: 320px;"
+                       onmouseover="this.style.boxShadow='0 4px 10px rgba(0,0,0,0.12)'; this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.boxShadow='0 2px 6px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
+                        <svg width="22" height="22" viewBox="0 0 48 48" style="flex-shrink:0;">
+                            <path fill="#EA4335" d="M24 9.5c3.35 0 5.62 1.45 6.91 2.66l5.05-4.92C32.82 4 28.79 2.5 24 2.5 14.99 2.5 7.36 7.98 4.11 15.3l5.88 4.56C11.77 13.18 17.39 9.5 24 9.5Z"/>
+                            <path fill="#4285F4" d="M46.5 24.5c0-1.64-.15-3.19-.43-4.68H24v9.09h12.7c-.55 2.93-2.21 5.41-4.7 7.08l7.36 5.7C43.95 37.5 46.5 31.46 46.5 24.5Z"/>
+                            <path fill="#FBBC05" d="M10 28.86c-.45-1.32-.71-2.72-.71-4.17 0-1.45.26-2.85.71-4.17l-5.88-4.56C2.76 18.65 2 21.48 2 24.69c0 3.21.76 6.04 2.12 8.73l5.88-4.56Z"/>
+                            <path fill="#34A853" d="M24 46.5c6.48 0 11.92-2.13 15.89-5.85l-7.36-5.7c-2.06 1.39-4.7 2.22-8.53 2.22-6.61 0-12.23-3.68-13.98-8.86l-5.88 4.56C7.36 40.02 14.99 46.5 24 46.5Z"/>
+                            <path fill="none" d="M2 2h44v44H2z"/>
+                        </svg>
+                        <span>{% trans "Login with Google" %}</span>
+                    </a>
+
                 </div>
                 
                 <div class="links">
