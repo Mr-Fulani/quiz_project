@@ -1717,9 +1717,14 @@ class GoogleAuthService:
         
         # Сначала пытаемся найти существующего пользователя по email (если есть)
         if google_email:
+            # Ищем по email в User
             user = User.objects.filter(email=google_email).first()
             if user:
-                logger.info(f"Найден пользователь по email: {user.username}")
+                logger.info(f"Найден пользователь по email в User: {user.username}")
+                # Обновляем email если его не было
+                if not user.email:
+                    user.email = google_email
+                    user.save()
                 # Обновляем данные пользователя
                 updated = False
                 if first_name and first_name != user.first_name:
@@ -1736,6 +1741,79 @@ class GoogleAuthService:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
                 
                 return user
+            
+            # Если не нашли в User, ищем по email в SocialAccount
+            # Это помогает, если пользователь поменял email на сайте, но в SocialAccount остался старый
+            social_account_with_email = SocialAccount.objects.filter(
+                email=google_email,
+                is_active=True
+            ).first()
+            
+            if social_account_with_email:
+                user = social_account_with_email.user
+                logger.info(f"Найден пользователь по email в SocialAccount: {user.username}, провайдер: {social_account_with_email.provider}")
+                # Обновляем email в User, если он отличается
+                if user.email != google_email:
+                    user.email = google_email
+                    user.save()
+                    logger.info(f"Обновлен email пользователя {user.username} с {user.email} на {google_email}")
+                # Обновляем данные пользователя
+                updated = False
+                if first_name and first_name != user.first_name:
+                    user.first_name = first_name
+                    updated = True
+                if last_name and last_name != user.last_name:
+                    user.last_name = last_name
+                    updated = True
+                if updated:
+                    user.save()
+                
+                # Загружаем аватарку если есть
+                if avatar_url and not user.avatar:
+                    TelegramAuthService._download_avatar_from_url(avatar_url, user)
+                
+                return user
+        
+        # Если email не найден, пытаемся найти по имени и фамилии
+        # Это помогает связать аккаунты, если пользователь заходил через Telegram без email
+        if first_name and last_name:
+            # Ищем пользователей с совпадающим именем и фамилией, у которых нет email
+            # или email пустой, и есть Telegram аккаунт
+            from django.db.models import Q
+            potential_users = User.objects.filter(
+                first_name=first_name,
+                last_name=last_name
+            ).filter(Q(email__isnull=True) | Q(email=''))
+            
+            # Проверяем, есть ли у них Telegram аккаунт
+            for potential_user in potential_users:
+                telegram_account = potential_user.social_accounts.filter(
+                    provider='telegram',
+                    is_active=True
+                ).first()
+                
+                if telegram_account:
+                    logger.info(f"Найден пользователь по имени/фамилии с Telegram аккаунтом: {potential_user.username}")
+                    # Обновляем email
+                    if google_email:
+                        potential_user.email = google_email
+                        potential_user.save()
+                    # Обновляем данные
+                    updated = False
+                    if first_name and first_name != potential_user.first_name:
+                        potential_user.first_name = first_name
+                        updated = True
+                    if last_name and last_name != potential_user.last_name:
+                        potential_user.last_name = last_name
+                        updated = True
+                    if updated:
+                        potential_user.save()
+                    
+                    # Загружаем аватарку если есть
+                    if avatar_url and not potential_user.avatar:
+                        TelegramAuthService._download_avatar_from_url(avatar_url, potential_user)
+                    
+                    return potential_user
         
         # Если не нашли существующего пользователя, создаем нового
         # Генерируем уникальный username из email или google_id
