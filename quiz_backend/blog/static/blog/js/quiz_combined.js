@@ -873,4 +873,116 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('DOMContentLoaded', setupAnswerHandlers);
     document.addEventListener('page:loaded', setupAnswerHandlers);
     document.addEventListener('turbolinks:load', setupAnswerHandlers);
+
+    /**
+     * Инициализирует обработчики для увеличения изображений на мобильных устройствах.
+     */
+    function setupImageZoomHandlers() {
+        // Проверяем, что мы на мобильном устройстве
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (!isMobile) {
+            return; // На десктопе не нужен этот функционал
+        }
+
+        // Создаем overlay для полноэкранного просмотра, если его еще нет
+        let overlay = document.querySelector('.task-image-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'task-image-overlay';
+            const overlayImg = document.createElement('img');
+            overlay.appendChild(overlayImg);
+            document.body.appendChild(overlay);
+        }
+
+        const overlayImg = overlay.querySelector('img');
+
+        // Функция для открытия изображения в полноэкранном режиме
+        function openImageFullscreen(imgSrc) {
+            overlayImg.src = imgSrc;
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Блокируем прокрутку страницы
+        }
+
+        // Функция для закрытия полноэкранного режима
+        function closeImageFullscreen() {
+            overlay.classList.remove('active');
+            document.body.style.overflow = ''; // Восстанавливаем прокрутку
+        }
+
+        // Обработчик клика на overlay (закрытие)
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay || e.target === overlayImg) {
+                closeImageFullscreen();
+            }
+        });
+
+        // Отслеживание касаний для различения скролла и тапа
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchMoved = false;
+        let touchTarget = null;
+        let lastTouchTime = 0;
+
+        // Отслеживаем начало касания
+        document.addEventListener('touchstart', function(e) {
+            const img = e.target.closest('.task-image img');
+            lastTouchTime = Date.now(); // Обновляем время последнего touch события
+            if (img && isMobile) {
+                touchTarget = img;
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchMoved = false;
+            }
+        }, { passive: true });
+
+        // Отслеживаем движение (скролл)
+        document.addEventListener('touchmove', function(e) {
+            if (touchTarget && isMobile) {
+                const touch = e.touches[0];
+                const deltaX = Math.abs(touch.clientX - touchStartX);
+                const deltaY = Math.abs(touch.clientY - touchStartY);
+                // Если движение больше 10px - это скролл, не тап
+                if (deltaX > 10 || deltaY > 10) {
+                    touchMoved = true;
+                }
+            }
+        }, { passive: true });
+
+        // Обрабатываем окончание касания (только если не было скролла)
+        document.addEventListener('touchend', function(e) {
+            const img = e.target.closest('.task-image img');
+            if (img && isMobile && img === touchTarget && !touchMoved) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (img.src) {
+                    openImageFullscreen(img.src);
+                }
+            }
+            // Сбрасываем состояние после небольшой задержки
+            setTimeout(() => {
+                touchTarget = null;
+                touchMoved = false;
+            }, 100);
+        }, true);
+
+        // Обрабатываем обычный клик (только если не было touch событий)
+        document.addEventListener('click', function(e) {
+            const img = e.target.closest('.task-image img');
+            // Проверяем, что прошло достаточно времени с последнего touch события
+            // Это предотвращает двойное срабатывание
+            if (img && isMobile && Date.now() - lastTouchTime > 300) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (img.src) {
+                    openImageFullscreen(img.src);
+                }
+            }
+        }, true);
+    }
+
+    // Инициализируем обработчики изображений
+    setupImageZoomHandlers();
+    document.addEventListener('DOMContentLoaded', setupImageZoomHandlers);
+    document.addEventListener('page:loaded', setupImageZoomHandlers);
+    document.addEventListener('turbolinks:load', setupImageZoomHandlers);
 });// TEMPORARY COMMENT TO FORCE UPDATE

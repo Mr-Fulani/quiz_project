@@ -47,6 +47,46 @@
     max-width: none !important; /* Убираем ограничение max-width */
 }
 
+/* Overlay для полноэкранного просмотра изображений (мобильная версия) */
+.task-image-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    cursor: zoom-out;
+    backdrop-filter: blur(8px);
+}
+
+.task-image-overlay.active {
+    display: flex;
+}
+
+.task-image-overlay img {
+    max-width: 95vw;
+    max-height: 95vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    cursor: zoom-out;
+}
+
+/* На мобильных устройствах делаем изображения кликабельными */
+@media (max-width: 768px) {
+    .task-image {
+        cursor: zoom-in;
+    }
+    
+    .task-image img {
+        cursor: zoom-in;
+    }
+}
+
 /**
  * Варианты ответов
  */
