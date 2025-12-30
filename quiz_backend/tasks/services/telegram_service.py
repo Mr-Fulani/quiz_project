@@ -784,22 +784,66 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             else:
                 result['detailed_logs'].append(f"❌ Не удалось отправить опрос (длина вопроса: {len(poll_question)} символов, макс: 300). Проверьте логи выше для деталей ошибки.")
         
-        # 4. Определяем итоговую ссылку через сервис
-        from .default_link_service import DefaultLinkService
+        # 4. Определяем итоговую ссылку
+        # Приоритет: если есть long_explanation, используем ссылку на задачу на сайте
+        final_link = None
+        link_source = ""
         
-        final_link, link_source = DefaultLinkService.get_final_link(task, translation)
+        # Проверяем, есть ли подробное объяснение
+        if translation.long_explanation:
+            # Формируем URL на страницу задачи на сайте
+            from django.urls import reverse
+            from django.utils.text import slugify
+            
+            try:
+                # Получаем базовый URL сайта
+                site_url = getattr(settings, 'SITE_URL', 'https://quiz-code.com')
+                if not site_url.startswith('http'):
+                    site_url = f'https://{site_url}'
+                
+                # Формируем путь к странице задачи
+                topic_name = task.topic.name.lower() if task.topic else 'python'
+                subtopic_name = task.subtopic.name.lower() if task.subtopic else 'general'
+                subtopic_slug = slugify(subtopic_name)
+                difficulty = task.difficulty.lower() if task.difficulty else 'easy'
+                
+                # Формируем URL с языковым префиксом
+                language_code = translation.language.lower()
+                task_url = f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/"
+                
+                # Добавляем якорь на конкретную задачу для удобства навигации
+                # В шаблоне используется data-task-id, но для якоря можно использовать просто task-{id}
+                task_anchor = f"#task-{task.id}"
+                task_url_with_anchor = task_url + task_anchor
+                
+                final_link = task_url_with_anchor
+                link_source = f"ссылка на задачу на сайте (есть подробное объяснение)"
+                
+                result['detailed_logs'].append(
+                    f"📖 Найдено подробное объяснение, используем ссылку на задачу на сайте"
+                )
+            except Exception as e:
+                logger.warning(f"Ошибка формирования URL задачи на сайте: {e}")
+                # Продолжаем с обычной логикой
+                pass
         
-        # Проверяем наличие ссылки
-        if final_link is None:
-            error_msg = f"❌ Нет ссылки для публикации! {link_source}"
-            result['errors'].append(error_msg)
-            result['detailed_logs'].append(error_msg)
-            result['detailed_logs'].append(
-                "💡 Решение: Создайте главную ссылку (MainFallbackLink) для языка "
-                f"{translation.language.upper()} в разделе: Webhooks → Main fallback links"
-            )
-            logger.error(f"Задача {task.id}: {error_msg}")
-            return result
+        # Если не использовали ссылку на задачу, используем стандартную логику
+        if not final_link:
+            from .default_link_service import DefaultLinkService
+            
+            final_link, link_source = DefaultLinkService.get_final_link(task, translation)
+            
+            # Проверяем наличие ссылки
+            if final_link is None:
+                error_msg = f"❌ Нет ссылки для публикации! {link_source}"
+                result['errors'].append(error_msg)
+                result['detailed_logs'].append(error_msg)
+                result['detailed_logs'].append(
+                    "💡 Решение: Создайте главную ссылку (MainFallbackLink) для языка "
+                    f"{translation.language.upper()} в разделе: Webhooks → Main fallback links"
+                )
+                logger.error(f"Задача {task.id}: {error_msg}")
+                return result
         
         result['detailed_logs'].append(
             f"🔗 Ссылка для кнопки ({link_source}): {final_link}"
