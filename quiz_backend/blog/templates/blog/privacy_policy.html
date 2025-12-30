@@ -1,112 +1,145 @@
 {% extends "blog/base.html" %}
 {% load static %}
 {% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 
 {% block content %}
 <article class="privacy-policy active" data-page="privacy-policy">
     <header>
-        <h1 class="h2 article-title">{% trans "Privacy Policy" %}</h1>
+        <h1 class="h2 article-title">{% if LANGUAGE_CODE == 'ru' %}Политика конфиденциальности{% else %}Privacy Policy{% endif %}</h1>
     </header>
 
     <section class="privacy-content">
         <div class="content-card">
             <div class="privacy-section">
-                <h2 class="h3">{% trans "1. Introduction" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}1. Введение{% else %}1. Introduction{% endif %}</h2>
                 <p>
-                    {% trans "This Privacy Policy describes how QuizHub ('we', 'our', or 'us') collects, uses, and protects your personal information when you use our website and services. By using our services, you agree to the collection and use of information in accordance with this policy." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Настоящая Политика конфиденциальности описывает, как QuizHub («мы», «наш» или «нас») собирает, использует и защищает вашу личную информацию при использовании нашего веб-сайта и услуг. Используя наши услуги, вы соглашаетесь на сбор и использование информации в соответствии с настоящей политикой.
+                    {% else %}
+                    This Privacy Policy describes how QuizHub ('we', 'our', or 'us') collects, uses, and protects your personal information when you use our website and services. By using our services, you agree to the collection and use of information in accordance with this policy.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "2. Information We Collect" %}</h2>
-                <p>{% trans "We collect the following types of information:" %}</p>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}2. Информация, которую мы собираем{% else %}2. Information We Collect{% endif %}</h2>
+                <p>{% if LANGUAGE_CODE == 'ru' %}Мы собираем следующие типы информации:{% else %}We collect the following types of information:{% endif %}</p>
                 <ul>
-                    <li>{% trans "Personal Information: Username, email address, and profile information you provide when creating an account." %}</li>
-                    <li>{% trans "Usage Data: Information about how you interact with our website, including quiz results, progress, and preferences." %}</li>
-                    <li>{% trans "Technical Data: IP address, browser type, device information, and cookies." %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Личная информация: имя пользователя, адрес электронной почты и информация профиля, которую вы предоставляете при создании учетной записи.{% else %}Personal Information: Username, email address, and profile information you provide when creating an account.{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Данные об использовании: информация о том, как вы взаимодействуете с нашим веб-сайтом, включая результаты викторин, прогресс и предпочтения.{% else %}Usage Data: Information about how you interact with our website, including quiz results, progress, and preferences.{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Технические данные: IP-адрес, тип браузера, информация об устройстве и файлы cookie.{% else %}Technical Data: IP address, browser type, device information, and cookies.{% endif %}</li>
                 </ul>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "3. How We Use Your Information" %}</h2>
-                <p>{% trans "We use the collected information for the following purposes:" %}</p>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}3. Как мы используем вашу информацию{% else %}3. How We Use Your Information{% endif %}</h2>
+                <p>{% if LANGUAGE_CODE == 'ru' %}Мы используем собранную информацию для следующих целей:{% else %}We use the collected information for the following purposes:{% endif %}</p>
                 <ul>
-                    <li>{% trans "To provide and maintain our services" %}</li>
-                    <li>{% trans "To improve user experience and personalize content" %}</li>
-                    <li>{% trans "To track your progress and provide statistics" %}</li>
-                    <li>{% trans "To communicate with you about your account and our services" %}</li>
-                    <li>{% trans "To ensure security and prevent fraud" %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Для предоставления и поддержки наших услуг{% else %}To provide and maintain our services{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Для улучшения пользовательского опыта и персонализации контента{% else %}To improve user experience and personalize content{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Для отслеживания вашего прогресса и предоставления статистики{% else %}To track your progress and provide statistics{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Для связи с вами относительно вашей учетной записи и наших услуг{% else %}To communicate with you about your account and our services{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Для обеспечения безопасности и предотвращения мошенничества{% else %}To ensure security and prevent fraud{% endif %}</li>
                 </ul>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "4. Data Protection" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}4. Защита данных{% else %}4. Data Protection{% endif %}</h2>
                 <p>
-                    {% trans "We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet is 100% secure." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Мы применяем соответствующие технические и организационные меры для защиты вашей личной информации от несанкционированного доступа, изменения, раскрытия или уничтожения. Однако ни один метод передачи через Интернет не является на 100% безопасным.
+                    {% else %}
+                    We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet is 100% secure.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "5. Cookies" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}5. Файлы cookie{% else %}5. Cookies{% endif %}</h2>
                 <p>
-                    {% trans "We use cookies to enhance your experience, analyze site usage, and assist in our marketing efforts. You can control cookies through your browser settings, but this may affect the functionality of our website." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Мы используем файлы cookie для улучшения вашего опыта, анализа использования сайта и помощи в наших маркетинговых усилиях. Вы можете управлять файлами cookie через настройки браузера, но это может повлиять на функциональность нашего веб-сайта.
+                    {% else %}
+                    We use cookies to enhance your experience, analyze site usage, and assist in our marketing efforts. You can control cookies through your browser settings, but this may affect the functionality of our website.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "6. Third-Party Services" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}6. Сторонние сервисы{% else %}6. Third-Party Services{% endif %}</h2>
                 <p>
-                    {% trans "We may use third-party services for analytics, authentication, and payment processing. These services have their own privacy policies governing the use of your information." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Мы можем использовать сторонние сервисы для аналитики, аутентификации и обработки платежей. Эти сервисы имеют свои собственные политики конфиденциальности, регулирующие использование вашей информации.
+                    {% else %}
+                    We may use third-party services for analytics, authentication, and payment processing. These services have their own privacy policies governing the use of your information.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "7. Your Rights" %}</h2>
-                <p>{% trans "You have the right to:" %}</p>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}7. Ваши права{% else %}7. Your Rights{% endif %}</h2>
+                <p>{% if LANGUAGE_CODE == 'ru' %}Вы имеете право:{% else %}You have the right to:{% endif %}</p>
                 <ul>
-                    <li>{% trans "Access your personal information" %}</li>
-                    <li>{% trans "Correct inaccurate data" %}</li>
-                    <li>{% trans "Request deletion of your data" %}</li>
-                    <li>{% trans "Object to processing of your data" %}</li>
-                    <li>{% trans "Data portability" %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Получить доступ к вашей личной информации{% else %}Access your personal information{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Исправить неточные данные{% else %}Correct inaccurate data{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Запросить удаление ваших данных{% else %}Request deletion of your data{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Возразить против обработки ваших данных{% else %}Object to processing of your data{% endif %}</li>
+                    <li>{% if LANGUAGE_CODE == 'ru' %}Портативность данных{% else %}Data portability{% endif %}</li>
                 </ul>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "8. Data Retention" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}8. Хранение данных{% else %}8. Data Retention{% endif %}</h2>
                 <p>
-                    {% trans "We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When you delete your account, we will delete or anonymize your personal data." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Мы храним вашу личную информацию в течение времени, необходимого для предоставления наших услуг и соблюдения юридических обязательств. Когда вы удаляете свою учетную запись, мы удалим или анонимизируем ваши личные данные.
+                    {% else %}
+                    We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When you delete your account, we will delete or anonymize your personal data.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "9. Children's Privacy" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}9. Конфиденциальность детей{% else %}9. Children's Privacy{% endif %}</h2>
                 <p>
-                    {% trans "Our services are not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Наши услуги не предназначены для детей в возрасте до 13 лет. Мы не собираем намеренно личную информацию от детей младше 13 лет. Если вы являетесь родителем или опекуном и считаете, что ваш ребенок предоставил нам личную информацию, пожалуйста, свяжитесь с нами.
+                    {% else %}
+                    Our services are not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "10. Changes to This Policy" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}10. Изменения в этой политике{% else %}10. Changes to This Policy{% endif %}</h2>
                 <p>
-                    {% trans "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the 'Last Updated' date." %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Мы можем время от времени обновлять эту Политику конфиденциальности. Мы уведомим вас о любых изменениях, разместив новую Политику конфиденциальности на этой странице и обновив дату «Последнее обновление».
+                    {% else %}
+                    We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the 'Last Updated' date.
+                    {% endif %}
                 </p>
             </div>
 
             <div class="privacy-section">
-                <h2 class="h3">{% trans "11. Contact Us" %}</h2>
+                <h2 class="h3">{% if LANGUAGE_CODE == 'ru' %}11. Свяжитесь с нами{% else %}11. Contact Us{% endif %}</h2>
                 <p>
-                    {% trans "If you have any questions about this Privacy Policy, please contact us at:" %}
+                    {% if LANGUAGE_CODE == 'ru' %}
+                    Если у вас есть вопросы об этой Политике конфиденциальности, пожалуйста, свяжитесь с нами:
+                    {% else %}
+                    If you have any questions about this Privacy Policy, please contact us at:
+                    {% endif %}
                 </p>
                 <p>
-                    <strong>{% trans "Email:" %}</strong> fulani.dev@gmail.com<br>
-                    <strong>{% trans "Website:" %}</strong> <a href="{% url 'blog:contact' %}">{% trans "Contact Page" %}</a>
+                    <strong>{% if LANGUAGE_CODE == 'ru' %}Email:{% else %}Email:{% endif %}</strong> fulani.dev@gmail.com<br>
+                    <strong>{% if LANGUAGE_CODE == 'ru' %}Веб-сайт:{% else %}Website:{% endif %}</strong> <a href="{% url 'blog:contact' %}">{% if LANGUAGE_CODE == 'ru' %}Страница контактов{% else %}Contact Page{% endif %}</a>
                 </p>
             </div>
 
             <div class="privacy-section">
                 <p class="last-updated">
-                    <em>{% trans "Last Updated:" %} {{ "now"|date:"F d, Y" }}</em>
+                    <em>{% if LANGUAGE_CODE == 'ru' %}Последнее обновление:{% else %}Last Updated:{% endif %} {{ "now"|date:"F d, Y" }}</em>
                 </p>
             </div>
         </div>
