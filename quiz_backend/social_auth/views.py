@@ -1131,6 +1131,138 @@ class GitHubAuthCallbackView(APIView):
             return redirect(f'/?open_login=true&error={error_message}')
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class TelegramAuthCallbackView(APIView):
+    """
+    View для обработки callback от Telegram OAuth.
+    Аналогично GitHubAuthCallbackView - принимает данные напрямую от Telegram.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Обрабатывает GET запрос с данными от Telegram OAuth.
+        Telegram передает данные в query параметрах: ?id=...&hash=...&first_name=...
+        """
+        try:
+            logger.info("=" * 60)
+            logger.info("🔵 TELEGRAM OAUTH CALLBACK")
+            logger.info("=" * 60)
+            logger.info(f"Request GET params: {dict(request.GET)}")
+            logger.info(f"Request path: {request.path}")
+            logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
+            
+            # Проверяем наличие данных от Telegram
+            telegram_id = request.GET.get('id')
+            telegram_hash = request.GET.get('hash')
+            
+            if not telegram_id or not telegram_hash:
+                logger.error("Отсутствуют обязательные данные от Telegram (id или hash)")
+                return redirect('/?open_login=true&error=Отсутствуют данные авторизации от Telegram')
+            
+            # Собираем все данные от Telegram
+            raw_data = {}
+            for key, value in request.GET.items():
+                if isinstance(value, list) and len(value) > 0:
+                    raw_data[key] = value[0]
+                elif value:
+                    raw_data[key] = value
+            
+            logger.info(f"Собранные данные от Telegram: {raw_data}")
+            
+            # Преобразуем данные в правильные типы
+            data = {}
+            for key, value in raw_data.items():
+                if isinstance(value, list):
+                    val = value[0] if len(value) > 0 else ''
+                else:
+                    val = value
+                
+                if val is None or val == '':
+                    if key in ['id', 'auth_date', 'hash']:
+                        logger.error(f"Обязательное поле {key} пустое или отсутствует")
+                        return redirect('/?open_login=true&error=Неверный формат данных')
+                    continue
+                
+                if key == 'id':
+                    data[key] = int(val)
+                elif key == 'auth_date':
+                    data[key] = int(val)
+                else:
+                    data[key] = str(val) if val else ''
+            
+            logger.info(f"Преобразованные данные: {data}")
+            
+            # Валидируем данные
+            serializer = TelegramAuthSerializer(data=data)
+            if not serializer.is_valid():
+                logger.error(f"Ошибка валидации: {serializer.errors}")
+                return redirect('/?open_login=true&error=Неверные данные авторизации')
+            
+            logger.info(f"Данные прошли валидацию: {serializer.validated_data}")
+            
+            # Обрабатываем авторизацию
+            result = TelegramAuthService.process_telegram_auth(serializer.validated_data, request)
+            
+            logger.info(f"Результат обработки авторизации: success={result.get('success') if result else False}")
+            
+            if not result or not result.get('success'):
+                error_message = result.get('error', 'Ошибка авторизации') if result else 'Ошибка авторизации'
+                return redirect(f'/?open_login=true&error={error_message}')
+            
+            # Авторизуем пользователя
+            user = result['user']
+            
+            if not user.is_active:
+                logger.warning(f"Попытка авторизации неактивного пользователя: {user.username}")
+                return redirect('/?open_login=true&error=Аккаунт неактивен')
+            
+            # Авторизуем пользователя
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            
+            # Явно сохраняем сессию перед редиректом
+            request.session.save()
+            
+            # Проверяем что сессия создана
+            session_key = request.session.session_key
+            logger.info(f"Сессия после login: session_key={session_key}")
+            
+            # Устанавливаем куки явно для обеспечения сохранения сессии
+            response = redirect('/?telegram_auth_success=true')
+            
+            # Копируем куки сессии в response для гарантированного сохранения
+            if session_key:
+                max_age = getattr(settings, 'SESSION_COOKIE_AGE', None)
+                expires = None
+                if max_age:
+                    expires = http_date(time.time() + max_age)
+                
+                response.set_cookie(
+                    settings.SESSION_COOKIE_NAME,
+                    session_key,
+                    max_age=max_age,
+                    expires=expires,
+                    domain=getattr(settings, 'SESSION_COOKIE_DOMAIN', None),
+                    path=getattr(settings, 'SESSION_COOKIE_PATH', '/'),
+                    secure=getattr(settings, 'SESSION_COOKIE_SECURE', False) if not settings.DEBUG else False,
+                    httponly=getattr(settings, 'SESSION_COOKIE_HTTPONLY', True),
+                    samesite=getattr(settings, 'SESSION_COOKIE_SAMESITE', 'Lax')
+                )
+            
+            logger.info(f"Пользователь {user.username} успешно авторизован через Telegram, session_key={session_key}")
+            
+            return response
+            
+        except Exception as e:
+            import traceback
+            logger.error(f"Критическая ошибка в TelegramAuthCallbackView: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            error_message = 'Внутренняя ошибка сервера при авторизации'
+            if settings.DEBUG:
+                error_message = f'Ошибка: {str(e)}'
+            return redirect(f'/?open_login=true&error={error_message}')
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def telegram_oauth_redirect(request):
@@ -1182,10 +1314,13 @@ def telegram_oauth_redirect(request):
         origin = f"{protocol}://{current_domain}"
         
         # URL для возврата после авторизации
-        # ВАЖНО: В рабочем варианте return_to указывал на главную страницу,
-        # где dispatch метод перехватывал данные и перенаправлял на API endpoint
-        # Это позволяло обрабатывать данные правильно
-        return_to = f"{origin}/"
+        # ИСПРАВЛЕНИЕ: Используем отдельный callback endpoint, как для GitHub
+        # Это упрощает логику и делает её более надежной
+        public_url = getattr(settings, 'PUBLIC_URL', None)
+        if not public_url:
+            public_url = origin
+        public_url = public_url.rstrip('/')
+        return_to = f"{public_url}/api/social-auth/telegram/callback"
         
         logger.info(f"🔍 Параметры для Telegram OAuth:")
         logger.info(f"  - bot_username: {bot_username}")
@@ -1209,21 +1344,21 @@ def telegram_oauth_redirect(request):
         # с данными в query параметрах: ?id=...&first_name=...&auth_date=...&hash=...
         
         # ПО АКТУАЛЬНОЙ ДОКУМЕНТАЦИИ TELEGRAM:
-        # Для redirect способа используем /embed/ URL с data-auth-url в iframe
-        # Но поскольку мы делаем redirect, попробуем другой подход
+        # Для redirect-авторизации используем /auth/ endpoint (НЕ /embed/)
+        # /embed/ предназначен для виджета в iframe, а /auth/ - для redirect в том же окне
 
         if bot_id:
-            # Используем embed URL, который откроется в том же окне и сделает redirect
+            # Используем /auth/ endpoint для redirect-авторизации
             telegram_oauth_url = (
-                f"https://oauth.telegram.org/embed/{bot_username}?"
+                f"https://oauth.telegram.org/auth?"
+                f"bot_id={bot_id}&"
                 f"origin={quote(origin)}&"
                 f"return_to={quote(return_to.rstrip('/'))}&"
-                f"size=large&"
                 f"request_access=write"
             )
 
             logger.info("=" * 100)
-            logger.info("🔗 СФОРМИРОВАННЫЙ TELEGRAM EMBED URL (по документации):")
+            logger.info("🔗 СФОРМИРОВАННЫЙ TELEGRAM AUTH URL (для redirect):")
             logger.info(f"URL: {telegram_oauth_url}")
             logger.info(f"bot_username: {bot_username}")
             logger.info(f"bot_id: {bot_id}")
@@ -1233,25 +1368,17 @@ def telegram_oauth_redirect(request):
 
             # Проверяем настройки домена
             logger.warning("⚠️ ПРОВЕРКА НАСТРОЕК BOTFATHER:")
-            logger.warning(f"  Бот: @mr_proger_bot")
+            logger.warning(f"  Бот: @{bot_username}")
             logger.warning(f"  Требуемый домен: {current_domain}")
             logger.warning("  В @BotFather выполните: /setdomain")
             logger.warning(f"  Укажите домен: {current_domain}")
             logger.warning("  Без этого Telegram НЕ передаст данные!")
 
-            logger.info("✅ Используем embed URL для redirect авторизации...")
+            logger.info("✅ Используем /auth/ endpoint для redirect авторизации...")
         else:
-            # Fallback: используем embed URL с username (откроется в iframe, но это лучше чем ничего)
-            logger.warning("⚠️ bot_id не получен, используем embed URL с username")
-            telegram_oauth_url = (
-                f"https://oauth.telegram.org/embed/{bot_username}?"
-                f"origin={quote(origin)}&"
-                f"return_to={quote(return_to.rstrip('/'))}&"
-                f"size=large&"
-                f"userpic=true&"
-                f"request_access=write&"
-                f"lang=ru"
-            )
+            # Без bot_id авторизация не будет работать, возвращаем ошибку
+            logger.error("❌ bot_id не получен из Telegram API, авторизация невозможна")
+            return redirect('/?open_login=true&error=Ошибка настройки Telegram бота. Обратитесь к администратору.')
         
         logger.info(f"🔗 Redirect на Telegram OAuth: {telegram_oauth_url}")
         logger.info(f"⚠️ ВАЖНО: Убедитесь, что домен {current_domain} настроен в BotFather!")
