@@ -1182,10 +1182,10 @@ def telegram_oauth_redirect(request):
         origin = f"{protocol}://{current_domain}"
         
         # URL для возврата после авторизации
-        # ВАЖНО: Telegram передает данные в query параметрах, поэтому URL должен быть без hash
-        # ВАЖНО: Если данные не приходят, это означает, что домен не настроен в BotFather
-        # Используем URL без trailing slash, так как Telegram может его убрать при редиректе
-        return_to = f"{origin}/api/social-auth/telegram/auth"
+        # ВАЖНО: В рабочем варианте return_to указывал на главную страницу,
+        # где dispatch метод перехватывал данные и перенаправлял на API endpoint
+        # Это позволяло обрабатывать данные правильно
+        return_to = f"{origin}/"
         
         logger.info(f"🔍 Параметры для Telegram OAuth:")
         logger.info(f"  - bot_username: {bot_username}")
@@ -1235,7 +1235,7 @@ def telegram_oauth_redirect(request):
             logger.warning("⚠️ ПРОВЕРКА НАСТРОЕК BOTFATHER:")
             logger.warning(f"  Бот: @mr_proger_bot")
             logger.warning(f"  Требуемый домен: {current_domain}")
-            logger.warning("  В @BotFather выполните: /setdomain"
+            logger.warning("  В @BotFather выполните: /setdomain")
             logger.warning(f"  Укажите домен: {current_domain}")
             logger.warning("  Без этого Telegram НЕ передаст данные!")
 
