@@ -19,6 +19,11 @@ urlpatterns = [
     path('github/callback/', views.GitHubAuthCallbackView.as_view(), name='github_callback'),
     path('github/callback', views.GitHubAuthCallbackView.as_view(), name='github_callback_no_slash'),  # Без trailing slash
     
+    # Google OAuth endpoints
+    path('google/oauth/', views.google_auth_redirect, name='google_oauth_redirect'),
+    path('google/callback/', views.GoogleAuthCallbackView.as_view(), name='google_callback'),
+    path('google/callback', views.GoogleAuthCallbackView.as_view(), name='google_callback_no_slash'),  # Без trailing slash
+    
     path('accounts/', views.user_social_accounts, name='user_social_accounts'),
     path('accounts/<str:provider>/disconnect/', views.disconnect_social_account, name='disconnect_social_account'),
     path('providers/', views.enabled_providers, name='enabled_providers'),

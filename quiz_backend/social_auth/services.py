@@ -1300,6 +1300,474 @@ class GitHubAuthService:
         return user
 
 
+class GoogleAuthService:
+    """
+    Сервис для авторизации через Google OAuth 2.0.
+    
+    Обрабатывает OAuth 2.0 авторизацию через Google.
+    """
+    
+    GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+    GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+    GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+    
+    @staticmethod
+    def get_google_settings() -> Optional[SocialAuthSettings]:
+        """
+        Получает настройки Google из базы данных или переменных окружения.
+        
+        Returns:
+            SocialAuthSettings: Настройки Google или None
+        """
+        try:
+            # Сначала пытаемся получить из базы данных
+            settings = SocialAuthSettings.objects.filter(
+                provider='google',
+                is_enabled=True
+            ).first()
+            
+            if settings:
+                return settings
+            
+            # Если нет в БД, пытаемся получить из переменных окружения
+            client_id = os.getenv('GOOGLE_CLIENT_ID')
+            client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+            
+            if client_id and client_secret:
+                # Создаем временный объект настроек
+                settings = SocialAuthSettings(
+                    provider='google',
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    is_enabled=True
+                )
+                return settings
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении настроек Google: {e}")
+            return None
+    
+    @staticmethod
+    def get_auth_url(redirect_uri: str, state: str = None) -> Optional[str]:
+        """
+        Генерирует URL для авторизации через Google.
+        
+        Args:
+            redirect_uri: URI для перенаправления после авторизации
+            state: Опциональный параметр состояния для защиты от CSRF
+            
+        Returns:
+            str: URL для авторизации или None
+        """
+        try:
+            settings = GoogleAuthService.get_google_settings()
+            if not settings:
+                logger.error("Настройки Google не найдены")
+                return None
+            
+            params = {
+                'client_id': settings.client_id,
+                'redirect_uri': redirect_uri,
+                'response_type': 'code',
+                'scope': 'openid email profile',
+                'access_type': 'offline',
+                'prompt': 'consent'
+            }
+            
+            if state:
+                params['state'] = state
+            
+            url = f"{GoogleAuthService.GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}"
+            logger.info(f"Сгенерирован URL для Google авторизации: {url}")
+            return url
+            
+        except Exception as e:
+            logger.error(f"Ошибка при генерации URL для Google авторизации: {e}")
+            return None
+    
+    @staticmethod
+    def exchange_code_for_token(code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
+        """
+        Обменивает код авторизации на access token и id_token.
+        
+        Args:
+            code: Код авторизации от Google
+            redirect_uri: URI для перенаправления (должен совпадать с тем, что был при авторизации)
+            
+        Returns:
+            Dict с токенами или None при ошибке
+        """
+        try:
+            settings = GoogleAuthService.get_google_settings()
+            if not settings:
+                logger.error("Настройки Google не найдены для обмена кода на токен")
+                return None
+            
+            response = requests.post(
+                GoogleAuthService.GOOGLE_TOKEN_URL,
+                headers={
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data={
+                    'client_id': settings.client_id,
+                    'client_secret': settings.client_secret,
+                    'code': code,
+                    'grant_type': 'authorization_code',
+                    'redirect_uri': redirect_uri
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Ошибка при обмене кода на токен: {response.status_code}, {response.text}")
+                return None
+            
+            data = response.json()
+            
+            if 'error' in data:
+                logger.error(f"Google вернул ошибку: {data.get('error')}, {data.get('error_description')}")
+                return None
+            
+            access_token = data.get('access_token')
+            id_token = data.get('id_token')
+            
+            if not access_token:
+                logger.error("Access token не получен от Google")
+                return None
+            
+            return {
+                'access_token': access_token,
+                'id_token': id_token,
+                'token_type': data.get('token_type', 'Bearer'),
+                'expires_in': data.get('expires_in'),
+                'refresh_token': data.get('refresh_token')
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обмене кода на токен Google: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    @staticmethod
+    def get_user_info(access_token: str) -> Optional[Dict[str, Any]]:
+        """
+        Получает информацию о пользователе из Google API.
+        
+        Args:
+            access_token: Access token от Google
+            
+        Returns:
+            Dict с информацией о пользователе или None при ошибке
+        """
+        try:
+            response = requests.get(
+                GoogleAuthService.GOOGLE_USER_INFO_URL,
+                headers={
+                    'Authorization': f'Bearer {access_token}',
+                    'Accept': 'application/json'
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Ошибка при получении информации о пользователе: {response.status_code}, {response.text}")
+                return None
+            
+            user_data = response.json()
+            
+            # Разбиваем имя на first_name и last_name
+            name = user_data.get('name', '')
+            name_parts = name.split(' ', 1) if name else ['', '']
+            first_name = name_parts[0] if len(name_parts) > 0 else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            return {
+                'id': str(user_data.get('id')),  # Google user ID (sub)
+                'email': user_data.get('email'),
+                'verified_email': user_data.get('verified_email', False),
+                'name': name,
+                'first_name': first_name,
+                'last_name': last_name,
+                'picture': user_data.get('picture'),  # Avatar URL
+                'locale': user_data.get('locale', 'en')
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении информации о пользователе Google: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    @staticmethod
+    def process_google_auth(code: str, redirect_uri: str, request) -> Optional[Dict[str, Any]]:
+        """
+        Обрабатывает авторизацию через Google.
+        
+        Args:
+            code: Код авторизации от Google
+            redirect_uri: URI для перенаправления
+            request: HTTP запрос
+            
+        Returns:
+            Dict с результатом авторизации или None при ошибке
+        """
+        try:
+            # Обмениваем код на токен
+            token_data = GoogleAuthService.exchange_code_for_token(code, redirect_uri)
+            if not token_data:
+                return {
+                    'success': False,
+                    'error': 'Не удалось получить токен от Google'
+                }
+            
+            access_token = token_data['access_token']
+            
+            # Получаем информацию о пользователе
+            user_info = GoogleAuthService.get_user_info(access_token)
+            if not user_info:
+                return {
+                    'success': False,
+                    'error': 'Не удалось получить информацию о пользователе'
+                }
+            
+            google_id = user_info['id']
+            google_email = user_info.get('email', '')
+            
+            logger.info(f"Обработка авторизации Google для google_id={google_id}, email={google_email}")
+            
+            with transaction.atomic():
+                # Ищем существующий социальный аккаунт
+                social_account = SocialAccount.objects.filter(
+                    provider='google',
+                    provider_user_id=google_id,
+                    is_active=True
+                ).first()
+                
+                if social_account:
+                    # Получаем пользователя из social_account
+                    user = social_account.user
+                    is_new_user = False
+                    logger.info(f"Найден существующий социальный аккаунт Google для google_id={google_id}, пользователь: {user.username}")
+                    
+                    # Обновляем данные аккаунта
+                    updated = False
+                    if google_email and google_email != social_account.email:
+                        social_account.email = google_email
+                        updated = True
+                    if user_info.get('first_name') and user_info['first_name'] != social_account.first_name:
+                        social_account.first_name = user_info['first_name']
+                        updated = True
+                    if user_info.get('last_name') and user_info['last_name'] != social_account.last_name:
+                        social_account.last_name = user_info['last_name']
+                        updated = True
+                    if user_info.get('picture') and user_info['picture'] != social_account.avatar_url:
+                        social_account.avatar_url = user_info['picture']
+                        updated = True
+                    
+                    # Обновляем токен
+                    if access_token != social_account.access_token:
+                        social_account.access_token = access_token
+                        updated = True
+                    
+                    social_account.update_last_login()
+                    if updated:
+                        social_account.save()
+                    
+                    # Обновляем данные пользователя
+                    user_updated = False
+                    if user_info.get('first_name') and user_info['first_name'] != user.first_name:
+                        user.first_name = user_info['first_name']
+                        user_updated = True
+                    if user_info.get('last_name') and user_info['last_name'] != user.last_name:
+                        user.last_name = user_info['last_name']
+                        user_updated = True
+                    if google_email and google_email != user.email:
+                        user.email = google_email
+                        user_updated = True
+                    
+                    # Загружаем аватарку если есть
+                    avatar_url = user_info.get('picture')
+                    if avatar_url and not user.avatar:
+                        if TelegramAuthService._download_avatar_from_url(avatar_url, user):
+                            user_updated = True
+                    
+                    # Синхронизируем поля социальных сетей
+                    if TelegramAuthService._sync_social_fields_from_accounts(user):
+                        user_updated = True
+                    
+                    if user_updated:
+                        user.save()
+                        
+                else:
+                    # Создаем нового пользователя или связываем с существующим
+                    user = GoogleAuthService._get_or_create_user(user_info)
+                    is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
+                    logger.info(f"Создан/найден пользователь для google_id={google_id}, username: {user.username}")
+                    
+                    # Создаем или обновляем социальный аккаунт
+                    social_account, created = SocialAccount.objects.get_or_create(
+                        user=user,
+                        provider='google',
+                        provider_user_id=google_id,
+                        defaults={
+                            'email': google_email,
+                            'first_name': user_info.get('first_name', ''),
+                            'last_name': user_info.get('last_name', ''),
+                            'avatar_url': user_info.get('picture'),
+                            'access_token': access_token
+                        }
+                    )
+                    
+                    # Обновляем данные если аккаунт уже существовал
+                    if not created:
+                        updated = False
+                        if google_email and google_email != social_account.email:
+                            social_account.email = google_email
+                            updated = True
+                        if user_info.get('first_name') and user_info['first_name'] != social_account.first_name:
+                            social_account.first_name = user_info['first_name']
+                            updated = True
+                        if user_info.get('last_name') and user_info['last_name'] != social_account.last_name:
+                            social_account.last_name = user_info['last_name']
+                            updated = True
+                        if user_info.get('picture') and user_info['picture'] != social_account.avatar_url:
+                            social_account.avatar_url = user_info['picture']
+                            updated = True
+                        
+                        if access_token != social_account.access_token:
+                            social_account.access_token = access_token
+                            updated = True
+                        
+                        if updated:
+                            social_account.update_last_login()
+                            social_account.save()
+                    
+                    # Синхронизируем поля социальных сетей
+                    TelegramAuthService._sync_social_fields_from_accounts(user)
+                    
+                    # Автоматически связываем с существующими пользователями
+                    try:
+                        linked_count = social_account.auto_link_existing_users()
+                        if linked_count > 0:
+                            logger.info(f"Автоматически связано {linked_count} пользователей для google_id={google_id}")
+                            user.refresh_from_db()
+                            social_account.refresh_from_db()
+                            
+                    except Exception as e:
+                        logger.warning(f"Ошибка при автоматическом связывании для google_id={google_id}: {e}")
+                
+                # Убеждаемся что пользователь активен
+                user.refresh_from_db()
+                if not user.is_active:
+                    logger.error(f"Пользователь {user.username} не активен после авторизации Google!")
+                    return {
+                        'success': False,
+                        'error': 'Аккаунт неактивен'
+                    }
+                
+                # Создаем сессию
+                session = SocialLoginSession.objects.create(
+                    session_id=str(uuid.uuid4()),
+                    social_account=social_account,
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    is_successful=True
+                )
+                
+                logger.info(f"Авторизация Google успешна: user={user.username}, google_id={google_id}, session_id={session.session_id}")
+                
+                return {
+                    'success': True,
+                    'user': user,
+                    'social_account': social_account,
+                    'is_new_user': is_new_user,
+                    'session_id': session.session_id
+                }
+                
+        except Exception as e:
+            logger.error(f"Ошибка при обработке авторизации Google: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                'success': False,
+                'error': 'Внутренняя ошибка сервера'
+            }
+    
+    @staticmethod
+    def _get_or_create_user(user_info: Dict[str, Any]) -> User:
+        """
+        Получает или создает пользователя на основе данных Google.
+        
+        Args:
+            user_info: Данные о пользователе от Google API
+            
+        Returns:
+            User: Пользователь Django
+        """
+        google_id = user_info['id']
+        google_email = user_info.get('email', '')
+        first_name = user_info.get('first_name', '')
+        last_name = user_info.get('last_name', '')
+        avatar_url = user_info.get('picture', '')
+        
+        logger.info(f"Поиск/создание пользователя для google_id={google_id}, email={google_email}")
+        
+        # Сначала пытаемся найти существующего пользователя по email (если есть)
+        if google_email:
+            user = User.objects.filter(email=google_email).first()
+            if user:
+                logger.info(f"Найден пользователь по email: {user.username}")
+                # Обновляем данные пользователя
+                updated = False
+                if first_name and first_name != user.first_name:
+                    user.first_name = first_name
+                    updated = True
+                if last_name and last_name != user.last_name:
+                    user.last_name = last_name
+                    updated = True
+                if updated:
+                    user.save()
+                
+                # Загружаем аватарку если есть
+                if avatar_url and not user.avatar:
+                    TelegramAuthService._download_avatar_from_url(avatar_url, user)
+                
+                return user
+        
+        # Если не нашли существующего пользователя, создаем нового
+        # Генерируем уникальный username из email или google_id
+        base_username = google_email.split('@')[0] if google_email else f"google_{google_id}"
+        
+        # Проверяем уникальность username
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}_{counter}"
+            counter += 1
+            if counter > 1000:
+                username = f"google_user_{google_id}_{int(time.time())}"
+                break
+        
+        logger.info(f"Создание нового пользователя: username={username}, google_id={google_id}, email={google_email}")
+        user = User.objects.create(
+            username=username,
+            email=google_email,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True
+        )
+        
+        # Загружаем аватарку если есть
+        if avatar_url:
+            TelegramAuthService._download_avatar_from_url(avatar_url, user)
+        
+        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, google_id={google_id}")
+        return user
+
+
 class SocialAuthService:
     """
     Общий сервис для социальной аутентификации.
@@ -1378,6 +1846,11 @@ class SocialAuthService:
             if not redirect_uri:
                 return None
             return GitHubAuthService.get_auth_url(redirect_uri, state)
+        
+        if provider == 'google':
+            if not redirect_uri:
+                return None
+            return GoogleAuthService.get_auth_url(redirect_uri, state)
         
         # Для других провайдеров будет реализовано позже
         return None 
