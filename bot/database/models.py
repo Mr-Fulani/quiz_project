@@ -105,6 +105,10 @@ class Task(Base):
     image_url = Column(String, nullable=True)
     external_link = Column(String, nullable=True)
     video_url = Column(String, nullable=True)
+    # Совместимость с Django: в БД есть not null JSONB поле video_urls со значением по умолчанию {}
+    video_urls = Column(JSON, nullable=False, default=dict)
+    # Совместимость с Django: not null JSONB для прогресса генерации видео
+    video_generation_progress = Column(JSON, nullable=False, default=dict)
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)
     message_id = Column(Integer, unique=False, nullable=True)
@@ -129,6 +133,8 @@ class TaskTranslation(Base):
     answers = Column(JSON, nullable=False)
     correct_answer = Column(String, nullable=False)
     explanation = Column(String, nullable=True)
+    # Совместимость с Django: длинное объяснение для сайта
+    long_explanation = Column(String, nullable=True)
     publish_date = Column(DateTime(timezone=True), nullable=True)
 
     task = relationship('Task', back_populates='translations')

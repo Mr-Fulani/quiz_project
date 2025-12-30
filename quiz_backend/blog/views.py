@@ -1765,12 +1765,19 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
             logger.error(f"Error updating user statistics: {e}")
 
         logger.info(f"Answer submitted for task_id={task_id}, user={request.user}, is_correct={is_correct}")
+        # Используем длинное объяснение для сайта, с fallback на короткое
+        explanation = None
+        if translation:
+            explanation = translation.long_explanation or translation.explanation
+        if not explanation:
+            explanation = 'No explanation available.'
+        
         return JsonResponse({
             'status': 'success',
             'is_correct': is_correct,
             'selected_answer': selected_answer,
             'results': results,
-            'explanation': translation.explanation if translation else 'No explanation available.'
+            'explanation': explanation
         })
     except Exception as e:
         logger.error(f"Unexpected error in submit_task_answer (after task lookup): {e}", exc_info=True)

@@ -116,6 +116,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                     answers = translation_data.get('answers')
                     correct_answer = translation_data.get('correct_answer')
                     explanation = translation_data.get('explanation')
+                    long_explanation = translation_data.get('long_explanation')
                     external_link = translation_data.get('external_link')
                     difficulty = task_data.get('difficulty', 'medium')
                     
@@ -197,7 +198,8 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                                 question=question,
                                 answers=serialized_answers,
                                 correct_answer=correct_answer,
-                                explanation=explanation
+                                explanation=explanation,
+                                long_explanation=long_explanation
                             )
                             
                             logger.info(f"✅ Создан перевод для задачи {task.id} на языке {language}")

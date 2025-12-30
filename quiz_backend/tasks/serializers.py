@@ -6,7 +6,7 @@ class TaskTranslationSerializer(serializers.ModelSerializer):
     """Сериализатор для переводов задач."""
     class Meta:
         model = TaskTranslation
-        fields = ['id', 'language', 'question', 'answers', 'correct_answer', 'explanation']
+        fields = ['id', 'language', 'question', 'answers', 'correct_answer', 'explanation', 'long_explanation']
 
 class TaskSerializer(serializers.ModelSerializer):
     """

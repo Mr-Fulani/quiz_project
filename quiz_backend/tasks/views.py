@@ -175,7 +175,7 @@ def tasks_by_subtopic(request, subtopic_id):
                     'question': translation.question,
                     'answers': shuffled_answers,
                     'correct_answer': translation.correct_answer,
-                    'explanation': translation.explanation or '',
+                    'explanation': translation.long_explanation or translation.explanation or '',
                     'is_solved': False,  # Для мини-приложения пока всегда False
                     'translation_id': translation.id  # Для системы комментариев
                 }
@@ -329,12 +329,19 @@ def submit_mini_app_task_answer(request, task_id):
                 'percentage': round(percentage, 1)
             })
         
+        # Используем длинное объяснение для сайта, с fallback на короткое
+        explanation = None
+        if translation:
+            explanation = translation.long_explanation or translation.explanation
+        if not explanation:
+            explanation = 'No explanation available.'
+        
         return Response({
             'status': 'success',
             'is_correct': is_correct,
             'selected_answer': selected_answer,
             'results': results,
-            'explanation': translation.explanation or 'No explanation available.',
+            'explanation': explanation,
             'total_attempts': stats.attempts,
             'successful_attempts': 1 if is_correct else 0
         })

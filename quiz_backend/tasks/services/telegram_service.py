@@ -200,22 +200,49 @@ def send_photo(chat_id: str, photo_url: str, caption: str = None) -> Optional[Di
     if caption:
         data['caption'] = caption
     
-    try:
-        response = requests.post(url, data=data, timeout=30)
-        
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get('ok'):
-            logger.info(f"✅ Фото успешно отправлено в {chat_id}")
-            return result['result']
-        else:
-            logger.error(f"❌ Ошибка отправки фото: {result.get('description')}")
-            return None
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, data=data, timeout=60)
+            response.raise_for_status()
+            result = response.json()
             
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке фото: {e}")
-        return None
+            if result.get('ok'):
+                logger.info(f"✅ Фото успешно отправлено в {chat_id}")
+                return result['result']
+            else:
+                logger.error(f"❌ Ошибка отправки фото: {result.get('description')}")
+                if attempt < max_retries:
+                    time.sleep(1 + attempt * 0.3)
+                    continue
+                return None
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"🔌 Ошибка подключения при отправке фото (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.5)
+                continue
+            logger.error(f"❌ Ошибка подключения при отправке фото: {e}")
+            logger.error(f"   Это сетевая ошибка - возможно, Telegram API недоступен или проблемы с интернетом")
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.warning(f"⏱️ Таймаут при отправке фото (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(3)
+                continue
+            return None
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ HTTP ошибка при отправке фото: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"   Response: {error_data}")
+                except:
+                    logger.error(f"   Response text: {e.response.text[:500]}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке фото: {e}")
+            return None
 
 
 def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Dict]:
@@ -338,21 +365,48 @@ def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2") -> Opt
     if parse_mode:
         data['parse_mode'] = parse_mode
     
-    try:
-        response = requests.post(url, data=data, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get('ok'):
-            logger.info(f"✅ Сообщение успешно отправлено в {chat_id}")
-            return result['result']
-        else:
-            logger.error(f"❌ Ошибка отправки сообщения: {result.get('description')}")
-            return None
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, data=data, timeout=60)
+            response.raise_for_status()
+            result = response.json()
             
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке сообщения: {e}")
-        return None
+            if result.get('ok'):
+                logger.info(f"✅ Сообщение успешно отправлено в {chat_id}")
+                return result['result']
+            else:
+                logger.error(f"❌ Ошибка отправки сообщения: {result.get('description')}")
+                if attempt < max_retries:
+                    time.sleep(1 + attempt * 0.3)
+                    continue
+                return None
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"🔌 Ошибка подключения при отправке сообщения (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.5)
+                continue
+            logger.error(f"   Это сетевая ошибка - возможно, Telegram API недоступен или проблемы с интернетом")
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.warning(f"⏱️ Таймаут при отправке сообщения (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(3)
+                continue
+            return None
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ HTTP ошибка при отправке сообщения: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"   Response: {error_data}")
+                except:
+                    logger.error(f"   Response text: {e.response.text[:500]}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке сообщения: {e}")
+            return None
 
 
 def send_poll(chat_id: str, question: str, options: List[str], 
@@ -405,27 +459,63 @@ def send_poll(chat_id: str, question: str, options: List[str],
     if explanation:
         payload['explanation'] = explanation
     
-    try:
-        # Отправляем как JSON
-        response = requests.post(url, json=payload, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get('ok'):
-            logger.info(f"✅ Опрос успешно отправлен в {chat_id}")
-            return result['result']
-        else:
-            logger.error(f"❌ Ошибка отправки опроса: {result.get('description')}")
-            logger.error(f"   Детали: question={question[:50]}..., options={options}, correct={correct_option_id}")
-            return None
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Отправляем как JSON
+            response = requests.post(url, json=payload, timeout=60)
+            response.raise_for_status()
+            result = response.json()
             
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"❌ HTTP ошибка при отправке опроса: {e}")
-        logger.error(f"   Response: {e.response.text if hasattr(e, 'response') else 'N/A'}")
-        return None
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке опроса: {e}")
-        return None
+            if result.get('ok'):
+                logger.info(f"✅ Опрос успешно отправлен в {chat_id}")
+                return result['result']
+            else:
+                error_desc = result.get('description', 'Unknown error')
+                logger.error(f"❌ Ошибка отправки опроса: {error_desc}")
+                logger.error(f"   Детали: question length={len(question)}, question={question[:100]}..., options={options}, correct={correct_option_id}")
+                # Если ошибка связана с длиной вопроса, логируем это явно
+                if 'question' in error_desc.lower() or 'length' in error_desc.lower() or '300' in error_desc:
+                    logger.error(f"   ⚠️ Проблема с длиной вопроса: {len(question)} символов (макс: 300)")
+                if attempt < max_retries:
+                    time.sleep(1 + attempt * 0.3)
+                    continue
+                return None
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"🔌 Ошибка подключения при отправке опроса (попытка {attempt}/{max_retries}): {e}")
+            logger.error(f"   Question length: {len(question)}, Question preview: {question[:100]}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.5)
+                continue
+            logger.error(f"❌ Ошибка подключения при отправке опроса: {e}")
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.warning(f"⏱️ Таймаут при отправке опроса (попытка {attempt}/{max_retries}): {e}")
+            logger.error(f"   Question length: {len(question)}, Question preview: {question[:100]}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.5)
+                continue
+            return None
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ HTTP ошибка при отправке опроса: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"   Response: {error_data}")
+                except:
+                    logger.error(f"   Response text: {e.response.text[:500]}")
+            else:
+                logger.error(f"   Response: N/A")
+            logger.error(f"   Question length: {len(question)}, Question preview: {question[:100]}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.3)
+                continue
+            return None
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке опроса: {e}")
+            logger.error(f"   Question length: {len(question)}, Question preview: {question[:100]}")
+            return None
 
 
 def delete_message(chat_id: str, message_id: int) -> bool:
@@ -533,6 +623,13 @@ def send_message_with_button(chat_id: str, text: str, button_text: str,
                     continue
                 return None
                 
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"🔌 Ошибка подключения на попытке {attempt}/{max_retries}: {e}")
+            if attempt < max_retries:
+                time.sleep(3)  # Задержка перед повтором
+                continue
+            logger.error(f"❌ Исключение при отправке сообщения с кнопкой (попытка {attempt}): {e}")
+            return None
         except requests.exceptions.Timeout as e:
             logger.warning(f"⏱️ Timeout на попытке {attempt}/{max_retries}: {e}")
             if attempt < max_retries:
@@ -611,7 +708,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         
         result['detailed_logs'].append(f"📝 Отправка деталей задачи")
         text_result = send_message(chat_id, task_details_text, "MarkdownV2")
-        time.sleep(1)
+        time.sleep(0.2)
         if text_result:
             result['text_sent'] = True
             result['detailed_logs'].append(f"✅ Детали задачи отправлены")
@@ -666,7 +763,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             correct_option_id=correct_option_id,
             explanation=poll_explanation
         )
-        time.sleep(1)
+        time.sleep(0.2)
         
         if poll_result:
             result['poll_sent'] = True
@@ -681,7 +778,11 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                 logger.info(f"💾 Сохранен message_id {poll_message_id} для задачи {task.id}")
         else:
             result['errors'].append("Не удалось отправить опрос")
-            result['detailed_logs'].append(f"❌ Не удалось отправить опрос (проверьте длину вопроса: {len(translation.question)} символов, макс: 300)")
+            # Проверяем длину вопроса для диагностики
+            if len(poll_question) > 300:
+                result['detailed_logs'].append(f"❌ Не удалось отправить опрос: вопрос слишком длинный ({len(poll_question)} символов, макс: 300)")
+            else:
+                result['detailed_logs'].append(f"❌ Не удалось отправить опрос (длина вопроса: {len(poll_question)} символов, макс: 300). Проверьте логи выше для деталей ошибки.")
         
         # 4. Определяем итоговую ссылку через сервис
         from .default_link_service import DefaultLinkService
@@ -717,7 +818,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
             button_url=final_link,
             parse_mode=None  # Без форматирования
         )
-        time.sleep(1)
+        time.sleep(0.2)
         
         if button_result:
             result['button_sent'] = True
