@@ -56,6 +56,34 @@ class TelegramAuthView(APIView):
             logger.info(f"Request host: {request.get_host()}")
             logger.info(f"Request referer: {request.META.get('HTTP_REFERER', 'N/A')}")
             logger.info(f"Request user agent: {request.META.get('HTTP_USER_AGENT', 'N/A')}")
+
+            # Дополнительная отладка для анализа данных от Telegram
+            logger.info("=" * 100)
+            logger.info("ПОДРОБНЫЙ АНАЛИЗ ЗАПРОСА ОТ TELEGRAM:")
+            logger.info("=" * 100)
+            logger.info(f"Все GET параметры: {list(request.GET.keys())}")
+            for key, value in request.GET.items():
+                logger.info(f"  {key}: {value} (type: {type(value)})")
+
+            logger.info(f"Все POST параметры: {list(request.POST.keys())}")
+            for key, value in request.POST.items():
+                logger.info(f"  {key}: {value} (type: {type(value)})")
+
+            # Проверяем, есть ли Telegram-специфичные параметры
+            telegram_params = ['id', 'first_name', 'last_name', 'username', 'photo_url', 'auth_date', 'hash']
+            found_telegram_params = [p for p in telegram_params if p in request.GET]
+            logger.info(f"Найденные Telegram параметры: {found_telegram_params}")
+
+            if 'id' in request.GET:
+                logger.info("✅ Параметр 'id' найден - данные от Telegram присутствуют!")
+            else:
+                logger.info("❌ Параметр 'id' НЕ найден - данные от Telegram отсутствуют!")
+                logger.info("Возможные причины:")
+                logger.info("  1. Домен не настроен в BotFather (/setdomain)")
+                logger.info("  2. Telegram изменил формат данных")
+                logger.info("  3. Проблема с redirect URL")
+
+            logger.info("=" * 100)
             
             # Проверяем запросы мока на продакшене
             if (request.GET.get('mock') == 'true' or request.GET.get('mock_auth') == 'true'):
@@ -1180,24 +1208,38 @@ def telegram_oauth_redirect(request):
         # Когда пользователь авторизуется, Telegram должен вернуть его на return_to URL
         # с данными в query параметрах: ?id=...&first_name=...&auth_date=...&hash=...
         
-        # Попробуем использовать прямой /auth endpoint, но с правильным форматом return_to
+        # ПО АКТУАЛЬНОЙ ДОКУМЕНТАЦИИ TELEGRAM:
+        # Для redirect способа используем /embed/ URL с data-auth-url в iframe
+        # Но поскольку мы делаем redirect, попробуем другой подход
+
         if bot_id:
-            # Используем bot_id для прямого /auth endpoint
-            # ВАЖНО: return_to должен быть абсолютным URL без trailing slash (по документации Telegram)
+            # Используем embed URL, который откроется в том же окне и сделает redirect
             telegram_oauth_url = (
-                f"https://oauth.telegram.org/auth?"
-                f"bot_id={bot_id}&"
+                f"https://oauth.telegram.org/embed/{bot_username}?"
                 f"origin={quote(origin)}&"
-                f"request_access=write&"
-                f"return_to={quote(return_to.rstrip('/'))}"
+                f"return_to={quote(return_to.rstrip('/'))}&"
+                f"size=large&"
+                f"request_access=write"
             )
-            logger.info(f"✅ Сформирован URL для Telegram OAuth")
-            logger.error(f"🚨 КРИТИЧНАЯ ПРОБЛЕМА: Домен НЕ настроен в BotFather!")
-            logger.error(f"🚨 Для исправления выполните в @BotFather:")
-            logger.error(f"🚨 1. Выберите бота @mr_proger_bot")
-            logger.error(f"🚨 2. /setdomain")
-            logger.error(f"🚨 3. Укажите домен: {current_domain}")
-            logger.error(f"🚨 Без этого Telegram НЕ передаст данные авторизации!")
+
+            logger.info("=" * 100)
+            logger.info("🔗 СФОРМИРОВАННЫЙ TELEGRAM EMBED URL (по документации):")
+            logger.info(f"URL: {telegram_oauth_url}")
+            logger.info(f"bot_username: {bot_username}")
+            logger.info(f"bot_id: {bot_id}")
+            logger.info(f"origin: {origin}")
+            logger.info(f"return_to: {return_to.rstrip('/')}")
+            logger.info("=" * 100)
+
+            # Проверяем настройки домена
+            logger.warning("⚠️ ПРОВЕРКА НАСТРОЕК BOTFATHER:")
+            logger.warning(f"  Бот: @mr_proger_bot")
+            logger.warning(f"  Требуемый домен: {current_domain}")
+            logger.warning("  В @BotFather выполните: /setdomain"
+            logger.warning(f"  Укажите домен: {current_domain}")
+            logger.warning("  Без этого Telegram НЕ передаст данные!")
+
+            logger.info("✅ Используем embed URL для redirect авторизации...")
         else:
             # Fallback: используем embed URL с username (откроется в iframe, но это лучше чем ничего)
             logger.warning("⚠️ bot_id не получен, используем embed URL с username")
