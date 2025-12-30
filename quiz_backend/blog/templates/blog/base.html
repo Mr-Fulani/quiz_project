@@ -102,6 +102,7 @@
     <link rel="stylesheet" href="{% static 'blog/css/global.css' %}">
     <link rel="stylesheet" href="{% static 'blog/css/header-spacing.css' %}">
     <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/cookie-consent.css' %}">
     {% block extra_css %}{% endblock %}
 
     <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}" defer></script>
@@ -121,44 +122,26 @@
     {# Chart.js загружается только на страницах где используется, не глобально #}
     {% endblock %}
 
-    <!-- Google Analytics - отложенная загрузка для улучшения производительности -->
+    <!-- Analytics IDs - передаем в JavaScript для загрузки только после согласия -->
     {% if GOOGLE_ANALYTICS_PROPERTY_ID %}
         <script>
-            // Загружаем аналитику только после полной загрузки страницы
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    var script = document.createElement('script');
-                    script.async = true;
-                    script.src = 'https://www.googletagmanager.com/gtag/js?id={{ GOOGLE_ANALYTICS_PROPERTY_ID }}';
-                    document.head.appendChild(script);
-                    
-                    script.onload = function() {
-                        window.dataLayer = window.dataLayer || [];
-                        function gtag(){dataLayer.push(arguments);}
-                        gtag('js', new Date());
-                        gtag('config', '{{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
-                        console.log('Google Analytics initialized with ID: {{ GOOGLE_ANALYTICS_PROPERTY_ID }}');
-                    };
-                }, 3000); // Задержка 3 секунды для приоритета критического контента
-            });
+            // Передаем ID Google Analytics в JavaScript для загрузки после согласия
+            window.GOOGLE_ANALYTICS_PROPERTY_ID = '{{ GOOGLE_ANALYTICS_PROPERTY_ID }}';
         </script>
     {% endif %}
 
-    <!-- Yandex Metrica - отложенная загрузка для улучшения производительности -->
     {% if YANDEX_METRICA_ID %}
         <script>
-            // Загружаем аналитику только после полной загрузки страницы
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                    m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-                    (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-                    ym('{{ YANDEX_METRICA_ID }}', "init", { clickmap:true, trackLinks:true, accurateTrackBounce:true });
-                    console.log('Yandex Metrica initialized with ID: {{ YANDEX_METRICA_ID }}');
-                }, 3000); // Задержка 3 секунды для приоритета критического контента
-            });
+            // Передаем ID Yandex Metrika в JavaScript для загрузки после согласия
+            window.YANDEX_METRICA_ID = '{{ YANDEX_METRICA_ID }}';
         </script>
     {% endif %}
+
+    <!-- Cookie Consent - загружаем перед закрывающим тегом body -->
+    <script>
+        // Передаем URL Privacy Policy для cookie consent banner
+        window.COOKIE_CONSENT_PRIVACY_URL = '{% url "blog:privacy_policy" %}';
+    </script>
  
 
     <!-- Structured Data (JSON-LD) -->
@@ -1760,6 +1743,9 @@
         });
     };
 </script>
+
+<!-- Cookie Consent Manager - загружается перед закрывающим тегом body -->
+<script src="{% static 'blog/js/cookie-consent.js' %}"></script>
 
 </body>
 </html>
