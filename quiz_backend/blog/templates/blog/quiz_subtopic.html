@@ -17,7 +17,7 @@
         {% for task in page_obj %}
             <div class="task-item"
                  data-task-id="{{ task.id }}"
-                 data-explanation="{{ task.translation.explanation|escape }}"
+                 data-explanation="{% if task.translation.long_explanation %}{{ task.translation.long_explanation|escape }}{% else %}{{ task.translation.explanation|escape }}{% endif %}"
                  data-submit-url="{% url 'blog:submit_task_answer' quiz_type=topic.name|lower subtopic=subtopic.name|lower|slugify task_id=task.id %}"
                  {% if task.is_solved %}data-solved="true"{% endif %}>
                 {% if task.image_url %}

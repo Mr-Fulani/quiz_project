@@ -28,7 +28,7 @@ class TaskTranslationInline(admin.TabularInline):
     """
     model = TaskTranslation
     extra = 0
-    fields = ('language', 'question', 'answers', 'correct_answer', 'explanation')
+    fields = ('language', 'question', 'answers', 'correct_answer', 'explanation', 'long_explanation')
     readonly_fields = ('publish_date',)
 
 

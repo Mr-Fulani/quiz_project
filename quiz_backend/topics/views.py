@@ -443,7 +443,7 @@ def subtopic_detail_simple(request, subtopic_id):
                     'question': translation.question,
                     'answers': answers,
                     'correct_answer': translation.correct_answer,
-                    'explanation': translation.explanation,
+                    'explanation': translation.long_explanation or translation.explanation,
                     'is_solved': is_solved,
                     'translation_id': translation.id  # Для системы комментариев
                 }

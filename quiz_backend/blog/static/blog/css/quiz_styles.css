@@ -321,6 +321,114 @@ pre.code-block {
 }
 
 /**
+ * Сохранение форматирования для пошаговых объяснений.
+ * Поддерживает отступы и переносы строк.
+ */
+.modal-content p {
+    white-space: pre-wrap; /* Сохраняет пробелы и переносы строк */
+    word-wrap: break-word; /* Переносит длинные слова */
+}
+
+/**
+ * Основной контейнер текста объяснения.
+ * Применяется всегда, даже если в разметке нет тегов <p>.
+ */
+.modal .modal-content .explanation-text {
+    color: #e5e7eb;
+    line-height: 1.8;
+    font-size: var(--fs5);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85)) !important;
+    border: 1px solid #1f2937;
+    border-left: 4px solid var(--orange-yellow-crayola);
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    margin: 10px 0;
+}
+
+/* Заголовок "Step-by-step explanation:" */
+.modal .modal-content .explanation-text .explanation-title {
+    font-size: var(--fs2) !important;
+    font-weight: var(--fw600) !important;
+    color: var(--orange-yellow-crayola) !important;
+    margin-bottom: 20px !important;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(255, 193, 7, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Параграфы в объяснении */
+.modal .modal-content .explanation-text p {
+    margin-bottom: 14px;
+    color: #d1d5db;
+    line-height: 1.8;
+}
+
+/* Нумерованные списки */
+.modal .modal-content .explanation-text ol {
+    margin: 16px 0 !important;
+    padding-left: 0 !important;
+    list-style: none !important;
+    counter-reset: step-counter 0 !important;
+}
+
+/* Убеждаемся, что каждый новый ol начинает счет с 1 */
+.modal .modal-content .explanation-text ol:first-of-type {
+    counter-reset: step-counter 0 !important;
+}
+
+.modal .modal-content .explanation-text ol li {
+    counter-increment: step-counter !important;
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+    color: #e5e7eb;
+    line-height: 1.8;
+    list-style: none !important;
+}
+
+.modal .modal-content .explanation-text ol li::before {
+    content: attr(data-number) !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--orange-yellow-crayola), var(--vegas-gold));
+    color: var(--smoky-black);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--fw600);
+    font-size: var(--fs6);
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+    line-height: 1;
+    z-index: 1;
+}
+
+/* Fallback на counter, если data-number отсутствует */
+.modal .modal-content .explanation-text ol li:not([data-number])::before {
+    content: counter(step-counter, decimal) !important;
+}
+
+/**
+ * Стили для нумерованных списков в объяснениях.
+ */
+.modal-content ol,
+.modal-content ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+    padding-left: 20px;
+}
+
+.modal-content li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+/**
  * Стили для заголовков внутри модального окна.
  * Используются для выделения заголовков объяснений.
  */
@@ -328,6 +436,80 @@ pre.code-block {
     font-size: var(--fs4); /* Размер шрифта для заголовков */
     font-weight: var(--fw500); /* Полужирный вес шрифта */
     color: var(--orange-yellow-crayola); /* Акцентный цвет для заголовков */
+}
+
+/**
+ * Код и подсветка в модальном окне: стиль IDE (VS Code темная тема).
+ */
+.modal-content pre,
+.modal-content code {
+    font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Menlo', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* Блоки кода (pre) */
+.modal-content pre {
+    background: #1e1e1e !important; /* VS Code темный фон */
+    color: #d4d4d4 !important; /* VS Code светлый текст */
+    border: 1px solid #3e3e42;
+    border-radius: 8px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.modal-content pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #007acc, #1e88e5);
+    border-radius: 8px 8px 0 0;
+}
+
+/* Inline код */
+.modal-content code {
+    background: #1e1e1e !important;
+    color: #4ec9b0 !important; /* VS Code цвет для строк/значений */
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    padding: 3px 8px;
+    display: inline-block;
+    font-size: 12px;
+}
+
+/* Код внутри блока объяснения - улучшенная стилизация (VS Code темная тема) */
+.modal .modal-content .explanation-text code {
+    background: #1e1e1e !important;
+    color: #4ec9b0 !important; /* Цвет для значений/переменных */
+    border: 1px solid #3e3e42 !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    font-weight: 500;
+    font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Menlo', monospace;
+}
+
+/* Акценты внутри текста */
+.modal-content strong {
+    color: var(--orange-yellow-crayola);
+    font-weight: var(--fw600);
+}
+
+/* Выделение ключевых слов в объяснении */
+.modal .modal-content .explanation-text p strong,
+.modal .modal-content .explanation-text li strong {
+    color: var(--orange-yellow-crayola);
+    font-weight: var(--fw600);
+}
+
+/* Улучшенные стили для параграфов внутри объяснения */
+.modal .modal-content .explanation-text > p:not(:last-child) {
+    margin-bottom: 12px;
 }
 
 /**

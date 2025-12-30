@@ -560,6 +560,8 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     subtopic_id=subtopic_id,
                     difficulty=task_data.get('difficulty', 'medium'),  # Используем значение по умолчанию, если не указано
                     published=False,
+                    video_urls={},  # not-null поле в БД (совместимо с Django)
+                    video_generation_progress={},  # not-null поле в БД (совместимо с Django)
                     group_id=group.id,
                     translation_group_id=translation_group_id,
                     external_link=None,  # Устанавливаем external_link в None
@@ -593,7 +595,8 @@ async def import_tasks_from_json(file_path: str, db_session: AsyncSession, user_
                     question=question,
                     answers=json.dumps(wrong_answers + [correct_answer]),
                     correct_answer=correct_answer,
-                    explanation=explanation
+                    explanation=explanation,
+                    long_explanation=translation.get("long_explanation"),
                 )
                 db_session.add(new_translation)
                 try:

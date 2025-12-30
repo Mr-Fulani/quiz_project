@@ -219,7 +219,12 @@ class TaskTranslation(models.Model):
     )
     explanation = models.TextField(
         null=True,
-        help_text='Объяснение ответа'
+        help_text='Объяснение ответа (короткое, до 200 символов для Telegram)'
+    )
+    long_explanation = models.TextField(
+        null=True,
+        blank=True,
+        help_text='Подробное пошаговое объяснение для сайта'
     )
     publish_date = models.DateTimeField(
         null=True, blank=True)

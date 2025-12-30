@@ -72,7 +72,12 @@ async def handle_document(message: Message, db_session: AsyncSession):
                 await message.answer(f"🆔 ID загруженных задач: {', '.join(map(str, loaded_task_ids))}")
 
             if error_messages:
-                await message.answer(f"⚠️ Ошибки при импорте:\n{chr(10).join(error_messages)}")
+                errors_text = chr(10).join(error_messages)
+                # Telegram ограничивает длину сообщения, поэтому ограничиваем вывод
+                max_len = 3500
+                if len(errors_text) > max_len:
+                    errors_text = errors_text[:max_len] + "\n… (обрезано)"
+                await message.answer(f"⚠️ Ошибки при импорте:\n{errors_text}")
 
             logger.info("📂 Обработка загрузки задач завершена.")
         except Exception as e:

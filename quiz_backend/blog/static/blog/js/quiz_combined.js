@@ -390,6 +390,88 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * Форматирует текст объяснения: выделяет заголовки, списки и код.
+     * @param {string} text - Исходный текст.
+     * @returns {string} - Отформатированный HTML.
+     */
+    function formatExplanation(text) {
+        if (!text) return '';
+        
+        let formatted = text;
+        
+        // Сначала выделяем код в обратных кавычках (чтобы не трогать его дальше)
+        const codeBlocks = [];
+        formatted = formatted.replace(/`([^`]+)`/g, (match, code) => {
+            const placeholder = `__CODE_${codeBlocks.length}__`;
+            codeBlocks.push(`<code>${escapeHtml(code)}</code>`);
+            return placeholder;
+        });
+        
+        // Выделяем заголовок "Step-by-step explanation:" или аналогичные
+        let title = '';
+        formatted = formatted.replace(/^(Step-by-step explanation:|Пошаговое объяснение:|Adım adım açıklama:|شرح خطوة بخطوة:)\s*\n?/im, (match, titleText) => {
+            title = `<div class="explanation-title">${escapeHtml(titleText)}</div>`;
+            return '';
+        });
+        
+        // Преобразуем нумерованный список (1. текст)
+        const lines = formatted.split('\n');
+        let inList = false;
+        let listItems = [];
+        let result = title ? [title] : [];
+        
+        lines.forEach(line => {
+            line = line.trim();
+            if (!line) {
+                if (inList && listItems.length > 0) {
+                    result.push('<ol>' + listItems.join('') + '</ol>');
+                    listItems = [];
+                    inList = false;
+                }
+                return;
+            }
+            
+            // Проверяем, является ли строка элементом списка
+            const listMatch = line.match(/^(\d+)\.\s+(.+)$/);
+            if (listMatch) {
+                if (!inList) inList = true;
+                let itemText = listMatch[2];
+                const itemNumber = listMatch[1]; // Сохраняем номер из текста
+                // Восстанавливаем код в элементах списка
+                itemText = itemText.replace(/__CODE_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
+                listItems.push(`<li data-number="${itemNumber}">${itemText}</li>`);
+            } else {
+                if (inList && listItems.length > 0) {
+                    result.push('<ol>' + listItems.join('') + '</ol>');
+                    listItems = [];
+                    inList = false;
+                }
+                // Восстанавливаем код в обычных строках
+                line = line.replace(/__CODE_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
+                result.push(`<p>${line}</p>`);
+            }
+        });
+        
+        // Закрываем список, если он остался открытым
+        if (inList && listItems.length > 0) {
+            result.push('<ol>' + listItems.join('') + '</ol>');
+        }
+        
+        return result.join('');
+    }
+    
+    /**
+     * Экранирует HTML для безопасности.
+     * @param {string} text - Текст для экранирования.
+     * @returns {string} - Экранированный текст.
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
      * Показывает модальное окно с объяснением и предотвращает прокрутку страницы.
      * @param {string} explanation - Текст объяснения.
      */
@@ -399,14 +481,29 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.remove();
         }
 
+        // Форматируем текст
+        const formattedExplanation = formatExplanation(explanation);
+
         modal = document.createElement('div');
         modal.className = 'modal';
         modal.innerHTML = `
             <div class="modal-content">
-                <p>${explanation}</p>
+                <div class="explanation-text">${formattedExplanation}</div>
             </div>
         `;
         document.body.appendChild(modal);
+
+        // Исправляем нумерацию списков - устанавливаем data-number для всех элементов
+        const allOl = modal.querySelectorAll('.explanation-text ol');
+        allOl.forEach(ol => {
+            const listItems = ol.querySelectorAll('li');
+            listItems.forEach((li, index) => {
+                // Если data-number уже есть, используем его, иначе устанавливаем порядковый номер
+                if (!li.hasAttribute('data-number')) {
+                    li.setAttribute('data-number', (index + 1).toString());
+                }
+            });
+        });
 
         const modalContent = modal.querySelector('.modal-content');
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
