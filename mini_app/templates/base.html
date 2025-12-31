@@ -494,14 +494,31 @@
                 console.log('⚠️ Not in Telegram Web App, skipping user initialization');
                 // Добавим fallback для тестирования в браузере, если Telegram WebApp не доступен
                 // Это должно быть только для разработки, в проде Telegram WebApp всегда будет доступен
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                const isDevMode = 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.hostname.includes('ngrok') ||
+                    window.location.hostname.includes('ngrok-free.dev') ||
+                    window.location.search.includes('test_mode=true') ||
+                    localStorage.getItem('test_mode') === 'true';
+                
+                if (isDevMode) {
+                    // Получаем тестовый telegram_id из URL, localStorage или используем дефолтный (Mr_Fulani)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const testIdFromUrl = urlParams.get('test_telegram_id');
+                    const testIdFromStorage = localStorage.getItem('test_telegram_id');
+                    const testTelegramId = parseInt(testIdFromUrl || testIdFromStorage || '975113235'); // Mr_Fulani из БД
+                    
                     console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Имитируем Telegram WebApp для локальной разработки.');
+                    console.log('   Hostname:', window.location.hostname);
+                    console.log('   Test telegram_id:', testTelegramId);
+                    
                     window.Telegram = window.Telegram || {};
                     window.Telegram.WebApp = {
-                        initData: 'user=%7B%22id%22%3A123456789%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22username%22%3A%22testuser%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%7D&hash=somehash',
+                        initData: `user=%7B%22id%22%3A${testTelegramId}%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22username%22%3A%22testuser%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%7D&hash=somehash`,
                         initDataUnsafe: {
                             user: {
-                                id: 123456789, 
+                                id: testTelegramId, 
                                 first_name: 'Test',
                                 last_name: 'User',
                                 username: 'testuser'
@@ -518,8 +535,8 @@
                         colorScheme: 'light',
                     };
                     // Устанавливаем cookie telegram_id для тестового режима
-                    document.cookie = `telegram_id=123456789; path=/; max-age=${365*24*60*60}; SameSite=Lax`;
-                    console.log('✅ Mock Telegram WebApp инициализирован.');
+                    document.cookie = `telegram_id=${testTelegramId}; path=/; max-age=${365*24*60*60}; SameSite=Lax`;
+                    console.log('✅ Mock Telegram WebApp инициализирован с telegram_id:', testTelegramId);
                 } else {
                     return; // В продакшене без Telegram WebApp ничего не делаем
                 }
@@ -614,12 +631,28 @@
                     console.log('❌ No initData available');
                     
                     // МОКОВЫЕ ДАННЫЕ для тестирования в браузере
-                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    const isDevMode = 
+                        window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' ||
+                        window.location.hostname.includes('ngrok') ||
+                        window.location.hostname.includes('ngrok-free.dev') ||
+                        window.location.search.includes('test_mode=true') ||
+                        localStorage.getItem('test_mode') === 'true';
+                    
+                    if (isDevMode) {
+                        // Получаем тестовый telegram_id из URL, localStorage или используем дефолтный (Mr_Fulani)
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const testIdFromUrl = urlParams.get('test_telegram_id');
+                        const testIdFromStorage = localStorage.getItem('test_telegram_id');
+                        const testTelegramId = parseInt(testIdFromUrl || testIdFromStorage || '975113235'); // Mr_Fulani из БД
+                        
                         console.log('═══════════════════════════════════════════════════');
                         console.log('🔧 [MOCK] Создаем моковые данные для браузера...');
+                        console.log('   Hostname:', window.location.hostname);
+                        console.log('   Test telegram_id:', testTelegramId);
                         window.currentUser = {
                             id: 1,
-                            telegram_id: 999999999,
+                            telegram_id: testTelegramId,
                             username: 'BrowserTestUser',
                             first_name: 'Browser',
                             last_name: 'TestAdmin',
@@ -634,7 +667,7 @@
                             gender: 'male',
                             birth_date: '1990-01-01',
                             is_profile_public: true,
-                            telegram_user_id: 999999999,
+                            telegram_user_id: testTelegramId,
                             social_links: []
                         };
                         window.isUserInitialized = true;
