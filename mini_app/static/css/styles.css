@@ -601,10 +601,13 @@ body {
     transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     will-change: transform; /* Оптимизация для мобильных устройств */
     color: var(--clr);
+    /* Иконка НЕ должна двигаться без класса active - начальная позиция всегда 0 */
+    transform: translate3d(0, 0, 0) !important;
 }
 
 .navigation ul li.active a .icon {
-    transform: translate3d(0, -32px, 0); /* Используем translate3d для аппаратного ускорения */
+    transform: translate3d(0, -32px, 0) !important; /* Используем translate3d для аппаратного ускорения */
+    /* !important чтобы переопределить любые hover эффекты и гарантировать движение только с классом active */
 }
 
 .navigation ul li a .text {
@@ -623,12 +626,11 @@ body {
     opacity: 1;
 }
 
-/* Hover эффекты только для тачскринов */
+/* Hover эффекты только для тачскринов - УБРАНЫ для иконки, чтобы она не двигалась без ползунка */
+/* Иконка должна двигаться ТОЛЬКО когда есть класс active (когда двигается ползунок) */
 @media (hover: none) {
-    .navigation ul li:hover a .icon {
-        transform: translateY(-28px);
-    }
-    
+    /* УБРАНО: .navigation ul li:hover a .icon - иконка не должна двигаться при hover */
+    /* Оставляем только эффект для текста */
     .navigation ul li:hover a .text {
         opacity: 1;
         transform: translateY(5px);
@@ -688,11 +690,14 @@ body {
     /* На мобильных устройствах используем ту же логику, что и на десктопе */
     /* Но добавляем задержку для иконки, чтобы она начинала движение после индикатора */
     /* УБИРАЕМ задержку на мобильных - иконка должна двигаться синхронно с ползунком */
+    /* Иконка НЕ должна двигаться без класса active */
     .navigation ul li a .icon {
         transition-delay: 0s !important; /* Без задержки для синхронизации с индикатором */
+        transform: translate3d(0, 0, 0) !important; /* Начальная позиция - иконка не двигается без active */
     }
     .navigation ul li.active a .icon {
         transition-delay: 0s !important; /* Без задержки для синхронизации с индикатором */
+        transform: translate3d(0, -32px, 0) !important; /* Только с классом active иконка может двигаться */
     }
     .indicator {
         width: 60px;
