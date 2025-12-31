@@ -229,7 +229,8 @@ if (window.TaskManagerAlreadyLoaded) {
                     const taskId = taskItem.dataset.taskId;
                     const explanationElement = document.getElementById(`explanation-${taskId}`);
                     
-                    this.disableAllAnswers(taskItem);
+                    // Блокируем все ответы, кроме "Не знаю"
+                    this.disableAllAnswers(taskItem, true);
                     
                     // Если задача решена, сразу показываем объяснение, если оно есть
                     if (explanationElement) {
@@ -243,7 +244,7 @@ if (window.TaskManagerAlreadyLoaded) {
                             option.classList.add('correct');
                         }
                     });
-                    console.log(`✅ Задача ${taskId} уже решена. Ответы заблокированы и объяснение показано.`);
+                    console.log(`✅ Задача ${taskId} уже решена. Ответы заблокированы (кроме "Не знаю") и объяснение показано.`);
                 }
             });
 
@@ -272,7 +273,8 @@ if (window.TaskManagerAlreadyLoaded) {
                     const taskId = taskItem.dataset.taskId;
                     if (solvedIds.has(String(taskId))) {
                         taskItem.dataset.solved = 'true';
-                        this.disableAllAnswers(taskItem);
+                        // Блокируем все ответы, кроме "Не знаю"
+                        this.disableAllAnswers(taskItem, true);
                         this.showCorrectAnswer(taskItem);
                         this.showExplanation(taskItem);
                     }
@@ -365,11 +367,40 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
             }
             
-            // Fallback для тестирования в браузере (только в режиме разработки)
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Используем fallback telegram_id для браузера (только localhost)');
-                const testTelegramId = 975113235; // Реальный ID пользователя для тестирования
+            // Fallback для тестирования в браузере (режим разработки)
+            // Проверяем различные способы определения тестового режима
+            const isDevMode = 
+                window.location.hostname === 'localhost' || 
+                window.location.hostname === '127.0.0.1' ||
+                window.location.hostname.includes('ngrok') ||
+                window.location.hostname.includes('ngrok-free.dev') ||
+                window.location.search.includes('test_mode=true') ||
+                localStorage.getItem('test_mode') === 'true';
+            
+            if (isDevMode) {
+                // Сначала проверяем URL параметр
+                const urlParams = new URLSearchParams(window.location.search);
+                const testIdFromUrl = urlParams.get('test_telegram_id');
+                
+                // Затем проверяем localStorage
+                const testIdFromStorage = localStorage.getItem('test_telegram_id');
+                
+                // Используем ID из URL, localStorage или дефолтный
+                const testTelegramId = testIdFromUrl || testIdFromStorage || 975113235; // Mr_Fulani из БД
+                
+                console.log('🔧 ТЕСТОВЫЙ РЕЖИМ: Используем fallback telegram_id для браузера');
+                console.log('   Hostname:', window.location.hostname);
+                console.log('   Test ID из URL:', testIdFromUrl || 'не указан');
+                console.log('   Test ID из localStorage:', testIdFromStorage || 'не указан');
                 console.log('✅ Установлен тестовый telegram_id:', testTelegramId);
+                
+                // Сохраняем в window.currentUser для последующего использования
+                if (!window.currentUser) {
+                    window.currentUser = { telegram_id: parseInt(testTelegramId) };
+                } else {
+                    window.currentUser.telegram_id = parseInt(testTelegramId);
+                }
+                
                 return testTelegramId.toString();
             } else {
                 console.error('❌ Не удалось получить telegram_id в продакшене');
@@ -420,21 +451,32 @@ if (window.TaskManagerAlreadyLoaded) {
                 return;
             }
             
-            // Проверяем, не решена ли уже задача
-            if (taskItem.dataset.solved === 'true') {
+            const isDontKnow = option.classList.contains('dont-know-option') || 
+                              this.dontKnowOptions.includes(selectedAnswer);
+            
+            // Если задача уже решена и это клик на "Не знаю" - просто переключаем объяснение без отправки на сервер
+            if (taskItem.dataset.solved === 'true' && isDontKnow) {
+                console.log('📖 Задача уже решена, переключаем объяснение без отправки на сервер');
+                this.toggleExplanation(taskItem);
+                return;
+            }
+            
+            // Проверяем, не решена ли уже задача (для обычных ответов)
+            if (taskItem.dataset.solved === 'true' && !isDontKnow) {
                 console.log('⚠️ Задача уже решена, игнорируем клик');
                 return;
             }
             
-            const isDontKnow = option.classList.contains('dont-know-option') || 
-                              this.dontKnowOptions.includes(selectedAnswer);
-            
             console.log('🔍 Статус ответа:', { isCorrect, isDontKnow });
             
-            // Блокируем интерфейс
-            this.disableAllAnswers(taskItem);
+            // Блокируем интерфейс (кроме кнопки "Не знаю", которая всегда остается активной)
+            this.disableAllAnswers(taskItem, true);
             this.markSelectedAnswer(option, isCorrect);
-            taskItem.dataset.solved = 'true';
+            
+            // Если это НЕ "Не знаю", помечаем задачу как решенную (но объяснение не показываем)
+            if (!isDontKnow) {
+                taskItem.dataset.solved = 'true';
+            }
             
             // Показываем индикатор загрузки
             this.showLoadingToast(window.t ? window.t('submitting_answer', 'Отправляем ответ...') : 'Отправляем ответ...');
@@ -448,22 +490,31 @@ if (window.TaskManagerAlreadyLoaded) {
                     console.log('✅ Ответ успешно отправлен');
                     
                     // Показываем правильный ответ, если выбран неправильный
-                    if (!isCorrect) {
+                    if (!isCorrect && !isDontKnow) {
                         this.showCorrectAnswer(taskItem);
                     }
                     
-                    // Показываем объяснение
-                    this.showExplanation(taskItem);
+                    // Переключаем объяснение для варианта "Не знаю, но хочу узнать"
+                    if (isDontKnow) {
+                        this.toggleExplanation(taskItem);
+                        taskItem.dataset.solved = 'true';
+                    }
                     
                     // Показываем уведомление
                     this.showNotification(isCorrect, isDontKnow);
                 } else if (submitResult && submitResult.status === 409) {
                     console.log('ℹ️ Ответ уже был отправлен ранее. Блокируем повторные клики.');
                     taskItem.dataset.solved = 'true';
-                    // Подсветим правильный ответ и объяснение
+                    // Блокируем все ответы, кроме "Не знаю"
+                    this.disableAllAnswers(taskItem, true);
+                    // Подсветим правильный ответ
                     this.showCorrectAnswer(taskItem);
-                    this.showExplanation(taskItem);
-                    this.showToast(window.t ? window.t('already_answered', 'Вы уже отвечали на этот вопрос') : 'Вы уже отвечали на этот вопрос', 'info');
+                    // Для "Не знаю" переключаем объяснение, но не показываем сообщение об ошибке
+                    if (isDontKnow) {
+                        this.toggleExplanation(taskItem);
+                    } else {
+                        this.showToast(window.t ? window.t('already_answered', 'Вы уже отвечали на этот вопрос') : 'Вы уже отвечали на этот вопрос', 'info');
+                    }
                 } else {
                     console.error('❌ Не удалось отправить ответ');
                     // Откатываем изменения интерфейса
@@ -605,12 +656,21 @@ if (window.TaskManagerAlreadyLoaded) {
         }
 
         /**
-         * Отключает все варианты ответов
+         * Отключает все варианты ответов (кроме кнопки "Не знаю", если keepDontKnowActive = true)
          * @param {HTMLElement} taskItem - Элемент задачи
+         * @param {boolean} keepDontKnowActive - Если true, кнопка "Не знаю" остается активной
          */
-        disableAllAnswers(taskItem) {
+        disableAllAnswers(taskItem, keepDontKnowActive = false) {
             const answers = taskItem.querySelectorAll('.answer-option');
             answers.forEach(opt => {
+                const isDontKnow = opt.classList.contains('dont-know-option') || 
+                                this.dontKnowOptions.includes(opt.dataset.answer);
+                
+                // Если это кнопка "Не знаю" и нужно оставить её активной, пропускаем
+                if (keepDontKnowActive && isDontKnow) {
+                    return;
+                }
+                
                 opt.style.pointerEvents = 'none';
                 opt.classList.remove('active');
                 opt.classList.add('disabled');
@@ -653,7 +713,140 @@ if (window.TaskManagerAlreadyLoaded) {
         }
 
         /**
+         * Форматирует текст объяснения: выделяет заголовки, списки и код.
+         * @param {string} text - Исходный текст.
+         * @returns {string} - Отформатированный HTML.
+         */
+        formatExplanation(text) {
+            if (!text) return '';
+            
+            let formatted = text;
+            
+            // Функция для экранирования HTML
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+            
+            // Сначала выделяем код в обратных кавычках (чтобы не трогать его дальше)
+            const codeBlocks = [];
+            formatted = formatted.replace(/`([^`]+)`/g, (match, code) => {
+                const placeholder = `__CODE_${codeBlocks.length}__`;
+                codeBlocks.push(`<code>${escapeHtml(code)}</code>`);
+                return placeholder;
+            });
+            
+            // Выделяем блоки кода (```код```)
+            formatted = formatted.replace(/```([\s\S]*?)```/g, (match, code) => {
+                const placeholder = `__CODEBLOCK_${codeBlocks.length}__`;
+                codeBlocks.push(`<pre><code>${escapeHtml(code.trim())}</code></pre>`);
+                return placeholder;
+            });
+            
+            // Убираем заголовок "Step-by-step explanation:" или аналогичные (если есть)
+            formatted = formatted.replace(/^(Step-by-step explanation:|Пошаговое объяснение:|Adım adım açıklama:|شرح خطوة بخطوة:)\s*\n?/im, '');
+            
+            // Преобразуем нумерованный список (1. текст)
+            const lines = formatted.split('\n');
+            let inList = false;
+            let listItems = [];
+            let result = [];
+            
+            lines.forEach((line, index) => {
+                const trimmed = line.trim();
+                
+                // Пропускаем пустые строки, но не закрываем список, если следующий элемент тоже список
+                if (!trimmed) {
+                    // Проверяем следующий элемент
+                    const nextLine = index < lines.length - 1 ? lines[index + 1].trim() : '';
+                    const nextIsListItem = nextLine.match(/^(\d+)\.\s+(.+)$/);
+                    
+                    // Закрываем список только если следующий элемент НЕ является элементом списка
+                    if (inList && listItems.length > 0 && !nextIsListItem) {
+                        result.push('<ol>' + listItems.join('') + '</ol>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    return;
+                }
+                
+                // Проверяем, является ли строка блоком кода
+                if (trimmed.startsWith('__CODEBLOCK_') && trimmed.endsWith('__')) {
+                    // Закрываем список перед блоком кода, если он открыт
+                    if (inList && listItems.length > 0) {
+                        result.push('<ol>' + listItems.join('') + '</ol>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    const idx = parseInt(trimmed.match(/__CODEBLOCK_(\d+)__/)[1]);
+                    result.push(codeBlocks[idx] || '');
+                    return;
+                }
+                
+                // Проверяем, является ли строка элементом списка
+                const listMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+                if (listMatch) {
+                    if (!inList) inList = true;
+                    let itemText = listMatch[2];
+                    // Восстанавливаем код в элементах списка
+                    itemText = itemText.replace(/__CODE_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
+                    listItems.push(`<li>${itemText}</li>`);
+                } else {
+                    // Закрываем список перед обычным текстом
+                    if (inList && listItems.length > 0) {
+                        result.push('<ol>' + listItems.join('') + '</ol>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    // Восстанавливаем код в обычных строках
+                    let processedLine = trimmed.replace(/__CODE_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
+                    // Восстанавливаем блоки кода
+                    processedLine = processedLine.replace(/__CODEBLOCK_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
+                    result.push(`<p>${processedLine}</p>`);
+                }
+            });
+            
+            // Закрываем список, если он остался открытым
+            if (inList && listItems.length > 0) {
+                result.push('<ol>' + listItems.join('') + '</ol>');
+            }
+            
+            return result.join('');
+        }
+
+        /**
          * Показывает объяснение
+         * @param {HTMLElement} taskItem - Элемент задачи
+         */
+        /**
+         * Переключает видимость объяснения (показывает/скрывает)
+         * @param {HTMLElement} taskItem - Элемент задачи
+         */
+        toggleExplanation(taskItem) {
+            const taskId = taskItem.dataset.taskId;
+            const explanationDiv = document.getElementById(`explanation-${taskId}`);
+            
+            if (explanationDiv) {
+                // Проверяем видимость через computed style
+                const computedStyle = window.getComputedStyle(explanationDiv);
+                const isVisible = computedStyle.display !== 'none' && 
+                                 explanationDiv.style.display !== 'none';
+                
+                if (isVisible) {
+                    // Скрываем объяснение
+                    explanationDiv.style.display = 'none';
+                    console.log('📖 Объяснение скрыто для задачи', taskId);
+                } else {
+                    // Показываем объяснение
+                    this.showExplanation(taskItem);
+                    console.log('📖 Объяснение показано для задачи', taskId);
+                }
+            }
+        }
+
+        /**
+         * Показывает объяснение задачи
          * @param {HTMLElement} taskItem - Элемент задачи
          */
         showExplanation(taskItem) {
@@ -661,6 +854,38 @@ if (window.TaskManagerAlreadyLoaded) {
             const explanationDiv = document.getElementById(`explanation-${taskId}`);
             
             if (explanationDiv) {
+                // Получаем исходный текст объяснения
+                const explanationContent = explanationDiv.querySelector('.explanation-content');
+                if (explanationContent) {
+                    const explanationText = explanationContent.querySelector('.explanation-text');
+                    if (explanationText) {
+                        // Проверяем, не отформатирован ли уже текст
+                        if (!explanationText.dataset.formatted) {
+                            // Получаем исходный текст - используем innerHTML если есть, иначе textContent
+                            let originalText = explanationText.innerHTML;
+                            // Если innerHTML пустой или содержит только теги, используем textContent
+                            if (!originalText || originalText.trim() === '' || originalText.trim().startsWith('<')) {
+                                originalText = explanationText.textContent || explanationText.innerText;
+                            } else {
+                                // Если innerHTML содержит текст, но он может быть в тегах, извлекаем текст
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = originalText;
+                                originalText = tempDiv.textContent || tempDiv.innerText || originalText;
+                            }
+                            
+                            if (originalText) {
+                                console.log('📝 Исходный текст объяснения:', originalText.substring(0, 200));
+                                // Форматируем текст
+                                const formatted = this.formatExplanation(originalText);
+                                console.log('📝 Отформатированный HTML:', formatted.substring(0, 500));
+                                // Заменяем содержимое на отформатированное
+                                explanationText.innerHTML = formatted;
+                                explanationText.dataset.formatted = 'true';
+                            }
+                        }
+                    }
+                }
+                
                 explanationDiv.style.display = 'block';
                 setTimeout(() => {
                 explanationDiv.scrollIntoView({ 

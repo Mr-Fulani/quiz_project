@@ -215,24 +215,210 @@ body.task-image-overlay-open {
 /* Контейнер объяснения */
 .task-explanation {
     margin-top: 20px;
-    padding: 15px;
-    background: rgba(0, 255, 0, 0.1);
-    border-radius: 10px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    backdrop-filter: none;
+}
+
+.explanation-content {
+    background: linear-gradient(135deg, rgba(21, 31, 40, 0.95), rgba(15, 23, 42, 0.85));
+    border: 1px solid rgba(0, 255, 0, 0.3);
     border-left: 4px solid var(--active-color);
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    margin: 10px 0;
     backdrop-filter: blur(10px);
 }
 
 .explanation-content h4 {
-    margin: 0 0 10px 0;
+    margin: 0 0 20px 0;
     color: var(--active-color);
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(41, 253, 83, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.explanation-content .explanation-text {
+    color: #e5e7eb;
+    line-height: 1.8;
+    font-size: 15px;
 }
 
 .explanation-content p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 14px 0;
+    color: #e5e7eb;
+    line-height: 1.8;
+    font-size: 15px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.explanation-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Заголовок объяснения (Step-by-step explanation:) */
+.explanation-content .explanation-title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: var(--active-color) !important;
+    margin-bottom: 20px !important;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(41, 253, 83, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Нумерованные списки */
+.explanation-content {
+    counter-reset: explanation-list-counter 0;
+}
+
+.explanation-content ol {
+    margin: 16px 0 !important;
+    padding-left: 0 !important;
+    list-style: none !important;
+    counter-reset: explanation-list-counter 0 !important;
+}
+
+.explanation-content ol li {
+    counter-increment: explanation-list-counter !important;
+    margin-bottom: 16px;
+    padding-left: 36px;
+    position: relative;
+    color: #e5e7eb;
+    line-height: 1.8;
+    list-style: none !important;
+}
+
+.explanation-content ol li::before {
+    content: counter(explanation-list-counter) !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--active-color), #00ff00);
+    color: var(--base-bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(41, 253, 83, 0.3);
+    line-height: 1;
+    z-index: 1;
+}
+
+/* Маркированные списки */
+.explanation-content ul {
+    margin: 16px 0;
+    padding-left: 20px;
+    list-style: none;
+}
+
+.explanation-content ul li {
+    margin-bottom: 12px;
+    padding-left: 24px;
+    position: relative;
+    color: #e5e7eb;
+    line-height: 1.8;
+}
+
+.explanation-content ul li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--active-color);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Код внутри объяснения */
+.explanation-content code {
+    background: #1e1e1e !important;
+    color: #4ec9b0 !important;
+    border: 1px solid #3e3e42 !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    font-weight: 500;
+    font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Menlo', monospace;
+    font-size: 13px;
+}
+
+/* Блоки кода */
+.explanation-content pre {
+    background: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    border: 1px solid #3e3e42;
+    border-radius: 8px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Menlo', monospace;
+    font-size: 13px;
     line-height: 1.6;
+}
+
+.explanation-content pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--active-color), #00ff00);
+    border-radius: 8px 8px 0 0;
+}
+
+.explanation-content pre code {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: inherit !important;
+}
+
+/* Выделение ключевых слов */
+.explanation-content strong {
+    color: var(--active-color);
+    font-weight: 600;
+}
+
+.explanation-content p strong,
+.explanation-content li strong {
+    color: var(--active-color);
+    font-weight: 600;
+}
+
+/* Заголовки внутри объяснения */
+.explanation-content h3,
+.explanation-content h4,
+.explanation-content h5 {
+    color: var(--active-color);
+    font-weight: 600;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+.explanation-content h3 {
+    font-size: 18px;
+}
+
+.explanation-content h4 {
+    font-size: 16px;
+}
+
+.explanation-content h5 {
+    font-size: 14px;
 }
 
 /* Сообщение об отсутствии задач */
