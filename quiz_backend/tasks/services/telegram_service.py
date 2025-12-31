@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 
 import requests
 from django.conf import settings
+from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
@@ -792,9 +793,6 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
         # Проверяем, есть ли подробное объяснение
         if translation.long_explanation:
             # Формируем URL на страницу задачи на сайте
-            from django.urls import reverse
-            from django.utils.text import slugify
-            
             try:
                 # Получаем базовый URL сайта
                 site_url = getattr(settings, 'SITE_URL', 'https://quiz-code.com')
@@ -802,8 +800,21 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                     site_url = f'https://{site_url}'
                 
                 # Формируем путь к странице задачи
-                topic_name = task.topic.name.lower() if task.topic else 'python'
-                subtopic_name = task.subtopic.name.lower() if task.subtopic else 'general'
+                # Безопасный доступ к связанным объектам с проверкой на None
+                topic_name = 'python'  # значение по умолчанию
+                if task.topic:
+                    try:
+                        topic_name = task.topic.name.lower()
+                    except Exception:
+                        logger.warning(f"Не удалось получить topic.name для задачи {task.id}")
+                
+                subtopic_name = 'general'  # значение по умолчанию
+                if task.subtopic:
+                    try:
+                        subtopic_name = task.subtopic.name.lower()
+                    except Exception:
+                        logger.warning(f"Не удалось получить subtopic.name для задачи {task.id}")
+                
                 subtopic_slug = slugify(subtopic_name)
                 difficulty = task.difficulty.lower() if task.difficulty else 'easy'
                 
@@ -823,7 +834,7 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                     f"📖 Найдено подробное объяснение, используем ссылку на задачу на сайте"
                 )
             except Exception as e:
-                logger.warning(f"Ошибка формирования URL задачи на сайте: {e}")
+                logger.warning(f"Ошибка формирования URL задачи на сайте: {e}", exc_info=True)
                 # Продолжаем с обычной логикой
                 pass
         
