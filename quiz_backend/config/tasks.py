@@ -346,15 +346,21 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
                 if all_ready:
                     # Все видео готовы - отправляем вебхуки
                     try:
-                        logger.info(f"🛰️ [Celery] Все видео для задачи {task_id} готовы ({', '.join(expected_languages)}), отправляем вебхуки с видео...")
-                        from config.tasks import send_webhooks_async
-                        webhook_task = send_webhooks_async.delay(
-                            task_ids=[task_id],
-                            webhook_type_filter=None,
-                            admin_chat_id=admin_chat_id,
-                            include_video=True
-                        )
-                        logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
+                        # Проверяем наличие активных вебхуков ДО запуска задачи
+                        from webhooks.models import Webhook
+                        active_webhooks = Webhook.objects.filter(is_active=True).exists()
+                        if not active_webhooks:
+                            logger.info(f"ℹ️ [Celery] Нет активных вебхуков, пропускаем отправку для задачи {task_id}")
+                        else:
+                            logger.info(f"🛰️ [Celery] Все видео для задачи {task_id} готовы ({', '.join(expected_languages)}), отправляем вебхуки с видео...")
+                            from config.tasks import send_webhooks_async
+                            webhook_task = send_webhooks_async.delay(
+                                task_ids=[task_id],
+                                webhook_type_filter=None,
+                                admin_chat_id=admin_chat_id,
+                                include_video=True
+                            )
+                            logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
                     except Exception as webhook_exc:
                         logger.error(f"❌ [Celery] Ошибка запуска вебхуков для задачи {task_id}: {webhook_exc}")
                 else:
@@ -363,15 +369,21 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             else:
                 # Старая логика для совместимости - отправляем вебхуки сразу
                 try:
-                    logger.info(f"🛰️ [Celery] Задача {task_id} опубликована, отправляем вебхуки с видео...")
-                    from config.tasks import send_webhooks_async
-                    webhook_task = send_webhooks_async.delay(
-                        task_ids=[task_id],
-                        webhook_type_filter=None,
-                        admin_chat_id=admin_chat_id,
-                        include_video=True
-                    )
-                    logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
+                    # Проверяем наличие активных вебхуков ДО запуска задачи
+                    from webhooks.models import Webhook
+                    active_webhooks = Webhook.objects.filter(is_active=True).exists()
+                    if not active_webhooks:
+                        logger.info(f"ℹ️ [Celery] Нет активных вебхуков, пропускаем отправку для задачи {task_id}")
+                    else:
+                        logger.info(f"🛰️ [Celery] Задача {task_id} опубликована, отправляем вебхуки с видео...")
+                        from config.tasks import send_webhooks_async
+                        webhook_task = send_webhooks_async.delay(
+                            task_ids=[task_id],
+                            webhook_type_filter=None,
+                            admin_chat_id=admin_chat_id,
+                            include_video=True
+                        )
+                        logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
                 except Exception as webhook_exc:
                     logger.error(f"❌ [Celery] Ошибка запуска вебхуков для задачи {task_id}: {webhook_exc}")
             
@@ -400,15 +412,21 @@ def generate_video_for_task_async(self, task_id, task_question, topic_name, subt
             # 📡 Если задача опубликована - отправляем вебхуки с видео
             if task.published:
                 try:
-                    logger.info(f"🛰️ [Celery] Задача {task_id} опубликована, отправляем вебхуки с видео...")
-                    from config.tasks import send_webhooks_async
-                    webhook_task = send_webhooks_async.delay(
-                        task_ids=[task_id],
-                        webhook_type_filter=None,
-                        admin_chat_id=admin_chat_id,
-                        include_video=True
-                    )
-                    logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
+                    # Проверяем наличие активных вебхуков ДО запуска задачи
+                    from webhooks.models import Webhook
+                    active_webhooks = Webhook.objects.filter(is_active=True).exists()
+                    if not active_webhooks:
+                        logger.info(f"ℹ️ [Celery] Нет активных вебхуков, пропускаем отправку для задачи {task_id}")
+                    else:
+                        logger.info(f"🛰️ [Celery] Задача {task_id} опубликована, отправляем вебхуки с видео...")
+                        from config.tasks import send_webhooks_async
+                        webhook_task = send_webhooks_async.delay(
+                            task_ids=[task_id],
+                            webhook_type_filter=None,
+                            admin_chat_id=admin_chat_id,
+                            include_video=True
+                        )
+                        logger.info(f"✅ [Celery] Вебхуки с видео запущены (ID: {webhook_task.id})")
                 except Exception as webhook_exc:
                     logger.error(f"❌ [Celery] Ошибка запуска вебхуков для задачи {task_id}: {webhook_exc}")
             else:
