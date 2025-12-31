@@ -11,13 +11,15 @@
 
 .statistics-container {
     padding: 20px;
-    max-width: 600px;
+    width: 100%;
+    max-width: 100%;
     margin: 0 auto;
     background: rgba(21, 31, 40, 0.95);
     border: 1px solid rgba(0, 255, 0, 0.4);
     border-radius: 15px;
     backdrop-filter: blur(20px);
     box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
+    box-sizing: border-box;
     
     /* Safe Area Insets для Telegram Mini App */
     padding-top: max(20px, env(safe-area-inset-top));
