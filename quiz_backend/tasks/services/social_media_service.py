@@ -878,7 +878,7 @@ def _prepare_webhook_payload(task: Task, translation: TaskTranslation, platform:
             "explanation": translation.explanation or "",
             "link": task.external_link or f"{getattr(settings, 'SITE_URL', 'https://your-site.com')}/task/{task.id}",
             "hashtags": ["#programming", "#coding", "#quiz"],
-            "topic": task.topic.name if task.topic else "programming",
+            "topic": task.topic.name if task.topic and hasattr(task.topic, 'name') else "programming",
             "difficulty": task.difficulty
         },
         "metadata": {
