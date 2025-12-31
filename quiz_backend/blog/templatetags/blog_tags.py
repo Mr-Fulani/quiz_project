@@ -2,6 +2,8 @@
 from urllib.parse import quote
 
 from django import template
+from django.conf import settings
+from django.templatetags.static import static
 
 
 register = template.Library()
@@ -35,3 +37,24 @@ def safe_url(value):
     # Экранируем только часть пути
     safe_path = quote(parts[3], safe='')  # Экранируем слэши в пути
     return f"{parts[0]}//{parts[1]}/{parts[2]}/{safe_path}"
+
+
+@register.simple_tag
+def static_versioned(path):
+    """
+    Возвращает URL статического файла с версией для cache-busting.
+    
+    Args:
+        path (str): Путь к статическому файлу (например, 'blog/js/quiz_combined.js')
+    
+    Returns:
+        str: URL с параметром версии (например, '/static/blog/js/quiz_combined.js?v=2.1')
+    """
+    url = static(path)
+    # Извлекаем имя файла из пути
+    filename = path.split('/')[-1]
+    # Получаем версию из настроек
+    version = getattr(settings, 'STATIC_FILES_VERSION', {}).get(filename, '1.0')
+    # Добавляем версию как параметр запроса
+    separator = '&' if '?' in url else '?'
+    return f"{url}{separator}v={version}"

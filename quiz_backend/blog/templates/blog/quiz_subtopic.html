@@ -3,7 +3,7 @@
 {% load blog_tags %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'blog/css/quiz_styles.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/quiz_styles.css' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 {% endblock %}
 
@@ -91,7 +91,7 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{% static 'blog/js/quiz_combined.js' %}"></script>
+    <script src="{% static_versioned 'blog/js/quiz_combined.js' %}"></script>
     <script src="{% static 'blog/js/auth_modal.js' %}"></script>
     <script>
         /**
