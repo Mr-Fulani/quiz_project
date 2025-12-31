@@ -691,21 +691,43 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Обработка касаний
-    let touchStartTime = 0;
-    let touchStartY = 0;
-    let isTouchMoved = false;
-    const touchThreshold = 10;
-    const touchDelay = 120;
+    // Обработка касаний - храним данные для каждого элемента отдельно
+    const touchDataMap = new WeakMap();
+    const touchThreshold = 10; // Порог движения в пикселях
+    const touchDelay = 300; // Максимальная задержка для тапа в миллисекундах
+    let lastTouchTime = 0; // Время последнего touch события
+    let hadScrollMovement = false; // Флаг, указывающий, было ли движение при скролле
+
+    /**
+     * Получает или создает данные касания для элемента.
+     * @param {HTMLElement} element - Элемент.
+     * @returns {Object} Данные касания.
+     */
+    function getTouchData(element) {
+        if (!touchDataMap.has(element)) {
+            touchDataMap.set(element, {
+                touchStartTime: 0,
+                touchStartX: 0,
+                touchStartY: 0,
+                isTouchMoved: false
+            });
+        }
+        return touchDataMap.get(element);
+    }
 
     /**
      * Обрабатывает начало касания.
      * @param {TouchEvent} event - Событие касания.
      */
     function handleTouchStart(event) {
-        touchStartTime = Date.now();
-        touchStartY = event.touches[0].clientY;
-        isTouchMoved = false;
+        const touchData = getTouchData(this);
+        touchData.touchStartTime = Date.now();
+        touchData.touchStartX = event.touches[0].clientX;
+        touchData.touchStartY = event.touches[0].clientY;
+        touchData.isTouchMoved = false;
+        lastTouchTime = Date.now();
+        // Сбрасываем флаг скролла при новом касании
+        hadScrollMovement = false;
     }
 
     /**
@@ -713,8 +735,15 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {TouchEvent} event - Событие касания.
      */
     function handleTouchMove(event) {
-        if (Math.abs(event.touches[0].clientY - touchStartY) > touchThreshold) {
-            isTouchMoved = true;
+        const touchData = getTouchData(this);
+        if (touchData.touchStartTime > 0) {
+            const deltaX = Math.abs(event.touches[0].clientX - touchData.touchStartX);
+            const deltaY = Math.abs(event.touches[0].clientY - touchData.touchStartY);
+            // Если движение больше порога по любой оси - это скролл
+            if (deltaX > touchThreshold || deltaY > touchThreshold) {
+                touchData.isTouchMoved = true;
+                hadScrollMovement = true; // Устанавливаем флаг скролла
+            }
         }
     }
 
@@ -723,15 +752,34 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {TouchEvent} event - Событие касания.
      */
     function handleTouchEnd(event) {
-        const touchDuration = Date.now() - touchStartTime;
+        const touchData = getTouchData(this);
+        const touchDuration = Date.now() - touchData.touchStartTime;
 
-        if (!isTouchMoved && touchDuration < touchDelay) {
+        // Обрабатываем только если не было движения и касание было коротким
+        if (!touchData.isTouchMoved && touchDuration < touchDelay && touchData.touchStartTime > 0) {
             event.preventDefault();
+            event.stopPropagation();
+            // Небольшая задержка для проверки, что движение точно не произошло
             setTimeout(() => {
-                if (!isTouchMoved) {
+                if (!touchData.isTouchMoved) {
+                    // Сбрасываем флаг скролла, так как это был тап
+                    hadScrollMovement = false;
                     handleAnswerSelection.call(this, event);
                 }
+                // Сбрасываем данные
+                touchData.touchStartTime = 0;
+                touchData.isTouchMoved = false;
             }, 50);
+        } else {
+            // Если было движение, сбрасываем флаг через небольшую задержку
+            if (touchData.isTouchMoved) {
+                setTimeout(() => {
+                    hadScrollMovement = false;
+                }, 100);
+            }
+            // Сбрасываем данные
+            touchData.touchStartTime = 0;
+            touchData.isTouchMoved = false;
         }
     }
 
@@ -769,9 +817,18 @@ document.addEventListener('DOMContentLoaded', function() {
          *
          * @param {Event} event - Событие клика по варианту ответа.
          */
+        const option = this;
+        
+        // Проверяем, не был ли это клик после скролла
+        // Игнорируем клик только если было движение при скролле
+        if (hadScrollMovement) {
+            // Сбрасываем флаг и игнорируем клик
+            hadScrollMovement = false;
+            return;
+        }
+        
         event.preventDefault();
         event.stopPropagation();
-        const option = this;
         const taskItem = option.closest('.task-item');
 
         console.log('Task ID:', taskItem.dataset.taskId, 'Answer:', option.dataset.answer);
@@ -853,8 +910,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         showLightningEffect(option);
                         showCorrectAnswer(taskItem);
                     }
-                    // Показываем модальное окно с объяснением всегда
-                    showModal(explanation);
+                    // Показываем модальное окно с объяснением с задержкой 1.5 секунды,
+                    // чтобы анимация успела отобразиться
+                    setTimeout(() => {
+                        showModal(explanation);
+                    }, 1500);
                 }
             } catch (error) {
                 console.error('Submit error:', error);
