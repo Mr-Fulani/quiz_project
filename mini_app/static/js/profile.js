@@ -1818,10 +1818,6 @@
                         
                         // Обновляем данные профиля с сервера
                         fetchProfileDataFromServer();
-                        
-                        if (window.showNotification) {
-                            window.showNotification('data_refreshed', 'success');
-                        }
                     } else {
                         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                         console.error('❌ Ошибка при обновлении данных из Telegram:', errorData);

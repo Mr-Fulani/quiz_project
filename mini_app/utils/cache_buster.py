@@ -90,7 +90,7 @@ STATIC_VERSIONS = {
     'user_profile.css': '5.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'share-app.css': '2.3',  # Увеличена высота окна: 80vh и 70vh для большего отображения контента
     'explanation-modal.css': '1.1',  # Обновлено: добавлена поддержка safe areas
-    'profile.js': '7.2',  # FIX: Улучшена конфигурация Swiper для свайпа аватарок (добавлены observer, touch параметры, загрузка из CDN)
+    'profile.js': '7.3',  # FIX: Улучшена конфигурация Swiper для свайпа аватарок (добавлены observer, touch параметры, загрузка из CDN)
     'user_profile.js': '2.5',  # FIX: Добавлена загрузка Swiper JS и CSS для модального окна аватарок
     'avatar_modal.css': '2.1',  # FIX: Добавлена поддержка Safe Areas для Telegram в модальном окне аватарок
     # Принудительное обновление кэша для Django моделей
@@ -100,7 +100,7 @@ STATIC_VERSIONS = {
     'top_users.css': '35.0',  # CRITICAL FIX: Прямое переопределение .content вместо :has() для Telegram WebView
     'top_users_swiper.css': '30.4',  # FIX: Улучшено качество изображения аватарок в модальном окне (image-rendering, аппаратное ускорение)
     'topic_cards_swiper.css': '1.1',  # Добавлены стили для video в увеличенной карточке  # Стили для Swiper карточек тем (аналогично top_users_swiper.css)
-    'statistics.css': '7.0',  # NEW: Добавлено отображение total_points, topic_progress и achievements
+    'statistics.css': '7.1',  # FIX: Исправлена ширина контейнера - теперь на всю ширину как остальные вкладки
     # Принудительное обновление кэша для Django статических файлов
     'global.css': '2.0',  # Принудительное обновление кэша для исправления стилей
     # Добавляем недостающие CSS файлы для единообразного кэширования
