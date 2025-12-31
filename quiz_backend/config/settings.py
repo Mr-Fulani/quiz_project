@@ -427,6 +427,11 @@ if not DEBUG:
     WHITENOISE_USE_FINDERS = True
     WHITENOISE_AUTOREFRESH = True
 
+# Версии статических файлов для cache-busting
+# Импортируем из отдельного файла для удобства управления
+from blog.utils.static_versions import STATIC_VERSIONS as BLOG_STATIC_VERSIONS
+STATIC_FILES_VERSION = BLOG_STATIC_VERSIONS
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
