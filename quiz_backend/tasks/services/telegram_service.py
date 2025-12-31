@@ -272,22 +272,51 @@ def send_video(chat_id: str, video_url: str, caption: str = None) -> Optional[Di
     if caption:
         data['caption'] = caption
     
-    try:
-        response = requests.post(url, data=data, timeout=60)  # Увеличен таймаут для видео
-        
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get('ok'):
-            logger.info(f"✅ Видео успешно отправлено в {chat_id}")
-            return result['result']
-        else:
-            logger.error(f"❌ Ошибка отправки видео: {result.get('description')}")
-            return None
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, data=data, timeout=60)
+            response.raise_for_status()
+            result = response.json()
             
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке видео: {e}")
-        return None
+            if result.get('ok'):
+                logger.info(f"✅ Видео успешно отправлено в {chat_id}")
+                return result['result']
+            else:
+                logger.error(f"❌ Ошибка отправки видео: {result.get('description')}")
+                if attempt < max_retries:
+                    time.sleep(1 + attempt * 0.3)
+                    continue
+                return None
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"🔌 Ошибка подключения при отправке видео (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.5)
+                continue
+            logger.error(f"❌ Ошибка подключения при отправке видео: {e}")
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.warning(f"⏱️ Таймаут при отправке видео (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(3)
+                continue
+            return None
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ HTTP ошибка при отправке видео: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"   Response: {error_data}")
+                except:
+                    logger.error(f"   Response text: {e.response.text[:500]}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке видео (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.3)
+                continue
+            return None
 
 
 def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optional[Dict]:
@@ -319,25 +348,55 @@ def send_video_file(chat_id: str, video_path: str, caption: str = None) -> Optio
     if caption:
         data['caption'] = caption
     
-    try:
-        with open(video_path, 'rb') as video_file:
-            files = {'video': video_file}
-            response = requests.post(url, data=data, files=files, timeout=120)  # Увеличен таймаут для загрузки файла
-        
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get('ok'):
-            logger.info(f"✅ Видео файл успешно отправлен в {chat_id}")
-            return result['result']
-        else:
-            logger.error(f"❌ Ошибка отправки видео файла: {result.get('description')}")
-            logger.error(f"   Детали ответа: {result}")
-            return None
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            with open(video_path, 'rb') as video_file:
+                files = {'video': video_file}
+                response = requests.post(url, data=data, files=files, timeout=120)  # Увеличен таймаут для загрузки файла
             
-    except Exception as e:
-        logger.error(f"❌ Исключение при отправке видео файла: {e}")
-        return None
+            response.raise_for_status()
+            result = response.json()
+            
+            if result.get('ok'):
+                logger.info(f"✅ Видео файл успешно отправлен в {chat_id}")
+                return result['result']
+            else:
+                logger.error(f"❌ Ошибка отправки видео файла: {result.get('description')}")
+                logger.error(f"   Детали ответа: {result}")
+                if attempt < max_retries:
+                    time.sleep(1 + attempt * 0.3)
+                    continue
+                return None
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"🔌 Ошибка подключения при отправке видео файла (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.5)
+                continue
+            logger.error(f"❌ Ошибка подключения при отправке видео файла: {e}")
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.warning(f"⏱️ Таймаут при отправке видео файла (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(3)
+                continue
+            return None
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ HTTP ошибка при отправке видео файла: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"   Response: {error_data}")
+                except:
+                    logger.error(f"   Response text: {e.response.text[:500]}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Исключение при отправке видео файла (попытка {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1 + attempt * 0.3)
+                continue
+            return None
 
 
 def send_message(chat_id: str, text: str, parse_mode: str = "MarkdownV2") -> Optional[Dict]:
