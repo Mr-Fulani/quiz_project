@@ -692,8 +692,21 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                 result['detailed_logs'].append(f"❌ Не удалось отправить изображение")
         
         # 2. Отправляем детали задачи
-        topic_name = task.topic.name if task.topic else "Unknown"
-        subtopic_name = task.subtopic.name if task.subtopic else lang_trans['no_subtopic']
+        # Безопасный доступ к связанным объектам
+        topic_name = "Unknown"
+        if task.topic:
+            try:
+                topic_name = task.topic.name
+            except Exception:
+                logger.warning(f"Не удалось получить topic.name для задачи {task.id}")
+        
+        subtopic_name = lang_trans['no_subtopic']
+        if task.subtopic:
+            try:
+                subtopic_name = task.subtopic.name
+            except Exception:
+                logger.warning(f"Не удалось получить subtopic.name для задачи {task.id}")
+        
         difficulty = task.difficulty.capitalize() if task.difficulty else "Unknown"
         
         # Экранируем текст для MarkdownV2
