@@ -1029,7 +1029,7 @@ class TaskAdmin(admin.ModelAdmin):
         # Находим все связанные задачи
         all_related_tasks = Task.objects.filter(
             translation_group_id__in=translation_group_ids
-        ).select_related('topic', 'group').prefetch_related('translations')
+        ).select_related('topic', 'subtopic', 'group').prefetch_related('translations')
         
         # Группируем задачи по языкам для информирования
         tasks_by_language = {}
@@ -1834,7 +1834,7 @@ class TaskAdmin(admin.ModelAdmin):
         # Находим все связанные задачи
         all_related_tasks = Task.objects.filter(
             translation_group_id__in=translation_group_ids
-        ).select_related('topic', 'group').prefetch_related('translations')
+        ).select_related('topic', 'subtopic', 'group').prefetch_related('translations')
 
         # Группируем задачи по языкам для информирования
         tasks_by_language = {}
