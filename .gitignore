@@ -41,6 +41,7 @@ tasks.json
 *.log
 db.sqlite3
 media/
+media/CACHE/
 staticfiles/
 local_settings.py
 
