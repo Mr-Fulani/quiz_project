@@ -1997,12 +1997,107 @@ textarea.form-input::-webkit-resizer {
     border-radius: 8px;
 }
 
-.article-text code {
+/* Inline код */
+.article-text code:not(pre code) {
     background: rgba(255,255,255,.08);
     padding: .12em .4em;
     border-radius: 6px;
     font-family: ui-monospace, Menlo, Consolas, monospace;
     font-size: .95em;
+}
+
+/* Блоки кода (pre code) - стиль как в IDE */
+.article-text pre {
+    background: #1e1e1e;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: 1em;
+    margin: 1.2em 0;
+    overflow-x: auto;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+
+.article-text pre code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: #d4d4d4;
+    display: block;
+    white-space: pre;
+    overflow-x: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Стили для highlight.js темы vs2015 */
+.article-text pre code.hljs {
+    padding: 0;
+    background: transparent;
+}
+
+/* Убеждаемся, что span внутри code отображаются inline, а не block */
+.article-text pre code.hljs span,
+.article-text pre code span {
+    display: inline !important;
+    white-space: pre !important;
+}
+
+/* Убеждаемся, что весь код отображается как блок с переносами */
+.article-text pre code {
+    white-space: pre !important;
+    word-wrap: normal !important;
+    word-break: normal !important;
+    display: block !important;
+}
+
+/* Убеждаемся, что все элементы внутри code inline */
+.article-text pre code * {
+    display: inline !important;
+    white-space: pre !important;
+}
+
+/* Номера строк (опционально, через CSS counter) */
+.article-text pre.line-numbers {
+    counter-reset: line;
+}
+
+.article-text pre.line-numbers code {
+    counter-increment: line;
+}
+
+.article-text pre.line-numbers code::before {
+    content: counter(line);
+    display: inline-block;
+    width: 2.5em;
+    padding-right: 1em;
+    margin-right: 1em;
+    text-align: right;
+    color: rgba(255,255,255,.3);
+    border-right: 1px solid rgba(255,255,255,.1);
+    user-select: none;
+}
+
+/* Скроллбар для кодовых блоков */
+.article-text pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+.article-text pre::-webkit-scrollbar-track {
+    background: rgba(255,255,255,.05);
+    border-radius: 4px;
+}
+
+.article-text pre::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.2);
+    border-radius: 4px;
+}
+
+.article-text pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,.3);
 }
 
 .article-text img {
