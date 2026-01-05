@@ -83,6 +83,9 @@ sleep 10
 echo "🧹 Очистка кэша Redis..."
 docker compose exec -T redis redis-cli FLUSHDB || echo "   ℹ️  Redis еще не готов, пропускаем очистку"
 
+echo "🧹 Очистка дериватов изображений (media/CACHE)..."
+docker compose exec -T quiz_backend rm -rf /app/media/CACHE || echo "   ℹ️  media/CACHE не найдено или сервис еще не готов"
+
 echo "🔄 Применение миграций..."
 docker compose exec -T quiz_backend python manage.py makemigrations
 docker compose exec -T quiz_backend python manage.py migrate

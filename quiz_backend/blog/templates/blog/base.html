@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static i18n %}
+{% load static i18n blog_tags %}
 {% get_current_language as language %}
 <html lang="{{ language }}">
 <head>
@@ -99,10 +99,10 @@
     {# <link rel="mask-icon" href="{% static 'path/to/safari-pinned-tab.svg' %}" color="#5bbad5"> #}
 
     <!-- CSS файлы загружаются синхронно для предотвращения FOUC -->
-    <link rel="stylesheet" href="{% static 'blog/css/global.css' %}">
-    <link rel="stylesheet" href="{% static 'blog/css/header-spacing.css' %}">
-    <link rel="stylesheet" href="{% static 'blog/css/animated_auth.css' %}">
-    <link rel="stylesheet" href="{% static 'blog/css/cookie-consent.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/global.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/header-spacing.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/animated_auth.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/cookie-consent.css' %}">
     {% block extra_css %}{% endblock %}
 
     <script type="module" src="{% static 'blog/js/ionicons/ionicons.esm.js' %}" defer></script>
@@ -112,8 +112,8 @@
 
     <!-- Preload Font Awesome для улучшения производительности -->
     <link rel="preload" href="{% static 'blog/webfonts/fa-solid-900.woff2' %}" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}">
-    <script src="{% static 'blog/js/font-awesome.min.js' %}" defer></script>
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/font-awesome.min.css' %}">
+    <script src="{% static_versioned 'blog/js/font-awesome.min.js' %}" defer></script>
     <!-- Font Awesome уже имеет font-display в CSS, preload ускоряет загрузку -->
 
     <!-- GSAP будет подключен в футере для анимации пчелы -->
