@@ -48,10 +48,40 @@ def markdown_to_telegram_html(text: str) -> str:
         # Экранируем HTML в коде
         code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         logger.info(f"Найден блок кода (язык: {language or 'не указан'}), длина: {len(code)} символов")
-        return f'<pre>{code}</pre>'
+        # Сохраняем информацию о языке в атрибуте data-lang для возможного использования
+        # Telegram HTML не поддерживает data-атрибуты напрямую, но можно добавить в комментарий или использовать другой способ
+        if language:
+            # Добавляем язык как часть структуры (можно использовать <code> внутри <pre>)
+            return f'<pre><code class="language-{language}">{code}</code></pre>'
+        else:
+            return f'<pre><code>{code}</code></pre>'
     
     # Ищем ```язык или просто ``` , затем любой текст (включая переносы), затем ```
     text = re.sub(r'```(\w+)?[\r\n]+(.*?)[\r\n]+```', replace_code_block, text, flags=re.DOTALL)
+    
+    # 1.5. Обрабатываем существующие HTML блоки кода <pre><code>
+    # Если в тексте уже есть HTML теги, конвертируем их в формат Telegram
+    def replace_html_code_block(match):
+        pre_attrs = match.group(1) or ''
+        code_attrs = match.group(2) or ''
+        code_content = match.group(3)
+        # Извлекаем язык из класса если есть
+        lang_match = re.search(r'language-(\w+)', code_attrs)
+        language = lang_match.group(1) if lang_match else ''
+        # Экранируем HTML в коде
+        code_content = code_content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        if language:
+            return f'<pre><code class="language-{language}">{code_content}</code></pre>'
+        else:
+            return f'<pre><code>{code_content}</code></pre>'
+    
+    # Обрабатываем <pre><code> блоки
+    text = re.sub(
+        r'<pre([^>]*)><code([^>]*)>(.*?)</code></pre>',
+        replace_html_code_block,
+        text,
+        flags=re.DOTALL
+    )
     
     # 2. Inline код: `код`
     def replace_inline_code(match):

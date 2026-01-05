@@ -139,7 +139,7 @@ All static text is localized using {% trans %} for English msgid and translation
                 <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y" }}</time>
             </div>
             <div class="article-text">
-                {{ post.content|safe }}
+                {{ post.content|process_code|safe }}
             </div>
         </div>
     </section>

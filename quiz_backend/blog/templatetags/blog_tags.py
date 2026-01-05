@@ -4,6 +4,7 @@ from urllib.parse import quote
 from django import template
 from django.conf import settings
 from django.templatetags.static import static
+from blog.utils import process_code_blocks_for_web
 
 
 register = template.Library()
@@ -58,3 +59,20 @@ def static_versioned(path):
     # Добавляем версию как параметр запроса
     separator = '&' if '?' in url else '?'
     return f"{url}{separator}v={version}"
+
+
+@register.filter
+def process_code(content):
+    """
+    Обрабатывает кодовые блоки в контенте поста для веб-отображения.
+    Конвертирует fenced Markdown блоки в HTML с классами для highlight.js.
+    
+    Args:
+        content (str): HTML контент поста
+        
+    Returns:
+        str: HTML с обработанными кодовыми блоками
+    """
+    if not content:
+        return content
+    return process_code_blocks_for_web(content)

@@ -94,6 +94,13 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
+        
+        # Обрабатываем кодовые блоки в контенте перед сохранением
+        # Конвертируем fenced Markdown блоки в HTML с классами для highlight.js
+        if self.content:
+            from blog.utils import process_code_blocks_for_web
+            self.content = process_code_blocks_for_web(self.content)
+        
         super().save(*args, **kwargs)
 
     def get_main_image(self):
