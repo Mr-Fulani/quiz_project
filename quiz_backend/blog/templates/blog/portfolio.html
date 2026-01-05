@@ -71,7 +71,7 @@ All static text is localized using {% trans %} for English msgid and translation
                         <h3 class="h3 blog-item-title">{{ project.title }}</h3>
                         {% if project.description %}
                         <p class="blog-text">
-                            {{ project.description|truncatewords_html:30|safe }}
+                            {{ project.description|striptags|truncatechars:220 }}
                         </p>
                         {% endif %}
                     </div>

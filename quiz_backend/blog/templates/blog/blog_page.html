@@ -68,7 +68,7 @@
                         </div>
                         <h3 class="h3 blog-item-title">{{ post.title }}</h3>
                         <p class="blog-text">
-                            {{ post.excerpt|default:post.content|truncatewords_html:30|safe }}
+                            {{ post.excerpt|default:post.content|striptags|truncatechars:220 }}
                         </p>
                     </div>
                 </a>
