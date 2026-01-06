@@ -92,11 +92,23 @@ def personal_info(request):
                         # Если thumbnail еще не сгенерирован, используем оригинал
                         avatar_url = user.get_avatar_url
                     
+                    # Формируем имя для отображения
+                    # Приоритет: first_name + last_name -> first_name -> email до @ -> username
+                    display_name = f"{user.first_name} {user.last_name}".strip()
+                    if not display_name and user.first_name:
+                        display_name = user.first_name
+                    if not display_name and user.email:
+                        # Берем часть email до @
+                        email_username = user.email.split('@')[0] if '@' in user.email else user.email
+                        display_name = email_username[:30]  # Ограничиваем длину
+                    if not display_name:
+                        display_name = user.username
+                    
                     user_data = {
                         'rank': i,
                         'username': user.username,
-                        'name': f"{user.first_name} {user.last_name}".strip() or user.username,
-                        'display_name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                        'name': display_name,
+                        'display_name': display_name,
                         'avatar': avatar_url,
                         'quizzes_count': quizzes_count,
                         'avg_score': avg_score,
