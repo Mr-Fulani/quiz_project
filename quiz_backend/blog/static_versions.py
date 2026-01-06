@@ -16,5 +16,6 @@ STATIC_VERSIONS = {
     'cookie-consent.css': '2.0',
     'font-awesome.min.css': '2.0',
     'font-awesome.min.js': '2.0',
+    'resources.css': '2.0',  # Обновлено для отображения иконок по 2 в ряд на мобильных
 }
 

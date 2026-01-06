@@ -788,7 +788,7 @@ class PageVideoAdmin(admin.ModelAdmin):
         }),
         ('Медиа контент (десктоп)', {
             'fields': ('media_type', 'video_url', 'video_file', 'gif'),
-            'description': 'Видео для отображения на десктопных устройствах.'
+            'description': 'Видео для отображения на десктопных устройствах. Оставьте поле "Тип медиа" пустым (------), чтобы показывать только текст без видео.'
         }),
         ('Медиа контент (мобильная версия)', {
             'fields': ('mobile_media_type', 'mobile_video_url', 'mobile_video_file', 'mobile_gif'),
