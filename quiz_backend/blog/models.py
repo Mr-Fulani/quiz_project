@@ -966,7 +966,7 @@ class Testimonial(models.Model):
         verbose_name_plural = "Отзывы"
 
     def __str__(self):
-        return f'Отзыв от {self.user.username}'
+        return f'Отзыв от {self.user.get_display_name()}'
 
 
 class CustomURLValidator(URLValidator):

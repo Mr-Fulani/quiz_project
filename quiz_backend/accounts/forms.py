@@ -21,6 +21,14 @@ class CustomUserCreationForm(UserCreationForm):
         """Сохранение пользователя с email."""
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+        
+        # Если first_name не указан, берем часть email до @
+        if not user.first_name and user.email:
+            email_username = user.email.split('@')[0] if '@' in user.email else user.email
+            # Ограничиваем длину и убираем спецсимволы
+            email_username = ''.join(c for c in email_username if c.isalnum() or c in '._-')[:30]
+            user.first_name = email_username
+        
         if commit:
             user.save()
         return user

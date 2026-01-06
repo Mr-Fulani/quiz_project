@@ -49,6 +49,15 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
+        
+        # Если first_name не указан, берем часть email до @
+        if not validated_data.get('first_name') and validated_data.get('email'):
+            email = validated_data['email']
+            email_username = email.split('@')[0] if '@' in email else email
+            # Ограничиваем длину и убираем спецсимволы
+            email_username = ''.join(c for c in email_username if c.isalnum() or c in '._-')[:30]
+            validated_data['first_name'] = email_username
+        
         user = CustomUser.objects.create(**validated_data)
         user.set_password(password)
         user.save()

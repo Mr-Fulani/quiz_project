@@ -147,6 +147,33 @@ class CustomUser(AbstractUser):
             return self.avatar.url
         return '/static/blog/images/avatar/default_avatar.png'
     
+    def get_display_name(self):
+        """
+        Возвращает отображаемое имя пользователя.
+        Приоритет: first_name + last_name -> first_name -> email до @ -> username
+        
+        Returns:
+            str: Отображаемое имя пользователя
+        """
+        # Сначала пробуем first_name + last_name
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}".strip()
+        
+        # Потом только first_name
+        if self.first_name:
+            return self.first_name
+        
+        # Если нет first_name, берем часть email до @
+        if self.email and '@' in self.email:
+            email_username = self.email.split('@')[0]
+            # Ограничиваем длину и убираем спецсимволы для безопасности
+            email_username = ''.join(c for c in email_username if c.isalnum() or c in '._-')[:30]
+            if email_username:
+                return email_username
+        
+        # В крайнем случае используем username
+        return self.username or 'User'
+    
     @property
     def get_avatar_thumbnail_url(self):
         """Возвращает URL thumbnail версии аватара (120x120px) для оптимизации загрузки."""
