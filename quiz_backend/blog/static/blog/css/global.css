@@ -336,49 +336,17 @@ article.active {
     border-radius: 5px; /* Скругляем углы бегунка */
 }
 
-/* Золотой цвет скроллбара для testimonials-list - ПОСЛЕ общего селектора, с максимальной специфичностью */
+/* Скрываем стандартный скроллбар для testimonials-list, так как используем кастомный индикатор */
 .testimonials-list.has-scrollbar::-webkit-scrollbar {
-    width: 5px !important;
-    height: 5px !important;
+    display: none !important; /* Скрываем стандартный скроллбар */
+    width: 0 !important;
+    height: 0 !important;
 }
 
-.testimonials-list.has-scrollbar::-webkit-scrollbar-track {
-    background: var(--onyx) !important;
-    border-radius: 5px !important;
-}
-
-.testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(45, 100%, 72%) !important; /* Золотой цвет - переопределяет общий стиль */
-    border-radius: 5px !important;
-}
-
-/* Для мобильных - делаем скроллбар всегда видимым и золотым */
-@media (max-width: 580px) {
-    /* Для Firefox */
-    .testimonials-list.has-scrollbar {
-        scrollbar-width: thin !important;
-        scrollbar-color: hsl(45, 100%, 72%) var(--onyx) !important;
-    }
-    
-    .testimonials-list.has-scrollbar::-webkit-scrollbar {
-        width: 10px !important;
-        height: 10px !important;
-        -webkit-appearance: none !important;
-        display: block !important;
-    }
-    
-    .testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
-        background: hsl(45, 100%, 72%) !important;
-        border-radius: 10px !important;
-        -webkit-appearance: none !important;
-        min-height: 30px !important;
-    }
-    
-    .testimonials-list.has-scrollbar::-webkit-scrollbar-track {
-        background: var(--onyx) !important;
-        border-radius: 10px !important;
-        -webkit-appearance: none !important;
-    }
+/* Для Firefox - скрываем стандартный скроллбар */
+.testimonials-list.has-scrollbar {
+    scrollbar-width: none !important; /* Скрываем скроллбар в Firefox */
+    -ms-overflow-style: none !important; /* Скрываем скроллбар в IE/Edge */
 }
 
 /* 159: Настройка кнопок скроллбара (если они присутствуют) */
@@ -802,6 +770,11 @@ article.active {
     margin-bottom: 20px; /* 454: Отступ снизу для заголовка секции отзывов */
 }
 
+/* Обертка для testimonials-list с индикатором */
+.testimonials-wrapper {
+    position: relative;
+}
+
 /* 456: Стили для контейнера, содержащего список отзывов */
 .testimonials-list {
     display: flex; /* 458: Использование flexbox для горизонтального расположения отзывов */
@@ -810,11 +783,61 @@ article.active {
     gap: 15px; /* 461: Расстояние между отзывами */
     margin: 0 -15px; /* 462: Отрицательные боковые отступы для компенсации внутренних отступов */
     padding: 25px 15px; /* 463: Внутренние отступы: 25px сверху/снизу, 15px слева/справа */
-    padding-bottom: 35px; /* 464: Дополнительный отступ снизу для создания пространства */
+    padding-bottom: 50px; /* 464: Увеличенный отступ снизу для индикатора */
     overflow-x: auto; /* 465: Включаем горизонтальную прокрутку, если отзывы не помещаются */
     scroll-behavior: smooth; /* 466: Плавное поведение прокрутки */
     overscroll-behavior-inline: contain; /* 467: Предотвращает "выбегание" прокрутки за пределы контейнера по горизонтали */
     scroll-snap-type: inline mandatory; /* 468: Принудительное "прилипание" элементов при прокрутке */
+}
+
+/* Кастомный золотой индикатор свайпа */
+.scroll-indicator {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 4px;
+    width: 80%;
+    max-width: 300px;
+    background: rgba(249, 171, 0, 0.2); /* Полупрозрачный золотой фон */
+    border-radius: 2px;
+    z-index: 10;
+    pointer-events: none;
+    transition: width 0.3s ease, left 0.3s ease;
+    overflow: hidden;
+}
+
+.scroll-indicator::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: var(--indicator-left, 0px);
+    height: 100%;
+    width: var(--indicator-width, 60px);
+    min-width: 60px;
+    background: hsl(45, 100%, 72%); /* Золотой цвет */
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(249, 171, 0, 0.5); /* Свечение */
+    transition: left 0.1s ease, width 0.1s ease;
+}
+
+/* Для мобильных - более заметный индикатор */
+@media (max-width: 580px) {
+    .scroll-indicator {
+        height: 5px;
+        bottom: 20px;
+        width: 90%;
+        max-width: 250px;
+    }
+    
+    .scroll-indicator::after {
+        min-width: 80px;
+        box-shadow: 0 0 15px rgba(249, 171, 0, 0.6);
+    }
+    
+    .testimonials-list {
+        padding-bottom: 55px; /* Больше места для индикатора на мобильных */
+    }
 }
 
 /* 470: Стили для отдельного элемента отзыва */
