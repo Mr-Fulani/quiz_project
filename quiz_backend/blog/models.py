@@ -748,6 +748,42 @@ class PageVideo(models.Model):
         verbose_name="Текстовый контент",
         help_text="Введите текст для отображения на странице. Если пусто, будет использован текст по умолчанию. Каждый абзац с новой строки."
     )
+    
+    # Поля для мобильной версии видео
+    mobile_media_type = models.CharField(
+        max_length=10,
+        choices=MEDIA_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Тип медиа (мобильная версия)",
+        help_text="Выберите тип медиа для мобильной версии. Если не указано, будет использоваться основное видео."
+    )
+    mobile_video_url = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name="Ссылка на YouTube (мобильная версия)",
+        help_text="Вставьте ссылку на YouTube-видео для мобильной версии. Используется только если выбран тип 'YouTube видео'."
+    )
+    mobile_video_file = models.FileField(
+        upload_to='videos/page_videos/mobile/',
+        blank=True,
+        null=True,
+        verbose_name="Локальный видеофайл (мобильная версия)",
+        help_text="Загрузите локальный видеофайл для мобильной версии (например, .mp4). Используется только если выбран тип 'Локальное видео'."
+    )
+    mobile_gif = models.FileField(
+        upload_to='gifs/page_videos/mobile/',
+        blank=True,
+        null=True,
+        verbose_name="GIF-файл (мобильная версия)",
+        help_text="Загрузите GIF-файл для мобильной версии. Используется только если выбран тип 'GIF-файл'."
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Дата обновления",
+        help_text="Автоматически обновляется при каждом сохранении записи."
+    )
 
     class Meta:
         verbose_name = "Видео для страницы"
@@ -801,6 +837,50 @@ class PageVideo(models.Model):
                 return mark_safe(f"{active}<br><br><strong>Внимание:</strong><br>{'<br>'.join(warnings)}")
         
         return mark_safe(active)
+    
+    def _get_youtube_embed_url_with_version(self, video_url):
+        """
+        Внутренний метод для получения версионированного YouTube embed URL.
+        Использует timestamp обновления записи как версию для обхода кэша браузера.
+        """
+        if not video_url:
+            return None
+        
+        from blog.templatetags.youtube_tags import _extract_video_id
+        video_id = _extract_video_id(video_url)
+        if not video_id:
+            return video_url
+        
+        # Используем timestamp обновления как версию
+        version = int(self.updated_at.timestamp()) if self.updated_at else None
+        
+        params = [
+            "autoplay=1",
+            "mute=1",
+            "rel=0",
+            "modestbranding=1",
+            "playsinline=1",
+            "loop=1"
+        ]
+        
+        if version:
+            params.append(f"v={version}")
+        
+        return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
+    
+    @property
+    def youtube_embed_url_versioned(self):
+        """
+        Возвращает версионированный YouTube embed URL для основного видео.
+        """
+        return self._get_youtube_embed_url_with_version(self.video_url)
+    
+    @property
+    def mobile_youtube_embed_url_versioned(self):
+        """
+        Возвращает версионированный YouTube embed URL для мобильного видео.
+        """
+        return self._get_youtube_embed_url_with_version(self.mobile_video_url)
     
     @classmethod
     def get_priority_video(cls, page):

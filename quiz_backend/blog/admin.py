@@ -786,8 +786,13 @@ class PageVideoAdmin(admin.ModelAdmin):
         ('Основная информация', {
             'fields': ('page', 'title', 'order')
         }),
-        ('Медиа контент', {
+        ('Медиа контент (десктоп)', {
             'fields': ('media_type', 'video_url', 'video_file', 'gif'),
+            'description': 'Видео для отображения на десктопных устройствах.'
+        }),
+        ('Медиа контент (мобильная версия)', {
+            'fields': ('mobile_media_type', 'mobile_video_url', 'mobile_video_file', 'mobile_gif'),
+            'description': 'Видео для отображения на мобильных устройствах. Если не указано, будет использоваться основное видео.'
         }),
         ('Настройки отображения', {
             'fields': ('show_media', 'show_text', 'text_content'),

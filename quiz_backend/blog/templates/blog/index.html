@@ -23,43 +23,134 @@
             {% if video.show_media %}
             <section class="video section-gap">
                 <div class="content-card">
-                    {% if video.media_type == 'video_file' and video.video_file %}
-                        <div class="video-banner-box">
-                            <video id="local-video-home"
-                                width="100%" height="400"
-                                autoplay muted loop playsinline
-                                preload="auto"
-                                style="cursor: pointer;"
-                                title="{% trans 'Click to enable sound' %}">
-                                <source src="{{ video.video_file.url }}" type="video/mp4">
-                                {% trans "Your browser does not support the video tag." %}
-                            </video>
-                        </div>
-                    {% elif video.media_type == 'video_url' and video.video_url %}
-                        <div class="video-banner-box" id="video-container-home">
-                            <iframe id="youtube-player-home"
+                    {# Десктопная версия видео #}
+                    <div class="video-desktop">
+                        {% if video.media_type == 'video_file' and video.video_file %}
+                            <div class="video-banner-box">
+                                <video id="local-video-home"
                                     width="100%" height="400"
-                                    src="{{ video.video_url|youtube_embed_url }}"
-                                    style="border: none; cursor: pointer;"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowfullscreen
-                                    referrerpolicy="strict-origin-when-cross-origin"
-                                    loading="lazy"
+                                    autoplay muted loop playsinline
+                                    preload="auto"
+                                    style="cursor: pointer;"
                                     title="{% trans 'Click to enable sound' %}">
-                            </iframe>
-                            <noscript>
-                                <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px;">
-                                    <p style="color: #fff; margin-bottom: 20px;">{% trans "Video requires JavaScript to play." %}</p>
-                                    <a href="{{ video.video_url }}" target="_blank" rel="noopener noreferrer" 
-                                       style="display: inline-block; padding: 12px 24px; background: #ff6b6b; color: #fff; text-decoration: none; border-radius: 5px;">
-                                        {% trans "Watch on YouTube" %}
-                                    </a>
+                                    <source src="{{ video.video_file.url }}" type="video/mp4">
+                                    {% trans "Your browser does not support the video tag." %}
+                                </video>
+                            </div>
+                        {% elif video.media_type == 'video_url' and video.video_url %}
+                            <div class="video-banner-box" id="video-container-home">
+                                <iframe id="youtube-player-home"
+                                        width="100%" height="400"
+                                        src="{{ video.youtube_embed_url_versioned }}"
+                                        style="border: none; cursor: pointer;"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen
+                                        referrerpolicy="strict-origin-when-cross-origin"
+                                        loading="lazy"
+                                        title="{% trans 'Click to enable sound' %}">
+                                </iframe>
+                                <noscript>
+                                    <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px;">
+                                        <p style="color: #fff; margin-bottom: 20px;">{% trans "Video requires JavaScript to play." %}</p>
+                                        <a href="{{ video.video_url }}" target="_blank" rel="noopener noreferrer" 
+                                           style="display: inline-block; padding: 12px 24px; background: #ff6b6b; color: #fff; text-decoration: none; border-radius: 5px;">
+                                            {% trans "Watch on YouTube" %}
+                                        </a>
+                                    </div>
+                                </noscript>
+                            </div>
+                        {% elif video.media_type == 'gif' and video.gif %}
+                            <div class="video-banner-box">
+                                <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {# Мобильная версия видео #}
+                    {% if video.mobile_media_type %}
+                        <div class="video-mobile">
+                            {% if video.mobile_media_type == 'video_file' and video.mobile_video_file %}
+                                <div class="video-banner-box">
+                                    <video id="local-video-home-mobile"
+                                        width="100%" height="400"
+                                        autoplay muted loop playsinline
+                                        preload="auto"
+                                        style="cursor: pointer;"
+                                        title="{% trans 'Click to enable sound' %}">
+                                        <source src="{{ video.mobile_video_file.url }}" type="video/mp4">
+                                        {% trans "Your browser does not support the video tag." %}
+                                    </video>
                                 </div>
-                            </noscript>
+                            {% elif video.mobile_media_type == 'video_url' and video.mobile_video_url %}
+                                <div class="video-banner-box" id="video-container-home-mobile">
+                                    <iframe id="youtube-player-home-mobile"
+                                            width="100%" height="400"
+                                            src="{{ video.mobile_youtube_embed_url_versioned }}"
+                                            style="border: none; cursor: pointer;"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen
+                                            referrerpolicy="strict-origin-when-cross-origin"
+                                            loading="lazy"
+                                            title="{% trans 'Click to enable sound' %}">
+                                    </iframe>
+                                    <noscript>
+                                        <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px;">
+                                            <p style="color: #fff; margin-bottom: 20px;">{% trans "Video requires JavaScript to play." %}</p>
+                                            <a href="{{ video.mobile_video_url }}" target="_blank" rel="noopener noreferrer" 
+                                               style="display: inline-block; padding: 12px 24px; background: #ff6b6b; color: #fff; text-decoration: none; border-radius: 5px;">
+                                                {% trans "Watch on YouTube" %}
+                                            </a>
+                                        </div>
+                                    </noscript>
+                                </div>
+                            {% elif video.mobile_media_type == 'gif' and video.mobile_gif %}
+                                <div class="video-banner-box">
+                                    <img id="gif-home-mobile" src="{{ video.mobile_gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
+                                </div>
+                            {% endif %}
                         </div>
-                    {% elif video.media_type == 'gif' and video.gif %}
-                        <div class="video-banner-box">
-                            <img id="gif-home" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
+                    {% else %}
+                        {# Если мобильного видео нет, показываем десктопное на мобильных тоже #}
+                        <div class="video-mobile">
+                            {% if video.media_type == 'video_file' and video.video_file %}
+                                <div class="video-banner-box">
+                                    <video id="local-video-home-mobile"
+                                        width="100%" height="400"
+                                        autoplay muted loop playsinline
+                                        preload="auto"
+                                        style="cursor: pointer;"
+                                        title="{% trans 'Click to enable sound' %}">
+                                        <source src="{{ video.video_file.url }}" type="video/mp4">
+                                        {% trans "Your browser does not support the video tag." %}
+                                    </video>
+                                </div>
+                            {% elif video.media_type == 'video_url' and video.video_url %}
+                                <div class="video-banner-box" id="video-container-home-mobile">
+                                    <iframe id="youtube-player-home-mobile"
+                                            width="100%" height="400"
+                                            src="{{ video.youtube_embed_url_versioned }}"
+                                            style="border: none; cursor: pointer;"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen
+                                            referrerpolicy="strict-origin-when-cross-origin"
+                                            loading="lazy"
+                                            title="{% trans 'Click to enable sound' %}">
+                                    </iframe>
+                                    <noscript>
+                                        <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px;">
+                                            <p style="color: #fff; margin-bottom: 20px;">{% trans "Video requires JavaScript to play." %}</p>
+                                            <a href="{{ video.video_url }}" target="_blank" rel="noopener noreferrer" 
+                                               style="display: inline-block; padding: 12px 24px; background: #ff6b6b; color: #fff; text-decoration: none; border-radius: 5px;">
+                                                {% trans "Watch on YouTube" %}
+                                            </a>
+                                        </div>
+                                    </noscript>
+                                </div>
+                            {% elif video.media_type == 'gif' and video.gif %}
+                                <div class="video-banner-box">
+                                    <img id="gif-home-mobile" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
                 </div>
@@ -322,14 +413,14 @@ window.testimonialsTranslations = {
 <script src="{% static 'blog/js/testimonials.js' %}"></script>
 <script src="{% static 'blog/js/video_control.js' %}"></script>
 <script>
-// Диагностика и автоматическая обработка ошибок YouTube iframe (ошибка 153)
-document.addEventListener('DOMContentLoaded', function() {
-    const youtubeIframe = document.getElementById('youtube-player-home');
-    const container = document.getElementById('video-container-home');
+// Функция для обработки YouTube видео
+function setupYouTubeVideo(iframeId, containerId) {
+    const youtubeIframe = document.getElementById(iframeId);
+    const container = document.getElementById(containerId);
     
     if (youtubeIframe && container) {
         const embedUrl = youtubeIframe.getAttribute('src');
-        console.log('🎬 YouTube Video Diagnostics:');
+        console.log('🎬 YouTube Video Diagnostics:', iframeId);
         console.log('Embed URL:', embedUrl);
         
         // Извлекаем Video ID из URL
@@ -352,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const parsed = JSON.parse(data);
                             if (parsed.event === 'onError' || parsed.info === 153) {
                                 errorDetected = true;
-                                showFallback();
+                                showFallback(container, watchUrl, videoId);
                             }
                         } catch (e) {}
                     }
@@ -365,11 +456,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const iframeRect = youtubeIframe.getBoundingClientRect();
                 if (!errorDetected && (iframeRect.height === 0 || iframeRect.width === 0)) {
                     console.warn('⚠️ Видео не загрузилось за 5 секунд');
-                    showFallback();
+                    showFallback(container, watchUrl, videoId);
                 }
             }, 5000);
             
-            function showFallback() {
+            function showFallback(container, watchUrl, videoId) {
                 console.error('❌ Ошибка загрузки YouTube видео');
                 console.log('📌 Возможные причины:');
                 console.log('   1. Встраивание отключено в настройках видео');
@@ -395,6 +486,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+}
+
+// Диагностика и автоматическая обработка ошибок YouTube iframe (ошибка 153)
+document.addEventListener('DOMContentLoaded', function() {
+    // Обрабатываем десктопное видео
+    setupYouTubeVideo('youtube-player-home', 'video-container-home');
+    
+    // Обрабатываем мобильное видео (если есть)
+    setupYouTubeVideo('youtube-player-home-mobile', 'video-container-home-mobile');
 });
 </script>
 <script>

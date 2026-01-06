@@ -3019,6 +3019,16 @@ article .video .video-banner-box img {
     object-fit: cover;
 }
 
+/* Для мобильных устройств - формат рилс: используем contain для полного отображения */
+@media (max-width: 580px) {
+    article .video .video-banner-box iframe,
+    article .video .video-banner-box video,
+    article .video .video-banner-box img {
+        object-fit: contain; /* Показываем видео полностью в формате рилс */
+        background: var(--eerie-black1); /* Темный фон для черных полос */
+    }
+}
+
 /* Кнопка включения/выключения звука для видео */
 .video-sound-toggle {
     position: absolute;
@@ -3109,6 +3119,35 @@ article .video .video-banner-box img {
 /* Отступ для заголовка видео */
 article .video .video-content {
     margin-top: 10px;
+}
+
+/* Скрытие/показ десктопной и мобильной версий видео */
+.video-desktop {
+    display: block;
+}
+
+.video-mobile {
+    display: none;
+}
+
+/* На мобильных устройствах показываем мобильную версию, скрываем десктопную */
+@media (max-width: 580px) {
+    .video-desktop {
+        display: none;
+    }
+    
+    .video-mobile {
+        display: block;
+    }
+    
+    article .video .video-banner-box {
+        width: 100%;
+        max-width: 400px; /* Ограничиваем ширину для вертикального формата */
+        margin-left: auto;
+        margin-right: auto;
+        padding-bottom: 177.78%; /* Соотношение 9:16 (16/9 * 100) для формата рилс */
+        height: 0;
+    }
 }
 
 /* Медиа-запрос для экранов от 580px */
