@@ -336,6 +336,51 @@ article.active {
     border-radius: 5px; /* Скругляем углы бегунка */
 }
 
+/* Золотой цвет скроллбара для testimonials-list - ПОСЛЕ общего селектора, с максимальной специфичностью */
+.testimonials-list.has-scrollbar::-webkit-scrollbar {
+    width: 5px !important;
+    height: 5px !important;
+}
+
+.testimonials-list.has-scrollbar::-webkit-scrollbar-track {
+    background: var(--onyx) !important;
+    border-radius: 5px !important;
+}
+
+.testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(45, 100%, 72%) !important; /* Золотой цвет - переопределяет общий стиль */
+    border-radius: 5px !important;
+}
+
+/* Для мобильных - делаем скроллбар всегда видимым и золотым */
+@media (max-width: 580px) {
+    /* Для Firefox */
+    .testimonials-list.has-scrollbar {
+        scrollbar-width: thin !important;
+        scrollbar-color: hsl(45, 100%, 72%) var(--onyx) !important;
+    }
+    
+    .testimonials-list.has-scrollbar::-webkit-scrollbar {
+        width: 10px !important;
+        height: 10px !important;
+        -webkit-appearance: none !important;
+        display: block !important;
+    }
+    
+    .testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
+        background: hsl(45, 100%, 72%) !important;
+        border-radius: 10px !important;
+        -webkit-appearance: none !important;
+        min-height: 30px !important;
+    }
+    
+    .testimonials-list.has-scrollbar::-webkit-scrollbar-track {
+        background: var(--onyx) !important;
+        border-radius: 10px !important;
+        -webkit-appearance: none !important;
+    }
+}
+
 /* 159: Настройка кнопок скроллбара (если они присутствуют) */
 .has-scrollbar::-webkit-scrollbar-button {
     width: 20px; /* Задаём ширину кнопок скроллбара */
@@ -3719,7 +3764,14 @@ article .video .video-content {
     }
 }
 
+/* КРИТИЧЕСКИ ВАЖНО: Золотой скроллбар для testimonials-list - в конце файла для максимального приоритета */
+.testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(45, 100%, 72%) !important;
+}
 
-
-
+@media (max-width: 580px) {
+    .testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
+        background: hsl(45, 100%, 72%) !important;
+    }
+}
 
