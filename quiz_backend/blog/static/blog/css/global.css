@@ -113,6 +113,11 @@ img, ion-icon, a, button, time, span {
     display: block;
 }
 
+/* Исключение: span внутри однострочного кода должен быть inline */
+.article-text code:not(pre code) span {
+    display: inline !important;
+}
+
 /* 53: Сброс стилей для кнопок: наследование шрифта, отсутствие фона и рамки, выравнивание по левому краю и указатель курсора */
 button {
     font: inherit;
@@ -1997,13 +2002,160 @@ textarea.form-input::-webkit-resizer {
     border-radius: 8px;
 }
 
-/* Inline код */
+/* Inline код - упрощенный стиль без теней */
 .article-text code:not(pre code) {
-    background: rgba(255,255,255,.08);
-    padding: .12em .4em;
-    border-radius: 6px;
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    font-size: .95em;
+    /* Простой непрозрачный фон вместо полупрозрачного, чтобы избежать эффекта "двух теней" */
+    background: #2a2a2a !important;
+    padding: .12em .4em !important;
+    border-radius: 6px !important;
+    font-family: ui-monospace, Menlo, Consolas, monospace !important;
+    font-size: .95em !important;
+    color: inherit !important;
+    /* Убираем ВСЕ тени и эффекты */
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    text-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+    /* Убираем все эффекты */
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    /* Убираем все переходы */
+    transition: none !important;
+    -webkit-transition: none !important;
+    /* Убираем все псевдоэлементы */
+    position: static !important;
+    z-index: auto !important;
+    /* Убираем все наследуемые стили */
+    display: inline !important;
+    line-height: inherit !important;
+    /* Убираем все градиенты и изображения фона */
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-position: 0 0 !important;
+    background-size: auto !important;
+    background-attachment: scroll !important;
+}
+
+/* Убираем подсветку синтаксиса от highlight.js для однострочного кода */
+.article-text code:not(pre code).hljs,
+.article-text code:not(pre code)[class*="language-"] {
+    background: #2a2a2a !important;
+    background-color: #2a2a2a !important;
+    background-image: none !important;
+    color: inherit !important;
+    padding: .12em .4em !important;
+    border-radius: 6px !important;
+    /* Убираем все тени и эффекты */
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    text-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    transition: none !important;
+    -webkit-transition: none !important;
+}
+
+/* Убираем span элементы от highlight.js внутри однострочного кода */
+.article-text code:not(pre code) span {
+    display: inline !important;
+    color: inherit !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    /* Убираем все тени и эффекты */
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    text-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    transition: none !important;
+    -webkit-transition: none !important;
+    position: static !important;
+}
+
+/* Убираем все псевдоэлементы от highlight.js для однострочного кода */
+.article-text code:not(pre code)::before,
+.article-text code:not(pre code)::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Дополнительная защита от всех стилей highlight.js для однострочного кода */
+.article-text code:not(pre code),
+.article-text code:not(pre code).hljs,
+.article-text code:not(pre code)[class*="language-"],
+.article-text code:not(pre code).hljs *,
+.article-text code:not(pre code)[class*="language-"] * {
+    /* Убираем все возможные тени */
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    text-shadow: none !important;
+    /* Убираем все границы */
+    border: none !important;
+    outline: none !important;
+    /* Убираем все эффекты */
+    filter: none !important;
+    -webkit-filter: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    /* Убираем все переходы, которые могут создавать эффект "двух теней" */
+    transition: none !important;
+    -webkit-transition: none !important;
+    /* Убираем все псевдоэлементы */
+    position: static !important;
+}
+
+/* Переопределяем ВСЕ возможные стили от темы highlight.js для однострочного кода */
+.article-text code:not(pre code),
+.article-text code:not(pre code).hljs {
+    /* Используем непрозрачный фон вместо полупрозрачного */
+    background: #2a2a2a !important;
+    background-color: #2a2a2a !important;
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-position: 0 0 !important;
+    background-size: auto !important;
+    background-attachment: scroll !important;
+    /* Убираем все тени */
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    text-shadow: none !important;
+    /* Убираем все границы и обводки */
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    outline: none !important;
+    outline-width: 0 !important;
+    /* Убираем все эффекты */
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    /* Убираем все переходы */
+    transition: none !important;
+    -webkit-transition: none !important;
+    /* Убираем все псевдоэлементы */
+    position: static !important;
+    z-index: auto !important;
 }
 
 /* Блоки кода (pre code) - стиль как в IDE */
