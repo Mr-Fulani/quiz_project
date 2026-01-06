@@ -336,17 +336,40 @@ article.active {
     border-radius: 5px; /* Скругляем углы бегунка */
 }
 
-/* Скрываем стандартный скроллбар для testimonials-list, так как используем кастомный индикатор */
+/* Золотой цвет скроллбара для testimonials-list на десктопе */
 .testimonials-list.has-scrollbar::-webkit-scrollbar {
-    display: none !important; /* Скрываем стандартный скроллбар */
-    width: 0 !important;
-    height: 0 !important;
+    width: 5px !important;
+    height: 5px !important;
 }
 
-/* Для Firefox - скрываем стандартный скроллбар */
+.testimonials-list.has-scrollbar::-webkit-scrollbar-track {
+    background: var(--onyx) !important;
+    border-radius: 5px !important;
+}
+
+.testimonials-list.has-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(45, 100%, 72%) !important; /* Золотой цвет */
+    border-radius: 5px !important;
+}
+
+/* Для Firefox на десктопе */
 .testimonials-list.has-scrollbar {
-    scrollbar-width: none !important; /* Скрываем скроллбар в Firefox */
-    -ms-overflow-style: none !important; /* Скрываем скроллбар в IE/Edge */
+    scrollbar-width: thin !important;
+    scrollbar-color: hsl(45, 100%, 72%) var(--onyx) !important;
+}
+
+/* На мобильных - скрываем стандартный скроллбар, используем кастомный индикатор */
+@media (max-width: 580px) {
+    .testimonials-list.has-scrollbar::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    
+    .testimonials-list.has-scrollbar {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
 }
 
 /* 159: Настройка кнопок скроллбара (если они присутствуют) */
@@ -790,8 +813,9 @@ article.active {
     scroll-snap-type: inline mandatory; /* 468: Принудительное "прилипание" элементов при прокрутке */
 }
 
-/* Кастомный золотой индикатор свайпа */
+/* Кастомный золотой индикатор свайпа - скрыт по умолчанию (для десктопа) */
 .scroll-indicator {
+    display: none !important; /* Скрываем на десктопе с приоритетом */
     position: absolute;
     bottom: 15px;
     left: 50%;
@@ -821,9 +845,10 @@ article.active {
     transition: left 0.1s ease, width 0.1s ease;
 }
 
-/* Для мобильных - более заметный индикатор */
+/* Для мобильных - показываем кастомный индикатор и скрываем стандартный скроллбар */
 @media (max-width: 580px) {
     .scroll-indicator {
+        display: block !important; /* Показываем на мобильных */
         height: 5px;
         bottom: 20px;
         width: 90%;

@@ -210,33 +210,36 @@
                 </div>
             </div>
         </div>
-        <ul class="testimonials-list has-scrollbar">
-            {% for testimonial in testimonials|slice:"3" %}
-            <li class="testimonials-item" data-username="{{ testimonial.user.username }}">
-                <div class="content-card" data-testimonials-item>
-                    <figure class="testimonials-avatar-box">
-                        {% if testimonial.user.avatar %}
-                            <img src="{% if testimonial.user.avatar_thumbnail.url %}{{ testimonial.user.avatar_thumbnail.url }}{% else %}{{ testimonial.user.avatar.url }}{% endif %}" alt="avatar" data-testimonials-avatar width="60" height="60" loading="lazy">
-                        {% else %}
-                            <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-testimonials-avatar width="60" height="60" loading="lazy">
-                        {% endif %}
-                    </figure>
+        <div class="testimonials-wrapper">
+            <ul class="testimonials-list has-scrollbar" id="testimonials-list">
+                {% for testimonial in testimonials|slice:"3" %}
+                <li class="testimonials-item" data-username="{{ testimonial.user.username }}">
+                    <div class="content-card" data-testimonials-item>
+                        <figure class="testimonials-avatar-box">
+                            {% if testimonial.user.avatar %}
+                                <img src="{% if testimonial.user.avatar_thumbnail.url %}{{ testimonial.user.avatar_thumbnail.url }}{% else %}{{ testimonial.user.avatar.url }}{% endif %}" alt="avatar" data-testimonials-avatar width="60" height="60" loading="lazy">
+                            {% else %}
+                                <img src="{% static 'blog/images/avatar/default_avatar.png' %}" alt="avatar" data-testimonials-avatar width="60" height="60" loading="lazy">
+                            {% endif %}
+                        </figure>
 
-                    <div class="testimonials-content">
-                        <h4 class="h4 testimonials-item-title" data-testimonials-title>
-                            {{ testimonial.user.get_display_name }}
-                        </h4>
-                        <div class="testimonials-text" data-testimonials-text>
-                            <p>{{ testimonial.text }}</p>
+                        <div class="testimonials-content">
+                            <h4 class="h4 testimonials-item-title" data-testimonials-title>
+                                {{ testimonial.user.get_display_name }}
+                            </h4>
+                            <div class="testimonials-text" data-testimonials-text>
+                                <p>{{ testimonial.text }}</p>
+                            </div>
+                            <time datetime="{{ testimonial.created_at|date:'Y-m-d' }}" data-date-joined>
+                                {{ testimonial.created_at|date:"d F, Y" }}
+                            </time>
                         </div>
-                        <time datetime="{{ testimonial.created_at|date:'Y-m-d' }}" data-date-joined>
-                            {{ testimonial.created_at|date:"d F, Y" }}
-                        </time>
                     </div>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="scroll-indicator" id="testimonials-indicator"></div>
+        </div>
     </section>
 
     {% include "blog/includes/testimonial_modals.html" %}
@@ -453,6 +456,61 @@ window.testimonialsTranslations = {
     'errorSubmittingTestimonial': '{% trans "An error occurred while submitting the testimonial. Please try again." %}',
     'addTestimonialButtonClicked': '{% trans "Add testimonial button clicked, isAuthenticated:" %}'
 };
+</script>
+<script>
+// Обновление кастомного индикатора скролла для Testimonials
+document.addEventListener('DOMContentLoaded', function() {
+    const list = document.getElementById('testimonials-list');
+    const indicator = document.getElementById('testimonials-indicator');
+    
+    if (!list || !indicator) return;
+    
+    function updateIndicator() {
+        // На десктопе скрываем индикатор
+        if (window.innerWidth > 580) {
+            indicator.style.display = 'none';
+            return;
+        }
+        
+        const scrollLeft = list.scrollLeft;
+        const scrollWidth = list.scrollWidth;
+        const clientWidth = list.clientWidth;
+        const scrollable = scrollWidth > clientWidth;
+        
+        if (!scrollable) {
+            indicator.style.display = 'none';
+            return;
+        }
+        
+        indicator.style.display = 'block';
+        
+        // Вычисляем позицию и ширину активной части индикатора
+        const scrollPercent = scrollLeft / (scrollWidth - clientWidth);
+        const indicatorContainerWidth = indicator.offsetWidth || 300;
+        const activeWidth = (clientWidth / scrollWidth) * indicatorContainerWidth;
+        const maxScroll = indicatorContainerWidth - activeWidth;
+        const activeLeft = scrollPercent * maxScroll;
+        
+        // Обновляем CSS переменные для псевдоэлемента
+        indicator.style.setProperty('--indicator-left', activeLeft + 'px');
+        indicator.style.setProperty('--indicator-width', activeWidth + 'px');
+    }
+    
+    // Обновляем при скролле
+    list.addEventListener('scroll', updateIndicator);
+    
+    // Обновляем при изменении размера окна
+    window.addEventListener('resize', updateIndicator);
+    
+    // Инициализация с небольшой задержкой для правильного расчета размеров
+    setTimeout(updateIndicator, 100);
+    
+    // Используем MutationObserver для отслеживания изменений в DOM
+    const observer = new MutationObserver(function() {
+        setTimeout(updateIndicator, 100);
+    });
+    observer.observe(list, { childList: true, subtree: true });
+});
 </script>
 
 <script src="{% static 'blog/js/testimonials.js' %}"></script>
