@@ -2168,6 +2168,10 @@ textarea.form-input::-webkit-resizer {
     overflow-x: auto;
     position: relative;
     box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    /* Сохраняем все пробелы и отступы */
+    white-space: pre;
+    tab-size: 4;
+    -moz-tab-size: 4;
 }
 
 .article-text pre code {
@@ -2179,10 +2183,13 @@ textarea.form-input::-webkit-resizer {
     line-height: 1.6;
     color: #d4d4d4;
     display: block;
-    white-space: pre;
+    white-space: pre; /* Сохраняет все пробелы и переносы строк */
     overflow-x: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Убеждаемся, что все пробелы и отступы сохраняются */
+    tab-size: 4;
+    -moz-tab-size: 4;
 }
 
 /* Стили для highlight.js темы vs2015 */
@@ -2196,6 +2203,9 @@ textarea.form-input::-webkit-resizer {
 .article-text pre code span {
     display: inline !important;
     white-space: pre !important;
+    /* Сохраняем табуляцию в span элементах */
+    tab-size: 4 !important;
+    -moz-tab-size: 4 !important;
 }
 
 /* Убеждаемся, что весь код отображается как блок с переносами */
@@ -2204,12 +2214,18 @@ textarea.form-input::-webkit-resizer {
     word-wrap: normal !important;
     word-break: normal !important;
     display: block !important;
+    /* Сохраняем табуляцию */
+    tab-size: 4 !important;
+    -moz-tab-size: 4 !important;
 }
 
 /* Убеждаемся, что все элементы внутри code inline */
 .article-text pre code * {
     display: inline !important;
     white-space: pre !important;
+    /* Сохраняем табуляцию во всех элементах */
+    tab-size: 4 !important;
+    -moz-tab-size: 4 !important;
 }
 
 /* Номера строк (опционально, через CSS counter) */
