@@ -839,16 +839,23 @@ class PageVideo(models.Model):
         
         return mark_safe(active)
     
-    def _get_youtube_embed_url_with_version(self, video_url):
+    def _get_youtube_embed_url_with_version(self, video_url, for_mobile=False):
         """
         Внутренний метод для получения версионированного YouTube embed URL.
         Использует timestamp обновления записи как версию для обхода кэша браузера.
+        
+        Args:
+            video_url: URL видео YouTube
+            for_mobile: Если True, использует youtube.com с enablejsapi для предотвращения ошибки 153
         """
         if not video_url:
             return None
         
         try:
             from blog.templatetags.youtube_tags import _extract_video_id
+            from django.conf import settings
+            from urllib.parse import quote
+            
             video_id = _extract_video_id(video_url)
             if not video_id:
                 return video_url
@@ -856,20 +863,47 @@ class PageVideo(models.Model):
             # Используем timestamp обновления как версию
             version = int(self.updated_at.timestamp()) if self.updated_at else None
             
-            params = [
-                "autoplay=1",
-                "mute=1",
-                "rel=0",
-                "modestbranding=1",
-                "playsinline=1",
-                "loop=1"
-            ]
-            
-            if version:
-                params.append(f"v={version}")
-            
-            return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
-        except Exception:
+            # Для мобильных используем youtube.com с enablejsapi для предотвращения ошибки 153
+            if for_mobile:
+                # Получаем origin из настроек
+                origin = getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')
+                if not origin.startswith(('http://', 'https://')):
+                    origin = f"https://{origin}"
+                
+                params = [
+                    "enablejsapi=1",
+                    f"origin={quote(origin, safe='')}",
+                    "autoplay=1",
+                    "mute=1",
+                    "rel=0",
+                    "modestbranding=1",
+                    "playsinline=1",
+                    "loop=1"
+                ]
+                
+                if version:
+                    params.append(f"v={version}")
+                
+                return f"https://www.youtube.com/embed/{video_id}?{'&'.join(params)}"
+            else:
+                # Для десктопа используем youtube-nocookie.com
+                params = [
+                    "autoplay=1",
+                    "mute=1",
+                    "rel=0",
+                    "modestbranding=1",
+                    "playsinline=1",
+                    "loop=1"
+                ]
+                
+                if version:
+                    params.append(f"v={version}")
+                
+                return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error generating YouTube embed URL with version for {video_url}: {e}")
             # В случае любой ошибки возвращаем исходный URL
             return video_url
     
@@ -880,16 +914,17 @@ class PageVideo(models.Model):
         """
         if not self.video_url:
             return None
-        return self._get_youtube_embed_url_with_version(self.video_url)
+        return self._get_youtube_embed_url_with_version(self.video_url, for_mobile=False)
     
     @property
     def mobile_youtube_embed_url_versioned(self):
         """
         Возвращает версионированный YouTube embed URL для мобильного видео.
+        Использует youtube.com с enablejsapi для предотвращения ошибки 153.
         """
         if not self.mobile_video_url:
             return None
-        return self._get_youtube_embed_url_with_version(self.mobile_video_url)
+        return self._get_youtube_embed_url_with_version(self.mobile_video_url, for_mobile=True)
     
     @classmethod
     def get_priority_video(cls, page):
