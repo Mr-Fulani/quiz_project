@@ -26,7 +26,7 @@
 
       <div class="info-content">
         <h2 class="name">
-          {{ user.username }}
+          {{ user.get_display_name }}
           {% admin_badge_small user %}
         </h2>
         <p class="title">{{ user.bio|truncatechars:30 }}</p>

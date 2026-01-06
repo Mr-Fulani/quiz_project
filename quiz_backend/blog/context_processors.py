@@ -65,6 +65,9 @@ def personal_info(request):
 
             for i, user in enumerate(top_users, 1):
                 try:
+                    # ПРИНУДИТЕЛЬНО обновляем объект из БД, чтобы получить свежие данные
+                    user.refresh_from_db(fields=['first_name', 'last_name', 'email', 'username'])
+                    
                     # Используем данные из модели пользователя, если они есть, иначе используем рассчитанные
                     if user.quizzes_completed > 0 and user.average_score > 0:
                         # Используем сохраненные данные
@@ -92,17 +95,8 @@ def personal_info(request):
                         # Если thumbnail еще не сгенерирован, используем оригинал
                         avatar_url = user.get_avatar_url
                     
-                    # Формируем имя для отображения
-                    # Приоритет: first_name + last_name -> first_name -> email до @ -> username
-                    display_name = f"{user.first_name} {user.last_name}".strip()
-                    if not display_name and user.first_name:
-                        display_name = user.first_name
-                    if not display_name and user.email:
-                        # Берем часть email до @
-                        email_username = user.email.split('@')[0] if '@' in user.email else user.email
-                        display_name = email_username[:30]  # Ограничиваем длину
-                    if not display_name:
-                        display_name = user.username
+                    # Используем метод get_display_name() для получения актуального имени
+                    display_name = user.get_display_name()
                     
                     user_data = {
                         'rank': i,
