@@ -68,8 +68,8 @@
 
 .resources-list {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(2, 1fr); /* По 2 в ряд на мобильных */
+    gap: 12px;
     margin-bottom: 30px;
 }
 
@@ -133,7 +133,8 @@
 
 @media (min-width: 580px) {
     .resources-list {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr); /* По 2 в ряд на планшетах */
+        gap: 20px;
     }
 }
 
