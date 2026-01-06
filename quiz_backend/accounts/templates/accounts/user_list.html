@@ -25,7 +25,7 @@
             <div class="client-info">
                 <h3 class="client-name">
                     <a href="{% url 'accounts:user_profile' username=user.username %}">
-                        {{ user.username }}
+                        {{ user.get_display_name }}
                         {% admin_badge_small user %}
                     </a>
                 </h3>
@@ -120,6 +120,11 @@
     color: var(--light-gray);
     font-size: 1.2em;
     text-decoration: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .client-name a:hover {

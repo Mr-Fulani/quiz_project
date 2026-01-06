@@ -1373,10 +1373,10 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     """
     model = CustomUser
     list_display = [
-        'username', 'email', 'is_active', 'is_staff', 'telegram_id', 
+        'display_name', 'email', 'is_active', 'is_staff', 'telegram_id', 
         'subscription_status', 'django_admin_status', 'social_accounts_display', 'created_at'
     ]
-    search_fields = ['username', 'email', 'telegram_id']
+    search_fields = ['username', 'email', 'telegram_id', 'first_name', 'last_name']
     list_filter = [
         'is_active', 'is_staff', 'subscription_status', 'language',
         'social_accounts__provider', 'social_accounts__is_active'
@@ -1384,8 +1384,11 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     inlines = [SocialAccountInline]
     
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        ('Персональная информация', {'fields': ('email', 'telegram_id', 'avatar', 'bio', 'location', 'birth_date', 'website')}),
+        (None, {
+            'fields': ('username', 'password'),
+            'description': 'Логин (username) используется для входа в систему, а не для отображения имени. Имя пользователя указывается в полях "Имя" и "Фамилия" ниже.'
+        }),
+        ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'telegram_id', 'avatar', 'bio', 'location', 'birth_date', 'website')}),
         ('Социальные сети', {'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')}),
         ('Статистика', {'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')}),
         ('Настройки', {'fields': ('language', 'is_telegram_user', 'email_notifications', 'is_public', 'theme_preference')}),
@@ -1399,6 +1402,42 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
         }),
     )
     actions = ['make_django_admin', 'remove_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Переопределяем форму для добавления help_text к полю username.
+        """
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['username'].help_text = 'Логин для входа в систему (не имя пользователя). Используется для авторизации. Имя пользователя указывается в полях "Имя" и "Фамилия" ниже.'
+        form.base_fields['username'].label = 'Логин (username)'
+        return form
+    
+    def get_queryset(self, request):
+        """
+        Переопределяем queryset чтобы гарантировать свежие данные из БД.
+        """
+        qs = super().get_queryset(request)
+        # Не используем only() чтобы загрузить все поля
+        return qs
+    
+    def display_name(self, obj):
+        """
+        Отображает имя пользователя через get_display_name().
+        ПРИНУДИТЕЛЬНО обновляем объект из БД перед вызовом метода.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Обновляем объект из БД чтобы получить свежие данные
+        old_name = obj.get_display_name()
+        obj.refresh_from_db(fields=['first_name', 'last_name', 'email', 'username'])
+        new_name = obj.get_display_name()
+        
+        logger.info(f"=== DEBUG admin display_name: User {obj.id} ({obj.username}) - first_name={obj.first_name}, old={old_name}, new={new_name}")
+        
+        return new_name
+    display_name.short_description = 'Имя'
+    display_name.admin_order_field = 'first_name'
     
     def save_model(self, request, obj, form, change):
         """

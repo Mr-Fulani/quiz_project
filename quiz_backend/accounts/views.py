@@ -273,6 +273,7 @@ class UserProfileView(DetailView):
     def get_queryset(self):
         """Добавляем аннотации для статистики."""
         from django.db.models import Count, Q
+        # Не используем only() чтобы гарантировать свежие данные из БД
         return CustomUser.objects.annotate(
             tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
             total_score=CustomUser.get_rating_annotation()
@@ -283,6 +284,9 @@ class UserProfileView(DetailView):
         Определяем, является ли текущий user владельцем профиля (is_owner).
         """
         context = super().get_context_data(**kwargs)
+        # ПРИНУДИТЕЛЬНО обновляем объект из БД перед передачей в шаблон
+        if self.object:
+            self.object.refresh_from_db(fields=['first_name', 'last_name', 'email', 'username'])
         # Проверяем авторизован ли пользователь перед сравнением
         context['is_owner'] = (
             self.request.user.is_authenticated and 
@@ -303,10 +307,19 @@ class UserListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         """Фильтрация не-администраторов с аннотацией статистики."""
         from django.db.models import Count, Q
+        # Не используем only() чтобы гарантировать свежие данные из БД
         return CustomUser.objects.exclude(is_staff=True).annotate(
             tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
             total_score=CustomUser.get_rating_annotation()
         ).order_by('-date_joined')
+    
+    def get_context_data(self, **kwargs):
+        """ПРИНУДИТЕЛЬНО обновляем объекты из БД перед передачей в шаблон."""
+        context = super().get_context_data(**kwargs)
+        if 'users' in context:
+            for user in context['users']:
+                user.refresh_from_db(fields=['first_name', 'last_name', 'email', 'username'])
+        return context
 
 
 @login_required
@@ -314,7 +327,11 @@ def user_list(request):
     """
     Отображение списка активных пользователей (кроме текущего).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     from django.db.models import Count, Q
+    # Не используем only() чтобы гарантировать свежие данные из БД
     users_list = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).annotate(
         tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
         total_score=CustomUser.get_rating_annotation()
@@ -322,6 +339,19 @@ def user_list(request):
     paginator = Paginator(users_list, 12)
     page = request.GET.get('page')
     users = paginator.get_page(page)
+    
+    # ПРИНУДИТЕЛЬНО обновляем каждый объект из БД перед передачей в шаблон
+    # ВАЖНО: refresh_from_db может сбросить аннотированные поля, поэтому обновляем только нужные поля вручную
+    for user in users:
+        # Получаем свежие данные напрямую из БД
+        fresh_data = CustomUser.objects.only('first_name', 'last_name', 'email', 'username').get(pk=user.pk)
+        # Обновляем поля, сохраняя аннотированные
+        user.first_name = fresh_data.first_name
+        user.last_name = fresh_data.last_name
+        user.email = fresh_data.email
+        old_name = user.get_display_name()
+        logger.info(f"=== DEBUG user_list: User {user.id} ({user.username}) - first_name={user.first_name}, get_display_name()={old_name}")
+    
     return render(request, 'accounts/user_list.html', {
         'users': users,
         'is_paginated': users.has_other_pages(),

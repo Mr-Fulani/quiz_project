@@ -34,7 +34,7 @@
                     {% endif %}
                 </div>
                 <div class="dialog-info">
-                    <div class="dialog-name">{{ dialog.user.username }}</div>
+                    <div class="dialog-name">{{ dialog.user.get_display_name }}</div>
                     <div class="dialog-preview">
                         {{ dialog.last_message.content|truncatechars:30 }}
                     </div>

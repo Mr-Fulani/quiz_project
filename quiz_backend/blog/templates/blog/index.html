@@ -639,29 +639,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!list || !indicator) return;
     
     function updateIndicator() {
-        // На десктопе скрываем индикатор
-        if (window.innerWidth > 580) {
-            indicator.style.display = 'none';
-            return;
-        }
-        
         const scrollLeft = list.scrollLeft;
         const scrollWidth = list.scrollWidth;
         const clientWidth = list.clientWidth;
         const scrollable = scrollWidth > clientWidth;
         
+        // Проверяем, есть ли прокрутка
         if (!scrollable) {
             indicator.style.display = 'none';
             return;
         }
         
+        // Показываем кастомный скроллбар
         indicator.style.display = 'block';
         
         // Вычисляем позицию и ширину активной части индикатора
         const scrollPercent = scrollLeft / (scrollWidth - clientWidth);
         const indicatorContainerWidth = indicator.offsetWidth || 300;
-        const activeWidth = (clientWidth / scrollWidth) * indicatorContainerWidth;
-        const maxScroll = indicatorContainerWidth - activeWidth;
+        const activeWidth = Math.max((clientWidth / scrollWidth) * indicatorContainerWidth, 60);
+        const maxScroll = Math.max(indicatorContainerWidth - activeWidth, 0);
         const activeLeft = scrollPercent * maxScroll;
         
         // Обновляем CSS переменные для псевдоэлемента

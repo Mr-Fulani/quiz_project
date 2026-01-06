@@ -38,7 +38,7 @@
 <article class="profile active" data-page="profile">
     <header>
         <h1 class="h2 article-title">
-            {{ profile_user.username }}
+            {{ profile_user.get_display_name }}
             {% admin_badge_small profile_user %}
         </h1>
     </header>

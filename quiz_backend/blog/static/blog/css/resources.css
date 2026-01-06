@@ -47,22 +47,28 @@
     font-size: 24px;
 }
 
-.has-scrollbar::-webkit-scrollbar {
+/* Стили для скроллбара в resources.css - применяются только к элементам в этом контексте */
+/* НЕ переопределяем testimonials-list, чтобы не конфликтовать с глобальными стилями */
+.clients-list.has-scrollbar::-webkit-scrollbar,
+.resources-list.has-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
-.has-scrollbar::-webkit-scrollbar-track {
+.clients-list.has-scrollbar::-webkit-scrollbar-track,
+.resources-list.has-scrollbar::-webkit-scrollbar-track {
     background: var(--onyx);
     border-radius: 5px;
 }
 
-.has-scrollbar::-webkit-scrollbar-thumb {
+.clients-list.has-scrollbar::-webkit-scrollbar-thumb,
+.resources-list.has-scrollbar::-webkit-scrollbar-thumb {
     background: var(--orange-yellow-crayola);
     border-radius: 5px;
 }
 
-.has-scrollbar::-webkit-scrollbar-button {
+.clients-list.has-scrollbar::-webkit-scrollbar-button,
+.resources-list.has-scrollbar::-webkit-scrollbar-button {
     width: 20px;
 }
 
