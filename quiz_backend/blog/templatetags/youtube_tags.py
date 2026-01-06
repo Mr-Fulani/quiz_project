@@ -29,13 +29,17 @@ def _extract_video_id(value):
 
 
 @register.filter
-def youtube_embed_url(value):
+def youtube_embed_url(value, version=None):
     """
     Преобразует любую ссылку YouTube (включая Shorts) в embed-формат.
     Использует youtube-nocookie.com для лучшей совместимости и privacy.
     Автоматически воспроизводит видео без звука.
     
-    Использование: {{ url|youtube_embed_url }}
+    Параметр version используется для обхода кэша браузера.
+    
+    Использование: 
+    {{ url|youtube_embed_url }}
+    {{ url|youtube_embed_url:video.updated_at|date:"U" }}
     """
     video_id = _extract_video_id(value)
     if not video_id:
@@ -51,6 +55,11 @@ def youtube_embed_url(value):
         "playsinline=1",
         "loop=1"
     ]
+    
+    # Добавляем версию для обхода кэша браузера
+    if version:
+        params.append(f"v={version}")
+    
     return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
 
 
