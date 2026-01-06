@@ -174,34 +174,45 @@ def process_code_blocks_for_web(html_content):
         # Паттерн: ```язык\nкод\n``` или ```\nкод\n```
         def replace_block(match):
             full_match = match.group(0)
-            # Извлекаем язык (если есть) и код
-            lang_match = re.search(r'```\s*(\w+)?', full_match)
-            language = lang_match.group(1) if lang_match and lang_match.group(1) else ''
+            # Извлекаем язык (если есть) из группы 1
+            language = match.group(1) if match.group(1) else ''
+            # Извлекаем код из группы 2
+            code = match.group(2) if match.group(2) else ''
             
-            # Извлекаем код между ```язык и ```
-            code_match = re.search(r'```\s*\w*\s*[\r\n]+(.*?)[\r\n]+\s*```', full_match, re.DOTALL)
-            if not code_match:
-                # Пробуем без языка
-                code_match = re.search(r'```\s*[\r\n]+(.*?)[\r\n]+\s*```', full_match, re.DOTALL)
-            
-            if code_match:
-                code = code_match.group(1).strip()
+            # Логируем для отладки
+            logger.debug(f"Обработка блока кода: язык={language}, длина кода={len(code) if code else 0}")
+            if code and len(code) > 0:
+                # НЕ используем strip() - это удалит отступы в начале строк
+                # Только убираем лишние пустые строки в самом начале и конце блока
+                # Но сохраняем все отступы и пустые строки внутри кода
+                code = re.sub(r'^\n+', '', code)  # Убираем пустые строки только в начале
+                code = re.sub(r'\n+$', '', code)  # Убираем пустые строки только в конце
+                # Сохраняем все пробелы и отступы внутри кода
                 from django.utils.html import escape
                 code = escape(code)
+                logger.debug(f"Обработанный код: первые 100 символов={code[:100]}")
                 if language:
                     return f'<pre><code class="language-{language}">{code}</code></pre>'
                 else:
                     return f'<pre><code>{code}</code></pre>'
+            logger.warning(f"Блок кода не содержит кода: {full_match[:200]}")
             return full_match
         
         # Ищем все блоки с тройными кавычками
+        # Улучшенный паттерн: захватывает весь код между ```язык и ```, включая многострочный код
+        # Используем жадный квантификатор для захвата всего содержимого до последних ```
+        # Паттерн: ```язык (опционально) затем любой текст до ```
         return re.sub(
-            r'```\s*\w*\s*[\r\n]+.*?[\r\n]+\s*```',
+            r'```\s*(\w+)?\s*[\r\n]*(.*?)\s*```',
             replace_block,
             text,
             flags=re.DOTALL
         )
     
+    html_content = process_fenced_blocks(html_content)
+    
+    # 1.4. Повторно обрабатываем блоки кода, если они не были обработаны (на случай, если TinyMCE разбил их)
+    # Это нужно для случаев, когда код разбит на несколько параграфов
     html_content = process_fenced_blocks(html_content)
     
     # 1.5. Обрабатываем случаи, когда TinyMCE преобразовал тройные кавычки в HTML с <br> или разбил на параграфы
@@ -228,6 +239,7 @@ def process_code_blocks_for_web(html_content):
                 start_pos = start_match.start()
                 
                 # Ищем конец блока: ``` (должен быть в другом месте)
+                # Ищем все возможные закрывающие ``` после начала блока
                 remaining_text = text[start_pos + start_match.end():]
                 end_match = re.search(r'```', remaining_text, re.IGNORECASE)
                 
@@ -247,19 +259,72 @@ def process_code_blocks_for_web(html_content):
                 else:
                     block_start = para_start_match
                 
-                # Ищем конец: находим </p> который содержит ```
-                end_pos = start_pos + start_match.end() + end_match.end()
+                # Ищем конец: находим позицию закрывающих ```
+                end_pos = start_pos + start_match.end() + end_match.start()
+                
+                # Теперь ищем, где заканчивается блок кода
+                # Ищем закрывающий тег параграфа после ```
                 text_after_end = text[end_pos:]
                 para_end_match = text_after_end.find('</p>')
+                
+                # Также проверяем, нет ли еще одного ``` после первого (это может быть начало нового блока)
+                next_triple_backticks = text_after_end.find('```', 3)  # Пропускаем первые 3 символа (это наш закрывающий ```)
+                
                 if para_end_match == -1:
-                    # Если не нашли </p>, ищем до конца или до следующего <p>
+                    # Если не нашли </p>, ищем до следующего <p> или до следующего блока кода
                     next_p = text_after_end.find('<p>')
                     if next_p != -1:
-                        block_end = end_pos + next_p
+                        # Проверяем, не является ли следующий <p> частью кода
+                        # Если между ``` и <p> много текста, это может быть часть кода
+                        if next_p < 200:  # Если <p> близко, это может быть конец
+                            block_end = end_pos + next_p
+                        else:
+                            # Ищем до следующего блока кода или до конца
+                            if next_triple_backticks != -1 and next_triple_backticks < 500:
+                                # Если следующий ``` близко, это может быть новый блок
+                                block_end = end_pos + next_triple_backticks
+                            else:
+                                # Ищем до конца или до следующего явного маркера конца
+                                # Ищем маркеры типа эмодзи или хештегов, которые обычно идут после кода
+                                markers = ['♎️', '#', '<p>♎️', '<p>#']
+                                marker_pos = len(text_after_end)
+                                for marker in markers:
+                                    pos = text_after_end.find(marker)
+                                    if pos != -1 and pos < marker_pos:
+                                        marker_pos = pos
+                                
+                                if marker_pos < len(text_after_end):
+                                    block_end = end_pos + marker_pos
+                                else:
+                                    block_end = end_pos + len(text_after_end)
                     else:
-                        block_end = end_pos + len(text_after_end)
+                        # Нет следующего <p>, ищем до следующего блока кода или до конца
+                        if next_triple_backticks != -1 and next_triple_backticks < 1000:
+                            block_end = end_pos + next_triple_backticks
+                        else:
+                            # Ищем маркеры конца
+                            markers = ['♎️', '#', '<p>♎️', '<p>#']
+                            marker_pos = len(text_after_end)
+                            for marker in markers:
+                                pos = text_after_end.find(marker)
+                                if pos != -1 and pos < marker_pos:
+                                    marker_pos = pos
+                            
+                            if marker_pos < len(text_after_end):
+                                block_end = end_pos + marker_pos
+                            else:
+                                block_end = end_pos + len(text_after_end)
                 else:
-                    block_end = end_pos + para_end_match + 4  # +4 для </p>
+                    # Нашли </p>, но проверяем, не является ли это частью кода
+                    # Если между ``` и </p> много текста, это может быть часть кода
+                    if para_end_match < 200:
+                        block_end = end_pos + para_end_match + 4  # +4 для </p>
+                    else:
+                        # Ищем до следующего блока кода или маркера
+                        if next_triple_backticks != -1 and next_triple_backticks < para_end_match:
+                            block_end = end_pos + next_triple_backticks
+                        else:
+                            block_end = end_pos + para_end_match + 4
                 
                 # Извлекаем весь блок
                 code_block_html = text[block_start:block_end]
@@ -276,17 +341,23 @@ def process_code_blocks_for_web(html_content):
                 # Убираем ```язык в начале и ``` в конце
                 code_text = re.sub(r'^[^`]*```\s*\w*\s*', '', code_text, flags=re.IGNORECASE)
                 code_text = re.sub(r'\s*```[^`]*$', '', code_text, flags=re.IGNORECASE)
-                code_text = code_text.strip()
-                
-                # Убираем лишние пустые строки в начале и конце
+                # НЕ используем strip() - сохраняем отступы
+                # Только убираем пустые строки в самом начале и конце
                 code_text = re.sub(r'^\n+', '', code_text)
                 code_text = re.sub(r'\n+$', '', code_text)
+                
+                # Убираем маркеры конца, если они попали в код
+                code_text = re.sub(r'\s*♎️.*$', '', code_text, flags=re.MULTILINE)
+                code_text = re.sub(r'\s*#\w+.*$', '', code_text, flags=re.MULTILINE)
+                # НЕ используем strip() - сохраняем отступы
                 
                 if code_text and len(code_text) > 10:  # Минимум 10 символов кода
                     from django.utils.html import escape
                     code_text = escape(code_text)
                     
                     logger.info(f"Найден многострочный код блок от TinyMCE, язык: {language or 'не указан'}, длина: {len(code_text)}")
+                    logger.debug(f"Первые 200 символов кода: {code_text[:200]}")
+                    logger.debug(f"Последние 200 символов кода: {code_text[-200:]}")
                     
                     replacement = f'<pre><code class="language-{language}">{code_text}</code></pre>' if language else f'<pre><code>{code_text}</code></pre>'
                     
@@ -296,11 +367,14 @@ def process_code_blocks_for_web(html_content):
             return text
         
         # Обрабатываем многострочные блоки (повторяем несколько раз для вложенных случаев)
-        for _ in range(3):  # Максимум 3 итерации
+        # Увеличиваем количество итераций для обработки сложных случаев
+        for iteration in range(5):  # Максимум 5 итераций
             new_text = find_and_replace_multiparagraph_code(text)
             if new_text == text:
+                logger.debug(f"Обработка многострочных блоков завершена на итерации {iteration + 1}")
                 break
             text = new_text
+            logger.debug(f"Итерация {iteration + 1}: найдены и обработаны блоки кода")
         
         # Теперь обрабатываем простые случаи в одном параграфе
         def replace_tinymce_block(match):
@@ -320,7 +394,11 @@ def process_code_blocks_for_web(html_content):
                 code_match = re.search(r'```\s*\n(.*?)\n\s*```', code_text, re.DOTALL)
             
             if code_match:
-                code = code_match.group(1).strip()
+                code = code_match.group(1)
+                # НЕ используем strip() - сохраняем отступы
+                # Только убираем пустые строки в начале и конце
+                code = re.sub(r'^\n+', '', code)
+                code = re.sub(r'\n+$', '', code)
                 # Убираем HTML теги из кода
                 from django.utils.html import strip_tags
                 code = strip_tags(code)
@@ -395,9 +473,11 @@ def process_code_blocks_for_web(html_content):
                 code_content = code_content.replace('&nbsp;', ' ')
                 # Убираем \r
                 code_content = code_content.replace('\r', '')
-                # Нормализуем пробелы (множественные пробелы -> один, но сохраняем переносы строк)
-                code_content = re.sub(r'[ \t]+', ' ', code_content)  # Множественные пробелы/табы -> один пробел
-                code_content = code_content.strip()
+                # НЕ нормализуем пробелы - сохраняем все отступы и пробелы
+                # НЕ используем strip() - сохраняем отступы в начале и конце
+                # Только убираем пустые строки в самом начале и конце
+                code_content = re.sub(r'^\n+', '', code_content)
+                code_content = re.sub(r'\n+$', '', code_content)
                 # Сохраняем класс языка, если есть
                 code_tag_match = re.search(r'<code[^>]*class="([^"]*)"', match.group(0), re.IGNORECASE)
                 if code_tag_match:
@@ -413,7 +493,10 @@ def process_code_blocks_for_web(html_content):
                 content = content.replace('&nbsp;', ' ')
                 # Убираем \r
                 content = content.replace('\r', '')
-                content = content.strip()
+                # НЕ используем strip() - сохраняем отступы
+                # Только убираем пустые строки в начале и конце
+                content = re.sub(r'^\n+', '', content)
+                content = re.sub(r'\n+$', '', content)
                 # Проверяем, есть ли класс языка в <pre>
                 pre_class_match = re.search(r'class="([^"]*)"', pre_tag, re.IGNORECASE)
                 if pre_class_match and 'language-' in pre_class_match.group(1):
