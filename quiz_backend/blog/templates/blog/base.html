@@ -1770,60 +1770,44 @@
     function initHighlight() {
         attempts++;
         
-        if (typeof hljs !== 'undefined' && typeof hljs.highlightAll === 'function') {
+        if (typeof hljs !== 'undefined' && typeof hljs.highlightElement === 'function') {
             console.log('✅ Highlight.js загружен, инициализация подсветки кода...');
             
-            try {
-                // Используем highlightAll для автоматической обработки всех блоков
-                hljs.highlightAll();
-                
-                // Также проверяем количество обработанных блоков
-                const codeBlocks = document.querySelectorAll('pre code.hljs, code[class*="language-"].hljs');
-                console.log(`✅ Подсветка синтаксиса применена к ${codeBlocks.length} блокам кода`);
-                
-                if (codeBlocks.length === 0) {
-                    // Если highlightAll не сработал, пробуем вручную
-                    const allCodeBlocks = document.querySelectorAll('pre code, code[class*="language-"]');
-                    console.log(`Найдено блоков кода: ${allCodeBlocks.length}`);
-                    
-                    allCodeBlocks.forEach(function(block) {
-                        if (!block.classList.contains('hljs')) {
-                            try {
-                                hljs.highlightElement(block);
-                                console.log('✅ Блок кода обработан вручную:', block.className);
-                            } catch (e) {
-                                console.error('❌ Ошибка при подсветке блока:', e);
-                            }
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error('❌ Ошибка при инициализации highlightAll:', e);
-                // Fallback: обрабатываем блоки вручную
-                const codeBlocks = document.querySelectorAll('pre code, code[class*="language-"]');
-                codeBlocks.forEach(function(block) {
-                    if (!block.classList.contains('hljs')) {
-                        try {
-                            hljs.highlightElement(block);
-                        } catch (err) {
-                            console.error('❌ Ошибка при подсветке блока:', err);
-                        }
+            // Обрабатываем ТОЛЬКО многострочные блоки кода (pre code), НЕ однострочный код
+            // Однострочный код должен оставаться без подсветки синтаксиса
+            
+            // Сначала убираем классы highlight.js с однострочного кода (на случай, если они были добавлены)
+            const inlineCode = document.querySelectorAll('code:not(pre code)');
+            inlineCode.forEach(function(code) {
+                code.classList.remove('hljs');
+                // Убираем все классы, связанные с языками
+                Array.from(code.classList).forEach(function(cls) {
+                    if (cls.startsWith('language-')) {
+                        code.classList.remove(cls);
                     }
                 });
-            }
-        } else if (typeof hljs !== 'undefined' && typeof hljs.highlightElement === 'function') {
-            // Fallback для старых версий highlight.js
-            console.log('✅ Highlight.js загружен (старая версия), инициализация подсветки кода...');
-            const codeBlocks = document.querySelectorAll('pre code, code[class*="language-"]');
+            });
+            
+            // Теперь обрабатываем только многострочные блоки
+            const codeBlocks = document.querySelectorAll('pre code');
+            
             codeBlocks.forEach(function(block) {
-                if (!block.classList.contains('hljs')) {
+                // Пропускаем, если уже обработан
+                if (block.classList.contains('hljs')) {
+                    return;
+                }
+                
+                // Пропускаем однострочный код (который не внутри <pre>)
+                // Проверяем, что родитель - это <pre>
+                if (block.parentElement && block.parentElement.tagName.toLowerCase() === 'pre') {
                     try {
                         hljs.highlightElement(block);
-                    } catch (e) {
-                        console.error('❌ Ошибка при подсветке блока:', e);
+                    } catch (err) {
+                        console.error('❌ Ошибка при подсветке блока:', err);
                     }
                 }
             });
+            
             console.log(`✅ Подсветка синтаксиса применена к ${codeBlocks.length} блокам кода`);
         } else {
             // Если hljs еще не загружен, ждем немного и пробуем снова
@@ -1847,14 +1831,22 @@
     // Также обрабатываем динамически добавленный контент
     if (typeof MutationObserver !== 'undefined') {
         const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length > 0 && typeof hljs !== 'undefined') {
+                    mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0 && typeof hljs !== 'undefined' && typeof hljs.highlightElement === 'function') {
                     mutation.addedNodes.forEach(function(node) {
                         if (node.nodeType === 1) { // Element node
+                            // Обрабатываем только многострочные блоки (pre code), не однострочный код
                             const codeBlocks = node.querySelectorAll ? node.querySelectorAll('pre code') : [];
                             codeBlocks.forEach(function(block) {
-                                if (!block.classList.contains('hljs')) {
-                                    hljs.highlightElement(block);
+                                // Проверяем, что это действительно блок внутри <pre>, а не однострочный код
+                                if (!block.classList.contains('hljs') && 
+                                    block.parentElement && 
+                                    block.parentElement.tagName.toLowerCase() === 'pre') {
+                                    try {
+                                        hljs.highlightElement(block);
+                                    } catch (err) {
+                                        console.error('❌ Ошибка при подсветке динамического блока:', err);
+                                    }
                                 }
                             });
                         }

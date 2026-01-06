@@ -638,6 +638,70 @@ def process_code_blocks_for_web(html_content):
         flags=re.DOTALL
     )
     
+    # 3. Обрабатываем однострочный (inline) код: `код`
+    # Важно: обрабатываем ПОСЛЕ многострочных блоков, чтобы не конфликтовать с тройными кавычками
+    # И исключаем обработку кавычек внутри уже обработанных <pre><code> блоков
+    def process_inline_code(text):
+        """
+        Обрабатывает однострочный код в формате `код`.
+        Исключает обработку внутри <pre><code> блоков.
+        """
+        # Сначала защищаем уже обработанные блоки кода
+        code_blocks = []
+        placeholder_pattern = '__CODE_BLOCK_{}__'
+        
+        def protect_code_blocks(match):
+            block_id = len(code_blocks)
+            code_blocks.append(match.group(0))
+            return placeholder_pattern.format(block_id)
+        
+        # Защищаем все <pre><code> блоки
+        protected_text = re.sub(
+            r'<pre[^>]*>.*?</pre>',
+            protect_code_blocks,
+            text,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        
+        # Теперь обрабатываем inline код: `код`
+        # Паттерн: `код` где код не содержит обратные кавычки и не начинается/заканчивается пробелом
+        def replace_inline_code(match):
+            code = match.group(1)
+            # Экранируем HTML в коде
+            from django.utils.html import escape
+            code = escape(code)
+            # Убираем лишние пробелы в начале и конце
+            code = code.strip()
+            return f'<code>{code}</code>'
+        
+        # Обрабатываем inline код: `код` (но не внутри уже обработанных блоков)
+        # Исключаем случаи, когда кавычки идут подряд (это многострочный блок)
+        # Паттерн: `код` где код не содержит обратные кавычки, переносы строк и не пустой
+        # Также обрабатываем двойные кавычки ``код`` (на случай, если пользователь их использует)
+        
+        # Сначала обрабатываем одинарные кавычки `код`
+        protected_text = re.sub(
+            r'(?<!`)`([^`\n\r]+?)`(?!`)',  # `код` но не ``` или ``код`` или `\n`
+            replace_inline_code,
+            protected_text
+        )
+        
+        # Затем обрабатываем двойные кавычки ``код`` (если они не были обработаны как часть тройных)
+        # Это нужно для случаев, когда пользователь использует ``код`` вместо `код`
+        protected_text = re.sub(
+            r'(?<!`)``([^`\n\r]+?)``(?!`)',  # ``код`` но не ``` или ```код```
+            replace_inline_code,
+            protected_text
+        )
+        
+        # Восстанавливаем защищенные блоки
+        for i, block in enumerate(code_blocks):
+            protected_text = protected_text.replace(placeholder_pattern.format(i), block)
+        
+        return protected_text
+    
+    html_content = process_inline_code(html_content)
+    
     logger.info(f"Обработка завершена. Длина результата: {len(html_content)}")
     
     return html_content
