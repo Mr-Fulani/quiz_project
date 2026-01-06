@@ -3148,6 +3148,30 @@ article .video .video-content {
         padding-bottom: 177.78%; /* Соотношение 9:16 (16/9 * 100) для формата рилс */
         height: 0;
     }
+    
+    /* Иконки социальных сетей по 2 в ряд на мобильных */
+    .social-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 колонки */
+        gap: 12px;
+        padding-left: 0;
+        justify-content: stretch;
+    }
+    
+    .social-item {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .social-item .social-link {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        font-size: 20px;
+    }
 }
 
 /* Медиа-запрос для экранов от 580px */
