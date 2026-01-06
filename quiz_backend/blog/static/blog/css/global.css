@@ -515,6 +515,15 @@ article.active {
     gap: 15px; /* Расстояние между элементами */
     padding-bottom: 4px; /* Внутренний отступ снизу */
     padding-left: 7px; /* Внутренний отступ слева */
+    flex-wrap: nowrap; /* Запрещаем перенос элементов на новую строку */
+}
+
+/* Явное правило для .social-list в сайтбаре - всегда в один ряд */
+.sidebar .social-list {
+    display: flex !important; /* Принудительно flex */
+    flex-direction: row !important; /* Горизонтальное расположение */
+    flex-wrap: nowrap !important; /* Без переноса */
+    grid-template-columns: none !important; /* Убираем grid если был */
 }
 
 /* Проект: ссылки GitHub / Live Demo (локализация и цвет) */
