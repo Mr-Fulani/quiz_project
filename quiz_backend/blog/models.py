@@ -705,9 +705,10 @@ class PageVideo(models.Model):
     media_type = models.CharField(
         max_length=10,
         choices=MEDIA_TYPE_CHOICES,
-        default='video_url',
-        verbose_name="Тип медиа",
-        help_text="Выберите, какое медиа отображать."
+        blank=True,
+        null=True,
+        verbose_name="Тип медиа (десктоп)",
+        help_text="Выберите тип медиа для десктопной версии. Если не указано, будет показываться только текст."
     )
     video_url = models.URLField(
         blank=True,
@@ -846,33 +847,39 @@ class PageVideo(models.Model):
         if not video_url:
             return None
         
-        from blog.templatetags.youtube_tags import _extract_video_id
-        video_id = _extract_video_id(video_url)
-        if not video_id:
+        try:
+            from blog.templatetags.youtube_tags import _extract_video_id
+            video_id = _extract_video_id(video_url)
+            if not video_id:
+                return video_url
+            
+            # Используем timestamp обновления как версию
+            version = int(self.updated_at.timestamp()) if self.updated_at else None
+            
+            params = [
+                "autoplay=1",
+                "mute=1",
+                "rel=0",
+                "modestbranding=1",
+                "playsinline=1",
+                "loop=1"
+            ]
+            
+            if version:
+                params.append(f"v={version}")
+            
+            return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
+        except Exception:
+            # В случае любой ошибки возвращаем исходный URL
             return video_url
-        
-        # Используем timestamp обновления как версию
-        version = int(self.updated_at.timestamp()) if self.updated_at else None
-        
-        params = [
-            "autoplay=1",
-            "mute=1",
-            "rel=0",
-            "modestbranding=1",
-            "playsinline=1",
-            "loop=1"
-        ]
-        
-        if version:
-            params.append(f"v={version}")
-        
-        return f"https://www.youtube-nocookie.com/embed/{video_id}?{'&'.join(params)}"
     
     @property
     def youtube_embed_url_versioned(self):
         """
         Возвращает версионированный YouTube embed URL для основного видео.
         """
+        if not self.video_url:
+            return None
         return self._get_youtube_embed_url_with_version(self.video_url)
     
     @property
@@ -880,6 +887,8 @@ class PageVideo(models.Model):
         """
         Возвращает версионированный YouTube embed URL для мобильного видео.
         """
+        if not self.mobile_video_url:
+            return None
         return self._get_youtube_embed_url_with_version(self.mobile_video_url)
     
     @classmethod

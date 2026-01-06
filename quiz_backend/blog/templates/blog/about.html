@@ -17,6 +17,7 @@
             <section class="video section-gap">
                 <div class="content-card">
                     {# Десктопная версия видео #}
+                    {% if video.media_type %}
                     <div class="video-desktop">
                         {% if video.media_type == 'video_file' and video.video_file %}
                             <div class="video-banner-box">
@@ -29,11 +30,11 @@
                                     {% trans "Your browser does not support the video tag." %}
                                 </video>
                             </div>
-                        {% elif video.media_type == 'video_url' and video.video_url %}
+                        {% elif video.media_type == 'video_url' and video.video_url and video.youtube_embed_url_versioned %}
                             <div class="video-banner-box" id="video-container-about">
                                 <iframe id="youtube-player-about"
                                         width="100%" height="400"
-                                        src="{{ video.get_youtube_embed_url_with_version:video.video_url }}"
+                                        src="{{ video.youtube_embed_url_versioned }}"
                                         style="border: none; cursor: pointer;"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowfullscreen
@@ -57,8 +58,9 @@
                             </div>
                         {% endif %}
                     </div>
+                    {% endif %}
                     
-                    {# Мобильная версия видео #}
+                    {# Мобильная версия видео - показываем только если есть мобильное видео #}
                     {% if video.mobile_media_type %}
                         <div class="video-mobile">
                             {% if video.mobile_media_type == 'video_file' and video.mobile_video_file %}
@@ -73,7 +75,7 @@
                                         {% trans "Your browser does not support the video tag." %}
                                     </video>
                                 </div>
-                            {% elif video.mobile_media_type == 'video_url' and video.mobile_video_url %}
+                            {% elif video.mobile_media_type == 'video_url' and video.mobile_video_url and video.mobile_youtube_embed_url_versioned %}
                                 <div class="video-banner-box" id="video-container-about-mobile">
                                     <iframe id="youtube-player-about-mobile"
                                             width="100%" height="400"
@@ -98,49 +100,6 @@
                             {% elif video.mobile_media_type == 'gif' and video.mobile_gif %}
                                 <div class="video-banner-box">
                                     <img id="gif-about-mobile" src="{{ video.mobile_gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        {# Если мобильного видео нет, показываем десктопное на мобильных тоже #}
-                        <div class="video-mobile">
-                            {% if video.media_type == 'video_file' and video.video_file %}
-                                <div class="video-banner-box">
-                                    <video id="local-video-about-mobile"
-                                        width="100%" height="400"
-                                        autoplay muted loop playsinline
-                                        preload="auto"
-                                        style="cursor: pointer;"
-                                        title="{% trans 'Click to enable sound' %}">
-                                        <source src="{{ video.video_file.url }}" type="video/mp4">
-                                        {% trans "Your browser does not support the video tag." %}
-                                    </video>
-                                </div>
-                            {% elif video.media_type == 'video_url' and video.video_url %}
-                                <div class="video-banner-box" id="video-container-about-mobile">
-                                    <iframe id="youtube-player-about-mobile"
-                                            width="100%" height="400"
-                                            src="{{ video.youtube_embed_url_versioned }}"
-                                            style="border: none; cursor: pointer;"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowfullscreen
-                                            referrerpolicy="strict-origin-when-cross-origin"
-                                            loading="lazy"
-                                            title="{% trans 'Click to enable sound' %}">
-                                    </iframe>
-                                    <noscript>
-                                        <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px;">
-                                            <p style="color: #fff; margin-bottom: 20px;">{% trans "Video requires JavaScript to play." %}</p>
-                                            <a href="{{ video.video_url }}" target="_blank" rel="noopener noreferrer" 
-                                               style="display: inline-block; padding: 12px 24px; background: #ff6b6b; color: #fff; text-decoration: none; border-radius: 5px;">
-                                                {% trans "Watch on YouTube" %}
-                                            </a>
-                                        </div>
-                                    </noscript>
-                                </div>
-                            {% elif video.media_type == 'gif' and video.gif %}
-                                <div class="video-banner-box">
-                                    <img id="gif-about-mobile" src="{{ video.gif.url }}" alt="{{ video.title }}" width="100%" height="400" loading="eager">
                                 </div>
                             {% endif %}
                         </div>
