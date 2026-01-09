@@ -109,6 +109,8 @@ class Task(Base):
     video_urls = Column(JSON, nullable=False, default=dict)
     # Совместимость с Django: not null JSONB для прогресса генерации видео
     video_generation_progress = Column(JSON, nullable=False, default=dict)
+    # Совместимость с Django: кастомный текст вопроса для видео по языкам
+    video_question_texts = Column(JSON, nullable=True, default=dict)
     translation_group_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     error = Column(Boolean, default=False)
     message_id = Column(Integer, unique=False, nullable=True)

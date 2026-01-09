@@ -814,13 +814,29 @@ def generate_video_for_task(
         code, detected_language = extract_code_from_markdown(task_question)
 
         # Выбираем текст вопроса в зависимости от языка видео
-        question_texts = {
-            'ru': "Каким будет результат кода?",
-            'en': "What will be the result?",
-            'ar': "ما سيكون نتيجة الكود؟",
-            'tr': "Kodun sonucu ne olacak?"
-        }
-        question_text = question_texts.get(video_language, question_texts['ru'])
+        # Сначала проверяем кастомный текст из задачи, если task_id передан
+        question_text = None
+        if task_id:
+            try:
+                from ..models import Task as TaskModel
+                task = TaskModel.objects.get(pk=task_id)
+                if task.video_question_texts and isinstance(task.video_question_texts, dict):
+                    custom_text = task.video_question_texts.get(video_language)
+                    # Используем кастомный текст только если он не пустой
+                    if custom_text and custom_text.strip():
+                        question_text = custom_text.strip()
+            except Exception as e:
+                logger.warning(f"Не удалось загрузить задачу {task_id} для получения кастомного текста: {e}")
+        
+        # Если кастомный текст не найден, используем дефолтный
+        if not question_text:
+            question_texts = {
+                'ru': "Каким будет результат кода?",
+                'en': "What will be the result?",
+                'ar': "ما سيكون نتيجة الكود؟",
+                'tr': "Kodun sonucu ne olacak?"
+            }
+            question_text = question_texts.get(video_language, question_texts['ru'])
 
         # Если язык не определён из markdown, используем topic
         if detected_language == 'python' and topic_name:

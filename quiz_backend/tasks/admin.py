@@ -181,8 +181,8 @@ class TaskAdmin(admin.ModelAdmin):
             'description': 'Быстрые действия для задачи'
         }),
         ('Видео', {
-            'fields': ('background_music', 'video_urls_display', 'video_generation_logs_display'),
-            'description': 'Информация о видео задачи. Можно выбрать конкретный трек для этой задачи (переопределяет автоматический выбор).',
+            'fields': ('background_music', 'video_question_texts', 'video_urls_display', 'video_generation_logs_display'),
+            'description': 'Информация о видео задачи. Можно выбрать конкретный трек для этой задачи (переопределяет автоматический выбор). Кастомный текст вопроса для видео по языкам: {"ru": "Ваш текст", "en": "Your text"}. Если не указан, используется дефолтный текст.',
             'classes': ()  # Убираем collapse, чтобы секция всегда была видна
         }),
     )

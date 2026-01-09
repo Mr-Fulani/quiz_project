@@ -101,6 +101,12 @@ class Task(models.Model):
         blank=True,
         help_text='Прогресс генерации видео: {"ru": true, "en": false}'
     )
+    video_question_texts = models.JSONField(
+        default=dict,
+        blank=True,
+        null=True,
+        help_text='Кастомный текст вопроса для видео по языкам: {"ru": "Ваш текст", "en": "Your text"}. Если не указан, используется дефолтный текст.'
+    )
     external_link = models.URLField(
         max_length=255,
         null=True,
