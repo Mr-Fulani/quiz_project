@@ -82,6 +82,12 @@ class Post(models.Model):
     )
     meta_description = models.CharField(max_length=160, blank=True, verbose_name="Мета-описание")
     meta_keywords = models.CharField(max_length=255, blank=True, verbose_name="Мета-ключевые слова")
+    telegram_channels = models.ManyToManyField(
+        'platforms.TelegramGroup',
+        blank=True,
+        verbose_name="Telegram каналы/группы",
+        help_text="Выберите каналы/группы для автоматической отправки поста при публикации"
+    )
 
     class Meta:
         verbose_name = "Пост"

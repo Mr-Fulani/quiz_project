@@ -811,4 +811,724 @@ def markdown_to_html_with_code_blocks(markdown_text):
     # (заголовки, списки, ссылки и т.д.)
     # Но для начала достаточно кодовых блоков
     
-    return html 
+    return html
+
+
+def html_to_telegram_text(html_content, post_url=None):
+    """
+    Конвертирует HTML контент поста в формат Telegram.
+    
+    ВАЖНО: Функция работает с уже обработанным HTML контентом (после process_code_blocks_for_web()).
+    Блоки кода уже в формате <pre><code class="language-xxx">код</code></pre>.
+    
+    Args:
+        html_content (str): HTML контент поста (уже обработанный process_code_blocks_for_web)
+        post_url (str, optional): URL поста для добавления ссылки при обрезке
+        
+    Returns:
+        str: Текст с HTML разметкой для Telegram
+    """
+    if not html_content:
+        return html_content
+    
+    import logging
+    from html import unescape
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Конвертация HTML → Telegram. Исходная длина: {len(html_content)} символов")
+    
+    # Создаем копию для работы
+    text = html_content
+    
+    # 1. Сначала защищаем блоки кода <pre><code>...</code></pre> от дальнейшей обработки
+    code_block_placeholders = {}
+    placeholder_counter = 0
+    
+    def protect_code_block(match):
+        nonlocal placeholder_counter
+        full_block = match.group(0)
+        pre_attrs = match.group(1) or ''
+        code_attrs = match.group(2) or ''
+        code_content = match.group(3)
+        
+        # Логируем исходное содержимое для отладки
+        original_length = len(code_content)
+        logger.info(f"Обработка блока кода: исходная длина {original_length} символов")
+        logger.debug(f"Первые 200 символов исходного кода: {code_content[:200]}")
+        
+        # ВАЖНО: Извлекаем все текстовое содержимое из HTML, включая содержимое между тегами
+        # Это гарантирует, что мы не потеряем части кода при удалении HTML тегов
+        
+        # Сначала декодируем HTML-сущности
+        from html import unescape
+        code_content = unescape(code_content)
+        
+        # Извлекаем текстовое содержимое, заменяя блочные теги на переносы строк
+        # Это сохраняет структуру кода, но убирает HTML разметку
+        
+        # Заменяем блочные теги на переносы строк (сохраняем содержимое между тегами)
+        # <p>текст</p> -> текст\n
+        code_content = re.sub(r'<p[^>]*>(.*?)</p>', r'\1\n', code_content, flags=re.DOTALL | re.IGNORECASE)
+        code_content = re.sub(r'<div[^>]*>(.*?)</div>', r'\1\n', code_content, flags=re.DOTALL | re.IGNORECASE)
+        code_content = re.sub(r'<br[^>]*/?>', '\n', code_content, flags=re.IGNORECASE)
+        
+        # Удаляем оставшиеся HTML теги (но сохраняем их содержимое, если оно есть)
+        # Используем более умный подход - извлекаем содержимое из тегов перед удалением
+        def extract_text_from_tags(text):
+            """Извлекает текстовое содержимое из HTML, сохраняя структуру"""
+            result = []
+            i = 0
+            while i < len(text):
+                if text[i] == '<':
+                    # Найден тег, пропускаем его
+                    tag_end = text.find('>', i)
+                    if tag_end == -1:
+                        # Незакрытый тег, добавляем как есть
+                        result.append(text[i])
+                        i += 1
+                    else:
+                        # Пропускаем весь тег
+                        i = tag_end + 1
+                else:
+                    # Обычный символ, добавляем
+                    result.append(text[i])
+                    i += 1
+            return ''.join(result)
+        
+        code_content = extract_text_from_tags(code_content)
+        
+        # Очищаем код от лишних пустых строк (более 2 подряд заменяем на 1)
+        # Это убирает большие отступы между строками кода
+        code_content = re.sub(r'\n{3,}', '\n', code_content)
+        
+        # Убираем пробелы в начале и конце, но сохраняем структуру
+        code_content = code_content.strip()
+        
+        # Экранируем HTML символы в коде (теперь безопасно, т.к. HTML теги уже удалены)
+        # Важно: экранируем в правильном порядке - сначала &, потом < и >
+        code_content = code_content.replace('&', '&amp;')
+        code_content = code_content.replace('<', '&lt;')
+        code_content = code_content.replace('>', '&gt;')
+        
+        # Создаем правильный блок для Telegram
+        protected_block = f'<pre><code>{code_content}</code></pre>'
+        
+        placeholder = f'__CODE_BLOCK_{placeholder_counter}__'
+        code_block_placeholders[placeholder] = protected_block
+        placeholder_counter += 1
+        
+        logger.info(f"Защищен блок кода: исходная длина {original_length}, финальная длина {len(code_content)} символов")
+        if original_length > len(code_content) + 50:  # Если потеряно более 50 символов
+            logger.warning(f"Возможна потеря данных: потеряно {original_length - len(code_content)} символов")
+            logger.debug(f"Первые 200 символов финального кода: {code_content[:200]}")
+        return placeholder
+    
+    # Обрабатываем <pre><code> блоки (с любыми атрибутами) и защищаем их
+    # Сначала объединяем соседние блоки кода, которые могли быть разбиты редактором
+    def merge_adjacent_code_blocks(text):
+        """Объединяет соседние блоки <pre><code>...</code></pre> в один"""
+        original_length = len(text)
+        merge_count = 0
+        
+        # Ищем паттерн: </code></pre>...<pre><code> (возможно с пробелами/переносами между ними)
+        # Это означает, что код был разбит на части
+        pattern = r'</code></pre>\s*<pre[^>]*><code[^>]*>'
+        
+        def merge_blocks(match):
+            nonlocal merge_count
+            merge_count += 1
+            # Найден разрыв между блоками, убираем закрывающие/открывающие теги
+            return ''
+        
+        # Заменяем </code></pre>...<pre><code> на пустую строку (объединяем блоки)
+        text = re.sub(pattern, merge_blocks, text, flags=re.IGNORECASE | re.DOTALL)
+        
+        # Также обрабатываем случаи, когда есть только </pre>...<pre> без <code>
+        pattern2 = r'</pre>\s*<pre[^>]*>'
+        text = re.sub(pattern2, '', text, flags=re.IGNORECASE | re.DOTALL)
+        
+        if merge_count > 0:
+            logger.info(f"Объединено {merge_count} соседних блоков кода. Длина до: {original_length}, после: {len(text)}")
+        
+        return text
+    
+    # Объединяем соседние блоки кода перед обработкой
+    text = merge_adjacent_code_blocks(text)
+    
+    # Используем более надежный метод: находим блоки вручную, учитывая вложенность
+    def find_and_protect_code_blocks(text):
+        """Находит и защищает все блоки <pre><code>...</code></pre> используя protect_code_block"""
+        nonlocal placeholder_counter, code_block_placeholders
+        result = []
+        i = 0
+        while i < len(text):
+            # Ищем начало блока <pre> (регистронезависимо)
+            pre_start = text.lower().find('<pre', i)
+            if pre_start == -1:
+                # Больше нет блоков, добавляем остаток текста
+                result.append(text[i:])
+                break
+            
+            # Добавляем текст до блока
+            result.append(text[i:pre_start])
+            
+            # Ищем закрывающий тег > для <pre>
+            pre_tag_end = text.find('>', pre_start)
+            if pre_tag_end == -1:
+                # Незакрытый тег, пропускаем
+                result.append(text[pre_start])
+                i = pre_start + 1
+                continue
+            
+            # Ищем соответствующий закрывающий </pre>, учитывая возможную вложенность
+            # Считаем открывающие и закрывающие теги <pre>
+            pre_close_start = -1
+            depth = 1
+            search_pos = pre_tag_end + 1
+            
+            while depth > 0 and search_pos < len(text):
+                next_pre_open = text.lower().find('<pre', search_pos)
+                next_pre_close = text.lower().find('</pre>', search_pos)
+                
+                if next_pre_close == -1:
+                    # Нет закрывающего тега, пропускаем
+                    break
+                
+                if next_pre_open != -1 and next_pre_open < next_pre_close:
+                    # Найден вложенный <pre>
+                    depth += 1
+                    search_pos = next_pre_open + 4
+                else:
+                    # Найден закрывающий </pre>
+                    depth -= 1
+                    if depth == 0:
+                        pre_close_start = next_pre_close
+                        break
+                    search_pos = next_pre_close + 6
+            
+            if pre_close_start == -1:
+                # Нет закрывающего тега, пропускаем
+                result.append(text[pre_start:pre_tag_end + 1])
+                i = pre_tag_end + 1
+                continue
+            
+            # Теперь ищем <code> внутри найденного блока <pre>...</pre>
+            # Ищем первый <code> после <pre>
+            code_start = text.lower().find('<code', pre_tag_end, pre_close_start)
+            if code_start == -1:
+                # Нет <code>, обрабатываем весь блок <pre>...</pre> как код
+                code_start = pre_tag_end + 1
+                code_tag_end = pre_tag_end
+                code_close_start = pre_close_start
+            else:
+                # Ищем закрывающий тег > для <code>
+                code_tag_end = text.find('>', code_start)
+                if code_tag_end == -1 or code_tag_end >= pre_close_start:
+                    # Незакрытый тег или он за пределами блока, обрабатываем весь <pre>
+                    code_start = pre_tag_end + 1
+                    code_tag_end = pre_tag_end
+                    code_close_start = pre_close_start
+                else:
+                    # Ищем закрывающий </code>, учитывая возможные вложенные теги
+                    code_close_start = -1
+                    code_depth = 1
+                    code_search_pos = code_tag_end + 1
+                    
+                    while code_depth > 0 and code_search_pos < pre_close_start:
+                        next_code_open = text.lower().find('<code', code_search_pos, pre_close_start)
+                        next_code_close = text.lower().find('</code>', code_search_pos, pre_close_start)
+                        
+                        if next_code_close == -1:
+                            # Нет закрывающего тега, используем конец <pre>
+                            code_close_start = pre_close_start
+                            break
+                        
+                        if next_code_open != -1 and next_code_open < next_code_close:
+                            # Найден вложенный <code>
+                            code_depth += 1
+                            code_search_pos = next_code_open + 5
+                        else:
+                            # Найден закрывающий </code>
+                            code_depth -= 1
+                            if code_depth == 0:
+                                code_close_start = next_code_close
+                                break
+                            code_search_pos = next_code_close + 7
+                    
+                    if code_close_start == -1:
+                        code_close_start = pre_close_start
+            
+            # Извлекаем полный блок для обработки через protect_code_block
+            full_block = text[pre_start:pre_close_start + 6]
+            pre_attrs = text[pre_start + 4:pre_tag_end]
+            
+            if code_start > pre_tag_end:
+                code_attrs = text[code_start + 5:code_tag_end] if code_tag_end > code_start else ''
+                code_content = text[code_tag_end + 1:code_close_start]
+            else:
+                # Нет отдельного <code>, весь контент <pre> - это код
+                code_attrs = ''
+                code_content = text[pre_tag_end + 1:pre_close_start]
+            
+            # Создаем объект match для передачи в protect_code_block
+            class MatchObj:
+                def __init__(self, full, pre_attr, code_attr, content):
+                    self.group = lambda n: {
+                        0: full,
+                        1: pre_attr,
+                        2: code_attr,
+                        3: content
+                    }.get(n, '')
+            
+            match_obj = MatchObj(full_block, pre_attrs, code_attrs, code_content)
+            placeholder = protect_code_block(match_obj)
+            result.append(placeholder)
+            
+            # Переходим к позиции после </pre>
+            i = pre_close_start + 6
+        
+        return ''.join(result)
+    
+    # Используем новый метод для обработки блоков кода
+    text = find_and_protect_code_blocks(text)
+    
+    # 2. Обрабатываем inline код <code>код</code> (только те, что не внутри <pre>)
+    # Пропускаем плейсхолдеры блоков кода
+    def replace_inline_code(match):
+        code = match.group(1)
+        # Пропускаем, если это плейсхолдер блока кода
+        if '__CODE_BLOCK_' in code:
+            return match.group(0)
+        # Убираем вложенные теги из inline кода (они не должны быть там)
+        code = re.sub(r'<[^>]+>', '', code)
+        # Экранируем HTML в коде
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        return f'<code>{code}</code>'
+    
+    # Обрабатываем inline код, но не внутри <pre><code> блоков (они уже защищены)
+    # И не внутри плейсхолдеров
+    text = re.sub(r'<code>((?:(?!</code>).)*?)</code>', replace_inline_code, text, flags=re.DOTALL)
+    
+    # 3. Заголовки <h1>-<h6> → <b>текст</b>
+    text = re.sub(r'<h[1-6][^>]*>(.*?)</h[1-6]>', r'<b>\1</b>', text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # 4. Жирный текст <strong>, <b> → <b>текст</b>
+    text = re.sub(r'<(strong|b)[^>]*>(.*?)</(strong|b)>', r'<b>\2</b>', text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # 5. Курсив <em>, <i> → <i>текст</i>
+    text = re.sub(r'<(em|i)[^>]*>(.*?)</(em|i)>', r'<i>\2</i>', text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # 6. Ссылки <a href="...">текст</a> → <a href="...">текст</a> (уже в правильном формате)
+    # Но нужно убедиться, что href экранирован правильно
+    def fix_link(match):
+        href = match.group(1)
+        link_text = match.group(2)
+        # Экранируем href если нужно (но не двойное экранирование)
+        if '&amp;' not in href:
+            href = href.replace('&', '&amp;')
+        # Убираем HTML теги из текста ссылки (Telegram не поддерживает вложенные теги в ссылках)
+        link_text = re.sub(r'<[^>]+>', '', link_text)
+        return f'<a href="{href}">{link_text}</a>'
+    
+    text = re.sub(r'<a[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', fix_link, text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # 7. Списки <ul>, <ol>, <li> → текстовый формат с эмодзи
+    def replace_list_item(match):
+        item_text = match.group(1)
+        # Убираем вложенные теги из текста элемента списка
+        item_text = re.sub(r'<[^>]+>', '', item_text)
+        return f'• {item_text}\n'
+    
+    # Обрабатываем элементы списка
+    text = re.sub(r'<li[^>]*>(.*?)</li>', replace_list_item, text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Удаляем теги списков, оставляя только содержимое
+    text = re.sub(r'</?(ul|ol)[^>]*>', '\n', text, flags=re.IGNORECASE)
+    
+    # 8. Переносы строк <p>, <br>, <div> → перенос строки
+    # Оптимизируем параграфы: <p>текст</p> → текст (один перенос между параграфами)
+    # Сначала обрабатываем полные параграфы <p>...</p>
+    def replace_paragraph(match):
+        para_text = match.group(1)
+        # Убираем лишние пробелы и переносы в начале и конце
+        para_text = para_text.strip()
+        # Если параграф пустой, не добавляем перенос
+        if not para_text:
+            return ''
+        return para_text + '\n'
+    
+    # Заменяем <p>текст</p> на текст с одним переносом в конце
+    text = re.sub(r'<p[^>]*>(.*?)</p>', replace_paragraph, text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Обрабатываем оставшиеся одиночные теги <p> и </p>
+    text = re.sub(r'<p[^>]*>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'</p>', '\n', text, flags=re.IGNORECASE)
+    
+    # <br> заменяем на одинарный перенос
+    text = re.sub(r'<br[^>]*/?>', '\n', text, flags=re.IGNORECASE)
+    
+    # <div> заменяем на одинарный перенос
+    text = re.sub(r'</?div[^>]*>', '\n', text, flags=re.IGNORECASE)
+    
+    # Убираем множественные переносы строк (более 2 подряд) сразу после обработки параграфов
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Убираем пустые строки между обычным текстом (оставляем только один перенос)
+    # Но не трогаем блоки кода (они уже защищены плейсхолдерами)
+    # Убираем множественные переносы между непустыми строками
+    text = re.sub(r'([^\n])\n\n+([^\n])', r'\1\n\2', text)
+    
+    # 9. Восстанавливаем защищенные блоки кода ПЕРЕД удалением остальных тегов
+    for placeholder, protected_block in code_block_placeholders.items():
+        text = text.replace(placeholder, protected_block)
+    
+    # 10. Удаляем остальные HTML теги (таблицы, iframe и т.д.)
+    # Но сохраняем уже обработанные теги Telegram (<b>, <i>, <a>, <code>, <pre>)
+    # Сначала защищаем Telegram теги (включая уже восстановленные блоки кода)
+    telegram_tags_pattern = r'(<(/)?(b|i|u|s|a|code|pre)[^>]*>)'
+    protected_placeholders = {}
+    placeholder_counter = 0
+    
+    def protect_telegram_tag(match):
+        nonlocal placeholder_counter
+        placeholder = f'__TELEGRAM_TAG_{placeholder_counter}__'
+        protected_placeholders[placeholder] = match.group(0)
+        placeholder_counter += 1
+        return placeholder
+    
+    text = re.sub(telegram_tags_pattern, protect_telegram_tag, text, flags=re.IGNORECASE)
+    
+    # Удаляем все оставшиеся HTML теги
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # Восстанавливаем защищенные Telegram теги
+    for placeholder, tag in protected_placeholders.items():
+        text = text.replace(placeholder, tag)
+    
+    # 11. Очищаем множественные переносы строк
+    # Убираем более 2 переносов подряд (оставляем максимум 2 для разделения блоков)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Уменьшаем двойные переносы между обычными строками до одинарных
+    # Но сохраняем двойные переносы перед и после блоков кода для лучшей читаемости
+    # Заменяем двойные переносы на одинарные, но не вокруг блоков кода
+    # Сначала защищаем блоки кода
+    protected_blocks = {}
+    block_num = 0
+    
+    def protect_code_blocks_for_newline_reduction(match):
+        nonlocal block_num
+        full_block = match.group(0)
+        placeholder = f'__CODE_BLOCK_NL_{block_num}__'
+        protected_blocks[placeholder] = full_block
+        block_num += 1
+        return placeholder
+    
+    # Защищаем блоки кода с контекстом (включая переносы вокруг них)
+    text = re.sub(r'\n*<pre><code>.*?</code></pre>\n*', protect_code_blocks_for_newline_reduction, text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Теперь убираем двойные переносы между обычными строками
+    text = re.sub(r'\n\n+', '\n', text)
+    
+    # Восстанавливаем защищенные блоки кода (с двойными переносами для читаемости)
+    for placeholder, block in protected_blocks.items():
+        # Убираем лишние переносы из блока, оставляя по одному с каждой стороны
+        clean_block = block.strip()
+        text = text.replace(placeholder, '\n\n' + clean_block + '\n\n')
+    
+    # Финальная очистка - убираем более 2 переносов подряд
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # 11. Декодируем HTML-сущности, которые могли остаться
+    text = unescape(text)
+    
+    # 12. Убираем пробелы в начале и конце
+    text = text.strip()
+    
+    # 13. Валидация HTML тегов - проверяем, что все теги правильно закрыты
+    text = validate_telegram_html(text)
+    
+    logger.info(f"Конвертация завершена. Telegram HTML длина: {len(text)} символов")
+    
+    return text
+
+
+def validate_telegram_html(text):
+    """
+    Валидирует и исправляет HTML разметку для Telegram.
+    Удаляет незакрытые теги и исправляет неправильную структуру.
+    
+    Args:
+        text (str): Текст с HTML разметкой
+        
+    Returns:
+        str: Валидированный текст
+    """
+    if not text:
+        return text
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Разрешенные теги Telegram
+    allowed_tags = {'b', 'i', 'u', 's', 'a', 'code', 'pre'}
+    
+    # Сначала защищаем блоки <pre><code>...</code></pre> от разрыва
+    pre_code_blocks = []
+    block_counter = 0
+    
+    def protect_pre_code_block(match):
+        nonlocal block_counter
+        full_block = match.group(0)
+        placeholder = f'__PRE_CODE_BLOCK_{block_counter}__'
+        pre_code_blocks.append((placeholder, full_block))
+        block_counter += 1
+        return placeholder
+    
+    # Защищаем блоки <pre><code>...</code></pre>
+    text = re.sub(r'<pre><code>.*?</code></pre>', protect_pre_code_block, text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Стек для отслеживания открытых тегов
+    tag_stack = []
+    result = []
+    i = 0
+    
+    while i < len(text):
+        if text[i] == '<':
+            # Найден тег
+            tag_end = text.find('>', i)
+            if tag_end == -1:
+                # Незакрытый тег, пропускаем
+                logger.warning(f"Найден незакрытый тег на позиции {i}, пропускаем")
+                i += 1
+                continue
+            
+            tag_content = text[i:tag_end + 1]
+            
+            # Проверяем, это открывающий или закрывающий тег
+            if tag_content.startswith('</'):
+                # Закрывающий тег
+                tag_name = tag_content[2:-1].strip().lower()
+                if tag_name in allowed_tags:
+                    # Ищем соответствующий открывающий тег
+                    found = False
+                    for j in range(len(tag_stack) - 1, -1, -1):
+                        if tag_stack[j] == tag_name:
+                            # Найден соответствующий тег
+                            tag_stack.pop(j)
+                            result.append(tag_content)
+                            found = True
+                            break
+                    if not found:
+                        # Нет соответствующего открывающего тега, пропускаем закрывающий
+                        logger.warning(f"Найден закрывающий тег </{tag_name}> без открывающего, пропускаем")
+                else:
+                    # Неразрешенный тег, пропускаем
+                    logger.warning(f"Найден неразрешенный закрывающий тег </{tag_name}>, пропускаем")
+            else:
+                # Открывающий тег или самозакрывающийся
+                if tag_content.endswith('/>'):
+                    # Самозакрывающийся тег (например, <br/>)
+                    result.append(tag_content)
+                else:
+                    # Открывающий тег
+                    # Извлекаем имя тега (до пробела или >)
+                    tag_name = tag_content[1:].split()[0].split('>')[0].lower()
+                    # Для тега <a> проверяем наличие href
+                    if tag_name == 'a':
+                        if 'href=' in tag_content.lower():
+                            tag_stack.append(tag_name)
+                            result.append(tag_content)
+                        else:
+                            logger.warning(f"Найден тег <a> без href, пропускаем")
+                    elif tag_name in allowed_tags:
+                        tag_stack.append(tag_name)
+                        result.append(tag_content)
+                    else:
+                        # Неразрешенный тег, пропускаем
+                        logger.warning(f"Найден неразрешенный тег <{tag_name}>, пропускаем")
+            
+            i = tag_end + 1
+        else:
+            # Обычный символ
+            result.append(text[i])
+            i += 1
+    
+    # Закрываем все незакрытые теги
+    while tag_stack:
+        tag = tag_stack.pop()
+        result.append(f'</{tag}>')
+        logger.warning(f"Добавлен закрывающий тег </{tag}> для незакрытого открывающего")
+    
+    validated_text = ''.join(result)
+    
+    # Восстанавливаем защищенные блоки <pre><code>
+    for placeholder, block in pre_code_blocks:
+        validated_text = validated_text.replace(placeholder, block)
+    
+    # Финальная проверка - убираем пустые теги типа <code></code>
+    validated_text = re.sub(r'<code>\s*</code>', '', validated_text)
+    validated_text = re.sub(r'<pre>\s*</pre>', '', validated_text)
+    
+    return validated_text
+
+
+def truncate_telegram_text(text, max_length=4096, post_url=None, is_caption=False):
+    """
+    Умная обрезка текста для Telegram с сохранением форматирования.
+    
+    Args:
+        text (str): Текст с HTML разметкой для Telegram
+        max_length (int): Максимальная длина (4096 для сообщения, 1024 для caption)
+        post_url (str, optional): URL поста для добавления ссылки
+        is_caption (bool): True если это caption для медиа (лимит 1024)
+        
+    Returns:
+        str: Обрезанный текст с ссылкой на полную версию
+    """
+    if not text:
+        return text
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Для caption лимит 1024
+    if is_caption:
+        max_length = 1024
+    
+    # Если текст уже в пределах лимита
+    if len(text) <= max_length:
+        return text
+    
+    logger.info(f"Текст превышает лимит: {len(text)} > {max_length}, начинаем обрезку")
+    
+    # Текст для ссылки "Читать полностью"
+    read_more_text = '\n\n📖 <a href="{}">Читать полностью на сайте</a>'
+    if post_url:
+        read_more_link = read_more_text.format(post_url)
+    else:
+        read_more_link = '\n\n📖 Читать полностью на сайте'
+    
+    # Резервируем место для ссылки
+    reserved_length = len(read_more_link)
+    available_length = max_length - reserved_length
+    
+    if available_length < 100:  # Минимум 100 символов для текста
+        available_length = max_length - 50  # Уменьшаем резерв
+        read_more_link = '\n\n📖 <a href="{}">Читать далее</a>'.format(post_url) if post_url else '\n\n📖 Читать далее'
+        reserved_length = len(read_more_link)
+        available_length = max_length - reserved_length
+    
+    # Ищем место для обрезки, не разрывая блоки кода, заголовки, списки
+    # Ищем последний полный блок/элемент до лимита
+    
+    # 1. Проверяем, есть ли блоки кода <pre><code>...</code></pre>
+    code_block_pattern = r'<pre><code>.*?</code></pre>'
+    code_blocks = list(re.finditer(code_block_pattern, text, flags=re.DOTALL))
+    
+    # Находим позицию обрезки
+    cut_position = available_length
+    
+    # Если есть блоки кода, проверяем, не разрываем ли мы их
+    for block in code_blocks:
+        block_start = block.start()
+        block_end = block.end()
+        
+        # Если блок кода пересекается с зоной обрезки
+        if block_start < cut_position < block_end:
+            # Обрезаем до начала блока кода
+            cut_position = block_start
+            logger.info(f"Обрезка перед блоком кода на позиции {cut_position}")
+            break
+        # Если блок кода полностью после зоны обрезки, но близко к ней
+        elif block_start > cut_position and block_start < available_length + 200:
+            # Если блок кода начинается близко к зоне обрезки, обрезаем до него
+            if block_start - cut_position < 100:
+                cut_position = block_start
+                logger.info(f"Обрезка перед блоком кода на позиции {cut_position} (близко к лимиту)")
+                break
+    
+    # Ищем последний полный элемент (заголовок, абзац, элемент списка)
+    # Ищем последний перенос строки перед cut_position
+    last_newline = text.rfind('\n', 0, cut_position)
+    if last_newline > available_length * 0.7:  # Если перенос строки не слишком далеко от начала
+        cut_position = last_newline
+        logger.info(f"Обрезка на последнем переносе строки: {cut_position}")
+    
+    # Обрезаем текст
+    truncated = text[:cut_position].rstrip()
+    
+    # Проверяем, не разорвали ли мы блок кода
+    # Ищем незакрытые блоки <pre><code>
+    unclosed_pre = truncated.count('<pre>') - truncated.count('</pre>')
+    unclosed_code = truncated.count('<code>') - truncated.count('</code>')
+    
+    # Если есть незакрытые блоки, обрезаем до последнего полного блока
+    if unclosed_pre > 0 or unclosed_code > 0:
+        # Ищем последний полный блок <pre><code>...</code></pre>
+        last_complete_block = truncated.rfind('</pre>')
+        if last_complete_block != -1:
+            # Находим начало этого блока
+            block_start = truncated.rfind('<pre>', 0, last_complete_block)
+            if block_start != -1:
+                # Обрезаем до начала незавершенного блока
+                truncated = truncated[:block_start].rstrip()
+                logger.info(f"Обрезка до последнего полного блока кода на позиции {block_start}")
+    
+    # Убираем незакрытые теги в конце (если обрезали посередине тега)
+    # Используем более надежный метод - находим все открытые теги и закрываем их
+    open_tags = []
+    i = 0
+    while i < len(truncated):
+        if truncated[i] == '<':
+            tag_end = truncated.find('>', i)
+            if tag_end == -1:
+                # Незакрытый тег, обрезаем до него
+                truncated = truncated[:i].rstrip()
+                logger.info(f"Удален незакрытый тег на позиции {i}, новая длина: {len(truncated)}")
+                break
+            
+            tag_content = truncated[i:tag_end + 1]
+            
+            if tag_content.startswith('</'):
+                # Закрывающий тег
+                tag_name = tag_content[2:-1].strip().lower()
+                if tag_name in open_tags:
+                    open_tags.remove(tag_name)
+            elif not tag_content.endswith('/>'):
+                # Открывающий тег
+                tag_name = tag_content[1:].split()[0].split('>')[0].lower()
+                if tag_name in ['b', 'i', 'u', 's', 'a', 'code', 'pre']:
+                    open_tags.append(tag_name)
+            
+            i = tag_end + 1
+        else:
+            i += 1
+    
+    # Закрываем все незакрытые теги перед добавлением ссылки
+    if open_tags:
+        closing_tags = ''.join([f'</{tag}>' for tag in reversed(open_tags)])
+        truncated = truncated + closing_tags
+        logger.info(f"Закрыты незакрытые теги: {', '.join(open_tags)}")
+    
+    # Добавляем ссылку
+    result = truncated + read_more_link
+    
+    # Проверяем финальную длину
+    if len(result) > max_length:
+        # Если все еще превышает, обрезаем более агрессивно
+        excess = len(result) - max_length
+        truncated = truncated[:-excess].rstrip()
+        result = truncated + read_more_link
+        
+        # Если все еще не влезает, укорачиваем ссылку
+        if len(result) > max_length:
+            read_more_link_short = '\n\n📖 <a href="{}">Далее</a>'.format(post_url) if post_url else '\n\n📖 Далее'
+            result = truncated + read_more_link_short
+    
+    # Валидируем результат перед возвратом
+    result = validate_telegram_html(result)
+    
+    logger.info(f"Обрезка завершена. Итоговая длина: {len(result)} символов")
+    
+    return result 

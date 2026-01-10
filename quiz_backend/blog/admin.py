@@ -53,10 +53,16 @@ class PostAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
+    filter_horizontal = ('telegram_channels',)
+    actions = ['send_to_telegram_action']
     fieldsets = (
         (None, {
             'fields': ('title', 'slug', 'content', 'excerpt', 'category', 'video_url', 'published', 'featured',
                        'published_at')
+        }),
+        ('Telegram', {
+            'fields': ('telegram_channels',),
+            'description': 'Выберите каналы/группы для автоматической отправки поста при публикации'
         }),
         ('SEO', {
             'fields': ('meta_description', 'meta_keywords'),
@@ -67,6 +73,148 @@ class PostAdmin(admin.ModelAdmin):
 
     class Media:
         js = ('blog/js/admin_meta_validation.js',)
+    
+    def send_to_telegram_action(self, request, queryset):
+        """
+        Action для ручной отправки выбранных постов в Telegram каналы.
+        """
+        from platforms.services import send_telegram_post_sync
+        from django.conf import settings
+        from django.contrib.sites.models import Site
+        from blog.utils import html_to_telegram_text, truncate_telegram_text
+        
+        success_count = 0
+        error_count = 0
+        
+        for post in queryset:
+            # Проверяем, есть ли выбранные каналы
+            telegram_channels = post.telegram_channels.all()
+            if not telegram_channels.exists():
+                self.message_user(
+                    request,
+                    f'Пост "{post.title}" не имеет выбранных каналов для отправки.',
+                    level='warning'
+                )
+                error_count += 1
+                continue
+            
+            try:
+                # Получаем URL поста
+                post_url = post.get_absolute_url()
+                if post_url:
+                    try:
+                        site = Site.objects.get_current()
+                        full_url = f"https://{site.domain}{post_url}"
+                    except:
+                        full_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{post_url}"
+                else:
+                    full_url = None
+                
+                # Конвертируем HTML контент в формат Telegram
+                telegram_text = html_to_telegram_text(post.content, post_url=full_url)
+                
+                # Обрезаем текст если нужно
+                telegram_text = truncate_telegram_text(
+                    telegram_text,
+                    max_length=4096,
+                    post_url=full_url,
+                    is_caption=False
+                )
+                
+                # Получаем медиафайлы поста
+                main_image = post.get_main_image()
+                photos_list = []
+                gifs_list = []
+                videos_list = []
+                
+                if main_image:
+                    try:
+                        if main_image.photo and main_image.photo.name:
+                            # Используем сам файл - send_telegram_post_sync ожидает объект с методом chunks()
+                            photos_list.append(main_image.photo)
+                        elif main_image.gif and main_image.gif.name:
+                            gifs_list.append(main_image.gif)
+                        elif main_image.video and main_image.video.name:
+                            videos_list.append(main_image.video)
+                    except Exception as e:
+                        logger.warning(f"Не удалось получить медиафайл для поста '{post.title}': {e}")
+                
+                # Подготавливаем кнопку со ссылкой на пост
+                buttons = []
+                if full_url:
+                    buttons.append({
+                        'text': 'Читать на сайте',
+                        'url': full_url
+                    })
+                
+                # Отправляем в каждый выбранный канал
+                post_success_count = 0
+                for channel in telegram_channels:
+                    try:
+                        # Если есть медиа, используем caption (лимит 1024)
+                        if photos_list or gifs_list or videos_list:
+                            caption_text = truncate_telegram_text(
+                                telegram_text,
+                                max_length=1024,
+                                post_url=full_url,
+                                is_caption=True
+                            )
+                            success = send_telegram_post_sync(
+                                channel=channel,
+                                text=caption_text if caption_text else None,
+                                photos=photos_list,
+                                gifs=gifs_list,
+                                videos=videos_list,
+                                buttons=buttons if buttons else None
+                            )
+                        else:
+                            # Только текст
+                            success = send_telegram_post_sync(
+                                channel=channel,
+                                text=telegram_text,
+                                photos=None,
+                                gifs=None,
+                                videos=None,
+                                buttons=buttons if buttons else None
+                            )
+                        
+                        if success:
+                            post_success_count += 1
+                    except Exception as e:
+                        logger.error(f"Ошибка при отправке поста '{post.title}' в канал {channel.group_name}: {e}")
+                
+                if post_success_count > 0:
+                    success_count += 1
+                    self.message_user(
+                        request,
+                        f'Пост "{post.title}" отправлен в {post_success_count} из {telegram_channels.count()} каналов.',
+                        level='success'
+                    )
+                else:
+                    error_count += 1
+                    self.message_user(
+                        request,
+                        f'Не удалось отправить пост "{post.title}" в выбранные каналы.',
+                        level='error'
+                    )
+                    
+            except Exception as e:
+                error_count += 1
+                logger.error(f"Ошибка при отправке поста '{post.title}' в Telegram: {e}")
+                self.message_user(
+                    request,
+                    f'Ошибка при отправке поста "{post.title}": {str(e)}',
+                    level='error'
+                )
+        
+        if success_count > 0:
+            self.message_user(
+                request,
+                f'Успешно отправлено {success_count} постов в Telegram.',
+                level='success'
+            )
+    
+    send_to_telegram_action.short_description = 'Отправить выбранные посты в Telegram'
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
