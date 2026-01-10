@@ -106,15 +106,8 @@ def send_post_to_telegram_on_publish(sender, instance, created, **kwargs):
             except Exception as e:
                 logger.warning(f"Не удалось получить медиафайл для поста '{instance.title}': {e}")
         
-        # Подготавливаем кнопку со ссылкой на пост
-        buttons = []
-        if full_url:
-            buttons.append({
-                'text': 'Читать на сайте',
-                'url': full_url
-            })
-        
         # Отправляем в каждый выбранный канал
+        # Ссылка на полную версию добавляется в текст через truncate_telegram_text
         success_count = 0
         for channel in telegram_channels:
             try:
@@ -132,7 +125,7 @@ def send_post_to_telegram_on_publish(sender, instance, created, **kwargs):
                         photos=photos_list,
                         gifs=gifs_list,
                         videos=videos_list,
-                        buttons=buttons if buttons else None
+                        buttons=None  # Кнопки не используем, ссылка в тексте
                     )
                 else:
                     # Только текст
@@ -142,7 +135,7 @@ def send_post_to_telegram_on_publish(sender, instance, created, **kwargs):
                         photos=None,
                         gifs=None,
                         videos=None,
-                        buttons=buttons if buttons else None
+                        buttons=None  # Кнопки не используем, ссылка в тексте
                     )
                 
                 if success:

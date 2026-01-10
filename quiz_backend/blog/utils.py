@@ -1380,7 +1380,7 @@ def truncate_telegram_text(text, max_length=4096, post_url=None, is_caption=Fals
     Args:
         text (str): Текст с HTML разметкой для Telegram
         max_length (int): Максимальная длина (4096 для сообщения, 1024 для caption)
-        post_url (str, optional): URL поста для добавления ссылки
+        post_url (str, optional): URL поста для добавления ссылки в текст
         is_caption (bool): True если это caption для медиа (лимит 1024)
         
     Returns:
