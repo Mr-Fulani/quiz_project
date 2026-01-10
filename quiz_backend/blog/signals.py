@@ -88,29 +88,119 @@ def send_post_to_telegram_on_publish(sender, instance, created, **kwargs):
             is_caption=False
         )
         
-        # Получаем медиафайлы поста
-        main_image = instance.get_main_image()
+        # Получаем медиафайлы поста по приоритету:
+        # 1. Главное медиа (is_main=True)
+        # 2. Если главного нет - первое фото
+        # 3. Если фото нет - первое GIF
+        # 4. Если GIF нет - первое видео
         photos_list = []
         gifs_list = []
         videos_list = []
         
+        # Сначала проверяем главное медиа
+        main_image = instance.images.filter(is_main=True).first()
+        main_media_added = False
+        
+        logger.info(f"Поиск медиа для поста '{instance.title}'. Всего медиа: {instance.images.count()}")
+        
         if main_image:
+            logger.info(f"Найдено главное медиа: photo={bool(main_image.photo)}, gif={bool(main_image.gif)}, video={bool(main_image.video)}")
             try:
                 if main_image.photo and main_image.photo.name:
-                    # Открываем файл для чтения - send_telegram_post_sync ожидает объект с методом chunks()
                     main_image.photo.open('rb')
                     photos_list.append(main_image.photo)
-                    logger.debug(f"Добавлено фото: {main_image.photo.name}")
+                    main_media_added = True
+                    logger.info(f"Добавлено главное фото: {main_image.photo.name}")
                 elif main_image.gif and main_image.gif.name:
                     main_image.gif.open('rb')
                     gifs_list.append(main_image.gif)
-                    logger.debug(f"Добавлен GIF: {main_image.gif.name}")
+                    main_media_added = True
+                    logger.info(f"Добавлен главный GIF: {main_image.gif.name}")
                 elif main_image.video and main_image.video.name:
                     main_image.video.open('rb')
                     videos_list.append(main_image.video)
-                    logger.debug(f"Добавлено видео: {main_image.video.name}")
+                    main_media_added = True
+                    logger.info(f"Добавлено главное видео: {main_image.video.name}")
+                else:
+                    # Главное медиа найдено, но файла нет - ищем по приоритету
+                    logger.info(f"Главное медиа найдено, но файл отсутствует (photo.name={bool(main_image.photo and main_image.photo.name)}, gif.name={bool(main_image.gif and main_image.gif.name)}, video.name={bool(main_image.video and main_image.video.name)}), ищем по приоритету")
             except Exception as e:
-                logger.warning(f"Не удалось получить медиафайл для поста '{instance.title}': {e}")
+                logger.warning(f"Не удалось получить главное медиа для поста '{instance.title}': {e}")
+        else:
+            logger.info(f"Главное медиа не найдено (is_main=True), ищем по приоритету")
+        
+        # Если главного медиа нет или файл не был добавлен, ищем по приоритету: фото > GIF > видео
+        if not main_media_added:
+            logger.info(f"Поиск медиа по приоритету для поста '{instance.title}'")
+            
+            # Ищем первое фото: сначала не-дефолтные, потом дефолтные
+            all_images = instance.images.all()
+            non_default_photo = None
+            default_photo = None
+            
+            for photo_image in all_images:
+                try:
+                    if photo_image.photo and photo_image.photo.name:
+                        try:
+                            if photo_image.photo.storage.exists(photo_image.photo.name):
+                                if 'default-og-image' in photo_image.photo.name:
+                                    if not default_photo:
+                                        default_photo = photo_image
+                                else:
+                                    if not non_default_photo:
+                                        non_default_photo = photo_image
+                                        break  # Нашли не-дефолтное, выходим
+                        except Exception:
+                            continue
+                except Exception:
+                    continue
+            
+            # Используем не-дефолтное фото, если есть, иначе дефолтное
+            selected_photo = non_default_photo or default_photo
+            if selected_photo:
+                try:
+                    selected_photo.photo.open('rb')
+                    photos_list.append(selected_photo.photo)
+                    logger.info(f"Добавлено фото по приоритету: {selected_photo.photo.name}")
+                except Exception as e:
+                    logger.warning(f"Ошибка при открытии фото ID {selected_photo.id}: {e}", exc_info=True)
+            
+            # Если фото нет, ищем первое GIF
+            if not photos_list:
+                logger.info(f"Фото не найдено, ищем GIF")
+                for gif_image in all_images:
+                    try:
+                        if gif_image.gif and gif_image.gif.name:
+                            try:
+                                if gif_image.gif.storage.exists(gif_image.gif.name):
+                                    gif_image.gif.open('rb')
+                                    gifs_list.append(gif_image.gif)
+                                    logger.info(f"Добавлен GIF по приоритету: {gif_image.gif.name}")
+                                    break
+                            except Exception:
+                                continue
+                    except Exception:
+                        continue
+            
+            # Если фото и GIF нет, ищем первое видео
+            if not photos_list and not gifs_list:
+                logger.info(f"Фото и GIF не найдены, ищем видео")
+                for video_image in all_images:
+                    try:
+                        if video_image.video and video_image.video.name:
+                            try:
+                                if video_image.video.storage.exists(video_image.video.name):
+                                    video_image.video.open('rb')
+                                    videos_list.append(video_image.video)
+                                    logger.info(f"Добавлено видео по приоритету: {video_image.video.name}")
+                                    break
+                            except Exception:
+                                continue
+                    except Exception:
+                        continue
+            
+            if not photos_list and not gifs_list and not videos_list:
+                logger.warning(f"Не найдено медиа для поста '{instance.title}' по приоритету")
         
         # Отправляем в каждый выбранный канал
         # Ссылка на полную версию добавляется в текст через truncate_telegram_text
