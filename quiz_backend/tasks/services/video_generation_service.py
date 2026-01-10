@@ -10,8 +10,9 @@ import random
 import re
 import tempfile
 import uuid
+import textwrap
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 import numpy as np
 
 from PIL import Image, ImageDraw, ImageFont
@@ -377,30 +378,87 @@ def _generate_console_frame_vertical(
     # Цвет текста - тёмный для контраста на светлом фоне
     text_color = (30, 30, 30)
     
-    # Получаем размеры текста для центрирования
+    # Разбиваем длинный текст на несколько строк с учетом ширины экрана
+    max_text_width = video_width - 100  # Оставляем отступы по бокам
+    line_spacing = 5  # Отступ между строками
+    
+    # Функция для разбиения текста на строки с учетом ширины
+    def wrap_question_text(text: str, font: ImageFont, draw_obj: ImageDraw, max_width: int) -> List[str]:
+        """Разбивает текст на строки, которые помещаются в max_width."""
+        words = text.split()
+        lines = []
+        current_line = []
+        
+        for word in words:
+            # Пробуем добавить слово к текущей строке
+            test_line = ' '.join(current_line + [word])
+            try:
+                bbox = draw_obj.textbbox((0, 0), test_line, font=font)
+                test_width = bbox[2] - bbox[0]
+            except AttributeError:
+                # Fallback для старых версий PIL - приблизительный расчет
+                # Используем среднюю ширину символа (примерно 0.6 от размера шрифта)
+                test_width = len(test_line) * question_font_size * 0.6
+            
+            if test_width <= max_width:
+                current_line.append(word)
+            else:
+                # Текущая строка заполнена, начинаем новую
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+        
+        # Добавляем последнюю строку
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        # Если текст все еще не помещается (одно длинное слово), разбиваем по символам
+        if not lines:
+            # Разбиваем по символам, используя приблизительную ширину символа
+            chars_per_line = int(max_width / (question_font_size * 0.6))
+            if chars_per_line < 1:
+                chars_per_line = 1
+            lines = [text[i:i+chars_per_line] for i in range(0, len(text), chars_per_line)]
+        
+        return lines
+    
+    # Разбиваем текст на строки
+    text_lines = wrap_question_text(question_text, font, draw, max_text_width)
+    
+    # Вычисляем общую высоту текста
     try:
-        bbox = draw.textbbox((0, 0), question_text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        bbox = draw.textbbox((0, 0), "Ag", font=font)  # Используем тестовую строку для высоты
+        line_height = bbox[3] - bbox[1]
     except AttributeError:
-        # Fallback для старых версий PIL
-        text_width = len(question_text) * question_font_size // 2
-        text_height = question_font_size
+        line_height = question_font_size
+    
+    total_text_height = len(text_lines) * line_height + (len(text_lines) - 1) * line_spacing
     
     # Позиция текста: по центру горизонтально, прямо под консолью
-    text_x = (video_width - text_width) // 2
     text_y = console_y1 + question_text_gap  # Прямо под консолью с отступом
     
     # Проверяем, чтобы текст не выходил за пределы экрана
-    if text_y + text_height > video_height - 20:
+    if text_y + total_text_height > video_height - 20:
         # Если текст выходит, сдвигаем выше
-        text_y = video_height - text_height - 20
+        text_y = video_height - total_text_height - 20
     
-    # Рисуем текст с небольшим контуром для читаемости (эффект жирного)
+    # Рисуем каждую строку текста с небольшим контуром для читаемости (эффект жирного)
     outline_color = (255, 255, 255)
-    for adj in [(-2, -2), (-2, 2), (2, -2), (2, 2), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
-        draw.text((text_x + adj[0], text_y + adj[1]), question_text, font=font, fill=outline_color)
-    draw.text((text_x, text_y), question_text, font=font, fill=text_color)
+    for line_idx, line in enumerate(text_lines):
+        try:
+            bbox = draw.textbbox((0, 0), line, font=font)
+            line_width = bbox[2] - bbox[0]
+        except AttributeError:
+            line_width = len(line) * question_font_size // 2
+        
+        line_x = (video_width - line_width) // 2
+        line_y = text_y + line_idx * (line_height + line_spacing)
+        
+        # Рисуем контур
+        for adj in [(-2, -2), (-2, 2), (2, -2), (2, 2), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            draw.text((line_x + adj[0], line_y + adj[1]), line, font=font, fill=outline_color)
+        # Рисуем основной текст
+        draw.text((line_x, line_y), line, font=font, fill=text_color)
 
     # Освобождаем память от изображений
     if 'logo' in locals():

@@ -62,6 +62,13 @@ class TaskAdminForm(forms.ModelForm):
     Кастомная форма для Task с выпадающим списком ссылок.
     Подтягивает все DefaultLink из общей БД с ботом.
     """
+    # Кастомное поле для текста вопроса видео (простое текстовое поле вместо JSON)
+    video_question_text = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'size': 80}),
+        help_text='Кастомный текст вопроса для видео. Будет использован для языка текущего перевода задачи. Если не указан, используется дефолтный текст.'
+    )
+    
     class Meta:
         model = Task
         fields = '__all__'
@@ -100,6 +107,11 @@ class TaskAdminForm(forms.ModelForm):
                 else:
                     # ПРЕДУПРЕЖДЕНИЕ: нет главной ссылки!
                     choices.append(('', f'⚠️ НЕТ главной ссылки для {translation.language.upper()}! Создайте в: Webhooks → Main fallback links'))
+                
+                # Загружаем кастомный текст вопроса для текущего языка перевода
+                if self.instance.video_question_texts and isinstance(self.instance.video_question_texts, dict):
+                    current_text = self.instance.video_question_texts.get(translation.language, '')
+                    self.fields['video_question_text'].initial = current_text
         
         # Добавляем остальные ссылки из общей БД
         for link in default_links:
@@ -117,6 +129,10 @@ class TaskAdminForm(forms.ModelForm):
             'Если не указано, автоматически подбирается: для темы → главная для языка → резервная'
         )
         
+        # Скрываем оригинальное поле video_question_texts (используем кастомное)
+        if 'video_question_texts' in self.fields:
+            self.fields['video_question_texts'].widget = forms.HiddenInput()
+        
         # Делаем некоторые поля необязательными при редактировании существующей задачи
         if self.instance.pk:
             # При редактировании message_id не обязателен (он заполняется автоматически)
@@ -126,6 +142,31 @@ class TaskAdminForm(forms.ModelForm):
             # group может быть пустым (заполняется при импорте или можно выбрать позже)
             if 'group' in self.fields:
                 self.fields['group'].required = False
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Сохраняем текст вопроса в video_question_texts по языку текущего перевода
+        video_question_text = self.cleaned_data.get('video_question_text', '').strip()
+        
+        # Получаем перевод (после сохранения задачи переводы будут доступны)
+        translation = instance.translations.first() if instance.pk else None
+        
+        if translation:
+            language = translation.language
+            if not instance.video_question_texts:
+                instance.video_question_texts = {}
+            
+            if video_question_text:
+                instance.video_question_texts[language] = video_question_text
+            else:
+                # Удаляем пустой текст для этого языка
+                if language in instance.video_question_texts:
+                    del instance.video_question_texts[language]
+        
+        if commit:
+            instance.save()
+        return instance
 
 
 @admin.register(Task)
@@ -181,8 +222,8 @@ class TaskAdmin(admin.ModelAdmin):
             'description': 'Быстрые действия для задачи'
         }),
         ('Видео', {
-            'fields': ('background_music', 'video_question_texts', 'video_urls_display', 'video_generation_logs_display'),
-            'description': 'Информация о видео задачи. Можно выбрать конкретный трек для этой задачи (переопределяет автоматический выбор). Кастомный текст вопроса для видео по языкам: {"ru": "Ваш текст", "en": "Your text"}. Если не указан, используется дефолтный текст.',
+            'fields': ('background_music', 'video_question_text', 'video_urls_display', 'video_generation_logs_display'),
+            'description': 'Информация о видео задачи. Можно выбрать конкретный трек для этой задачи (переопределяет автоматический выбор). Кастомный текст вопроса для видео будет использован для языка текущего перевода задачи. Если не указан, используется дефолтный текст.',
             'classes': ()  # Убираем collapse, чтобы секция всегда была видна
         }),
     )
@@ -210,6 +251,28 @@ class TaskAdmin(admin.ModelAdmin):
         'publish_with_auto_reshare',
         'clear_error_flag'
     ]
+    
+    def save_related(self, request, form, formsets, change):
+        """Сохраняет связанные объекты и обновляет video_question_texts после сохранения переводов."""
+        super().save_related(request, form, formsets, change)
+        
+        # После сохранения всех inline объектов (включая переводы) обновляем video_question_texts
+        instance = form.instance
+        video_question_text = form.cleaned_data.get('video_question_text', '').strip()
+        
+        # Теперь переводы уже сохранены, можем получить язык
+        translation = instance.translations.first()
+        if translation and video_question_text:
+            language = translation.language
+            if not instance.video_question_texts:
+                instance.video_question_texts = {}
+            instance.video_question_texts[language] = video_question_text
+            instance.save(update_fields=['video_question_texts'])
+        elif translation and not video_question_text:
+            # Удаляем пустой текст для этого языка
+            if instance.video_question_texts and translation.language in instance.video_question_texts:
+                del instance.video_question_texts[translation.language]
+                instance.save(update_fields=['video_question_texts'])
     
     def get_queryset(self, request):
         """Оптимизация запросов: предзагружаем переводы для отображения языка."""
