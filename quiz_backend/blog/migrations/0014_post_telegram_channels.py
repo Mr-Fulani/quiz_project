@@ -15,15 +15,15 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             # Обновляем состояние модели Django
             state_operations=[
-                migrations.AddField(
-                    model_name="post",
-                    name="telegram_channels",
-                    field=models.ManyToManyField(
-                        blank=True,
-                        help_text="Выберите каналы/группы для автоматической отправки поста при публикации",
-                        to="platforms.telegramgroup",
-                        verbose_name="Telegram каналы/группы",
-                    ),
+        migrations.AddField(
+            model_name="post",
+            name="telegram_channels",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="Выберите каналы/группы для автоматической отправки поста при публикации",
+                to="platforms.telegramgroup",
+                verbose_name="Telegram каналы/группы",
+            ),
                 ),
             ],
             # Обновляем базу данных только если таблицы нет

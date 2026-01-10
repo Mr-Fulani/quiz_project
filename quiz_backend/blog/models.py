@@ -306,18 +306,26 @@ class PostImage(models.Model):
             self.alt_text = self.post.title
         super().save(*args, **kwargs)
 
-        # Обработка photo
+        # Обработка photo - масштабируем без обрезки для сохранения оригиналов
+        # Миниатюры создаются автоматически через ImageSpecField (ResizeToFit)
         if self.photo:
             img = Image.open(self.photo.path)
-            img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
-            img.save(self.photo.path, quality=85, optimize=True)
+            # Масштабируем только если изображение больше 2000px по любой стороне
+            # Это оптимизирует размер файла без обрезки
+            max_size = 2000
+            if img.width > max_size or img.height > max_size:
+                img.thumbnail((max_size, max_size), Image.LANCZOS)
+                img.save(self.photo.path, quality=85, optimize=True)
 
         # Обработка gif (если это не анимированный GIF)
         if self.gif:
             img = Image.open(self.gif.path)
             if not getattr(img, "is_animated", False):  # Проверяем, не анимированный ли GIF
-                img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
-                img.save(self.gif.path, quality=85, optimize=True)
+                # Масштабируем только если изображение больше 2000px по любой стороне
+                max_size = 2000
+                if img.width > max_size or img.height > max_size:
+                    img.thumbnail((max_size, max_size), Image.LANCZOS)
+                    img.save(self.gif.path, quality=85, optimize=True)
 
 
 class Project(models.Model):
@@ -534,18 +542,26 @@ class ProjectImage(models.Model):
             self.alt_text = self.project.title
         super().save(*args, **kwargs)
 
-        # Обработка photo
+        # Обработка photo - масштабируем без обрезки для сохранения оригиналов
+        # Миниатюры создаются автоматически через ImageSpecField (ResizeToFit)
         if self.photo:
             img = Image.open(self.photo.path)
-            img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
-            img.save(self.photo.path, quality=85, optimize=True)
+            # Масштабируем только если изображение больше 2000px по любой стороне
+            # Это оптимизирует размер файла без обрезки
+            max_size = 2000
+            if img.width > max_size or img.height > max_size:
+                img.thumbnail((max_size, max_size), Image.LANCZOS)
+                img.save(self.photo.path, quality=85, optimize=True)
 
         # Обработка gif
         if self.gif:
             img = Image.open(self.gif.path)
             if not getattr(img, "is_animated", False):
-                img = ImageOps.fit(img, (800, 800), Image.LANCZOS)
-                img.save(self.gif.path, quality=85, optimize=True)
+                # Масштабируем только если изображение больше 2000px по любой стороне
+                max_size = 2000
+                if img.width > max_size or img.height > max_size:
+                    img.thumbnail((max_size, max_size), Image.LANCZOS)
+                    img.save(self.gif.path, quality=85, optimize=True)
 
 
 class MessageAttachment(models.Model):
