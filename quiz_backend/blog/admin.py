@@ -130,11 +130,14 @@ class PostAdmin(admin.ModelAdmin):
                 if main_image:
                     try:
                         if main_image.photo and main_image.photo.name:
-                            # Используем сам файл - send_telegram_post_sync ожидает объект с методом chunks()
+                            # Открываем файл для чтения - send_telegram_post_sync ожидает объект с методом chunks()
+                            main_image.photo.open('rb')
                             photos_list.append(main_image.photo)
                         elif main_image.gif and main_image.gif.name:
+                            main_image.gif.open('rb')
                             gifs_list.append(main_image.gif)
                         elif main_image.video and main_image.video.name:
+                            main_image.video.open('rb')
                             videos_list.append(main_image.video)
                     except Exception as e:
                         logger.warning(f"Не удалось получить медиафайл для поста '{post.title}': {e}")
@@ -175,6 +178,14 @@ class PostAdmin(admin.ModelAdmin):
                             post_success_count += 1
                     except Exception as e:
                         logger.error(f"Ошибка при отправке поста '{post.title}' в канал {channel.group_name}: {e}")
+                    finally:
+                        # Закрываем файлы после отправки
+                        for f in photos_list + gifs_list + videos_list:
+                            if hasattr(f, 'close'):
+                                try:
+                                    f.close()
+                                except:
+                                    pass
                 
                 if post_success_count > 0:
                     success_count += 1
