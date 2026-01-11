@@ -522,10 +522,14 @@ def dynamic_seo_context(request):
     logger.info(f"=== DEBUG: dynamic_seo_context called for path: {path}, host: {host}")
 
     scheme = 'https' if request.is_secure() else 'http'
+    
+    # Для production доменов всегда используем HTTPS
+    if host in ['quiz-code.com', 'www.quiz-code.com']:
+        scheme = 'https'
 
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
     if host == 'mini.quiz-code.com':
-        base_url = f"{scheme}://quiz-code.com"  # canonical на основной домен
+        base_url = f"https://quiz-code.com"  # canonical на основной домен, всегда HTTPS
         is_mini_app = True
     else:
         base_url = f"{scheme}://{host}"
@@ -609,16 +613,22 @@ def dynamic_seo_context(request):
                         logger.info(f"=== DEBUG: OG image from get_og_image_url(): {og_image}")
 
                         # Формируем полный URL для OG изображения
+                        # Для production всегда используем HTTPS
+                        production_scheme = 'https' if host in ['quiz-code.com', 'www.quiz-code.com'] else scheme
+                        
                         if og_image:
-                            # Если URL уже полный (начинается с http), используем как есть
+                            # Если URL уже полный (начинается с http), используем как есть, но заменяем на HTTPS для production
                             if og_image.startswith('http'):
                                 og_image_full_url = og_image
-                            # Если относительный, формируем полный URL
+                                # Для production домена заменяем на HTTPS
+                                if 'quiz-code.com' in og_image_full_url and og_image_full_url.startswith('http://'):
+                                    og_image_full_url = og_image_full_url.replace('http://', 'https://')
+                            # Если относительный, формируем полный URL с HTTPS для production
                             elif og_image.startswith('/'):
-                                og_image_full_url = f"{scheme}://{host}{og_image}"
+                                og_image_full_url = f"{production_scheme}://{host}{og_image}"
                             else:
                                 # Если путь без слеша, добавляем MEDIA_URL
-                                og_image_full_url = f"{scheme}://{host}{og_image}"
+                                og_image_full_url = f"{production_scheme}://{host}{og_image}"
                             
                             # Добавляем кэш-бюстинг
                             cache_buster = int(post.updated_at.timestamp())
@@ -627,8 +637,9 @@ def dynamic_seo_context(request):
                             else:
                                 og_image_final = f"{og_image_full_url}?v={cache_buster}"
                         else:
-                            # Если изображения нет, используем дефолтное
-                            og_image_final = request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg'))
+                            # Если изображения нет, используем дефолтное с HTTPS для production
+                            default_image_path = getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')
+                            og_image_final = f"{production_scheme}://{host}{default_image_path}"
                         
                         logger.info(f"=== DEBUG: Final OG image URL: {og_image_final}")
 
@@ -654,18 +665,25 @@ def dynamic_seo_context(request):
                             elif lang_prefix == 'ru':
                                 hreflang_ru = lang_url
                         
+                        # Формируем абсолютный URL для og:url (всегда HTTPS для production)
+                        post_absolute_url = post.get_absolute_url()
+                        og_url_final = f"{base_url}{post_absolute_url}"
+                        # Убеждаемся, что для production используется HTTPS
+                        if 'quiz-code.com' in og_url_final and og_url_final.startswith('http://'):
+                            og_url_final = og_url_final.replace('http://', 'https://')
+                        
                         seo_data.update({
                             'meta_title': f"{post.title} | Quiz Project Blog",
                             'meta_description': meta_description[:160],
                             'meta_keywords': meta_keywords,
-                            'canonical_url': base_url + post.get_absolute_url(),
+                            'canonical_url': base_url + post_absolute_url,
                             'hreflang_en': hreflang_en,
                             'hreflang_ru': hreflang_ru,
-                            'hreflang_x_default': hreflang_en or (base_url + post.get_absolute_url()),
+                            'hreflang_x_default': hreflang_en or (base_url + post_absolute_url),
                             'og_title': post.title,
                             'og_description': meta_description[:160],
                             'og_image': og_image_final,
-                            'og_url': base_url + post.get_absolute_url(),
+                            'og_url': og_url_final,
                             'og_type': 'article',
                             'article_author': 'Anvar Sh.',
                             'article_published_time': (post.published_at or post.created_at).isoformat(),
@@ -766,19 +784,38 @@ def dynamic_seo_context(request):
                         else:
                             og_image_with_version = og_image
 
+                        # Формируем полный URL для OG изображения (HTTPS для production)
+                        production_scheme = 'https' if host in ['quiz-code.com', 'www.quiz-code.com'] else scheme
+                        if og_image_with_version.startswith('http'):
+                            og_image_final = og_image_with_version
+                            # Для production домена заменяем на HTTPS
+                            if 'quiz-code.com' in og_image_final and og_image_final.startswith('http://'):
+                                og_image_final = og_image_final.replace('http://', 'https://')
+                        elif og_image_with_version.startswith('/'):
+                            og_image_final = f"{production_scheme}://{host}{og_image_with_version}"
+                        else:
+                            og_image_final = f"{production_scheme}://{host}{og_image_with_version}"
+
                         # ДОБАВЛЕНО: Отладочная информация для VK
                         vk_image_url = f"{getattr(settings, 'PUBLIC_URL', 'https://quiz-code.com')}{og_image_with_version}" if og_image_with_version.startswith('/') else og_image_with_version
                         logger.info(f"=== DEBUG: VK image URL: {vk_image_url}")
+
+                        # Формируем абсолютный URL для og:url (HTTPS для production)
+                        project_absolute_url = project.get_absolute_url()
+                        og_url_final = f"{base_url}{project_absolute_url}"
+                        # Убеждаемся, что для production используется HTTPS
+                        if 'quiz-code.com' in og_url_final and og_url_final.startswith('http://'):
+                            og_url_final = og_url_final.replace('http://', 'https://')
 
                         seo_data.update({
                             'meta_title': f"{project.title} | Portfolio - Quiz Project",
                             'meta_description': meta_description[:160],
                             'meta_keywords': meta_keywords,
-                            'canonical_url': base_url + project.get_absolute_url(),
+                            'canonical_url': base_url + project_absolute_url,
                             'og_title': project.title,
                             'og_description': meta_description[:160],
-                            'og_image': request.build_absolute_uri(og_image_with_version),
-                            'og_url': base_url + project.get_absolute_url(),
+                            'og_image': og_image_final,
+                            'og_url': og_url_final,
                             'og_type': 'website',
                             'is_mini_app': is_mini_app,  # ДОБАВЛЕНО: флаг для mini app
                             'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',  # ДОБАВЛЕНО: robots для mini app
@@ -789,7 +826,7 @@ def dynamic_seo_context(request):
                             # Twitter Card Tags
                             'twitter_title': project.title,
                             'twitter_description': meta_description[:160],
-                            'twitter_image': request.build_absolute_uri(og_image_with_version),
+                            'twitter_image': og_image_final,
                         })
 
                         # ДОБАВЛЕНО: Отладочная информация
@@ -801,8 +838,8 @@ def dynamic_seo_context(request):
                             "@type": "CreativeWork",
                             "name": project.title,
                             "description": meta_description[:160],
-                            "image": request.build_absolute_uri(og_image),
-                            "url": base_url + project.get_absolute_url(),
+                            "image": og_image_final,
+                            "url": og_url_final,
                             "author": {
                                 "@type": "Person",
                                 "name": "Anvar Sh."
