@@ -138,8 +138,79 @@ window.initializeComments = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const returnTo = urlParams.get('return_to');
             const translationId = urlParams.get('translation_id');
+            const commentId = urlParams.get('comment_id');
             
-            if (returnTo === 'comments' && translationId) {
+            // Обработка deep link для комментария (из уведомлений)
+            if (commentId && translationId) {
+                console.log('🔗 Deep link: открываем комментарий', commentId, 'для задачи', translationId);
+                
+                // Находим секцию комментариев
+                const commentSection = document.getElementById(`comments-${translationId}`);
+                if (commentSection) {
+                    // Убираем класс collapsed чтобы секция была открыта
+                    commentSection.classList.remove('collapsed');
+                    
+                    // Прокручиваем к задаче с нужным translation_id
+                    const taskItem = commentSection.closest('.task-item');
+                    if (taskItem) {
+                        setTimeout(() => {
+                            taskItem.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                            
+                            // После прокрутки к задаче, прокручиваем к секции комментариев
+                            setTimeout(() => {
+                                commentSection.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'start' 
+                                });
+                                
+                                // Пытаемся прокрутить к конкретному комментарию
+                                setTimeout(() => {
+                                    const commentElement = document.getElementById(`comment-${commentId}`);
+                                    if (commentElement) {
+                                        commentElement.scrollIntoView({ 
+                                            behavior: 'smooth', 
+                                            block: 'center' 
+                                        });
+                                        // Подсвечиваем комментарий
+                                        commentElement.style.backgroundColor = '#fff3cd';
+                                        commentElement.style.transition = 'background-color 0.3s';
+                                        setTimeout(() => {
+                                            commentElement.style.backgroundColor = '';
+                                        }, 2000);
+                                        console.log('✅ Прокручено к комментарию', commentId);
+                                    } else {
+                                        console.warn('⚠️ Комментарий', commentId, 'не найден, возможно еще не загружен');
+                                        // Если комментарий еще не загружен, ждем и пробуем снова
+                                        setTimeout(() => {
+                                            const retryComment = document.getElementById(`comment-${commentId}`);
+                                            if (retryComment) {
+                                                retryComment.scrollIntoView({ 
+                                                    behavior: 'smooth', 
+                                                    block: 'center' 
+                                                });
+                                                retryComment.style.backgroundColor = '#fff3cd';
+                                                setTimeout(() => {
+                                                    retryComment.style.backgroundColor = '';
+                                                }, 2000);
+                                                console.log('✅ Прокручено к комментарию', commentId, '(повторная попытка)');
+                                            }
+                                        }, 2000);
+                                    }
+                                }, 500);
+                            }, 300);
+                        }, 300);
+                        
+                        console.log('✅ Секция комментариев открыта и прокручена к задаче');
+                    } else {
+                        console.warn('⚠️ Задача не найдена для translation:', translationId);
+                    }
+                } else {
+                    console.warn('⚠️ Секция комментариев не найдена для translation:', translationId);
+                }
+            } else if (returnTo === 'comments' && translationId) {
                 console.log('📝 Возврат из профиля, открываем секцию комментариев для translation:', translationId);
                 
                 // Находим секцию комментариев
