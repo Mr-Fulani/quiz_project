@@ -2,7 +2,7 @@
 {% load static blog_tags interaction_tags i18n %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'blog/css/interactions.css' %}">
+<link rel="stylesheet" href="{% static 'blog/css/interactions.css' %}?v=2.3">
 {% endblock %}
 
 {% block content %}
@@ -120,5 +120,5 @@ All static text is localized using {% trans %} for English msgid and translation
 {% block scripts %}
 <!-- GSAP загружается в base.html с задержкой, filter-dropdown.js работает без GSAP -->
 <script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
-    <script src="{% static 'blog/js/interactions.js' %}?v=2.2"></script>
+    <script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
 {% endblock %}
