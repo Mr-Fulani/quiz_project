@@ -189,6 +189,7 @@ class CommentsManager {
         // Определяем класс: reply если есть parent_comment, иначе root
         const commentClass = comment.parent_comment ? 'comment-item comment-reply' : 'comment-item comment-root';
         div.className = commentClass;
+        div.id = `comment-${comment.id}`; // ID для возможности прокрутки к конкретному комментарию
         div.dataset.commentId = comment.id;
         div.dataset.translationId = this.translationId;
         
