@@ -2056,9 +2056,8 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     readonly_fields = ('audio_preview', 'created_at', 'updated_at')
     fields = ('name', 'audio_file', 'audio_preview', 'is_active', 'created_at', 'updated_at')
-
-    actions = ['make_active', 'make_inactive']
-
+    actions = ['make_active', 'make_inactive', 'delete_selected_tracks']
+    
     def display_size(self, obj):
         if not obj.size:
             return '—'
@@ -2070,7 +2069,7 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
             size = size // 1024
         return f"{size}TB"
     display_size.short_description = 'Размер'
-
+    
     def audio_preview(self, obj):
         if not obj.audio_file:
             return '—'
@@ -2080,18 +2079,17 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
         except Exception:
             return '—'
     audio_preview.short_description = 'Превью'
-
+    
     def make_active(self, request, queryset):
         updated = queryset.update(is_active=True)
         self.message_user(request, f"✅ Активировано треков: {updated}")
     make_active.short_description = 'Активировать выбранные треки'
-
+    
     def make_inactive(self, request, queryset):
         updated = queryset.update(is_active=False)
         self.message_user(request, f"✅ Деактивировано треков: {updated}")
     make_inactive.short_description = 'Деактивировать выбранные треки'
-
-    # Добавляем действие удаления треков (удаляет файл через storage и сам объект)
+    
     def delete_selected_tracks(self, request, queryset):
         """
         Удаляет выбранные треки из базы и удаляет файл из связанного storage.
@@ -2110,24 +2108,499 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
                         except Exception as e_file:
                             # Логируем и продолжаем попытку удалить объект
                             logger.warning(f"Не удалось удалить файл аудио для трека {obj.id}: {e_file}")
-
                 except Exception:
                     # Если у объекта нет audio_file или другой неожиданный кейс, продолжаем
                     pass
-
+                
                 # Удаляем сам объект из БД
                 obj.delete()
                 deleted += 1
             except Exception as e:
                 logger.error(f"Ошибка при удалении трека {getattr(obj, 'id', '<unknown>')}: {e}")
                 failed.append(str(getattr(obj, 'id', '<unknown>')))
-
+        
         if deleted:
             self.message_user(request, f"🗑️ Удалено треков: {deleted}", messages.SUCCESS)
         if failed:
             self.message_user(request, f"⚠️ Не удалось удалить треки с ID: {', '.join(failed)}", messages.WARNING)
     delete_selected_tracks.short_description = '🗑️ Удалить выбранные треки (файл будет удалён из storage)'
 
-    # Регистрируем новое действие
-    actions = ['make_active', 'make_inactive', 'delete_selected_tracks']
+
+@admin.register(TaskCommentReport)
+class TaskCommentReportAdmin(admin.ModelAdmin):
+    """Админка для управления жалобами на комментарии."""
+    list_display = ('id', 'comment_author_info', 'reporter_info', 'reason', 'is_reviewed', 'created_at', 'ban_user_buttons')
+    list_filter = ('reason', 'is_reviewed', 'created_at')
+    search_fields = ('comment__text', 'reporter_telegram_id', 'comment__author_telegram_id', 'comment__author_username')
+    readonly_fields = ('comment_link', 'comment_author_info', 'reporter_info', 'comment_text_preview', 'ban_user_buttons', 'created_at')
+    fields = (
+        'comment_link',
+        'comment_author_info',
+        'reporter_info',
+        'reason',
+        'description',
+        'comment_text_preview',
+        'is_reviewed',
+        'ban_user_buttons',
+        'created_at'
+    )
+    actions = ['mark_as_reviewed', 'mark_as_unreviewed', 'ban_author_1_hour', 'ban_author_24_hours', 'ban_author_7_days', 'ban_author_permanent', 'unban_author']
+    
+    def comment_link(self, obj):
+        """Ссылка на комментарий."""
+        if obj.comment:
+            try:
+                comment_url = reverse('admin:tasks_taskcomment_change', args=[obj.comment.id])
+            except Exception:
+                comment_url = f"/admin/tasks/taskcomment/{obj.comment.id}/change/"
+            return format_html('<a href="{}">Комментарий #{}</a>', comment_url, obj.comment.id)
+        return '-'
+    comment_link.short_description = 'Комментарий'
+    
+    def comment_author_info(self, obj):
+        """Информация об авторе комментария."""
+        if not obj.comment:
+            return '-'
+        
+        author_id = obj.comment.author_telegram_id
+        author_username = obj.comment.author_username or 'нет'
+        
+        # Пытаемся получить информацию из MiniAppUser
+        try:
+            from accounts.models import MiniAppUser
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            if author_user:
+                username = author_user.username or 'нет'
+                name = author_user.first_name or author_user.username or 'Без имени'
+                is_banned = author_user.is_banned
+                banned_status = '🚫 Заблокирован' if is_banned else '✅ Активен'
+                
+                try:
+                    user_url = reverse('admin:accounts_miniappuser_change', args=[author_user.id])
+                except Exception:
+                    user_url = f"/admin/accounts/miniappuser/{author_user.id}/change/"
+                return format_html(
+                    '<a href="{}">{} (@{})</a><br>ID: {}<br>Статус: {}',
+                    user_url, name, username, author_id, banned_status
+                )
+        except Exception:
+            pass
+        
+        return format_html('@{}<br>ID: {}', author_username, author_id)
+    comment_author_info.short_description = 'Автор комментария'
+    
+    def reporter_info(self, obj):
+        """Информация о пользователе, который подал жалобу."""
+        reporter_id = obj.reporter_telegram_id
+        
+        # Пытаемся получить информацию из MiniAppUser
+        try:
+            from accounts.models import MiniAppUser
+            reporter_user = MiniAppUser.objects.filter(telegram_id=reporter_id).first()
+            if reporter_user:
+                username = reporter_user.username or 'нет'
+                name = reporter_user.first_name or reporter_user.username or 'Без имени'
+                
+                try:
+                    user_url = reverse('admin:accounts_miniappuser_change', args=[reporter_user.id])
+                except Exception:
+                    user_url = f"/admin/accounts/miniappuser/{reporter_user.id}/change/"
+                return format_html(
+                    '<a href="{}">{} (@{})</a><br>ID: {}',
+                    user_url, name, username, reporter_id
+                )
+        except Exception:
+            pass
+        
+        return format_html('ID: {}', reporter_id)
+    reporter_info.short_description = 'Подавший жалобу'
+    
+    def comment_text_preview(self, obj):
+        """Превью текста комментария."""
+        if obj.comment and obj.comment.text:
+            text = obj.comment.text[:200] + ('...' if len(obj.comment.text) > 200 else '')
+            return format_html('<div style="max-width: 500px; word-wrap: break-word;">{}</div>', text)
+        return '-'
+    comment_text_preview.short_description = 'Текст комментария'
+    
+    def ban_user_buttons(self, obj):
+        """Кнопки для блокировки пользователя прямо из интерфейса жалобы (использует существующую логику из MiniAppUser)."""
+        if not obj.comment:
+            return '-'
+        
+        author_id = obj.comment.author_telegram_id
+        
+        # Пытаемся получить информацию из MiniAppUser
+        try:
+            from accounts.models import MiniAppUser
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            if author_user:
+                try:
+                    user_url = reverse('admin:accounts_miniappuser_change', args=[author_user.id])
+                except Exception:
+                    user_url = f"/admin/accounts/miniappuser/{author_user.id}/change/"
+                
+                is_banned = author_user.is_banned
+                status_text = '🚫 Заблокирован' if is_banned else '✅ Активен'
+                
+                # URL для блокировки/разблокировки
+                try:
+                    ban_1h_url = reverse('admin:tasks_taskcommentreport_ban_user', args=[obj.id, 1])
+                    ban_24h_url = reverse('admin:tasks_taskcommentreport_ban_user', args=[obj.id, 24])
+                    ban_7d_url = reverse('admin:tasks_taskcommentreport_ban_user', args=[obj.id, 168])
+                    ban_permanent_url = reverse('admin:tasks_taskcommentreport_ban_user', args=[obj.id, 0])
+                    unban_url = reverse('admin:tasks_taskcommentreport_unban_user', args=[obj.id])
+                except Exception:
+                    ban_1h_url = f"/admin/tasks/taskcommentreport/{obj.id}/ban/1/"
+                    ban_24h_url = f"/admin/tasks/taskcommentreport/{obj.id}/ban/24/"
+                    ban_7d_url = f"/admin/tasks/taskcommentreport/{obj.id}/ban/168/"
+                    ban_permanent_url = f"/admin/tasks/taskcommentreport/{obj.id}/ban/0/"
+                    unban_url = f"/admin/tasks/taskcommentreport/{obj.id}/unban/"
+                
+                if is_banned:
+                    # Если пользователь уже заблокирован, показываем кнопку разблокировки
+                    return format_html(
+                        '<div style="margin: 10px 0; padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px;">'
+                        '<p style="margin: 0 0 10px 0;"><strong>Статус:</strong> {}</p>'
+                        '<a href="{}" class="button" style="background-color: #28a745; color: white; padding: 8px 15px; text-decoration: none; border-radius: 3px; display: inline-block; margin-right: 10px;">'
+                        '✅ Разблокировать пользователя'
+                        '</a>'
+                        '<a href="{}" class="button" style="background-color: #007cba; color: white; padding: 8px 15px; text-decoration: none; border-radius: 3px; display: inline-block;">'
+                        '👤 Перейти к профилю'
+                        '</a>'
+                        '</div>',
+                        status_text, unban_url, user_url
+                    )
+                else:
+                    # Если пользователь не заблокирован, показываем кнопки блокировки
+                    return format_html(
+                        '<div style="margin: 10px 0; padding: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px;">'
+                        '<p style="margin: 0 0 10px 0;"><strong>Статус:</strong> {}</p>'
+                        '<div style="margin-bottom: 10px;">'
+                        '<a href="{}" class="button" style="background-color: #ffc107; color: black; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin-right: 5px; margin-bottom: 5px;">'
+                        '🚫 1 час'
+                        '</a>'
+                        '<a href="{}" class="button" style="background-color: #fd7e14; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin-right: 5px; margin-bottom: 5px;">'
+                        '🚫 24 часа'
+                        '</a>'
+                        '<a href="{}" class="button" style="background-color: #dc3545; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin-right: 5px; margin-bottom: 5px;">'
+                        '🚫 7 дней'
+                        '</a>'
+                        '<a href="{}" class="button" style="background-color: #721c24; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin-bottom: 5px;">'
+                        '🚫 Навсегда'
+                        '</a>'
+                        '</div>'
+                        '<a href="{}" class="button" style="background-color: #007cba; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block;">'
+                        '👤 Перейти к профилю'
+                        '</a>'
+                        '</div>',
+                        status_text, ban_1h_url, ban_24h_url, ban_7d_url, ban_permanent_url, user_url
+                    )
+        except Exception:
+            pass
+        
+        return format_html(
+            '<div style="margin: 10px 0; color: #666;">'
+            'Пользователь с ID {} не найден в системе Mini App'
+            '</div>',
+            author_id
+        )
+    ban_user_buttons.short_description = 'Блокировка пользователя'
+    
+    @admin.action(description='✅ Отметить как проверенные')
+    def mark_as_reviewed(self, request, queryset):
+        """Отмечает жалобы как проверенные."""
+        count = queryset.update(is_reviewed=True)
+        self.message_user(request, f'Отмечено {count} жалоб как проверенные', messages.SUCCESS)
+    
+    @admin.action(description='🔄 Отметить как непроверенные')
+    def mark_as_unreviewed(self, request, queryset):
+        """Отмечает жалобы как непроверенные."""
+        count = queryset.update(is_reviewed=False)
+        self.message_user(request, f'Отмечено {count} жалоб как непроверенные', messages.SUCCESS)
+    
+    def get_admin_telegram_id(self, request):
+        """
+        Получает telegram_id администратора (используем ту же логику, что и в MiniAppUserAdmin).
+        Пытается найти через связи с MiniAppUser, DjangoAdmin, TelegramAdmin.
+        """
+        admin_id = None
+        
+        try:
+            # Сначала пробуем получить через linked_custom_user -> MiniAppUser
+            if hasattr(request.user, 'mini_app_profile'):
+                mini_app_user = request.user.mini_app_profile
+                if mini_app_user:
+                    admin_id = mini_app_user.telegram_id
+            
+            # Если не нашли, пробуем через DjangoAdmin
+            if not admin_id:
+                from accounts.models import DjangoAdmin
+                try:
+                    django_admin = DjangoAdmin.objects.get(username=request.user.username)
+                    if django_admin and hasattr(django_admin, 'mini_app_user') and django_admin.mini_app_user:
+                        admin_id = django_admin.mini_app_user.telegram_id
+                except DjangoAdmin.DoesNotExist:
+                    pass
+            
+            # Если всё ещё не нашли, пробуем через TelegramAdmin
+            if not admin_id:
+                from accounts.models import TelegramAdmin
+                try:
+                    telegram_admin = TelegramAdmin.objects.filter(username=request.user.username).first()
+                    if telegram_admin:
+                        admin_id = telegram_admin.telegram_id
+                except Exception:
+                    pass
+            
+        except Exception as e:
+            logger.warning(f"Не удалось получить telegram_id админа: {e}")
+        
+        return admin_id
+    
+    @admin.action(description='🚫 Забанить автора комментария на 1 час')
+    def ban_author_1_hour(self, request, queryset):
+        """Банит авторов комментариев на 1 час (использует существующую логику из MiniAppUser)."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for report in queryset:
+            if report.comment:
+                author_id = report.comment.author_telegram_id
+                try:
+                    from accounts.models import MiniAppUser
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    if author_user:
+                        author_user.ban_user(
+                            duration_hours=1,
+                            reason=f'Блокировка по жалобе #{report.id} ({report.get_reason_display()})',
+                            admin_id=admin_id
+                        )
+                        report.is_reviewed = True
+                        report.save()
+                        count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка блокировки пользователя {author_id}: {e}")
+        self.message_user(request, f'Заблокировано {count} авторов комментариев на 1 час', messages.SUCCESS)
+    
+    @admin.action(description='🚫 Забанить автора комментария на 24 часа')
+    def ban_author_24_hours(self, request, queryset):
+        """Банит авторов комментариев на 24 часа (использует существующую логику из MiniAppUser)."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for report in queryset:
+            if report.comment:
+                author_id = report.comment.author_telegram_id
+                try:
+                    from accounts.models import MiniAppUser
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    if author_user:
+                        author_user.ban_user(
+                            duration_hours=24,
+                            reason=f'Блокировка по жалобе #{report.id} ({report.get_reason_display()})',
+                            admin_id=admin_id
+                        )
+                        report.is_reviewed = True
+                        report.save()
+                        count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка блокировки пользователя {author_id}: {e}")
+        self.message_user(request, f'Заблокировано {count} авторов комментариев на 24 часа', messages.SUCCESS)
+    
+    @admin.action(description='🚫 Забанить автора комментария на 7 дней')
+    def ban_author_7_days(self, request, queryset):
+        """Банит авторов комментариев на 7 дней (использует существующую логику из MiniAppUser)."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for report in queryset:
+            if report.comment:
+                author_id = report.comment.author_telegram_id
+                try:
+                    from accounts.models import MiniAppUser
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    if author_user:
+                        author_user.ban_user(
+                            duration_hours=168,  # 7 * 24
+                            reason=f'Блокировка по жалобе #{report.id} ({report.get_reason_display()})',
+                            admin_id=admin_id
+                        )
+                        report.is_reviewed = True
+                        report.save()
+                        count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка блокировки пользователя {author_id}: {e}")
+        self.message_user(request, f'Заблокировано {count} авторов комментариев на 7 дней', messages.SUCCESS)
+    
+    @admin.action(description='🚫 Перманентно забанить автора комментария')
+    def ban_author_permanent(self, request, queryset):
+        """Банит авторов комментариев навсегда (использует существующую логику из MiniAppUser)."""
+        admin_id = self.get_admin_telegram_id(request)
+        count = 0
+        for report in queryset:
+            if report.comment:
+                author_id = report.comment.author_telegram_id
+                try:
+                    from accounts.models import MiniAppUser
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    if author_user:
+                        author_user.ban_user(
+                            duration_hours=None,
+                            reason=f'Перманентная блокировка по жалобе #{report.id} ({report.get_reason_display()})',
+                            admin_id=admin_id
+                        )
+                        report.is_reviewed = True
+                        report.save()
+                        count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка блокировки пользователя {author_id}: {e}")
+        self.message_user(request, f'Заблокировано {count} авторов комментариев навсегда', messages.WARNING)
+    
+    @admin.action(description='✅ Разбанить автора комментария')
+    def unban_author(self, request, queryset):
+        """Разбанивает авторов комментариев (использует существующую логику из MiniAppUser)."""
+        count = 0
+        for report in queryset:
+            if report.comment:
+                author_id = report.comment.author_telegram_id
+                try:
+                    from accounts.models import MiniAppUser
+                    author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+                    if author_user and author_user.is_banned:
+                        author_user.unban_user()
+                        count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка разблокировки пользователя {author_id}: {e}")
+        self.message_user(request, f'Разблокировано {count} авторов комментариев', messages.SUCCESS)
+    
+    def get_urls(self):
+        """Добавляем кастомные URL для блокировки пользователя прямо из интерфейса жалобы."""
+        from django.urls import path
+        from django.shortcuts import redirect
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<int:report_id>/ban/<int:hours>/',
+                self.admin_site.admin_view(self.ban_user_view),
+                name='tasks_taskcommentreport_ban_user',
+            ),
+            path(
+                '<int:report_id>/unban/',
+                self.admin_site.admin_view(self.unban_user_view),
+                name='tasks_taskcommentreport_unban_user',
+            ),
+        ]
+        return custom_urls + urls
+    
+    def ban_user_view(self, request, report_id, hours):
+        """Блокирует пользователя на указанное время (использует существующую логику из MiniAppUser)."""
+        try:
+            report = TaskCommentReport.objects.get(id=report_id)
+            author_id = report.comment.author_telegram_id
+            
+            from accounts.models import MiniAppUser
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            
+            if not author_user:
+                self.message_user(
+                    request,
+                    f'❌ Пользователь с ID {author_id} не найден в системе',
+                    messages.ERROR
+                )
+                try:
+                    return redirect('admin:tasks_taskcommentreport_change', report_id)
+                except Exception:
+                    return redirect(f'/admin/tasks/taskcommentreport/{report_id}/change/')
+            
+            admin_id = self.get_admin_telegram_id(request)
+            
+            if hours == 0:
+                # Перманентный бан
+                author_user.ban_user(
+                    duration_hours=None,
+                    reason=f'Блокировка по жалобе #{report_id} ({report.get_reason_display()})',
+                    admin_id=admin_id
+                )
+                duration_text = 'навсегда'
+            else:
+                author_user.ban_user(
+                    duration_hours=hours,
+                    reason=f'Блокировка по жалобе #{report_id} ({report.get_reason_display()})',
+                    admin_id=admin_id
+                )
+                if hours == 1:
+                    duration_text = 'на 1 час'
+                elif hours == 24:
+                    duration_text = 'на 24 часа'
+                elif hours == 168:
+                    duration_text = 'на 7 дней'
+                else:
+                    duration_text = f'на {hours} часов'
+            
+            # Отмечаем жалобу как проверенную
+            report.is_reviewed = True
+            report.save()
+            
+            self.message_user(
+                request,
+                f'✅ Пользователь @{author_user.username or "без username"} (ID: {author_id}) заблокирован {duration_text}',
+                messages.SUCCESS
+            )
+        except TaskCommentReport.DoesNotExist:
+            self.message_user(request, '❌ Жалоба не найдена', messages.ERROR)
+        except Exception as e:
+            logger.error(f"Ошибка блокировки пользователя: {e}", exc_info=True)
+            self.message_user(request, f'❌ Ошибка блокировки: {str(e)}', messages.ERROR)
+        
+        try:
+            return redirect('admin:tasks_taskcommentreport_change', report_id)
+        except Exception:
+            return redirect(f'/admin/tasks/taskcommentreport/{report_id}/change/')
+    
+    def unban_user_view(self, request, report_id):
+        """Разблокирует пользователя (использует существующую логику из MiniAppUser)."""
+        try:
+            report = TaskCommentReport.objects.get(id=report_id)
+            author_id = report.comment.author_telegram_id
+            
+            from accounts.models import MiniAppUser
+            author_user = MiniAppUser.objects.filter(telegram_id=author_id).first()
+            
+            if not author_user:
+                self.message_user(
+                    request,
+                    f'❌ Пользователь с ID {author_id} не найден в системе',
+                    messages.ERROR
+                )
+                try:
+                    return redirect('admin:tasks_taskcommentreport_change', report_id)
+                except Exception:
+                    return redirect(f'/admin/tasks/taskcommentreport/{report_id}/change/')
+            
+            if not author_user.is_banned:
+                self.message_user(
+                    request,
+                    f'ℹ️ Пользователь @{author_user.username or "без username"} (ID: {author_id}) не заблокирован',
+                    messages.INFO
+                )
+                try:
+                    return redirect('admin:tasks_taskcommentreport_change', report_id)
+                except Exception:
+                    return redirect(f'/admin/tasks/taskcommentreport/{report_id}/change/')
+            
+            author_user.unban_user()
+            
+            self.message_user(
+                request,
+                f'✅ Пользователь @{author_user.username or "без username"} (ID: {author_id}) разблокирован',
+                messages.SUCCESS
+            )
+        except TaskCommentReport.DoesNotExist:
+            self.message_user(request, '❌ Жалоба не найдена', messages.ERROR)
+        except Exception as e:
+            logger.error(f"Ошибка разблокировки пользователя: {e}", exc_info=True)
+            self.message_user(request, f'❌ Ошибка разблокировки: {str(e)}', messages.ERROR)
+        
+        try:
+            return redirect('admin:tasks_taskcommentreport_change', report_id)
+        except Exception:
+            return redirect(f'/admin/tasks/taskcommentreport/{report_id}/change/')
 

@@ -8,7 +8,7 @@ from datetime import datetime
 from aiogram import types, Router, Bot
 from aiogram.filters import StateFilter, BaseFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin
@@ -80,6 +80,19 @@ async def notify_admins_about_feedback(
         admin_path = f"/admin/feedback/feedbackmessage/{feedback.id}/change/"
         admin_url = f"{base_url}{admin_path}"
         
+        # Формируем URL mini app для открытия feedback в приложении
+        mini_app_base_url = os.getenv('SITE_URL', 'https://quiz-code.com')
+        # Убеждаемся, что есть поддомен mini.
+        if 'mini.' not in mini_app_base_url:
+            if 'quiz-code.com' in mini_app_base_url:
+                mini_app_base_url = mini_app_base_url.replace('quiz-code.com', 'mini.quiz-code.com')
+            else:
+                # Для других доменов добавляем mini. в начало
+                if '://' in mini_app_base_url:
+                    parts = mini_app_base_url.split('://', 1)
+                    mini_app_base_url = f"{parts[0]}://mini.{parts[1]}"
+        mini_app_url = f"{mini_app_base_url}/?startapp=feedback_{feedback.id}"
+        
         # Формируем информацию о пользователе
         user_link = format_user_link(user.username, user.id)
         username_display = f"@{escape_markdown(user.username)}" if user.username else escape_markdown("нет")
@@ -117,14 +130,25 @@ async def notify_admins_about_feedback(
             f"👉 Посмотреть в админке: {admin_url}"
         )
         
-        # Отправляем уведомление каждому админу
+        # Формируем инлайн клавиатуру с кнопкой WebApp для открытия feedback в mini app
+        reply_markup = InlineKeyboardMarkup(
+            inline_keyboard=[[
+                InlineKeyboardButton(
+                    text="Открыть обращение",
+                    web_app=WebAppInfo(url=mini_app_url)
+                )
+            ]]
+        )
+        
+        # Отправляем уведомление каждому админу с инлайн кнопкой
         sent_count = 0
         for admin in admins:
             try:
                 await bot.send_message(
                     chat_id=admin.telegram_id,
                     text=admin_message_telegram,
-                    parse_mode="MarkdownV2"
+                    parse_mode="MarkdownV2",
+                    reply_markup=reply_markup
                 )
                 sent_count += 1
                 logger.debug(f"Уведомление о feedback #{feedback.id} отправлено админу {admin.telegram_id} (@{admin.username or 'None'})")

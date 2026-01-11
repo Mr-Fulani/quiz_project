@@ -218,6 +218,61 @@ def get_comment_deep_link(comment_id: int) -> str:
     return deep_link
 
 
+def get_web_app_url_for_notification(
+    notification_type: str,
+    related_object_id: Optional[int] = None,
+    related_object_type: Optional[str] = None,
+    request=None
+) -> Optional[str]:
+    """
+    Формирует URL mini app для уведомления на основе типа уведомления и связанного объекта.
+    
+    Args:
+        notification_type: Тип уведомления (feedback, comment, donation, subscription, report, other)
+        related_object_id: ID связанного объекта
+        related_object_type: Тип связанного объекта
+        request: Django request объект (опционально)
+        
+    Returns:
+        str: URL mini app с параметром startapp или None, если URL не может быть сформирован
+    """
+    if not related_object_id:
+        return None
+    
+    mini_app_base_url = get_mini_app_url(request)
+    
+    # Формируем URL в зависимости от типа уведомления
+    if notification_type == 'feedback' or related_object_type == 'feedback':
+        return f"{mini_app_base_url}/?startapp=feedback_{related_object_id}"
+    elif notification_type == 'comment' or related_object_type == 'comment':
+        return f"{mini_app_base_url}/?startapp=comment_{related_object_id}"
+    elif notification_type == 'donation' or related_object_type == 'donation':
+        return f"{mini_app_base_url}/?startapp=donation_{related_object_id}"
+    elif notification_type == 'subscription' or related_object_type == 'subscription':
+        # Для подписки используем профиль пользователя
+        return f"{mini_app_base_url}/?startapp=profile_{related_object_id}"
+    elif notification_type == 'report' or related_object_type == 'report':
+        # Для жалобы используем комментарий, на который пожаловались
+        # Нужно получить comment_id из report через запрос к БД
+        try:
+            from tasks.models import TaskCommentReport
+            report = TaskCommentReport.objects.filter(id=related_object_id).first()
+            if report and report.comment_id:
+                return f"{mini_app_base_url}/?startapp=comment_{report.comment_id}"
+            else:
+                logger.warning(f"⚠️ Не удалось найти report #{related_object_id} или его comment_id")
+                return None
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения comment_id из report #{related_object_id}: {e}")
+            return None
+    elif notification_type == 'other' and related_object_type == 'message':
+        # Для авторизации новых пользователей используем профиль
+        return f"{mini_app_base_url}/?startapp=profile_{related_object_id}"
+    else:
+        # Для других типов используем главную страницу
+        return f"{mini_app_base_url}/"
+
+
 def format_markdown_link(text: str, url: str) -> str:
     """
     Формирует Markdown-ссылку, не экранируя допустимые символы в URL.
@@ -256,10 +311,21 @@ def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: 
     # Формируем reply_markup если есть web_app_url
     reply_markup = None
     if web_app_url:
+        # Определяем текст кнопки в зависимости от типа уведомления (по URL)
+        button_text = "Открыть в приложении"
+        if "comment_" in web_app_url:
+            button_text = "Открыть комментарий"
+        elif "feedback_" in web_app_url:
+            button_text = "Открыть обращение"
+        elif "donation_" in web_app_url:
+            button_text = "Открыть донат"
+        elif "profile_" in web_app_url:
+            button_text = "Открыть профиль"
+        
         reply_markup = {
             "inline_keyboard": [[
                 {
-                    "text": "Открыть комментарий",
+                    "text": button_text,
                     "web_app": {"url": web_app_url}
                 }
             ]]
@@ -424,7 +490,9 @@ def notify_all_admins(
     title: str,
     message: str,
     related_object_id: Optional[int] = None,
-    related_object_type: Optional[str] = None
+    related_object_type: Optional[str] = None,
+    web_app_url: Optional[str] = None,
+    request=None
 ) -> int:
     """
     Отправляет уведомление всем админам.
@@ -436,6 +504,8 @@ def notify_all_admins(
         message: Текст сообщения
         related_object_id: ID связанного объекта
         related_object_type: Тип связанного объекта
+        web_app_url: URL для открытия mini app (опционально, если не указан, будет сформирован автоматически)
+        request: Django request объект (опционально, используется для формирования web_app_url)
         
     Returns:
         int: Количество админов, которым было отправлено уведомление
@@ -455,6 +525,17 @@ def notify_all_admins(
             logger.warning("Не найдено активных админов для отправки уведомления")
             return 0
         
+        # Если web_app_url не указан, пытаемся сформировать автоматически
+        if not web_app_url and related_object_id:
+            web_app_url = get_web_app_url_for_notification(
+                notification_type=notification_type,
+                related_object_id=related_object_id,
+                related_object_type=related_object_type,
+                request=request
+            )
+            if web_app_url:
+                logger.debug(f"🔗 Автоматически сформирован web_app_url для уведомления: {web_app_url}")
+        
         # Создаем ОДНО уведомление в БД для всех админов
         admin_notification = Notification.objects.create(
             recipient_telegram_id=None,  # NULL для админских уведомлений
@@ -468,10 +549,14 @@ def notify_all_admins(
         
         logger.info(f"📝 Создано админское уведомление #{admin_notification.id} для всех админов")
         
-        # Отправляем в Telegram каждому админу
+        # Отправляем в Telegram каждому админу с web_app_url если есть
         sent_count = 0
         for admin in admins:
-            success = send_telegram_notification_sync(admin.telegram_id, message)
+            success = send_telegram_notification_sync(
+                telegram_id=admin.telegram_id,
+                message=message,
+                web_app_url=web_app_url
+            )
             if success:
                 sent_count += 1
         

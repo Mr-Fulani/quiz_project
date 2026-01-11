@@ -25,7 +25,27 @@ async def index(
 ):
     # Обработка deep link для комментариев
     # Проверяем оба варианта: tgWebAppStartParam (из query) и startapp (из URL параметра)
+    # Также проверяем query параметры напрямую
     start_param = tgWebAppStartParam or startapp
+    if not start_param:
+        # Проверяем query параметры напрямую из request
+        start_param = request.query_params.get('startapp') or request.query_params.get('tgWebAppStartParam')
+    
+    # Также проверяем URL напрямую (для случаев, когда параметр передается в URL, но не попадает в query_params)
+    if not start_param:
+        # Получаем полный URL и парсим его вручную
+        full_url = str(request.url)
+        if 'startapp=' in full_url:
+            try:
+                from urllib.parse import urlparse, parse_qs
+                parsed = urlparse(full_url)
+                params = parse_qs(parsed.query)
+                if 'startapp' in params:
+                    start_param = params['startapp'][0]
+            except Exception as e:
+                logger.warning(f"⚠️ Ошибка парсинга URL для startapp: {e}")
+    
+    logger.info(f"🔗 [PAGES] Обработка startParam: tgWebAppStartParam={tgWebAppStartParam}, startapp={startapp}, start_param={start_param}, query_params={dict(request.query_params)}, full_url={str(request.url)}")
     
     if start_param and start_param.startswith("comment_"):
         try:
