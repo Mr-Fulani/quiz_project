@@ -270,6 +270,10 @@ class ContentInteractions {
                             <i class="fab fa-twitter"></i>
                             Twitter
                         </button>
+                        <button class="share-platform-btn" data-platform="linkedin">
+                            <i class="fab fa-linkedin"></i>
+                            LinkedIn
+                        </button>
                         <button class="share-platform-btn" data-platform="instagram">
                             <i class="fab fa-instagram"></i>
                             Instagram
@@ -380,6 +384,10 @@ class ContentInteractions {
             // Для VK используем URL без языкового префикса
             shareUrl = this.getVkShareUrl(url);
             console.log('VK share URL generated:', shareUrl);
+        } else if (platform === 'linkedin') {
+            // Для LinkedIn используем production URL (LinkedIn не может получить доступ к localhost)
+            shareUrl = this.getLinkedInShareUrl(url);
+            console.log('LinkedIn share URL generated:', shareUrl);
         } else {
             shareUrl = this.getShareUrl(url);
         }
@@ -394,6 +402,7 @@ class ContentInteractions {
             vk: `https://vk.com/widget_share.php?url=${encodedUrl}&title=${text}&description=${text}&noparse=true`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
             twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}`,
+            linkedin: `https://www.linkedin.com/shareArticle?mini=false&url=${encodedUrl}`,
             instagram: `https://www.instagram.com/`,
             tiktok: `https://www.tiktok.com/`,  
             pinterest: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${text}`,
@@ -466,6 +475,28 @@ class ContentInteractions {
             return vkUrl;
         } catch (error) {
             console.error('Ошибка при создании VK share URL:', error, 'originalUrl:', originalUrl);
+            return originalUrl;
+        }
+    }
+
+    getLinkedInShareUrl(originalUrl) {
+        // Для LinkedIn используем production URL (LinkedIn не может получить доступ к localhost)
+        // НЕ преобразуем в share URL - используем оригинальный путь для лучшей совместимости
+        try {
+            const urlObj = new URL(originalUrl);
+            
+            // Заменяем домен на production, но сохраняем оригинальный путь
+            let linkedInUrl = originalUrl.replace(urlObj.hostname, 'quiz-code.com');
+            
+            // Убеждаемся, что URL использует HTTPS
+            if (linkedInUrl.startsWith('http://')) {
+                linkedInUrl = linkedInUrl.replace('http://', 'https://');
+            }
+            
+            console.log('LinkedIn share URL (production, original path):', linkedInUrl);
+            return linkedInUrl;
+        } catch (error) {
+            console.error('Ошибка при создании LinkedIn share URL:', error, 'originalUrl:', originalUrl);
             return originalUrl;
         }
     }
@@ -789,6 +820,7 @@ class ContentInteractions {
             vk: '🌐',
             facebook: '📘',
             twitter: '🐦',
+            linkedin: '💼',
             instagram: '📷',
             tiktok: '🎵',
             pinterest: '📌',
