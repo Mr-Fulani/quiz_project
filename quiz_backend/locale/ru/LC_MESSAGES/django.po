@@ -1782,10 +1782,9 @@ msgid "Pending"
 msgstr ""
 
 #: donation/models.py:10
-#, fuzzy
-#| msgid "Quizzes Completed"
+#: blog/templates/blog/quizes.html:51
 msgid "Completed"
-msgstr "Пройдено квизов"
+msgstr "Пройдено"
 
 #: donation/models.py:11
 msgid "Failed"
@@ -3020,3 +3019,28 @@ msgstr "Email адрес:"
 #: templates/registration/password_reset_form.html:212
 msgid "Enter your email address"
 msgstr "Введите ваш email адрес"
+
+# Progress bar translations for topic cards
+#: blog/templates/blog/quizes.html:47
+msgid "Total"
+msgstr "Всего"
+
+#: blog/templates/blog/quizes.html:55
+msgid "Remaining"
+msgstr "Осталось"
+
+#: blog/templates/blog/quizes.html:63
+msgid "complete"
+msgstr "завершено"
+
+#: blog/templates/blog/quizes.html:74
+msgid "Not started"
+msgstr "Не начато"
+
+#: blog/templates/blog/quizes.html:78
+msgid "No items in topic"
+msgstr "Нет элементов в теме"
+
+#: blog/templates/blog/quizes.html:84
+msgid "available"
+msgstr "доступно"

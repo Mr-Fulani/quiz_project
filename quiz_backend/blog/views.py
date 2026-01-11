@@ -1145,12 +1145,46 @@ class QuizesView(BreadcrumbsMixin, ListView):
     ]
 
     def get_queryset(self):
-        return Topic.objects.filter(tasks__published=True).distinct()
+        queryset = Topic.objects.filter(tasks__published=True).distinct()
+        
+        # Аннотируем общее количество опубликованных задач в теме
+        queryset = queryset.annotate(
+            questions_count=Count('tasks', filter=Q(tasks__published=True), distinct=True)
+        )
+        
+        # Если пользователь авторизован, добавляем аннотацию для подсчета решенных задач
+        if self.request.user.is_authenticated:
+            queryset = queryset.annotate(
+                completed_tasks_count=Count(
+                    'tasks',
+                    filter=Q(
+                        tasks__published=True,
+                        tasks__statistics__user=self.request.user,
+                        tasks__statistics__successful=True
+                    ),
+                    distinct=True
+                )
+            )
+        
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['meta_description'] = _('Test your knowledge with our interactive quizzes.')  # Добавлено
-        context['meta_keywords'] = _('quizzes, tests, programming')  # Добавлено
+        context['meta_description'] = _('Test your knowledge with our interactive quizzes.')
+        context['meta_keywords'] = _('quizzes, tests, programming')
+        
+        # Вычисляем количество оставшихся задач для каждой темы
+        if self.request.user.is_authenticated:
+            for topic in context['topics']:
+                if hasattr(topic, 'questions_count') and topic.questions_count:
+                    if hasattr(topic, 'completed_tasks_count') and topic.completed_tasks_count is not None:
+                        topic.remaining_tasks_count = topic.questions_count - topic.completed_tasks_count
+                    else:
+                        # Если пользователь еще не начал, все задачи остались
+                        topic.remaining_tasks_count = topic.questions_count
+                else:
+                    topic.remaining_tasks_count = 0
+        
         return context
 
 
