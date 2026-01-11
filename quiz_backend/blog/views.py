@@ -1145,6 +1145,16 @@ class QuizesView(BreadcrumbsMixin, ListView):
         {'name': _('Квизы'), 'url': reverse_lazy('blog:quizes')},
     ]
 
+    def dispatch(self, request, *args, **kwargs):
+        """Добавляем заголовки для предотвращения кэширования страницы с прогрессом"""
+        response = super().dispatch(request, *args, **kwargs)
+        if request.user.is_authenticated:
+            # Для авторизованных пользователей предотвращаем кэширование
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+        return response
+
     def get_queryset(self):
         queryset = Topic.objects.filter(tasks__published=True).distinct()
         
@@ -1206,6 +1216,16 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
     """
     template_name = 'blog/quiz_detail.html'
     context_object_name = 'subtopics'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Добавляем заголовки для предотвращения кэширования страницы с прогрессом"""
+        response = super().dispatch(request, *args, **kwargs)
+        if request.user.is_authenticated:
+            # Для авторизованных пользователей предотвращаем кэширование
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+        return response
 
     def get_queryset(self):
         """
@@ -1536,7 +1556,15 @@ def quiz_difficulty(request, quiz_type, subtopic):
         'meta_keywords': _('%(subtopic_name)s, difficulty levels, quizzes, programming') % {'subtopic_name': subtopic_obj.name},  # Изменено: приведено к стилю quiz_subtopic
     }
 
-    return render(request, 'blog/quiz_difficulty.html', context)
+    response = render(request, 'blog/quiz_difficulty.html', context)
+    
+    # Добавляем заголовки для предотвращения кэширования страницы с прогрессом
+    if request.user.is_authenticated:
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+    
+    return response
 
 
 
