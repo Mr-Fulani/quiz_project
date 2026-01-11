@@ -248,76 +248,97 @@ class ContentInteractions {
         modal.className = 'share-modal';
         modal.innerHTML = `
             <div class="share-modal-content">
-                <div class="share-modal-header">
-                    <h3>${this.translations.share_title}</h3>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="share-modal-body">
-                    <div class="share-platforms">
-                        <button class="share-platform-btn" data-platform="telegram">
-                            <i class="fab fa-telegram"></i>
-                            Telegram
-                        </button>
-                        <button class="share-platform-btn" data-platform="vk">
-                            <i class="fab fa-vk"></i>
-                            VKontakte
-                        </button>
-                        <button class="share-platform-btn" data-platform="facebook">
-                            <i class="fab fa-facebook"></i>
-                            Facebook
-                        </button>
-                        <button class="share-platform-btn" data-platform="twitter">
-                            <i class="fab fa-twitter"></i>
-                            Twitter
-                        </button>
-                        <button class="share-platform-btn" data-platform="linkedin">
-                            <i class="fab fa-linkedin"></i>
-                            LinkedIn
-                        </button>
-                        <button class="share-platform-btn" data-platform="instagram">
-                            <i class="fab fa-instagram"></i>
-                            Instagram
-                        </button>
-                        <button class="share-platform-btn" data-platform="tiktok">
-                            <i class="fab fa-tiktok"></i>
-                            TikTok
-                        </button>
-                        <button class="share-platform-btn" data-platform="pinterest">
-                            <i class="fab fa-pinterest"></i>
-                            Pinterest
-                        </button>
-                        <button class="share-platform-btn" data-platform="whatsapp">
-                            <i class="fab fa-whatsapp"></i>
-                            WhatsApp
-                        </button>
+                <div class="share-menu">
+                    <div class="share-toggle">
+                        <i class="fas fa-share-alt"></i>
                     </div>
-                    <div class="share-url">
-                        <input type="text" value="${url}" readonly>
-                        <button class="copy-url-btn">Копировать</button>
-                    </div>
+                    <li style="--i: 0; --clr: #0088cc" class="share-platform-btn" data-platform="telegram">
+                        <a href="#"><i class="fab fa-telegram"></i></a>
+                    </li>
+                    <li style="--i: 1; --clr: #4c75a3" class="share-platform-btn" data-platform="vk">
+                        <a href="#"><i class="fab fa-vk"></i></a>
+                    </li>
+                    <li style="--i: 2; --clr: #1877f2" class="share-platform-btn" data-platform="facebook">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    </li>
+                    <li style="--i: 3; --clr: #1da1f2" class="share-platform-btn" data-platform="twitter">
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </li>
+                    <li style="--i: 4; --clr: #0a66c2" class="share-platform-btn" data-platform="linkedin">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </li>
+                    <li style="--i: 5; --clr: #e4405f" class="share-platform-btn" data-platform="instagram">
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </li>
+                    <li style="--i: 6; --clr: #000000" class="share-platform-btn" data-platform="tiktok">
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                    </li>
+                    <li style="--i: 7; --clr: #bd081c" class="share-platform-btn" data-platform="pinterest">
+                        <a href="#"><i class="fab fa-pinterest"></i></a>
+                    </li>
+                    <li style="--i: 8; --clr: #25d366" class="share-platform-btn" data-platform="whatsapp">
+                        <a href="#"><i class="fab fa-whatsapp"></i></a>
+                    </li>
                 </div>
             </div>
         `;
 
+        // Активируем меню при открытии
+        setTimeout(() => {
+            const shareMenu = modal.querySelector('.share-menu');
+            if (shareMenu) {
+                shareMenu.classList.add('active');
+            }
+        }, 50);
+
+        // Функция закрытия меню
+        const closeMenu = () => {
+            const shareMenu = modal.querySelector('.share-menu');
+            if (shareMenu && shareMenu.classList.contains('active')) {
+                shareMenu.classList.remove('active');
+                setTimeout(() => {
+                    this.closeModal(modal);
+                }, 300);
+            }
+        };
+
         // Обработчики событий для модального окна
         modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.matches('.close-modal')) {
-                this.closeModal(modal);
+            // Закрываем при клике вне области меню
+            const shareMenu = modal.querySelector('.share-menu');
+            if (!shareMenu) {
+                closeMenu();
+                return;
             }
             
-            if (e.target.matches('.share-platform-btn, .share-platform-btn *')) {
+            // Проверяем, был ли клик внутри меню (включая иконки)
+            const clickedInsideMenu = shareMenu.contains(e.target) || 
+                                     e.target.closest('.share-menu') ||
+                                     e.target.closest('.share-platform-btn') ||
+                                     e.target.closest('.share-toggle');
+            
+            if (!clickedInsideMenu) {
+                closeMenu();
+                return;
+            }
+            
+            // Обработка клика по кнопкам платформ
+            if (e.target.matches('.share-platform-btn, .share-platform-btn *, .share-platform-btn a, .share-platform-btn a *')) {
+                e.preventDefault();
+                e.stopPropagation();
                 const btn = e.target.closest('.share-platform-btn');
-                if (btn && !btn.disabled) {
+                if (btn && !btn.disabled && btn.dataset.platform) {
                     btn.disabled = true; // Предотвращаем повторные клики
                     const platform = btn.dataset.platform;
                     console.log(`Sharing to ${platform}...`);
-                    this.shareContent(contentType, slug, platform, title, url);
-                    this.closeModal(modal);
+                    if (shareMenu) {
+                        shareMenu.classList.remove('active');
+                    }
+                    setTimeout(() => {
+                        this.shareContent(contentType, slug, platform, title, url);
+                        this.closeModal(modal);
+                    }, 200);
                 }
-            }
-            
-            if (e.target.matches('.copy-url-btn')) {
-                this.copyToClipboard(url);
             }
         });
 

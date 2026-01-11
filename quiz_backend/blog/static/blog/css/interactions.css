@@ -108,7 +108,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -116,6 +116,7 @@
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 .share-modal.show {
@@ -124,125 +125,106 @@
 }
 
 .share-modal-content {
-    background: white;
-    border-radius: 12px;
-    padding: 0;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow: hidden;
-    transform: scale(0.8);
-    transition: all 0.3s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.share-modal.show .share-modal-content {
-    transform: scale(1);
-}
-
-.share-modal-header {
+    position: relative;
+    width: 100%;
+    height: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #eee;
+    justify-content: center;
 }
 
-.share-modal-header h3 {
-    margin: 0;
-    font-size: 18px;
+.share-menu {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Определяем область клика для закрытия */
+    pointer-events: auto;
+}
+
+.share-menu .share-toggle {
+    position: relative;
+    height: 60px;
+    width: 60px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #333;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: 1.25s;
+    z-index: 5;
+    border: none;
+    padding: 0;
 }
 
-.close-modal {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #999;
-    padding: 0;
-    width: 30px;
-    height: 30px;
+.share-menu.active .share-toggle {
+    transform: rotate(360deg);
+    box-shadow:
+        0 6px 8px rgba(0, 0, 0, 0.15),
+        0 0 0 2px #333,
+        0 0 0 8px #fff;
+}
+
+.share-menu li {
+    position: absolute;
+    left: 0;
+    list-style: none;
+    transition: 0.5s;
+    transform: rotate(calc(360deg / 9 * var(--i)));
+    transform-origin: 140px;
+    scale: 0;
+    transition-delay: calc(0.05s * var(--i));
+}
+
+.share-menu.active li {
+    scale: 1;
+}
+
+.share-menu li a {
+    position: relative;
+    display: flex;
+    transform: rotate(calc(360deg / -9 * var(--i)));
+    width: 60px;
+    height: 60px;
+    background-color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: all 0.3s ease;
-}
-
-.close-modal:hover {
-    background-color: #f5f5f5;
-    color: #333;
-}
-
-.share-modal-body {
-    padding: 20px;
-}
-
-.share-platforms {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.share-platform-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 15px 10px;
-    border: 1px solid #ddd;
-    background: white;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    font-size: 1.75rem;
+    color: var(--clr);
+    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.15);
+    transition: 0.5s;
     text-decoration: none;
-    color: #333;
-    font-size: 12px;
+    cursor: pointer;
 }
 
-.share-platform-btn:hover {
-    border-color: #2196F3;
-    background-color: rgba(33, 150, 243, 0.05);
-    transform: translateY(-2px);
+.share-menu li:hover a {
+    font-size: 2.5rem;
+    box-shadow:
+        0 0 0 2px var(--clr),
+        0 0 0 6px #fff;
+    transform: rotate(calc(360deg / -9 * var(--i))) scale(1.1);
 }
 
-.share-platform-btn i {
-    font-size: 24px;
-    margin-bottom: 5px;
-}
+/* Крестик убран - закрытие по клику вне области */
 
-.share-platform-btn[data-platform="telegram"] i {
-    color: #0088cc;
-}
-
-.share-platform-btn[data-platform="vk"] i {
-    color: #4c75a3;
-}
-
-.share-platform-btn[data-platform="facebook"] i {
-    color: #3b5998;
-}
-
-.share-platform-btn[data-platform="twitter"] i {
-    color: #1da1f2;
-}
-
-.share-platform-btn[data-platform="instagram"] i {
-    color: #e4405f;
-}
-
-.share-platform-btn[data-platform="tiktok"] i {
-    color: #000000;
-}
-
-.share-platform-btn[data-platform="pinterest"] i {
-    color: #bd081c;
-}
-
-.share-platform-btn[data-platform="whatsapp"] i {
-    color: #25d366;
+/* Адаптивность для средних экранов */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .share-menu {
+        width: 260px;
+        height: 260px;
+    }
+    
+    .share-menu li {
+        transform-origin: 130px;
+    }
 }
 
 .share-url {
@@ -328,27 +310,30 @@
         font-size: 12px;
     }
     
-    .share-modal-content {
-        width: 95%;
-        margin: 10px;
+    .share-menu {
+        width: 240px;
+        height: 240px;
     }
     
-    .share-platforms {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 10px;
+    .share-menu li {
+        transform-origin: 120px;
     }
     
-    .share-platform-btn {
-        padding: 12px 8px;
+    .share-menu .share-toggle {
+        height: 50px;
+        width: 50px;
+        font-size: 1.5rem;
     }
     
-    .share-url {
-        flex-direction: column;
-        align-items: stretch;
+    .share-menu li a {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
     }
     
-    .copy-url-btn {
-        margin-top: 10px;
+    .share-menu li:hover a {
+        font-size: 2rem;
+        transform: rotate(calc(360deg / -9 * var(--i))) scale(1.05);
     }
     
     .notification {
@@ -378,8 +363,30 @@
         font-size: 14px;
     }
     
-    .share-platforms {
-        grid-template-columns: repeat(2, 1fr);
+    .share-menu {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .share-menu li {
+        transform-origin: 100px;
+    }
+    
+    .share-menu .share-toggle {
+        height: 45px;
+        width: 45px;
+        font-size: 1.3rem;
+    }
+    
+    .share-menu li a {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+    }
+    
+    .share-menu li:hover a {
+        font-size: 1.8rem;
+        transform: rotate(calc(360deg / -9 * var(--i))) scale(1.05);
     }
     
     .notification {
@@ -445,35 +452,23 @@
         color: #999;
     }
     
-    .share-modal-content {
-        background: #1e1e1e;
-        color: #fff;
-    }
-    
-    .share-modal-header {
-        border-color: #333;
-    }
-    
-    .share-platform-btn {
+    .share-menu .share-toggle {
         background: #2a2a2a;
-        border-color: #444;
         color: #fff;
     }
     
-    .share-platform-btn:hover {
-        background-color: rgba(33, 150, 243, 0.1);
-        border-color: #2196F3;
+    .share-menu.active .share-toggle {
+        box-shadow:
+            0 6px 8px rgba(0, 0, 0, 0.3),
+            0 0 0 2px #555,
+            0 0 0 8px #2a2a2a;
     }
     
-    .share-url input {
+    .share-menu li a {
         background-color: #2a2a2a;
-        border-color: #444;
-        color: #fff;
     }
     
-    .close-modal:hover {
-        background-color: #333;
-    }
+    /* Крестик убран */
     
     .users-tooltip {
         background: #1e1e1e;
