@@ -42,7 +42,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'blog/css/interactions.css' %}">
+<link rel="stylesheet" href="{% static 'blog/css/interactions.css' %}?v=2.3">
 {% endblock %}
 
 {% block content %}
@@ -238,6 +238,6 @@ All static text is localized using {% trans %} for English msgid and translation
     </script>
 
     <!-- JavaScript для взаимодействий -->
-    <script src="{% static 'blog/js/interactions.js' %}?v=2.2"></script>
+    <script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
 </article>
 {% endblock %}
