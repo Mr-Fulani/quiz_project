@@ -593,7 +593,8 @@ class UserChannelSubscription(models.Model):
                 title=admin_title,
                 message=admin_message,
                 related_object_id=self.id,
-                related_object_type='subscription'
+                related_object_type='subscription',
+                request=None  # В модели нет доступа к request
             )
             
         except Exception as e:

@@ -533,8 +533,17 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
                         related_object_type='comment'
                     )
                     
-                    # Отправляем красивое сообщение в Telegram (с Markdown форматированием)
-                    sent_count = send_to_all_admins(telegram_message)
+                    # Формируем URL mini app для открытия комментария
+                    # Для WebApp кнопок Telegram передает startParam через window.Telegram.WebApp.startParam
+                    # но также нужно добавить параметр в URL для обработки на сервере
+                    from accounts.utils_folder.telegram_notifications import get_mini_app_url
+                    mini_app_base_url = get_mini_app_url(request)
+                    # Используем базовый URL, параметр будет передан через startParam при создании кнопки
+                    # Но также добавляем в URL для обработки на сервере (fallback)
+                    mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
+                    
+                    # Отправляем красивое сообщение в Telegram (с Markdown форматированием и кнопкой WebApp)
+                    sent_count = send_to_all_admins(telegram_message, web_app_url=mini_app_url)
                     
                     # Отмечаем уведомление как отправленное, если хотя бы одному админу отправлено
                     if sent_count > 0:
@@ -758,7 +767,11 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
             # Формируем ссылку на жалобу в админке с динамическим URL
             # Используем request из view напрямую
             base_url = get_base_url(request)
-            admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
+            try:
+                admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
+            except Exception:
+                # Если reverse не работает, используем прямой путь
+                admin_path = f"/admin/tasks/taskcommentreport/{report.id}/change/"
             admin_url = f"{base_url}{admin_path}"
             
             reason_display = dict(TaskCommentReport.REASON_CHOICES).get(report.reason, report.reason)
@@ -803,16 +816,23 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
             
             admin_message += f"\n\n👉 {format_markdown_link('Посмотреть в админке', admin_url)}"
             
-            notify_all_admins(
-                notification_type='report',
-                title=admin_title,
-                message=admin_message,
-                related_object_id=report.id,
-                related_object_type='report'
-            )
+            logger.info(f"📤 Начинаем отправку уведомления о жалобе #{report.id} для комментария #{comment.id}")
+            try:
+                sent_count = notify_all_admins(
+                    notification_type='report',
+                    title=admin_title,
+                    message=admin_message,
+                    related_object_id=report.id,
+                    related_object_type='report',
+                    request=request
+                )
+                logger.info(f"✅ Уведомление о жалобе #{report.id} отправлено {sent_count} админам")
+            except Exception as notify_error:
+                logger.error(f"❌ Ошибка в notify_all_admins для жалобы #{report.id}: {notify_error}", exc_info=True)
+                # Не пробрасываем ошибку дальше, чтобы не сломать создание жалобы
             
         except Exception as e:
-            logger.error(f"❌ Ошибка отправки уведомления о жалобе: {e}")
+            logger.error(f"❌ Ошибка отправки уведомления о жалобе: {e}", exc_info=True)
         
         return Response(
             serializer.data,

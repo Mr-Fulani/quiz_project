@@ -87,7 +87,11 @@ def format_comment_notification(comment, request=None) -> str:
         
         # Формируем ссылку с динамическим base_url
         base_url = get_base_url(request)
-        admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
+        try:
+            admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
+        except Exception:
+            # Если reverse не работает, используем прямой путь
+            admin_path = f"/admin/tasks/taskcomment/{comment.id}/change/"
         admin_url = f"{base_url}{admin_path}"
         
         # Формируем сообщение
@@ -180,8 +184,16 @@ def format_report_notification(report, request=None) -> str:
         
         # Формируем ссылки с использованием get_base_url и reverse
         base_url = get_base_url(request)
-        report_admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
-        comment_admin_path = reverse('admin:tasks_taskcomment_change', args=[report.comment.id])
+        try:
+            report_admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
+        except Exception:
+            # Если reverse не работает, используем прямой путь
+            report_admin_path = f"/admin/tasks/taskcommentreport/{report.id}/change/"
+        try:
+            comment_admin_path = reverse('admin:tasks_taskcomment_change', args=[report.comment.id])
+        except Exception:
+            # Если reverse не работает, используем прямой путь
+            comment_admin_path = f"/admin/tasks/taskcomment/{report.comment.id}/change/"
         report_admin_url = f"{base_url}{report_admin_path}"
         comment_admin_url = f"{base_url}{comment_admin_path}"
         
@@ -210,7 +222,7 @@ def format_report_notification(report, request=None) -> str:
         return f"🚨 Новая жалоба #{report.id if report else 'N/A'}"
 
 
-def send_to_all_admins(message: str, parse_mode: str = "Markdown") -> int:
+def send_to_all_admins(message: str, parse_mode: str = "Markdown", web_app_url: Optional[str] = None) -> int:
     """
     Отправляет уведомление всем активным администраторам.
     Проверяет настройку notifications_enabled из MiniAppUser перед отправкой.
@@ -218,6 +230,7 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown") -> int:
     Args:
         message: Текст сообщения
         parse_mode: Режим парсинга (Markdown или HTML)
+        web_app_url: URL для открытия mini app (опционально, создаст inline keyboard button)
         
     Returns:
         int: Количество успешно отправленных уведомлений
@@ -259,7 +272,8 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown") -> int:
                 success = send_telegram_notification_sync(
                     telegram_id=admin.telegram_id,
                     message=message,
-                    parse_mode=parse_mode
+                    parse_mode=parse_mode,
+                    web_app_url=web_app_url
                 )
                 
                 if success:
