@@ -12,6 +12,7 @@ from accounts.models import CustomUser
 from accounts.models import DjangoAdmin
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
@@ -1152,15 +1153,15 @@ class QuizesView(BreadcrumbsMixin, ListView):
             questions_count=Count('tasks', filter=Q(tasks__published=True), distinct=True)
         )
         
-        # Если пользователь авторизован, добавляем аннотацию для подсчета решенных задач
+        # Если пользователь авторизован, добавляем аннотацию для подсчета задач с попытками
+        # Используем любую попытку (как в мини-аппе), а не только успешную
         if self.request.user.is_authenticated:
             queryset = queryset.annotate(
                 completed_tasks_count=Count(
                     'tasks',
                     filter=Q(
                         tasks__published=True,
-                        tasks__statistics__user=self.request.user,
-                        tasks__statistics__successful=True
+                        tasks__statistics__user=self.request.user
                     ),
                     distinct=True
                 )
@@ -1236,6 +1237,34 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
                 )
             )
         ).distinct()
+        
+        # Аннотируем общее количество опубликованных задач в подтеме
+        subtopics = subtopics.annotate(
+            questions_count=Count(
+                'tasks',
+                filter=Q(
+                    tasks__published=True,
+                    tasks__translations__language=preferred_language
+                ),
+                distinct=True
+            )
+        )
+        
+        # Если пользователь авторизован, добавляем аннотацию для подсчета задач с попытками
+        # Используем любую попытку (как в мини-аппе), а не только успешную
+        if self.request.user.is_authenticated:
+            subtopics = subtopics.annotate(
+                completed_tasks_count=Count(
+                    'tasks',
+                    filter=Q(
+                        tasks__published=True,
+                        tasks__translations__language=preferred_language,
+                        tasks__statistics__user=self.request.user
+                    ),
+                    distinct=True
+                )
+            )
+        
         logger.info(f"QuizDetailView - Topic: {topic_name}, Subtopics: {subtopics.count()}, Language: {preferred_language}")
         logger.info(f"Total queries: {len(connection.queries)}")
         return subtopics
@@ -1262,14 +1291,47 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
             dict: Контекст с темой и метаданными.
         """
         context = super().get_context_data(**kwargs)
-        context['topic'] = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
-        context['meta_title'] = _('%(topic_name)s Quizzes') % {'topic_name': context['topic'].name}
-        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': context['topic'].name}
-        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': context['topic'].name}
+        topic = get_object_or_404(Topic, name__iexact=self.kwargs['quiz_type'].lower())
+        context['topic'] = topic
+        context['meta_title'] = _('%(topic_name)s Quizzes') % {'topic_name': topic.name}
+        context['meta_description'] = _('Explore quizzes on %(topic_name)s.') % {'topic_name': topic.name}
+        context['meta_keywords'] = _('%(topic_name)s, quizzes, programming') % {'topic_name': topic.name}
+        
+        # Кэширование для авторизованных пользователей (10 минут)
+        if self.request.user.is_authenticated:
+            cache_key = f'subtopics_progress_{topic.id}_{self.request.user.id}_{get_language()}'
+            cached_remaining = cache.get(cache_key)
+            
+            if cached_remaining is None:
+                # Вычисляем количество оставшихся задач для каждой подтемы
+                remaining_data = {}
+                for subtopic in context['subtopics']:
+                    if hasattr(subtopic, 'questions_count') and subtopic.questions_count:
+                        if hasattr(subtopic, 'completed_tasks_count') and subtopic.completed_tasks_count is not None:
+                            remaining = subtopic.questions_count - subtopic.completed_tasks_count
+                        else:
+                            # Если пользователь еще не начал, все задачи остались
+                            remaining = subtopic.questions_count
+                    else:
+                        remaining = 0
+                    subtopic.remaining_tasks_count = remaining
+                    remaining_data[subtopic.id] = remaining
+                
+                # Сохраняем данные в кэш на 10 минут
+                cache.set(cache_key, remaining_data, 600)  # 10 минут = 600 секунд
+            else:
+                # Восстанавливаем данные из кэша
+                for subtopic in context['subtopics']:
+                    subtopic.remaining_tasks_count = cached_remaining.get(subtopic.id, 0)
+        else:
+            # Для неавторизованных пользователей просто вычисляем без кэша
+            for subtopic in context['subtopics']:
+                subtopic.remaining_tasks_count = 0
+        
         if not context['subtopics']:
             context['no_subtopics_message'] = _(
                 'No subtopics with tasks available in your language for %(topic_name)s.'
-            ) % {'topic_name': context['topic'].name}
+            ) % {'topic_name': topic.name}
         return context
 
 
@@ -1360,28 +1422,70 @@ def quiz_difficulty(request, quiz_type, subtopic):
 
     preferred_language = get_language()  # Изменено: используем get_language()
 
-    # Определяем доступные уровни сложности
+    # Определяем доступные уровни сложности с подсчетом задач
     difficulty_names = {
         'easy': str(_('Easy')),
         'medium': str(_('Medium')),
         'hard': str(_('Hard')),
     }
     difficulties = []
+    
+    # Кэширование для авторизованных пользователей (10 минут)
+    cache_key = None
+    cached_data = None
+    if request.user.is_authenticated:
+        cache_key = f'difficulties_progress_{subtopic_obj.id}_{request.user.id}_{preferred_language}'
+        cached_data = cache.get(cache_key)
+    
+    difficulty_cache_to_save = {}
+    
     for diff in ['easy', 'medium', 'hard']:
-        if Task.objects.filter(
+        # Подсчитываем общее количество задач для уровня сложности
+        tasks_queryset = Task.objects.filter(
             topic=topic,
             subtopic=subtopic_obj,
             published=True,
             difficulty=diff,
-            translations__language=preferred_language  # Изменено: добавлена фильтрация по языку
-        ).exists() or Task.objects.filter(
-            topic=topic,
-            subtopic__isnull=True,
-            published=True,
-            difficulty=diff,
-            translations__language=preferred_language  # Изменено: добавлена фильтрация по языку
-        ).exists():
-            difficulties.append({'value': diff, 'name': difficulty_names[diff]})  # Изменено: локализованное имя
+            translations__language=preferred_language
+        ).distinct()
+        
+        questions_count = tasks_queryset.count()
+        
+        if questions_count > 0:
+            difficulty_data = {
+                'value': diff,
+                'name': difficulty_names[diff],
+                'questions_count': questions_count,
+                'completed_tasks_count': None,
+                'remaining_tasks_count': questions_count
+            }
+            
+            # Если пользователь авторизован, подсчитываем решенные задачи
+            if request.user.is_authenticated:
+                if cached_data and diff in cached_data:
+                    # Используем данные из кэша
+                    difficulty_data['completed_tasks_count'] = cached_data[diff].get('completed_tasks_count')
+                    difficulty_data['remaining_tasks_count'] = cached_data[diff].get('remaining_tasks_count', questions_count)
+                else:
+                    # Подсчитываем задачи с попытками (любая попытка, как в мини-аппе)
+                    completed_count = tasks_queryset.filter(
+                        statistics__user=request.user
+                    ).distinct().count()
+                    
+                    difficulty_data['completed_tasks_count'] = completed_count
+                    difficulty_data['remaining_tasks_count'] = questions_count - completed_count
+                    
+                    # Сохраняем для кэша
+                    difficulty_cache_to_save[diff] = {
+                        'completed_tasks_count': completed_count,
+                        'remaining_tasks_count': questions_count - completed_count
+                    }
+            
+            difficulties.append(difficulty_data)
+    
+    # Сохраняем данные в кэш после обработки всех уровней
+    if request.user.is_authenticated and cache_key and cached_data is None and difficulty_cache_to_save:
+        cache.set(cache_key, difficulty_cache_to_save, 600)  # 10 минут
 
     logger.info(f"Found {len(difficulties)} difficulties for subtopic '{subtopic_obj.name}' on language '{preferred_language}'")  # Изменено: добавлено логирование
 
@@ -1762,10 +1866,46 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
             }
         )
         if not created:
+            # Обновляем attempts через F() для атомарности
+            # Но сначала проверяем текущее значение successful
+            was_successful = stats.successful
+            
+            # Если задача уже была решена правильно, сохраняем successful=True
+            # Если текущий ответ правильный, устанавливаем successful=True
+            # Если текущий ответ неправильный, но задача уже была решена, оставляем successful=True
+            new_successful = is_correct or was_successful
+            
             stats.attempts = F('attempts') + 1
-            stats.successful = is_correct
+            stats.successful = new_successful
             stats.selected_answer = selected_answer
             stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
+            
+            # Обновляем объект из БД, чтобы получить актуальное значение attempts
+            stats.refresh_from_db()
+        
+        # Инвалидируем кэш прогресса после сохранения статистики
+        # (также инвалидируется в TaskStatistics.save(), но делаем явно для надежности)
+        # Инвалидируем для всех языков
+        from django.conf import settings
+        languages = [lang[0] for lang in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])]
+        
+        deleted_keys = []
+        if task.topic:
+            for lang in languages:
+                cache_key_topic = f'topics_progress_{task.topic.id}_{request.user.id}_{lang}'
+                cache.delete(cache_key_topic)
+                deleted_keys.append(cache_key_topic)
+        if task.subtopic:
+            for lang in languages:
+                cache_key_subtopic = f'subtopics_progress_{task.subtopic.id}_{request.user.id}_{lang}'
+                cache.delete(cache_key_subtopic)
+                deleted_keys.append(cache_key_subtopic)
+                if task.difficulty:
+                    cache_key_difficulty = f'difficulties_progress_{task.subtopic.id}_{request.user.id}_{lang}'
+                    cache.delete(cache_key_difficulty)
+                    deleted_keys.append(cache_key_difficulty)
+        
+        logger.info(f"Cache invalidated for task_id={task_id}, user={request.user}, keys={deleted_keys}")
 
         # Обновляем статистику пользователя
         try:
