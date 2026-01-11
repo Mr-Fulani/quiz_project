@@ -9,7 +9,7 @@ from aiogram import types, Router, Bot
 from aiogram.filters import StateFilter, BaseFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin
 from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
@@ -56,7 +56,6 @@ async def notify_admins_about_feedback(
         feedback: Объект FeedbackMessage
         user: Пользователь, отправивший сообщение
     """
-    logger.error(f"🔴 DEBUG: notify_admins_about_feedback вызвана для feedback #{feedback.id}")
     logger.info(f"🔔 Начало отправки уведомления о feedback #{feedback.id} от пользователя {user.id}")
     try:
         # Получаем всех активных админов из базы данных
@@ -92,9 +91,9 @@ async def notify_admins_about_feedback(
         # Формируем ссылку на админку
         admin_link = format_url_link("Посмотреть в админке", admin_url)
         
-        # Формируем сообщение для админов
+        # Формируем сообщение для админов (для Telegram с MarkdownV2)
         admin_title = escape_markdown("📩 Новое обращение в поддержку")
-        admin_message = (
+        admin_message_telegram = (
             f"{admin_title}\n\n"
             f"От: {user_link} \\(ID: {feedback.user_id}\\)\n"
             f"Username: {username_display}\n"
@@ -104,19 +103,82 @@ async def notify_admins_about_feedback(
             f"👉 {admin_link}"
         )
         
+        # Формируем сообщение для БД (без Markdown форматирования)
+        username_plain = f"@{user.username}" if user.username else "нет"
+        message_preview_plain = feedback.message[:200] + "..." if len(feedback.message) > 200 else feedback.message
+        admin_title_plain = "📩 Новое обращение в поддержку"
+        admin_message_db = (
+            f"{admin_title_plain}\n\n"
+            f"От: {username_plain} (ID: {feedback.user_id})\n"
+            f"Username: {username_plain}\n"
+            f"Категория: {feedback.category or 'other'}\n"
+            f"Источник: Telegram Bot\n\n"
+            f"Сообщение: {message_preview_plain}\n\n"
+            f"👉 Посмотреть в админке: {admin_url}"
+        )
+        
         # Отправляем уведомление каждому админу
         sent_count = 0
         for admin in admins:
             try:
                 await bot.send_message(
                     chat_id=admin.telegram_id,
-                    text=admin_message,
+                    text=admin_message_telegram,
                     parse_mode="MarkdownV2"
                 )
                 sent_count += 1
                 logger.debug(f"Уведомление о feedback #{feedback.id} отправлено админу {admin.telegram_id} (@{admin.username or 'None'})")
             except Exception as e:
                 logger.warning(f"Не удалось отправить уведомление о feedback админу {admin.telegram_id}: {e}")
+        
+        logger.error(f"🔴 DEBUG: После цикла отправки уведомлений для feedback #{feedback.id}, sent_count={sent_count}")
+        
+        # Создаем запись уведомления в таблице notifications (Django модель) ПЕРЕД финальным сообщением
+        logger.error(f"🔴 DEBUG: ДО создания записи уведомления для feedback #{feedback.id}, sent_count={sent_count}")
+        logger.error(f"🔴 DEBUG: Начинаем создание записи уведомления в БД для feedback #{feedback.id}")
+        logger.info(f"📝 Начинаем создание записи уведомления в БД для feedback #{feedback.id}")
+        try:
+            # Используем правильный синтаксис для параметризованного запроса
+            sql_query = text("""
+                INSERT INTO notifications 
+                (recipient_telegram_id, is_admin_notification, notification_type, title, message, 
+                 related_object_id, related_object_type, is_read, sent_to_telegram, created_at)
+                VALUES 
+                (NULL, :is_admin_notification, :notification_type, :title, :message, 
+                 :related_object_id, :related_object_type, :is_read, :sent_to_telegram, NOW())
+            """)
+            
+            # Ограничиваем длину title и message для БД
+            title_for_db = admin_title_plain[:255] if len(admin_title_plain) > 255 else admin_title_plain
+            message_for_db = admin_message_db[:5000] if len(admin_message_db) > 5000 else admin_message_db
+            
+            params = {
+                'is_admin_notification': True,
+                'notification_type': 'feedback',
+                'title': title_for_db,
+                'message': message_for_db,
+                'related_object_id': feedback.id,
+                'related_object_type': 'feedback',
+                'is_read': False,
+                'sent_to_telegram': sent_count > 0
+            }
+            
+            logger.error(f"🔴 DEBUG: Параметры для INSERT: notification_type={params['notification_type']}, related_object_id={params['related_object_id']}")
+            logger.debug(f"Параметры для INSERT: {params}")
+            
+            logger.error(f"🔴 DEBUG: Выполняем SQL запрос...")
+            result = await db_session.execute(sql_query, params)
+            logger.error(f"🔴 DEBUG: SQL запрос выполнен, делаем commit...")
+            await db_session.commit()
+            logger.error(f"🔴 DEBUG: Commit выполнен, rows affected: {result.rowcount}")
+            logger.info(f"📝 Создана запись уведомления в БД для feedback #{feedback.id}, rows affected: {result.rowcount}")
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания записи уведомления в БД для feedback #{feedback.id}: {e}", exc_info=True)
+            try:
+                await db_session.rollback()
+                logger.error(f"🔴 DEBUG: Rollback выполнен")
+            except Exception as rollback_error:
+                logger.error(f"❌ Ошибка при rollback: {rollback_error}")
         
         logger.info(f"Уведомление о feedback #{feedback.id} отправлено {sent_count} из {len(admins)} админам")
         
@@ -146,7 +208,6 @@ class UserMessageFilter(BaseFilter):
 # Обработчик для сохранения сообщения пользователя
 @router.message(UserMessageFilter())
 async def save_feedback_message(message: types.Message):
-    logger.error(f"🔴 DEBUG: save_feedback_message вызван для пользователя {message.from_user.id}")
     logger.info(f"📝 Получено сообщение обратной связи от пользователя {message.from_user.id} (@{message.from_user.username})")
     async with get_session() as session:
         feedback = FeedbackMessage(
@@ -166,7 +227,6 @@ async def save_feedback_message(message: types.Message):
         logger.info(f"💾 Сохранено сообщение обратной связи ID={feedback_id} от пользователя {message.from_user.id}")
     
     # Отправляем уведомление админам о новом сообщении обратной связи (вне контекста сессии)
-    logger.error(f"🔴 DEBUG: Начинаем отправку уведомления для feedback #{feedback_id}")
     logger.info(f"📤 Вызов notify_admins_about_feedback для feedback #{feedback_id}")
     try:
         # Создаем новую сессию для уведомлений
