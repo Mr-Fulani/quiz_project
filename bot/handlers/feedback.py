@@ -2,24 +2,129 @@
 
 import datetime
 import logging
+import os
 from datetime import datetime
 
-from aiogram import types, Router
+from aiogram import types, Router, Bot
 from aiogram.filters import StateFilter, BaseFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import FeedbackMessage, FeedbackReply
+from bot.database.models import FeedbackMessage, FeedbackReply, TelegramAdmin
 from bot.database.database import get_session, AsyncSessionMaker  # Импорт из database.py
 from bot.keyboards.quiz_keyboards import get_feedback_keyboard
 from bot.states.admin_states import FeedbackStates
+from bot.utils.markdownV2 import escape_markdown, format_user_link
 
 # Инициализация маршрутизатора
 router = Router(name="feedback_router")
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
+
+
+def format_url_link(text: str, url: str) -> str:
+    """
+    Формирует MarkdownV2-ссылку на URL.
+    
+    Args:
+        text: Текст ссылки
+        url: URL адрес
+        
+    Returns:
+        str: Отформатированная ссылка в формате MarkdownV2
+    """
+    escaped_text = escape_markdown(text)
+    # Для URL экранируем только скобки и подчеркивания, которые могут сломать ссылку
+    escaped_url = url.replace('(', '\\(').replace(')', '\\)').replace('_', '\\_')
+    return f"[{escaped_text}]({escaped_url})"
+
+
+async def notify_admins_about_feedback(
+    bot: Bot,
+    db_session: AsyncSession,
+    feedback: FeedbackMessage,
+    user: types.User
+) -> None:
+    """
+    Отправляет уведомление админам о новом сообщении обратной связи из бота.
+    
+    Args:
+        bot: Экземпляр бота
+        db_session: Сессия базы данных
+        feedback: Объект FeedbackMessage
+        user: Пользователь, отправивший сообщение
+    """
+    logger.error(f"🔴 DEBUG: notify_admins_about_feedback вызвана для feedback #{feedback.id}")
+    logger.info(f"🔔 Начало отправки уведомления о feedback #{feedback.id} от пользователя {user.id}")
+    try:
+        # Получаем всех активных админов из базы данных
+        admins_result = await db_session.execute(
+            select(TelegramAdmin).where(TelegramAdmin.is_active == True)
+        )
+        admins = admins_result.scalars().all()
+        
+        logger.info(f"📋 Найдено {len(admins)} активных админов")
+        
+        if not admins:
+            logger.warning("⚠️ Нет активных админов для отправки уведомления о feedback")
+            return
+        
+        # Получаем базовый URL для ссылки на админку
+        base_url = os.getenv('SITE_URL', 'https://quiz-code.com')
+        # Убираем поддомены если есть
+        if 'mini.' in base_url:
+            base_url = base_url.replace('mini.', '')
+        
+        # Формируем ссылку на feedback в админке Django
+        admin_path = f"/admin/feedback/feedbackmessage/{feedback.id}/change/"
+        admin_url = f"{base_url}{admin_path}"
+        
+        # Формируем информацию о пользователе
+        user_link = format_user_link(user.username, user.id)
+        username_display = f"@{escape_markdown(user.username)}" if user.username else escape_markdown("нет")
+        
+        # Экранируем сообщение для MarkdownV2 (ограничиваем длину)
+        message_preview = feedback.message[:200] + "..." if len(feedback.message) > 200 else feedback.message
+        escaped_message = escape_markdown(message_preview)
+        
+        # Формируем ссылку на админку
+        admin_link = format_url_link("Посмотреть в админке", admin_url)
+        
+        # Формируем сообщение для админов
+        admin_title = escape_markdown("📩 Новое обращение в поддержку")
+        admin_message = (
+            f"{admin_title}\n\n"
+            f"От: {user_link} \\(ID: {feedback.user_id}\\)\n"
+            f"Username: {username_display}\n"
+            f"Категория: {escape_markdown(feedback.category or 'other')}\n"
+            f"Источник: {escape_markdown('Telegram Bot')}\n\n"
+            f"Сообщение: {escaped_message}\n\n"
+            f"👉 {admin_link}"
+        )
+        
+        # Отправляем уведомление каждому админу
+        sent_count = 0
+        for admin in admins:
+            try:
+                await bot.send_message(
+                    chat_id=admin.telegram_id,
+                    text=admin_message,
+                    parse_mode="MarkdownV2"
+                )
+                sent_count += 1
+                logger.debug(f"Уведомление о feedback #{feedback.id} отправлено админу {admin.telegram_id} (@{admin.username or 'None'})")
+            except Exception as e:
+                logger.warning(f"Не удалось отправить уведомление о feedback админу {admin.telegram_id}: {e}")
+        
+        logger.info(f"Уведомление о feedback #{feedback.id} отправлено {sent_count} из {len(admins)} админам")
+        
+    except Exception as e:
+        logger.error(f"Ошибка при отправке уведомлений админам о feedback: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+
 
 # Обработчик кнопки "🆘 Поддержка-Support"
 @router.message(lambda message: message.text and message.text.lower() == "🆘 поддержка-support")
@@ -41,6 +146,8 @@ class UserMessageFilter(BaseFilter):
 # Обработчик для сохранения сообщения пользователя
 @router.message(UserMessageFilter())
 async def save_feedback_message(message: types.Message):
+    logger.error(f"🔴 DEBUG: save_feedback_message вызван для пользователя {message.from_user.id}")
+    logger.info(f"📝 Получено сообщение обратной связи от пользователя {message.from_user.id} (@{message.from_user.username})")
     async with get_session() as session:
         feedback = FeedbackMessage(
             user_id=message.from_user.id,
@@ -52,7 +159,34 @@ async def save_feedback_message(message: types.Message):
             category='other'  # Категория по умолчанию
         )
         session.add(feedback)
+        await session.flush()  # Получаем ID без commit
+        feedback_id = feedback.id
         await session.commit()
+        
+        logger.info(f"💾 Сохранено сообщение обратной связи ID={feedback_id} от пользователя {message.from_user.id}")
+    
+    # Отправляем уведомление админам о новом сообщении обратной связи (вне контекста сессии)
+    logger.error(f"🔴 DEBUG: Начинаем отправку уведомления для feedback #{feedback_id}")
+    logger.info(f"📤 Вызов notify_admins_about_feedback для feedback #{feedback_id}")
+    try:
+        # Создаем новую сессию для уведомлений
+        async with get_session() as notification_session:
+            # Получаем feedback заново для новой сессии
+            feedback_for_notification = await notification_session.get(FeedbackMessage, feedback_id)
+            if feedback_for_notification:
+                await notify_admins_about_feedback(
+                    bot=message.bot,
+                    db_session=notification_session,
+                    feedback=feedback_for_notification,
+                    user=message.from_user
+                )
+                logger.info(f"✅ notify_admins_about_feedback завершена для feedback #{feedback_id}")
+            else:
+                logger.error(f"❌ Не удалось найти feedback #{feedback_id} для отправки уведомления")
+    except Exception as e:
+        logger.error(f"❌ Ошибка при отправке уведомления админам о feedback #{feedback_id}: {e}", exc_info=True)
+        # Не прерываем выполнение, даже если уведомление не отправилось
+    
     await message.answer("Ваше сообщение сохранено, Мы ответим Вам в ближайшее время. Спасибо!")
 
 # Обработчик для просмотра необработанных сообщений
