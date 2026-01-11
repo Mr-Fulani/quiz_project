@@ -533,11 +533,35 @@ class TaskStatistics(models.Model):
         super().save(*args, **kwargs)
         # Очищаем кэш статистики пользователя
         from django.core.cache import cache
+        from django.utils.translation import get_language
         cache_key = f'user_stats_{self.user_id}'
         cache.delete(cache_key)
         # Также вызываем метод инвалидации кэша у пользователя
         if self.user:
             self.user.invalidate_statistics_cache()
+        
+        # Инвалидируем кэш прогресса для тем, подтем и уровней сложности
+        # Инвалидируем для всех языков, чтобы кэш обновлялся независимо от текущего языка
+        if self.user and self.task:
+            from django.conf import settings
+            languages = [lang[0] for lang in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])]
+            
+            # Инвалидация кэша для тем (для всех языков)
+            if hasattr(self.task, 'topic') and self.task.topic:
+                for lang in languages:
+                    topic_cache_key = f'topics_progress_{self.task.topic.id}_{self.user.id}_{lang}'
+                    cache.delete(topic_cache_key)
+            
+            # Инвалидация кэша для подтем (для всех языков)
+            if hasattr(self.task, 'subtopic') and self.task.subtopic:
+                for lang in languages:
+                    subtopic_cache_key = f'subtopics_progress_{self.task.subtopic.id}_{self.user.id}_{lang}'
+                    cache.delete(subtopic_cache_key)
+                    
+                    # Инвалидация кэша для уровней сложности (для всех языков)
+                    if hasattr(self.task, 'difficulty') and self.task.difficulty:
+                        difficulty_cache_key = f'difficulties_progress_{self.task.subtopic.id}_{self.user.id}_{lang}'
+                        cache.delete(difficulty_cache_key)
 
 
 class MiniAppTaskStatistics(models.Model):

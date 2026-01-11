@@ -32,6 +32,56 @@ Includes the user sidebar for authenticated users.
                       <div class="service-content-box">
                         <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>
                         <p class="service-item-text">{% trans "Test on subtopic" %} {{ subtopic.name }}.</p>
+                        
+                        {% if user.is_authenticated %}
+                          {% if subtopic.questions_count and subtopic.questions_count > 0 %}
+                            {% if subtopic.completed_tasks_count is not None %}
+                              {% widthratio subtopic.completed_tasks_count subtopic.questions_count 100 as progress_percentage %}
+                              <div class="progress-info">
+                                <div class="progress-stats">
+                                  <span class="progress-stat-item total">
+                                    <span class="stat-label">{% trans "Total" %}:</span>
+                                    <span class="stat-value">{{ subtopic.questions_count }}</span>
+                                  </span>
+                                  <span class="progress-stat-item completed">
+                                    <span class="stat-label">{% trans "Completed" %}:</span>
+                                    <span class="stat-value">{{ subtopic.completed_tasks_count }}</span>
+                                  </span>
+                                  <span class="progress-stat-item remaining">
+                                    <span class="stat-label">{% trans "Remaining" %}:</span>
+                                    <span class="stat-value">{{ subtopic.remaining_tasks_count }}</span>
+                                  </span>
+                                </div>
+                                <div class="progress-bar-container">
+                                  <div class="progress-bar" style="width: {{ progress_percentage }}%;"></div>
+                                </div>
+                                <div class="progress-percentage">
+                                  <strong>{{ progress_percentage }}%</strong> {% trans "complete" %}
+                                </div>
+                              </div>
+                            {% else %}
+                              <div class="progress-info">
+                                <div class="progress-stats">
+                                  <span class="progress-stat-item total">
+                                    <span class="stat-label">{% trans "Total" %}:</span>
+                                    <span class="stat-value">{{ subtopic.questions_count }}</span>
+                                  </span>
+                                </div>
+                                <p class="progress-text not-started">{% trans "Not started" %}</p>
+                              </div>
+                            {% endif %}
+                          {% else %}
+                            <p class="no-tasks">{% trans "No items in topic" %}</p>
+                          {% endif %}
+                        {% else %}
+                          {% if subtopic.questions_count %}
+                            <div class="progress-info">
+                              <p class="topic-questions-count">
+                                <strong>{{ subtopic.questions_count }}</strong> {% trans "available" %}
+                              </p>
+                            </div>
+                          {% endif %}
+                        {% endif %}
                       </div>
                     </a>
                   </li>
