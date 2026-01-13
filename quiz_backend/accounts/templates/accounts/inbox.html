@@ -84,19 +84,29 @@
 </article>
 
 {% block scripts %}
+{% trans "Error loading conversation." as error_loading_conversation %}
+{% trans "Error sending message." as error_sending_message %}
+{% trans "Message sent successfully!" as message_sent %}
+{% trans "Select a dialog to send a message." as select_dialog %}
+{% trans "Error: send button not found." as send_button_not_found %}
+{% trans "Enter a message or attach a file." as enter_message_or_file %}
+{% trans "Error: CSRF token not found." as csrf_token_not_found %}
+{% trans "Message deleted." as message_deleted %}
+{% trans "Error deleting message." as error_deleting_message %}
+{% trans "Attachments" as attachments %}
 <script>
     window.conversationUrlTemplate = "{% url 'blog:get_conversation' recipient_username='__USERNAME__' %}";
     window.inboxTranslations = {
-        error_loading_conversation: "{% trans 'Error loading conversation.' %}",
-        error_sending_message: "{% trans 'Error sending message.' %}",
-        message_sent: "{% trans 'Message sent successfully!' %}",
-        select_dialog: "{% trans 'Select a dialog to send a message.' %}",
-        send_button_not_found: "{% trans 'Error: send button not found.' %}",
-        enter_message_or_file: "{% trans 'Enter a message or attach a file.' %}",
-        csrf_token_not_found: "{% trans 'Error: CSRF token not found.' %}",
-        message_deleted: "{% trans 'Message deleted.' %}",
-        error_deleting_message: "{% trans 'Error deleting message.' %}",
-        attachments: "{% trans 'Attachments' %}"
+        'error_loading_conversation': '{{ error_loading_conversation|escapejs }}',
+        'error_sending_message': '{{ error_sending_message|escapejs }}',
+        'message_sent': '{{ message_sent|escapejs }}',
+        'select_dialog': '{{ select_dialog|escapejs }}',
+        'send_button_not_found': '{{ send_button_not_found|escapejs }}',
+        'enter_message_or_file': '{{ enter_message_or_file|escapejs }}',
+        'csrf_token_not_found': '{{ csrf_token_not_found|escapejs }}',
+        'message_deleted': '{{ message_deleted|escapejs }}',
+        'error_deleting_message': '{{ error_deleting_message|escapejs }}',
+        'attachments': '{{ attachments|escapejs }}'
     };
 </script>
 <script src="{% static 'accounts/js/inbox.js' %}"></script>
