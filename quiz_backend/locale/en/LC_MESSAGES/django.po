@@ -291,7 +291,35 @@ msgstr ""
 #: accounts/templates/accounts/inbox.html:92
 #: accounts/templates/accounts/profile.html:248
 msgid "Message sent successfully!"
-msgstr ""
+msgstr "Message sent successfully!"
+
+#: accounts/templates/accounts/inbox.html:93
+msgid "Select a dialog to send a message."
+msgstr "Select a dialog to send a message."
+
+#: accounts/templates/accounts/inbox.html:94
+msgid "Error: send button not found."
+msgstr "Error: send button not found."
+
+#: accounts/templates/accounts/inbox.html:95
+msgid "Enter a message or attach a file."
+msgstr "Enter a message or attach a file."
+
+#: accounts/templates/accounts/inbox.html:96
+msgid "Error: CSRF token not found."
+msgstr "Error: CSRF token not found."
+
+#: accounts/templates/accounts/inbox.html:97
+msgid "Message deleted."
+msgstr "Message deleted."
+
+#: accounts/templates/accounts/inbox.html:98
+msgid "Error deleting message."
+msgstr "Error deleting message."
+
+#: accounts/templates/accounts/inbox.html:99
+msgid "Attachments"
+msgstr "Attachments"
 
 #: accounts/templates/accounts/login.html:7
 #: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:281
