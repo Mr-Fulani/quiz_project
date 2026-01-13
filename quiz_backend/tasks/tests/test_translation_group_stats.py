@@ -185,3 +185,43 @@ class TranslationGroupStatsTestCase(TestCase):
         stats_en = TaskStatistics.objects.get(user=self.user, task=self.task_en)
         self.assertFalse(stats_en.successful)
         self.assertEqual(stats_en.attempts, 1)
+    
+    def test_total_attempts_count_unique_groups(self):
+        """
+        Тест: total_attempts должен считать уникальные translation_group_id, а не количество записей.
+        """
+        # Создаем статистику для русской задачи
+        TaskStatistics.objects.create(
+            user=self.user,
+            task=self.task_ru,
+            attempts=1,
+            successful=True,
+            selected_answer='Правильный ответ'
+        )
+        
+        # Синхронизируем статистику для английской задачи (как в submit_task_answer)
+        from tasks.utils import get_tasks_by_translation_group
+        related_tasks = get_tasks_by_translation_group(self.task_ru).exclude(id=self.task_ru.id)
+        
+        for related_task in related_tasks:
+            TaskStatistics.objects.get_or_create(
+                user=self.user,
+                task=related_task,
+                defaults={
+                    'attempts': 1,
+                    'successful': True,
+                    'selected_answer': 'Correct Answer'
+                }
+            )
+        
+        # Проверяем, что создано 2 записи (для ru и en)
+        self.assertEqual(TaskStatistics.objects.filter(user=self.user).count(), 2)
+        
+        # Но total_attempts должен быть 1 (уникальный translation_group_id)
+        total_attempts = TaskStatistics.objects.filter(user=self.user).values('task__translation_group_id').distinct().count()
+        self.assertEqual(total_attempts, 1)
+        
+        # Проверяем через метод get_statistics
+        stats = self.user.get_statistics()
+        self.assertEqual(stats['total_attempts'], 1)
+        self.assertEqual(stats['solved_tasks'], 1)
