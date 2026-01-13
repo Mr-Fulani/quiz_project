@@ -3966,6 +3966,20 @@ article .video .video-content {
     margin-top: 6px;
 }
 
+/* Улучшенные стили для неавторизованных пользователей - показываем количество задач более заметно */
+/* Для неавторизованных: показываем структуру как у авторизованных, но без полосы прогресса */
+.progress-info .progress-stats {
+    margin-bottom: 6px;
+}
+
+/* Стили для текста "Log in to track your progress" для неавторизованных */
+.progress-info .progress-text.not-started {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    margin-top: 4px;
+}
+
 /* Responsive styles for progress bar */
 @media (max-width: 480px) {
     .progress-stats {

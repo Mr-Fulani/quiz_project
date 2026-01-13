@@ -1368,7 +1368,12 @@ msgstr ""
 #: blog/templates/blog/quiz_difficulty.html:59
 #: blog/templates/blog/quizes.html:61
 msgid "Log in to track progress"
-msgstr ""
+msgstr "Log in to track progress"
+
+#: blog/templates/blog/quizes.html:88
+#: blog/templates/blog/quiz_detail.html:84
+msgid "Log in to track your progress"
+msgstr "Log in to track your progress"
 
 #: blog/templates/blog/quiz_difficulty.html:23
 msgid "Difficulty Levels"

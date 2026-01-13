@@ -1487,6 +1487,11 @@ msgstr "Посмотреть мой прогресс"
 msgid "Log in to track progress"
 msgstr "Войдите, чтобы отслеживать прогресс"
 
+#: blog/templates/blog/quizes.html:88
+#: blog/templates/blog/quiz_detail.html:84
+msgid "Log in to track your progress"
+msgstr "Войдите, чтобы отслеживать свой прогресс"
+
 #: blog/templates/blog/quiz_difficulty.html:23
 #, fuzzy
 #| msgid "Available Difficulty Levels"
