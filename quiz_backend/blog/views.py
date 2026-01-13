@@ -2111,10 +2111,15 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
         # Обновляем статистику пользователя
         try:
             from django.db.models import Count, Q
-            user_stats = TaskStatistics.objects.filter(user=request.user).aggregate(
-                total_attempts=Count('id'),
-                successful_attempts=Count('id', filter=Q(successful=True))
-            )
+            # Считаем уникальные translation_group_id вместо количества записей
+            # чтобы не учитывать дубликаты от синхронизации статистики между языками
+            total_attempts = TaskStatistics.objects.filter(user=request.user).values('task__translation_group_id').distinct().count()
+            successful_attempts = TaskStatistics.objects.filter(user=request.user, successful=True).values('task__translation_group_id').distinct().count()
+            
+            user_stats = {
+                'total_attempts': total_attempts,
+                'successful_attempts': successful_attempts
+            }
             
             # Обновляем поля в модели пользователя
             request.user.quizzes_completed = user_stats['successful_attempts']
@@ -2609,11 +2614,16 @@ def statistics_view(request):
 
     # Личная статистика
     if request.user.is_authenticated:
-        user_stats = TaskStatistics.objects.filter(user=request.user).aggregate(
-            total_attempts=Count('id'),
-            successful_attempts=Count('id', filter=Q(successful=True)),
-            rating=Count('id')
-        )
+        # Считаем уникальные translation_group_id вместо количества записей
+        # чтобы не учитывать дубликаты от синхронизации статистики между языками
+        total_attempts = TaskStatistics.objects.filter(user=request.user).values('task__translation_group_id').distinct().count()
+        successful_attempts = TaskStatistics.objects.filter(user=request.user, successful=True).values('task__translation_group_id').distinct().count()
+        
+        user_stats = {
+            'total_attempts': total_attempts,
+            'successful_attempts': successful_attempts,
+            'rating': total_attempts  # Для совместимости
+        }
         user_stats['success_rate'] = (
             round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
             if user_stats['total_attempts'] > 0 else 0
