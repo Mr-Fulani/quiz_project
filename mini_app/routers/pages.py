@@ -580,14 +580,22 @@ async def share_topic_preview(request: Request, topic_id: int):
 
     # Конструируем абсолютный путь к изображению аккуратно, чтобы не получилось двойного слэша
     # ВАЖНО: Используем share_base_url (HTTPS) для изображений, чтобы они работали в Stories
+    # Используем ту же логику, что и в карусели тем - если нет кастомного медиа, используем picsum.photos
     image_path = topic_data.get('video_poster_url') if topic_data.get('media_type') == 'video' and topic_data.get('video_poster_url') else topic_data.get('image_url', '')
+    
     if image_path:
-        # Убеждаемся, что путь начинается с / для правильной конкатенации
-        image_path_clean = image_path.lstrip('/')
-        image_url = f"{share_base_url.rstrip('/')}/{image_path_clean}"
+        # Проверяем, является ли image_path уже полным URL (начинается с http:// или https://)
+        if image_path.startswith('http://') or image_path.startswith('https://'):
+            # Это уже полный URL (например, от picsum.photos) - используем как есть
+            image_url = image_path
+        else:
+            # Это относительный путь (например, /media/...) - делаем абсолютным
+            image_path_clean = image_path.lstrip('/')
+            image_url = f"{share_base_url.rstrip('/')}/{image_path_clean}"
     else:
-        # Fallback на логотип приложения, если изображение темы отсутствует
-        image_url = f"{share_base_url.rstrip('/')}/static/images/logo.png"
+        # Если image_url пустой, используем fallback на picsum.photos (как в карусели)
+        # Это обеспечивает корректное отображение для тем без кастомного медиа
+        image_url = f"https://picsum.photos/800/800?{topic_id}"
 
     # Получаем язык из параметров запроса или используем английский по умолчанию
     language = request.query_params.get('lang', 'en')
