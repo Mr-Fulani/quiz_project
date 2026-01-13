@@ -1733,11 +1733,11 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         translation_group_ids = list(set(task_translation_groups.values()))
         
         # Проверяем статистику по translation_group_id вместо конкретных task_id
+        # Проверяем ЛЮБУЮ попытку (не только successful=True), чтобы задача отмечалась как пройденная
         task_stats = TaskStatistics.objects.filter(
             user=request.user,
-            task__translation_group_id__in=translation_group_ids,
-            successful=True
-        ).values('task__translation_group_id', 'task_id', 'selected_answer').distinct()
+            task__translation_group_id__in=translation_group_ids
+        ).values('task__translation_group_id', 'task_id', 'selected_answer', 'successful').distinct()
         
         # Создаем словарь: translation_group_id -> selected_answer
         # Используем первый найденный selected_answer для каждой группы
@@ -1773,8 +1773,13 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         
         # Для каждой задачи определяем информацию о выбранном ответе
         for task in page_obj:
-            # Задача считается решенной, если решена любая задача с тем же translation_group_id
+            # Задача считается решенной, если есть ЛЮБАЯ попытка для задачи с тем же translation_group_id
+            # (не только successful=True, чтобы учитывать и неправильные ответы)
             task.is_solved = task.translation_group_id in solved_groups
+            
+            # Логируем для отладки
+            if task.is_solved:
+                logger.debug(f"Task {task.id} (translation_group_id={task.translation_group_id}) marked as solved")
             
             # Используем статистику из конкретной задачи, если есть
             task_stats = task_stats_dict.get(task.id)
@@ -2020,42 +2025,50 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
             stats.refresh_from_db()
         
         # Синхронизируем статистику для всех задач с тем же translation_group_id
+        # Используем транзакцию для атомарности
         try:
             from tasks.utils import get_tasks_by_translation_group
-            related_tasks = get_tasks_by_translation_group(task).exclude(id=task.id)
-            
-            for related_task in related_tasks:
-                related_stats, related_created = TaskStatistics.objects.get_or_create(
-                    user=request.user,
-                    task=related_task,
-                    defaults={
-                        'attempts': 1,
-                        'successful': is_correct,
-                        'selected_answer': selected_answer
-                    }
-                )
-                if not related_created:
-                    # Обновляем статистику для связанной задачи
-                    was_successful = related_stats.successful
-                    new_successful = is_correct or was_successful
-                    
-                    related_stats.attempts = F('attempts') + 1
-                    related_stats.successful = new_successful
-                    related_stats.selected_answer = selected_answer
-                    related_stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
-                    related_stats.refresh_from_db()
-            
-            logger.info(f"Synchronized stats for {related_tasks.count()} related tasks with translation_group_id={task.translation_group_id}")
+            with transaction.atomic():
+                related_tasks = get_tasks_by_translation_group(task).exclude(id=task.id)
+                
+                logger.info(f"Syncing stats for task_id={task.id}, translation_group_id={task.translation_group_id}, related_tasks_count={related_tasks.count()}")
+                
+                for related_task in related_tasks:
+                    related_stats, related_created = TaskStatistics.objects.get_or_create(
+                        user=request.user,
+                        task=related_task,
+                        defaults={
+                            'attempts': 1,
+                            'successful': is_correct,
+                            'selected_answer': selected_answer
+                        }
+                    )
+                    if not related_created:
+                        # Обновляем статистику для связанной задачи
+                        was_successful = related_stats.successful
+                        new_successful = is_correct or was_successful
+                        
+                        related_stats.attempts = F('attempts') + 1
+                        related_stats.successful = new_successful
+                        related_stats.selected_answer = selected_answer
+                        related_stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
+                        related_stats.refresh_from_db()
+                        logger.info(f"Updated stats for related task_id={related_task.id}, successful={new_successful}")
+                    else:
+                        logger.info(f"Created stats for related task_id={related_task.id}, successful={is_correct}")
+                
+                logger.info(f"Synchronized stats for {related_tasks.count()} related tasks with translation_group_id={task.translation_group_id}")
         except Exception as e:
             logger.error(f"Error synchronizing stats for translation_group_id: {e}", exc_info=True)
         
         # Инвалидируем кэш прогресса после сохранения статистики
         # (также инвалидируется в TaskStatistics.save(), но делаем явно для надежности)
-        # Инвалидируем для всех языков
+        # Инвалидируем для всех языков и для всех связанных задач
         from django.conf import settings
         languages = [lang[0] for lang in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])]
         
         deleted_keys = []
+        # Инвалидируем кэш для текущей задачи
         if task.topic:
             for lang in languages:
                 cache_key_topic = f'topics_progress_{task.topic.id}_{request.user.id}_{lang}'
@@ -2071,7 +2084,29 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
                     cache.delete(cache_key_difficulty)
                     deleted_keys.append(cache_key_difficulty)
         
-        logger.info(f"Cache invalidated for task_id={task_id}, user={request.user}, keys={deleted_keys}")
+        # Инвалидируем кэш для всех связанных задач с тем же translation_group_id
+        try:
+            from tasks.utils import get_tasks_by_translation_group
+            related_tasks_for_cache = get_tasks_by_translation_group(task)
+            for related_task in related_tasks_for_cache:
+                if related_task.topic:
+                    for lang in languages:
+                        cache_key_topic = f'topics_progress_{related_task.topic.id}_{request.user.id}_{lang}'
+                        cache.delete(cache_key_topic)
+                        deleted_keys.append(cache_key_topic)
+                if related_task.subtopic:
+                    for lang in languages:
+                        cache_key_subtopic = f'subtopics_progress_{related_task.subtopic.id}_{request.user.id}_{lang}'
+                        cache.delete(cache_key_subtopic)
+                        deleted_keys.append(cache_key_subtopic)
+                        if related_task.difficulty:
+                            cache_key_difficulty = f'difficulties_progress_{related_task.subtopic.id}_{request.user.id}_{lang}'
+                            cache.delete(cache_key_difficulty)
+                            deleted_keys.append(cache_key_difficulty)
+        except Exception as e:
+            logger.error(f"Error invalidating cache for related tasks: {e}", exc_info=True)
+        
+        logger.info(f"Cache invalidated for task_id={task_id}, translation_group_id={task.translation_group_id}, user={request.user}, keys_count={len(deleted_keys)}")
 
         # Обновляем статистику пользователя
         try:
