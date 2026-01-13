@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django.db.models import F
+from django.db import transaction
 
 from .models import Task, TaskStatistics
 from topics.models import Subtopic
@@ -295,6 +297,43 @@ def submit_mini_app_task_answer(request, task_id):
             selected_answer=selected_answer
         )
         logger.info(f"submit_mini_app_task_answer: Создана запись MiniAppTaskStatistics (ID: {stats.id}) для пользователя {telegram_id}, задачи {task_id}. Попыток: {stats.attempts}, Успешно: {stats.successful}")
+        
+        # Синхронизируем статистику для всех задач с тем же translation_group_id
+        # Используем транзакцию для атомарности
+        try:
+            from tasks.utils import get_tasks_by_translation_group
+            with transaction.atomic():
+                related_tasks = get_tasks_by_translation_group(task).exclude(id=task.id)
+                
+                logger.info(f"submit_mini_app_task_answer: Синхронизация статистики для task_id={task.id}, translation_group_id={task.translation_group_id}, related_tasks_count={related_tasks.count()}")
+                
+                for related_task in related_tasks:
+                    related_stats, related_created = MiniAppTaskStatistics.objects.get_or_create(
+                        mini_app_user=mini_app_user,
+                        task=related_task,
+                        defaults={
+                            'attempts': 1,
+                            'successful': is_correct,
+                            'selected_answer': selected_answer
+                        }
+                    )
+                    if not related_created:
+                        # Обновляем статистику для связанной задачи
+                        was_successful = related_stats.successful
+                        new_successful = is_correct or was_successful
+                        
+                        related_stats.attempts = F('attempts') + 1
+                        related_stats.successful = new_successful
+                        related_stats.selected_answer = selected_answer
+                        related_stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
+                        related_stats.refresh_from_db()
+                        
+                        logger.debug(f"submit_mini_app_task_answer: Обновлена статистика для связанной задачи {related_task.id}")
+                    else:
+                        logger.debug(f"submit_mini_app_task_answer: Создана статистика для связанной задачи {related_task.id}")
+        except Exception as e:
+            logger.error(f"submit_mini_app_task_answer: Ошибка при синхронизации статистики по translation_group_id: {e}")
+            # Не прерываем выполнение, основная статистика уже сохранена
         
         # Обновляем время последнего визита пользователя
         mini_app_user.update_last_seen()
