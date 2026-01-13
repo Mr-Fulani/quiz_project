@@ -295,8 +295,6 @@ msgid "No conversations yet"
 msgstr "Пока нет диалогов"
 
 #: accounts/templates/accounts/inbox.html:69
-#, fuzzy
-#| msgid "Last message"
 msgid "Type a message..."
 msgstr "Напишите сообщение..."
 
@@ -306,17 +304,41 @@ msgstr "Ошибка при загрузке диалога."
 
 #: accounts/templates/accounts/inbox.html:91
 #: accounts/templates/accounts/profile.html:249
-#, fuzzy
-#| msgid "Error resetting statistics."
 msgid "Error sending message."
 msgstr "Ошибка при отправке сообщения."
 
 #: accounts/templates/accounts/inbox.html:92
 #: accounts/templates/accounts/profile.html:248
-#, fuzzy
-#| msgid "Message sent!"
 msgid "Message sent successfully!"
 msgstr "Сообщение успешно отправлено!"
+
+#: accounts/templates/accounts/inbox.html:93
+msgid "Select a dialog to send a message."
+msgstr "Выберите диалог для отправки сообщения."
+
+#: accounts/templates/accounts/inbox.html:94
+msgid "Error: send button not found."
+msgstr "Ошибка: кнопка отправки не найдена."
+
+#: accounts/templates/accounts/inbox.html:95
+msgid "Enter a message or attach a file."
+msgstr "Введите сообщение или прикрепите файл."
+
+#: accounts/templates/accounts/inbox.html:96
+msgid "Error: CSRF token not found."
+msgstr "Ошибка: CSRF-токен не найден."
+
+#: accounts/templates/accounts/inbox.html:97
+msgid "Message deleted."
+msgstr "Сообщение удалено."
+
+#: accounts/templates/accounts/inbox.html:98
+msgid "Error deleting message."
+msgstr "Ошибка удаления сообщения."
+
+#: accounts/templates/accounts/inbox.html:96
+msgid "Attachments"
+msgstr "Вложения"
 
 #: accounts/templates/accounts/login.html:7
 #: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:281
@@ -2534,10 +2556,6 @@ msgstr "Удалено отправителем"
 msgid "Deleted by Recipient"
 msgstr "Удалено получателем"
 
-#: templates/admin/blog/message/change_form.html:54
-#: templates/admin/blog/message/change_list.html:248
-msgid "Attachments"
-msgstr "Вложения"
 
 #: templates/admin/blog/message/change_form.html:72
 #: templates/admin/blog/message/change_list.html:263

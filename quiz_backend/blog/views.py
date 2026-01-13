@@ -2460,9 +2460,20 @@ def inbox(request):
     Returns:
         HttpResponse: Рендеринг шаблона accounts/inbox.html с контекстом диалогов.
     """
+    # Убеждаемся, что язык активирован на основе URL
+    # Определяем язык из URL
+    path_parts = request.path.strip('/').split('/')
+    if path_parts and path_parts[0] in [lang[0] for lang in settings.LANGUAGES]:
+        language_from_url = path_parts[0]
+    else:
+        language_from_url = get_language() or settings.LANGUAGE_CODE
+    
+    # Активируем язык явно перед обработкой
+    activate(language_from_url)
+    
     user = request.user
-    logger.info(f"Fetching inbox for user: {user.username}")
-
+    logger.info(f"Fetching inbox for user: {user.username}, language: {get_language()}")
+    
     # Получаем уникальных собеседников, исключая сообщения с sender=None и удалённые сообщения
     dialogs = Message.objects.filter(
         (Q(sender=user, is_deleted_by_sender=False) | Q(recipient=user, is_deleted_by_recipient=False)) &
@@ -2509,9 +2520,14 @@ def inbox(request):
             continue
 
     logger.info(f"Found {len(dialog_list)} valid dialogs for user: {user.username}")
-    return render(request, 'accounts/inbox.html', {
-        'dialogs': dialog_list
-    })
+    
+    # Используем translation.override только для рендеринга шаблона
+    # Это гарантирует правильный язык для всех {% trans %} тегов
+    with translation.override(language_from_url):
+        return render(request, 'accounts/inbox.html', {
+            'dialogs': dialog_list
+        })
+
 
 
 
