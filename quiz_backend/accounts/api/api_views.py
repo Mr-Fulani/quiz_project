@@ -1284,11 +1284,16 @@ class MiniAppUserStatisticsView(APIView):
             from tasks.models import MiniAppTaskStatistics
             
             # Основная статистика пользователя
-            user_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).aggregate(
-                total_attempts=Count('id'),
-                successful_attempts=Count('id', filter=Q(successful=True)),
-                failed_attempts=Count('id', filter=Q(successful=False))
-            )
+            # Считаем уникальные translation_group_id вместо отдельных записей
+            total_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).values('task__translation_group_id').distinct().count()
+            successful_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user, successful=True).values('task__translation_group_id').distinct().count()
+            failed_attempts = total_attempts - successful_attempts
+            
+            user_stats = {
+                'total_attempts': total_attempts,
+                'successful_attempts': successful_attempts,
+                'failed_attempts': failed_attempts
+            }
             
             success_rate = (
                 round((user_stats['successful_attempts'] / user_stats['total_attempts']) * 100, 1)
@@ -1296,13 +1301,14 @@ class MiniAppUserStatisticsView(APIView):
             )
             
             # Прогресс по темам (топ 5)
+            # Считаем уникальные translation_group_id для каждой темы
             topic_progress = []
             user_category_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=mini_app_user).values(
                 'task__topic__name',
                 'task__topic__id'
             ).annotate(
-                completed=Count('id', filter=Q(successful=True)),
-                total=Count('id')
+                completed=Count('task__translation_group_id', filter=Q(successful=True), distinct=True),
+                total=Count('task__translation_group_id', distinct=True)
             ).order_by('-total')[:5]
 
             # Определяем лучшую специализацию пользователя

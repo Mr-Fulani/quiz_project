@@ -1327,10 +1327,14 @@ class MiniAppUser(models.Model):
         }
         
         # Статистика из мини-аппа
-        mini_app_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=self).aggregate(
-            mini_app_total_attempts=Count('id'),
-            mini_app_successful_attempts=Count('id', filter=Q(successful=True))
-        )
+        # Считаем уникальные translation_group_id вместо количества записей
+        mini_app_total_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=self).values('task__translation_group_id').distinct().count()
+        mini_app_successful_attempts = MiniAppTaskStatistics.objects.filter(mini_app_user=self, successful=True).values('task__translation_group_id').distinct().count()
+        
+        mini_app_stats = {
+            'mini_app_total_attempts': mini_app_total_attempts,
+            'mini_app_successful_attempts': mini_app_successful_attempts
+        }
         
         # Объединяем статистику
         total_attempts = (main_stats['main_total_attempts'] or 0) + (mini_app_stats['mini_app_total_attempts'] or 0)

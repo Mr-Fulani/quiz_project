@@ -1013,11 +1013,16 @@ class PublicMiniAppUserSerializer(serializers.ModelSerializer):
                 from django.db.models import Count, Q
                 
                 # Один запрос для агрегированной статистики
-                stats = MiniAppTaskStatistics.objects.filter(mini_app_user=obj).aggregate(
-                    total=Count('id'),
-                    correct=Count('id', filter=Q(successful=True)),
-                    incorrect=Count('id', filter=Q(successful=False))
-                )
+                # Считаем уникальные translation_group_id вместо количества записей
+                total = MiniAppTaskStatistics.objects.filter(mini_app_user=obj).values('task__translation_group_id').distinct().count()
+                correct = MiniAppTaskStatistics.objects.filter(mini_app_user=obj, successful=True).values('task__translation_group_id').distinct().count()
+                incorrect = total - correct
+                
+                stats = {
+                    'total': total,
+                    'correct': correct,
+                    'incorrect': incorrect
+                }
                 
                 # Один запрос для серий
                 all_attempts = list(MiniAppTaskStatistics.objects.filter(
