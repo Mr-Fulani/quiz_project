@@ -31,7 +31,6 @@ Includes the user sidebar for authenticated users.
                       </div>
                       <div class="service-content-box">
                         <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>
-                        <p class="service-item-text">{% trans "Test on subtopic" %} {{ subtopic.name }}.</p>
                         
                         {% if user.is_authenticated %}
                           {% if subtopic.questions_count and subtopic.questions_count > 0 %}
@@ -74,12 +73,18 @@ Includes the user sidebar for authenticated users.
                             <p class="no-tasks">{% trans "No items in topic" %}</p>
                           {% endif %}
                         {% else %}
-                          {% if subtopic.questions_count %}
+                          {% if subtopic.questions_count and subtopic.questions_count > 0 %}
                             <div class="progress-info">
-                              <p class="topic-questions-count">
-                                <strong>{{ subtopic.questions_count }}</strong> {% trans "available" %}
-                              </p>
+                              <div class="progress-stats">
+                                <span class="progress-stat-item total">
+                                  <span class="stat-label">{% trans "Total" %}:</span>
+                                  <span class="stat-value">{{ subtopic.questions_count }}</span>
+                                </span>
+                              </div>
+                              <p class="progress-text not-started">{% trans "Log in to track your progress" %}</p>
                             </div>
+                          {% else %}
+                            <p class="no-tasks">{% trans "No items in topic" %}</p>
                           {% endif %}
                         {% endif %}
                       </div>

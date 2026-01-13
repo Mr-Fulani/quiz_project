@@ -35,7 +35,6 @@ All static text is localized using {% trans %} for English msgid and translation
                 </div>
                 <div class="service-content-box">
                   <h4 class="h4 service-item-title">{{ topic.name }}</h4>
-                  <p class="service-item-text">{% trans "Test on topic" %} {{ topic.name }}.</p>
                   
                   {% if user.is_authenticated %}
                     {% if topic.questions_count and topic.questions_count > 0 %}
@@ -78,12 +77,18 @@ All static text is localized using {% trans %} for English msgid and translation
                       <p class="no-tasks">{% trans "No items in topic" %}</p>
                     {% endif %}
                   {% else %}
-                    {% if topic.questions_count %}
+                    {% if topic.questions_count and topic.questions_count > 0 %}
                       <div class="progress-info">
-                        <p class="topic-questions-count">
-                          <strong>{{ topic.questions_count }}</strong> {% trans "available" %}
-                        </p>
+                        <div class="progress-stats">
+                          <span class="progress-stat-item total">
+                            <span class="stat-label">{% trans "Total" %}:</span>
+                            <span class="stat-value">{{ topic.questions_count }}</span>
+                          </span>
+                        </div>
+                        <p class="progress-text not-started">{% trans "Log in to track your progress" %}</p>
                       </div>
+                    {% else %}
+                      <p class="no-tasks">{% trans "No items in topic" %}</p>
                     {% endif %}
                   {% endif %}
                 </div>

@@ -2057,7 +2057,7 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
     readonly_fields = ('audio_preview', 'created_at', 'updated_at')
     fields = ('name', 'audio_file', 'audio_preview', 'is_active', 'created_at', 'updated_at')
     actions = ['make_active', 'make_inactive', 'delete_selected_tracks']
-    
+
     def display_size(self, obj):
         if not obj.size:
             return '—'
@@ -2069,7 +2069,7 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
             size = size // 1024
         return f"{size}TB"
     display_size.short_description = 'Размер'
-    
+
     def audio_preview(self, obj):
         if not obj.audio_file:
             return '—'
@@ -2079,17 +2079,17 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
         except Exception:
             return '—'
     audio_preview.short_description = 'Превью'
-    
+
     def make_active(self, request, queryset):
         updated = queryset.update(is_active=True)
         self.message_user(request, f"✅ Активировано треков: {updated}")
     make_active.short_description = 'Активировать выбранные треки'
-    
+
     def make_inactive(self, request, queryset):
         updated = queryset.update(is_active=False)
         self.message_user(request, f"✅ Деактивировано треков: {updated}")
     make_inactive.short_description = 'Деактивировать выбранные треки'
-    
+
     def delete_selected_tracks(self, request, queryset):
         """
         Удаляет выбранные треки из базы и удаляет файл из связанного storage.
@@ -2111,14 +2111,14 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
                 except Exception:
                     # Если у объекта нет audio_file или другой неожиданный кейс, продолжаем
                     pass
-                
+
                 # Удаляем сам объект из БД
                 obj.delete()
                 deleted += 1
             except Exception as e:
                 logger.error(f"Ошибка при удалении трека {getattr(obj, 'id', '<unknown>')}: {e}")
                 failed.append(str(getattr(obj, 'id', '<unknown>')))
-        
+
         if deleted:
             self.message_user(request, f"🗑️ Удалено треков: {deleted}", messages.SUCCESS)
         if failed:
