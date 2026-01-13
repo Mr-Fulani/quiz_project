@@ -109,6 +109,8 @@
     border-radius: 0.75rem;
     position: relative;
     z-index: 50; /* Меньший z-index, чем у dialogs-list */
+    min-width: 0; /* Позволяет контейнеру сжиматься */
+    overflow: hidden; /* Предотвращаем выход содержимого за границы */
 }
 
 /**
@@ -129,7 +131,9 @@
     flex: 1;
     padding: 1.25rem;
     overflow-y: auto;
+    overflow-x: hidden; /* Запрещаем горизонтальный скролл */
     max-height: 400px;
+    box-sizing: border-box; /* Учитываем padding */
 }
 
 /**
@@ -140,6 +144,8 @@
     margin-bottom: 1rem;
     max-width: 70%;
     width: fit-content; /* Сообщение занимает ровно столько места, сколько нужно */
+    box-sizing: border-box; /* Учитываем padding и border */
+    min-width: 0; /* Позволяет элементу сжиматься меньше своего контента */
 }
 
 .message-item.sent {
@@ -152,6 +158,19 @@
     border-radius: 0.75rem;
     font-size: 0.9375rem;
     line-height: 1.4;
+    word-wrap: break-word; /* Переносим длинные слова */
+    overflow-wrap: break-word; /* Альтернативное свойство для переноса */
+    word-break: break-word; /* Разрываем длинные слова (для URL) */
+    max-width: 100%; /* Ограничиваем ширину содержимого */
+    box-sizing: border-box; /* Учитываем padding */
+}
+
+/* Стили для ссылок и URL в сообщениях */
+.message-content a {
+    word-break: break-all; /* Разрываем URL на любом символе */
+    overflow-wrap: anywhere; /* Переносим URL в любом месте */
+    color: inherit;
+    text-decoration: underline;
 }
 
 .message-item.sent .message-content {
@@ -608,6 +627,17 @@
 
     .message-content {
         font-size: 0.875rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Стили для ссылок и URL в сообщениях (мобильная версия) */
+    .message-content a {
+        word-break: break-all;
+        overflow-wrap: anywhere;
     }
 
     .message-meta {
