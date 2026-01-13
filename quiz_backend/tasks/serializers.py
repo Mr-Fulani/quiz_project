@@ -45,12 +45,14 @@ class TaskSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'topic', 'subtopic', 'create_date', 'publish_date', 'success_rate']
 
     def get_is_solved(self, obj):
-        """Проверяет, решена ли задача текущим пользователем."""
+        """Проверяет, решена ли задача текущим пользователем.
+        Проверяет по translation_group_id, чтобы учитывать задачи на всех языках как одну.
+        """
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return TaskStatistics.objects.filter(
                 user=request.user,
-                task=obj,
+                task__translation_group_id=obj.translation_group_id,
                 successful=True
             ).exists()
         return False

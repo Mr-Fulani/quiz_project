@@ -79,7 +79,9 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         }
 
     def get_solved_counts(self, obj):
-        """Количество решённых (имеющих запись статистики mini_app) задач по уровням сложности для конкретного пользователя Telegram."""
+        """Количество решённых (имеющих запись статистики mini_app) задач по уровням сложности для конкретного пользователя Telegram.
+        Группирует по translation_group_id, чтобы учитывать задачи на всех языках как одну.
+        """
         request = self.context.get('request')
         language = 'en'
         telegram_id = None
@@ -89,14 +91,15 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         if not telegram_id:
             return {'easy': 0, 'medium': 0, 'hard': 0}
 
+        # Получаем задачи с попытками, группируя по translation_group_id
         base_qs = Task.objects.filter(
             subtopic=obj,
             published=True,
             translations__language=language,
             mini_app_statistics__mini_app_user__telegram_id=telegram_id
-        ).values('id', 'difficulty').distinct()
+        ).values('translation_group_id', 'difficulty').distinct()
 
-        # Подсчёт по уровням
+        # Подсчёт по уровням (уникальные translation_group_id)
         easy = base_qs.filter(difficulty='easy').count()
         medium = base_qs.filter(difficulty='medium').count()
         hard = base_qs.filter(difficulty='hard').count()

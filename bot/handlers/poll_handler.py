@@ -1,7 +1,7 @@
 from aiogram import Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from bot.database.models import TelegramUser, TaskPoll, TaskStatistics
+from bot.database.models import TelegramUser, TaskPoll, TaskStatistics, Task
 from datetime import datetime, timezone
 import logging
 
@@ -110,6 +110,44 @@ async def handle_poll_answer(poll_answer: types.PollAnswer, db_session: AsyncSes
     try:
         await db_session.commit()
         logger.info(f"Статистика обновлена. user={user_id}, task={task.id}, is_correct={is_correct}")
+
+        # Синхронизируем статистику для всех задач с тем же translation_group_id
+        try:
+            related_tasks_query = select(Task).where(
+                Task.translation_group_id == task.translation_group_id,
+                Task.id != task.id
+            )
+            related_tasks_result = await db_session.execute(related_tasks_query)
+            related_tasks = related_tasks_result.scalars().all()
+            
+            for related_task in related_tasks:
+                related_stats_query = select(TaskStatistics).where(
+                    TaskStatistics.user_id == user.id,
+                    TaskStatistics.task_id == related_task.id
+                )
+                related_stats_result = await db_session.execute(related_stats_query)
+                related_stats = related_stats_result.scalar_one_or_none()
+                
+                if not related_stats:
+                    related_stats = TaskStatistics(
+                        user_id=user.id,
+                        task_id=related_task.id,
+                        attempts=1,
+                        successful=is_correct,
+                        last_attempt_date=datetime.now(timezone.utc)
+                    )
+                    db_session.add(related_stats)
+                else:
+                    related_stats.attempts += 1
+                    if is_correct:
+                        related_stats.successful = True
+                    related_stats.last_attempt_date = datetime.now(timezone.utc)
+            
+            await db_session.commit()
+            logger.info(f"Синхронизирована статистика для {len(related_tasks)} связанных задач с translation_group_id={task.translation_group_id}")
+        except Exception as sync_error:
+            logger.error(f"Ошибка при синхронизации статистики для translation_group_id: {sync_error}", exc_info=True)
+            # Не откатываем основную транзакцию, только логируем ошибку
 
         # Если выбран вариант "Не знаю, но хочу узнать", отправляем объяснение
         if is_dont_know_selected and translation.explanation:
