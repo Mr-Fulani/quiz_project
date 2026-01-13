@@ -135,6 +135,9 @@ class Subtopic(models.Model):
         indexes = [
             models.Index(fields=['topic', 'name']),
         ]
+        constraints = [
+            models.UniqueConstraint(fields=['topic', 'name'], name='unique_subtopic_per_topic')
+        ]
 
     id = models.AutoField(primary_key=True)
     name = models.CharField(
