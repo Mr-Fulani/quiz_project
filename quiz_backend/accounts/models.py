@@ -88,14 +88,15 @@ class CustomUser(AbstractUser):
     def get_statistics(self):
         """Получение статистики пользователя."""
         from tasks.models import TaskStatistics
-        stats = TaskStatistics.objects.filter(user=self).aggregate(
-            solved_tasks=Count('id', filter=Q(successful=True)),
-            total_attempts=Count('id')
-        )
+        # Считаем уникальные translation_group_id вместо количества записей
+        # чтобы не учитывать дубликаты от синхронизации статистики между языками
+        total_attempts = TaskStatistics.objects.filter(user=self).values('task__translation_group_id').distinct().count()
+        solved_tasks = TaskStatistics.objects.filter(user=self, successful=True).values('task__translation_group_id').distinct().count()
+        
         return {
-            'solved_tasks': stats['solved_tasks'],
+            'solved_tasks': solved_tasks,
             'rating': self.calculate_rating(),  # Теперь возвращаем как есть
-            'total_attempts': stats['total_attempts']
+            'total_attempts': total_attempts
         }
 
     @property
@@ -1316,10 +1317,14 @@ class MiniAppUser(models.Model):
         from django.db.models import Count, Q
         
         # Статистика с основного сайта
-        main_stats = TaskStatistics.objects.filter(user__telegram_id=self.telegram_id).aggregate(
-            main_total_attempts=Count('id'),
-            main_successful_attempts=Count('id', filter=Q(successful=True))
-        )
+        # Считаем уникальные translation_group_id вместо количества записей
+        main_total_attempts = TaskStatistics.objects.filter(user__telegram_id=self.telegram_id).values('task__translation_group_id').distinct().count()
+        main_successful_attempts = TaskStatistics.objects.filter(user__telegram_id=self.telegram_id, successful=True).values('task__translation_group_id').distinct().count()
+        
+        main_stats = {
+            'main_total_attempts': main_total_attempts,
+            'main_successful_attempts': main_successful_attempts
+        }
         
         # Статистика из мини-аппа
         mini_app_stats = MiniAppTaskStatistics.objects.filter(mini_app_user=self).aggregate(

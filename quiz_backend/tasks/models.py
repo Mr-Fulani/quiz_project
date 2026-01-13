@@ -450,9 +450,14 @@ class TaskStatistics(models.Model):
     @classmethod
     def get_user_statistics(cls, user):
         """Получение полной статистики пользователя"""
+        # Считаем уникальные translation_group_id вместо количества записей
+        # чтобы не учитывать дубликаты от синхронизации статистики между языками
+        total_attempts = cls.objects.filter(user=user).values('task__translation_group_id').distinct().count()
+        successful_attempts = cls.objects.filter(user=user, successful=True).values('task__translation_group_id').distinct().count()
+        
         stats = {
-            'total_attempts': cls.objects.filter(user=user).count(),
-            'successful_attempts': cls.objects.filter(user=user, successful=True).count(),
+            'total_attempts': total_attempts,
+            'successful_attempts': successful_attempts,
             
             # Статистика по сложности
             'difficulty_stats': cls.get_difficulty_stats(user),

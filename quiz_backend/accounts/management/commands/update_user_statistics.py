@@ -35,10 +35,15 @@ class Command(BaseCommand):
         for user in users:
             try:
                 # Получаем статистику пользователя
-                user_stats = TaskStatistics.objects.filter(user=user).aggregate(
-                    total_attempts=Count('id'),
-                    successful_attempts=Count('id', filter=Q(successful=True))
-                )
+                # Считаем уникальные translation_group_id вместо количества записей
+                # чтобы не учитывать дубликаты от синхронизации статистики между языками
+                total_attempts = TaskStatistics.objects.filter(user=user).values('task__translation_group_id').distinct().count()
+                successful_attempts = TaskStatistics.objects.filter(user=user, successful=True).values('task__translation_group_id').distinct().count()
+                
+                user_stats = {
+                    'total_attempts': total_attempts,
+                    'successful_attempts': successful_attempts
+                }
                 
                 # Рассчитываем средний балл
                 total_attempts = user_stats['total_attempts']
