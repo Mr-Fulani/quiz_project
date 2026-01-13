@@ -1709,6 +1709,12 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
                 logger.error(f"Error parsing answers for task {task.id}: {e}")
                 answers = []
             options = answers[:]
+            # Используем детерминированное перемешивание на основе translation_group_id для одинакового порядка на всех языках
+            # Преобразуем UUID в int для seed
+            import hashlib
+            group_id_str = str(task.translation_group_id)
+            seed_value = int(hashlib.md5(group_id_str.encode()).hexdigest()[:8], 16)
+            random.seed(seed_value)
             random.shuffle(options)
             dont_know_option = dont_know_option_dict.get(translation.language, dont_know_option_dict['ru'])
             options.append(dont_know_option)
@@ -1740,18 +1746,94 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
             if group_id not in solved_groups:
                 solved_groups[group_id] = stat['selected_answer']
         
-        # Также получаем selected_answer для конкретных задач
+        # Также получаем selected_answer и successful для конкретных задач
         task_stats_by_id = TaskStatistics.objects.filter(
             user=request.user,
             task__id__in=[task.id for task in page_obj]
-        ).values('task_id', 'selected_answer')
-        task_stats_dict = {stat['task_id']: stat['selected_answer'] for stat in task_stats_by_id}
+        ).values('task_id', 'selected_answer', 'successful')
+        task_stats_dict = {stat['task_id']: {'selected_answer': stat['selected_answer'], 'successful': stat['successful']} for stat in task_stats_by_id}
         
+        # Получаем полную статистику по translation_group_id для определения правильности ответа и индекса
+        task_stats_by_group_full = TaskStatistics.objects.filter(
+            user=request.user,
+            task__translation_group_id__in=translation_group_ids
+        ).select_related('task').values('task__translation_group_id', 'task__id', 'selected_answer', 'successful')
+        
+        # Создаем словарь: translation_group_id -> (selected_answer, successful, task_id)
+        group_stats = {}
+        for stat in task_stats_by_group_full:
+            group_id = stat['task__translation_group_id']
+            if group_id not in group_stats:
+                group_stats[group_id] = {
+                    'selected_answer': stat['selected_answer'],
+                    'successful': stat['successful'],
+                    'task_id': stat['task__id']
+                }
+        
+        # Для каждой задачи определяем информацию о выбранном ответе
         for task in page_obj:
             # Задача считается решенной, если решена любая задача с тем же translation_group_id
             task.is_solved = task.translation_group_id in solved_groups
-            # Используем selected_answer из конкретной задачи, если есть, иначе из группы
-            task.selected_answer = task_stats_dict.get(task.id) or solved_groups.get(task.translation_group_id)
+            
+            # Используем статистику из конкретной задачи, если есть
+            task_stats = task_stats_dict.get(task.id)
+            if task_stats:
+                task.selected_answer = task_stats['selected_answer']
+                task.was_correct = task_stats['successful']
+                # Находим индекс выбранного ответа в перемешанном массиве
+                if task.selected_answer in task.answers:
+                    task.selected_answer_index = task.answers.index(task.selected_answer)
+                else:
+                    task.selected_answer_index = None
+            else:
+                # Используем статистику из группы
+                group_stat = group_stats.get(task.translation_group_id)
+                if group_stat:
+                    task.was_correct = group_stat['successful']
+                    # Находим задачу, где был выбран ответ
+                    original_task_id = group_stat['task_id']
+                    original_task = Task.objects.filter(id=original_task_id).select_related().prefetch_related('translations').first()
+                    if original_task and task.translation:
+                        # Находим перевод оригинальной задачи на том же языке, что и текущая
+                        original_translation = original_task.translations.filter(language=task.translation.language).first()
+                        if not original_translation:
+                            # Если нет перевода на том же языке, берем первый доступный
+                            original_translation = original_task.translations.first()
+                        
+                        if original_translation:
+                            # Получаем исходные ответы (до перемешивания) для оригинальной задачи
+                            original_answers_raw = original_translation.answers if isinstance(original_translation.answers, list) else json.loads(original_translation.answers) if isinstance(original_translation.answers, str) else []
+                            
+                            # Перемешиваем их детерминированно (как в основном цикле)
+                            import hashlib
+                            group_id_str = str(task.translation_group_id)
+                            seed_value = int(hashlib.md5(group_id_str.encode()).hexdigest()[:8], 16)
+                            random.seed(seed_value)
+                            original_answers_shuffled = original_answers_raw[:]
+                            random.shuffle(original_answers_shuffled)
+                            
+                            # Находим индекс выбранного ответа в перемешанном массиве
+                            # Учитываем, что "Я не знаю" добавляется в конце, поэтому проверяем только основные ответы
+                            if group_stat['selected_answer'] in original_answers_shuffled:
+                                original_selected_index = original_answers_shuffled.index(group_stat['selected_answer'])
+                                # Используем тот же индекс для текущего языка (порядок одинаковый благодаря детерминированному перемешиванию)
+                                # Проверяем, что индекс не выходит за границы основных ответов (без "Я не знаю")
+                                if original_selected_index < len(task.answers) - 1:  # -1 потому что "Я не знаю" в конце
+                                    task.selected_answer_index = original_selected_index
+                                elif original_selected_index == len(original_answers_shuffled) - 1 and group_stat['selected_answer'] in dont_know_option_dict.values():
+                                    # Если выбран "Я не знаю", индекс будет последним
+                                    task.selected_answer_index = len(task.answers) - 1
+                                else:
+                                    task.selected_answer_index = None
+                            else:
+                                task.selected_answer_index = None
+                        else:
+                            task.selected_answer_index = None
+                    else:
+                        task.selected_answer_index = None
+                else:
+                    task.was_correct = False
+                    task.selected_answer_index = None
 
     difficulty_names = {
         'easy': str(_('Easy')),

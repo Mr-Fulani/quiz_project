@@ -34,8 +34,11 @@
                             <span class="answer-option quiz-option
                                 {% if answer in dont_know_option_dict.values %}dont-know-option{% endif %}
                                 {% if task.is_solved %}disabled{% endif %}
-                                {% if task.is_solved and task.selected_answer == answer %}
-                                    {% if answer == task.translation.correct_answer %}correct{% else %}incorrect{% endif %}
+                                {% if task.is_solved %}
+                                    {% if answer == task.translation.correct_answer %}correct
+                                    {% elif not task.was_correct and task.selected_answer_index is not None and forloop.counter0 == task.selected_answer_index %}incorrect
+                                    {% elif not task.was_correct and task.selected_answer == answer %}incorrect
+                                    {% endif %}
                                 {% endif %}"
                                   data-answer="{{ answer|escape }}"
                                   data-correct="{% if answer == task.translation.correct_answer %}true{% else %}false{% endif %}">
