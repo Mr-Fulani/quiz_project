@@ -86,10 +86,17 @@
 {% block scripts %}
 <script>
     window.conversationUrlTemplate = "{% url 'blog:get_conversation' recipient_username='__USERNAME__' %}";
-    var messages = {
+    window.inboxTranslations = {
         error_loading_conversation: "{% trans 'Error loading conversation.' %}",
         error_sending_message: "{% trans 'Error sending message.' %}",
-        message_sent: "{% trans 'Message sent successfully!' %}"
+        message_sent: "{% trans 'Message sent successfully!' %}",
+        select_dialog: "{% trans 'Select a dialog to send a message.' %}",
+        send_button_not_found: "{% trans 'Error: send button not found.' %}",
+        enter_message_or_file: "{% trans 'Enter a message or attach a file.' %}",
+        csrf_token_not_found: "{% trans 'Error: CSRF token not found.' %}",
+        message_deleted: "{% trans 'Message deleted.' %}",
+        error_deleting_message: "{% trans 'Error deleting message.' %}",
+        attachments: "{% trans 'Attachments' %}"
     };
 </script>
 <script src="{% static 'accounts/js/inbox.js' %}"></script>
