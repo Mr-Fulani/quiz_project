@@ -1165,10 +1165,11 @@ class QuizesView(BreadcrumbsMixin, ListView):
         
         # Если пользователь авторизован, добавляем аннотацию для подсчета задач с попытками
         # Используем любую попытку (как в мини-аппе), а не только успешную
+        # Группируем по translation_group_id, чтобы учитывать задачи на всех языках как одну
         if self.request.user.is_authenticated:
             queryset = queryset.annotate(
                 completed_tasks_count=Count(
-                    'tasks',
+                    'tasks__translation_group_id',
                     filter=Q(
                         tasks__published=True,
                         tasks__statistics__user=self.request.user
@@ -1272,10 +1273,11 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         
         # Если пользователь авторизован, добавляем аннотацию для подсчета задач с попытками
         # Используем любую попытку (как в мини-аппе), а не только успешную
+        # Группируем по translation_group_id, чтобы учитывать задачи на всех языках как одну
         if self.request.user.is_authenticated:
             subtopics = subtopics.annotate(
                 completed_tasks_count=Count(
-                    'tasks',
+                    'tasks__translation_group_id',
                     filter=Q(
                         tasks__published=True,
                         tasks__translations__language=preferred_language,
@@ -1488,9 +1490,10 @@ def quiz_difficulty(request, quiz_type, subtopic):
                     difficulty_data['remaining_tasks_count'] = cached_data[diff].get('remaining_tasks_count', questions_count)
                 else:
                     # Подсчитываем задачи с попытками (любая попытка, как в мини-аппе)
+                    # Группируем по translation_group_id, чтобы учитывать задачи на всех языках как одну
                     completed_count = tasks_queryset.filter(
                         statistics__user=request.user
-                    ).distinct().count()
+                    ).values('translation_group_id').distinct().count()
                     
                     difficulty_data['completed_tasks_count'] = completed_count
                     difficulty_data['remaining_tasks_count'] = questions_count - completed_count
@@ -1718,14 +1721,37 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
 
     # Формируем словарь статистики
     if request.user.is_authenticated:
+        # Получаем все translation_group_id для задач на странице
+        task_translation_groups = {task.id: task.translation_group_id for task in page_obj}
+        translation_group_ids = list(set(task_translation_groups.values()))
+        
+        # Проверяем статистику по translation_group_id вместо конкретных task_id
         task_stats = TaskStatistics.objects.filter(
+            user=request.user,
+            task__translation_group_id__in=translation_group_ids,
+            successful=True
+        ).values('task__translation_group_id', 'task_id', 'selected_answer').distinct()
+        
+        # Создаем словарь: translation_group_id -> selected_answer
+        # Используем первый найденный selected_answer для каждой группы
+        solved_groups = {}
+        for stat in task_stats:
+            group_id = stat['task__translation_group_id']
+            if group_id not in solved_groups:
+                solved_groups[group_id] = stat['selected_answer']
+        
+        # Также получаем selected_answer для конкретных задач
+        task_stats_by_id = TaskStatistics.objects.filter(
             user=request.user,
             task__id__in=[task.id for task in page_obj]
         ).values('task_id', 'selected_answer')
-        task_stats_dict = {stat['task_id']: stat['selected_answer'] for stat in task_stats}
+        task_stats_dict = {stat['task_id']: stat['selected_answer'] for stat in task_stats_by_id}
+        
         for task in page_obj:
-            task.is_solved = task.id in task_stats_dict
-            task.selected_answer = task_stats_dict.get(task.id)
+            # Задача считается решенной, если решена любая задача с тем же translation_group_id
+            task.is_solved = task.translation_group_id in solved_groups
+            # Используем selected_answer из конкретной задачи, если есть, иначе из группы
+            task.selected_answer = task_stats_dict.get(task.id) or solved_groups.get(task.translation_group_id)
 
     difficulty_names = {
         'easy': str(_('Easy')),
@@ -1910,6 +1936,36 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
             
             # Обновляем объект из БД, чтобы получить актуальное значение attempts
             stats.refresh_from_db()
+        
+        # Синхронизируем статистику для всех задач с тем же translation_group_id
+        try:
+            from tasks.utils import get_tasks_by_translation_group
+            related_tasks = get_tasks_by_translation_group(task).exclude(id=task.id)
+            
+            for related_task in related_tasks:
+                related_stats, related_created = TaskStatistics.objects.get_or_create(
+                    user=request.user,
+                    task=related_task,
+                    defaults={
+                        'attempts': 1,
+                        'successful': is_correct,
+                        'selected_answer': selected_answer
+                    }
+                )
+                if not related_created:
+                    # Обновляем статистику для связанной задачи
+                    was_successful = related_stats.successful
+                    new_successful = is_correct or was_successful
+                    
+                    related_stats.attempts = F('attempts') + 1
+                    related_stats.successful = new_successful
+                    related_stats.selected_answer = selected_answer
+                    related_stats.save(update_fields=['attempts', 'successful', 'selected_answer'])
+                    related_stats.refresh_from_db()
+            
+            logger.info(f"Synchronized stats for {related_tasks.count()} related tasks with translation_group_id={task.translation_group_id}")
+        except Exception as e:
+            logger.error(f"Error synchronizing stats for translation_group_id: {e}", exc_info=True)
         
         # Инвалидируем кэш прогресса после сохранения статистики
         # (также инвалидируется в TaskStatistics.save(), но делаем явно для надежности)
