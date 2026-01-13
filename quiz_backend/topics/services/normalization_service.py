@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
+from django.db.models import Count
 from topics.models import Subtopic
 from topics.utils import normalize_subtopic_name
 
@@ -29,12 +30,22 @@ def group_subtopics() -> Dict[Tuple[int, str], List[Subtopic]]:
 def build_subtopic_groups() -> List[SubtopicGroup]:
     """
     Возвращает список групп, где есть потенциальные дубликаты.
+    Выбирает каноническую подтему как ту, у которой больше всего задач.
+    Если задач одинаково, выбирает с наименьшим ID.
     """
     groups: List[SubtopicGroup] = []
     for (topic_id, normalized), items in group_subtopics().items():
         if len(items) == 1:
             continue
-        canonical = sorted(items, key=lambda st: (-len(st.name or ''), st.id))[0]
+        
+        # Аннотируем количество задач для каждой подтемы
+        items_with_counts = [
+            (item, item.tasks.count()) for item in items
+        ]
+        
+        # Сортируем: сначала по количеству задач (убывание), потом по ID (возрастание)
+        canonical_item, _ = max(items_with_counts, key=lambda x: (x[1], -x[0].id))
+        canonical = canonical_item
         duplicates = [item for item in items if item.id != canonical.id]
         groups.append(SubtopicGroup(
             topic_id=topic_id,

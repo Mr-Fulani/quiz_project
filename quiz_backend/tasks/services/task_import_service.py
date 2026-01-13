@@ -11,6 +11,7 @@ from typing import Dict, List
 from django.db import transaction
 from django.conf import settings
 from topics.models import Topic, Subtopic
+from topics.utils import normalize_subtopic_name
 from platforms.models import TelegramGroup
 from tasks.models import Task, TaskTranslation
 from .s3_service import upload_image_to_s3
@@ -88,8 +89,11 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                 subtopic = None
                 
                 if subtopic_name:
+                    # Нормализуем имя подтемы перед поиском/созданием
+                    # Это предотвращает создание дубликатов из-за различий в пробелах/регистре
+                    normalized_subtopic_name = normalize_subtopic_name(subtopic_name)
                     subtopic, created = Subtopic.objects.get_or_create(
-                        name=subtopic_name,
+                        name=normalized_subtopic_name,
                         topic=topic
                     )
                     
