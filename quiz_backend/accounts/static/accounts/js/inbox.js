@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="message-meta">${message.created_at}</div>
                     ${message.attachments.length > 0 ? `
                         <div class="message-attachments">
-                            <h4>Вложения:</h4>
+                            <h4>${window.inboxTranslations?.attachments || 'Attachments'}:</h4>
                             <div class="attachments-grid">
                                 ${message.attachments.map(att => {
                                     console.log(`Рендеринг вложения: ${att.filename}, URL: ${att.url}`);
@@ -161,7 +161,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Ошибка загрузки диалога:', error);
-            showNotification('Ошибка загрузки диалога.', 'error');
+            const errorMsg = window.inboxTranslations?.error_loading_conversation || 'Error loading conversation.';
+            showNotification(errorMsg, 'error');
         });
     };
 
@@ -182,14 +183,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!recipientInput.value) {
             console.log('Ошибка: получатель не выбран');
-            showNotification('Выберите диалог для отправки сообщения.', 'error');
+            const selectDialogMsg = window.inboxTranslations?.select_dialog || 'Select a dialog to send a message.';
+            showNotification(selectDialogMsg, 'error');
             return;
         }
 
         const submitButton = chatForm.querySelector('.send-btn');
         if (!submitButton) {
             console.error('Кнопка отправки не найдена');
-            showNotification('Ошибка: кнопка отправки не найдена.', 'error');
+            const sendButtonErrorMsg = window.inboxTranslations?.send_button_not_found || 'Error: send button not found.';
+            showNotification(sendButtonErrorMsg, 'error');
             return;
         }
 
@@ -205,7 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!content && files.length === 0) {
             console.log('Ошибка: нет текста или файлов');
-            showNotification('Введите сообщение или прикрепите файл.', 'error');
+            const enterMessageMsg = window.inboxTranslations?.enter_message_or_file || 'Enter a message or attach a file.';
+            showNotification(enterMessageMsg, 'error');
             submitButton.disabled = false;
             return;
         }
@@ -283,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="message-meta">${data.created_at}</div>
                     ${attachmentsHtml ? `
                         <div class="message-attachments">
-                            <h4>Вложения:</h4>
+                            <h4>${window.inboxTranslations?.attachments || 'Attachments'}:</h4>
                             <div class="attachments-grid">${attachmentsHtml}</div>
                         </div>
                     ` : ''}
@@ -302,7 +306,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectedFilesContainer.innerHTML = '';
                 attachmentsInput.value = '';
 
-                showNotification('Сообщение отправлено!', 'success');
+                const messageSentMsg = window.inboxTranslations?.message_sent || 'Message sent successfully!';
+                showNotification(messageSentMsg, 'success');
 
                 if (currentUsername && currentUsername !== 'null') {
                     console.log('Синхронизация:', currentUsername);
@@ -314,12 +319,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 console.log('Ошибка сервера:', data);
-                showNotification(data.message || 'Ошибка отправки.', 'error');
+                const errorSendingMsg = window.inboxTranslations?.error_sending_message || 'Error sending message.';
+                showNotification(data.message || errorSendingMsg, 'error');
             }
         })
         .catch(error => {
             console.error('Ошибка фронтенда:', error.message);
-            showNotification(`Ошибка: ${error.message}`, 'error');
+            const errorSendingMsg = window.inboxTranslations?.error_sending_message || 'Error sending message.';
+            showNotification(`${errorSendingMsg} ${error.message}`, 'error');
         })
         .finally(() => {
             console.log('Разблокировка кнопки');
@@ -353,7 +360,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
         if (!csrfToken) {
             console.error('CSRF-токен не найден!');
-            showNotification('Ошибка: CSRF-токен не найден.', 'error');
+            const csrfErrorMsg = window.inboxTranslations?.csrf_token_not_found || 'Error: CSRF token not found.';
+            showNotification(csrfErrorMsg, 'error');
             button.disabled = false;
             return;
         }
@@ -405,15 +413,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     messageElement.remove();
                     console.log('Сообщение удалено из DOM');
                 }
-                showNotification('Сообщение удалено.', 'success');
+                const messageDeletedMsg = window.inboxTranslations?.message_deleted || 'Message deleted.';
+                showNotification(messageDeletedMsg, 'success');
             } else {
                 console.log('Ошибка сервера:', data);
-                showNotification(data.message || 'Ошибка удаления сообщения.', 'error');
+                const errorDeletingMsg = window.inboxTranslations?.error_deleting_message || 'Error deleting message.';
+                showNotification(data.message || errorDeletingMsg, 'error');
             }
         })
         .catch(error => {
             console.error('Ошибка фронтенда:', error.message);
-            showNotification(`Ошибка: ${error.message}`, 'error');
+            const errorDeletingMsg = window.inboxTranslations?.error_deleting_message || 'Error deleting message.';
+            showNotification(`${errorDeletingMsg} ${error.message}`, 'error');
         })
         .finally(() => {
             button.disabled = false;
