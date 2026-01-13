@@ -1,4 +1,5 @@
 # blog/views.py
+import hashlib
 import io
 import json
 import logging
@@ -1805,7 +1806,6 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
                             original_answers_raw = original_translation.answers if isinstance(original_translation.answers, list) else json.loads(original_translation.answers) if isinstance(original_translation.answers, str) else []
                             
                             # Перемешиваем их детерминированно (как в основном цикле)
-                            import hashlib
                             group_id_str = str(task.translation_group_id)
                             seed_value = int(hashlib.md5(group_id_str.encode()).hexdigest()[:8], 16)
                             random.seed(seed_value)
