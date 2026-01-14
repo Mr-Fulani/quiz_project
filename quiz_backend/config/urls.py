@@ -248,12 +248,14 @@ urlpatterns = [
     # Специальный view для корневой страницы с метатегами верификации для роботов
     # Отдает HTML с метатегами для Яндекс Дзен и Яндекс Вебмастер, делает редирект для пользователей
     path('', root_with_verification, name='root-redirect'),
-    
+
     # Редирект для VK sharing - URL без языкового префикса
     # Используем permanent=True (301) для SEO, чтобы поисковики индексировали правильный URL
     path('post/<slug:slug>/', RedirectView.as_view(url='/ru/post/%(slug)s/', permanent=True), name='post_no_lang'),
-    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=True), name='project_no_lang'),    
+    path('project/<slug:slug>/', RedirectView.as_view(url='/ru/project/%(slug)s/', permanent=True), name='project_no_lang'),
 
+    # TinyMCE загрузка изображений (вне языковых паттернов)
+    path('tinymce/upload/', tinymce_image_upload, name='tinymce_image_upload'),
 
     # Кастомный переключатель языка (вне языковых паттернов для работы с любым языком)
     path('set-language/', custom_set_language, name='custom_set_language'),
@@ -289,7 +291,6 @@ urlpatterns = [
 
 
     path('tinymce/', include('tinymce.urls')),  # Добавляем маршруты TinyMCE
-    path('tinymce/upload/', tinymce_image_upload, name='tinymce_image_upload'),
 )
 
 # Подключение статических и медиа-файлов в режиме разработки (DEBUG=True)

@@ -1508,3 +1508,30 @@ class ResumeLanguage(models.Model):
     
     def __str__(self):
         return f"{self.name_en} ({self.level}%)"
+
+
+class TinyMCEUpload(models.Model):
+    """Модель для отслеживания изображений, загруженных через TinyMCE."""
+    file = models.ImageField(
+        upload_to='tinymce_uploads/',
+        verbose_name="Изображение"
+    )
+    filename = models.CharField(max_length=255, verbose_name="Имя файла")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
+    file_size = models.PositiveIntegerField(verbose_name="Размер файла (байт)")
+
+    class Meta:
+        verbose_name = "Изображение TinyMCE"
+        verbose_name_plural = "Изображения TinyMCE"
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return self.filename
+
+    def save(self, *args, **kwargs):
+        """Сохраняет информацию о файле."""
+        if self.file and not self.file_size:
+            self.file_size = self.file.size
+        if self.file and not self.filename:
+            self.filename = os.path.basename(self.file.name)
+        super().save(*args, **kwargs)
