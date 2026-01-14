@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 def tinymce_image_upload(request):
     """Обработчик загрузки изображений для TinyMCE с сжатием."""
     if request.method == 'POST' and request.FILES.get('file'):
+        from blog.models import TinyMCEUpload  # Импорт здесь чтобы избежать циклических зависимостей
+
         image = request.FILES['file']
         max_size = 5 * 1024 * 1024  # 5 MB
         if image.size > max_size:
@@ -50,6 +52,16 @@ def tinymce_image_upload(request):
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, 'wb+') as destination:
             destination.write(output.read())
+
+        # Создаем запись в базе данных для отслеживания
+        try:
+            tinymce_upload = TinyMCEUpload.objects.create(
+                file=upload_path,
+                filename=image.name,
+                file_size=output.tell()
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось сохранить запись TinyMCE upload: {e}")
 
         # Возвращаем URL изображения
         image_url = f"{settings.MEDIA_URL}{upload_path}"

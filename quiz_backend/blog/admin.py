@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
     MessageAttachment, MarqueeText, CustomURLValidator, PostLike, ProjectLike, PostShare, ProjectShare, \
     PostView, ProjectView, Resume, ResumeWebsite, ResumeSkill, ResumeWorkHistory, ResumeResponsibility, \
-    ResumeEducation, ResumeLanguage
+    ResumeEducation, ResumeLanguage, TinyMCEUpload
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1510,6 +1510,189 @@ class ResumeWorkHistoryAdmin(admin.ModelAdmin):
             'fields': ('resume', 'order')
         }),
     )
+
+
+
+# === МЕДИА-ФАЙЛЫ ===
+
+@admin.register(PostImage)
+class PostImageAdmin(admin.ModelAdmin):
+    """Админ-панель для управления медиа-файлами постов."""
+    list_display = ('post', 'get_media_type', 'is_main', 'alt_text', 'id')
+    list_filter = ('is_main', 'post__category')
+    search_fields = ('post__title', 'alt_text')
+    ordering = ('-id',)
+
+    fieldsets = (
+        ('Связь с постом', {
+            'fields': ('post',)
+        }),
+        ('Медиа контент', {
+            'fields': ('photo', 'gif', 'video'),
+            'description': 'Загрузите один из типов медиа-файлов'
+        }),
+        ('Настройки отображения', {
+            'fields': ('is_main', 'alt_text')
+        }),
+    )
+
+    def get_media_type(self, obj):
+        """Определяет тип загруженного медиа."""
+        if obj.photo:
+            return 'Фото'
+        elif obj.gif:
+            return 'GIF'
+        elif obj.video:
+            return 'Видео'
+        else:
+            return 'Нет файла'
+    get_media_type.short_description = 'Тип медиа'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('post', 'post__category')
+
+
+@admin.register(ProjectImage)
+class ProjectImageAdmin(admin.ModelAdmin):
+    """Админ-панель для управления медиа-файлами проектов."""
+    list_display = ('project', 'get_media_type', 'is_main', 'alt_text', 'id')
+    list_filter = ('is_main', 'project__category')
+    search_fields = ('project__title', 'alt_text')
+    ordering = ('-id',)
+
+    fieldsets = (
+        ('Связь с проектом', {
+            'fields': ('project',)
+        }),
+        ('Медиа контент', {
+            'fields': ('photo', 'gif', 'video'),
+            'description': 'Загрузите один из типов медиа-файлов'
+        }),
+        ('Настройки отображения', {
+            'fields': ('is_main', 'alt_text')
+        }),
+    )
+
+    def get_media_type(self, obj):
+        """Определяет тип загруженного медиа."""
+        if obj.photo:
+            return 'Фото'
+        elif obj.gif:
+            return 'GIF'
+        elif obj.video:
+            return 'Видео'
+        else:
+            return 'Нет файла'
+    get_media_type.short_description = 'Тип медиа'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('project', 'project__category')
+
+
+@admin.register(MessageAttachment)
+class MessageAttachmentAdmin(admin.ModelAdmin):
+    """Админ-панель для управления вложениями сообщений."""
+    list_display = ('message', 'filename', 'get_file_size', 'uploaded_at', 'file_preview')
+    list_filter = ('uploaded_at',)
+    search_fields = ('filename', 'message__content')
+    readonly_fields = ('uploaded_at', 'file_preview')
+    ordering = ('-uploaded_at',)
+
+    fieldsets = (
+        ('Связь с сообщением', {
+            'fields': ('message',)
+        }),
+        ('Файл', {
+            'fields': ('file', 'filename')
+        }),
+        ('Служебная информация', {
+            'fields': ('uploaded_at', 'file_preview'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_file_size(self, obj):
+        """Возвращает размер файла в человеко-читаемом формате."""
+        if obj.file and hasattr(obj.file, 'size'):
+            size = obj.file.size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return ".1f"
+                size /= 1024.0
+            return ".1f"
+        return '-'
+    get_file_size.short_description = 'Размер'
+
+    def file_preview(self, obj):
+        """Отображает превью для вложений."""
+        if not obj or not obj.file:
+            return '-'
+        try:
+            file_ext = obj.filename.lower().split('.')[-1] if obj.filename else ''
+            if file_ext in ['jpg', 'jpeg', 'png', 'gif']:
+                return format_html(
+                    '<a href="{}" target="_blank"><img src="{}" class="attachment-preview" alt="{}" style="max-width: 100px; max-height: 100px;"/></a>',
+                    obj.file.url, obj.file.url, obj.filename or 'Image'
+                )
+            return format_html('<a href="{}" target="_blank">📎 {}</a>', obj.file.url, obj.filename or 'File')
+        except Exception as e:
+            return '-'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('message', 'message__sender', 'message__recipient')
+
+
+@admin.register(TinyMCEUpload)
+class TinyMCEUploadAdmin(admin.ModelAdmin):
+    """Админ-панель для управления изображениями TinyMCE."""
+    list_display = ('filename', 'file_size_display', 'uploaded_at', 'file_preview')
+    list_filter = ('uploaded_at',)
+    search_fields = ('filename',)
+    readonly_fields = ('uploaded_at', 'file_size', 'file_preview')
+    ordering = ('-uploaded_at',)
+
+    fieldsets = (
+        ('Файл', {
+            'fields': ('file', 'filename')
+        }),
+        ('Информация', {
+            'fields': ('file_size', 'uploaded_at', 'file_preview')
+        }),
+    )
+
+    def file_size_display(self, obj):
+        """Возвращает размер файла в человеко-читаемом формате."""
+        if obj.file_size:
+            size = obj.file_size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return ".1f"
+                size /= 1024.0
+            return ".1f"
+        return '-'
+    file_size_display.short_description = 'Размер'
+
+    def file_preview(self, obj):
+        """Отображает превью изображения."""
+        if obj.file:
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="max-width: 200px; max-height: 200px;"/></a>',
+                obj.file.url, obj.file.url
+            )
+        return '-'
+    file_preview.short_description = 'Превью'
+
+    def has_add_permission(self, request):
+        """Запрещаем ручное добавление файлов через админку."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Разрешаем только просмотр."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Разрешаем удаление неиспользуемых файлов."""
+        return True
 
 
 
