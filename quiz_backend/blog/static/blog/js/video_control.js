@@ -14,6 +14,83 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log(`YouTube iframe: ${youtubeIframe ? 'Found' : 'Not found'}`);
     console.log(`Local video: ${localVideo ? 'Found' : 'Not found'}`);
 
+    // Функция для обработки ошибок YouTube видео (включая ошибку 153)
+    function setupYouTubeErrorHandling(iframe, container) {
+        if (!iframe || !container) return;
+
+        const embedUrl = iframe.getAttribute('src');
+        console.log('🎬 YouTube Video Error Handling Setup:', iframe.id || 'unknown iframe');
+
+        // Извлекаем Video ID из URL
+        const videoIdMatch = embedUrl.match(/embed\/([a-zA-Z0-9_-]+)/);
+        if (!videoIdMatch) return;
+
+        const videoId = videoIdMatch[1];
+        const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        let errorDetected = false;
+
+        // Слушаем сообщения от YouTube
+        const messageHandler = function(event) {
+            if (event.origin.includes('youtube')) {
+                const data = event.data;
+                if (typeof data === 'string') {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.event === 'onError' || parsed.info === 153) {
+                            errorDetected = true;
+                            showYouTubeFallback(container, watchUrl, videoId);
+                        }
+                    } catch (e) {}
+                }
+            }
+        };
+
+        window.addEventListener('message', messageHandler);
+
+        // Fallback если видео не загрузилось за 5 секунд
+        setTimeout(function() {
+            if (!errorDetected) {
+                // Проверяем видимость iframe
+                const iframeRect = iframe.getBoundingClientRect();
+                if (iframeRect.height === 0 || iframeRect.width === 0) {
+                    console.warn('⚠️ YouTube iframe not loaded within 5 seconds');
+                    showYouTubeFallback(container, watchUrl, videoId);
+                }
+            }
+        }, 5000);
+
+        function showYouTubeFallback(container, watchUrl, videoId) {
+            console.error('❌ YouTube video embedding failed');
+            console.log('📌 Possible reasons:');
+            console.log('   1. Embedding disabled in video settings');
+            console.log('   2. Video unavailable in your region');
+            console.log('   3. Video is private or deleted');
+
+            // Удаляем кнопку звука перед заменой контента
+            const soundButton = container.querySelector('.video-sound-toggle');
+            if (soundButton) {
+                soundButton.remove();
+            }
+
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; background: #1a1a1a; border-radius: 8px; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <svg style="width: 64px; height: 64px; margin-bottom: 20px; fill: #ff6b6b;" viewBox="0 0 24 24">
+                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M11,7V13H13V7H11M11,15V17H13V15H11Z" />
+                    </svg>
+                    <p style="color: #fff; margin-bottom: 20px; font-size: 16px;">Video embedding is restricted.</p>
+                    <a href="${watchUrl}" target="_blank" rel="noopener noreferrer"
+                       style="display: inline-block; padding: 12px 24px; background: #ff0000; color: #fff; text-decoration: none; border-radius: 5px; font-weight: 500;">
+                        <svg style="width: 20px; height: 20px; margin-right: 8px; fill: currentColor; vertical-align: middle;" viewBox="0 0 24 24">
+                            <path d="M10,15L15.19,12L10,9V15M21.56,7.17C21.69,7.64 21.78,8.27 21.84,9.07C21.91,9.87 21.94,10.56 21.94,11.16L22,12C22,14.19 21.84,15.8 21.56,16.83C21.31,17.73 20.73,18.31 19.83,18.56C19.36,18.69 18.5,18.78 17.18,18.84C15.88,18.91 14.69,18.94 13.59,18.94L12,19C7.81,19 5.2,18.84 4.17,18.56C3.27,18.31 2.69,17.73 2.44,16.83C2.31,16.36 2.22,15.73 2.16,14.93C2.09,14.13 2.06,13.44 2.06,12.84L2,12C2,9.81 2.16,8.2 2.44,7.17C2.69,6.27 3.27,5.69 4.17,5.44C4.64,5.31 5.5,5.22 6.82,5.16C8.12,5.09 9.31,5.06 10.41,5.06L12,5C16.19,5 18.8,5.16 19.83,5.44C20.73,5.69 21.31,6.27 21.56,7.17Z" />
+                        </svg>
+                        Watch on YouTube
+                    </a>
+                    <p style="color: #999; margin-top: 15px; font-size: 14px;">Video ID: ${videoId}</p>
+                </div>
+            `;
+        }
+    }
+
     // Функция создания кнопки включения звука
     function createSoundToggleButton(container, mediaElement, type = 'local') {
         // Проверяем, не создана ли уже кнопка
@@ -80,7 +157,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Обработчик клика
         soundButton.addEventListener('click', function(e) {
             e.stopPropagation();
-            
+
+            // Проверяем, существует ли еще mediaElement (не был ли заменен на fallback)
+            if (!mediaElement || !mediaElement.parentNode || mediaElement.tagName !== (type === 'youtube' ? 'IFRAME' : 'VIDEO')) {
+                console.log('Media element not found or replaced with fallback, removing sound button');
+                soundButton.remove();
+                return;
+            }
+
             if (type === 'local') {
                 if (mediaElement.muted) {
                     mediaElement.muted = false;
@@ -194,10 +278,13 @@ document.addEventListener('DOMContentLoaded', function () {
     allYoutubeIframes.forEach(iframe => {
         // Находим родительский контейнер
         const container = iframe.closest('.video-banner-box') || iframe.parentElement;
-        
+
+        // Обрабатываем возможные ошибки YouTube (включая ошибку 153)
+        setupYouTubeErrorHandling(iframe, container);
+
         // Создаем кнопку включения звука
         createSoundToggleButton(container, iframe, 'youtube');
-        
+
         allVideoElements.push({
             element: iframe,
             type: 'youtube',
