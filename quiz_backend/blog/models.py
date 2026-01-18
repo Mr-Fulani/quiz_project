@@ -588,7 +588,8 @@ class MessageAttachment(models.Model):
 
     def __str__(self):
         """Возвращает строковое представление вложения."""
-        return f"Attachment {self.filename} for message {self.message.id}"
+        message_id = self.message.id if self.message else "None"
+        return f"Attachment {self.filename} for message {message_id}"
 
     def save(self, *args, **kwargs):
         """

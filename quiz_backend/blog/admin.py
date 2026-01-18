@@ -1592,9 +1592,9 @@ class ProjectImageAdmin(admin.ModelAdmin):
 @admin.register(MessageAttachment)
 class MessageAttachmentAdmin(admin.ModelAdmin):
     """Админ-панель для управления вложениями сообщений."""
-    list_display = ('message', 'filename', 'get_file_size', 'uploaded_at', 'file_preview')
+    list_display = ('get_message_info', 'get_filename_safe', 'get_file_size', 'uploaded_at', 'file_preview')
     list_filter = ('uploaded_at',)
-    search_fields = ('filename', 'message__content')
+    search_fields = ('filename',)
     readonly_fields = ('uploaded_at', 'file_preview')
     ordering = ('-uploaded_at',)
 
@@ -1613,13 +1613,26 @@ class MessageAttachmentAdmin(admin.ModelAdmin):
 
     def get_file_size(self, obj):
         """Возвращает размер файла в человеко-читаемом формате."""
-        if obj.file and hasattr(obj.file, 'size'):
-            size = obj.file.size
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size < 1024.0:
-                    return ".1f"
-                size /= 1024.0
-            return ".1f"
+        if not obj or not obj.file:
+            return '-'
+        try:
+            # Проверяем, существует ли файл физически
+            if hasattr(obj.file, 'storage') and hasattr(obj.file.storage, 'exists'):
+                if not obj.file.storage.exists(obj.file.name):
+                    return '<span style="color: #999;">Файл не найден</span>'
+
+            if hasattr(obj.file, 'size'):
+                size = obj.file.size
+                if size is None or size < 0:
+                    return '<span style="color: #f00;">⚠️ Неверный размер</span>'
+
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if size < 1024.0:
+                        return f"{size:.1f} {unit}"
+                    size /= 1024.0
+                return f"{size:.1f} {unit}"
+        except Exception as e:
+            return '<span style="color: #f00;">⚠️ Ошибка</span>'
         return '-'
     get_file_size.short_description = 'Размер'
 
@@ -1628,6 +1641,15 @@ class MessageAttachmentAdmin(admin.ModelAdmin):
         if not obj or not obj.file:
             return '-'
         try:
+            # Проверяем, существует ли файл физически
+            if hasattr(obj.file, 'storage') and hasattr(obj.file.storage, 'exists'):
+                if not obj.file.storage.exists(obj.file.name):
+                    return '<span style="color: #999;">📁 Файл не найден</span>'
+
+            # Проверяем URL файла
+            if not hasattr(obj.file, 'url') or not obj.file.url:
+                return '<span style="color: #f00;">⚠️ URL недоступен</span>'
+
             file_ext = obj.filename.lower().split('.')[-1] if obj.filename else ''
             if file_ext in ['jpg', 'jpeg', 'png', 'gif']:
                 return format_html(
@@ -1636,10 +1658,31 @@ class MessageAttachmentAdmin(admin.ModelAdmin):
                 )
             return format_html('<a href="{}" target="_blank">📎 {}</a>', obj.file.url, obj.filename or 'File')
         except Exception as e:
-            return '-'
+            return '<span style="color: #f00;">⚠️ Ошибка файла</span>'
+
+    def get_message_info(self, obj):
+        """Безопасно отображает информацию о сообщении."""
+        if not obj.message:
+            return '<span style="color: #f00;">⚠️ Сообщение удалено</span>'
+        try:
+            sender = obj.message.sender.username if obj.message.sender else 'Аноним'
+            recipient = obj.message.recipient.username if obj.message.recipient else 'Аноним'
+            return format_html('<a href="{}">{}</a>',
+                             f'/admin/blog/message/{obj.message.id}/change/',
+                             f'{sender} → {recipient}')
+        except Exception:
+            return f'ID: {obj.message.id}'
+    get_message_info.short_description = 'Сообщение'
+    get_message_info.admin_order_field = 'message'
+
+    def get_filename_safe(self, obj):
+        """Безопасно отображает имя файла."""
+        return obj.filename or '<span style="color: #999;">Без имени</span>'
+    get_filename_safe.short_description = 'Имя файла'
+    get_filename_safe.admin_order_field = 'filename'
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('message', 'message__sender', 'message__recipient')
+        return super().get_queryset(request).select_related('message')
 
 
 @admin.register(TinyMCEUpload)
