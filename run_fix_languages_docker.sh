@@ -85,26 +85,6 @@ if [ "$MODE" = "--fix" ]; then
     print_info "Создание бэкапа из контейнера: $DB_CONTAINER"
     print_info "Используются учетные данные: USER=$DB_USER, DB=$DB_NAME"
 
-<<<<<<< HEAD
-    # Используем переменные окружения для подключения
-    if PGPASSWORD="$DB_PASSWORD" docker exec -i "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"; then
-        print_success "Резервная копия создана: $BACKUP_FILE"
-        print_warning "Сохраните этот файл в безопасном месте!"
-    else
-        print_error "Не удалось создать резервную копию!"
-        print_info "Возможные причины:"
-        print_info "  - Неправильные учетные данные БД (USER: $DB_USER, DB: $DB_NAME)"
-        print_info "  - Переменные окружения DB_USER, DB_PASSWORD, DB_NAME не установлены"
-        print_info "  - Нет доступа к контейнеру"
-        print_info ""
-        print_warning "Для ручного создания бэкапа выполните:"
-        print_info "  docker exec -i $DB_CONTAINER pg_dump -U <user> <db_name> > backup.sql"
-        echo
-        read -p "Продолжить без бэкапа? (yes/no): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-=======
     # Сначала попробуем подключиться и проверить пользователей в БД
     print_info "Проверка подключения к БД..."
     if PGPASSWORD="$DB_PASSWORD" docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT version();" >/dev/null 2>&1; then
