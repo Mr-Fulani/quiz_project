@@ -142,9 +142,11 @@ python manage.py fix_unsupported_languages --fix
 
 1. **Резервное копирование БД**
    ```bash
-   # Скрипт автоматически создаст бэкап перед --fix
+   # Скрипт автоматически проверит подключение и создаст бэкап перед --fix
+   # При проблемах с подключением покажет доступных пользователей
+
    # Или вручную:
-   docker exec -it <db_container> pg_dump -U postgres quiz_db > backup_$(date +%Y%m%d_%H%M%S).sql
+   docker exec -i <db_container> pg_dump -U <user> <db_name> > backup.sql
    ```
 
 2. **Проверка контейнеров**

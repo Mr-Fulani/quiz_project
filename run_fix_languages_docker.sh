@@ -75,7 +75,7 @@ print_success "Контейнеры работают"
 if [ "$MODE" = "--fix" ]; then
     print_warning "Создание резервной копии базы данных..."
 
-    # Получаем учетные данные БД из переменных окружения или используем значения по умолчанию
+    # Проверяем переменные окружения
     DB_USER=${DB_USER:-postgres}
     DB_PASSWORD=${DB_PASSWORD:-postgres}
     DB_NAME=${DB_NAME:-fulani_quiz_db}
@@ -85,6 +85,7 @@ if [ "$MODE" = "--fix" ]; then
     print_info "Создание бэкапа из контейнера: $DB_CONTAINER"
     print_info "Используются учетные данные: USER=$DB_USER, DB=$DB_NAME"
 
+<<<<<<< HEAD
     # Используем переменные окружения для подключения
     if PGPASSWORD="$DB_PASSWORD" docker exec -i "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"; then
         print_success "Резервная копия создана: $BACKUP_FILE"
@@ -103,9 +104,50 @@ if [ "$MODE" = "--fix" ]; then
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
+=======
+    # Сначала попробуем подключиться и проверить пользователей в БД
+    print_info "Проверка подключения к БД..."
+    if PGPASSWORD="$DB_PASSWORD" docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT version();" >/dev/null 2>&1; then
+        print_info "Подключение к БД успешно, создаем бэкап..."
+
+        if PGPASSWORD="$DB_PASSWORD" docker exec -i "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"; then
+            print_success "Резервная копия создана: $BACKUP_FILE"
+            print_warning "Сохраните этот файл в безопасном месте!"
+        else
+            print_error "Не удалось создать бэкап несмотря на успешное подключение!"
+            handle_backup_error
         fi
+    else
+        print_error "Не удалось подключиться к БД!"
+        print_info "Возможные причины:"
+        print_info "  - Неправильные учетные данные (USER: $DB_USER, DB: $DB_NAME)"
+        print_info "  - Переменные окружения не установлены"
+        print_info ""
+        print_info "Проверка доступных пользователей в БД..."
+        # Попробуем подключиться как суперпользователь или без пароля
+        if docker exec -i "$DB_CONTAINER" psql -U postgres -d postgres -c "\du" 2>/dev/null; then
+            print_info "Найден суперпользователь postgres. Попробуйте установить:"
+            print_info "  export DB_USER=postgres"
+            print_info "  export DB_PASSWORD=<пароль_суперпользователя>"
+        fi
+
+        handle_backup_error
     fi
 fi
+
+# Функция обработки ошибки бэкапа
+handle_backup_error() {
+    print_warning "Для ручного создания бэкапа выполните:"
+    print_info "  docker exec -i $DB_CONTAINER pg_dump -U <user> <db_name> > backup.sql"
+    print_info ""
+    print_warning "ИЛИ пропустите бэкап и продолжите исправление"
+    echo
+    read -p "Продолжить без бэкапа? (yes/no): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+}
 
 print_info "Запуск команды в контейнере: $QUIZ_BACKEND_CONTAINER"
 
