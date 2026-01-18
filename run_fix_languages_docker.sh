@@ -74,18 +74,31 @@ print_success "Контейнеры работают"
 # Резервное копирование если это исправление
 if [ "$MODE" = "--fix" ]; then
     print_warning "Создание резервной копии базы данных..."
+
+    # Получаем учетные данные БД из переменных окружения или используем значения по умолчанию
+    DB_USER=${DB_USER:-postgres}
+    DB_PASSWORD=${DB_PASSWORD:-postgres}
+    DB_NAME=${DB_NAME:-fulani_quiz_db}
+
     BACKUP_FILE="backup_before_lang_fix_$(date +%Y%m%d_%H%M%S).sql"
 
     print_info "Создание бэкапа из контейнера: $DB_CONTAINER"
-    if docker exec -i "$DB_CONTAINER" pg_dump -U postgres quiz_db > "$BACKUP_FILE"; then
+    print_info "Используются учетные данные: USER=$DB_USER, DB=$DB_NAME"
+
+    # Используем переменные окружения для подключения
+    if PGPASSWORD="$DB_PASSWORD" docker exec -i "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"; then
         print_success "Резервная копия создана: $BACKUP_FILE"
         print_warning "Сохраните этот файл в безопасном месте!"
     else
         print_error "Не удалось создать резервную копию!"
         print_info "Возможные причины:"
-        print_info "  - Неправильные учетные данные БД"
-        print_info "  - База данных называется не 'quiz_db'"
+        print_info "  - Неправильные учетные данные БД (USER: $DB_USER, DB: $DB_NAME)"
+        print_info "  - Переменные окружения DB_USER, DB_PASSWORD, DB_NAME не установлены"
         print_info "  - Нет доступа к контейнеру"
+        print_info ""
+        print_warning "Для ручного создания бэкапа выполните:"
+        print_info "  docker exec -i $DB_CONTAINER pg_dump -U <user> <db_name> > backup.sql"
+        echo
         read -p "Продолжить без бэкапа? (yes/no): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
