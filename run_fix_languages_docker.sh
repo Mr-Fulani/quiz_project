@@ -44,18 +44,30 @@ COMMAND="fix_unsupported_languages $MODE"
 
 print_info "Проверка состояния Docker контейнеров..."
 
-# Проверка что контейнеры запущены
-if ! docker ps | grep -q quiz_backend; then
-    print_error "Контейнер quiz_backend не запущен!"
+# Определение имен контейнеров (адаптируемся под разные конфигурации)
+QUIZ_BACKEND_CONTAINER=$(docker ps --format "table {{.Names}}" | grep -E "(quiz_backend|quiz_backend_local_prod)" | head -1)
+DB_CONTAINER=$(docker ps --format "table {{.Names}}" | grep -E "(quiz_db|postgres_db|postgres_db_local_prod)" | head -1)
+
+# Проверка что контейнеры найдены
+if [ -z "$QUIZ_BACKEND_CONTAINER" ]; then
+    print_error "Контейнер quiz_backend не найден!"
+    print_info "Доступные контейнеры:"
+    docker ps --format "table {{.Names}}\t{{.Image}}"
     print_info "Запустите: docker-compose up -d"
     exit 1
 fi
 
-if ! docker ps | grep -q quiz_db; then
-    print_error "Контейнер quiz_db не запущен!"
+if [ -z "$DB_CONTAINER" ]; then
+    print_error "Контейнер базы данных не найден!"
+    print_info "Доступные контейнеры:"
+    docker ps --format "table {{.Names}}\t{{.Image}}"
     print_info "Запустите: docker-compose up -d"
     exit 1
 fi
+
+print_success "Найдены контейнеры:"
+print_info "  Backend: $QUIZ_BACKEND_CONTAINER"
+print_info "  Database: $DB_CONTAINER"
 
 print_success "Контейнеры работают"
 
@@ -64,11 +76,16 @@ if [ "$MODE" = "--fix" ]; then
     print_warning "Создание резервной копии базы данных..."
     BACKUP_FILE="backup_before_lang_fix_$(date +%Y%m%d_%H%M%S).sql"
 
-    if docker exec -i quiz_db pg_dump -U postgres quiz_db > "$BACKUP_FILE"; then
+    print_info "Создание бэкапа из контейнера: $DB_CONTAINER"
+    if docker exec -i "$DB_CONTAINER" pg_dump -U postgres quiz_db > "$BACKUP_FILE"; then
         print_success "Резервная копия создана: $BACKUP_FILE"
         print_warning "Сохраните этот файл в безопасном месте!"
     else
         print_error "Не удалось создать резервную копию!"
+        print_info "Возможные причины:"
+        print_info "  - Неправильные учетные данные БД"
+        print_info "  - База данных называется не 'quiz_db'"
+        print_info "  - Нет доступа к контейнеру"
         read -p "Продолжить без бэкапа? (yes/no): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -77,15 +94,17 @@ if [ "$MODE" = "--fix" ]; then
     fi
 fi
 
-print_info "Запуск команды в контейнере..."
+print_info "Запуск команды в контейнере: $QUIZ_BACKEND_CONTAINER"
 
 # Запуск команды в контейнере
 if [ "$MODE" = "--fix" ]; then
     # Для --fix режима используем автоматическое подтверждение
-    docker exec -i quiz_backend bash -c "cd /app && echo 'yes' | python manage.py $COMMAND"
+    print_info "Запуск в автоматическом режиме с подтверждением..."
+    docker exec -i "$QUIZ_BACKEND_CONTAINER" bash -c "cd /app && echo 'yes' | python manage.py $COMMAND"
 else
     # Для dry-run используем интерактивный режим
-    docker exec -it quiz_backend bash -c "cd /app && python manage.py $COMMAND"
+    print_info "Запуск в интерактивном режиме..."
+    docker exec -it "$QUIZ_BACKEND_CONTAINER" bash -c "cd /app && python manage.py $COMMAND"
 fi
 
 if [ $? -eq 0 ]; then
