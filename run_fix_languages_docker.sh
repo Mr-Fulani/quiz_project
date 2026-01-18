@@ -71,6 +71,20 @@ print_info "  Database: $DB_CONTAINER"
 
 print_success "Контейнеры работают"
 
+# Функция обработки ошибки бэкапа
+handle_backup_error() {
+    print_warning "Для ручного создания бэкапа выполните:"
+    print_info "  docker exec -i $DB_CONTAINER pg_dump -U <user> <db_name> > backup.sql"
+    print_info ""
+    print_warning "ИЛИ пропустите бэкап и продолжите исправление"
+    echo
+    read -p "Продолжить без бэкапа? (yes/no): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+}
+
 # Резервное копирование если это исправление
 if [ "$MODE" = "--fix" ]; then
     print_warning "Создание резервной копии базы данных..."
@@ -114,21 +128,6 @@ if [ "$MODE" = "--fix" ]; then
         handle_backup_error
     fi
 fi
-
-# Функция обработки ошибки бэкапа
-handle_backup_error() {
-    print_warning "Для ручного создания бэкапа выполните:"
-    print_info "  docker exec -i $DB_CONTAINER pg_dump -U <user> <db_name> > backup.sql"
-    print_info ""
-    print_warning "ИЛИ пропустите бэкап и продолжите исправление"
-    echo
-    read -p "Продолжить без бэкапа? (yes/no): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-}
-
 print_info "Запуск команды в контейнере: $QUIZ_BACKEND_CONTAINER"
 
 # Запуск команды в контейнере
