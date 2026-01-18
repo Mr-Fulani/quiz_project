@@ -891,7 +891,14 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                 difficulty = task.difficulty.lower() if task.difficulty else 'easy'
                 
                 # Формируем URL с языковым префиксом
+                # Проверяем поддерживаемые языки сайта (из настроек Django LANGUAGES)
+                from django.conf import settings
+                supported_languages = [lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])]
                 language_code = translation.language.lower()
+                if language_code not in supported_languages:
+                    # Для неподдерживаемых языков используем английский по умолчанию
+                    language_code = 'en'
+                    logger.info(f"Язык '{translation.language}' не поддерживается сайтом, используем 'en' по умолчанию для задачи {task.id}")
                 task_url = f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/"
                 
                 # Добавляем якорь на конкретную задачу для удобства навигации
