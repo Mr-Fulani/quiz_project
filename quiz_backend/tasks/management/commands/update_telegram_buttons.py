@@ -1,0 +1,166 @@
+import json
+import logging
+from datetime import timedelta
+
+import requests
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from django.utils.text import slugify
+
+from tasks.models import Task
+from tasks.services.telegram_service import LANGUAGE_TRANSLATIONS
+
+logger = logging.getLogger(__name__)
+
+
+def _supported_language_code(requested: str) -> str:
+    supported = [
+        lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])
+    ]
+    code = (requested or '').lower() or 'en'
+    if code in supported:
+        return code
+
+    fallback = getattr(settings, 'LANGUAGE_CODE', 'en').split('-')[0].lower() or 'en'
+    if fallback in supported:
+        return fallback
+
+    return 'en'
+
+
+def _build_site_task_url(task: Task, translation_language: str) -> str:
+    site_url = getattr(settings, 'SITE_URL', 'https://quiz-code.com')
+    if not site_url.startswith('http'):
+        site_url = f'https://{site_url}'
+
+    topic_name = 'python'
+    if task.topic:
+        try:
+            topic_name = task.topic.name.lower()
+        except Exception:
+            logger.warning("Не удалось получить topic.name для задачи %s", getattr(task, 'id', None))
+
+    subtopic_name = 'general'
+    if task.subtopic:
+        try:
+            subtopic_name = task.subtopic.name.lower()
+        except Exception:
+            logger.warning("Не удалось получить subtopic.name для задачи %s", getattr(task, 'id', None))
+
+    subtopic_slug = slugify(subtopic_name)
+    difficulty = task.difficulty.lower() if task.difficulty else 'easy'
+
+    language_code = _supported_language_code(translation_language)
+    return f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/#task-{task.id}"
+
+
+def _edit_message_reply_markup(chat_id: str, message_id: int, button_text: str, button_url: str) -> tuple[bool, str]:
+    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+    if not token:
+        return False, 'TELEGRAM_BOT_TOKEN не настроен'
+
+    url = f"https://api.telegram.org/bot{token}/editMessageReplyMarkup"
+    reply_markup = {
+        'inline_keyboard': [[
+            {'text': button_text, 'url': button_url}
+        ]]
+    }
+
+    payload = {
+        'chat_id': chat_id,
+        'message_id': message_id,
+        'reply_markup': json.dumps(reply_markup),
+    }
+
+    try:
+        resp = requests.post(url, data=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get('ok'):
+            return True, 'ok'
+        return False, data.get('description') or 'unknown telegram error'
+    except Exception as e:
+        return False, str(e)
+
+
+class Command(BaseCommand):
+    help = 'Обновляет URL в inline-кнопке у уже опубликованных задач в Telegram за последние N дней'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--days', type=int, default=7)
+        parser.add_argument('--limit', type=int, default=0)
+        parser.add_argument('--dry-run', action='store_true')
+
+    def handle(self, *args, **options):
+        days = int(options['days'])
+        limit = int(options['limit'])
+        dry_run = bool(options['dry_run'])
+
+        since = timezone.now() - timedelta(days=days)
+
+        qs = Task.objects.filter(
+            published=True,
+            publish_date__isnull=False,
+            publish_date__gte=since,
+            message_id__isnull=False,
+            group__isnull=False,
+        ).select_related('group', 'topic', 'subtopic').prefetch_related('translations').order_by('-publish_date')
+
+        if limit > 0:
+            qs = qs[:limit]
+
+        candidates = list(qs)
+
+        self.stdout.write(f"Найдено задач для обновления: {len(candidates)} (days={days}, limit={limit or 'no'})")
+
+        offsets = [1, 0, 2, -1, -2]
+
+        updated = 0
+        skipped = 0
+        failed = 0
+
+        for task in candidates:
+            translation = task.translations.first()
+            if not translation:
+                skipped += 1
+                continue
+
+            try:
+                final_url = task.external_link or _build_site_task_url(task, translation.language)
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"task_id={task.id}: не удалось сформировать ссылку: {e}"))
+                failed += 1
+                continue
+
+            lang_trans = LANGUAGE_TRANSLATIONS.get(translation.language, LANGUAGE_TRANSLATIONS.get('en', {}))
+            button_text = lang_trans.get('learn_more', 'Learn more')
+
+            chat_id = str(task.group.group_id)
+            poll_message_id = int(task.message_id)
+
+            if dry_run:
+                self.stdout.write(f"DRY_RUN task_id={task.id} chat_id={chat_id} poll_message_id={poll_message_id} url={final_url}")
+                continue
+
+            success = False
+            last_error = ''
+            for off in offsets:
+                target_message_id = poll_message_id + off
+                ok, msg = _edit_message_reply_markup(chat_id, target_message_id, button_text, final_url)
+                if ok:
+                    success = True
+                    updated += 1
+                    self.stdout.write(self.style.SUCCESS(
+                        f"task_id={task.id}: обновлено сообщение {target_message_id} (offset={off}) -> {final_url}"
+                    ))
+                    break
+                last_error = msg
+
+            if not success:
+                failed += 1
+                self.stdout.write(self.style.WARNING(
+                    f"task_id={task.id}: не удалось обновить кнопку (poll_message_id={poll_message_id}), ошибка: {last_error}"
+                ))
+
+        self.stdout.write(self.style.SUCCESS(f"Готово. updated={updated}, failed={failed}, skipped={skipped}"))
