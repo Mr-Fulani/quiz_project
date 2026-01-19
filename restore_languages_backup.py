@@ -26,11 +26,26 @@ except Exception as e:
 
 def find_backup_file():
     """Найти файл резервной копии"""
-    backup_dir = project_root
+    # Сначала ищем в текущей директории (в контейнере)
+    backup_dir = os.getcwd()
     backup_files = [f for f in os.listdir(backup_dir) if f.startswith('backup_before_lang_fix_') and f.endswith('.sql')]
 
+    # Если не нашли, ищем в /host_backup (если смонтировано)
+    if not backup_files:
+        host_backup_dir = '/host_backup'
+        if os.path.exists(host_backup_dir):
+            backup_files = [f for f in os.listdir(host_backup_dir) if f.startswith('backup_before_lang_fix_') and f.endswith('.sql')]
+            if backup_files:
+                backup_dir = host_backup_dir
+
+    # Если все еще не нашли, показываем возможные места
     if not backup_files:
         print("❌ Файл резервной копии не найден")
+        print("   Ищем файлы вида: backup_before_lang_fix_*.sql")
+        print("   Проверьте директории:")
+        print("   - Текущая директория")
+        print("   - /host_backup (если смонтировано)")
+        print("   - Корень проекта на хосте")
         return None
 
     # Берем самый свежий
