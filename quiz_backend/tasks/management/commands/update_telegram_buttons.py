@@ -148,6 +148,17 @@ class Command(BaseCommand):
             action='store_true',
             help='Удалить reply_markup у сообщения опроса (task.message_id). Полезно если ранее туда попала кнопка и теперь в канале две кнопки.',
         )
+        parser.add_argument(
+            '--normalize',
+            action='store_true',
+            help='Нормализовать состояние: попытаться удалить reply_markup у нескольких сообщений вокруг опроса, затем установить кнопку ровно на одном сообщении.',
+        )
+        parser.add_argument(
+            '--normalize-window',
+            type=int,
+            default=0,
+            help='Дополнительное окно очистки вокруг task.message_id (poll). 0 = выключено (безопасно).',
+        )
 
     def handle(self, *args, **options):
         days = int(options['days'])
@@ -155,6 +166,8 @@ class Command(BaseCommand):
         dry_run = bool(options['dry_run'])
         include_poll_offset = bool(options['include_poll_offset'])
         clear_poll_keyboard = bool(options['clear_poll_keyboard'])
+        normalize = bool(options['normalize'])
+        normalize_window = int(options['normalize_window'])
 
         since = timezone.now() - timedelta(days=days)
 
@@ -203,6 +216,30 @@ class Command(BaseCommand):
             if dry_run:
                 self.stdout.write(f"DRY_RUN task_id={task.id} chat_id={chat_id} poll_message_id={poll_message_id} url={final_url}")
                 continue
+
+            # Нормализация: сначала чистим reply_markup только у тех message_id,
+            # которые мы потенциально будем трогать, чтобы убрать "двойные" и разнобой.
+            if normalize:
+                candidate_message_ids = {poll_message_id + off for off in offsets}
+
+                # Если явно попросили чистить poll-клавиатуру, добавляем poll message_id.
+                if clear_poll_keyboard or include_poll_offset:
+                    candidate_message_ids.add(poll_message_id)
+
+                # Опционально: расширить очистку на +/- normalize_window (НЕ по умолчанию)
+                extra_window = max(0, normalize_window)
+                if extra_window:
+                    for off in range(-extra_window, extra_window + 1):
+                        candidate_message_ids.add(poll_message_id + off)
+
+                for target_message_id in sorted(candidate_message_ids):
+                    ok, msg, retry_after = _clear_message_reply_markup(chat_id, target_message_id)
+                    if not ok and retry_after:
+                        time.sleep(retry_after)
+                        ok, msg, retry_after = _clear_message_reply_markup(chat_id, target_message_id)
+
+                # Небольшая пауза между задачами, чтобы не ловить 429 пачками
+                time.sleep(0.2)
 
             if clear_poll_keyboard:
                 ok, msg, retry_after = _clear_message_reply_markup(chat_id, poll_message_id)
