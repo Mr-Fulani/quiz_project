@@ -47,8 +47,6 @@ def fix_languages_from_backup():
     SET language = backup_data.language
     FROM (
         -- Здесь вставляем данные из бэкапа
-        VALUES
-        -- Данные будут вставлены скриптом
     ) AS backup_data(id, language, question, answers, correct_answer, explanation, publish_date, task_id, long_explanation)
     WHERE task_translations.id = backup_data.id;
     """
@@ -71,10 +69,12 @@ def fix_languages_from_backup():
     task_data_lines = []
 
     for line in lines:
-        if 'COPY task_translations' in line:
+        if 'COPY public.task_translations' in line or 'COPY task_translations' in line:
             in_task_translations = True
+            print(f"   Найден блок COPY: {line.strip()}")
             continue
         elif in_task_translations and line.strip() == '\\.':
+            print("   Найден конец блока данных (\\.)")
             break
         elif in_task_translations:
             task_data_lines.append(line)
