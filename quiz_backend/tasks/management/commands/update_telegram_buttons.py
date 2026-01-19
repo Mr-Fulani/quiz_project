@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from datetime import timedelta
 
 import requests
@@ -55,10 +56,15 @@ def _build_site_task_url(task: Task, translation_language: str) -> str:
     return f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/#task-{task.id}"
 
 
-def _edit_message_reply_markup(chat_id: str, message_id: int, button_text: str, button_url: str) -> tuple[bool, str]:
+def _edit_message_reply_markup(
+    chat_id: str,
+    message_id: int,
+    button_text: str,
+    button_url: str,
+) -> tuple[bool, str, int]:
     token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
     if not token:
-        return False, 'TELEGRAM_BOT_TOKEN не настроен'
+        return False, 'TELEGRAM_BOT_TOKEN не настроен', 0
 
     url = f"https://api.telegram.org/bot{token}/editMessageReplyMarkup"
     reply_markup = {
@@ -75,13 +81,54 @@ def _edit_message_reply_markup(chat_id: str, message_id: int, button_text: str, 
 
     try:
         resp = requests.post(url, data=payload, timeout=30)
+        if resp.status_code == 429:
+            retry_after = 2
+            try:
+                data = resp.json()
+                retry_after = int(data.get('parameters', {}).get('retry_after') or retry_after)
+                desc = data.get('description') or 'Too Many Requests'
+            except Exception:
+                desc = 'Too Many Requests'
+            return False, f'429: {desc}', retry_after
         resp.raise_for_status()
         data = resp.json()
         if data.get('ok'):
-            return True, 'ok'
-        return False, data.get('description') or 'unknown telegram error'
+            return True, 'ok', 0
+        return False, data.get('description') or 'unknown telegram error', 0
     except Exception as e:
-        return False, str(e)
+        return False, str(e), 0
+
+
+def _clear_message_reply_markup(chat_id: str, message_id: int) -> tuple[bool, str, int]:
+    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+    if not token:
+        return False, 'TELEGRAM_BOT_TOKEN не настроен', 0
+
+    url = f"https://api.telegram.org/bot{token}/editMessageReplyMarkup"
+    payload = {
+        'chat_id': chat_id,
+        'message_id': message_id,
+        'reply_markup': json.dumps({}),
+    }
+
+    try:
+        resp = requests.post(url, data=payload, timeout=30)
+        if resp.status_code == 429:
+            retry_after = 2
+            try:
+                data = resp.json()
+                retry_after = int(data.get('parameters', {}).get('retry_after') or retry_after)
+                desc = data.get('description') or 'Too Many Requests'
+            except Exception:
+                desc = 'Too Many Requests'
+            return False, f'429: {desc}', retry_after
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get('ok'):
+            return True, 'ok', 0
+        return False, data.get('description') or 'unknown telegram error', 0
+    except Exception as e:
+        return False, str(e), 0
 
 
 class Command(BaseCommand):
@@ -91,11 +138,23 @@ class Command(BaseCommand):
         parser.add_argument('--days', type=int, default=7)
         parser.add_argument('--limit', type=int, default=0)
         parser.add_argument('--dry-run', action='store_true')
+        parser.add_argument(
+            '--include-poll-offset',
+            action='store_true',
+            help='Включить попытку обновления reply_markup у самого опроса (offset=0). По умолчанию выключено, чтобы не получать две кнопки.',
+        )
+        parser.add_argument(
+            '--clear-poll-keyboard',
+            action='store_true',
+            help='Удалить reply_markup у сообщения опроса (task.message_id). Полезно если ранее туда попала кнопка и теперь в канале две кнопки.',
+        )
 
     def handle(self, *args, **options):
         days = int(options['days'])
         limit = int(options['limit'])
         dry_run = bool(options['dry_run'])
+        include_poll_offset = bool(options['include_poll_offset'])
+        clear_poll_keyboard = bool(options['clear_poll_keyboard'])
 
         since = timezone.now() - timedelta(days=days)
 
@@ -114,7 +173,9 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Найдено задач для обновления: {len(candidates)} (days={days}, limit={limit or 'no'})")
 
-        offsets = [1, 0, 2, -1, -2]
+        offsets = [1, 2, -1, -2]
+        if include_poll_offset:
+            offsets = [1, 0, 2, -1, -2]
 
         updated = 0
         skipped = 0
@@ -143,11 +204,28 @@ class Command(BaseCommand):
                 self.stdout.write(f"DRY_RUN task_id={task.id} chat_id={chat_id} poll_message_id={poll_message_id} url={final_url}")
                 continue
 
+            if clear_poll_keyboard:
+                ok, msg, retry_after = _clear_message_reply_markup(chat_id, poll_message_id)
+                if not ok and retry_after:
+                    time.sleep(retry_after)
+                    ok, msg, retry_after = _clear_message_reply_markup(chat_id, poll_message_id)
+                if ok:
+                    self.stdout.write(self.style.SUCCESS(
+                        f"task_id={task.id}: удален reply_markup у опроса (message_id={poll_message_id})"
+                    ))
+                else:
+                    self.stdout.write(self.style.WARNING(
+                        f"task_id={task.id}: не удалось удалить reply_markup у опроса (message_id={poll_message_id}): {msg}"
+                    ))
+
             success = False
             last_error = ''
             for off in offsets:
                 target_message_id = poll_message_id + off
-                ok, msg = _edit_message_reply_markup(chat_id, target_message_id, button_text, final_url)
+                ok, msg, retry_after = _edit_message_reply_markup(chat_id, target_message_id, button_text, final_url)
+                if not ok and retry_after:
+                    time.sleep(retry_after)
+                    ok, msg, retry_after = _edit_message_reply_markup(chat_id, target_message_id, button_text, final_url)
                 if ok:
                     success = True
                     updated += 1
