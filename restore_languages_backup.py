@@ -81,19 +81,28 @@ def restore_languages():
         # Используем pg_restore или psql для восстановления только task_translations
         # Сначала получаем только данные таблицы task_translations из бэкапа
 
-        # Команда для восстановления - используем docker exec
-        docker_cmd = [
-            'docker', 'exec', '-i', 'postgres_db_local_prod',
-            'psql', '-U', db_params['user'], '-d', db_params['database']
-        ]
+        # Проверяем что мы в контейнере и можем использовать psql напрямую
+        print("   Проверка доступности psql...")
+        psql_check = subprocess.run(['which', 'psql'], capture_output=True, text=True)
+        if psql_check.returncode != 0:
+            print("❌ psql не найден. Убедитесь что скрипт запускается в контейнере с PostgreSQL клиентом")
+            return False
 
-        # Установка пароля
+        # Установка переменной окружения для пароля
         env = os.environ.copy()
         env['PGPASSWORD'] = db_params['password']
 
         # Сначала очистим таблицу
         print("   Очистка текущих данных task_translations...")
-        truncate_cmd = docker_cmd + ['-c', 'TRUNCATE TABLE tasks_tasktranslation RESTART IDENTITY;']
+        truncate_cmd = [
+            'psql',
+            '-h', db_params['host'],
+            '-p', db_params['port'],
+            '-U', db_params['user'],
+            '-d', db_params['database'],
+            '-c', 'TRUNCATE TABLE tasks_tasktranslation RESTART IDENTITY;'
+        ]
+
         result = subprocess.run(truncate_cmd, env=env, capture_output=True, text=True)
         if result.returncode != 0:
             print(f"❌ Ошибка очистки: {result.stderr}")
@@ -101,34 +110,63 @@ def restore_languages():
 
         # Теперь восстановим из бэкапа только task_translations
         print("   Восстановление данных task_translations...")
-        with open(backup_file, 'r', encoding='utf-8', errors='ignore') as f:
-            backup_content = f.read()
 
-        # Ищем только INSERT для task_translations
-        lines = backup_content.split('\n')
-        task_translation_inserts = []
-        capture = False
+        # Используем pg_restore или psql для восстановления только task_translations
+        restore_cmd = [
+            'pg_restore',
+            '-h', db_params['host'],
+            '-p', db_params['port'],
+            '-U', db_params['user'],
+            '-d', db_params['database'],
+            '--table=tasks_tasktranslation',
+            '--data-only',
+            backup_file
+        ]
 
-        for line in lines:
-            if 'COPY tasks_tasktranslation' in line:
-                capture = True
-                task_translation_inserts.append(line)
-            elif capture and line.strip() == '\\.':
-                capture = False
-                task_translation_inserts.append(line)
-                break
-            elif capture:
-                task_translation_inserts.append(line)
+        result = subprocess.run(restore_cmd, env=env, capture_output=True, text=True)
 
-        if not task_translation_inserts:
-            print("❌ Не найдены данные task_translations в бэкапе")
-            return False
+        # Если pg_restore не сработал, попробуем с psql
+        if result.returncode != 0:
+            print("   pg_restore не сработал, пробуем psql...")
 
-        # Выполняем восстановление
-        insert_data = '\n'.join(task_translation_inserts)
-        restore_cmd = docker_cmd + ['-c', insert_data]
+            # Читаем файл и ищем только данные task_translations
+            with open(backup_file, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
 
-        result = subprocess.run(restore_cmd, env=env, capture_output=True, text=True, input=insert_data)
+            # Ищем блок COPY для task_translations
+            lines = content.split('\n')
+            in_task_translations = False
+            task_data = []
+
+            for line in lines:
+                if 'COPY tasks_tasktranslation' in line:
+                    in_task_translations = True
+                    task_data.append(line)
+                elif in_task_translations:
+                    task_data.append(line)
+                    if line.strip() == '\\.':
+                        break
+
+            if not task_data:
+                print("❌ Не найдены данные task_translations в бэкапе")
+                return False
+
+            # Создаем временный файл с данными
+            temp_file = '/tmp/task_translations_restore.sql'
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(task_data))
+
+            # Восстанавливаем через psql
+            restore_cmd = [
+                'psql',
+                '-h', db_params['host'],
+                '-p', db_params['port'],
+                '-U', db_params['user'],
+                '-d', db_params['database'],
+                '-f', temp_file
+            ]
+
+            result = subprocess.run(restore_cmd, env=env, capture_output=True, text=True)
 
         if result.returncode == 0:
             print("✅ Восстановление выполнено успешно")
