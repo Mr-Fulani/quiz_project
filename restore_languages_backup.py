@@ -101,7 +101,7 @@ def restore_languages():
             '-p', db_params['port'],
             '-U', db_params['user'],
             '-d', db_params['database'],
-            '-c', 'TRUNCATE TABLE tasks_tasktranslation RESTART IDENTITY CASCADE;'
+            '-c', 'TRUNCATE TABLE task_translations RESTART IDENTITY CASCADE;'
         ]
 
         result = subprocess.run(truncate_cmd, env=env, capture_output=True, text=True)
