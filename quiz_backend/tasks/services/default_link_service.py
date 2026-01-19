@@ -88,25 +88,50 @@ class DefaultLinkService:
         # Приоритет 1: external_link (админ выбрал вручную)
         if task.external_link:
             return task.external_link, "специфичная (выбрана вручную)"
-        
+
         if translation:
+            try:
+                from django.conf import settings
+
+                supported_languages = [
+                    lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])
+                ]
+
+                requested_language = (translation.language or '').lower()
+                effective_language = requested_language
+                if effective_language not in supported_languages:
+                    effective_language = getattr(settings, 'LANGUAGE_CODE', 'en').split('-')[0].lower() or 'en'
+                    if effective_language not in supported_languages:
+                        effective_language = 'en'
+
+                if effective_language != requested_language:
+                    logger.info(
+                        "Язык '%s' не поддерживается сайтом, используем '%s' для генерации ссылки (task_id=%s)",
+                        translation.language,
+                        effective_language,
+                        getattr(task, 'id', None),
+                    )
+            except Exception:
+                requested_language = (translation.language or '').lower()
+                effective_language = requested_language or 'en'
+
             # Приоритет 2: DefaultLink для language + topic
             if task.topic:
                 default_link = DefaultLinkService.get_default_link(
-                    translation.language,
+                    effective_language,
                     task.topic.name
                 )
                 if default_link:
-                    return default_link, f"для темы ({translation.language.upper()} + {task.topic.name})"
-            
+                    return default_link, f"для темы ({effective_language.upper()} + {task.topic.name})"
+
             # Приоритет 3: MainFallbackLink для language (ОБЯЗАТЕЛЬНА!)
-            main_link = DefaultLinkService.get_main_fallback_link(translation.language)
+            main_link = DefaultLinkService.get_main_fallback_link(effective_language)
             if main_link:
-                return main_link, f"главная для языка ({translation.language.upper()})"
+                return main_link, f"главная для языка ({effective_language.upper()})"
             else:
                 # НЕТ главной ссылки для языка - это ошибка!
-                logger.error(f"⚠️ Главная ссылка (MainFallbackLink) не найдена для языка {translation.language.upper()}!")
-                return None, f"❌ НЕ НАЙДЕНА главная ссылка для языка ({translation.language.upper()})"
+                logger.error(f"⚠️ Главная ссылка (MainFallbackLink) не найдена для языка {effective_language.upper()}!")
+                return None, f"❌ НЕ НАЙДЕНА главная ссылка для языка ({effective_language.upper()})"
         
         # Нет перевода - не можем определить язык
         return None, "❌ Нет перевода для определения языка"
