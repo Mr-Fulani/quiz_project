@@ -62,7 +62,11 @@ def restore_languages():
 
     print("⚠️  ВНИМАНИЕ: Этот скрипт восстановит ТОЛЬКО таблицу task_translations")
     print("   Остальные таблицы останутся без изменений")
-    input("   Нажмите Enter для продолжения или Ctrl+C для отмены...")
+    try:
+        input("   Нажмите Enter для продолжения или Ctrl+C для отмены...")
+    except KeyboardInterrupt:
+        print("\n❌ Операция отменена")
+        return False
 
     # Параметры подключения к БД
     db_params = {
@@ -78,10 +82,7 @@ def restore_languages():
     print(f"   БД: {db_params['database']}")
 
     try:
-        # Используем pg_restore или psql для восстановления только task_translations
-        # Сначала получаем только данные таблицы task_translations из бэкапа
-
-        # Проверяем что мы в контейнере и можем использовать psql напрямую
+        # Проверяем наличие psql
         print("   Проверка доступности psql...")
         psql_check = subprocess.run(['which', 'psql'], capture_output=True, text=True)
         if psql_check.returncode != 0:
@@ -100,7 +101,7 @@ def restore_languages():
             '-p', db_params['port'],
             '-U', db_params['user'],
             '-d', db_params['database'],
-            '-c', 'TRUNCATE TABLE tasks_tasktranslation RESTART IDENTITY;'
+            '-c', 'TRUNCATE TABLE tasks_tasktranslation RESTART IDENTITY CASCADE;'
         ]
 
         result = subprocess.run(truncate_cmd, env=env, capture_output=True, text=True)
@@ -108,65 +109,21 @@ def restore_languages():
             print(f"❌ Ошибка очистки: {result.stderr}")
             return False
 
-        # Теперь восстановим из бэкапа только task_translations
+        # Теперь восстановим данные через psql с бэкап файлом
         print("   Восстановление данных task_translations...")
 
-        # Используем pg_restore или psql для восстановления только task_translations
+        # Используем psql для выполнения бэкап файла
         restore_cmd = [
-            'pg_restore',
+            'psql',
             '-h', db_params['host'],
             '-p', db_params['port'],
             '-U', db_params['user'],
             '-d', db_params['database'],
-            '--table=tasks_tasktranslation',
-            '--data-only',
-            backup_file
+            '-f', backup_file
         ]
 
+        print(f"   Выполнение: psql -h {db_params['host']} -U {db_params['user']} -d {db_params['database']} -f {backup_file}")
         result = subprocess.run(restore_cmd, env=env, capture_output=True, text=True)
-
-        # Если pg_restore не сработал, попробуем с psql
-        if result.returncode != 0:
-            print("   pg_restore не сработал, пробуем psql...")
-
-            # Читаем файл и ищем только данные task_translations
-            with open(backup_file, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-
-            # Ищем блок COPY для task_translations
-            lines = content.split('\n')
-            in_task_translations = False
-            task_data = []
-
-            for line in lines:
-                if 'COPY tasks_tasktranslation' in line:
-                    in_task_translations = True
-                    task_data.append(line)
-                elif in_task_translations:
-                    task_data.append(line)
-                    if line.strip() == '\\.':
-                        break
-
-            if not task_data:
-                print("❌ Не найдены данные task_translations в бэкапе")
-                return False
-
-            # Создаем временный файл с данными
-            temp_file = '/tmp/task_translations_restore.sql'
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(task_data))
-
-            # Восстанавливаем через psql
-            restore_cmd = [
-                'psql',
-                '-h', db_params['host'],
-                '-p', db_params['port'],
-                '-U', db_params['user'],
-                '-d', db_params['database'],
-                '-f', temp_file
-            ]
-
-            result = subprocess.run(restore_cmd, env=env, capture_output=True, text=True)
 
         if result.returncode == 0:
             print("✅ Восстановление выполнено успешно")
