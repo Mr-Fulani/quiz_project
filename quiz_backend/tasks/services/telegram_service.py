@@ -858,69 +858,55 @@ def publish_task_to_telegram(task, translation, telegram_group) -> Dict:
                 result['detailed_logs'].append(f"❌ Не удалось отправить опрос (длина вопроса: {len(poll_question)} символов, макс: 300). Проверьте логи выше для деталей ошибки.")
         
         # 4. Определяем итоговую ссылку
-        # Приоритет: если есть long_explanation, используем ссылку на задачу на сайте
         final_link = None
         link_source = ""
-        
-        # Проверяем, есть ли подробное объяснение
-        if translation.long_explanation:
-            # Формируем URL на страницу задачи на сайте
+
+        if task.external_link:
+            final_link = task.external_link
+            link_source = "специфичная (выбрана вручную)"
+        else:
             try:
-                # Получаем базовый URL сайта
                 site_url = getattr(settings, 'SITE_URL', 'https://quiz-code.com')
                 if not site_url.startswith('http'):
                     site_url = f'https://{site_url}'
-                
-                # Формируем путь к странице задачи
-                # Безопасный доступ к связанным объектам с проверкой на None
-                topic_name = 'python'  # значение по умолчанию
+
+                topic_name = 'python'
                 if task.topic:
                     try:
                         topic_name = task.topic.name.lower()
                     except Exception:
                         logger.warning(f"Не удалось получить topic.name для задачи {task.id}")
-                
-                subtopic_name = 'general'  # значение по умолчанию
+
+                subtopic_name = 'general'
                 if task.subtopic:
                     try:
                         subtopic_name = task.subtopic.name.lower()
                     except Exception:
                         logger.warning(f"Не удалось получить subtopic.name для задачи {task.id}")
-                
+
                 subtopic_slug = slugify(subtopic_name)
                 difficulty = task.difficulty.lower() if task.difficulty else 'easy'
-                
-                # Формируем URL с языковым префиксом
-                # Проверяем поддерживаемые языки сайта (из настроек Django LANGUAGES)
-                from django.conf import settings
-                supported_languages = [lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])]
-                language_code = translation.language.lower()
+
+                supported_languages = [
+                    lang_code for lang_code, _ in getattr(settings, 'LANGUAGES', [('en', 'English'), ('ru', 'Russian')])
+                ]
+                language_code = (translation.language or '').lower() or 'en'
                 if language_code not in supported_languages:
-                    # Для неподдерживаемых языков используем английский по умолчанию
-                    language_code = 'en'
-                    logger.info(f"Язык '{translation.language}' не поддерживается сайтом, используем 'en' по умолчанию для задачи {task.id}")
+                    language_code = getattr(settings, 'LANGUAGE_CODE', 'en').split('-')[0].lower() or 'en'
+                    if language_code not in supported_languages:
+                        language_code = 'en'
+
                 task_url = f"{site_url}/{language_code}/quiz/{topic_name}/{subtopic_slug}/{difficulty}/"
-                
-                # Добавляем якорь на конкретную задачу для удобства навигации
-                # В шаблоне используется data-task-id, но для якоря можно использовать просто task-{id}
                 task_anchor = f"#task-{task.id}"
-                task_url_with_anchor = task_url + task_anchor
-                
-                final_link = task_url_with_anchor
-                link_source = f"ссылка на задачу на сайте (есть подробное объяснение)"
-                
-                result['detailed_logs'].append(
-                    f"📖 Найдено подробное объяснение, используем ссылку на задачу на сайте"
-                )
+                final_link = task_url + task_anchor
+                link_source = "ссылка на задачу на сайте"
             except Exception as e:
                 logger.warning(f"Ошибка формирования URL задачи на сайте: {e}", exc_info=True)
-                # Продолжаем с обычной логикой
-                pass
-        
-        # Если не использовали ссылку на задачу, используем стандартную логику
+                final_link = None
+
         if not final_link:
             from .default_link_service import DefaultLinkService
-            
+
             final_link, link_source = DefaultLinkService.get_final_link(task, translation)
             
             # Проверяем наличие ссылки
