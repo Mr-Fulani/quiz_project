@@ -509,6 +509,36 @@ class TaskStatistics(models.Model):
         ).order_by('-total')
 
     @classmethod
+    def get_global_topic_stats(cls, limit=10):
+        """
+        Получает глобальную статистику по популярным темам на основе количества попыток всех пользователей.
+        Возвращает топ тем с процентом популярности.
+        """
+        from django.db.models import Count, Q
+        
+        # Получаем статистику по темам для всех пользователей
+        topic_stats = cls.objects.values('task__topic__name').annotate(
+            total_attempts=Count('id'),
+            successful_attempts=Count('id', filter=Q(successful=True)),
+            unique_users=Count('user', distinct=True)
+        ).filter(
+            task__topic__isnull=False
+        ).order_by('-total_attempts')[:limit]
+        
+        # Вычисляем максимальное количество попыток для нормализации процентов
+        max_attempts = topic_stats[0]['total_attempts'] if topic_stats else 0
+        
+        # Добавляем процент популярности
+        for stat in topic_stats:
+            if max_attempts > 0:
+                stat['popularity_percentage'] = round((stat['total_attempts'] / max_attempts) * 100)
+            else:
+                stat['popularity_percentage'] = 0
+            stat['name'] = stat['task__topic__name']
+        
+        return topic_stats
+
+    @classmethod
     def get_activity_stats(cls, user):
         """Статистика активности по дням"""
         last_30_days = timezone.now() - timezone.timedelta(days=30)
