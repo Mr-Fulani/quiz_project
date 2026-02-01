@@ -1352,6 +1352,14 @@ msgstr "Наши ресурсы"
 msgid "Popular Quizzes"
 msgstr "Популярные квизы"
 
+#: blog/templates/blog/index.html:317
+msgid "popularity"
+msgstr "популярность"
+
+#: blog/templates/blog/index.html:326
+msgid "No data"
+msgstr "Нет данных"
+
 #: blog/templates/blog/index.html:223
 msgid "Programming Basics"
 msgstr "Основы программирования"

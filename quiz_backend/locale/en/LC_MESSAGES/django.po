@@ -317,10 +317,6 @@ msgstr "Message deleted."
 msgid "Error deleting message."
 msgstr "Error deleting message."
 
-#: accounts/templates/accounts/inbox.html:99
-msgid "Attachments"
-msgstr "Attachments"
-
 #: accounts/templates/accounts/login.html:7
 #: accounts/templates/accounts/login.html:44 blog/templates/blog/base.html:281
 msgid "Login"
@@ -1246,6 +1242,14 @@ msgstr ""
 
 #: blog/templates/blog/index.html:219
 msgid "Popular Quizzes"
+msgstr ""
+
+#: blog/templates/blog/index.html:317
+msgid "popularity"
+msgstr ""
+
+#: blog/templates/blog/index.html:326
+msgid "No data"
 msgstr ""
 
 #: blog/templates/blog/index.html:223
@@ -2368,6 +2372,7 @@ msgstr ""
 msgid "Deleted by Recipient"
 msgstr ""
 
+#: accounts/templates/accounts/inbox.html:99
 #: templates/admin/blog/message/change_form.html:54
 #: templates/admin/blog/message/change_list.html:248
 msgid "Attachments"
