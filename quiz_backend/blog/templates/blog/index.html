@@ -308,13 +308,13 @@
     {% load popular_topics %}
     {% get_popular_topics as popular_topics %}
     <section class="skill section-gap">
-        <h3 class="h3 skills-title">{% trans "Популярные опросы" %}</h3>
+        <h3 class="h3 skills-title">{% trans "Popular Quizzes" %}</h3>
         <ul class="skills-list content-card">
             {% for topic in popular_topics %}
             <li class="skills-item quiz-card">
                 <div class="title-wrapper">
                     <h5 class="h5">{{ topic.name }}</h5>
-                    <data value="{{ topic.popularity_percentage }}">{{ topic.popularity_percentage }}% {% trans "популярность" %}</data>
+                    <data value="{{ topic.popularity_percentage }}">{{ topic.popularity_percentage }}% {% trans "popularity" %}</data>
                 </div>
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: {{ topic.popularity_percentage }}%;"></div>
@@ -323,8 +323,8 @@
             {% empty %}
             <li class="skills-item quiz-card">
                 <div class="title-wrapper">
-                    <h5 class="h5">{% trans "Нет данных" %}</h5>
-                    <data value="0">0% {% trans "популярность" %}</data>
+                    <h5 class="h5">{% trans "No data" %}</h5>
+                    <data value="0">0% {% trans "popularity" %}</data>
                 </div>
                 <div class="skills-progress-bg">
                     <div class="skills-progress-fill" style="width: 0%;"></div>
