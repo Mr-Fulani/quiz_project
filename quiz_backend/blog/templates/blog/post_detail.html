@@ -4,15 +4,15 @@
 {% block title %}{{ post.title }} - QuizHub{% endblock %}
 
 {% block meta_description %}{{ post.meta_description|default:post.excerpt|striptags|truncatechars:160 }}{% endblock %}
-{% block meta_keywords %}{{ post.meta_keywords|default:post.category.name }}{% endblock %}
+{% block meta_keywords %}{{ post.meta_keywords|default:post.category.name|trans }}{% endblock %}
 
 {% block extra_head %}
 <!-- Article specific meta -->
 <meta property="article:author" content="QuizHub">
 <meta property="article:published_time" content="{{ post.published_at|date:'c' }}">
 <meta property="article:modified_time" content="{{ post.updated_at|date:'c' }}">
-<meta property="article:section" content="{{ post.category.name }}">
-<meta property="article:tag" content="{{ post.category.name }}">
+<meta property="article:section" content="{% trans post.category.name %}">
+<meta property="article:tag" content="{% trans post.category.name %}">
 
 <!-- Structured Data for Posts -->
 <script type="application/ld+json">
@@ -40,8 +40,8 @@
     "@type": "WebPage",
     "@id": "{{ og_url }}"
   },
-  "articleSection": "{{ post.category.name }}",
-  "keywords": "{{ post.meta_keywords|default:post.category.name }}"
+  "articleSection": "{% trans post.category.name %}",
+  "keywords": "{{ post.meta_keywords|default:post.category.name|trans }}"
 }
 </script>
 {% endblock %}
@@ -70,57 +70,55 @@ All static text is localized using {% trans %} for English msgid and translation
         <div class="swiper detail-slider">
             <div class="swiper-wrapper">
                 {% for media in post.images.all %}
-                    {% if media.photo %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <img src="{% if media.photo_thumbnail.url %}{{ media.photo_thumbnail.url }}{% else %}{{ media.photo.url }}{% endif %}" alt="{{ post.title }}" loading="lazy">
-                            </div>
-                        </figure>
-                    </div>
-                    {% endif %}
-                    {% if media.gif %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <img src="{{ media.gif.url }}" alt="{{ post.title }}" loading="eager">
-                            </div>
-                        </figure>
-                    </div>
-                    {% endif %}
-                    {% if media.video %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <video controls autoplay muted loop playsinline preload="auto">
-                                    <source src="{{ media.video.url }}" type="video/mp4">
-                                    {% trans "Your browser does not support the video tag." %}
-                                </video>
-                            </div>
-                        </figure>
-                    </div>
-                    {% endif %}
+                {% if media.photo %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <img src="{% if media.photo_thumbnail.url %}{{ media.photo_thumbnail.url }}{% else %}{{ media.photo.url }}{% endif %}"
+                                alt="{{ post.title }}" loading="lazy">
+                        </div>
+                    </figure>
+                </div>
+                {% endif %}
+                {% if media.gif %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <img src="{{ media.gif.url }}" alt="{{ post.title }}" loading="eager">
+                        </div>
+                    </figure>
+                </div>
+                {% endif %}
+                {% if media.video %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <video controls autoplay muted loop playsinline preload="auto">
+                                <source src="{{ media.video.url }}" type="video/mp4">
+                                {% trans "Your browser does not support the video tag." %}
+                            </video>
+                        </div>
+                    </figure>
+                </div>
+                {% endif %}
                 {% empty %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <p>{% trans "No media available" %}</p>
-                            </div>
-                        </figure>
-                    </div>
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <p>{% trans "No media available" %}</p>
+                        </div>
+                    </figure>
+                </div>
                 {% endfor %}
                 {% if post.video_url %}
                 <div class="swiper-slide">
                     <div class="detail-media-box">
                         <div class="media-wrapper">
-                            <iframe id="youtube-player-{{ post.id }}"
-                                    src="{{ post.video_url|youtube_embed_url }}"
-                                    style="border: none; cursor: pointer;"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowfullscreen
-                                    referrerpolicy="strict-origin-when-cross-origin"
-                                    loading="lazy"
-                                    title="{% trans 'Click to enable sound' %}"></iframe>
+                            <iframe id="youtube-player-{{ post.id }}" src="{{ post.video_url|youtube_embed_url }}"
+                                style="border: none; cursor: pointer;"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen referrerpolicy="strict-origin-when-cross-origin" loading="lazy"
+                                title="{% trans 'Click to enable sound' %}"></iframe>
                         </div>
                     </div>
                 </div>
@@ -134,7 +132,7 @@ All static text is localized using {% trans %} for English msgid and translation
         <!-- Метаданные и контент -->
         <div class="detail-text-box">
             <div class="blog-meta">
-                <p class="blog-category">{{ post.category.name }}</p>
+                <p class="blog-category">{% trans post.category.name %}</p>
                 <span class="dot"></span>
                 <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y" }}</time>
             </div>
@@ -146,22 +144,16 @@ All static text is localized using {% trans %} for English msgid and translation
 
     <!-- Панель взаимодействий -->
     <div class="interactions-bar" data-slug="{{ post.slug }}">
-        <button class="interaction-btn like-btn" 
-                data-content-type="post" 
-                data-slug="{{ post.slug }}"
-                {% if user.is_authenticated and post|is_liked_by_user:user %}
-                data-liked="true"
-                {% endif %}>
-            <i class="{% if user.is_authenticated and post|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
+        <button class="interaction-btn like-btn" data-content-type="post" data-slug="{{ post.slug }}" {% if
+            user.is_authenticated and post|is_liked_by_user:user %} data-liked="true" {% endif %}>
+            <i
+                class="{% if user.is_authenticated and post|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
             <span class="like-count">{{ post|get_likes_count }}</span>
             <span class="sr-only">{% trans "Лайкнуть" %}</span>
         </button>
 
-        <button type="button" class="interaction-btn share-btn" 
-                data-content-type="post" 
-                data-slug="{{ post.slug }}"
-                data-title="{{ post.title }}"
-                data-url="{{ request.build_absolute_uri }}">
+        <button type="button" class="interaction-btn share-btn" data-content-type="post" data-slug="{{ post.slug }}"
+            data-title="{{ post.title }}" data-url="{{ request.build_absolute_uri }}">
             <i class="fas fa-share share-icon"></i>
             <span class="share-count">{{ post|get_shares_count }}</span>
             <span class="sr-only">{% trans "Поделиться" %}</span>
@@ -223,7 +215,7 @@ All static text is localized using {% trans %} for English msgid and translation
         });
     </script>
 
-            <!-- JavaScript для взаимодействий -->
-        <script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
+    <!-- JavaScript для взаимодействий -->
+    <script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
 </article>
 {% endblock %}
