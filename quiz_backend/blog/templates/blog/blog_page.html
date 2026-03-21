@@ -23,7 +23,7 @@
             </li>
             {% for category in categories %}
             <li class="filter-item">
-                <button data-filter-btn>{{ category.name }}</button>
+                <button data-filter-btn>{% trans category.name %}</button>
             </li>
             {% endfor %}
         </ul>
@@ -36,35 +36,36 @@
                 <a href="{% url 'blog:post_detail' post.slug %}">
                     {% with main_media=post.get_main_image %}
                     {% if main_media %}
-                        {% if main_media.photo %}
-                            <figure class="blog-banner-box">
-                                <img src="{{ main_media.photo_thumbnail.url }}" alt="{{ post.title }}" loading="lazy">
-                            </figure>
-                        {% elif main_media.gif %}
-                            <figure class="blog-banner-box">
-                                <img src="{{ main_media.gif.url }}" alt="{{ post.title }}" loading="eager">
-                            </figure>
-                        {% elif main_media.video %}
-                            <figure class="blog-banner-box">
-                                <video autoplay muted loop playsinline preload="auto" 
-                                       style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
-                                       title="{% trans 'Click to enable sound' %}">
-                                    <source src="{{ main_media.video.url }}" type="video/mp4">
-                                    {% trans "Your browser does not support the video tag." %}
-                                </video>
-                            </figure>
-                        {% endif %}
+                    {% if main_media.photo %}
+                    <figure class="blog-banner-box">
+                        <img src="{{ main_media.photo_thumbnail.url }}" alt="{{ post.title }}" loading="lazy">
+                    </figure>
+                    {% elif main_media.gif %}
+                    <figure class="blog-banner-box">
+                        <img src="{{ main_media.gif.url }}" alt="{{ post.title }}" loading="eager">
+                    </figure>
+                    {% elif main_media.video %}
+                    <figure class="blog-banner-box">
+                        <video autoplay muted loop playsinline preload="auto"
+                            style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                            title="{% trans 'Click to enable sound' %}">
+                            <source src="{{ main_media.video.url }}" type="video/mp4">
+                            {% trans "Your browser does not support the video tag." %}
+                        </video>
+                    </figure>
+                    {% endif %}
                     {% else %}
-                        <figure class="blog-banner-box no-image">
-                            <span>{% trans "No Image" %}</span>
-                        </figure>
+                    <figure class="blog-banner-box no-image">
+                        <span>{% trans "No Image" %}</span>
+                    </figure>
                     {% endif %}
                     {% endwith %}
                     <div class="blog-content">
                         <div class="blog-meta">
-                            <p class="blog-category">{{ post.category.name }}</p>
+                            <p class="blog-category">{% trans post.category.name %}</p>
                             <span class="dot"></span>
-                            <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y" }}</time>
+                            <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y"
+                                }}</time>
                         </div>
                         <h3 class="h3 blog-item-title">{{ post.title }}</h3>
                         <p class="blog-text">
@@ -72,25 +73,20 @@
                         </p>
                     </div>
                 </a>
-                
+
                 <!-- Панель взаимодействий -->
                 <div class="interactions-bar compact" data-slug="{{ post.slug }}">
-                    <button class="interaction-btn like-btn" 
-                            data-content-type="post" 
-                            data-slug="{{ post.slug }}"
-                            {% if user.is_authenticated and post|is_liked_by_user:user %}
-                            data-liked="true"
-                            {% endif %}>
-                        <i class="{% if user.is_authenticated and post|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
+                    <button class="interaction-btn like-btn" data-content-type="post" data-slug="{{ post.slug }}" {% if
+                        user.is_authenticated and post|is_liked_by_user:user %} data-liked="true" {% endif %}>
+                        <i
+                            class="{% if user.is_authenticated and post|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
                         <span class="like-count">{{ post|get_likes_count }}</span>
                         <span class="sr-only">{% trans "Лайкнуть" %}</span>
                     </button>
 
-                    <button type="button" class="interaction-btn share-btn" 
-                            data-content-type="post" 
-                            data-slug="{{ post.slug }}"
-                            data-title="{{ post.title }}"
-                            data-url="{% url 'blog:post_detail' post.slug %}">
+                    <button type="button" class="interaction-btn share-btn" data-content-type="post"
+                        data-slug="{{ post.slug }}" data-title="{{ post.title }}"
+                        data-url="{% url 'blog:post_detail' post.slug %}">
                         <i class="fas fa-share share-icon"></i>
                         <span class="share-count">{{ post|get_shares_count }}</span>
                         <span class="sr-only">{% trans "Поделиться" %}</span>
@@ -113,18 +109,18 @@
         {% if posts.has_other_pages %}
         <div class="pagination">
             {% if posts.has_previous %}
-                <a href="?page={{ posts.previous_page_number }}" class="pagination-btn">«</a>
+            <a href="?page={{ posts.previous_page_number }}" class="pagination-btn">«</a>
             {% endif %}
             {% for num in posts.paginator.page_range %}
-                {% if posts.number == num %}
-                    <a href="?page={{ num }}" class="pagination-btn active">{{ num }}</a>
-                {% elif num > posts.number|add:'-3' and num < posts.number|add:'3' %}
-                    <a href="?page={{ num }}" class="pagination-btn">{{ num }}</a>
+            {% if posts.number == num %}
+            <a href="?page={{ num }}" class="pagination-btn active">{{ num }}</a>
+            {% elif num > posts.number|add:'-3' and num < posts.number|add:'3' %} <a href="?page={{ num }}"
+                class="pagination-btn">{{ num }}</a>
                 {% endif %}
-            {% endfor %}
-            {% if posts.has_next %}
+                {% endfor %}
+                {% if posts.has_next %}
                 <a href="?page={{ posts.next_page_number }}" class="pagination-btn">»</a>
-            {% endif %}
+                {% endif %}
         </div>
         {% endif %}
     </section>
@@ -134,5 +130,5 @@
 
 {% block scripts %}
 <script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
-    <script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
+<script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
 {% endblock %}

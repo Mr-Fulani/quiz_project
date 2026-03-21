@@ -3,7 +3,8 @@
 
 {% block title %}{{ project.title }} - QuizHub Portfolio{% endblock %}
 
-{% block meta_description %}{{ project.meta_description|default:project.description|striptags|truncatechars:160 }}{% endblock %}
+{% block meta_description %}{{ project.meta_description|default:project.description|striptags|truncatechars:160 }}{%
+endblock %}
 {% block meta_keywords %}{{ project.meta_keywords|default:project.technologies }}{% endblock %}
 
 {% block extra_head %}
@@ -60,57 +61,55 @@ All static text is localized using {% trans %} for English msgid and translation
         <div class="swiper detail-slider">
             <div class="swiper-wrapper">
                 {% for media in project.images.all %}
-                    {% if media.photo %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <img src="{% if media.photo_thumbnail.url %}{{ media.photo_thumbnail.url }}{% else %}{{ media.photo.url }}{% endif %}" alt="{{ project.title }}" loading="lazy">
-                            </div>
-                        </figure>
-                    </div>
-                    {% endif %}
-                    {% if media.gif %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <img src="{{ media.gif.url }}" alt="{{ project.title }}" loading="eager">
-                            </div>
-                        </figure>
-                    </div>
-                    {% endif %}
-                    {% if media.video %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <video controls autoplay muted loop playsinline preload="auto">
-                                    <source src="{{ media.video.url }}" type="video/mp4">
-                                    {% trans "Your browser does not support the video tag." %}
-                                </video>
-                            </div>
-                        </figure>
-                    </div>
-                    {% endif %}
+                {% if media.photo %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <img src="{% if media.photo_thumbnail.url %}{{ media.photo_thumbnail.url }}{% else %}{{ media.photo.url }}{% endif %}"
+                                alt="{{ project.title }}" loading="lazy">
+                        </div>
+                    </figure>
+                </div>
+                {% endif %}
+                {% if media.gif %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <img src="{{ media.gif.url }}" alt="{{ project.title }}" loading="eager">
+                        </div>
+                    </figure>
+                </div>
+                {% endif %}
+                {% if media.video %}
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <video controls autoplay muted loop playsinline preload="auto">
+                                <source src="{{ media.video.url }}" type="video/mp4">
+                                {% trans "Your browser does not support the video tag." %}
+                            </video>
+                        </div>
+                    </figure>
+                </div>
+                {% endif %}
                 {% empty %}
-                    <div class="swiper-slide">
-                        <figure class="detail-media-box">
-                            <div class="media-wrapper">
-                                <p>{% trans "No media available" %}</p>
-                            </div>
-                        </figure>
-                    </div>
+                <div class="swiper-slide">
+                    <figure class="detail-media-box">
+                        <div class="media-wrapper">
+                            <p>{% trans "No media available" %}</p>
+                        </div>
+                    </figure>
+                </div>
                 {% endfor %}
                 {% if project.video_url %}
                 <div class="swiper-slide">
                     <div class="detail-media-box">
                         <div class="media-wrapper">
-                            <iframe id="youtube-player-{{ project.id }}"
-                                    src="{{ project.video_url|youtube_embed_url }}"
-                                    style="border: none; cursor: pointer;"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowfullscreen
-                                    referrerpolicy="strict-origin-when-cross-origin"
-                                    loading="lazy"
-                                    title="{% trans 'Click to enable sound' %}"></iframe>
+                            <iframe id="youtube-player-{{ project.id }}" src="{{ project.video_url|youtube_embed_url }}"
+                                style="border: none; cursor: pointer;"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen referrerpolicy="strict-origin-when-cross-origin" loading="lazy"
+                                title="{% trans 'Click to enable sound' %}"></iframe>
                         </div>
                     </div>
                 </div>
@@ -125,7 +124,7 @@ All static text is localized using {% trans %} for English msgid and translation
         <div class="detail-text-box">
             <div class="blog-meta">
                 {% if project.category %}
-                <p class="blog-category">{{ project.category.name }}</p>
+                <p class="blog-category">{% trans project.category.name %}</p>
                 <span class="dot"></span>
                 {% endif %}
                 {% if project.technologies %}
@@ -160,22 +159,16 @@ All static text is localized using {% trans %} for English msgid and translation
 
     <!-- Панель взаимодействий -->
     <div class="interactions-bar" data-slug="{{ project.slug }}">
-        <button class="interaction-btn like-btn" 
-                data-content-type="project" 
-                data-slug="{{ project.slug }}"
-                {% if user.is_authenticated and project|is_liked_by_user:user %}
-                data-liked="true"
-                {% endif %}>
-            <i class="{% if user.is_authenticated and project|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
+        <button class="interaction-btn like-btn" data-content-type="project" data-slug="{{ project.slug }}" {% if
+            user.is_authenticated and project|is_liked_by_user:user %} data-liked="true" {% endif %}>
+            <i
+                class="{% if user.is_authenticated and project|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
             <span class="like-count">{{ project|get_likes_count }}</span>
             <span class="sr-only">{% trans "Лайкнуть" %}</span>
         </button>
 
-        <button type="button" class="interaction-btn share-btn" 
-                data-content-type="project" 
-                data-slug="{{ project.slug }}"
-                data-title="{{ project.title }}"
-                data-url="{{ request.build_absolute_uri }}">
+        <button type="button" class="interaction-btn share-btn" data-content-type="project"
+            data-slug="{{ project.slug }}" data-title="{{ project.title }}" data-url="{{ request.build_absolute_uri }}">
             <i class="fas fa-share share-icon"></i>
             <span class="share-count">{{ project|get_shares_count }}</span>
             <span class="sr-only">{% trans "Поделиться" %}</span>

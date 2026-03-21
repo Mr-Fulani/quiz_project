@@ -23,7 +23,7 @@ All static text is localized using {% trans %} for English msgid and translation
             </li>
             {% for category in portfolio_categories %}
             <li class="filter-item">
-                <button data-filter-btn>{{ category.name }}</button>
+                <button data-filter-btn>{% trans category.name %}</button>
             </li>
             {% endfor %}
         </ul>
@@ -36,36 +36,37 @@ All static text is localized using {% trans %} for English msgid and translation
                 <a href="{% url 'blog:project_detail' project.slug %}">
                     {% with main_media=project.get_main_image %}
                     {% if main_media %}
-                        {% if main_media.photo %}
-                            <figure class="blog-banner-box">
-                                <img src="{{ main_media.photo_thumbnail.url }}" alt="{{ project.title }}" loading="lazy">
-                            </figure>
-                        {% elif main_media.gif %}
-                            <figure class="blog-banner-box">
-                                <img src="{{ main_media.gif.url }}" alt="{{ project.title }}" loading="eager">
-                            </figure>
-                        {% elif main_media.video %}
-                            <figure class="blog-banner-box">
-                                <video autoplay muted loop playsinline preload="auto" 
-                                       style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
-                                       title="{% trans 'Click to enable sound' %}">
-                                    <source src="{{ main_media.video.url }}" type="video/mp4">
-                                    {% trans "Your browser does not support the video tag." %}
-                                </video>
-                            </figure>
-                        {% endif %}
+                    {% if main_media.photo %}
+                    <figure class="blog-banner-box">
+                        <img src="{{ main_media.photo_thumbnail.url }}" alt="{{ project.title }}" loading="lazy">
+                    </figure>
+                    {% elif main_media.gif %}
+                    <figure class="blog-banner-box">
+                        <img src="{{ main_media.gif.url }}" alt="{{ project.title }}" loading="eager">
+                    </figure>
+                    {% elif main_media.video %}
+                    <figure class="blog-banner-box">
+                        <video autoplay muted loop playsinline preload="auto"
+                            style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                            title="{% trans 'Click to enable sound' %}">
+                            <source src="{{ main_media.video.url }}" type="video/mp4">
+                            {% trans "Your browser does not support the video tag." %}
+                        </video>
+                    </figure>
+                    {% endif %}
                     {% else %}
-                        <figure class="blog-banner-box no-image">
-                            <span>{% trans "No Image" %}</span>
-                        </figure>
+                    <figure class="blog-banner-box no-image">
+                        <span>{% trans "No Image" %}</span>
+                    </figure>
                     {% endif %}
                     {% endwith %}
                     <div class="blog-content">
                         <div class="blog-meta">
-                            <p class="blog-category">{{ project.category.name }}</p>
+                            <p class="blog-category">{% trans project.category.name %}</p>
                             {% if project.created_at %}
                             <span class="dot"></span>
-                            <time datetime="{{ project.created_at|date:'Y-m-d' }}">{{ project.created_at|date:"M d, Y" }}</time>
+                            <time datetime="{{ project.created_at|date:'Y-m-d' }}">{{ project.created_at|date:"M d, Y"
+                                }}</time>
                             {% endif %}
                         </div>
                         <h3 class="h3 blog-item-title">{{ project.title }}</h3>
@@ -76,25 +77,20 @@ All static text is localized using {% trans %} for English msgid and translation
                         {% endif %}
                     </div>
                 </a>
-                
+
                 <!-- Панель взаимодействий -->
                 <div class="interactions-bar compact" data-slug="{{ project.slug }}">
-                    <button class="interaction-btn like-btn" 
-                            data-content-type="project" 
-                            data-slug="{{ project.slug }}"
-                            {% if user.is_authenticated and project|is_liked_by_user:user %}
-                            data-liked="true"
-                            {% endif %}>
-                        <i class="{% if user.is_authenticated and project|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
+                    <button class="interaction-btn like-btn" data-content-type="project" data-slug="{{ project.slug }}"
+                        {% if user.is_authenticated and project|is_liked_by_user:user %} data-liked="true" {% endif %}>
+                        <i
+                            class="{% if user.is_authenticated and project|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
                         <span class="like-count">{{ project|get_likes_count }}</span>
                         <span class="sr-only">{% trans "Лайкнуть" %}</span>
                     </button>
 
-                    <button type="button" class="interaction-btn share-btn" 
-                            data-content-type="project" 
-                            data-slug="{{ project.slug }}"
-                            data-title="{{ project.title }}"
-                            data-url="{% url 'blog:project_detail' project.slug %}">
+                    <button type="button" class="interaction-btn share-btn" data-content-type="project"
+                        data-slug="{{ project.slug }}" data-title="{{ project.title }}"
+                        data-url="{% url 'blog:project_detail' project.slug %}">
                         <i class="fas fa-share share-icon"></i>
                         <span class="share-count">{{ project|get_shares_count }}</span>
                         <span class="sr-only">{% trans "Поделиться" %}</span>
@@ -120,5 +116,5 @@ All static text is localized using {% trans %} for English msgid and translation
 {% block scripts %}
 <!-- GSAP загружается в base.html с задержкой, filter-dropdown.js работает без GSAP -->
 <script src="{% static 'blog/js/filter-dropdown.js' %}"></script>
-    <script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
+<script src="{% static 'blog/js/interactions.js' %}?v=2.3"></script>
 {% endblock %}
