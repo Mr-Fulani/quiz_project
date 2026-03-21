@@ -125,7 +125,7 @@ def personal_info(request):
             'phone': '+90 (552) 582-1497',
             'birthday': 'October 1, 1986',
             'location': 'Istanbul, Turkey',
-            'avatar': 'blog/images/avatar/my-avatar.png',
+            'avatar': 'blog/images/avatar/my-avatar.webp',
             'social_links': {
                 'facebook': 'https://www.facebook.com/Mr.Fulani.Developer/',
                 'telegram': 'https://t.me/Mr_Fulani',
