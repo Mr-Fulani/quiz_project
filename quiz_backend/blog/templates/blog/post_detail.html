@@ -4,7 +4,7 @@
 {% block title %}{{ post.title }} - QuizHub{% endblock %}
 
 {% block meta_description %}{{ post.meta_description|default:post.excerpt|striptags|truncatechars:160 }}{% endblock %}
-{% block meta_keywords %}{{ post.meta_keywords|default:post.category.name|trans }}{% endblock %}
+{% block meta_keywords %}{% if post.meta_keywords %}{{ post.meta_keywords }}{% else %}{% trans post.category.name %}{% endif %}{% endblock %}
 
 {% block extra_head %}
 <!-- Article specific meta -->
@@ -41,7 +41,7 @@
     "@id": "{{ og_url }}"
   },
   "articleSection": "{% trans post.category.name %}",
-  "keywords": "{{ post.meta_keywords|default:post.category.name|trans }}"
+  "keywords": "{% if post.meta_keywords %}{{ post.meta_keywords }}{% else %}{% trans post.category.name %}{% endif %}"
 }
 </script>
 {% endblock %}
@@ -144,8 +144,7 @@ All static text is localized using {% trans %} for English msgid and translation
 
     <!-- Панель взаимодействий -->
     <div class="interactions-bar" data-slug="{{ post.slug }}">
-        <button class="interaction-btn like-btn" data-content-type="post" data-slug="{{ post.slug }}" {% if
-            user.is_authenticated and post|is_liked_by_user:user %} data-liked="true" {% endif %}>
+        <button class="interaction-btn like-btn" data-content-type="post" data-slug="{{ post.slug }}" {% if user.is_authenticated and post|is_liked_by_user:user %} data-liked="true" {% endif %}>
             <i
                 class="{% if user.is_authenticated and post|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
             <span class="like-count">{{ post|get_likes_count }}</span>

@@ -3,8 +3,7 @@
 
 {% block title %}{{ project.title }} - QuizHub Portfolio{% endblock %}
 
-{% block meta_description %}{{ project.meta_description|default:project.description|striptags|truncatechars:160 }}{%
-endblock %}
+{% block meta_description %}{{ project.meta_description|default:project.description|striptags|truncatechars:160 }}{% endblock %}
 {% block meta_keywords %}{{ project.meta_keywords|default:project.technologies }}{% endblock %}
 
 {% block extra_head %}
@@ -159,8 +158,7 @@ All static text is localized using {% trans %} for English msgid and translation
 
     <!-- Панель взаимодействий -->
     <div class="interactions-bar" data-slug="{{ project.slug }}">
-        <button class="interaction-btn like-btn" data-content-type="project" data-slug="{{ project.slug }}" {% if
-            user.is_authenticated and project|is_liked_by_user:user %} data-liked="true" {% endif %}>
+        <button class="interaction-btn like-btn" data-content-type="project" data-slug="{{ project.slug }}" {% if user.is_authenticated and project|is_liked_by_user:user %} data-liked="true" {% endif %}>
             <i
                 class="{% if user.is_authenticated and project|is_liked_by_user:user %}fas{% else %}far{% endif %} fa-heart like-icon"></i>
             <span class="like-count">{{ project|get_likes_count }}</span>
