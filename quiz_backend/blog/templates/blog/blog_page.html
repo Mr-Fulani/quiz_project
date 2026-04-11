@@ -5,7 +5,7 @@
 {% load i18n %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'blog/css/resources.css' %}">
+<link rel="stylesheet" href="{% static 'blog/css/resources.css' %}" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="{% static 'blog/css/interactions.css' %}?v=2.3">
 {% endblock %}
 

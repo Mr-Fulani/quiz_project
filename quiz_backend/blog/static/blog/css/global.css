@@ -4011,3 +4011,14 @@ article .video .video-content {
     }
 }
 
+
+/* =============================== */
+/*  header-spacing.css (merged)    */
+/* =============================== */
+
+/* Стили для длинных заголовков - опускаем их ниже навигационного меню ТОЛЬКО на десктопе */
+@media (min-width: 1024px) {
+    .long-header .article-title {
+        margin-top: 40px !important;
+    }
+}
