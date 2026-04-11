@@ -112,9 +112,8 @@
     {# <link rel="manifest" href="{% static 'path/to/site.webmanifest' %}"> #}
     {# <link rel="mask-icon" href="{% static 'path/to/safari-pinned-tab.svg' %}" color="#5bbad5"> #}
 
-    <!-- CSS файлы загружаются синхронно для предотвращения FOUC -->
+    <!-- Критический CSS: блокирующий (содержит global + header-spacing) -->
     <link rel="stylesheet" href="{% static_versioned 'blog/css/global.css' %}">
-    <link rel="stylesheet" href="{% static_versioned 'blog/css/header-spacing.css' %}">
     <link rel="stylesheet" href="{% static_versioned 'blog/css/animated_auth.css' %}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{% static_versioned 'blog/css/cookie-consent.css' %}" media="print" onload="this.media='all'">
     {% block extra_css %}{% endblock %}
@@ -130,8 +129,10 @@
     <script src="{% static_versioned 'blog/js/font-awesome.min.js' %}" defer></script>
     <!-- Font Awesome уже имеет font-display в CSS, preload ускоряет загрузку -->
     
-    <!-- Highlight.js для подсветки синтаксиса кода -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- Highlight.js: неблокирующая загрузка стилей подсветки синтаксиса -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" as="style" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" media="print" onload="this.media='all'" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" crossorigin="anonymous"></noscript>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
     <!-- Загружаем только основные языки, которые точно существуют -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js" defer></script>
