@@ -126,7 +126,7 @@
 
     <!-- Preload Font Awesome для улучшения производительности -->
     <link rel="preload" href="{% static 'blog/webfonts/fa-solid-900.woff2' %}" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="{% static_versioned 'blog/css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static_versioned 'blog/css/font-awesome.min.css' %}" media="print" onload="this.media='all'">
     <script src="{% static_versioned 'blog/js/font-awesome.min.js' %}" defer></script>
     <!-- Font Awesome уже имеет font-display в CSS, preload ускоряет загрузку -->
     
