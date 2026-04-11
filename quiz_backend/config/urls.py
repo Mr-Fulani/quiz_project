@@ -122,7 +122,6 @@ Disallow: /silk/
 Disallow: /__debug__/
 Allow: /
 
-# Sitemap
 Sitemap: {sitemap_url}
 """
     return HttpResponse(robots_content, content_type='text/plain')
