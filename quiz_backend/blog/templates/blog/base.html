@@ -99,9 +99,11 @@
     {% endif %}
 
     <!-- Preconnect для критических внешних ресурсов -->
-    <link rel="preconnect" href="https://oauth.telegram.org" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Google Fonts: неблокирующая загрузка (лучше чем @import в CSS) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"></noscript>
     
     <!-- Favicon -->
     <link rel="icon" href="{% static 'blog/favicon/favicon.png' %}" type="image/png">
