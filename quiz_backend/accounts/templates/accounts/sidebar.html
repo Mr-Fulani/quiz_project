@@ -2,7 +2,7 @@
 <aside class="sidebar" data-sidebar>
     <div class="sidebar-info">
         <figure class="avatar-box">
-            <img src="{% static 'blog/images/avatar/my-avatar.png' %}" alt="{{ personal_info.name }}" width="80">
+            <img src="{% static 'blog/images/avatar/my-avatar.webp' %}" alt="{{ personal_info.name }}" width="160" height="240">
         </figure>
 
         <div class="info-content">
@@ -10,7 +10,7 @@
             <p class="title">{{ personal_info.title }}</p>
         </div>
 
-        <button class="info-more-btn" data-sidebar-btn>
+        <button class="info-more-btn" data-sidebar-btn aria-label="{% trans "Show Contacts" %}">
             <span>{% trans "Show Contacts" %}</span>
             <ion-icon name="chevron-down"></ion-icon>
         </button>
