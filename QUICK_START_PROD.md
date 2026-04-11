@@ -9,7 +9,11 @@ git pull origin main
 # 2. Запустить продакшн
 ./start-prod.sh
 
-# 3. Проверить статус
+# 3. Настроить защиту (один раз)
+chmod +x scripts/setup-fail2ban.sh
+./scripts/setup-fail2ban.sh
+
+# 4. Проверить статус
 docker compose -f docker-compose.local-prod.yml ps
 
 # Готово! 🎉

@@ -161,6 +161,22 @@ sudo rm -rf ./certbot/conf/
 ./start-prod.sh
 ```
 
+## 🛡️ Безопасность и защита от ботов
+
+Для защиты от DDoS и сканеров ботов на сервере внедрено несколько уровней защиты:
+
+1. **Hetzner Firewall**: На внешнем уровне разрешены подключения к портам 80/443 только от IP-адресов Cloudflare.
+2. **Fail2ban**: Автоматическая блокировка IP при обнаружении попыток сканирования.
+3. **Nginx Hardening**: Ограничения соединений, запросов и SSL handshake.
+
+Подробные инструкции по настройке и управлению защитой смотрите в [INFRASTRUCTURE_HARDENING.md](INFRASTRUCTURE_HARDENING.md).
+
+### Быстрая настройка Fail2ban на сервере:
+```bash
+chmod +x scripts/setup-fail2ban.sh
+./scripts/setup-fail2ban.sh
+```
+
 ## 📞 Поддержка
 
 При возникновении проблем:
