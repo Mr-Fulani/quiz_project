@@ -255,13 +255,22 @@ def seo_context(request):
     language = get_language() or 'en'
     path = request.path
     host = request.get_host()
+    tenant = getattr(request, 'tenant', None)
     
     # ИСПРАВЛЕНИЕ: Используем HTTPS в продакшене
     scheme = 'https' if request.is_secure() else 'http'
     
+    # Получаем данные тенанта или используем значения по умолчанию
+    default_domain = tenant.domain if tenant else 'quiz-code.com'
+    default_mini_domain = tenant.mini_app_domain if tenant else 'mini.quiz-code.com'
+    site_name = tenant.site_name if tenant else 'QuizHub'
+    site_desc = tenant.site_description if tenant and tenant.site_description else _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment. Improve your developer skills with our comprehensive quiz platform.')
+    meta_kws = tenant.meta_keywords if tenant and tenant.meta_keywords else _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding')
+    twitter_site = f"@{tenant.bot_username}" if tenant and tenant.bot_username else '@quiz_code_hub'
+
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
-    if host == 'mini.quiz-code.com':
-        base_url = f"{scheme}://quiz-code.com"  # canonical на основной домен
+    if host == default_mini_domain:
+        base_url = f"{scheme}://{default_domain}"  # canonical на основной домен
         is_mini_app = True
     else:
         base_url = f"{scheme}://{host}"
@@ -269,25 +278,25 @@ def seo_context(request):
 
     # Базовые SEO данные
     seo_data = {
-        'meta_title': _('Quiz Python, Go, JavaScript, Java, C# | Programming Quizzes & Learning'),
-        'meta_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment. Improve your developer skills with our comprehensive quiz platform.'),
-        'meta_keywords': _('programming quiz, Python quiz, JavaScript quiz, Java quiz, C# quiz, Go quiz, coding challenges, programming learning, developer skills, interactive coding'),
+        'meta_title': f"{site_name} | {site_desc[:50]}",
+        'meta_description': site_desc,
+        'meta_keywords': meta_kws,
         'canonical_url': base_url + reverse('blog:home'),
         'hreflang_url': base_url + reverse('blog:home'),
-        'og_title': _('QuizHub - Interactive Programming Quizzes & Learning Platform'),
-        'og_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#. Free coding challenges, tutorials, and skill assessment.'),
+        'og_title': f"{site_name} - Interactive Learning Platform",
+        'og_description': site_desc,
         'og_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
         'og_url': base_url + reverse('blog:home'),
-        'og_site_name': 'QuizHub',
+        'og_site_name': site_name,
         'og_locale': 'en_US' if language == 'en' else 'ru_RU',
         'is_mini_app': is_mini_app,
         'robots_content': 'noindex, follow' if is_mini_app else 'index, follow',
         # Добавляем Twitter Card данные
         'twitter_card': 'summary_large_image',
-        'twitter_site': '@quiz_code_hub',  # замените на ваш Twitter handle
+        'twitter_site': twitter_site,  # замените на ваш Twitter handle
         'twitter_creator': '@mr_fulani',   # замените на ваш Twitter handle
-        'twitter_title': _('QuizHub - Interactive Programming Quizzes'),
-        'twitter_description': _('Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#.'),
+        'twitter_title': f"{site_name} - Interactive Quizzes",
+        'twitter_description': site_desc[:160],
         'twitter_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
         # Добавляем дополнительные мета теги
         'meta_author': 'Anvar Sh.',
@@ -349,8 +358,8 @@ def seo_context(request):
     website_data = {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "QuizHub",
-        "alternateName": "Quiz Code Hub",
+        "name": site_name,
+        "alternateName": f"{site_name} Hub",
         "url": request.build_absolute_uri('/'),
         "description": seo_data['meta_description'],
         "inLanguage": ["en", "ru"],
@@ -377,7 +386,7 @@ def seo_context(request):
     organization_data = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "QuizHub",
+        "name": site_name,
         "url": request.build_absolute_uri('/'),
         "logo": request.build_absolute_uri('/static/blog/images/logo.png'),
         "foundingDate": "2024",
@@ -395,14 +404,13 @@ def seo_context(request):
         ]
     }
 
-    # Добавляем WebApplication schema для мини-приложения
     if is_mini_app:
         webapp_data = {
             "@context": "https://schema.org",
             "@type": "WebApplication",
-            "name": "QuizHub Mini App",
-            "description": "Interactive programming quizzes in Telegram Mini App",
-            "url": f"{scheme}://mini.quiz-code.com",
+            "name": f"{site_name} Mini App",
+            "description": f"Interactive learning quizzes in Telegram Mini App",
+            "url": f"{scheme}://{default_mini_domain}",
             "applicationCategory": "EducationalApplication",
             "operatingSystem": "Web",
             "offers": {
@@ -516,15 +524,19 @@ def dynamic_seo_context(request):
     # ДОБАВЛЕНО: Отладочная информация
     logger.info(f"=== DEBUG: dynamic_seo_context called for path: {path}, host: {host}")
 
+    tenant = getattr(request, 'tenant', None)
     scheme = 'https' if request.is_secure() else 'http'
     
+    default_domain = tenant.domain if tenant else 'quiz-code.com'
+    default_mini_domain = tenant.mini_app_domain if tenant else 'mini.quiz-code.com'
+
     # Для production доменов всегда используем HTTPS
-    if host in ['quiz-code.com', 'www.quiz-code.com']:
+    if host in [default_domain, f'www.{default_domain}']:
         scheme = 'https'
 
     # ИСПРАВЛЕНИЕ: Для mini app всегда используем основной домен в canonical
-    if host == 'mini.quiz-code.com':
-        base_url = f"https://quiz-code.com"  # canonical на основной домен, всегда HTTPS
+    if host == default_mini_domain:
+        base_url = f"https://{default_domain}"  # canonical на основной домен, всегда HTTPS
         is_mini_app = True
     else:
         base_url = f"{scheme}://{host}"
@@ -616,7 +628,7 @@ def dynamic_seo_context(request):
                             if og_image.startswith('http'):
                                 og_image_full_url = og_image
                                 # Для production домена заменяем на HTTPS
-                                if 'quiz-code.com' in og_image_full_url and og_image_full_url.startswith('http://'):
+                                if default_domain in og_image_full_url and og_image_full_url.startswith('http://'):
                                     og_image_full_url = og_image_full_url.replace('http://', 'https://')
                             # Если относительный, формируем полный URL с HTTPS для production
                             elif og_image.startswith('/'):
@@ -664,7 +676,7 @@ def dynamic_seo_context(request):
                         post_absolute_url = post.get_absolute_url()
                         og_url_final = f"{base_url}{post_absolute_url}"
                         # Убеждаемся, что для production используется HTTPS
-                        if 'quiz-code.com' in og_url_final and og_url_final.startswith('http://'):
+                        if default_domain in og_url_final and og_url_final.startswith('http://'):
                             og_url_final = og_url_final.replace('http://', 'https://')
                         
                         seo_data.update({
@@ -780,11 +792,11 @@ def dynamic_seo_context(request):
                             og_image_with_version = og_image
 
                         # Формируем полный URL для OG изображения (HTTPS для production)
-                        production_scheme = 'https' if host in ['quiz-code.com', 'www.quiz-code.com'] else scheme
+                        production_scheme = 'https' if host in [default_domain, f'www.{default_domain}'] else scheme
                         if og_image_with_version.startswith('http'):
                             og_image_final = og_image_with_version
                             # Для production домена заменяем на HTTPS
-                            if 'quiz-code.com' in og_image_final and og_image_final.startswith('http://'):
+                            if default_domain in og_image_final and og_image_final.startswith('http://'):
                                 og_image_final = og_image_final.replace('http://', 'https://')
                         elif og_image_with_version.startswith('/'):
                             og_image_final = f"{production_scheme}://{host}{og_image_with_version}"

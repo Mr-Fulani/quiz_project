@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.conf import settings
 from .models import Topic, Subtopic
 from .utils import normalize_subtopic_name
+from tenants.mixins import TenantFilteredAdminMixin
 
 class TopicAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -33,9 +34,10 @@ class TopicAdminForm(forms.ModelForm):
         )
 
 @admin.register(Topic)
-class TopicAdmin(admin.ModelAdmin):
+class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
-    Админка для управления темами
+    Админка для управления темами.
+    Контент-менеджеры видят только темы своего тенанта.
     """
     form = TopicAdminForm
     list_display = ('id', 'name', 'icon_preview', 'media_type', 'media_preview', 'description', 'get_subtopics_count')
@@ -78,10 +80,12 @@ class TopicAdmin(admin.ModelAdmin):
     media_preview.allow_tags = True
 
 @admin.register(Subtopic)
-class SubtopicAdmin(admin.ModelAdmin):
+class SubtopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
-    Админка для управления подтемами
+    Админка для управления подтемами.
+    Фильтрует через topic.tenant (не имеет прямого FK на tenant).
     """
+    tenant_lookup = 'topic__tenant'  # фильтрация через связанную модель
     list_display = ('id', 'name', 'topic', 'get_tasks_count')
     list_filter = ('topic',)
     search_fields = ('name', 'topic__name')

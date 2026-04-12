@@ -14,6 +14,8 @@ from django.utils import timezone
 
 from accounts.models import CustomUser, TelegramUser, TelegramAdmin, TelegramAdminGroup, DjangoAdmin, UserChannelSubscription, MiniAppUser, UserAvatar, Notification
 from .telegram_admin_service import TelegramAdminService, run_async_function
+import logging
+from tenants.mixins import TenantFilteredAdminMixin
 
 logger = logging.getLogger(__name__)
 
@@ -385,7 +387,7 @@ class TelegramAdminForm(forms.ModelForm):
         # js = ('admin/js/telegram_admin_search.js',)
 
 
-class TelegramAdminAdmin(admin.ModelAdmin):
+class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для TelegramAdmin с интеграцией Telegram Bot API и поиском пользователей.
     """
@@ -933,7 +935,8 @@ class TelegramAdminAdmin(admin.ModelAdmin):
     check_bot_permissions_in_channels.short_description = "🔍 Проверить права бота в каналах (админ)"
 
 
-class DjangoAdminAdmin(admin.ModelAdmin):
+class DjangoAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'tenant'
     """
     Админ-панель для DjangoAdmin: только просмотр основных статусов, без редактирования данных.
     """
@@ -1367,7 +1370,7 @@ class DjangoAdminAdmin(admin.ModelAdmin):
         return model_names.get(model_name, model_name)
 
 
-class CustomUserAdmin(UserOverviewMixin, UserAdmin):
+class CustomUserAdmin(TenantFilteredAdminMixin, UserOverviewMixin, UserAdmin):
     """
     Админ-панель для CustomUser с интеграцией социальных аккаунтов и действием для создания DjangoAdmin.
     """
@@ -1388,6 +1391,10 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
             'fields': ('username', 'password'),
             'description': 'Логин (username) используется для входа в систему, а не для отображения имени. Имя пользователя указывается в полях "Имя" и "Фамилия" ниже.'
         }),
+        ('Мультитенантность', {
+            'fields': ('tenant',),
+            'description': 'Укажите тенант, чтобы ограничить доступ этого пользователя (и его данные) только конкретным сайтом.'
+        }),
         ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'telegram_id', 'avatar', 'bio', 'location', 'birth_date', 'website')}),
         ('Социальные сети', {'fields': ('telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube')}),
         ('Статистика', {'fields': ('total_points', 'quizzes_completed', 'average_score', 'favorite_category')}),
@@ -1398,7 +1405,7 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'telegram_id', 'password1', 'password2', 'is_active', 'is_staff'),
+            'fields': ('username', 'email', 'telegram_id', 'password1', 'password2', 'tenant', 'is_active', 'is_staff'),
         }),
     )
     actions = ['make_django_admin', 'remove_django_admin', 'link_social_accounts', 'show_user_overview', 'show_user_details']
@@ -1652,7 +1659,7 @@ class CustomUserAdmin(UserOverviewMixin, UserAdmin):
     remove_django_admin.short_description = "Убрать права Django-админа"
 
 
-class TelegramUserAdmin(admin.ModelAdmin):
+class TelegramUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для TelegramUser.
     """
@@ -1762,10 +1769,11 @@ class TelegramUserAdmin(admin.ModelAdmin):
     remove_user_from_all_channels.short_description = "🚫 Удалить из всех каналов (кик)"
 
 
-class UserChannelSubscriptionAdmin(admin.ModelAdmin):
+class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для подписок пользователей на каналы.
     """
+    tenant_lookup = 'telegram_user__tenant'
     list_display = [
         'telegram_user', 'channel', 'subscription_status', 
         'subscribed_at', 'banned_status', 'user_admin_status', 'channel_admin_status'
@@ -2226,13 +2234,14 @@ class UserAvatarInline(admin.TabularInline):
     avatar_preview.short_description = 'Миниатюра'
 
 
-class UserAvatarAdmin(admin.ModelAdmin):
+class UserAvatarAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для управления аватарками пользователей Mini App.
     
     Позволяет модераторам просматривать, редактировать и удалять
     аватарки всех пользователей.
     """
+    tenant_lookup = 'user__tenant'
     list_display = ['id', 'avatar_thumbnail', 'user_link', 'order', 'file_type', 'file_size_display', 'created_at']
     list_display_links = ['id', 'avatar_thumbnail']
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'user__telegram_id']
@@ -2445,7 +2454,7 @@ class UserAvatarAdmin(admin.ModelAdmin):
     delete_selected_avatars.short_description = '🗑️ Удалить выбранные аватарки'
 
 
-class MiniAppUserAdmin(admin.ModelAdmin):
+class MiniAppUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для MiniAppUser.
     """
@@ -2938,7 +2947,8 @@ class MiniAppUserAdmin(admin.ModelAdmin):
 
 # Регистрация моделей
 @admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
+class NotificationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'user__tenant'
     """
     Админ-панель для уведомлений.
     """

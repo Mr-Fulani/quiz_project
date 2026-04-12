@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 class TelegramGroup(models.Model):
     """
     Модель для Telegram групп и каналов, аналогичная SQLAlchemy Group.
+    Каждый канал принадлежит одному тенанту.
     """
     class Meta:
         db_table = 'telegram_groups'
@@ -16,6 +17,15 @@ class TelegramGroup(models.Model):
         verbose_name_plural = _('Telegram группы/каналы')
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='telegram_groups',
+        null=True,
+        blank=True,
+        verbose_name=_('Тенант'),
+        help_text=_('Тенант, которому принадлежит эта группа/канал')
+    )
     group_name = models.CharField(
         max_length=255,
         null=False,

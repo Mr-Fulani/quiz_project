@@ -3,6 +3,7 @@ import re
 
 from django import forms
 from django.contrib import admin
+from tenants.mixins import TenantFilteredAdminMixin
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.html import format_html
@@ -43,7 +44,7 @@ class WebhookForm(forms.ModelForm):
         return url
 
 @admin.register(Webhook)
-class WebhookAdmin(admin.ModelAdmin):
+class WebhookAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     list_display = ('id', 'url_link', 'service_name', 'webhook_type', 'platforms_display', 'is_active', 'created_at', 'updated_at')
     list_filter = ('is_active', 'webhook_type', 'service_name')
     search_fields = ('url', 'service_name')
@@ -117,7 +118,7 @@ class WebhookAdmin(admin.ModelAdmin):
 
 
 @admin.register(DefaultLink)
-class DefaultLinkAdmin(admin.ModelAdmin):
+class DefaultLinkAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для ссылок по умолчанию в кнопке 'Узнать больше о задаче'.
     Эта таблица используется и ботом и Django.
@@ -144,7 +145,7 @@ class DefaultLinkAdmin(admin.ModelAdmin):
 
 
 @admin.register(MainFallbackLink)
-class MainFallbackLinkAdmin(admin.ModelAdmin):
+class MainFallbackLinkAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для главных ссылок по языкам.
     Эти ссылки используются когда нет специфичной ссылки для топика.
@@ -172,7 +173,7 @@ class MainFallbackLinkAdmin(admin.ModelAdmin):
 
 
 @admin.register(SocialMediaCredentials)
-class SocialMediaCredentialsAdmin(admin.ModelAdmin):
+class SocialMediaCredentialsAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для учетных данных API социальных сетей.
     Используется для платформ с прямой интеграцией: Pinterest, Яндекс Дзен, Facebook.
@@ -270,7 +271,7 @@ class SocialMediaCredentialsAdmin(admin.ModelAdmin):
 
 
 @admin.register(GlobalWebhookLink)
-class GlobalWebhookLinkAdmin(admin.ModelAdmin):
+class GlobalWebhookLinkAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'url', 'is_active')
     list_filter = ('is_active',)
     search_fields = ('name', 'url')

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from tenants.mixins import TenantFilteredAdminMixin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -170,7 +171,7 @@ class FeedbackReplyInline(admin.StackedInline):
 
 
 @admin.register(FeedbackMessage)
-class FeedbackMessageAdmin(admin.ModelAdmin):
+class FeedbackMessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для управления сообщениями обратной связи
     """
@@ -359,7 +360,8 @@ class FeedbackMessageAdmin(admin.ModelAdmin):
 
 
 @admin.register(FeedbackImage)
-class FeedbackImageAdmin(admin.ModelAdmin):
+class FeedbackImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'feedback__tenant'
     """
     Админка для управления изображениями к обратной связи
     """
@@ -412,7 +414,8 @@ class FeedbackImageAdmin(admin.ModelAdmin):
 
 
 @admin.register(FeedbackReplyImage)
-class FeedbackReplyImageAdmin(admin.ModelAdmin):
+class FeedbackReplyImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'reply__feedback__tenant'
     """
     Админка для управления изображениями к ответам админа
     """
@@ -465,7 +468,8 @@ class FeedbackReplyImageAdmin(admin.ModelAdmin):
 
 
 @admin.register(FeedbackReply)
-class FeedbackReplyAdmin(admin.ModelAdmin):
+class FeedbackReplyAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'feedback__tenant'
     """
     Админка для управления ответами на сообщения поддержки
     """

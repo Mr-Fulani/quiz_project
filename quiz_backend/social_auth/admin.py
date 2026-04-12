@@ -1,9 +1,11 @@
 from django.contrib import admin
+from tenants.mixins import TenantFilteredAdminMixin
 from .models import SocialAccount, SocialLoginSession, SocialAuthSettings
 
 
 @admin.register(SocialAccount)
-class SocialAccountAdmin(admin.ModelAdmin):
+class SocialAccountAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'user__tenant'
     """
     Админка для социальных аккаунтов с интеграцией с другими системами пользователей.
     """
@@ -167,7 +169,8 @@ class SocialAccountAdmin(admin.ModelAdmin):
 
 
 @admin.register(SocialLoginSession)
-class SocialLoginSessionAdmin(admin.ModelAdmin):
+class SocialLoginSessionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'social_account__user__tenant'
     """
     Админка для сессий социальной аутентификации.
     """
@@ -198,7 +201,7 @@ class SocialLoginSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(SocialAuthSettings)
-class SocialAuthSettingsAdmin(admin.ModelAdmin):
+class SocialAuthSettingsAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для настроек социальной аутентификации.
     """

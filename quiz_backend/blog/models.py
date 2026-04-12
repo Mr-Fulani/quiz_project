@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class Category(models.Model):
     """Модель категории для постов и проектов портфолио."""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     name = models.CharField(max_length=100, verbose_name="Название категории")
     slug = models.SlugField(unique=True, verbose_name="Слаг категории")
     description = models.TextField(blank=True, verbose_name="Описание категории")
@@ -52,6 +53,7 @@ class Category(models.Model):
 
 class Post(models.Model):
     """Модель поста блога."""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     title = models.CharField(max_length=200, verbose_name="Заголовок поста")
     slug = models.SlugField(unique=True, verbose_name="Слаг поста")
     content = HTMLField(verbose_name="Содержимое поста")
@@ -330,6 +332,7 @@ class PostImage(models.Model):
 
 class Project(models.Model):
     """Модель проекта портфолио."""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     title = models.CharField(max_length=200, verbose_name="Название проекта")
     slug = models.SlugField(unique=True, verbose_name="Слаг проекта")
     description = HTMLField(verbose_name="Описание проекта")  # Заменяем TextField на HTMLField
@@ -637,6 +640,7 @@ class MessageAttachment(models.Model):
 
 class Message(models.Model):
     """Модель сообщений между пользователями."""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     sender = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
@@ -714,6 +718,7 @@ class PageVideo(models.Model):
         ('gif', 'GIF-файл'),
     )
 
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     page = models.CharField(
         max_length=10,
         choices=PAGE_CHOICES,
@@ -967,6 +972,7 @@ class Testimonial(models.Model):
         created_at (DateTimeField): Дата и время создания отзыва
         is_approved (BooleanField): Статус модерации отзыва
     """
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     user = models.ForeignKey(
         get_user_model(), 
         on_delete=models.CASCADE, 
@@ -1054,6 +1060,7 @@ class MarqueeText(models.Model):
     """
     Модель для бегущей строки с поддержкой нескольких языков.
     """
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     text = models.CharField(max_length=255, blank=True, help_text="Основной текст (используется как запасной)")
     text_en = models.CharField(max_length=255, blank=True, verbose_name="Текст (английский)")
     text_ru = models.CharField(max_length=255, blank=True, verbose_name="Текст (русский)")
@@ -1331,6 +1338,7 @@ class Resume(models.Model):
     Поддерживает английскую и русскую версии.
     """
     # Основная информация
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     name = models.CharField(max_length=200, verbose_name="Имя")
     
     # Контактная информация (EN) - необязательное
@@ -1513,6 +1521,7 @@ class ResumeLanguage(models.Model):
 
 class TinyMCEUpload(models.Model):
     """Модель для отслеживания изображений, загруженных через TinyMCE."""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     file = models.ImageField(
         upload_to='tinymce_uploads/',
         verbose_name="Изображение"

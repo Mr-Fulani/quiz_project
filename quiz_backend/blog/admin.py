@@ -5,6 +5,7 @@ import traceback
 from django import forms
 from django.conf import settings
 from django.contrib import admin
+from tenants.mixins import TenantFilteredAdminMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Max, Count
@@ -22,7 +23,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'is_portfolio', 'created_at')
     list_filter = ('is_portfolio',)
     search_fields = ('name', 'description')
@@ -45,7 +46,7 @@ class ProjectImageInline(admin.TabularInline):
     verbose_name_plural = "Медиа для проекта"
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     inlines = [PostImageInline]
     list_display = ('title', 'category', 'published', 'featured', 'created_at', 'views_count')
     list_filter = ('published', 'featured', 'category')
@@ -314,7 +315,7 @@ class PostAdmin(admin.ModelAdmin):
     send_to_telegram_action.short_description = 'Отправить выбранные посты в Telegram'
 
 @admin.register(Project)
-class ProjectAdmin(admin.ModelAdmin):
+class ProjectAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     inlines = [ProjectImageInline]
     list_display = ('title', 'category', 'featured', 'created_at')
     list_filter = ('featured', 'category')
@@ -397,7 +398,7 @@ class MessageAttachmentInline(admin.TabularInline):
 
 
 @admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
+class MessageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     change_list_template = 'admin/blog/message/change_list.html'
     change_form_template = 'admin/blog/message/change_form.html'
     list_display = ('dialog_link', 'last_message', 'message_count', 'last_message_date')
@@ -760,7 +761,10 @@ class MessageAdmin(admin.ModelAdmin):
                             logger.error(f"Invalid dialog parameter: '{dialog_param}' - IDs must be positive")
                             return self.model.objects.none()
 
-                        qs = self.model.objects.filter(
+                        # Начинаем с базового queryset админки (уже отфильтрованного по тенанту)
+                        base_qs = self.model_admin.get_queryset(request)
+                        
+                        qs = base_qs.filter(
                             (Q(sender_id=sender_id, recipient_id=recipient_id) |
                              Q(sender_id=recipient_id, recipient_id=sender_id)) &
                             Q(is_deleted_by_sender=False, is_deleted_by_recipient=False)
@@ -1021,7 +1025,7 @@ class MessageAdmin(admin.ModelAdmin):
 
 
 @admin.register(PageVideo)
-class PageVideoAdmin(admin.ModelAdmin):
+class PageVideoAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     list_display = ('title', 'page', 'media_type', 'get_show_media_display', 'get_show_text_display', 'order')
     list_filter = ('page', 'media_type', 'show_media', 'show_text')
     search_fields = ('title',)
@@ -1069,7 +1073,7 @@ class PageVideoAdmin(admin.ModelAdmin):
 
 
 @admin.register(Testimonial)
-class TestimonialAdmin(admin.ModelAdmin):
+class TestimonialAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     list_display = ('user', 'text', 'created_at', 'is_approved')
     list_filter = ('is_approved', 'created_at')
     search_fields = ('user__username', 'text')
@@ -1191,7 +1195,7 @@ class MarqueeTextForm(forms.ModelForm):
 
 
 @admin.register(MarqueeText)
-class MarqueeTextAdmin(admin.ModelAdmin):
+class MarqueeTextAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для модели MarqueeText.
     """
@@ -1259,7 +1263,8 @@ class MarqueeTextAdmin(admin.ModelAdmin):
 
 
 @admin.register(PostLike)
-class PostLikeAdmin(admin.ModelAdmin):
+class PostLikeAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'post__tenant'
     list_display = ('user', 'post', 'created_at')
     list_filter = ('created_at', 'post__category')
     search_fields = ('user__username', 'post__title')
@@ -1271,7 +1276,8 @@ class PostLikeAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProjectLike)
-class ProjectLikeAdmin(admin.ModelAdmin):
+class ProjectLikeAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'project__tenant'
     list_display = ('user', 'project', 'created_at')
     list_filter = ('created_at', 'project__category')
     search_fields = ('user__username', 'project__title')
@@ -1283,7 +1289,8 @@ class ProjectLikeAdmin(admin.ModelAdmin):
 
 
 @admin.register(PostShare)
-class PostShareAdmin(admin.ModelAdmin):
+class PostShareAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'post__tenant'
     list_display = ('user', 'post', 'platform', 'created_at')
     list_filter = ('platform', 'created_at', 'post__category')
     search_fields = ('user__username', 'post__title', 'shared_url')
@@ -1295,7 +1302,8 @@ class PostShareAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProjectShare)
-class ProjectShareAdmin(admin.ModelAdmin):
+class ProjectShareAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'project__tenant'
     list_display = ('user', 'project', 'platform', 'created_at')
     list_filter = ('platform', 'created_at', 'project__category')
     search_fields = ('user__username', 'project__title', 'shared_url')
@@ -1307,7 +1315,8 @@ class ProjectShareAdmin(admin.ModelAdmin):
 
 
 @admin.register(PostView)
-class PostViewAdmin(admin.ModelAdmin):
+class PostViewAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'post__tenant'
     list_display = ('post', 'user', 'ip_address', 'created_at')
     list_filter = ('created_at', 'post__category')
     search_fields = ('post__title', 'user__username', 'ip_address')
@@ -1319,7 +1328,8 @@ class PostViewAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProjectView)
-class ProjectViewAdmin(admin.ModelAdmin):
+class ProjectViewAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'project__tenant'
     list_display = ('project', 'user', 'ip_address', 'created_at')
     list_filter = ('created_at', 'project__category')
     search_fields = ('project__title', 'user__username', 'ip_address')
@@ -1435,7 +1445,7 @@ class ResumeLanguageInline(admin.TabularInline):
 
 
 @admin.register(Resume)
-class ResumeAdmin(admin.ModelAdmin):
+class ResumeAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для управления резюме.
     Удобное редактирование всех полей с inline-формами вместо JSON.
@@ -1488,7 +1498,8 @@ class ResumeAdmin(admin.ModelAdmin):
 
 
 @admin.register(ResumeWorkHistory)
-class ResumeWorkHistoryAdmin(admin.ModelAdmin):
+class ResumeWorkHistoryAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'resume__tenant'
     """Админка для редактирования истории работы отдельно"""
     list_display = ('resume', 'title_en', 'period_en', 'company_en', 'order')
     list_filter = ('resume',)
@@ -1516,7 +1527,8 @@ class ResumeWorkHistoryAdmin(admin.ModelAdmin):
 # === МЕДИА-ФАЙЛЫ ===
 
 @admin.register(PostImage)
-class PostImageAdmin(admin.ModelAdmin):
+class PostImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'post__tenant'
     """Админ-панель для управления медиа-файлами постов."""
     list_display = ('post', 'get_media_type', 'is_main', 'alt_text', 'id')
     list_filter = ('is_main', 'post__category')
@@ -1553,7 +1565,8 @@ class PostImageAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProjectImage)
-class ProjectImageAdmin(admin.ModelAdmin):
+class ProjectImageAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'project__tenant'
     """Админ-панель для управления медиа-файлами проектов."""
     list_display = ('project', 'get_media_type', 'is_main', 'alt_text', 'id')
     list_filter = ('is_main', 'project__category')
@@ -1590,7 +1603,8 @@ class ProjectImageAdmin(admin.ModelAdmin):
 
 
 @admin.register(MessageAttachment)
-class MessageAttachmentAdmin(admin.ModelAdmin):
+class MessageAttachmentAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'message__tenant'
     """Админ-панель для управления вложениями сообщений."""
     list_display = ('get_message_info', 'get_filename_safe', 'get_file_size', 'uploaded_at', 'file_preview')
     list_filter = ('uploaded_at',)
@@ -1686,7 +1700,7 @@ class MessageAttachmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(TinyMCEUpload)
-class TinyMCEUploadAdmin(admin.ModelAdmin):
+class TinyMCEUploadAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """Админ-панель для управления изображениями TinyMCE."""
     list_display = ('filename', 'file_size_display', 'uploaded_at', 'file_preview')
     list_filter = ('uploaded_at',)

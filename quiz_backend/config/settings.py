@@ -123,6 +123,9 @@ except ImportError:
 # Application definition
 
 INSTALLED_APPS = [
+    # ── Multi-tenancy ─────────────────────────────────────────────────────────
+    'tenants',
+
     # Ваши приложения
     'accounts',
     'donation',
@@ -218,6 +221,7 @@ LOGGING = {
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'tenants.middleware.TenantMiddleware',          # ← Определяем тенанта по домену
     'django.middleware.security.SecurityMiddleware',
     'config.performance_middleware.RequestIDMiddleware',  # ID для каждого запроса
     'config.middleware.RequestLoggingMiddleware',  # Добавляем логирование
@@ -669,18 +673,15 @@ BROWSER_RETRY_COUNT = int(os.getenv('BROWSER_RETRY_COUNT', '3'))
 
 
 
-# Site Framework Configuration
+# ============================================================
+# SITE INFORMATION
+# NOTE: Брендинг по 99% перенесён в модель Tenant.
+#       Эти константы используются как фаллбэк, если request.tenant = None
+# ============================================================
 SITE_ID = 1
-
-# SEO and Social Media Settings
-DEFAULT_OG_IMAGE = '/static/blog/images/default-og-image.jpeg'
-DEFAULT_OG_IMAGE_WIDTH = 1200
-DEFAULT_OG_IMAGE_HEIGHT = 630
-
-# Site Information
-SITE_NAME = 'QUIZ-CODE'
-SITE_DESCRIPTION = 'Master programming with interactive quizzes in Python, JavaScript, Go, Java, C#'
-SITE_URL = 'https://quiz-code.com'
+SITE_NAME = os.getenv('SITE_NAME', 'Quiz Platform')       # fallback, если Tenant не найден
+SITE_DESCRIPTION = os.getenv('SITE_DESCRIPTION', '')      # fallback
+SITE_URL = os.getenv('SITE_URL', 'https://quiz-code.com') # fallback
 
 # Social Media Handles (замените на ваши реальные)
 TWITTER_HANDLE = '@quiz_code_hub'

@@ -9,6 +9,7 @@ from .models import TelegramGroup
 from .services import send_telegram_post_sync, send_post_to_bot_subscribers
 from topics.models import Topic
 from accounts.models import TelegramUser
+from tenants.mixins import TenantFilteredAdminMixin
 import re
 import asyncio
 import logging
@@ -121,7 +122,7 @@ class TelegramChannelAdminForm(forms.ModelForm):
 
 
 @admin.register(TelegramGroup)
-class TelegramChannelAdmin(admin.ModelAdmin):
+class TelegramChannelAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для модели TelegramGroup.
     """

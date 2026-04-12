@@ -1,0 +1,156 @@
+# tenants/mixins.py
+"""
+TenantFilteredAdminMixin — примесь для всех ModelAdmin в системе.
+
+Логика:
+    - Superuser → видит и редактирует ВСЁ (без ограничений)
+    - Staff (request.user.tenant != None) → видит только записи своего тенанта,
+      создаёт записи только в своём тенанте
+
+Использование:
+    class TopicAdmin(TenantFilteredAdminMixin, ModelAdmin):
+        ...
+"""
+
+import logging
+from django.contrib.admin import ModelAdmin
+from django.forms import HiddenInput
+from django.core.exceptions import ImproperlyConfigured
+from rest_framework import exceptions
+
+logger = logging.getLogger(__name__)
+
+
+class TenantFilteredAdminMixin:
+    """
+    Примесь для Django ModelAdmin.
+    Автоматически фильтрует записи и FK-выборки по тенанту текущего пользователя.
+
+    Атрибуты класса:
+        tenant_lookup (str): Имя поля для фильтрации. По умолчанию 'tenant'.
+            Для моделей без прямого FK указывайте через связь:
+            tenant_lookup = 'topic__tenant'  # для Subtopic
+            tenant_lookup = 'task__tenant'   # для TaskTranslation
+    """
+
+    tenant_lookup: str = 'tenant'  # переопределить в подклассе если нет прямого FK
+
+    # ── Фильтрация queryset ────────────────────────────────────────────────────
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        tenant = getattr(request.user, 'tenant', None)
+        if tenant:
+            return qs.filter(**{self.tenant_lookup: tenant})
+        logger.warning(
+            f'[TenantAdmin] Staff user {request.user} has no tenant assigned. '
+            f'Returning empty queryset.'
+        )
+        return qs.none()
+
+    # ── Автоматическое назначение тенанта при создании ────────────────────────
+
+    def save_model(self, request, obj, form, change):
+        if not change and not request.user.is_superuser:
+            tenant = getattr(request.user, 'tenant', None)
+            if tenant and hasattr(obj, 'tenant') and obj.tenant_id is None:
+                obj.tenant = tenant
+        super().save_model(request, obj, form, change)
+
+    # ── Ограничение FK-выборок по тенанту ────────────────────────────────────
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser:
+            tenant = getattr(request.user, 'tenant', None)
+            if tenant:
+                related_model = db_field.related_model
+                if hasattr(related_model, 'tenant'):
+                    kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if not request.user.is_superuser:
+            tenant = getattr(request.user, 'tenant', None)
+            if tenant:
+                related_model = db_field.related_model
+                if hasattr(related_model, 'tenant'):
+                    kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+    # ── Скрытие поля tenant от обычного staff ─────────────────────────────────
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if not request.user.is_superuser and 'tenant' in form.base_fields:
+            form.base_fields['tenant'].widget = HiddenInput()
+            form.base_fields['tenant'].required = False
+        return form
+
+    # ── Добавляем tenant в list_display для superuser ─────────────────────────
+
+    def get_list_display(self, request):
+        list_display = list(super().get_list_display(request))
+        if request.user.is_superuser and 'tenant' not in list_display:
+            list_display.insert(1, 'tenant')
+        return list_display
+
+    # ── Добавляем фильтр по тенанту для superuser ─────────────────────────────
+
+    def get_list_filter(self, request):
+        list_filter = list(super().get_list_filter(request))
+        if request.user.is_superuser and 'tenant' not in list_filter:
+            list_filter.insert(0, 'tenant')
+        return list_filter
+
+
+class TenantFilteredViewMixin:
+    """
+    Примесь для Django Rest Framework (DRF) GenericAPIView/ViewSet.
+    Автоматически добавляет фильтрацию по тенанту для API ответов.
+    Может быть использована во ViewSets.
+
+    Атрибуты:
+        tenant_lookup (str): Имя поля, в котором находится ссылка на тенанта (по умолчанию 'tenant').
+    """
+
+    tenant_lookup: str = 'tenant'
+
+    def get_queryset(self):
+        """
+        Фильтрует queryset по тенанту из request.tenant.
+        Если тенант не установлен или не найден, возвращает пустой QuerySet (для не-админов).
+        Админы-суперпользователи получают полный QuerySet (если необходимо).
+        """
+        qs = super().get_queryset()
+        request = getattr(self, 'request', None)
+
+        if not request:
+            return qs.none()
+
+        if request.user and request.user.is_superuser:
+            return qs
+
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            return qs.filter(**{self.tenant_lookup: tenant})
+
+        logger.warning(
+            f"[TenantFilteredViewMixin] Request from user {request.user} "
+            f"on path {request.path} has no tenant. Returning empty queryset."
+        )
+        return qs.none()
+
+    def perform_create(self, serializer):
+        """
+        Автоматически подставляет тенант при создании объекта через API.
+        """
+        request = getattr(self, 'request', None)
+        tenant = getattr(request, 'tenant', None) if request else None
+
+        if tenant:
+            serializer.save(**{self.tenant_lookup: tenant})
+        else:
+            # Для суперпользователей без конкретного тенанта может потребоваться выбор
+            serializer.save()
