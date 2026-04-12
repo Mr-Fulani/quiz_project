@@ -17,10 +17,33 @@ from django.utils.translation import gettext_lazy as _
 from .models import Category, Post, Project, PostImage, ProjectImage, Message, PageVideo, Testimonial, \
     MessageAttachment, MarqueeText, CustomURLValidator, PostLike, ProjectLike, PostShare, ProjectShare, \
     PostView, ProjectView, Resume, ResumeWebsite, ResumeSkill, ResumeWorkHistory, ResumeResponsibility, \
-    ResumeEducation, ResumeLanguage, TinyMCEUpload
+    ResumeEducation, ResumeLanguage, Service, TenantInfo, TinyMCEUpload, PlatformResource
+
+@admin.register(PlatformResource)
+class PlatformResourceAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    list_display = ('title_ru', 'title_en', 'url', 'is_active', 'order')
+    list_editable = ('is_active', 'order')
+    search_fields = ('title_ru', 'title_en', 'description_ru', 'description_en', 'url')
+    fields = ('tenant', 'title_ru', 'title_en', 'description_ru', 'description_en', 'url', 'icon_svg', 'icon_image', 'is_active', 'order')
+
 import logging
 
 logger = logging.getLogger(__name__)
+
+class ServiceAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    list_display = ('title_ru', 'display_page', 'order', 'is_active')
+    list_editable = ('display_page', 'order', 'is_active')
+    search_fields = ('title_ru', 'title_en', 'description_ru', 'description_en')
+    list_filter = ('display_page', 'is_active')
+    ordering = ('order',)
+
+admin.site.register(Service, ServiceAdmin)
+
+class TenantInfoAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    list_display = ('name_ru', 'email')
+    search_fields = ('name_ru', 'name_en', 'email')
+
+admin.site.register(TenantInfo, TenantInfoAdmin)
 
 @admin.register(Category)
 class CategoryAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
@@ -30,6 +53,11 @@ class CategoryAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     list_editable = ('is_portfolio',)
     ordering = ('is_portfolio', 'name')
+
+class ResumeSkillInline(admin.TabularInline):
+    model = ResumeSkill
+    extra = 0
+    fields = ('name', 'percentage', 'order')
 
 class PostImageInline(admin.TabularInline):
     model = PostImage
@@ -1044,7 +1072,7 @@ class PageVideoAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             'description': 'Видео для отображения на мобильных устройствах. Если не указано, будет использоваться основное видео.'
         }),
         ('Настройки отображения', {
-            'fields': ('show_media', 'show_text', 'text_content'),
+            'fields': ('show_media', 'show_text', 'text_content_ru', 'text_content_en'),
             'description': 'Выберите, что показывать на странице. Можно показывать медиа и текст вместе, либо по отдельности.'
         }),
     )
@@ -1349,13 +1377,6 @@ class ResumeWebsiteInline(admin.TabularInline):
     verbose_name_plural = "Веб-сайты"
 
 
-class ResumeSkillInline(admin.TabularInline):
-    """Inline редактирование навыков"""
-    model = ResumeSkill
-    extra = 1
-    fields = ('name', 'order')
-    verbose_name = "Навык"
-    verbose_name_plural = "Навыки"
 
 
 class ResumeResponsibilityInline(admin.TabularInline):
@@ -1750,6 +1771,7 @@ class TinyMCEUploadAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Разрешаем удаление неиспользуемых файлов."""
         return True
+
 
 
 

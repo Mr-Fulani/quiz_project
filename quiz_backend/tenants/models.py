@@ -70,6 +70,11 @@ class Tenant(models.Model):
         blank=True,
         help_text=_('Краткое SEO-описание платформы')
     )
+    contact_email = models.EmailField(
+        blank=True,
+        help_text=_('Email для получения сообщений из формы "Свяжитесь со мной". '
+                    'Если пусто — письма не отправляются.')
+    )
     theme_color = models.CharField(
         max_length=20,
         default='#6C63FF',

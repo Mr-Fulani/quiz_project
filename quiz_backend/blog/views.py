@@ -44,7 +44,7 @@ from topics.models import Topic, Subtopic
 
 
 from .mixins import BreadcrumbsMixin
-from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText
+from .models import Category, Post, Project, Message, MessageAttachment, PageVideo, Testimonial, MarqueeText, Service
 from .serializers import CategorySerializer, PostSerializer, ProjectSerializer
 from accounts.serializers import ProfileSerializer, SocialLinksSerializer
 
@@ -568,21 +568,42 @@ class HomePageView(BreadcrumbsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        posts_list = Post.objects.filter(published=True)
+        
+        # Получаем активного тенанта из middleware
+        tenant = getattr(self.request, 'tenant', None)
+        
+        # Формируем базовые QuerySet'ы с фильтрацией по тенанту
+        # Если тенант не найден (неизвестный домен), вообще не показываем данные!
+        posts_qs = Post.objects.filter(tenant=tenant) if tenant else Post.objects.none()
+        categories_qs = Category.objects.filter(tenant=tenant) if tenant else Category.objects.none()
+        projects_qs = Project.objects.filter(tenant=tenant) if tenant else Project.objects.none()
+        page_videos_qs = PageVideo.objects.filter(tenant=tenant) if tenant else PageVideo.objects.none()
+        marquee_qs = MarqueeText.objects.filter(tenant=tenant) if tenant else MarqueeText.objects.none()
+
+        posts_list = posts_qs.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
-        context['categories'] = Category.objects.filter(is_portfolio=False)
-        context['projects'] = Project.objects.all()
-        context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
-        context['posts_with_video'] = Post.objects.filter(
+        
+        context['categories'] = categories_qs.filter(is_portfolio=False)
+        context['projects'] = projects_qs
+        context['portfolio_categories'] = categories_qs.filter(is_portfolio=True)
+        
+        context['posts_with_video'] = posts_qs.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
+        
         # Получаем видео с учетом приоритета по order
-        context['page_videos'] = PageVideo.objects.filter(page='index').order_by('order', 'title')
+        context['page_videos'] = page_videos_qs.filter(page='index').order_by('order', 'title')
         # Получаем приоритетное видео для отображения
-        context['page_video'] = PageVideo.get_priority_video('index')
-        context['marquee_texts'] = MarqueeText.objects.filter(is_active=True).order_by('order')
+        context['page_video'] = PageVideo.get_priority_video('index', tenant=tenant)
+        context['marquee_texts'] = marquee_qs.filter(is_active=True).order_by('order')
+        
+        # Получаем динамические особенности платформы (Platform Features)
+        context['services'] = Service.objects.filter(
+            Q(tenant=tenant) & Q(is_active=True) & (Q(display_page='index') | Q(display_page='all'))
+        ).order_by('order')
+        
         context['meta_title'] = _('Quiz Python, Go, JavaScript, Java, C#')
         return context
 
@@ -600,14 +621,30 @@ class AboutView(BreadcrumbsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['posts_with_video'] = Post.objects.filter(
+        
+        tenant = getattr(self.request, 'tenant', None)
+        posts_qs = Post.objects.filter(tenant=tenant) if tenant else Post.objects.none()
+        page_videos_qs = PageVideo.objects.filter(tenant=tenant) if tenant else PageVideo.objects.none()
+        testimonials_qs = Testimonial.objects.filter(tenant=tenant) if tenant else Testimonial.objects.none()
+        
+        context['posts_with_video'] = posts_qs.filter(
             Q(published=True) & (Q(video_url__isnull=False, video_url__gt='') | Q(images__video__isnull=False))
         ).distinct()
+        
         # Получаем видео с учетом приоритета по order
-        context['page_videos'] = PageVideo.objects.filter(page='about').order_by('order', 'title')
-        # Получаем приоритетное видео для отображения
-        context['page_video'] = PageVideo.get_priority_video('about')
-        context['testimonials'] = Testimonial.objects.filter(is_approved=True)
+        context['page_videos'] = page_videos_qs.filter(page='about').order_by('order', 'title')
+        context['page_video'] = PageVideo.get_priority_video('about', tenant=tenant)
+        context['testimonials'] = testimonials_qs.filter(is_approved=True)
+        context['services'] = Service.objects.filter(
+            Q(tenant=tenant) & Q(is_active=True) & (Q(display_page='about') | Q(display_page='all'))
+        ).order_by('order')
+        
+        # Получаем навыки из активного резюме
+        from .models import Resume
+        active_resume = Resume.objects.filter(tenant=tenant, is_active=True).first()
+        if active_resume:
+            context['skills'] = active_resume.skill_list.all().order_by('order')
+            
         return context
 
     @method_decorator(login_required)
@@ -826,14 +863,18 @@ class ResumeView(BreadcrumbsMixin, TemplateView):
         context['meta_description'] = _('My professional resume with experience and skills.')
         context['meta_keywords'] = _('resume, programmer, portfolio')
         
+        tenant = getattr(self.request, 'tenant', None)
         # Загружаем активное резюме из БД с prefetch related объектами
-        resume = Resume.objects.filter(is_active=True).prefetch_related(
-            'website_links',
-            'skill_list',
-            'work_history_items__responsibilities',
-            'education_items',
-            'language_skills'
-        ).first()
+        if tenant:
+            resume = Resume.objects.filter(is_active=True, tenant=tenant).prefetch_related(
+                'website_links',
+                'skill_list',
+                'work_history_items__responsibilities',
+                'education_items',
+                'language_skills'
+            ).first()
+        else:
+            resume = None
         context['resume'] = resume
         
         # Если есть резюме, подготавливаем данные для удобного отображения
@@ -867,20 +908,22 @@ def download_resume_pdf(request):
     # Получаем язык из параметров или используем по умолчанию
     lang = request.GET.get('lang', 'en')
     
-    # Загружаем резюме с полной оптимизацией запросов
-    # Используем select_related и prefetch_related для минимизации запросов
-    resume = Resume.objects.filter(is_active=True).prefetch_related(
-        Prefetch('website_links', queryset=ResumeWebsite.objects.order_by('order')),
-        Prefetch('skill_list', queryset=ResumeSkill.objects.order_by('order')),
-        Prefetch(
-            'work_history_items',
-            queryset=ResumeWorkHistory.objects.order_by('order').prefetch_related(
-                Prefetch('responsibilities', queryset=ResumeResponsibility.objects.order_by('order'))
-            )
-        ),
-        Prefetch('education_items', queryset=ResumeEducation.objects.order_by('order')),
-        Prefetch('language_skills', queryset=ResumeLanguage.objects.order_by('order'))
-    ).first()
+    tenant = getattr(request, 'tenant', None)
+    if tenant:
+        resume = Resume.objects.filter(is_active=True, tenant=tenant).prefetch_related(
+            Prefetch('website_links', queryset=ResumeWebsite.objects.order_by('order')),
+            Prefetch('skill_list', queryset=ResumeSkill.objects.order_by('order')),
+            Prefetch(
+                'work_history_items',
+                queryset=ResumeWorkHistory.objects.order_by('order').prefetch_related(
+                    Prefetch('responsibilities', queryset=ResumeResponsibility.objects.order_by('order'))
+                )
+            ),
+            Prefetch('education_items', queryset=ResumeEducation.objects.order_by('order')),
+            Prefetch('language_skills', queryset=ResumeLanguage.objects.order_by('order'))
+        ).first()
+    else:
+        resume = None
     
     if not resume:
         return HttpResponse('Резюме не найдено', status=404)
@@ -941,8 +984,13 @@ class PortfolioView(BreadcrumbsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['projects'] = Project.objects.all()
-        context['portfolio_categories'] = Category.objects.filter(is_portfolio=True)
+        tenant = getattr(self.request, 'tenant', None)
+        
+        projects_qs = Project.objects.filter(tenant=tenant) if tenant else Project.objects.none()
+        categories_qs = Category.objects.filter(tenant=tenant) if tenant else Category.objects.none()
+        
+        context['projects'] = projects_qs
+        context['portfolio_categories'] = categories_qs.filter(is_portfolio=True)
         context['meta_description'] = _('Explore my portfolio of projects.')  # Добавлено
         context['meta_keywords'] = _('portfolio, projects, programming')
         return context
@@ -963,13 +1011,18 @@ class BlogView(BreadcrumbsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Исправлено: фильтруем только опубликованные посты
-        posts_list = Post.objects.filter(published=True)
+        
+        tenant = getattr(self.request, 'tenant', None)
+        posts_qs = Post.objects.filter(tenant=tenant) if tenant else Post.objects.none()
+        categories_qs = Category.objects.filter(tenant=tenant) if tenant else Category.objects.none()
+
+        posts_list = posts_qs.filter(published=True)
         paginator = Paginator(posts_list, 5)
         page = self.request.GET.get('page')
         context['posts'] = paginator.get_page(page)
-        # Исправлено: фильтруем только категории блога (не портфолио), чтобы JavaScript фильтр работал корректно
-        context['categories'] = Category.objects.filter(is_portfolio=False)
+        
+        context['categories'] = categories_qs.filter(is_portfolio=False)
+        context['meta_description'] = _('Explore articles and posts on programming and quizzes.')
         context['meta_description'] = _('Explore articles and posts on programming and quizzes.')
         context['meta_keywords'] = _('blog, programming, quizzes')
         return context
@@ -1041,23 +1094,28 @@ def contact_form_submit(request):
     logger.info(f"Обработка сообщения от {fullname} ({email})")
 
     try:
-        # Проверяем настройки email
-        logger.info(f"EMAIL_ADMIN настроен: {settings.EMAIL_ADMIN}")
+        # Определяем адресата получателя: email тенанта мает приоритет, иначе глобальный EMAIL_ADMIN
+        tenant = getattr(request, 'tenant', None)
+        recipient_email = None
+        if tenant and tenant.contact_email:
+            recipient_email = tenant.contact_email
+            logger.info(f"Письмо пойдет на email тенанта: {recipient_email}")
+        elif settings.EMAIL_ADMIN and len(settings.EMAIL_ADMIN) > 0:
+            recipient_email = settings.EMAIL_ADMIN[0]
+            logger.info(f"Письмо пойдет на глобальный EMAIL_ADMIN: {recipient_email}")
+        
+        # Проверяем настройки email для отладки
         logger.info(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
         logger.info(f"EMAIL_HOST: {settings.EMAIL_HOST}")
         logger.info(f"EMAIL_PORT: {settings.EMAIL_PORT}")
         
-        # Находим администратора
-        admin_email = None
-        if settings.EMAIL_ADMIN and len(settings.EMAIL_ADMIN) > 0:
-            admin_email = settings.EMAIL_ADMIN[0]
-        
-        logger.info(f"Email администратора: {admin_email}")
+        # Находим администратора в БД для получения внутренних сообщений
+        admin_email = recipient_email
         admin_user = None
         if admin_email:
             admin_user = CustomUser.objects.filter(email=admin_email).first()
             if not admin_user:
-                logger.warning(f"Администратор с email {admin_email} не найден в базе")
+                logger.warning(f"Пользователь с email {admin_email} не найден в базе")
 
         # Находим или создаём системного пользователя для анонимных сообщений
         logger.info("Поиск/создание системного пользователя Anonymous")
@@ -1075,12 +1133,12 @@ def contact_form_submit(request):
         email_sent = False
         email_error_msg = None
         
-        if settings.EMAIL_ADMIN and settings.DEFAULT_FROM_EMAIL:
+        if recipient_email and settings.DEFAULT_FROM_EMAIL:
             try:
                 subject = f'Новое сообщение от {fullname} ({email})'
                 message = f'Имя: {fullname}\nEmail: {email}\nСообщение:\n{message_text}'
                 from_email = settings.DEFAULT_FROM_EMAIL
-                recipient_list = settings.EMAIL_ADMIN
+                recipient_list = [recipient_email] if recipient_email else settings.EMAIL_ADMIN
 
                 logger.info(f"Отправка письма на {recipient_list} от {from_email}")
                 send_mail(
@@ -1157,7 +1215,13 @@ class QuizesView(BreadcrumbsMixin, ListView):
         return response
 
     def get_queryset(self):
-        queryset = Topic.objects.filter(tasks__published=True).distinct()
+        tenant = getattr(self.request, 'tenant', None)
+        # Если тенант не найден, ничего не отдаём
+        if not tenant:
+            return Topic.objects.none()
+            
+        # Фильтруем данные конкретно этого тенанта
+        queryset = Topic.objects.filter(tenant=tenant, tasks__published=True).distinct()
         
         # Аннотируем общее количество опубликованных задач в теме
         queryset = queryset.annotate(
@@ -2731,7 +2795,10 @@ class AllTestimonialsView(BreadcrumbsMixin, ListView):
     ]
 
     def get_queryset(self):
-        return Testimonial.objects.filter(is_approved=True).order_by('-created_at')
+        tenant = getattr(self.request, 'tenant', None)
+        if not tenant:
+            return Testimonial.objects.none()
+        return Testimonial.objects.filter(tenant=tenant, is_approved=True).order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

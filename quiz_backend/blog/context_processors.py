@@ -40,21 +40,29 @@ def personal_info(request):
             logger.info("=== DEBUG: top_users_data enabled for path: %s", path)
             # Оптимизированный запрос с агрегацией статистики
             # Сначала сортируем по количеству решенных задач, потом по рейтингу
-            top_users = User.objects.annotate(
-                tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
-                total_score=User.get_rating_annotation(),
-                total_attempts=Count('statistics'),
-                successful_attempts=Count('statistics', filter=Q(statistics__successful=True))
-            ).filter(tasks_completed__gt=0).order_by('-tasks_completed', '-total_score')[:3]
+            # Получаем активного тенанта из middleware
+            tenant = getattr(request, 'tenant', None)
+            logger.info("=== DEBUG: Current resolved tenant: %s (Slug: %s)", tenant, getattr(tenant, 'slug', 'N/A'))
+            
+            if tenant:
+                top_users = User.objects.annotate(
+                    tasks_completed_count=Count('statistics', filter=Q(statistics__successful=True) & Q(statistics__task__tenant=tenant)),
+                    total_score_annotated=User.get_rating_annotation(),
+                ).filter(tenant=tenant).filter(tasks_completed_count__gt=0)
+                top_users = top_users.order_by('-tasks_completed_count', '-total_score_annotated')[:3]
+            else:
+                # Если тенант не определен, НЕ показываем пользователей во избежание утечки данных
+                top_users = User.objects.none()
             
             # Оптимизация: получаем все favorite_topics одним запросом для всех пользователей
             user_ids = [user.id for user in top_users]
             favorite_topics_data = {}
             if user_ids:
-                favorite_topics_raw = TaskStatistics.objects.filter(
-                    user_id__in=user_ids,
-                    successful=True
-                ).values('user_id', 'task__topic__name').annotate(
+                stats_filter = Q(user_id__in=user_ids, successful=True)
+                if tenant:
+                    stats_filter &= Q(task__tenant=tenant)
+                    
+                favorite_topics_raw = TaskStatistics.objects.filter(stats_filter).values('user_id', 'task__topic__name').annotate(
                     count=Count('id')
                 ).order_by('user_id', '-count')
                 
@@ -68,22 +76,11 @@ def personal_info(request):
                     # ПРИНУДИТЕЛЬНО обновляем объект из БД, чтобы получить свежие данные
                     user.refresh_from_db(fields=['first_name', 'last_name', 'email', 'username'])
                     
-                    # Используем данные из модели пользователя, если они есть, иначе используем рассчитанные
-                    if user.quizzes_completed > 0 and user.average_score > 0:
-                        # Используем сохраненные данные
-                        avg_score = user.average_score
-                        quizzes_count = user.quizzes_completed
-                        total_score = user.total_points
-                        favorite_category = user.favorite_category or _("Not determined")
-                    else:
-                        # Используем рассчитанные значения из annotate
-                        total_attempts = user.total_attempts or 0
-                        successful_attempts = user.successful_attempts or 0
-                        avg_score = round((successful_attempts / total_attempts * 100) if total_attempts > 0 else 0, 1)
-                        quizzes_count = user.tasks_completed
-                        total_score = (user.total_score or 0)
-                        # Используем favorite_topic из предзагруженных данных
-                        favorite_category = favorite_topics_data.get(user.id) or user.favorite_category or _("Not determined")
+                    # Получаем количество квизов и баллы напрямую из аннотации
+                    quizzes_count = getattr(user, 'tasks_completed_count', 0)
+                    total_score = getattr(user, 'total_score_annotated', 0)
+                    avg_score = round((user.average_score or 0), 1)
+                    favorite_category = favorite_topics_data.get(user.id) or user.favorite_category or _("Not determined")
 
                     # Используем thumbnail версию аватара для оптимизации (120x120px вместо полного размера)
                     try:
@@ -118,68 +115,117 @@ def personal_info(request):
         else:
             logger.info("=== DEBUG: top_users_data disabled for path: %s", path)
 
-        personal_info_data = {
-            'name': 'Anvar Sh.',
-            'title': 'Web Developer',
-            'email': 'fulani.dev@gmail.com',
-            'phone': '+90 (552) 582-1497',
-            'birthday': 'October 1, 1986',
-            'location': 'Istanbul, Turkey',
-            'avatar': 'blog/images/avatar/my-avatar.webp',
-            'social_links': {
-                'facebook': 'https://www.facebook.com/Mr.Fulani.Developer/',
-                'telegram': 'https://t.me/Mr_Fulani',
-                'whatsapp': 'whatsapp://send?phone=05525821497',
-                'instagram': 'https://www.instagram.com/fulani_developer',
-                'github': 'https://github.com/Mr-Fulani',
-                'linkedin': 'https://www.linkedin.com/in/mr-fulani/',
-            },
-            'resources': {
-                'youtube': {
-                    'url': 'https://www.youtube.com/@Mr_Fulani',
-                    'icon': '/static/blog/images/icons/yt.svg',
-                    'name': 'YouTube'
+        tenant = getattr(request, 'tenant', None)
+        # ГАРАНТИРОВАННЫЙ ВЫВОД В КОНСОЛЬ
+        print(f"\n!!! [CRITICAL DEBUG] Request Path: {request.path}")
+        print(f"!!! [CRITICAL DEBUG] Host Header: {request.get_host()}")
+        print(f"!!! [CRITICAL DEBUG] Tenant from request: {tenant.slug if tenant else 'MISSING'}")
+        
+        # СТРОГАЯ ПРОВЕРКА
+        is_quiz_code = tenant is not None and tenant.slug == 'quiz-code'
+        print(f"!!! [CRITICAL DEBUG] is_quiz_code result: {is_quiz_code}\n")
+
+        # Пытаемся получить динамические данные владельца
+        try:
+            from .models import TenantInfo
+            dynamic_info = TenantInfo.objects.filter(tenant=tenant).first()
+        except Exception:
+            dynamic_info = None
+
+        if is_quiz_code and not dynamic_info:
+            # Старый хардкод только для основного тенанта и если нет динамики
+            personal_info_data = {
+                'name': 'Anvar Sh.',
+                'title': 'Web Developer',
+                'email': 'fulani.dev@gmail.com',
+                'phone': '+90 (552) 582-1497',
+                'birthday': 'October 1, 1986',
+                'location': 'Istanbul, Turkey',
+                'avatar': 'blog/images/avatar/my-avatar.webp',
+                'social_links': {
+                    'facebook': 'https://www.facebook.com/Mr.Fulani.Developer/',
+                    'telegram': 'https://t.me/Mr_Fulani',
+                    'whatsapp': 'whatsapp://send?phone=05525821497',
+                    'instagram': 'https://www.instagram.com/fulani_developer',
+                    'github': 'https://github.com/Mr-Fulani',
+                    'linkedin': 'https://www.linkedin.com/in/mr-fulani/',
                 },
-                'telegram': {
-                    'url': 'https://t.me/+Gh7xasVaKwdlMTY0',
-                    'icon': '/static/blog/images/icons/tg.svg',
-                    'name': 'Telegram'
+                'resources': {
+                    'youtube': {'url': 'https://www.youtube.com/@Mr_Fulani', 'icon': '/static/blog/images/icons/yt.svg', 'name': 'YouTube'},
+                    'telegram': {'url': 'https://t.me/+Gh7xasVaKwdlMTY0', 'icon': '/static/blog/images/icons/tg.svg', 'name': 'Telegram'},
+                    'vk': {'url': 'https://vk.com/development_hub', 'icon': '/static/blog/images/icons/vk-logo.svg', 'name': 'VKontakte'},
+                    'dzen': {'url': 'https://dzen.ru/id/692b2112399a32774d42939f', 'icon': '/static/blog/images/icons/zen.svg', 'name': _('Yandex Zen')},
+                    'instagram': {'url': 'https://www.instagram.com/fulani_developer', 'icon': '/static/blog/images/icons/inst.svg', 'name': 'Instagram'},
+                    'tiktok': {'url': 'https://www.tiktok.com/@fulani_developer', 'icon': '/static/blog/images/icons/tiktok.svg', 'name': 'TikTok'}
                 },
-                'vk': {
-                    'url': 'https://vk.com/development_hub',
-                    'icon': '/static/blog/images/icons/vk-logo.svg',
-                    'name': 'VKontakte'
+                'about_text': [
+                    _("I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."),
+                    _("I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."),
+                    _("This blog is not only a business card, but also a useful resource for developers. Here I share: educational materials, guides and examples that will help you improve your programming skills."),
+                    _("Whether it's process automation, integration with external services or creating a unique digital product - I will help bring your idea to life in a reliable and elegant solution.")
+                ],
+                'home_text': [
+                    _("Welcome to QuizHub - your resource for programming and quizzes. Here you will find the latest news, detailed guides and practical tips covering everything from Python to React."),
+                    _("On our site you can learn new technologies, take exciting interactive quizzes and track your progress with detailed statistics."),
+                    _("We strive to make learning programming accessible, interesting and effective for everyone, whether you are a beginner or a professional."),
+                    _("Start your learning right now - dive into the world of code, take quizzes, improve your skills and track your growth.")
+                ],
+                'top_users': top_users_data
+            }
+        elif dynamic_info:
+            # Данные из новой модели TenantInfo
+            lang = getattr(request, 'LANGUAGE_CODE', 'en')
+            personal_info_data = {
+                'name': getattr(dynamic_info, f'name_{lang}', dynamic_info.name_en),
+                'title': getattr(dynamic_info, f'title_{lang}', dynamic_info.title_en),
+                'email': dynamic_info.email,
+                'bio': getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en),
+                'phone': dynamic_info.phone,
+                'birthday': getattr(dynamic_info, f'birthday_{lang}', dynamic_info.birthday_en),
+                'location': getattr(dynamic_info, f'location_{lang}', dynamic_info.location_en),
+                'avatar': dynamic_info.avatar.url if dynamic_info.avatar else '/static/blog/images/avatar/default_avatar.png',
+                'social_links': {
+                    'telegram': dynamic_info.telegram,
+                    'github': dynamic_info.github,
+                    'instagram': dynamic_info.instagram,
+                    'linkedin': dynamic_info.linkedin,
+                    'facebook': dynamic_info.facebook,
+                    'youtube': dynamic_info.youtube,
+                    'vk': dynamic_info.vkontakte,
+                    'tiktok': dynamic_info.tiktok,
+                    'zen': dynamic_info.yandex_zen,
+                    'whatsapp': dynamic_info.whatsapp,
                 },
-                'dzen': {
-                    'url': 'https://dzen.ru/id/692b2112399a32774d42939f',
-                    'icon': '/static/blog/images/icons/zen.svg',
-                    'name': _('Yandex Zen')
-                },
-                'instagram': {
-                    'url': 'https://www.instagram.com/fulani_developer',
-                    'icon': '/static/blog/images/icons/inst.svg',
-                    'name': 'Instagram'
-                },
-                'tiktok': {
-                    'url': 'https://www.tiktok.com/@fulani_developer',
-                    'icon': '/static/blog/images/icons/tiktok.svg',
-                    'name': 'TikTok'
-                }
-            },
-            'about_text': [
-                _("I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."),
-                _("I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."),
-                _("This blog is not only a business card, but also a useful resource for developers. Here I share: educational materials, guides and examples that will help you improve your programming skills."),
-                _("Whether it's process automation, integration with external services or creating a unique digital product - I will help bring your idea to life in a reliable and elegant solution.")
-            ],
-            'home_text': [
-                _("Welcome to QuizHub - your resource for programming and quizzes. Here you will find the latest news, detailed guides and practical tips covering everything from Python to React."),
-                _("On our site you can learn new technologies, take exciting interactive quizzes and track your progress with detailed statistics."),
-                _("We strive to make learning programming accessible, interesting and effective for everyone, whether you are a beginner or a professional."),
-                _("Start your learning right now - dive into the world of code, take quizzes, improve your skills and track your growth.")
-            ],
-            'top_users': top_users_data
-        }
+                'resources': [
+                    {
+                        'title': getattr(res, f'title_{lang}', res.title_en),
+                        'description': getattr(res, f'description_{lang}', res.description_en),
+                        'url': res.url,
+                        'icon_svg': res.icon_svg,
+                        'icon_image': res.icon_image.url if res.icon_image else None,
+                    } for res in dynamic_info.tenant.resources_list.filter(is_active=True).order_by('order')
+                ],
+                'about_text': [
+                    getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) if getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) else tenant.site_description
+                ],
+                'home_text': [
+                    getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) if getattr(dynamic_info, f'bio_{lang}', dynamic_info.bio_en) else tenant.site_description
+                ],
+                'top_users': top_users_data
+            }
+            # Чистим пустые социальные ссылки (resources теперь список, его чистить не нужно)
+            personal_info_data['social_links'] = {k: v for k, v in personal_info_data.get('social_links', {}).items() if v}
+        else:
+            # Фолбэк если вообще ничего нет
+            personal_info_data = {
+                'name': tenant.name if tenant else 'Platform',
+                'title': 'Owner',
+                'email': '', 'phone': '', 'birthday': '', 'location': '', 'avatar': '',
+                'social_links': {}, 'resources': {},
+                'about_text': [tenant.site_description if tenant and tenant.site_description else _('Welcome.')],
+                'home_text': [tenant.site_description if tenant and tenant.site_description else _('Welcome.')],
+                'top_users': top_users_data
+            }
 
         logger.info("=== DEBUG: personal_info data prepared: %s", personal_info_data.keys())
         return {'personal_info': personal_info_data}
@@ -299,7 +345,7 @@ def seo_context(request):
         'twitter_description': site_desc[:160],
         'twitter_image': request.build_absolute_uri(getattr(settings, 'DEFAULT_OG_IMAGE', '/static/blog/images/default-og-image.jpeg')),
         # Добавляем дополнительные мета теги
-        'meta_author': 'Anvar Sh.',
+        'meta_author': 'Anvar Sh.' if (not tenant or tenant.slug == 'quiz-code') else 'Developer',
         'meta_copyright': f'© {timezone.now().year} QuizHub. All rights reserved.',
         'meta_rating': 'general',
         'meta_distribution': 'global',
@@ -312,45 +358,87 @@ def seo_context(request):
 
     # Специфичные SEO данные для разных страниц
     if path == reverse('blog:resume'):
+        is_quiz_code = not tenant or tenant.slug == 'quiz-code'
+        if is_quiz_code:
+            seo_data.update({
+                'meta_title': _('Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React'),
+                'meta_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies. View my professional resume and portfolio.'),
+                'meta_keywords': _('full stack developer, Python developer, Django developer, React developer, web developer resume, portfolio'),
+                'og_title': _('Anvar Sh. - Full Stack Web Developer Resume'),
+                'og_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies.'),
+                'twitter_title': _('Anvar Sh. - Full Stack Developer Resume'),
+                'twitter_description': _('Experienced developer specializing in Python, Django, React, and modern web technologies.'),
+            })
+        else:
+            seo_data.update({
+                'meta_title': _('Resume | Portfolio'),
+                'meta_description': _('Professional resume and portfolio.'),
+                'meta_keywords': _('resume, portfolio, web developer'),
+                'og_title': _('Professional Resume'),
+                'og_description': _('View professional resume and portfolio.'),
+                'twitter_title': _('Professional Resume'),
+                'twitter_description': _('View professional resume and portfolio.'),
+            })
         seo_data.update({
-            'meta_title': _('Anvar Sh. - Full Stack Web Developer Resume | Python, Django, React'),
-            'meta_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies. View my professional resume and portfolio.'),
-            'meta_keywords': _('full stack developer, Python developer, Django developer, React developer, web developer resume, portfolio'),
             'canonical_url': base_url + reverse('blog:resume'),
             'hreflang_url': base_url + reverse('blog:resume'),
-            'og_title': _('Anvar Sh. - Full Stack Web Developer Resume'),
-            'og_description': _('Experienced Full Stack Developer specializing in Python, Django, React, and modern web technologies.'),
             'og_url': base_url + reverse('blog:resume'),
             'og_type': 'profile',
-            'twitter_title': _('Anvar Sh. - Full Stack Developer Resume'),
-            'twitter_description': _('Experienced developer specializing in Python, Django, React, and modern web technologies.'),
         })
     elif path == reverse('blog:about'):
+        is_quiz_code = not tenant or tenant.slug == 'quiz-code'
+        if is_quiz_code:
+            seo_data.update({
+                'meta_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
+                'meta_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor creating educational content and powerful web applications.'),
+                'meta_keywords': _('about developer, programming instructor, web developer story, coding mentor, educational content creator'),
+                'og_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
+                'og_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor.'),
+                'twitter_title': _('About Anvar Sh. - Web Developer'),
+                'twitter_description': _('Passionate web developer and programming instructor creating educational content.'),
+            })
+        else:
+            seo_data.update({
+                'meta_title': _('About Us'),
+                'meta_description': _('Learn more about our platform and mission.'),
+                'meta_keywords': _('about uns, mission, platform'),
+                'og_title': _('About Us'),
+                'og_description': _('Learn more about our platform and mission.'),
+                'twitter_title': _('About Us'),
+                'twitter_description': _('Learn more about our platform and mission.'),
+            })
         seo_data.update({
-            'meta_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
-            'meta_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor creating educational content and powerful web applications.'),
-            'meta_keywords': _('about developer, programming instructor, web developer story, coding mentor, educational content creator'),
             'canonical_url': base_url + reverse('blog:about'),
             'hreflang_url': base_url + reverse('blog:about'),
-            'og_title': _('About Anvar Sh. - Web Developer & Programming Instructor'),
-            'og_description': _('Learn about Anvar Sh., a passionate web developer and programming instructor.'),
             'og_url': base_url + reverse('blog:about'),
             'og_type': 'profile',
-            'twitter_title': _('About Anvar Sh. - Web Developer'),
-            'twitter_description': _('Passionate web developer and programming instructor creating educational content.'),
         })
     elif path == reverse('blog:contact'):
+        is_quiz_code = not tenant or tenant.slug == 'quiz-code'
+        if is_quiz_code:
+            seo_data.update({
+                'meta_title': _('Contact Anvar Sh. - Web Development Services & Collaboration'),
+                'meta_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation. Available for freelance projects.'),
+                'meta_keywords': _('contact developer, web development services, freelance developer, programming consultation, collaboration'),
+                'og_title': _('Contact Anvar Sh. - Web Development Services'),
+                'og_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation.'),
+                'twitter_title': _('Contact Anvar Sh. - Web Development Services'),
+                'twitter_description': _('Get in touch for web development services and collaboration opportunities.'),
+            })
+        else:
+            seo_data.update({
+                'meta_title': _('Contact Us'),
+                'meta_description': _('Get in touch for more information or support.'),
+                'meta_keywords': _('contact, support, inquiry'),
+                'og_title': _('Contact Us'),
+                'og_description': _('Get in touch for more information or support.'),
+                'twitter_title': _('Contact Us'),
+                'twitter_description': _('Get in touch for more information or support.'),
+            })
         seo_data.update({
-            'meta_title': _('Contact Anvar Sh. - Web Development Services & Collaboration'),
-            'meta_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation. Available for freelance projects.'),
-            'meta_keywords': _('contact developer, web development services, freelance developer, programming consultation, collaboration'),
             'canonical_url': base_url + reverse('blog:contact'),
             'hreflang_url': base_url + reverse('blog:contact'),
-            'og_title': _('Contact Anvar Sh. - Web Development Services'),
-            'og_description': _('Get in touch for web development services, collaboration opportunities, or programming consultation.'),
             'og_url': base_url + reverse('blog:contact'),
-            'twitter_title': _('Contact Anvar Sh. - Web Development Services'),
-            'twitter_description': _('Get in touch for web development services and collaboration opportunities.'),
         })
 
     # Добавляем структурированные данные JSON-LD
@@ -373,13 +461,13 @@ def seo_context(request):
         },
         "author": {
             "@type": "Person",
-            "name": "Anvar Sh.",
+            "name": "Anvar Sh." if (not tenant or tenant.slug == 'quiz-code') else "Developer",
             "url": request.build_absolute_uri('/'),
             "sameAs": [
                 "https://www.youtube.com/@Mr_Fulani",
                 "https://t.me/Mr_Fulani",
                 "https://www.instagram.com/fulani_developer"
-            ]
+            ] if (not tenant or tenant.slug == 'quiz-code') else []
         }
     }
     
@@ -393,7 +481,7 @@ def seo_context(request):
         "description": seo_data['meta_description'],
         "contactPoint": {
             "@type": "ContactPoint",
-            "telephone": "+90-552-582-1497",
+            "telephone": "+90-552-582-1497" if (not tenant or tenant.slug == 'quiz-code') else "",
             "contactType": "customer service",
             "availableLanguage": ["English", "Russian"]
         },
@@ -401,7 +489,7 @@ def seo_context(request):
             "https://www.youtube.com/@Mr_Fulani",
             "https://t.me/Mr_Fulani",
             "https://www.instagram.com/fulani_developer"
-        ]
+        ] if (not tenant or tenant.slug == 'quiz-code') else []
     }
 
     if is_mini_app:
@@ -429,8 +517,15 @@ def seo_context(request):
 
 
 def marquee_text(request):
+    tenant = getattr(request, 'tenant', None)
+    qs = MarqueeText.objects.filter(is_active=True)
+    if tenant:
+        qs = qs.filter(tenant=tenant)
+    else:
+        qs = MarqueeText.objects.none()
+    
     return {
-        'marquee_text': MarqueeText.objects.filter(is_active=True).first()
+        'marquee_text': qs.first()
     }
 
 
@@ -548,8 +643,10 @@ def dynamic_seo_context(request):
     try:
         # SEO для постов блога (включая share URL)
         if '/post/' in path or path.endswith('/post/') or '/share/post/' in path:
-            from blog.models import Post
-            from django.db import connection, transaction
+            from .models import (
+    Post, Project, Category, Message, 
+    Resume, ResumeEducation, ResumeLanguage, Service, TenantInfo, TinyMCEUpload
+)
             # Извлекаем slug из пути, учитывая share URL
             path_parts = [part for part in path.split('/') if part]
             if '/share/post/' in path:
@@ -692,7 +789,7 @@ def dynamic_seo_context(request):
                             'og_image': og_image_final,
                             'og_url': og_url_final,
                             'og_type': 'article',
-                            'article_author': 'Anvar Sh.',
+                            'article_author': 'Anvar Sh.' if (not tenant or tenant.slug == 'quiz-code') else 'Developer',
                             'article_published_time': (post.published_at or post.created_at).isoformat(),
                             'article_modified_time': post.updated_at.isoformat(),
                             'article_section': post.category.name,
@@ -725,7 +822,7 @@ def dynamic_seo_context(request):
                             "url": base_url + post.get_absolute_url(),
                             "author": {
                                 "@type": "Person",
-                                "name": "Anvar Sh."
+                                "name": "Anvar Sh." if (not tenant or tenant.slug == 'quiz-code') else "Developer"
                             },
                             "publisher": {
                                 "@type": "Organization",
@@ -849,7 +946,7 @@ def dynamic_seo_context(request):
                             "url": og_url_final,
                             "author": {
                                 "@type": "Person",
-                                "name": "Anvar Sh."
+                                "name": "Anvar Sh." if (not tenant or tenant.slug == 'quiz-code') else "Developer"
                             },
                             "dateCreated": project.created_at.isoformat(),
                             "dateModified": project.updated_at.isoformat(),

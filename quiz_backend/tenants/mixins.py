@@ -53,10 +53,31 @@ class TenantFilteredAdminMixin:
     # ── Автоматическое назначение тенанта при создании ────────────────────────
 
     def save_model(self, request, obj, form, change):
-        if not change and not request.user.is_superuser:
-            tenant = getattr(request.user, 'tenant', None)
-            if tenant and hasattr(obj, 'tenant') and obj.tenant_id is None:
-                obj.tenant = tenant
+        """
+        При сохранении автоматически подставляем тенант, если он не задан.
+        """
+        if not change:
+            # 1. Проверяем, не задан ли уже тенант в объекте
+            current_tenant = getattr(obj, 'tenant', None)
+            
+            # 2. Если не задан, пробуем из разных источников
+            if not current_tenant:
+                # А) Из middleware (по домену)
+                current_tenant = getattr(request, 'tenant', None)
+                
+            if not current_tenant:
+                # Б) Из профиля пользователя
+                current_tenant = getattr(request.user, 'tenant', None)
+
+            # 3. Если нашли тенант - присваиваем
+            if current_tenant:
+                obj.tenant = current_tenant
+                logger.info(f"[TenantAdmin] Successfully assigned tenant '{current_tenant.slug}' to {obj}")
+            else:
+                # Если всё еще нет (например, суперюзер на localhost без привязки)
+                # Выбросим понятную ошибку вместо IntegrityError
+                logger.error(f"[TenantAdmin] Could not determine tenant for {request.user} on {request.get_host()}")
+        
         super().save_model(request, obj, form, change)
 
     # ── Ограничение FK-выборок по тенанту ────────────────────────────────────

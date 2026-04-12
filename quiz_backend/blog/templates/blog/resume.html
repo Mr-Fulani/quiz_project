@@ -1,5 +1,5 @@
 {% extends "blog/base.html" %}
-{% load static %}
+{% load static blog_tags interaction_tags i18n %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'blog/css/resume-enhanced.css' %}">
@@ -7,9 +7,10 @@
 
 {% block content %}
 <article class="resume active" data-page="resume" id="resume-content">
+    {% if resume %}
     <header>
         <h1 class="h2 article-title page-title lang-text" data-lang-key="resume_title">Resume</h1>
-        <h2 class="h2 article-title lang-text" data-lang-key="personal_info.name">{{ resume.name|default:'Anvar Sharipov' }}</h2>
+        <h2 class="h2 article-title lang-text" data-lang-key="personal_info.name">{{ resume.name }}</h2>
         <div class="language-switcher">
             <button class="lang-btn active" data-lang="en">EN</button>
             <button class="lang-btn" data-lang="ru">RU</button>
@@ -24,17 +25,14 @@
                 </div>
             </div>
             <div class="location-phone-wrapper">
-                <p class="location-phone lang-text" data-lang="en">{{ resume.contact_info_en|default:'Istanbul, Turkey 34520 | +905525821497' }}</p>
-                <p class="location-phone lang-text" data-lang="ru">{{ resume.contact_info_ru|default:'Стамбул, Турция 34520 | +905525821497' }}</p>
+                <p class="location-phone lang-text" data-lang="en">{{ resume.contact_info_en }}</p>
+                <p class="location-phone lang-text" data-lang="ru">{{ resume.contact_info_ru }}</p>
             </div>
-            <p class="email"><a href="mailto:{{ resume.email|default:'fulani.dev@gmail.com' }}">{{ resume.email|default:'fulani.dev@gmail.com' }}</a></p>
+            <p class="email"><a href="mailto:{{ resume.email }}">{{ resume.email }}</a></p>
             {% if websites %}
                 {% for website in websites %}
                 <p><a href="{{ website.url }}" target="_blank" rel="noopener noreferrer">{{ website.url }}</a></p>
                 {% endfor %}
-            {% else %}
-            <p><a href="https://github.com/Mr-Fulani" target="_blank" rel="noopener noreferrer">https://github.com/Mr-Fulani</a></p>
-            <p><a href="https://t.me/Mr_Fulani" target="_blank" rel="noopener noreferrer">https://t.me/Mr_Fulani</a></p>
             {% endif %}
         </div>
     </header>
@@ -48,10 +46,10 @@
                 <h3 class="h3 lang-text" data-lang-key="summary_title">Professional Summary</h3>
             </div>
             <p class="timeline-text lang-text" data-lang="en">
-                {{ resume.summary_en|default:'Organized and dependable candidate successful at managing multiple priorities with a positive attitude. Willingness to take on added responsibilities to meet team goals.' }}
+                {{ resume.summary_en }}
             </p>
             <p class="timeline-text lang-text" data-lang="ru">
-                {{ resume.summary_ru|default:'Организованный и надёжный кандидат, успешно справляющийся с несколькими задачами с позитивным настроем. Готов брать на себя дополнительные обязанности для достижения командных целей.' }}
+                {{ resume.summary_ru }}
             </p>
         </div>
 
@@ -67,15 +65,6 @@
                     {% for skill in skills %}
                     <li>{{ skill.name }}</li>
                     {% endfor %}
-                {% else %}
-                <li>Linux Environments</li>
-                <li>Python</li>
-                <li>Django (DRF)</li>
-                <li>FastAPI</li>
-                <li>Flask</li>
-                <li>Docker</li>
-                <li>API Development</li>
-                <li>SQLAlchemy</li>
                 {% endif %}
             </ul>
         </div>
@@ -91,78 +80,20 @@
                 {% if work_history %}
                     {% for job in work_history %}
                 <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">{{ job.title_en|default:'Job Title' }}</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">{{ job.title_ru|default:'Должность' }}</h4>
-                    <span class="lang-text" data-lang="en">{{ job.period_en|default:'Period' }}</span>
-                    <span class="lang-text" data-lang="ru">{{ job.period_ru|default:'Период' }}</span>
-                    <p class="timeline-text lang-text" data-lang="en">{{ job.company_en|default:'Company Name' }}</p>
-                    <p class="timeline-text lang-text" data-lang="ru">{{ job.company_ru|default:'Название компании' }}</p>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">{{ job.title_en }}</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">{{ job.title_ru }}</h4>
+                    <span class="lang-text" data-lang="en">{{ job.period_en }}</span>
+                    <span class="lang-text" data-lang="ru">{{ job.period_ru }}</span>
+                    <p class="timeline-text lang-text" data-lang="en">{{ job.company_en }}</p>
+                    <p class="timeline-text lang-text" data-lang="ru">{{ job.company_ru }}</p>
                     <ul class="responsibilities">
                         {% for resp in job.responsibilities.all %}
-                        <li class="lang-text" data-lang="en">{{ resp.text_en|default:'Responsibility' }}</li>
-                        <li class="lang-text" data-lang="ru">{{ resp.text_ru|default:'Обязанность' }}</li>
-                        {% empty %}
-                        <li class="lang-text" data-lang="en">Professional experience in software development</li>
-                        <li class="lang-text" data-lang="ru">Профессиональный опыт в разработке программного обеспечения</li>
+                        <li class="lang-text" data-lang="en">{{ resp.text_en }}</li>
+                        <li class="lang-text" data-lang="ru">{{ resp.text_ru }}</li>
                         {% endfor %}
                     </ul>
                 </li>
                     {% endfor %}
-                {% else %}
-                <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Private Practice / Freelancing Remote</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Частная практика / Фриланс удалённо</h4>
-                    <span class="lang-text" data-lang="en">01/2023 to Current</span>
-                    <span class="lang-text" data-lang="ru">01/2023 по настоящее время</span>
-                    <p class="timeline-text lang-text" data-lang="en">Upwork.com</p>
-                    <p class="timeline-text lang-text" data-lang="ru">Upwork.com</p>
-                    <ul class="responsibilities">
-                        <li class="lang-text" data-lang="en">Self-motivated, with a strong sense of personal responsibility.</li>
-                        <li class="lang-text" data-lang="ru">Самомотивирован, с сильным чувством личной ответственности.</li>
-                        <li class="lang-text" data-lang="en">Skilled at working independently and collaboratively in a team environment.</li>
-                        <li class="lang-text" data-lang="ru">Умение работать самостоятельно и в команде.</li>
-                    </ul>
-                </li>
-                <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Middle Software Developer</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Средний разработчик программного обеспечения</h4>
-                    <span class="lang-text" data-lang="en">01/2023 to 08/2024</span>
-                    <span class="lang-text" data-lang="ru">01/2023 по 08/2024</span>
-                    <p class="timeline-text lang-text" data-lang="en">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED, Istanbul, Turkey</p>
-                    <p class="timeline-text lang-text" data-lang="ru">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED, Стамбул, Турция</p>
-                    <ul class="responsibilities">
-                        <li class="lang-text" data-lang="en">Improved software efficiency by troubleshooting and resolving coding issues.</li>
-                        <li class="lang-text" data-lang="ru">Улучшил эффективность ПО, устраняя проблемы в коде.</li>
-                        <li class="lang-text" data-lang="en">Saved time and resources by identifying and fixing bugs before product deployment.</li>
-                        <li class="lang-text" data-lang="ru">Сэкономил время и ресурсы, исправляя ошибки перед запуском продукта.</li>
-                        <li class="lang-text" data-lang="en">Discussed issues with team members to provide resolution and apply best practices.</li>
-                        <li class="lang-text" data-lang="ru">Обсуждал проблемы с членами команды для их решения и применения лучших практик.</li>
-                        <li class="lang-text" data-lang="en">Updated old code bases to modern development standards, improving functionality.</li>
-                        <li class="lang-text" data-lang="ru">Обновлял старые кодовые базы до современных стандартов разработки, улучшая функциональность.</li>
-                        <li class="lang-text" data-lang="en">Optimized application performance by conducting regular code reviews and refactoring when necessary.</li>
-                        <li class="lang-text" data-lang="ru">Оптимизировал производительность приложений, проводя регулярные проверки кода и рефакторинг при необходимости.</li>
-                        <li class="lang-text" data-lang="en">Estimated work hours and tracked progress using Scrum methodology.</li>
-                        <li class="lang-text" data-lang="ru">Оценивал рабочее время и отслеживал прогресс с использованием методологии Scrum.</li>
-                        <li class="lang-text" data-lang="en">Built databases and table structures for web applications.</li>
-                        <li class="lang-text" data-lang="ru">Создавал базы данных и структуры таблиц для веб-приложений.</li>
-                    </ul>
-                </li>
-                <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Junior Software Developer</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Младший разработчик программного обеспечения</h4>
-                    <span class="lang-text" data-lang="en">07/2022 to 01/2023</span>
-                    <span class="lang-text" data-lang="ru">07/2022 по 01/2023</span>
-                    <p class="timeline-text lang-text" data-lang="en">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED Si, Istanbul, Turkey</p>
-                    <p class="timeline-text lang-text" data-lang="ru">AS TRANSFER DIJTAL IÇERIK TEKNOLOJILERI LiMiTED Si, Стамбул, Турция</p>
-                    <ul class="responsibilities">
-                        <li class="lang-text" data-lang="en">Contributed to the successful launch of a new software product by assisting with the design, development, and implementation phases.</li>
-                        <li class="lang-text" data-lang="ru">Способствовал успешному запуску нового программного продукта, помогая в фазах проектирования, разработки и внедрения.</li>
-                        <li class="lang-text" data-lang="en">Discussed issues with team members to provide resolution and apply best practices.</li>
-                        <li class="lang-text" data-lang="ru">Обсуждал проблемы с членами команды для их решения и применения лучших практик.</li>
-                        <li class="lang-text" data-lang="en">Built databases and table structures for web applications.</li>
-                        <li class="lang-text" data-lang="ru">Создавал базы данных и структуры таблиц для веб-приложений.</li>
-                    </ul>
-                </li>
                 {% endif %}
             </ol>
         </div>
@@ -178,23 +109,14 @@
                 {% if education %}
                     {% for edu in education %}
                 <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">{{ edu.title_en|default:'Education Title' }}</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">{{ edu.title_ru|default:'Название образования' }}</h4>
-                    <span class="lang-text" data-lang="en">{{ edu.period_en|default:'Period' }}</span>
-                    <span class="lang-text" data-lang="ru">{{ edu.period_ru|default:'Период' }}</span>
-                    <p class="timeline-text lang-text" data-lang="en">{{ edu.institution_en|default:'Institution Name' }}</p>
-                    <p class="timeline-text lang-text" data-lang="ru">{{ edu.institution_ru|default:'Название учебного заведения' }}</p>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">{{ edu.title_en }}</h4>
+                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">{{ edu.title_ru }}</h4>
+                    <span class="lang-text" data-lang="en">{{ edu.period_en }}</span>
+                    <span class="lang-text" data-lang="ru">{{ edu.period_ru }}</span>
+                    <p class="timeline-text lang-text" data-lang="en">{{ edu.institution_en }}</p>
+                    <p class="timeline-text lang-text" data-lang="ru">{{ edu.institution_ru }}</p>
                 </li>
                     {% endfor %}
-                {% else %}
-                <li class="timeline-item">
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="en">Master of Arts: Information Systems And Technologies, Development</h4>
-                    <h4 class="h4 timeline-item-title lang-text" data-lang="ru">Магистр искусств: Информационные системы и технологии, разработка</h4>
-                    <span class="lang-text" data-lang="en">05/2010</span>
-                    <span class="lang-text" data-lang="ru">05/2010</span>
-                    <p class="timeline-text lang-text" data-lang="en">National R. University of Information Technologies, St. Petersburg, Russia</p>
-                    <p class="timeline-text lang-text" data-lang="ru">Национальный университет информационных технологий, Санкт-Петербург, Россия</p>
-                </li>
                 {% endif %}
             </ol>
         </div>
@@ -210,71 +132,30 @@
                 {% if languages %}
                     {% for lang in languages %}
                 <div class="language-item lang-text" data-lang="en">
-                    <span>{{ lang.name_en|default:'Language Name' }}</span>
+                    <span>{{ lang.name_en }}</span>
                     <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" data-level="{{ lang.level|default:50 }}" style="width: {{ lang.level|default:50 }}%;"></div>
+                        <div class="skills-progress-fill" data-level="{{ lang.level }}" style="width: {{ lang.level }}%;"></div>
                     </div>
                 </div>
                 <div class="language-item lang-text" data-lang="ru">
-                    <span>{{ lang.name_ru|default:'Название языка' }}</span>
+                    <span>{{ lang.name_ru }}</span>
                     <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" data-level="{{ lang.level|default:50 }}" style="width: {{ lang.level|default:50 }}%;"></div>
+                        <div class="skills-progress-fill" data-level="{{ lang.level }}" style="width: {{ lang.level }}%;"></div>
                     </div>
                 </div>
                     {% endfor %}
-                {% else %}
-                <div class="language-item lang-text" data-lang="en">
-                    <span>Russian: Native</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 100%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Русский: Родной</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 100%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="en">
-                    <span>English: Intermediate (B1)</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 60%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Английский: Средний (B1)</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 60%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="en">
-                    <span>Persian: Native</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 80%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Персидский: Родной</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 80%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="en">
-                    <span>Turkish: (B2)</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 80%;"></div>
-                    </div>
-                </div>
-                <div class="language-item lang-text" data-lang="ru">
-                    <span>Турецкий: (B2)</span>
-                    <div class="skills-progress-bg">
-                        <div class="skills-progress-fill" style="width: 80%;"></div>
-                    </div>
-                </div>
                 {% endif %}
             </div>
         </div>
     </section>
+    {% else %}
+    <header>
+        <h1 class="h2 article-title">{% trans "Resume" %}</h1>
+    </header>
+    <section class="about-text">
+        <p>{% trans "Resume not yet published for this tenant." %}</p>
+    </section>
+    {% endif %}
 
     <div class="resume-actions">
         {% if is_admin %}

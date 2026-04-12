@@ -16,20 +16,40 @@ def _get_tenant_by_host(host):
     if host in _tenant_cache:
         return _tenant_cache[host]
 
+    # Очищаем хост от лишних слэшей для поиска
+    clean_host = host.rstrip('/')
+    # Хост без порта для запасного поиска
+    host_no_port = clean_host.split(':')[0]
+
     try:
         from tenants.models import Tenant
         from django.db.models import Q
+        from django.conf import settings
 
+        # Ищем с учетом порта, без порта и со слэшами
         tenant = Tenant.objects.filter(
-            Q(domain=host) | Q(mini_app_domain=host),
+            Q(domain=clean_host) | Q(domain=clean_host + '/') |
+            Q(domain=host_no_port) | Q(domain=host_no_port + '/') |
+            Q(mini_app_domain=clean_host) | Q(mini_app_domain=host_no_port),
             is_active=True
         ).first()
 
+        # Если не нашли, но мы в DEBUG режиме и это ngrok хост
+        if not tenant and settings.DEBUG:
+            ngrok_host = getattr(settings, 'NGROK_HOST', None)
+            ngrok_slug = getattr(settings, 'NGROK_TENANT_SLUG', None)
+            
+            # Сравниваем очищенный хост с очищенным ngrok_host
+            if ngrok_host and clean_host == ngrok_host.rstrip('/') and ngrok_slug:
+                tenant = Tenant.objects.filter(slug=ngrok_slug, is_active=True).first()
+                if tenant:
+                    logger.info(f'[TenantMiddleware] Mapped ngrok host "{clean_host}" to development tenant "{tenant.slug}"')
+
         if tenant:
             _tenant_cache[host] = tenant
-            logger.debug(f'[TenantMiddleware] Host "{host}" → Tenant "{tenant.slug}"')
+            logger.debug(f'[TenantMiddleware] Host "{clean_host}" → Tenant "{tenant.slug}"')
         else:
-            logger.warning(f'[TenantMiddleware] No active tenant for host "{host}"')
+            logger.warning(f'[TenantMiddleware] No active tenant for host "{clean_host}"')
             _tenant_cache[host] = None
 
         return tenant
@@ -73,16 +93,16 @@ class TenantMiddleware:
 
     def __call__(self, request):
         host = self._normalize_host(request.get_host())
-        request.tenant = _get_tenant_by_host(host)
+        tenant = _get_tenant_by_host(host)
+        logger.info(f"[TenantMiddleware] Host: {host} -> Tenant: {tenant.slug if tenant else 'None'}")
+        request.tenant = tenant
         response = self.get_response(request)
         return response
 
     @staticmethod
     def _normalize_host(raw_host: str) -> str:
-        """Убирает порт и www. из Host-заголовка."""
-        # Убираем порт (quiz-code.com:8000 → quiz-code.com)
-        host = raw_host.split(':')[0].lower().strip()
-        # Убираем www. (www.quiz-code.com → quiz-code.com)
+        """Убирает только www. и лишние пробелы. Порт сохраняем для точного поиска."""
+        host = raw_host.lower().strip()
         if host.startswith('www.'):
             host = host[4:]
         return host
