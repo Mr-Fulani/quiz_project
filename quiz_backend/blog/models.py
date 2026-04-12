@@ -4,7 +4,7 @@ import os
 
 from PIL import Image, ImageOps
 import re
-from django.core.validators import URLValidator, ValidationError
+from django.core.validators import URLValidator, ValidationError, MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django.urls import reverse
@@ -771,11 +771,17 @@ class PageVideo(models.Model):
         verbose_name="Показывать текст",
         help_text="Отметьте, чтобы показывать текст на странице. Можно показывать вместе с медиа."
     )
-    text_content = models.TextField(
+    text_content_ru = models.TextField(
         blank=True,
         null=True,
-        verbose_name="Текстовый контент",
-        help_text="Введите текст для отображения на странице. Если пусто, будет использован текст по умолчанию. Каждый абзац с новой строки."
+        verbose_name="Текстовый контент (RU)",
+        help_text="Введите текст на русском. Каждый абзац с новой строки."
+    )
+    text_content_en = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Текстовый контент (EN)",
+        help_text="Введите текст на английском. Каждый абзац с новой строки."
     )
     
     # Поля для мобильной версии видео
@@ -955,11 +961,14 @@ class PageVideo(models.Model):
         return self._get_youtube_embed_url_with_version(self.mobile_video_url, for_mobile=True)
     
     @classmethod
-    def get_priority_video(cls, page):
+    def get_priority_video(cls, page, tenant=None):
         """
         Получает первое видео для страницы по полю order (меньше - выше).
         """
-        return cls.objects.filter(page=page).order_by('order', 'title').first()
+        qs = cls.objects.filter(page=page)
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs.order_by('order', 'title').first()
 
 
 class Testimonial(models.Model):
@@ -1347,18 +1356,19 @@ class Resume(models.Model):
     contact_info_ru = models.CharField(max_length=500, blank=True, verbose_name="Контактная информация (RU)")
     
     email = models.EmailField(blank=True, verbose_name="Email")
-    websites = models.JSONField(default=list, verbose_name="Веб-сайты", help_text="Список ссылок")
+    websites = models.JSONField(default=list, blank=True, verbose_name="Веб-сайты", help_text="Список ссылок")
     
     # Профессиональное резюме - необязательное
     summary_en = models.TextField(blank=True, verbose_name="Профессиональное резюме (EN)")
     summary_ru = models.TextField(blank=True, verbose_name="Профессиональное резюме (RU)")
     
     # Навыки
-    skills = models.JSONField(default=list, verbose_name="Навыки", help_text="Список навыков")
+    skills = models.JSONField(default=list, blank=True, verbose_name="Навыки", help_text="Список навыков")
     
     # История работы
     work_history = models.JSONField(
         default=list, 
+        blank=True,
         verbose_name="История работы",
         help_text="Список объектов с полями: title_en, title_ru, period_en, period_ru, company_en, company_ru, responsibilities_en, responsibilities_ru"
     )
@@ -1366,6 +1376,7 @@ class Resume(models.Model):
     # Образование
     education = models.JSONField(
         default=list,
+        blank=True,
         verbose_name="Образование",
         help_text="Список объектов с полями: title_en, title_ru, period_en, period_ru, institution_en, institution_ru"
     )
@@ -1373,6 +1384,7 @@ class Resume(models.Model):
     # Языки
     languages = models.JSONField(
         default=list,
+        blank=True,
         verbose_name="Языки",
         help_text="Список объектов с полями: name_en, name_ru, level (в процентах)"
     )
@@ -1416,6 +1428,7 @@ class ResumeSkill(models.Model):
     """Навыки для резюме"""
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name='skill_list', verbose_name="Резюме")
     name = models.CharField(max_length=200, verbose_name="Навык")
+    percentage = models.PositiveIntegerField(default=100, validators=[MinValueValidator(0), MaxValueValidator(100)], verbose_name="Уровень владения (%)")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
     
     class Meta:
@@ -1519,6 +1532,95 @@ class ResumeLanguage(models.Model):
         return f"{self.name_en} ({self.level}%)"
 
 
+class Service(models.Model):
+    """Модель для динамического раздела 'Чем я занимаюсь' (Услуги/Функции)"""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE, verbose_name="Тенант")
+    title_en = models.CharField(max_length=200, verbose_name="Заголовок (EN)")
+    title_ru = models.CharField(max_length=200, verbose_name="Заголовок (RU)")
+    description_en = models.TextField(verbose_name="Описание (EN)")
+    description_ru = models.TextField(verbose_name="Описание (RU)")
+    
+    # Иконка - поддерживаем и файл, и URL, и SVG
+    icon_image = models.ImageField(upload_to='services/', null=True, blank=True, verbose_name="Иконка (изображение)")
+    icon_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="Иконка (URL команды/внешняя)")
+    icon_svg = models.TextField(null=True, blank=True, verbose_name="SVG код иконки")
+    
+    link = models.CharField(
+        max_length=500, 
+        null=True, 
+        blank=True, 
+        verbose_name="Ссылка (URL или slug)", 
+        help_text="Рекомендуется использовать формат 'app:name' (напр. 'blog:quizes') для авто-подстановки языка. Или путь без языка (напр. '/quizes/')."
+    )
+    
+    PAGE_CHOICES = (
+        ('all', 'Везде'),
+        ('index', 'Главная страница (Особенности)'),
+        ('about', 'Страница Обо мне (Услуги)'),
+    )
+    display_page = models.CharField(
+        max_length=10, 
+        choices=PAGE_CHOICES, 
+        default='about',
+        verbose_name="Где отображать",
+        help_text="Выберите, на какой странице показывать эту карточку."
+    )
+    
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
+    is_active = models.BooleanField(default=True, verbose_name="Активно")
+    
+    class Meta:
+        verbose_name = "Услуга/Функция"
+        verbose_name_plural = "Услуги/Функции"
+        ordering = ['order']
+
+    def __str__(self):
+        return self.title_ru or self.title_en
+
+
+class TenantInfo(models.Model):
+    """Модель для хранения персональной информации владельца тенанта (для сайдбара и контактов)"""
+    tenant = models.OneToOneField('tenants.Tenant', on_delete=models.CASCADE, related_name='info', verbose_name="Тенант")
+    
+    name_ru = models.CharField(max_length=200, verbose_name="Имя (RU)")
+    name_en = models.CharField(max_length=200, verbose_name="Имя (EN)")
+    
+    title_ru = models.CharField(max_length=200, verbose_name="Профессия/Заголовок (RU)")
+    title_en = models.CharField(max_length=200, verbose_name="Профессия/Заголовок (EN)")
+    
+    email = models.EmailField(verbose_name="Email")
+    phone = models.CharField(max_length=50, blank=True, verbose_name="Телефон")
+    birthday_ru = models.CharField(max_length=100, blank=True, verbose_name="Дата рождения (RU)")
+    birthday_en = models.CharField(max_length=100, blank=True, verbose_name="Дата рождения (EN)")
+    
+    location_ru = models.CharField(max_length=255, blank=True, verbose_name="Местоположение (RU)")
+    location_en = models.CharField(max_length=255, blank=True, verbose_name="Местоположение (EN)")
+    
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Аватар")
+    
+    bio_ru = models.TextField(blank=True, verbose_name="О себе (RU)")
+    bio_en = models.TextField(blank=True, verbose_name="О себе (EN)")
+    
+    # Соцсети
+    telegram = models.CharField(max_length=100, blank=True, verbose_name="Telegram (@username или ссылка)")
+    github = models.URLField(blank=True, verbose_name="GitHub URL")
+    instagram = models.URLField(blank=True, verbose_name="Instagram URL")
+    linkedin = models.URLField(blank=True, verbose_name="LinkedIn URL")
+    facebook = models.URLField(blank=True, verbose_name="Facebook URL")
+    youtube = models.URLField(blank=True, verbose_name="YouTube URL")
+    vkontakte = models.URLField(blank=True, verbose_name="VKontakte URL")
+    tiktok = models.URLField(blank=True, verbose_name="TikTok URL")
+    yandex_zen = models.URLField(blank=True, verbose_name="Yandex Zen URL")
+    whatsapp = models.URLField(blank=True, verbose_name="WhatsApp URL (номер или ссылка)")
+
+    class Meta:
+        verbose_name = "Данные владельца"
+        verbose_name_plural = "Данные владельца"
+
+    def __str__(self):
+        return f"Профиль: {self.name_ru or self.name_en} ({self.tenant.name})"
+
+
 class TinyMCEUpload(models.Model):
     """Модель для отслеживания изображений, загруженных через TinyMCE."""
     tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
@@ -1545,3 +1647,28 @@ class TinyMCEUpload(models.Model):
         if self.file and not self.filename:
             self.filename = os.path.basename(self.file.name)
         super().save(*args, **kwargs)
+class PlatformResource(models.Model):
+    """Модель для хранения ссылок на официальные ресурсы платформы (наши сообщества, чаты и т.д.)"""
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE, related_name='resources_list', verbose_name="Тенант")
+    
+    title_ru = models.CharField(max_length=100, verbose_name="Название (RU)")
+    title_en = models.CharField(max_length=100, verbose_name="Название (EN)")
+    
+    description_ru = models.CharField(max_length=255, blank=True, verbose_name="Описание (RU)")
+    description_en = models.CharField(max_length=255, blank=True, verbose_name="Описание (EN)")
+    
+    url = models.URLField(verbose_name="Ссылка URL")
+    
+    icon_svg = models.TextField(blank=True, verbose_name="SVG код иконки")
+    icon_image = models.ImageField(upload_to='resources/', blank=True, null=True, verbose_name="Иконка (файл)")
+    
+    order = models.PositiveIntegerField(default=0, verbose_name="Порядок сортировки")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+
+    class Meta:
+        verbose_name = "Ресурс платформы"
+        verbose_name_plural = "Ресурсы платформы"
+        ordering = ['order', 'title_ru']
+
+    def __str__(self):
+        return f"{self.title_ru} ({self.tenant.name})"

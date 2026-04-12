@@ -131,8 +131,6 @@ msgid "First Name"
 msgstr "Имя"
 
 #: accounts/templates/accounts/dashboard.html:103
-#, fuzzy
-#| msgid "Last message"
 msgid "Last Name"
 msgstr "Фамилия"
 
@@ -142,8 +140,6 @@ msgstr "Биография"
 
 #: accounts/templates/accounts/dashboard.html:109
 #: accounts/templates/accounts/profile.html:69
-#, fuzzy
-#| msgid "Action"
 msgid "Location"
 msgstr "Местоположение"
 
@@ -156,8 +152,6 @@ msgid "Save Changes"
 msgstr "Сохранить изменения"
 
 #: accounts/templates/accounts/dashboard.html:167
-#, fuzzy
-#| msgid "View Profile"
 msgid "Public Profile"
 msgstr "Публичный профиль"
 
@@ -237,8 +231,6 @@ msgid "Settings updated!"
 msgstr "Настройки успешно обновлены!"
 
 #: accounts/templates/accounts/dashboard.html:255
-#, fuzzy
-#| msgid "Error resetting statistics."
 msgid "Error updating settings."
 msgstr "Ошибка при обновлении настроек."
 
@@ -289,8 +281,6 @@ msgid "Messages"
 msgstr "Сообщения"
 
 #: accounts/templates/accounts/inbox.html:49
-#, fuzzy
-#| msgid "Conversation between"
 msgid "No conversations yet"
 msgstr "Пока нет диалогов"
 
@@ -364,14 +354,10 @@ msgid "Statistics"
 msgstr "Статистика"
 
 #: accounts/templates/accounts/profile.html:64
-#, fuzzy
-#| msgid "About me"
 msgid "About"
 msgstr "О себе"
 
 #: accounts/templates/accounts/profile.html:65
-#, fuzzy
-#| msgid "No media available"
 msgid "No bio available"
 msgstr "Биография недоступна"
 
@@ -380,15 +366,11 @@ msgid "Not specified"
 msgstr "Не указано"
 
 #: accounts/templates/accounts/profile.html:126
-#, fuzzy
-#| msgid "Quiz Project"
 msgid "Quiz Performance"
 msgstr "Результаты квиза"
 
 #: accounts/templates/accounts/profile.html:135
 #: accounts/templates/accounts/statistics.html:32
-#, fuzzy
-#| msgid "Number of Attempts"
 msgid "Total Attempts"
 msgstr "Всего попыток"
 
@@ -409,20 +391,14 @@ msgid "Activity Over Time"
 msgstr "Активность по времени"
 
 #: accounts/templates/accounts/profile.html:172
-#, fuzzy
-#| msgid "No user data available yet"
 msgid "No activity data available"
 msgstr "Данные об активности недоступны"
 
 #: accounts/templates/accounts/profile.html:178
-#, fuzzy
-#| msgid "Favorite Category"
 msgid "Performance by Category"
 msgstr "Результаты по категориям"
 
 #: accounts/templates/accounts/profile.html:184
-#, fuzzy
-#| msgid "No user data available yet"
 msgid "No category data available"
 msgstr "Данные по категориям недоступны"
 
@@ -432,8 +408,6 @@ msgid "Attempts Distribution"
 msgstr "Распределение попыток"
 
 #: accounts/templates/accounts/profile.html:196
-#, fuzzy
-#| msgid "No user data available yet"
 msgid "No attempts data available"
 msgstr "Данные о попытках недоступны"
 
@@ -447,8 +421,6 @@ msgid "Send Message"
 msgstr "Отправить сообщение"
 
 #: accounts/templates/accounts/profile.html:220
-#, fuzzy
-#| msgid "Your Message"
 msgid "Write your message..."
 msgstr "Напишите ваше сообщение..."
 
@@ -457,8 +429,6 @@ msgid "Add Files"
 msgstr "Добавить файлы"
 
 #: accounts/templates/accounts/profile.html:233
-#, fuzzy
-#| msgid "Sender"
 msgid "Send"
 msgstr "Отправить"
 
@@ -468,8 +438,6 @@ msgstr "Не удалось изменить пароль."
 
 #: accounts/templates/accounts/sidebar.html:14
 #: accounts/templates/accounts/user_sidebar.html:36
-#, fuzzy
-#| msgid "Contact"
 msgid "Show Contacts"
 msgstr "Показать контакты"
 
@@ -499,8 +467,6 @@ msgid "Portfolio"
 msgstr "Портфолио"
 
 #: accounts/templates/accounts/sidebar.html:48
-#, fuzzy
-#| msgid "Quiz Project"
 msgid "View Projects"
 msgstr "Посмотреть проекты"
 
@@ -510,8 +476,6 @@ msgid "Contact"
 msgstr "Контакты"
 
 #: accounts/templates/accounts/sidebar.html:58
-#, fuzzy
-#| msgid "Contact"
 msgid "Contact Me"
 msgstr "Связаться со мной"
 
@@ -548,8 +512,6 @@ msgid "Quizzes"
 msgstr "Квизы"
 
 #: accounts/templates/accounts/user_list.html:57
-#, fuzzy
-#| msgid "No messages found"
 msgid "No users found."
 msgstr "Пользователи не найдены."
 
@@ -580,8 +542,6 @@ msgid "Online"
 msgstr "Онлайн"
 
 #: accounts/templates/accounts/user_profile.html:26
-#, fuzzy
-#| msgid "Last message"
 msgid "Last seen"
 msgstr "Последний визит"
 
@@ -590,8 +550,6 @@ msgid "Member since"
 msgstr "Участник с"
 
 #: accounts/templates/accounts/user_profile.html:64
-#, fuzzy
-#| msgid "View Profile"
 msgid "View Full Profile"
 msgstr "Посмотреть полный профиль"
 
@@ -608,8 +566,6 @@ msgid "Points based on task difficulty"
 msgstr ""
 
 #: accounts/templates/accounts/user_sidebar.html:180
-#, fuzzy
-#| msgid "avatar"
 msgid "Default avatar"
 msgstr "Аватар по умолчанию"
 
@@ -634,8 +590,6 @@ msgid "to view your profile information."
 msgstr "чтобы просмотреть информацию вашего профиля."
 
 #: accounts/templates/accounts/user_statistics.html:20
-#, fuzzy
-#| msgid "Number of Attempts"
 msgid "Attempts"
 msgstr "Попытки"
 
@@ -844,8 +798,6 @@ msgid ""
 msgstr ""
 
 #: blog/context_processors.py:313
-#, fuzzy
-#| msgid "About Me — Quiz Project"
 msgid "About Anvar Sh. - Web Developer"
 msgstr "Обо мне — Квиз Проект"
 
@@ -894,8 +846,6 @@ msgid "Главная"
 msgstr "Главная"
 
 #: blog/templates/blog/about.html:11
-#, fuzzy
-#| msgid "About Me"
 msgid "About me"
 msgstr "Обо мне"
 
@@ -1129,8 +1079,6 @@ msgstr "Посты"
 
 # Donation page translations
 #: blog/templates/blog/base.html:276
-#, fuzzy
-#| msgid "Donation"
 msgid "Donate"
 msgstr "Пожертвование"
 
@@ -1139,8 +1087,6 @@ msgid "или"
 msgstr ""
 
 #: blog/templates/blog/base.html:382 blog/templates/blog/base.html:434
-#, fuzzy
-#| msgid "Current Password"
 msgid "Forgot Password?"
 msgstr "Текущий пароль"
 
@@ -1149,17 +1095,12 @@ msgid "Signup"
 msgstr ""
 
 #: blog/templates/blog/base.html:435
-#, fuzzy
-#| msgid ""
-#| "Enter your email address and we'll send you a link to reset your password."
 msgid ""
 "Enter your email address below and we'll send you a link to reset your "
 "password."
 msgstr "Введите ваш email адрес и мы отправим вам ссылку для сброса пароля."
 
 #: blog/templates/blog/base.html:439
-#, fuzzy
-#| msgid "Enter your email address"
 msgid "Enter your email"
 msgstr "Введите ваш email адрес"
 
@@ -1193,7 +1134,6 @@ msgstr "Нет изображения"
 #: blog/templates/blog/blog_page.html:83 blog/templates/blog/portfolio.html:87
 #: blog/templates/blog/post_detail.html:153
 #: blog/templates/blog/project_detail.html:167
-#, fuzzy
 msgid "Лайкнуть"
 msgstr "Лайкнуть"
 
@@ -1488,20 +1428,14 @@ msgid "Test on subtopic"
 msgstr "Тест по подтеме"
 
 #: blog/templates/blog/quiz_detail.html:42
-#, fuzzy
-#| msgid "Test on subtopic"
 msgid "No subtopics"
 msgstr "Тест по подтеме"
 
 #: blog/templates/blog/quiz_detail.html:45
-#, fuzzy
-#| msgid "No topics available"
 msgid "No Subtopics Available"
 msgstr "Нет доступных тем"
 
 #: blog/templates/blog/quiz_detail.html:46
-#, fuzzy, python-format
-#| msgid "No subtopics available for"
 msgid "No subtopics available for %(topic_name)s."
 msgstr "Нет доступных подтем для"
 
@@ -1523,8 +1457,6 @@ msgid "Log in to track your progress"
 msgstr "Войдите, чтобы отслеживать свой прогресс"
 
 #: blog/templates/blog/quiz_difficulty.html:23
-#, fuzzy
-#| msgid "Available Difficulty Levels"
 msgid "Difficulty Levels"
 msgstr "Доступные уровни сложности"
 
@@ -1542,20 +1474,14 @@ msgid "Tasks of level"
 msgstr "Задачи уровня"
 
 #: blog/templates/blog/quiz_difficulty.html:45
-#, fuzzy
-#| msgid "No difficulty levels available"
 msgid "No difficulty levels"
 msgstr "Нет доступных уровней сложности"
 
 #: blog/templates/blog/quiz_difficulty.html:48
-#, fuzzy
-#| msgid "No difficulty levels available"
 msgid "No Difficulty Levels Available"
 msgstr "Нет доступных уровней сложности"
 
 #: blog/templates/blog/quiz_difficulty.html:49
-#, fuzzy
-#| msgid "No difficulty levels available"
 msgid "No difficulty levels available for this subtopic."
 msgstr "Нет доступных уровней сложности"
 
@@ -1609,14 +1535,10 @@ msgid "Test on topic"
 msgstr "Тест по теме"
 
 #: blog/templates/blog/quizes.html:46
-#, fuzzy
-#| msgid "No topics available"
 msgid "No topics"
 msgstr "Нет доступных тем"
 
 #: blog/templates/blog/quizes.html:49
-#, fuzzy
-#| msgid "No media available"
 msgid "No Quizzes Available"
 msgstr "Биография недоступна"
 
@@ -1657,8 +1579,6 @@ msgid "Explore my portfolio of projects."
 msgstr ""
 
 #: blog/views.py:814
-#, fuzzy
-#| msgid "quiz, blog, portfolio, projects, programming"
 msgid "portfolio, projects, programming"
 msgstr "квиз, блог, портфолио, проекты, программирование"
 
@@ -1679,8 +1599,6 @@ msgid "Get in touch with us."
 msgstr ""
 
 #: blog/views.py:857
-#, fuzzy
-#| msgid "Contact — Quiz Project"
 msgid "contact, feedback, quiz project"
 msgstr "Контакты — Квиз Проект"
 
@@ -1693,14 +1611,10 @@ msgid "Test your knowledge with our interactive quizzes."
 msgstr ""
 
 #: blog/views.py:964
-#, fuzzy
-#| msgid "quiz, blog, portfolio, projects, programming"
 msgid "quizzes, tests, programming"
 msgstr "квиз, блог, портфолио, проекты, программирование"
 
 #: blog/views.py:1043
-#, fuzzy, python-format
-#| msgid "%(topic_name)s icon"
 msgid "%(topic_name)s Quizzes"
 msgstr "Иконка %(topic_name)s"
 
@@ -1710,8 +1624,6 @@ msgid "Explore quizzes on %(topic_name)s."
 msgstr ""
 
 #: blog/views.py:1045
-#, fuzzy, python-format
-#| msgid "%(topic_name)s icon"
 msgid "%(topic_name)s, quizzes, programming"
 msgstr "Иконка %(topic_name)s"
 
@@ -1752,8 +1664,6 @@ msgid "I don't know, but I want to learn"
 msgstr "Я не знаю, но хочу узнать"
 
 #: blog/views.py:1303
-#, fuzzy, python-format
-#| msgid "%(subtopic_name)s icon"
 msgid "%(subtopic_name)s — %(difficulty)s Quizzes"
 msgstr "Иконка %(subtopic_name)s"
 
@@ -1764,8 +1674,6 @@ msgid ""
 msgstr ""
 
 #: blog/views.py:1305
-#, fuzzy, python-format
-#| msgid "%(topic_name)s icon"
 msgid "%(subtopic_name)s, quizzes, %(difficulty)s, programming"
 msgstr "Иконка %(topic_name)s"
 
@@ -1795,20 +1703,14 @@ msgstr ""
 
 # Donation admin translations
 #: donation/forms.py:17
-#, fuzzy
-#| msgid "Amount"
 msgid "Amount ($)"
 msgstr "Сумма"
 
 #: donation/forms.py:24
-#, fuzzy
-#| msgid "Enter your email address"
 msgid "Enter your email (optional)"
 msgstr "Введите ваш email адрес"
 
 #: donation/forms.py:26
-#, fuzzy
-#| msgid "Email Notifications"
 msgid "Email (optional)"
 msgstr "Уведомления по электронной почте"
 
@@ -1826,14 +1728,10 @@ msgid "Failed"
 msgstr ""
 
 #: donation/models.py:12
-#, fuzzy
-#| msgid "Cancel"
 msgid "Cancelled"
 msgstr "Отмена"
 
 #: donation/models.py:20
-#, fuzzy
-#| msgid "Users"
 msgid "User"
 msgstr "Пользователи"
 
@@ -1851,8 +1749,6 @@ msgid "Currency"
 msgstr "Валюта"
 
 #: donation/models.py:50
-#, fuzzy
-#| msgid "Visit Website"
 msgid "Website"
 msgstr "Посетить сайт"
 
@@ -1869,20 +1765,14 @@ msgid "Fiat (Card)"
 msgstr ""
 
 #: donation/models.py:63
-#, fuzzy
-#| msgid "Currency"
 msgid "Cryptocurrency"
 msgstr "Валюта"
 
 #: donation/models.py:70
-#, fuzzy
-#| msgid "Payment error: "
 msgid "Payment Type"
 msgstr "Ошибка оплаты: "
 
 #: donation/models.py:75
-#, fuzzy
-#| msgid "Payment error: "
 msgid "Payment Method"
 msgstr "Ошибка оплаты: "
 
@@ -1891,14 +1781,10 @@ msgid "Status"
 msgstr "Статус"
 
 #: donation/models.py:89
-#, fuzzy
-#| msgid "Payment intent ID required"
 msgid "Stripe Payment Intent ID"
 msgstr "Требуется ID намерения платежа"
 
 #: donation/models.py:97
-#, fuzzy
-#| msgid "Currency"
 msgid "Crypto Currency"
 msgstr "Валюта"
 
@@ -1912,8 +1798,6 @@ msgstr ""
 
 # Donation admin translations
 #: donation/models.py:111
-#, fuzzy
-#| msgid "Amount"
 msgid "Crypto Amount"
 msgstr "Сумма"
 
@@ -1947,8 +1831,6 @@ msgstr ""
 
 # Donation admin translations
 #: donation/models.py:153
-#, fuzzy
-#| msgid "Amount"
 msgid "Stars Amount"
 msgstr "Сумма"
 
@@ -1969,8 +1851,6 @@ msgid "Created At"
 msgstr "Создано"
 
 #: donation/models.py:170
-#, fuzzy
-#| msgid "Created At"
 msgid "Updated At"
 msgstr "Создано"
 
@@ -1982,8 +1862,6 @@ msgstr "Пожертвование"
 
 # Donation page translations
 #: donation/models.py:175
-#, fuzzy
-#| msgid "Donation"
 msgid "Donations"
 msgstr "Пожертвование"
 
@@ -2069,8 +1947,6 @@ msgid "Error processing payment: "
 msgstr "Ошибка обработки платежа: "
 
 #: donation/views.py:46
-#, fuzzy
-#| msgid "Contact Support"
 msgid "Support"
 msgstr "Связаться с поддержкой"
 
@@ -2140,8 +2016,6 @@ msgid "Payment intent ID required"
 msgstr "Требуется ID намерения платежа"
 
 #: donation/views.py:297
-#, fuzzy
-#| msgid "Payment processed successfully."
 msgid "Payment confirmed successfully"
 msgstr "Платеж успешно обработан."
 
@@ -2150,8 +2024,6 @@ msgid "Payment not completed"
 msgstr ""
 
 #: donation/views.py:309
-#, fuzzy
-#| msgid "Payment confirmation error: "
 msgid "Payment confirmation error"
 msgstr "Ошибка подтверждения платежа: "
 
@@ -2164,8 +2036,6 @@ msgid "Пост отправлен в {} из {} каналов."
 msgstr ""
 
 #: platforms/admin.py:227
-#, fuzzy
-#| msgid "Ошибка при обработке элемента для удаления: {str(e)}"
 msgid "Ошибка при отправке поста во все каналы."
 msgstr "Ошибка при обработке элемента для удаления: {str(e)}"
 
@@ -2346,8 +2216,6 @@ msgid "URL аватара"
 msgstr ""
 
 #: social_auth/models.py:69
-#, fuzzy
-#| msgid "Success Rate"
 msgid "Access token"
 msgstr "Процент успеха"
 
@@ -2424,8 +2292,6 @@ msgid "IP адрес"
 msgstr ""
 
 #: social_auth/models.py:349
-#, fuzzy
-#| msgid "User Avatar"
 msgid "User Agent"
 msgstr "Аватар пользователя"
 
@@ -2434,8 +2300,6 @@ msgid "Успешный вход"
 msgstr ""
 
 #: social_auth/models.py:358
-#, fuzzy
-#| msgid "Вложение сообщения"
 msgid "Сообщение об ошибке"
 msgstr "Вложение сообщения"
 
@@ -2480,8 +2344,6 @@ msgid "Социальный аккаунт успешно отключен"
 msgstr ""
 
 #: social_auth/views.py:288
-#, fuzzy
-#| msgid "Сообщения для удаления не найдены или уже были удалены."
 msgid "Аккаунт не найден или уже отключен"
 msgstr "Сообщения для удаления не найдены или уже были удалены."
 
@@ -2988,17 +2850,12 @@ msgstr ""
 
 #: templates/registration/password_reset_email_backup.txt:6
 #: templates/registration/password_reset_email_simple.html:12
-#, fuzzy
-#| msgid ""
-#| "If you made this request, click the button below to set a new password:"
 msgid "If you made this request, click the link below to set a new password:"
 msgstr ""
 "Если вы делали этот запрос, нажмите кнопку ниже, чтобы установить новый "
 "пароль:"
 
 #: templates/registration/password_reset_email_backup.txt:10
-#, fuzzy
-#| msgid "Important Information"
 msgid "Important Information:"
 msgstr "Важная информация"
 
@@ -3013,16 +2870,10 @@ msgid "FOLLOW US FOR UPDATES:"
 msgstr "СЛЕДИТЕ ЗА ОБНОВЛЕНИЯМИ:"
 
 #: templates/registration/password_reset_email_simple.html:18
-#, fuzzy
-#| msgid "This link is valid for 24 hours"
 msgid "This link is valid for 24 hours."
 msgstr "Эта ссылка действительна 24 часа"
 
 #: templates/registration/password_reset_email_simple.html:20
-#, fuzzy
-#| msgid ""
-#| "If you didn't request a password reset, you can safely ignore this email. "
-#| "Your password won't be changed."
 msgid "If you didn't request this, you can safely ignore this email."
 msgstr ""
 "Если вы не запрашивали сброс пароля, можете спокойно проигнорировать это "

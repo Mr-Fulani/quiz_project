@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const textLength = header.textContent.trim().length;
                 
                 // Если заголовок длиннее 7 символов, добавляем класс
-                if (textLength > 7) {
+                if (textLength > 6) {
                     article.classList.add('long-header');
                 } else {
                     article.classList.remove('long-header');

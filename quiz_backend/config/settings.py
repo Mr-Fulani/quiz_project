@@ -83,8 +83,11 @@ else:
 
 # Добавляем хост ngrok для локальной разработки и тестирования
 NGROK_HOST = os.getenv('NGROK_HOST')
+NGROK_TENANT_SLUG = os.getenv('NGROK_TENANT_SLUG')
 if NGROK_HOST:
-    ALLOWED_HOSTS.append(NGROK_HOST)
+    host_only = NGROK_HOST.split(':')[0]
+    if host_only not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host_only)
 
 # Публичный URL для социальных сетей (для локальной разработки)
 PUBLIC_URL = os.getenv('PUBLIC_URL')
@@ -467,6 +470,13 @@ if DEBUG:
         'http://quiz_backend:8001',
         'http://localhost:8080',
     ]
+    if NGROK_HOST:
+        if not NGROK_HOST.startswith(('http://', 'https://')):
+            CSRF_TRUSTED_ORIGINS.append(f"https://{NGROK_HOST}")
+            CSRF_TRUSTED_ORIGINS.append(f"http://{NGROK_HOST}")
+        else:
+            CSRF_TRUSTED_ORIGINS.append(NGROK_HOST)
+    
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
 else:

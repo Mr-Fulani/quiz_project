@@ -4,6 +4,25 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static_versioned 'blog/css/resources.css' %}" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="{% static 'blog/css/card_animations.css' %}" media="print" onload="this.media='all'">
+<style>
+    .service-icon-box svg {
+        width: 40px !important;
+        height: 40px !important;
+        color: var(--orange-yellow-crayola) !important;
+        fill: currentColor !important;
+        transition: var(--transition-1, transform 0.3s ease);
+    }
+    
+    .resources-icon-box svg {
+        width: 40px !important;
+        height: 40px !important;
+        transition: var(--transition-1, transform 0.3s ease);
+    }
+    .service-item:hover .service-icon-box svg,
+    .resources-item:hover .resources-icon-box svg {
+        transform: rotate(360deg);
+    }
+</style>
 <link rel="stylesheet" href="{% static 'blog/css/bug-report.css' %}" media="print" onload="this.media='all'">
 {% endblock %}
 
@@ -118,11 +137,13 @@
 
             {% if video.show_text %}
             <section class="about-text section-gap">
-                {% if video.text_content %}
-                    {{ video.text_content|linebreaks }}
+                {% if language == 'ru' and video.text_content_ru %}
+                    {{ video.text_content_ru|linebreaks }}
+                {% elif language == 'en' and video.text_content_en %}
+                    {{ video.text_content_en|linebreaks }}
                 {% else %}
                     {% for paragraph in personal_info.home_text %}
-                        <p>{{ paragraph }}</p>
+                        <p>{{ paragraph|linebreaksbr }}</p>
                     {% endfor %}
                 {% endif %}
             </section>
@@ -130,62 +151,76 @@
         {% else %}
             <section class="about-text section-gap">
                 {% for paragraph in personal_info.home_text %}
-                    <p>{{ paragraph }}</p>
+                    <p>{{ paragraph|linebreaksbr }}</p>
                 {% endfor %}
             </section>
         {% endif %}
     {% endwith %}
 
+    {% if services %}
     <section class="service">
         <h3 class="h3 service-title">{% trans "Platform Features" %}</h3>
 
         <ul class="service-list">
+            {% for service in services %}
             <li class="service-item">
-                <a href="{% url 'blog:quizes' %}" class="service-link">
+                {% if service.link %}
+                <a href="{% if '://' in service.link or service.link|slice:":1" == "/" %}{{ service.link }}{% elif ':' in service.link %}{% url service.link %}{% else %}{{ service.link }}{% endif %}" class="service-link">
+                {% endif %}
                     <div class="service-icon-box">
-                        <img src="{% static 'blog/images/icons/2641457.webp' %}" alt="{% trans 'Quiz Icon' %}" width="40" height="40" loading="lazy">
+                        {% if service.icon_svg %}
+                            {{ service.icon_svg|safe }}
+                        {% elif service.icon_image %}
+                            <img src="{{ service.icon_image.url }}" alt="{{ service.title_ru }}" width="40" height="40" loading="lazy">
+                        {% elif service.icon_url %}
+                            <img src="{{ service.icon_url }}" alt="{{ service.title_ru }}" width="40" height="40" loading="lazy">
+                        {% else %}
+                            <img src="{% static 'blog/images/icons/default.webp' %}" alt="Icon" width="40" height="40" loading="lazy">
+                        {% endif %}
                     </div>
                     <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Tasks and Quizzes" %}</h4>
-                        <p class="service-item-text">{% trans "Practice solving tasks of varying difficulty, from basics to advanced programming topics." %}</p>
+                        <h4 class="h4 service-item-title">
+                            {% if language == 'ru' %}{{ service.title_ru }}{% else %}{{ service.title_en }}{% endif %}
+                        </h4>
+                        <p class="service-item-text">
+                            {% if language == 'ru' %}{{ service.description_ru }}{% else %}{{ service.description_en }}{% endif %}
+                        </p>
                     </div>
+                {% if service.link %}
                 </a>
+                {% endif %}
             </li>
-            <li class="service-item">
-                <a href="{% url 'blog:statistics' %}" class="service-link">
-                    <div class="service-icon-box">
-                        <img src="{% static 'blog/images/icons/1584892.webp' %}" alt="{% trans 'Statistics Icon' %}" width="40" height="40" loading="lazy">
-                    </div>
-                    <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Statistics and Analytics" %}</h4>
-                        <p class="service-item-text">{% trans "Detailed statistics on topics, technologies, top-50 user rankings, and progress charts." %}</p>
-                    </div>
-                </a>
-            </li>
-            <li class="service-item">
-                <a href="{% url 'blog:blog' %}" class="service-link">
-                    <div class="service-icon-box">
-                        <img src="{% static 'blog/images/icons/2232688.webp' %}" alt="{% trans 'Learning Icon' %}" width="40" height="40" loading="lazy">
-                    </div>
-                    <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Learning Materials" %}</h4>
-                        <p class="service-item-text">{% trans "Useful articles, libraries, frameworks, and learning resources for developers." %}</p>
-                    </div>
-                </a>
-            </li>
-            <li class="service-item">
-                <a href="{% url 'blog:maintenance' %}" class="service-link">
-                    <div class="service-icon-box">
-                        <img src="{% static 'blog/images/icons/1041916.webp' %}" alt="{% trans 'Chat Icon' %}" width="40" height="40" loading="lazy">
-                    </div>
-                    <div class="service-content-box">
-                        <h4 class="h4 service-item-title">{% trans "Communication" %}</h4>
-                        <p class="service-item-text">{% trans "Discuss tasks, share experiences, and connect with other developers in our chat." %}</p>
-                    </div>
-                </a>
-            </li>
+            {% endfor %}
         </ul>
     </section>
+    {% endif %}
+
+    {% if personal_info.resources %}
+    <section class="resources section-gap">
+        <h3 class="h3 resources-title">{% trans "Our Resources" %}</h3>
+        <ul class="resources-list">
+            {% for resource in personal_info.resources %}
+            <li class="resources-item">
+                <a href="{{ resource.url }}" target="_blank" rel="noopener noreferrer" class="services-link">
+                    <div class="resources-icon-box">
+                        {% if resource.icon_svg %}
+                            {{ resource.icon_svg|safe }}
+                        {% elif resource.icon_image %}
+                            <img src="{{ resource.icon_image }}" alt="{{ resource.title }}" width="40">
+                        {% else %}
+                            <img src="{% static 'blog/images/icons/default.webp' %}" alt="Icon" width="40" height="40" loading="lazy">
+                        {% endif %}
+                    </div>
+                    <div class="resources-content-box">
+                        <h4 class="h4 resources-item-title">{{ resource.title }}</h4>
+                        <p class="resources-item-text">{{ resource.description }}</p>
+                    </div>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
 
     <section class="testimonials">
         <h3 class="h3 testimonials-title"> {% trans "Top Users" %} 🏆</h3>
@@ -254,24 +289,6 @@
         </div>
     </div>
 
-    <section class="resources section-gap">
-        <h3 class="h3 resources-title">{% trans "Our Resources" %}</h3>
-        <ul class="resources-list">
-            {% for key, resource in personal_info.resources.items %}
-            <li class="resources-item">
-                <a href="{{ resource.url }}" target="_blank" rel="noopener noreferrer" class="services-link">
-                    <div class="resources-icon-box">
-                        <img src="{{ resource.icon }}" alt="{{ resource.name }}" width="40">
-                    </div>
-                    <div class="resources-content-box">
-                        <h4 class="h4 resources-item-title">{{ resource.name }}</h4>
-                        <p class="resources-item-text">{{ resource.description }}</p>
-                    </div>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </section>
 
     {% with marquees=marquee_texts %}
         {% if marquees %}
