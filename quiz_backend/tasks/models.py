@@ -8,6 +8,7 @@ import logging
 from django.db.models.functions import TruncDate
 from django.core.validators import FileExtensionValidator
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 import mimetypes
 import os
 
@@ -32,6 +33,15 @@ class Task(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='tasks',
+        null=True,
+        blank=True,
+        verbose_name=_('Тенант'),
+        help_text=_('Тенант, которому принадлежит эта задача')
+    )
     topic = models.ForeignKey(
         'topics.Topic',
         on_delete=models.CASCADE,
@@ -1041,6 +1051,7 @@ class BackgroundMusic(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     name = models.CharField(max_length=255, help_text='Название трека')
     audio_file = models.FileField(
         upload_to='background_music/',

@@ -33,6 +33,7 @@ class FeedbackMessage(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     user_id = models.BigIntegerField(
         help_text='Telegram ID пользователя'
     )
@@ -167,6 +168,7 @@ class FeedbackReply(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     feedback = models.ForeignKey(
         FeedbackMessage,
         on_delete=models.CASCADE,

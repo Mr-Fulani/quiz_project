@@ -12,6 +12,7 @@ class Donation(models.Model):
         ('cancelled', _('Cancelled')),
     ]
     
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 

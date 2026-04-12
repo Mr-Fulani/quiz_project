@@ -18,6 +18,7 @@ from .services.s3_service import upload_image_to_s3
 from webhooks.services import send_webhooks_for_task, send_webhooks_for_bulk_tasks
 import uuid
 import logging
+from tenants.mixins import TenantFilteredAdminMixin
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,7 @@ class TaskAdminForm(forms.ModelForm):
 
 
 @admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
+class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админка для управления задачами с расширенной функциональностью:
     - Импорт из JSON
@@ -2049,7 +2050,7 @@ class TaskAdmin(admin.ModelAdmin):
 
 
 @admin.register(BackgroundMusic)
-class BackgroundMusicAdmin(admin.ModelAdmin):
+class BackgroundMusicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """Админка для управления фоновыми треками."""
     list_display = ('id', 'name', 'duration_seconds', 'display_size', 'is_active', 'created_at')
     list_filter = ('is_active',)
@@ -2127,7 +2128,8 @@ class BackgroundMusicAdmin(admin.ModelAdmin):
 
 
 @admin.register(TaskCommentReport)
-class TaskCommentReportAdmin(admin.ModelAdmin):
+class TaskCommentReportAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+    tenant_lookup = 'comment__task__tenant'
     """Админка для управления жалобами на комментарии."""
     list_display = ('id', 'comment_author_info', 'reporter_info', 'reason', 'is_reviewed', 'created_at', 'ban_user_buttons')
     list_filter = ('reason', 'is_reviewed', 'created_at')

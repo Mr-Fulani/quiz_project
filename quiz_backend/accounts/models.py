@@ -18,7 +18,18 @@ logger = logging.getLogger(__name__)
 class CustomUser(AbstractUser):
     """
     Кастомная модель пользователя с объединёнными полями из Profile.
+    Пользователи изолированы по тенанту.
+    Superuser имеет tenant=None и видит все данные.
     """
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='web_users',
+        verbose_name="Тенант",
+        help_text="Тенант пользователя. None = superuser (видит все)."
+    )
     subscription_status = models.CharField(max_length=20, default='inactive', verbose_name="Статус подписки")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     language = models.CharField(max_length=10, blank=True, null=True, verbose_name="Язык")
@@ -334,13 +345,23 @@ class TelegramUser(models.Model):
     """
     Модель пользователя Telegram-бота.
     Хранит данные о пользователях Telegram, включая подписчиков, и их связь с CustomUser.
+    Изолированы по тенанту: один человек может быть TelegramUser в нескольких тенантах.
     """
     STATUS_CHOICES = [
         ('active', 'Активна'),
         ('inactive', 'Неактивна'),
     ]
 
-    telegram_id = models.BigIntegerField(unique=True, verbose_name="Telegram ID")
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='telegram_users',
+        null=True,
+        blank=True,
+        verbose_name="Тенант",
+        help_text="Тенант, к которому привязан этот Telegram-пользователь"
+    )
+    telegram_id = models.BigIntegerField(db_index=True, verbose_name="Telegram ID")
     username = models.CharField(max_length=255, blank=True, null=True, verbose_name="@username")
     first_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Имя")
     last_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Фамилия")
@@ -373,9 +394,15 @@ class TelegramUser(models.Model):
     )
 
     class Meta:
-        db_table = 'telegram_users'  # Добавлено: явное указание имени таблицы
+        db_table = 'telegram_users'
         verbose_name = 'Telegram Пользователь'
         verbose_name_plural = 'Telegram Пользователи'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'telegram_id'],
+                name='unique_telegram_user_per_tenant'
+            )
+        ]
 
     def __str__(self):
         """
@@ -395,9 +422,19 @@ class TelegramAdmin(models.Model):
     """
     Модель администратора Telegram-бота и Mini App.
     Хранит данные для управления Telegram-группами.
+    Каждый TelegramAdmin принадлежит одному тенанту.
     """
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='telegram_admins',
+        null=True,
+        blank=True,
+        verbose_name="Тенант",
+        help_text="Тенант, к которому привязан этот Telegram-админ"
+    )
     telegram_id = models.BigIntegerField(
-        unique=True, null=False, db_index=True, verbose_name="Telegram ID"
+        null=False, db_index=True, verbose_name="Telegram ID"
     )
     username = models.CharField(
         max_length=255, null=True, blank=True, verbose_name="Username"
@@ -613,19 +650,19 @@ class UserChannelSubscription(models.Model):
 class MiniAppUser(models.Model):
     """
     Модель пользователя Telegram Mini App.
-    
-    Хранит данные о пользователях, которые используют Mini App для прохождения квизов,
-    просмотра профиля и статистики. Может быть связан с другими типами пользователей
-    (TelegramUser, TelegramAdmin, DjangoAdmin) если один человек использует разные части системы.
-    
-    Особенности:
-    - Уникальный telegram_id для каждого пользователя Mini App
-    - Связи с другими таблицами пользователей (опциональные)
-    - Отслеживание активности в Mini App
+    Изолирован по тенанту: один человек может быть MiniAppUser в нескольких инстансах мини-аппа.
     """
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='mini_app_users',
+        null=True,
+        blank=True,
+        verbose_name="Тенант",
+        help_text="Тенант, к которому привязан пользователь Mini App"
+    )
     telegram_id = models.BigIntegerField(
-        unique=True, 
-        db_index=True, 
+        db_index=True,
         verbose_name="Telegram ID"
     )
     username = models.CharField(
@@ -835,10 +872,16 @@ class MiniAppUser(models.Model):
         verbose_name = 'Mini App Пользователь'
         verbose_name_plural = 'Mini App Пользователи'
         indexes = [
-            models.Index(fields=['telegram_id']),
+            models.Index(fields=['tenant', 'telegram_id']),
             models.Index(fields=['username']),
             models.Index(fields=['created_at']),
             models.Index(fields=['last_seen']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'telegram_id'],
+                name='unique_mini_app_user_per_tenant'
+            )
         ]
 
     def __str__(self):

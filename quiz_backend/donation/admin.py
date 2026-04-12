@@ -1,4 +1,5 @@
 from django.contrib import admin
+from tenants.mixins import TenantFilteredAdminMixin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Sum, Count
@@ -9,7 +10,7 @@ from .utils import export_donations_csv, send_donation_thank_you_email
 
 
 @admin.register(Donation)
-class DonationAdmin(admin.ModelAdmin):
+class DonationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     list_display = [
         'name', 'amount_formatted', 'payment_type_display', 
         'source', 'status_colored', 'created_at', 'days_ago'
@@ -186,20 +187,21 @@ class DonationAdmin(admin.ModelAdmin):
         """Добавляем статистику на страницу списка"""
         response = super().changelist_view(request, extra_context=extra_context)
         
-        # Получаем общую статистику
-        total_donations = Donation.objects.count()
-        completed_donations = Donation.objects.filter(status='completed').count()
+        # Получаем общую статистику с учетом тенанта
+        base_qs = self.get_queryset(request)
+        total_donations = base_qs.count()
+        completed_donations = base_qs.filter(status='completed').count()
         
         # Статистика за последние 30 дней
         thirty_days_ago = timezone.now() - timedelta(days=30)
-        recent_donations = Donation.objects.filter(
+        recent_donations = base_qs.filter(
             created_at__gte=thirty_days_ago
         ).count()
         
         # Статистика по источникам
         source_stats = {}
         for source_code, source_name in Donation.SOURCE_CHOICES:
-            source_donations = Donation.objects.filter(source=source_code)
+            source_donations = base_qs.filter(source=source_code)
             source_completed = source_donations.filter(status='completed')
             source_recent = source_donations.filter(created_at__gte=thirty_days_ago)
             
@@ -215,7 +217,7 @@ class DonationAdmin(admin.ModelAdmin):
         currency_stats = {}
         for currency_code, currency_name in Donation.CURRENCY_CHOICES:
             # Общая статистика по валюте
-            currency_donations = Donation.objects.filter(currency=currency_code)
+            currency_donations = base_qs.filter(currency=currency_code)
             currency_completed = currency_donations.filter(status='completed')
             
             # Статистика за 30 дней по валюте
@@ -237,7 +239,7 @@ class DonationAdmin(admin.ModelAdmin):
         # Статистика по типам платежей
         payment_type_stats = {}
         for payment_type_code, payment_type_name in Donation.PAYMENT_TYPE_CHOICES:
-            type_donations = Donation.objects.filter(payment_type=payment_type_code)
+            type_donations = base_qs.filter(payment_type=payment_type_code)
             type_completed = type_donations.filter(status='completed')
             type_recent = type_donations.filter(created_at__gte=thirty_days_ago)
             
@@ -251,7 +253,7 @@ class DonationAdmin(admin.ModelAdmin):
         
         # Статистика по криптовалютам
         crypto_stats = {}
-        crypto_donations = Donation.objects.filter(payment_type='crypto')
+        crypto_donations = base_qs.filter(payment_type='crypto')
         if crypto_donations.exists():
             for currency in crypto_donations.values_list('crypto_currency', flat=True).distinct():
                 if currency:
@@ -265,7 +267,7 @@ class DonationAdmin(admin.ModelAdmin):
                     }
         
         # Статистика по Telegram Stars
-        stars_donations = Donation.objects.filter(payment_method='telegram_stars')
+        stars_donations = base_qs.filter(payment_method='telegram_stars')
         stars_completed = stars_donations.filter(status='completed')
         stars_stats = {
             'total_donations': stars_donations.count(),
@@ -279,8 +281,8 @@ class DonationAdmin(admin.ModelAdmin):
             response.context_data['donation_stats'] = {
                 'total_donations': total_donations,
                 'completed_donations': completed_donations,
-                'pending_donations': Donation.objects.filter(status='pending').count(),
-                'failed_donations': Donation.objects.filter(status='failed').count(),
+                'pending_donations': base_qs.filter(status='pending').count(),
+                'failed_donations': base_qs.filter(status='failed').count(),
                 'recent_donations': recent_donations,
                 'currency_stats': currency_stats,
                 'source_stats': source_stats,

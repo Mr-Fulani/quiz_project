@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
+from django.utils.translation import gettext_lazy as _
 from .utils import normalize_subtopic_name
 
 
@@ -26,13 +27,27 @@ class Topic(models.Model):
         verbose_name_plural = 'Темы'
         ordering = ['name']
         indexes = [
-            models.Index(fields=['name']),
+            models.Index(fields=['tenant', 'name']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'name'],
+                name='unique_topic_name_per_tenant'
+            )
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='topics',
+        null=True,
+        blank=True,
+        verbose_name=_('Тенант'),
+        help_text=_('Тенант (инстанс платформы), которому принадлежит эта тема')
+    )
     name = models.CharField(
         max_length=255,
-        unique=True,
         help_text='Название темы (например, Python, Golang и т.д.)'
     )
     description = models.TextField(
@@ -138,6 +153,8 @@ class Subtopic(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['topic', 'name'], name='unique_subtopic_per_topic')
         ]
+        # Примечание: tenant изоляция работает автоматически через topic FK
+        # topic.tenant → subtopic принадлежит тому же тенанту
 
     id = models.AutoField(primary_key=True)
     name = models.CharField(

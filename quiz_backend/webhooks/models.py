@@ -22,6 +22,7 @@ class Webhook(models.Model):
         default=uuid.uuid4,
         help_text='Уникальный идентификатор вебхука'
     )
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     url = models.CharField(
         max_length=255,
         unique=True,
@@ -84,6 +85,7 @@ class DefaultLink(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     language = models.CharField(
         max_length=10,
         help_text='Язык'
@@ -112,6 +114,7 @@ class MainFallbackLink(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     language = models.CharField(
         max_length=10,
         unique=True,
@@ -138,6 +141,7 @@ class GlobalWebhookLink(models.Model):
         verbose_name_plural = 'Глобальные ссылки для вебхуков'
         ordering = ['name']
 
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, help_text='Название ссылки (для удобства)')
     url = models.URLField(max_length=500, help_text='URL ссылки')
@@ -178,6 +182,7 @@ class SocialMediaCredentials(models.Model):
         ]
 
     id = models.AutoField(primary_key=True)
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     platform = models.CharField(
         max_length=50,
         choices=PLATFORM_CHOICES,

@@ -382,6 +382,7 @@ class SocialAuthSettings(models.Model):
     
     Хранит конфигурацию для различных провайдеров.
     """
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Тенант')
     provider = models.CharField(
         max_length=20,
         choices=SocialAccount.PROVIDER_CHOICES,
