@@ -935,8 +935,8 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     check_bot_permissions_in_channels.short_description = "🔍 Проверить права бота в каналах (админ)"
 
 
-class DjangoAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
-    tenant_lookup = 'tenant'
+@admin.register(DjangoAdmin)
+class DjangoAdminAdmin(admin.ModelAdmin):
     """
     Админ-панель для DjangoAdmin: только просмотр основных статусов, без редактирования данных.
     """
@@ -1769,11 +1769,11 @@ class TelegramUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     remove_user_from_all_channels.short_description = "🚫 Удалить из всех каналов (кик)"
 
 
-class UserChannelSubscriptionAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
+@admin.register(UserChannelSubscription)
+class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     """
     Админ-панель для подписок пользователей на каналы.
     """
-    tenant_lookup = 'telegram_user__tenant'
     list_display = [
         'telegram_user', 'channel', 'subscription_status', 
         'subscribed_at', 'banned_status', 'user_admin_status', 'channel_admin_status'
@@ -2947,8 +2947,7 @@ class MiniAppUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 
 # Регистрация моделей
 @admin.register(Notification)
-class NotificationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
-    tenant_lookup = 'user__tenant'
+class NotificationAdmin(admin.ModelAdmin):
     """
     Админ-панель для уведомлений.
     """
