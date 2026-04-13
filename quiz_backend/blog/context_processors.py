@@ -160,14 +160,14 @@ def personal_info(request):
                         'icon_url': res.icon_image.url if res.icon_image else None,
                         'name': getattr(res, 'title_en', res.title_ru)
                     } for res in tenant.resources_list.filter(is_active=True).order_by('order')
-                ] if tenant and tenant.resources_list.filter(is_active=True).exists() else {
-                    'youtube': {'url': 'https://www.youtube.com/@Mr_Fulani', 'icon': '/static/blog/images/icons/yt.svg', 'name': 'YouTube'},
-                    'telegram': {'url': 'https://t.me/+Gh7xasVaKwdlMTY0', 'icon': '/static/blog/images/icons/tg.svg', 'name': 'Telegram'},
-                    'vk': {'url': 'https://vk.com/development_hub', 'icon': '/static/blog/images/icons/vk-logo.svg', 'name': 'VKontakte'},
-                    'dzen': {'url': 'https://dzen.ru/id/692b2112399a32774d42939f', 'icon': '/static/blog/images/icons/zen.svg', 'name': _('Yandex Zen')},
-                    'instagram': {'url': 'https://www.instagram.com/fulani_developer', 'icon': '/static/blog/images/icons/inst.svg', 'name': 'Instagram'},
-                    'tiktok': {'url': 'https://www.tiktok.com/@fulani_developer', 'icon': '/static/blog/images/icons/tiktok.svg', 'name': 'TikTok'}
-                },
+                ] if tenant and tenant.resources_list.filter(is_active=True).exists() else [
+                    {'title': 'YouTube', 'name': 'YouTube', 'description': 'Educational videos', 'url': 'https://www.youtube.com/@Mr_Fulani', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/yt.svg', 'icon': '/static/blog/images/icons/yt.svg'},
+                    {'title': 'Telegram', 'name': 'Telegram', 'description': 'Developer community', 'url': 'https://t.me/+Gh7xasVaKwdlMTY0', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/tg.svg', 'icon': '/static/blog/images/icons/tg.svg'},
+                    {'title': 'VKontakte', 'name': 'VKontakte', 'description': 'Social updates', 'url': 'https://vk.com/development_hub', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/vk-logo.svg', 'icon': '/static/blog/images/icons/vk-logo.svg'},
+                    {'title': _('Yandex Zen'), 'name': _('Yandex Zen'), 'description': 'Articles', 'url': 'https://dzen.ru/id/692b2112399a32774d42939f', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/zen.svg', 'icon': '/static/blog/images/icons/zen.svg'},
+                    {'title': 'Instagram', 'name': 'Instagram', 'description': 'Photos', 'url': 'https://www.instagram.com/fulani_developer', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/inst.svg', 'icon': '/static/blog/images/icons/inst.svg'},
+                    {'title': 'TikTok', 'name': 'TikTok', 'description': 'Short clips', 'url': 'https://www.tiktok.com/@fulani_developer', 'icon_svg': '', 'icon_image': '/static/blog/images/icons/tiktok.svg', 'icon': '/static/blog/images/icons/tiktok.svg'}
+                ],
                 'about_text': [
                     _("I create high-load web applications, functional websites, powerful Telegram bots of any complexity, business cards and other digital solutions."),
                     _("I use microservice architecture, modular approach, modern databases and optimized APIs. This allows you to develop flexible, reliable and scalable projects that are easily adapted to any tasks."),
