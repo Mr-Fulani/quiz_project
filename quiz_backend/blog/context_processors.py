@@ -183,7 +183,7 @@ def personal_info(request):
                 'phone': dynamic_info.phone,
                 'birthday': getattr(dynamic_info, f'birthday_{lang}', dynamic_info.birthday_en),
                 'location': getattr(dynamic_info, f'location_{lang}', dynamic_info.location_en),
-                'avatar': dynamic_info.avatar.url if dynamic_info.avatar else '/static/blog/images/avatar/default_avatar.png',
+                'avatar': dynamic_info.avatar.url if dynamic_info.avatar else 'blog/images/avatar/default_avatar.png',
                 'social_links': {
                     'telegram': dynamic_info.telegram,
                     'github': dynamic_info.github,
