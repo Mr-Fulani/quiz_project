@@ -109,6 +109,33 @@ class TenantFilteredAdminMixin:
             form.base_fields['tenant'].required = False
         return form
 
+    # ── Добавляем tenant в fieldsets для superuser ────────────────────────────
+
+    def get_fieldsets(self, request, obj=None):
+        """
+        Гарантирует, что суперюзер видит поле выбора тенанта, даже если оно 
+        явно исключено в fieldsets у конкретной модели.
+        """
+        fieldsets = list(super().get_fieldsets(request, obj))
+        if request.user.is_superuser and self.tenant_lookup == 'tenant':
+            # Ищем, нет ли уже поля tenant
+            tenant_present = False
+            for name, opts in fieldsets:
+                if 'tenant' in opts.get('fields', []):
+                    tenant_present = True
+                    break
+            
+            # Если нет, добавляем в самый верх первой секции
+            if not tenant_present and fieldsets:
+                first_name, first_opts = fieldsets[0]
+                first_opts_copy = dict(first_opts)
+                fields = list(first_opts_copy.get('fields', []))
+                if 'tenant' not in fields:
+                    fields.insert(0, 'tenant')
+                    first_opts_copy['fields'] = tuple(fields)
+                fieldsets[0] = (first_name, first_opts_copy)
+        return tuple(fieldsets)
+
     # ── Добавляем tenant в list_display для superuser ─────────────────────────
 
     def get_list_display(self, request):
