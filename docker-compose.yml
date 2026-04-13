@@ -70,7 +70,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres_db:5432/${DB_NAME}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN_TEST:-} # This should come from DB now theoretically, but keeping schema
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - NGROK_HOST=${NGROK_HOST}
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - PYTHONPATH=/quiz_project
