@@ -968,6 +968,8 @@ class PageVideo(models.Model):
         qs = cls.objects.filter(page=page)
         if tenant:
             qs = qs.filter(tenant=tenant)
+        else:
+            qs = qs.filter(tenant__isnull=True)
         return qs.order_by('order', 'title').first()
 
 
