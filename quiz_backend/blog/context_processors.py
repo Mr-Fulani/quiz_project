@@ -150,7 +150,17 @@ def personal_info(request):
                     'github': 'https://github.com/Mr-Fulani',
                     'linkedin': 'https://www.linkedin.com/in/mr-fulani/',
                 },
-                'resources': {
+                'resources': [
+                    {
+                        'title': getattr(res, 'title_en', res.title_ru),
+                        'description': getattr(res, 'description_en', res.description_ru),
+                        'url': res.url,
+                        'icon_svg': res.icon_svg,
+                        'icon_image': res.icon_image.url if res.icon_image else None,
+                        'icon_url': res.icon_image.url if res.icon_image else None,
+                        'name': getattr(res, 'title_en', res.title_ru)
+                    } for res in tenant.resources_list.filter(is_active=True).order_by('order')
+                ] if tenant and tenant.resources_list.filter(is_active=True).exists() else {
                     'youtube': {'url': 'https://www.youtube.com/@Mr_Fulani', 'icon': '/static/blog/images/icons/yt.svg', 'name': 'YouTube'},
                     'telegram': {'url': 'https://t.me/+Gh7xasVaKwdlMTY0', 'icon': '/static/blog/images/icons/tg.svg', 'name': 'Telegram'},
                     'vk': {'url': 'https://vk.com/development_hub', 'icon': '/static/blog/images/icons/vk-logo.svg', 'name': 'VKontakte'},
