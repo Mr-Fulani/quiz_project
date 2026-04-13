@@ -935,7 +935,6 @@ class TelegramAdminAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     check_bot_permissions_in_channels.short_description = "🔍 Проверить права бота в каналах (админ)"
 
 
-@admin.register(DjangoAdmin)
 class DjangoAdminAdmin(admin.ModelAdmin):
     """
     Админ-панель для DjangoAdmin: только просмотр основных статусов, без редактирования данных.
@@ -1769,7 +1768,6 @@ class TelegramUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     remove_user_from_all_channels.short_description = "🚫 Удалить из всех каналов (кик)"
 
 
-@admin.register(UserChannelSubscription)
 class UserChannelSubscriptionAdmin(admin.ModelAdmin):
     """
     Админ-панель для подписок пользователей на каналы.
