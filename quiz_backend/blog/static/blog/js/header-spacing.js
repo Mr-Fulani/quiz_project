@@ -9,23 +9,39 @@ document.addEventListener('DOMContentLoaded', function() {
         const articles = document.querySelectorAll('article');
         
         articles.forEach(article => {
-            const headers = article.querySelectorAll('h1, h2');
+            const headers = article.querySelectorAll('h1, h2, h3, .article-title');
+            let hasLongHeader = false;
             
             headers.forEach(header => {
                 const textLength = header.textContent.trim().length;
                 
-                // Если заголовок длиннее 7 символов, добавляем класс
+                // Если хотя бы один заголовок длиннее 6 символов, помечаем
                 if (textLength > 6) {
-                    article.classList.add('long-header');
-                } else {
-                    article.classList.remove('long-header');
+                    hasLongHeader = true;
                 }
             });
+
+            if (hasLongHeader) {
+                article.classList.add('long-header');
+            } else {
+                article.classList.remove('long-header');
+            }
         });
     }
     
     // Запускаем при загрузке страницы
     adjustHeaderSpacing();
+    
+    // Также наблюдаем за изменениями в DOM (для динамически загружаемого контента)
+    const observer = new MutationObserver(function(mutations) {
+        adjustHeaderSpacing();
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
     
     // Запускаем при изменении размера окна (для адаптивности)
     window.addEventListener('resize', adjustHeaderSpacing);
