@@ -153,6 +153,11 @@ class RegisterView(generics.CreateAPIView):
         next_url = request.POST.get('next', '/')
         return HttpResponseRedirect(f"{next_url}?registration_success=true")
 
+    def perform_create(self, serializer):
+        """Создаёт пользователя с тенантом текущего домена."""
+        tenant = getattr(self.request, 'tenant', None)
+        serializer.save(tenant=tenant)
+
 
 class ProfileUpdateView(generics.UpdateAPIView):
     """
