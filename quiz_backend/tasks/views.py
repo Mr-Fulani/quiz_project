@@ -244,22 +244,55 @@ def submit_mini_app_task_answer(request, task_id):
         )
         logger.info(f"submit_mini_app_task_answer: Задача (ID: {task.id}) найдена.")
         
-        # Получаем пользователя мини-аппа с учетом тенанта задачи
-        try:
-            # Важно: фильтруем по тенанту, так как один telegram_id может быть в разных тенантах
-            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=task.tenant)
-            logger.info(f"submit_mini_app_task_answer: MiniAppUser (ID: {mini_app_user.id}, telegram_id: {telegram_id}) найден для тенанта {task.tenant_id}.")
-        except MiniAppUser.DoesNotExist:
-            logger.error(f"submit_mini_app_task_answer: MiniAppUser с telegram_id {telegram_id} не найден в тенанте {task.tenant_id}.")
-            return Response(
-                {'error': 'Mini App user not found in this tenant. User must be initialized first.'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except MiniAppUser.MultipleObjectsReturned:
-            logger.error(f"submit_mini_app_task_answer: КРИТИЧЕСКАЯ ОШИБКА: Найдено несколько пользователей с telegram_id {telegram_id} для тенанта {task.tenant_id}.")
-            # В этом случае берем самого последнего
-            mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=task.tenant).order_by('-created_at').first()
-            logger.info(f"submit_mini_app_task_answer: Выбран последний созданный профиль (ID: {mini_app_user.id}).")
+        # Определяем тенант: приоритет у request.tenant (из middleware), fallback на task.tenant
+        tenant = getattr(request, 'tenant', None) or task.tenant
+        logger.info(f"submit_mini_app_task_answer: Используем тенант {tenant} (request.tenant={getattr(request, 'tenant', None)}, task.tenant={task.tenant})")
+
+        # Получаем пользователя мини-аппа с учетом тенанта
+        mini_app_user = None
+        
+        # Попытка 1: по request.tenant (основной тенант запроса)
+        request_tenant = getattr(request, 'tenant', None)
+        if request_tenant:
+            mini_app_user = MiniAppUser.objects.filter(
+                telegram_id=telegram_id, tenant=request_tenant
+            ).order_by('-created_at').first()
+            if mini_app_user:
+                logger.info(f"submit_mini_app_task_answer: MiniAppUser найден по request.tenant={request_tenant}")
+        
+        # Попытка 2: по task.tenant (если отличается от request.tenant)
+        if not mini_app_user and task.tenant and task.tenant != request_tenant:
+            mini_app_user = MiniAppUser.objects.filter(
+                telegram_id=telegram_id, tenant=task.tenant
+            ).order_by('-created_at').first()
+            if mini_app_user:
+                logger.info(f"submit_mini_app_task_answer: MiniAppUser найден по task.tenant={task.tenant}")
+        
+        # Попытка 3: создаём пользователя на лету если не нашли
+        if not mini_app_user:
+            logger.warning(f"submit_mini_app_task_answer: MiniAppUser с telegram_id={telegram_id} не найден в тенанте {tenant}. Создаём.")
+            try:
+                mini_app_user, created = MiniAppUser.objects.get_or_create(
+                    telegram_id=int(telegram_id),
+                    tenant=tenant,
+                    defaults={
+                        'first_name': '',
+                        'last_name': '',
+                        'username': '',
+                    }
+                )
+                if created:
+                    logger.info(f"submit_mini_app_task_answer: Создан новый MiniAppUser для telegram_id={telegram_id} в тенанте {tenant}")
+                else:
+                    logger.info(f"submit_mini_app_task_answer: MiniAppUser найден при get_or_create для telegram_id={telegram_id}")
+            except Exception as create_err:
+                logger.error(f"submit_mini_app_task_answer: Не удалось создать MiniAppUser: {create_err}")
+                return Response(
+                    {'error': 'Mini App user not found in this tenant. User must be initialized first.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        logger.info(f"submit_mini_app_task_answer: MiniAppUser (ID: {mini_app_user.id}, telegram_id: {telegram_id}) используется для тенанта {mini_app_user.tenant_id}.")
         
         # Блокируем повторную отправку ответа: если есть запись статистики — возвращаем ошибку
         from .models import MiniAppTaskStatistics as _MiniAppTaskStatistics
