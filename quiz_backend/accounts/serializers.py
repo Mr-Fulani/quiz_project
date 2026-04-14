@@ -611,47 +611,72 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
         """
         Создает пользователя Mini App и автоматически связывает с существующими пользователями.
         """
+        import logging
+        _logger = logging.getLogger(__name__)
+
         # Обрабатываем photo_url из Telegram
         photo_url = validated_data.pop('photo_url', None)
         if photo_url:
             validated_data['telegram_photo_url'] = photo_url
 
-        # Создаем пользователя (get_or_create защищает от дублей)
-        mini_app_user, created = MiniAppUser.objects.get_or_create(
-            telegram_id=validated_data.get('telegram_id'),
-            tenant=validated_data.get('tenant'),
-            defaults=validated_data
+        # Явно извлекаем tenant — он приходит через serializer.save(tenant=...)
+        # Fallback: берём из request в контексте (если serializer используется напрямую)
+        tenant = validated_data.get('tenant', None)
+        if not tenant:
+            request = self.context.get('request')
+            tenant = getattr(request, 'tenant', None)
+            if tenant:
+                validated_data['tenant'] = tenant
+
+        telegram_id = validated_data.get('telegram_id')
+        _logger.info(
+            f"[MiniAppUserCreateSerializer.create] telegram_id={telegram_id}, "
+            f"tenant={tenant}, fields={list(validated_data.keys())}"
         )
-        
+        if not tenant:
+            _logger.error(
+                f"[MiniAppUserCreateSerializer.create] КРИТИЧНО: tenant=None "
+                f"для telegram_id={telegram_id}! Проверьте middleware и mini_app_domain тенанта."
+            )
+
+        # Создаем пользователя (get_or_create защищает от дублей)
+        # defaults не включает lookup-поля telegram_id и tenant
+        defaults = {k: v for k, v in validated_data.items() if k not in ('telegram_id', 'tenant')}
+        mini_app_user, created = MiniAppUser.objects.get_or_create(
+            telegram_id=telegram_id,
+            tenant=tenant,
+            defaults=defaults
+        )
+        _logger.info(
+            f"[MiniAppUserCreateSerializer.create] MiniAppUser "
+            f"{'СОЗДАН' if created else 'найден'}: id={mini_app_user.id}, tenant={mini_app_user.tenant}"
+        )
+
         # Автоматически связываем с существующими пользователями текущего тенанта
         try:
             tenant = mini_app_user.tenant
-            
-            # Связываем с TelegramUser того же тенанта
+
             telegram_user = TelegramUser.objects.filter(
                 telegram_id=mini_app_user.telegram_id,
                 tenant=tenant
             ).first()
             if telegram_user:
                 mini_app_user.link_to_telegram_user(telegram_user)
-            
-            # Связываем с TelegramAdmin того же тенанта
+
             telegram_admin = TelegramAdmin.objects.filter(
                 telegram_id=mini_app_user.telegram_id,
                 tenant=tenant
             ).first()
             if telegram_admin:
                 mini_app_user.link_to_telegram_admin(telegram_admin)
-            
-            # Связываем с DjangoAdmin (по username)
+
             if mini_app_user.username:
                 django_admin = DjangoAdmin.objects.filter(
                     username=mini_app_user.username
                 ).first()
                 if django_admin:
                     mini_app_user.link_to_django_admin(django_admin)
-            
-            # Связываем с CustomUser сайта того же тенанта по telegram_id
+
             custom_user = CustomUser.objects.filter(
                 telegram_id=mini_app_user.telegram_id,
                 tenant=tenant
@@ -659,21 +684,18 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
             if custom_user:
                 mini_app_user.linked_custom_user = custom_user
                 mini_app_user.save(update_fields=['linked_custom_user'])
-            elif mini_app_user.username: # Если CustomUser не найден по telegram_id, пробуем по username в том же тенанте
-                 custom_user = CustomUser.objects.filter(
+            elif mini_app_user.username:
+                custom_user = CustomUser.objects.filter(
                     username=mini_app_user.username,
                     tenant=tenant
                 ).first()
-                 if custom_user:
+                if custom_user:
                     mini_app_user.linked_custom_user = custom_user
                     mini_app_user.save(update_fields=['linked_custom_user'])
-                    
+
         except Exception as e:
-            # Логируем ошибку, но не прерываем создание пользователя
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Ошибка при автоматическом связывании MiniAppUser {mini_app_user.telegram_id}: {e}")
-        
+            _logger.warning(f"Ошибка при связывании MiniAppUser {mini_app_user.telegram_id}: {e}")
+
         return mini_app_user
 
 
