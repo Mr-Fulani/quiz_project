@@ -236,27 +236,30 @@ def submit_mini_app_task_answer(request, task_id):
             )
         
         # Получаем задачу
-        task = get_object_or_404(Task, id=task_id, published=True)
+        # Позволяем отвечать на задачи, опубликованные на сайте ИЛИ в мини-аппе
+        from django.db.models import Q
+        task = get_object_or_404(
+            Task.objects.filter(Q(published=True) | Q(published_mini_app=True)), 
+            id=task_id
+        )
         logger.info(f"submit_mini_app_task_answer: Задача (ID: {task.id}) найдена.")
         
-        # Получаем пользователя мини-аппа
+        # Получаем пользователя мини-аппа с учетом тенанта задачи
         try:
-            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
-            logger.info(f"submit_mini_app_task_answer: MiniAppUser (ID: {mini_app_user.id}, telegram_id: {telegram_id}) найден.")
+            # Важно: фильтруем по тенанту, так как один telegram_id может быть в разных тенантах
+            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=task.tenant)
+            logger.info(f"submit_mini_app_task_answer: MiniAppUser (ID: {mini_app_user.id}, telegram_id: {telegram_id}) найден для тенанта {task.tenant_id}.")
         except MiniAppUser.DoesNotExist:
-            logger.error(f"submit_mini_app_task_answer: MiniAppUser с telegram_id {telegram_id} не найден. Профиль пользователя мини-аппа должен быть инициализирован.")
-            
-            # Добавляем дополнительное логирование для отладки
-            logger.error(f"submit_mini_app_task_answer: Проверяем, есть ли пользователи в базе данных...")
-            all_users = MiniAppUser.objects.all()
-            logger.error(f"submit_mini_app_task_answer: Всего пользователей в MiniAppUser: {all_users.count()}")
-            for user in all_users[:5]:  # Логируем первые 5 пользователей
-                logger.error(f"submit_mini_app_task_answer: Пользователь ID={user.id}, telegram_id={user.telegram_id}, username={user.username}")
-            
+            logger.error(f"submit_mini_app_task_answer: MiniAppUser с telegram_id {telegram_id} не найден в тенанте {task.tenant_id}.")
             return Response(
-                {'error': 'Mini App user not found. User must be initialized first.'}, 
+                {'error': 'Mini App user not found in this tenant. User must be initialized first.'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+        except MiniAppUser.MultipleObjectsReturned:
+            logger.error(f"submit_mini_app_task_answer: КРИТИЧЕСКАЯ ОШИБКА: Найдено несколько пользователей с telegram_id {telegram_id} для тенанта {task.tenant_id}.")
+            # В этом случае берем самого последнего
+            mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=task.tenant).order_by('-created_at').first()
+            logger.info(f"submit_mini_app_task_answer: Выбран последний созданный профиль (ID: {mini_app_user.id}).")
         
         # Блокируем повторную отправку ответа: если есть запись статистики — возвращаем ошибку
         from .models import MiniAppTaskStatistics as _MiniAppTaskStatistics

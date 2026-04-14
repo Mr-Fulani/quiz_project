@@ -1703,7 +1703,7 @@
 {% block scripts %}{% endblock %}
 
 <!-- Подключение JavaScript для динамических отступов заголовков -->
-<script src="{% static 'blog/js/header-spacing.js' %}" defer></script>
+<script src="{% static_versioned 'blog/js/header-spacing.js' %}" defer></script>
 
 <!-- Глобальная функция для Telegram авторизации (перенесено сюда для избежания render-blocking) -->
 <script>

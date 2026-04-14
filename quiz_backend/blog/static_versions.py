@@ -4,21 +4,19 @@
 """
 
 STATIC_VERSIONS = {
-    'quiz_combined.js': '2.3',  # Исправлен подсчет total_attempts: теперь считаются уникальные translation_group_id вместо количества записей
-    'quiz_styles.css': '2.2',   # Исправлено отображение правильных/неправильных ответов для пройденных задач на всех языках
-
-    # Дополнительно версионируем базовые стили, чтобы изменения (алиасы классов) сразу подтягивались
-    'global.css': '5.3',  # FIX: Убраны тексты "Test on topic" и "Tasks of level", улучшено отображение количества задач для неавторизованных пользователей, добавлены переводы
-    'progress-update.js': '1.0',  # Скрипт для автоматического обновления счетчиков прогресса при возвращении на страницу
+    'quiz_combined.js': '2.3',
+    'quiz_styles.css': '2.2',
+    'global.css': '5.4',
+    'progress-update.js': '1.0',
     'blog_page.html': '1.1',
     'portfolio.html': '1.1',
     'header-spacing.css': '2.0',
+    'header-spacing.js': '1.1',
     'animated_auth.css': '2.0',
     'cookie-consent.css': '2.0',
     'font-awesome.min.css': '2.0',
     'font-awesome.min.js': '2.0',
-    'resources.css': '2.0',  # Обновлено для отображения иконок по 2 в ряд на мобильных
-    'interactions.js': '2.3',  # Реализовано круговое меню для шаринга с анимациями
-    'interactions.css': '2.3',  # Реализовано круговое меню для шаринга с анимациями
+    'resources.css': '2.0',
+    'interactions.js': '2.3',
+    'interactions.css': '2.3',
 }
-
