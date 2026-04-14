@@ -25,12 +25,17 @@ class DjangoAPIService:
             headers = {}
         
         # Если запрос идет напрямую к Django (quiz_backend:8000), 
-        # устанавливаем правильный Host заголовок — домен мини-аппа
+        # нужно убедиться, что передается правильный домен.
+        # В Multi-Tenant архитектуре FastAPI передает реальный host (например, mini.quiz-islam.com).
+        # Если host не передан, используем fallback из настроек.
         if 'quiz_backend:8000' in self.base_url:
-            mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
-            headers['Host'] = mini_app_domain
-            headers['X-Forwarded-Host'] = mini_app_domain
-            headers['X-Forwarded-Proto'] = 'https'
+            if 'X-Forwarded-Host' not in headers:
+                mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
+                headers['X-Forwarded-Host'] = mini_app_domain
+            if 'Host' not in headers:
+                headers['Host'] = headers.get('X-Forwarded-Host')
+            
+            headers['X-Forwarded-Proto'] = headers.get('X-Forwarded-Proto', 'https')
         
         # Если запрос идет через nginx, добавляем правильные заголовки
         # для корректной работы с Django API
