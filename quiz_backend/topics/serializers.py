@@ -54,8 +54,9 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         if request:
             language = request.query_params.get('language', 'en')
         
+        from django.db.models import Q
         return obj.tasks.filter(
-            published=True,
+            Q(published=True) | Q(published_mini_app=True),
             translations__language=language
         ).distinct().count()
     
@@ -69,9 +70,8 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         """Возвращает количество задач по уровням сложности на активном языке."""
         request = self.context.get('request')
         language = 'en'
-        if request:
-            language = request.query_params.get('language', 'en')
-        qs = obj.tasks.filter(published=True, translations__language=language)
+        from django.db.models import Q
+        qs = obj.tasks.filter(Q(published=True) | Q(published_mini_app=True), translations__language=language)
         return {
             'easy': qs.filter(difficulty='easy').values('id').distinct().count(),
             'medium': qs.filter(difficulty='medium').values('id').distinct().count(),
@@ -91,12 +91,16 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         if not telegram_id:
             return {'easy': 0, 'medium': 0, 'hard': 0}
 
-        # Получаем задачи с попытками, группируя по translation_group_id
+        # Получаем успешно решенные задачи, группируя по translation_group_id
+        from django.db.models import Q
         base_qs = Task.objects.filter(
             subtopic=obj,
-            published=True,
-            translations__language=language,
-            mini_app_statistics__mini_app_user__telegram_id=telegram_id
+            translations__language=language
+        ).filter(
+            Q(published=True) | Q(published_mini_app=True)
+        ).filter(
+            mini_app_statistics__mini_app_user__telegram_id=telegram_id,
+            mini_app_statistics__successful=True  # Подсчитываем ТОЛЬКО успешные решения
         ).values('translation_group_id', 'difficulty').distinct()
 
         # Подсчёт по уровням (уникальные translation_group_id)
@@ -187,8 +191,9 @@ class TopicMiniAppSerializer(serializers.ModelSerializer):
             language = request.query_params.get('language', 'en')
         
         # Подсчитываем реальное количество задач с переводами на указанном языке
+        from django.db.models import Q
         return obj.tasks.filter(
-            published=True,
+            Q(published=True) | Q(published_mini_app=True),
             translations__language=language
         ).distinct().count()
     
