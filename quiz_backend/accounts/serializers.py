@@ -615,18 +615,22 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
         # Создаем пользователя
         mini_app_user = MiniAppUser.objects.create(**validated_data)
         
-        # Автоматически связываем с существующими пользователями
+        # Автоматически связываем с существующими пользователями текущего тенанта
         try:
-            # Связываем с TelegramUser
+            tenant = mini_app_user.tenant
+            
+            # Связываем с TelegramUser того же тенанта
             telegram_user = TelegramUser.objects.filter(
-                telegram_id=mini_app_user.telegram_id
+                telegram_id=mini_app_user.telegram_id,
+                tenant=tenant
             ).first()
             if telegram_user:
                 mini_app_user.link_to_telegram_user(telegram_user)
             
-            # Связываем с TelegramAdmin
+            # Связываем с TelegramAdmin того же тенанта
             telegram_admin = TelegramAdmin.objects.filter(
-                telegram_id=mini_app_user.telegram_id
+                telegram_id=mini_app_user.telegram_id,
+                tenant=tenant
             ).first()
             if telegram_admin:
                 mini_app_user.link_to_telegram_admin(telegram_admin)
@@ -639,16 +643,18 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
                 if django_admin:
                     mini_app_user.link_to_django_admin(django_admin)
             
-            # Связываем с CustomUser (основным пользователем сайта) по telegram_id
+            # Связываем с CustomUser сайта того же тенанта по telegram_id
             custom_user = CustomUser.objects.filter(
-                telegram_id=mini_app_user.telegram_id
+                telegram_id=mini_app_user.telegram_id,
+                tenant=tenant
             ).first()
             if custom_user:
                 mini_app_user.linked_custom_user = custom_user
                 mini_app_user.save(update_fields=['linked_custom_user'])
-            elif mini_app_user.username: # Если CustomUser не найден по telegram_id, пробуем по username
+            elif mini_app_user.username: # Если CustomUser не найден по telegram_id, пробуем по username в том же тенанте
                  custom_user = CustomUser.objects.filter(
-                    username=mini_app_user.username
+                    username=mini_app_user.username,
+                    tenant=tenant
                 ).first()
                  if custom_user:
                     mini_app_user.linked_custom_user = custom_user
