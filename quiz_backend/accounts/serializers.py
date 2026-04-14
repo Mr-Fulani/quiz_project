@@ -598,9 +598,10 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MiniAppUser
-        fields = ('telegram_id', 'username', 'first_name', 'last_name', 'language', 'language_code', 'avatar', 'photo_url', 'telegram_photo_url')
+        fields = ('tenant', 'telegram_id', 'username', 'first_name', 'last_name', 'language', 'language_code', 'avatar', 'photo_url', 'telegram_photo_url')
         extra_kwargs = {
-            'telegram_photo_url': {'write_only': True}
+            'telegram_photo_url': {'write_only': True},
+            'tenant': {'read_only': True},
         }
     
     def create(self, validated_data):
@@ -611,9 +612,13 @@ class MiniAppUserCreateSerializer(serializers.ModelSerializer):
         photo_url = validated_data.pop('photo_url', None)
         if photo_url:
             validated_data['telegram_photo_url'] = photo_url
-            
-        # Создаем пользователя
-        mini_app_user = MiniAppUser.objects.create(**validated_data)
+
+        # Создаем пользователя (get_or_create защищает от дублей)
+        mini_app_user, created = MiniAppUser.objects.get_or_create(
+            telegram_id=validated_data.get('telegram_id'),
+            tenant=validated_data.get('tenant'),
+            defaults=validated_data
+        )
         
         # Автоматически связываем с существующими пользователями текущего тенанта
         try:
