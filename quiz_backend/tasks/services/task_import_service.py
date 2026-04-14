@@ -21,7 +21,7 @@ from .telegram_service import publish_task_to_telegram
 logger = logging.getLogger(__name__)
 
 
-def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
+def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None) -> Dict:
     """
     Импорт задач из JSON файла в базу данных.
     
@@ -54,7 +54,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
         with open(file_path, 'r', encoding='utf-8') as file:
             data = json.load(file)
         
-        logger.info(f"📄 Начинаем импорт задач из {file_path}")
+        logger.info(f"📄 Начинаем импорт задач из {file_path} (тенант: {tenant.slug if tenant else 'не указан'})")
         detailed_logs.append(f"📄 Начинаем импорт задач из {file_path}")
         
         tasks_data = data.get('tasks', [])
@@ -170,23 +170,30 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                     ).first()
                     
                     if not telegram_group:
-                        error_msg = f"⚠️ Группа не найдена для топика '{topic_name}' и языка '{language}'. Задача для этого языка не будет создана."
-                        logger.warning(error_msg)
-                        error_messages.append(error_msg)
-                        detailed_logs.append(error_msg)
-                        failed_tasks += 1
-                        continue  # Продолжаем с другими переводами
+                        warn_msg = (
+                            f"⚠️ Группа не найдена для топика '{topic_name}' и языка '{language}'. "
+                            f"Задача будет создана без Telegram-канала — привяжите вручную в админке."
+                        )
+                        logger.warning(warn_msg)
+                        error_messages.append(warn_msg)
+                        detailed_logs.append(warn_msg)
                     
                     # Используем транзакцию для создания задачи и перевода
                     try:
                         with transaction.atomic():
                             # Создаём задачу
+                            # published_website/published_mini_app = True по умолчанию:
+                            # задача сразу доступна на сайте и в Mini App.
+                            # published_telegram остаётся False до явной публикации в канал.
                             task = Task.objects.create(
+                                tenant=tenant,
                                 topic=topic,
                                 subtopic=subtopic,
                                 group=telegram_group,
                                 difficulty=difficulty,
-                                published=False,
+                                published=False,          # Telegram не опубликовано
+                                published_website=True,   # Сайт — доступно сразу
+                                published_mini_app=True,  # Mini App — доступно сразу
                                 translation_group_id=translation_group_id,
                                 external_link=external_link,
                                 description=task_description
@@ -222,11 +229,16 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
                                     
                                     if image:
                                         # Формируем имя файла в формате, как в боте
-                                        subtopic_name = task.subtopic.name if task.subtopic else 'general'
-                                        image_name = f"{task.topic.name}_{subtopic_name}_{language}_{task.id}.png"
+                                        subtopic_name_for_file = task.subtopic.name if task.subtopic else 'general'
+                                        image_name = f"{task.topic.name}_{subtopic_name_for_file}_{language}_{task.id}.png"
                                         image_name = image_name.replace(" ", "_").lower()
                                         
-                                        image_url = upload_image_to_s3(image, image_name)
+                                        image_url = upload_image_to_s3(
+                                            image,
+                                            image_name,
+                                            tenant_slug=tenant.slug if tenant else None,
+                                            topic_slug=topic.name,
+                                        )
                                         
                                         if image_url:
                                             task.image_url = image_url
@@ -315,6 +327,30 @@ def import_tasks_from_json(file_path: str, publish: bool = False) -> Dict:
             detailed_logs.append(f"📢 Опубликовано в Telegram: {published_count}")
         
         detailed_logs.append("=" * 60)
+
+        # Сохраняем исходный JSON в R2 (архив)
+        if successfully_loaded > 0:
+            try:
+                from .s3_service import upload_json_to_r2
+                import datetime
+                date_str = datetime.date.today().isoformat()  # '2026-04-14'
+                tenant_slug = tenant.slug if tenant else 'shared'
+                json_filename = f"{date_str}_{tenant_slug}_{len(tasks_data)}tasks.json"
+                with open(file_path, 'r', encoding='utf-8') as f_json:
+                    json_content = f_json.read()
+                json_url = upload_json_to_r2(
+                    json_content,
+                    json_filename,
+                    tenant_slug=tenant.slug if tenant else None,
+                )
+                if json_url:
+                    detailed_logs.append(f"📦 JSON-файл сохранён в R2: {json_url}")
+                    logger.info(f"📦 JSON сохранён в R2: {json_url}")
+                else:
+                    detailed_logs.append("⚠️ JSON не удалось сохранить в R2 (проверьте настройки R2 в .env)")
+            except Exception as json_r2_err:
+                logger.warning(f"⚠️ Ошибка сохранения JSON в R2: {json_r2_err}")
+                detailed_logs.append(f"⚠️ Архивирование JSON в R2 не удалось: {json_r2_err}")
         
         return {
             'successfully_loaded': successfully_loaded,

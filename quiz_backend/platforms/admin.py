@@ -128,9 +128,37 @@ class TelegramChannelAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     form = TelegramChannelAdminForm
     list_display = ('group_name', 'group_id', 'language', 'location_type', 'username', 'get_topic_name')
-    list_filter = ('language', 'location_type')
+    list_filter = ('language', 'location_type', 'tenant', 'topic_id')
     search_fields = ('group_name', 'group_id', 'username')
     ordering = ('-id',)
+    
+    actions = ['sync_tasks_action']
+
+    @admin.action(description="🔗 Привязать существующие задачи к этим группам")
+    def sync_tasks_action(self, request, queryset):
+        """
+        Массово привязывает задачи к выбранным Telegram-группам.
+        """
+        from tasks.services.group_sync_service import sync_tasks_with_groups
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            self.message_user(request, "❌ Тенант не определен.", messages.ERROR)
+            return
+
+        total_updated = 0
+        for group in queryset:
+            updated = sync_tasks_with_groups(
+                tenant=tenant, 
+                topic=group.topic_id, 
+                language=group.language
+            )
+            total_updated += updated
+        
+        self.message_user(
+            request, 
+            f"✅ Синхронизация завершена. Групп обработано: {queryset.count()}. Обновлено задач: {total_updated}", 
+            messages.SUCCESS
+        )
 
     # Скрываем поле id
     exclude = ('id',)

@@ -182,8 +182,15 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     form = TaskAdminForm
     change_list_template = 'admin/tasks/task_changelist.html'
     
-    list_display = ('id', 'topic', 'subtopic', 'get_language', 'difficulty', 'published', 'error_status', 'create_date', 'publish_date', 'has_image', 'has_video', 'has_external_link')
-    list_filter = ('published', 'difficulty', 'topic', 'subtopic', 'error', 'translations__language')
+    list_display = (
+        'id', 'topic', 'subtopic', 'get_language', 'difficulty',
+        'publication_status_display', 'telegram_group_display',
+        'error_status', 'create_date', 'has_image', 'has_video',
+    )
+    list_filter = (
+        'published_telegram', 'published_website', 'published_mini_app',
+        'tenant', 'difficulty', 'topic', 'subtopic', 'error', 'translations__language',
+    )
     search_fields = ('id', 'topic__name', 'subtopic__name', 'translation_group_id', 'external_link', 'translations__language')
     raw_id_fields = ('topic', 'subtopic', 'group', 'background_music')
     date_hierarchy = 'create_date'
@@ -202,30 +209,40 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             messages.INFO
         )
 
-    # Добавляем поля для редактирования
     fieldsets = (
-        ('Основная информация', {
-            'fields': ('topic', 'subtopic', 'group', 'difficulty')
+        ('📚 Основная информация', {
+            'fields': ('topic', 'subtopic', 'difficulty')
         }),
-        ('Контент', {
+        ('📡 Публикация по платформам', {
+            'fields': ('published_telegram', 'published_website', 'published_mini_app', 'group'),
+            'description': (
+                'Укажите где задача опубликована. '
+                'Telegram-канал (поле «group») можно назначить позже — задача создаётся и без него.'
+            )
+        }),
+        ('🖹 Контент', {
             'fields': ('image_url', 'external_link', 'get_final_link_display'),
-            'description': 'Ссылка используется для кнопки "Узнать больше о задаче" при публикации в Telegram'
+            'description': 'Ссылка используется для кнопки "Узнать больше" при публикации в Telegram'
         }),
-        ('Публикация', {
-            'fields': ('published', 'error')
+        ('⚠️ Ошибки', {
+            'fields': ('error',)
         }),
-        ('Системная информация', {
+        ('ℹ️ Системная информация', {
             'fields': ('translation_group_id', 'message_id', 'create_date', 'publish_date'),
             'classes': ('collapse',)
         }),
-        ('Действия', {
+        ('🎬 Действия', {
             'fields': ('generate_video_button',),
             'description': 'Быстрые действия для задачи'
         }),
-        ('Видео', {
+        ('🎵 Видео', {
             'fields': ('background_music', 'video_question_text', 'video_urls_display', 'video_generation_logs_display'),
-            'description': 'Информация о видео задачи. Можно выбрать конкретный трек для этой задачи (переопределяет автоматический выбор). Кастомный текст вопроса для видео будет использован для языка текущего перевода задачи. Если не указан, используется дефолтный текст.',
-            'classes': ()  # Убираем collapse, чтобы секция всегда была видна
+            'description': (
+                'Информация о видео задачи. Можно выбрать конкретный трек для этой задачи '
+                '(переопределяет автоматический выбор). '
+                'Кастомный текст вопроса для видео будет использован для языка текущего перевода.'
+            ),
+            'classes': ()
         }),
     )
     readonly_fields = ('create_date', 'publish_date', 'translation_group_id', 'message_id', 'get_final_link_display', 'generate_video_button', 'video_urls_display', 'video_generation_logs_display')
@@ -250,7 +267,8 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         'publish_to_facebook_stories',
         'publish_to_facebook_reels',
         'publish_with_auto_reshare',
-        'clear_error_flag'
+        'clear_error_flag',
+        'sync_with_telegram_groups'
     ]
     
     def save_related(self, request, form, formsets, change):
@@ -260,7 +278,6 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         # После сохранения всех inline объектов (включая переводы) обновляем video_question_texts
         instance = form.instance
         video_question_text = form.cleaned_data.get('video_question_text', '').strip()
-        
         # Теперь переводы уже сохранены, можем получить язык
         translation = instance.translations.first()
         if translation and video_question_text:
@@ -274,6 +291,25 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             if instance.video_question_texts and translation.language in instance.video_question_texts:
                 del instance.video_question_texts[translation.language]
                 instance.save(update_fields=['video_question_texts'])
+        
+    @admin.action(description="🔗 Привязать к Telegram группам (по теме и языку)")
+    def sync_with_telegram_groups(self, request, queryset):
+        """
+        Массово привязывает задачи к Telegram-группам на основе темы и языка.
+        """
+        from tasks.services.group_sync_service import sync_tasks_with_groups
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            self.message_user(request, "❌ Тенант не определен. Не удалось выполнить синхронизацию.", messages.ERROR)
+            return
+
+        updated_count = sync_tasks_with_groups(tenant=tenant, task_queryset=queryset)
+        
+        self.message_user(
+            request, 
+            f"✅ Синхронизация завершена. Обновлено задач: {updated_count}", 
+            messages.SUCCESS
+        )
     
     def get_queryset(self, request):
         """Оптимизация запросов: предзагружаем переводы для отображения языка."""
@@ -367,6 +403,61 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         return format_html('<span style="color: #dc3545;">—</span>')
     get_language.short_description = 'Язык'
     
+    def publication_status_display(self, obj):
+        """
+        Цветные бейджи статуса публикации по трём платформам.
+          🟢 зелёный  — опубликовано
+          ⚫ серый    — не опубликовано
+          🟡 жёлтый  — Telegram без канала (задача есть, но канал не назначен)
+        """
+        def badge(icon, label, color, text_color='white'):
+            return (
+                f'<span style="display:inline-block;background:{color};color:{text_color};'
+                f'padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;'
+                f'margin:1px;white-space:nowrap;">{icon} {label}</span>'
+            )
+
+        parts = []
+
+        # Сайт
+        if obj.published_website:
+            parts.append(badge('🌐', 'Сайт', '#28a745'))
+        else:
+            parts.append(badge('🌐', 'Сайт', '#6c757d'))
+
+        # Mini App
+        if obj.published_mini_app:
+            parts.append(badge('📱', 'App', '#28a745'))
+        else:
+            parts.append(badge('📱', 'App', '#6c757d'))
+
+        # Telegram
+        if obj.published_telegram:
+            parts.append(badge('✈️', 'TG', '#28a745'))
+        elif not obj.group:
+            # Канал не назначен — предупреждение
+            parts.append(badge('❗', 'Нет канала', '#ffc107', '#333'))
+        else:
+            # Канал есть, но ещё не опубликовано
+            parts.append(badge('✈️', 'TG', '#dc3545'))
+
+        return format_html('<div style="white-space:nowrap">{}</div>', mark_safe(''.join(parts)))
+
+    publication_status_display.short_description = 'Публикация'
+
+    def telegram_group_display(self, obj):
+        """Показывает привязанный Telegram-канал или предупреждение."""
+        if obj.group:
+            return format_html(
+                '<span style="color:#28a745;font-weight:600;">✅ {}</span>',
+                obj.group.group_name
+            )
+        return format_html(
+            '<span style="color:#dc3545;">❌ Не назначен</span>'
+        )
+
+    telegram_group_display.short_description = 'TG Канал'
+
     def error_status(self, obj):
         """Отображение статуса ошибки с цветовой индикацией."""
         if obj.error:
@@ -378,6 +469,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 '<span style="color: #28a745;">✅ OK</span>'
             )
     error_status.short_description = 'Статус'
+
     
     def get_final_link_display(self, obj):
         """Отображает итоговую ссылку которая будет использована при публикации"""
@@ -658,8 +750,10 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                         destination.write(chunk)
             
             try:
+                # Получаем тенанта из запроса (устанавливается TenantMiddleware)
+                tenant = getattr(request, 'tenant', None)
                 # Импортируем задачи
-                result = import_tasks_from_json(temp_path, publish=publish)
+                result = import_tasks_from_json(temp_path, publish=publish, tenant=tenant)
                 
                 # Удаляем временный файл
                 os.remove(temp_path)

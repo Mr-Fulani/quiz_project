@@ -145,10 +145,36 @@ class Task(models.Model):
         help_text='Логи процесса генерации видео (обновляется автоматически)'
     )
 
+    # ── Статусы публикации по платформам ───────────────────────────────────
+    published_telegram = models.BooleanField(
+        default=False,
+        verbose_name=_('Опубликовано в Telegram'),
+        help_text=_('Задача опубликована в Telegram-канале/группе')
+    )
+    published_website = models.BooleanField(
+        default=False,
+        verbose_name=_('Опубликовано на сайте'),
+        help_text=_('Задача доступна на сайте')
+    )
+    published_mini_app = models.BooleanField(
+        default=False,
+        verbose_name=_('Опубликовано в Mini App'),
+        help_text=_('Задача доступна в Telegram Mini App')
+    )
+
 
     def clean(self):
+        super().clean()
         if self.publish_date and self.publish_date < self.create_date:
             raise ValidationError("Дата публикации не может быть раньше даты создания")
+            
+        # Проверка соответствия темы группы и темы задачи
+        if self.group and self.topic:
+            if self.group.topic_id != self.topic:
+                raise ValidationError({
+                    'group': f"Telegram-канал '{self.group.group_name}' привязан к теме '{self.group.topic_id.name}', "
+                             f"а задача имеет тему '{self.topic.name}'. Темы должны совпадать."
+                })
 
     def save(self, *args, **kwargs):
         if self.published and not self.publish_date:
@@ -198,7 +224,8 @@ class Task(models.Model):
         
         if result['success']:
             self.published = True
-            self.save(update_fields=['published'])
+            self.published_telegram = True
+            self.save(update_fields=['published', 'published_telegram'])
         
         return result
 

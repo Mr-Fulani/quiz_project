@@ -108,7 +108,7 @@ def personal_info(request):
                         'favorite_category': favorite_category
                     }
                     top_users_data.append(user_data)
-                    logger.info(f"=== DEBUG: User {user.username} stats - tasks: {user.tasks_completed}, score: {user.total_score}, avg: {avg_score}%")
+                    logger.info(f"=== DEBUG: User {user.username} stats - tasks: {getattr(user, 'tasks_completed_count', 0)}, score: {user.total_score}, avg: {avg_score}%")
                 except Exception as e:
                     logger.error(f"Error processing user {user.username}: {e}")
                     continue

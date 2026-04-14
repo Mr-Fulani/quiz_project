@@ -1219,26 +1219,30 @@ class QuizesView(BreadcrumbsMixin, ListView):
         # Если тенант не найден, ничего не отдаём
         if not tenant:
             return Topic.objects.none()
-            
-        # Фильтруем данные конкретно этого тенанта
-        queryset = Topic.objects.filter(tenant=tenant, tasks__published=True).distinct()
         
-        # Аннотируем общее количество опубликованных задач в теме
+        # Задача доступна на сайте если published=True (Telegram) ИЛИ published_website=True
+        site_published = Q(tasks__published=True) | Q(tasks__published_website=True)
+        
+        # Фильтруем данные конкретно этого тенанта
+        queryset = Topic.objects.filter(tenant=tenant).filter(site_published).distinct()
+        
+        # Аннотируем общее количество опубликованных (для сайта) задач в теме
         queryset = queryset.annotate(
-            questions_count=Count('tasks', filter=Q(tasks__published=True), distinct=True)
+            questions_count=Count(
+                'tasks',
+                filter=Q(tasks__published=True) | Q(tasks__published_website=True),
+                distinct=True
+            )
         )
         
         # Если пользователь авторизован, добавляем аннотацию для подсчета задач с попытками
-        # Используем любую попытку (как в мини-аппе), а не только успешную
-        # Группируем по translation_group_id, чтобы учитывать задачи на всех языках как одну
         if self.request.user.is_authenticated:
             queryset = queryset.annotate(
                 completed_tasks_count=Count(
                     'tasks__translation_group_id',
                     filter=Q(
-                        tasks__published=True,
                         tasks__statistics__user=self.request.user
-                    ),
+                    ) & (Q(tasks__published=True) | Q(tasks__published_website=True)),
                     distinct=True
                 )
             )
@@ -1305,15 +1309,19 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         topic_name = self.kwargs['quiz_type'].lower()
         topic = get_object_or_404(Topic, name__iexact=topic_name)
         preferred_language = get_language()
+        
+        # Задача видна на сайте если published=True (опубликована в TG) ИЛИ published_website=True
+        site_published = Q(published=True) | Q(published_website=True)
+        site_published_tasks = Q(tasks__published=True) | Q(tasks__published_website=True)
+        
         subtopics = Subtopic.objects.filter(
             topic=topic,
-            tasks__published=True,
             tasks__translations__language=preferred_language
-        ).select_related('topic').prefetch_related(
+        ).filter(site_published_tasks).select_related('topic').prefetch_related(
             Prefetch(
                 'tasks',
                 queryset=Task.objects.filter(
-                    published=True,
+                    site_published,
                     translations__language=preferred_language
                 ).select_related('topic', 'subtopic').prefetch_related(
                     Prefetch(
@@ -1324,27 +1332,24 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
             )
         ).distinct()
         
-        # Аннотируем общее количество опубликованных задач в подтеме
+        # Аннотируем общее количество задач на сайте в подтеме
         subtopics = subtopics.annotate(
             questions_count=Count(
                 'tasks',
-                filter=Q(
-                    tasks__published=True,
-                    tasks__translations__language=preferred_language
-                ),
+                filter=(
+                    Q(tasks__published=True) | Q(tasks__published_website=True)
+                ) & Q(tasks__translations__language=preferred_language),
                 distinct=True
             )
         )
         
-        # Если пользователь авторизован, добавляем аннотацию для подсчета задач с попытками
-        # Используем любую попытку (как в мини-аппе), а не только успешную
-        # Группируем по translation_group_id, чтобы учитывать задачи на всех языках как одну
         if self.request.user.is_authenticated:
             subtopics = subtopics.annotate(
                 completed_tasks_count=Count(
                     'tasks__translation_group_id',
-                    filter=Q(
-                        tasks__published=True,
+                    filter=(
+                        Q(tasks__published=True) | Q(tasks__published_website=True)
+                    ) & Q(
                         tasks__translations__language=preferred_language,
                         tasks__statistics__user=self.request.user
                     ),
@@ -1529,9 +1534,9 @@ def quiz_difficulty(request, quiz_type, subtopic):
     for diff in ['easy', 'medium', 'hard']:
         # Подсчитываем общее количество задач для уровня сложности
         tasks_queryset = Task.objects.filter(
+            Q(published=True) | Q(published_website=True),
             topic=topic,
             subtopic=subtopic_obj,
-            published=True,
             difficulty=diff,
             translations__language=preferred_language
         ).distinct()
@@ -1707,9 +1712,9 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     # Оптимизированный запрос задач
     tasks = (
         Task.objects.filter(
+            Q(published=True) | Q(published_website=True),
             topic=topic,
             subtopic=subtopic_obj,
-            published=True,
             difficulty=difficulty.lower(),
             translations__language=preferred_language
         )
@@ -1731,9 +1736,9 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
     if not tasks.exists():
         tasks = (
             Task.objects.filter(
+                Q(published=True) | Q(published_website=True),
                 topic=topic,
                 subtopic__isnull=True,
-                published=True,
                 difficulty=difficulty.lower(),
                 translations__language=preferred_language
             )
@@ -1924,7 +1929,11 @@ def quiz_subtopic(request, quiz_type, subtopic, difficulty):
         ],
         'meta_title': _('%(subtopic_name)s — %(difficulty)s Quizzes') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
         'meta_description': _('Test your skills with %(subtopic_name)s quizzes on %(difficulty)s level.') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
-        'meta_keywords': _('%(subtopic_name)s, quizzes, %(difficulty)s, programming') % {'subtopic_name': subtopic_obj.name, 'difficulty': difficulty.title()},
+        'meta_keywords': _('%(subtopic_name)s, quizzes, %(difficulty)s, programming') % {
+            'subtopic_name': subtopic_obj.name,
+            'difficulty': difficulty.title(),
+            'topic_name': topic.name,  # некоторые локали содержат %(topic_name)s в переводе
+        },
     }
 
     logger.info(f"Total queries in quiz_subtopic: {len(connection.queries)}")
@@ -1996,7 +2005,14 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
             logger.error("Subtopic '%s' not found for topic '%s'", subtopic, quiz_type)
             return JsonResponse({'error': f'Subtopic {subtopic} not found for topic {quiz_type}'}, status=404)
         
-        task = get_object_or_404(Task, id=task_id, topic=topic, subtopic=subtopic_obj, published=True)
+        task = Task.objects.filter(
+            Q(published=True) | Q(published_website=True),
+            id=task_id,
+            topic=topic,
+            subtopic=subtopic_obj,
+        ).first()
+        if task is None:
+            raise Http404(f"Task {task_id} not found or not published")
     except Http404 as e:
         logger.error(f"404 error in submit_task_answer: {e}")
         return JsonResponse({'error': 'Task or subtopic not found'}, status=404)
@@ -2138,11 +2154,14 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
                 cache_key_topic = f'topics_progress_{task.topic.id}_{request.user.id}_{lang}'
                 cache.delete(cache_key_topic)
                 deleted_keys.append(cache_key_topic)
-        if task.subtopic:
+        if task.subtopic and task.topic:
             for lang in languages:
-                cache_key_subtopic = f'subtopics_progress_{task.subtopic.id}_{request.user.id}_{lang}'
-                cache.delete(cache_key_subtopic)
-                deleted_keys.append(cache_key_subtopic)
+                # Cache for subtopics list (QuizDetailView) is keyed by TOPIC ID
+                cache_key_subtopics_list = f'subtopics_progress_{task.topic.id}_{request.user.id}_{lang}'
+                cache.delete(cache_key_subtopics_list)
+                deleted_keys.append(cache_key_subtopics_list)
+                
+                # Cache for difficulties list (quiz_difficulty) is keyed by SUBTOPIC ID
                 if task.difficulty:
                     cache_key_difficulty = f'difficulties_progress_{task.subtopic.id}_{request.user.id}_{lang}'
                     cache.delete(cache_key_difficulty)
@@ -2158,11 +2177,13 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
                         cache_key_topic = f'topics_progress_{related_task.topic.id}_{request.user.id}_{lang}'
                         cache.delete(cache_key_topic)
                         deleted_keys.append(cache_key_topic)
-                if related_task.subtopic:
+                if related_task.subtopic and related_task.topic:
                     for lang in languages:
-                        cache_key_subtopic = f'subtopics_progress_{related_task.subtopic.id}_{request.user.id}_{lang}'
-                        cache.delete(cache_key_subtopic)
-                        deleted_keys.append(cache_key_subtopic)
+                        # Clear subtopics list cache for this topic
+                        cache_key_subtopics_list = f'subtopics_progress_{related_task.topic.id}_{request.user.id}_{lang}'
+                        cache.delete(cache_key_subtopics_list)
+                        deleted_keys.append(cache_key_subtopics_list)
+                        
                         if related_task.difficulty:
                             cache_key_difficulty = f'difficulties_progress_{related_task.subtopic.id}_{request.user.id}_{lang}'
                             cache.delete(cache_key_difficulty)
@@ -2174,7 +2195,7 @@ def submit_task_answer(request, quiz_type, subtopic, task_id):
 
         # Обновляем статистику пользователя
         try:
-            from django.db.models import Count, Q
+            from django.db.models import Count
             # Считаем уникальные translation_group_id вместо количества записей
             # чтобы не учитывать дубликаты от синхронизации статистики между языками
             total_attempts = TaskStatistics.objects.filter(user=request.user).values('task__translation_group_id').distinct().count()
