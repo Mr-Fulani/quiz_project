@@ -36,11 +36,32 @@ from blog.sitemaps import ProjectSitemap, PostSitemap, MainPagesSitemap, QuizSit
 from django.template.response import TemplateResponse
 
 # Health check endpoint
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.sites.shortcuts import get_current_site
 
 def health_check(request):
     return HttpResponse("OK", status=200)
+
+def debug_tenant(request):
+    """
+    Диагностический endpoint: показывает какой Host получает сервер
+    и какой тенант ему сопоставляется.
+    GET /api/debug-tenant/
+    """
+    from tenants.models import Tenant
+    raw_host = request.META.get('HTTP_HOST', 'N/A')
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', 'N/A')
+    forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST', 'N/A')
+    tenant = getattr(request, 'tenant', 'НЕ_УСТАНОВЛЕН')
+    all_tenants = list(Tenant.objects.values('slug', 'domain', 'mini_app_domain', 'is_active'))
+    return JsonResponse({
+        'HTTP_HOST': raw_host,
+        'HTTP_X_FORWARDED_FOR': forwarded_for,
+        'HTTP_X_FORWARDED_HOST': forwarded_host,
+        'request.get_host()': request.get_host(),
+        'request.tenant': tenant.slug if hasattr(tenant, 'slug') else str(tenant),
+        'all_tenants_in_db': all_tenants,
+    })
 
 def root_with_verification(request):
     """
@@ -259,6 +280,7 @@ urlpatterns = [
     # Кастомный переключатель языка (вне языковых паттернов для работы с любым языком)
     path('set-language/', custom_set_language, name='custom_set_language'),
     path('health/', health_check, name='health_check'),  # Health check endpoint
+    path('api/debug-tenant/', debug_tenant, name='debug_tenant'),  # Диагностика тенанта
     
     # SEO файлы (вне языковых паттернов)
     path('robots.txt', robots_txt_view, name='robots_txt'),

@@ -94,9 +94,13 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        raw_host = request.META.get('HTTP_HOST', '')
         host = self._normalize_host(request.get_host())
         tenant = _get_tenant_by_host(host)
-        logger.info(f"[TenantMiddleware] Host: {host} -> Tenant: {tenant.slug if tenant else 'None'}")
+        logger.info(
+            f"[TenantMiddleware] HTTP_HOST={raw_host!r} → normalized={host!r} → "
+            f"tenant={tenant.slug if tenant else 'None (ПРОВЕРЬ mini_app_domain в админке!)'}"
+        )
         request.tenant = tenant
         response = self.get_response(request)
         return response
