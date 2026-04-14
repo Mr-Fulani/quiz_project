@@ -140,7 +140,7 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
             tasks_count=Count(
                 'tasks',
                 filter=models.Q(
-                    tasks__published=True,
+                    models.Q(tasks__published=True) | models.Q(tasks__published_mini_app=True),
                     tasks__translations__language=language
                 ),
                 distinct=True
@@ -198,7 +198,7 @@ def topics_simple(request):
         tasks_count=Count(
             'tasks',
             filter=models.Q(
-                tasks__published=True,
+                models.Q(tasks__published=True) | models.Q(tasks__published_mini_app=True),
                 tasks__translations__language=language
             ),
             distinct=True
@@ -286,7 +286,7 @@ def topic_detail_simple(request, topic_id):
         
         # Подсчитываем количество задач на активном языке (distinct по задачам)
         tasks_count = topic.tasks.filter(
-            published=True,
+            models.Q(published=True) | models.Q(published_mini_app=True),
             translations__language=language
         ).values('id').distinct().count()
         
@@ -357,8 +357,9 @@ def subtopic_detail_simple(request, subtopic_id):
         
         tasks = Task.objects.filter(
             subtopic=subtopic,
-            published=True,
             translations__language=language
+        ).filter(
+            models.Q(published=True) | models.Q(published_mini_app=True)
         )
         logger.info(f"subtopic_detail_simple: Задач до фильтрации по сложности: {tasks.count()}")
 

@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
             headers.forEach(header => {
                 const textLength = header.textContent.trim().length;
                 
-                // Если хотя бы один заголовок длиннее 6 символов, помечаем
-                if (textLength > 6) {
+                // Если хотя бы один заголовок длиннее 20 символов, помечаем
+                if (textLength > 20) {
                     hasLongHeader = true;
                 }
             });
@@ -29,8 +29,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Запускаем при загрузке страницы
-    adjustHeaderSpacing();
+    // Запускаем при загрузке страницы с небольшой задержкой для корректного расчета отрендеренного текста
+    requestAnimationFrame(() => {
+        adjustHeaderSpacing();
+        console.log('Header spacing adjusted on load');
+    });
     
     // Также наблюдаем за изменениями в DOM (для динамически загружаемого контента)
     const observer = new MutationObserver(function(mutations) {

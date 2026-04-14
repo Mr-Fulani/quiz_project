@@ -24,7 +24,6 @@ All static text is localized using {% trans %} for English msgid and translation
         <h1 class="h2 article-title">{{ subtopic.name }} {% trans "Difficulty Levels" %}</h1>
     </header>
     <section class="service">
-        <h3 class="h3 service-title">{% trans "Available Difficulty Levels" %}</h3>
         <ul class="service-list">
             {% if difficulties %}
                 {% for difficulty in difficulties %}
