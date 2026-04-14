@@ -49,8 +49,10 @@ def _get_tenant_by_host(host):
             _tenant_cache[host] = tenant
             logger.debug(f'[TenantMiddleware] Host "{clean_host}" → Tenant "{tenant.slug}"')
         else:
-            logger.warning(f'[TenantMiddleware] No active tenant for host "{clean_host}"')
-            _tenant_cache[host] = None
+            # Не кэшируем None — при следующем запросе снова проверим БД.
+            # Это важно: если тенант добавлен в БД после запуска сервера,
+            # кэширование None заблокировало бы его обнаружение навсегда.
+            logger.warning(f'[TenantMiddleware] No active tenant for host "{clean_host}" (not cached)')
 
         return tenant
 
