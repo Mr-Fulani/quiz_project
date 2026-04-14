@@ -23,7 +23,7 @@ All static text is localized using {% trans %} for English msgid and translation
   </header>
 
   <section class="service">
-    <h3 class="h3 service-title">{% trans "Available Topics" %}</h3>
+{% comment %} Заголовок удален по просьбе пользователя {% endcomment %}
 
     <ul class="service-list">
       {% if topics %}
@@ -85,7 +85,6 @@ All static text is localized using {% trans %} for English msgid and translation
                             <span class="stat-value">{{ topic.questions_count }}</span>
                           </span>
                         </div>
-                        <p class="progress-text not-started">{% trans "Log in to track your progress" %}</p>
                       </div>
                     {% else %}
                       <p class="no-tasks">{% trans "No items in topic" %}</p>
@@ -109,13 +108,11 @@ All static text is localized using {% trans %} for English msgid and translation
     </ul>
   </section>
 
+  {% if user.is_authenticated %}
   <div class="user-score">
-    {% if user.is_authenticated %}
     <a href="{% url 'blog:statistics' %}?view=personal" class="contact-link">{% trans "View my progress" %}</a>
-    {% else %}
-        <a href="#" class="open-login-modal" data-return-url="{{ request.path }}">{% trans "Log in to track progress" %}</a>
-    {% endif %}
   </div>
+  {% endif %}
 </article>
 
 <style>
