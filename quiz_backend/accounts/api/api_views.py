@@ -329,17 +329,20 @@ class ProfileByTelegramID(APIView):
         # Вся логика выполняется в одной транзакции для атомарности
         try:
             with transaction.atomic():
-                # Шаг 1: Ищем пользователя по telegram_id
-                user = CustomUser.objects.filter(telegram_id=telegram_id).first()
+                tenant = getattr(request, 'tenant', None)
+                # Шаг 1: Ищем пользователя по telegram_id и тенанту
+                user = CustomUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
 
                 if not user:
-                    # Шаг 2: Не нашли. Пытаемся привязать аккаунт по username.
+                    # Шаг 2: Не нашли. Пытаемся привязать аккаунт по username в том же тенанте.
                     if username:
                         unlinked_user = CustomUser.objects.filter(
-                            username=username, telegram_id__isnull=True
+                            username=username, 
+                            tenant=tenant,
+                            telegram_id__isnull=True
                         ).first()
                         if unlinked_user:
-                            logger.info(f"Связываем аккаунт: найден пользователь сайта '{username}', привязываем telegram_id {telegram_id}.")
+                            logger.info(f"Связываем аккаунт: найден пользователь сайта '{username}' в тенанте {tenant}, привязываем telegram_id {telegram_id}.")
                             unlinked_user.telegram_id = telegram_id
                             unlinked_user.is_telegram_user = True
                             unlinked_user.first_name = user_data.get('first_name', unlinked_user.first_name)
@@ -347,12 +350,13 @@ class ProfileByTelegramID(APIView):
                             unlinked_user.save()
                             user = unlinked_user
 
-                # Шаг 3: Если пользователь все еще не найден, создаем нового.
+                # Шаг 3: Если пользователь все еще не найден, создаем нового в текущем тенанте.
                 if not user:
-                    logger.info(f"Создаем нового пользователя для telegram_id {telegram_id}.")
+                    logger.info(f"Создаем нового пользователя для telegram_id {telegram_id} в тенанте {tenant}.")
                     try:
                         user = CustomUser.objects.create(
                             telegram_id=telegram_id,
+                            tenant=tenant,
                             username=username or f"user_{telegram_id}",
                             first_name=user_data.get('first_name', ''),
                             last_name=user_data.get('last_name', ''),
@@ -363,16 +367,18 @@ class ProfileByTelegramID(APIView):
                         unique_username = f"{username}_{telegram_id}"
                         user = CustomUser.objects.create(
                             telegram_id=telegram_id,
+                            tenant=tenant,
                             username=unique_username,
                             first_name=user_data.get('first_name', ''),
                             last_name=user_data.get('last_name', ''),
                             is_telegram_user=True,
                         )
 
-                # Шаг 4: Обновляем или создаем запись в модели TelegramUser
+                # Шаг 4: Обновляем или создаем запись в модели TelegramUser в том же тенанте
                 TelegramUser.objects.update_or_create(
                     linked_user=user,
                     telegram_id=telegram_id,
+                    tenant=tenant,
                     defaults={
                         'username': username,
                         'first_name': user_data.get('first_name'),
@@ -399,9 +405,10 @@ class PublicProfileByTelegramAPIView(APIView):
     def get(self, request, telegram_id):
         """Получение публичного профиля по telegram_id"""
         try:
+            tenant = getattr(request, 'tenant', None)
             # Используем .get() вместо get_object_or_404, чтобы вручную
             # обработать случай, когда пользователь не найден.
-            user = CustomUser.objects.get(telegram_id=telegram_id)
+            user = CustomUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             serializer = ProfileSerializer(user, context={'request': request})
             return Response(serializer.data)
@@ -555,10 +562,11 @@ class ProfileUpdateByTelegramView(generics.UpdateAPIView):
 
     def get_object(self):
         """
-        Получаем пользователя MiniAppUser по telegram_id из URL.
+        Получаем пользователя MiniAppUser по telegram_id из URL и тенанту.
         """
         telegram_id = self.kwargs.get('telegram_id')
-        return get_object_or_404(MiniAppUser, telegram_id=telegram_id)
+        tenant = getattr(self.request, 'tenant', None)
+        return get_object_or_404(MiniAppUser, telegram_id=telegram_id, tenant=tenant)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -607,13 +615,21 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
         Получает объект по telegram_id вместо pk.
         """
         telegram_id = self.kwargs.get('pk')
+        tenant = getattr(self.request, 'tenant', None)
         if telegram_id and telegram_id.isdigit():
-            # Если передан числовой ID, ищем по telegram_id
-            obj = get_object_or_404(MiniAppUser, telegram_id=telegram_id)
+            # Если передан числовой ID, ищем по telegram_id и тенанту
+            obj = get_object_or_404(MiniAppUser, telegram_id=telegram_id, tenant=tenant)
         else:
             # Иначе используем стандартный поиск по pk
             obj = super().get_object()
         return obj
+
+    def perform_create(self, serializer):
+        """
+        При создании пользователя устанавливаем текущий тенант.
+        """
+        tenant = getattr(self.request, 'tenant', None)
+        serializer.save(tenant=tenant)
     
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -629,12 +645,13 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             serializer = self.get_serializer(user)
             return Response(serializer.data)
         except MiniAppUser.DoesNotExist:
             return Response(
-                {'error': 'User not found'}, 
+                {'error': 'User not found in this tenant'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
     
@@ -651,12 +668,13 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             user.update_last_seen()
             return Response({'success': True})
         except MiniAppUser.DoesNotExist:
             return Response(
-                {'error': 'User not found'}, 
+                {'error': 'User not found in this tenant'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
     
@@ -730,7 +748,8 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Получаем данные из запроса (из Mini App initData)
             # Важно: last_name может быть пустой строкой, поэтому проверяем явно
@@ -776,7 +795,7 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             
         except MiniAppUser.DoesNotExist:
             return Response(
-                {'error': 'User not found'}, 
+                {'error': 'User not found in this tenant'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
@@ -801,19 +820,17 @@ class MiniAppUserByTelegramIDView(generics.RetrieveUpdateAPIView):
         Получает объект по telegram_id.
         """
         telegram_id = self.kwargs.get('telegram_id')
-        logger.info(f"🔍 MiniAppUserByTelegramIDView: Ищем пользователя с telegram_id={telegram_id} (тип: {type(telegram_id)})")
+        tenant = getattr(self.request, 'tenant', None)
+        logger.info(f"🔍 MiniAppUserByTelegramIDView: Ищем пользователя с telegram_id={telegram_id} и tenant={tenant}")
         
         # Проверяем, есть ли пользователь в базе
-        user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
+        user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
         if user:
             logger.info(f"✅ Найден пользователь: ID={user.id}, telegram_id={user.telegram_id}, username={user.username}")
         else:
-            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден в базе данных")
-            # Проверим все telegram_id в базе
-            all_users = MiniAppUser.objects.values_list('telegram_id', flat=True)
-            logger.info(f"📋 Все telegram_id в базе: {list(all_users)}")
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} и tenant={tenant} не найден в базе данных")
         
-        return get_object_or_404(MiniAppUser, telegram_id=telegram_id)
+        return get_object_or_404(MiniAppUser, telegram_id=telegram_id, tenant=tenant)
     
     def get_serializer_class(self):
         """
@@ -840,15 +857,16 @@ class MiniAppUserUpdateByTelegramIDView(generics.UpdateAPIView):
         Получает объект по telegram_id.
         """
         telegram_id = self.kwargs.get('telegram_id')
-        logger.info(f"🔍 MiniAppUserUpdateByTelegramIDView: Ищем пользователя с telegram_id={telegram_id}")
+        tenant = getattr(self.request, 'tenant', None)
+        logger.info(f"🔍 MiniAppUserUpdateByTelegramIDView: Ищем пользователя с telegram_id={telegram_id} и tenant={tenant}")
         
-        user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
+        user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
         if user:
             logger.info(f"✅ Найден пользователь для обновления: ID={user.id}, telegram_id={user.telegram_id}")
         else:
-            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} не найден")
+            logger.warning(f"❌ Пользователь с telegram_id={telegram_id} и tenant={tenant} не найден")
             
-        return get_object_or_404(MiniAppUser, telegram_id=telegram_id)
+        return get_object_or_404(MiniAppUser, telegram_id=telegram_id, tenant=tenant)
     
     def update(self, request, *args, **kwargs):
         """

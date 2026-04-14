@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 from django.core.files.base import ContentFile
 from .models import SocialAccount, SocialLoginSession, SocialAuthSettings
 
@@ -117,6 +118,9 @@ class TelegramAuthService:
             Dict с результатом авторизации или None при ошибке
         """
         try:
+            # Получаем текущий тенант из запроса
+            tenant = getattr(request, 'tenant', None)
+            
             # Проверяем подпись
             logger.info(f"Проверка подписи Telegram для данных: id={data.get('id')}, auth_date={data.get('auth_date')}")
             if not TelegramAuthService.verify_telegram_auth(data):
@@ -157,8 +161,9 @@ class TelegramAuthService:
             logger.info(f"Обработка авторизации для telegram_id={telegram_id}")
             
             with transaction.atomic():
-                # Ищем существующий социальный аккаунт
+                # Ищем существующий социальный аккаунт с учетом тенанта
                 social_account = SocialAccount.objects.filter(
+                    tenant=tenant,
                     provider='telegram',
                     provider_user_id=telegram_id,
                     is_active=True
@@ -222,132 +227,148 @@ class TelegramAuthService:
                     except Exception as e:
                         logger.warning(f"Ошибка при автоматическом связывании для существующего social_account telegram_id={telegram_id}: {e}")
                     
-                    # После обновления существующего social_account также устанавливаем обратную связь MiniAppUser -> CustomUser
-                    # и объединяем статистику если MiniAppUser был связан
+                    # Убеждаемся что MiniAppUser существует для этого ID и тенанта
                     try:
                         from accounts.models import MiniAppUser
                         from tasks.models import MiniAppTaskStatistics
                         
+                        # Пытаемся получить или создать MiniAppUser для этого тенанта
+                        mini_app_user, mau_created = MiniAppUser.objects.get_or_create(
+                            telegram_id=int(telegram_id),
+                            tenant=tenant,
+                            defaults={
+                                'first_name': data.get('first_name', '') or '',
+                                'last_name': data.get('last_name', '') or '',
+                                'username': data.get('username', '') or '',
+                                'telegram_photo_url': data.get('photo_url', '') or '',
+                                'linked_custom_user': user
+                            }
+                        )
+                        
+                        if mau_created:
+                            logger.info(f"Создан новый MiniAppUser для telegram_id={telegram_id} в тенанте {tenant}")
+                        
                         # Обновляем social_account чтобы получить свежие связи
                         social_account.refresh_from_db()
                         
-                        # Проверяем есть ли связанный MiniAppUser
-                        if hasattr(social_account, 'mini_app_user') and social_account.mini_app_user:
-                            mini_app_user = social_account.mini_app_user
-                            
-                            # Устанавливаем linked_custom_user если не установлен
-                            if not mini_app_user.linked_custom_user:
-                                mini_app_user.linked_custom_user = user
-                                mini_app_user.save(update_fields=['linked_custom_user'])
-                                logger.info(f"Установлена связь MiniAppUser (telegram_id={telegram_id}) -> CustomUser (id={user.id}, username={user.username})")
-                            
-                            # Обновляем данные MiniAppUser из Telegram
-                            mini_app_updated = False
-                            changed_social_fields = []  # Инициализируем список измененных полей
-                            
-                            if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
-                                mini_app_user.first_name = data.get('first_name')
-                                mini_app_updated = True
-                            if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
-                                mini_app_user.last_name = data.get('last_name')
-                                mini_app_updated = True
-                            
-                            # Обновляем telegram_photo_url если есть
-                            photo_url = data.get('photo_url')
-                            if photo_url and photo_url != mini_app_user.telegram_photo_url:
-                                mini_app_user.telegram_photo_url = photo_url
-                                mini_app_updated = True
-                            
-                            # Синхронизируем поля социальных сетей из CustomUser в MiniAppUser
-                            # Это обеспечивает что данные соцсетей подтягиваются везде где используется одна БД
-                            if user:
-                                user.refresh_from_db()
-                                social_fields_updated = False
-                                
-                                # Список полей социальных сетей для синхронизации
-                                # Исключаем telegram, так как он управляется через SocialAccount
-                                social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
-                                
-                                for field in social_fields:
-                                    custom_user_value = getattr(user, field, None)
-                                    mini_app_value = getattr(mini_app_user, field, None)
-                                    
-                                    # Обновляем только если в CustomUser есть значение и оно отличается
-                                    if custom_user_value and custom_user_value.strip():
-                                        if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
-                                            setattr(mini_app_user, field, custom_user_value)
-                                            changed_social_fields.append(field)
-                                            social_fields_updated = True
-                                            logger.info(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={telegram_id}): {custom_user_value}")
-                                
-                                if social_fields_updated:
-                                    mini_app_updated = True
-                            
-                            if mini_app_updated:
-                                # Сохраняем только измененные поля для оптимизации
-                                update_fields_list = []
-                                if changed_social_fields:
-                                    update_fields_list.extend(changed_social_fields)
-                                if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
-                                    update_fields_list.append('first_name')
-                                if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
-                                    update_fields_list.append('last_name')
-                                if photo_url and photo_url != mini_app_user.telegram_photo_url:
-                                    update_fields_list.append('telegram_photo_url')
-                                
-                                if update_fields_list:
-                                    mini_app_user.save(update_fields=update_fields_list)
-                                else:
-                                    mini_app_user.save()
-                                logger.info(f"Обновлены данные MiniAppUser для telegram_id={telegram_id}")
-                            
-                            # Объединяем статистику Mini App с основной статистикой
-                            try:
-                                # Находим всю статистику MiniAppUser которая еще не связана
-                                unlinked_stats = MiniAppTaskStatistics.objects.filter(
-                                    mini_app_user=mini_app_user,
-                                    linked_statistics__isnull=True
-                                )
-                                
-                                if unlinked_stats.exists():
-                                    merged_count = 0
-                                    with transaction.atomic():
-                                        for mini_app_stat in unlinked_stats:
-                                            try:
-                                                mini_app_stat.merge_to_main_statistics(user)
-                                                merged_count += 1
-                                                logger.info(f"Объединена статистика задачи {mini_app_stat.task_id} для пользователя {user.username}")
-                                            except Exception as merge_error:
-                                                logger.warning(f"Ошибка при объединении статистики задачи {mini_app_stat.task_id}: {merge_error}")
-                                    
-                                    if merged_count > 0:
-                                        logger.info(f"Успешно объединено {merged_count} записей статистики Mini App с основной статистикой для пользователя {user.username}")
-                            except Exception as stats_error:
-                                logger.warning(f"Ошибка при объединении статистики Mini App для telegram_id={telegram_id}: {stats_error}")
+                        # Проверяем есть ли связь с MiniAppUser
+                        if not social_account.mini_app_user:
+                            # Связываем SocialAccount с MiniAppUser
+                            social_account.link_to_mini_app_user(mini_app_user)
+                            logger.info(f"Связан существующий social_account с MiniAppUser для telegram_id={telegram_id}")
                         
-                    except ImportError as import_error:
-                        logger.warning(f"Не удалось импортировать модели для связывания MiniAppUser: {import_error}")
-                    except Exception as linking_error:
-                        logger.warning(f"Ошибка при установке связи MiniAppUser -> CustomUser для telegram_id={telegram_id}: {linking_error}")
+                        # В любом случае используем найденного/созданного пользователя
+                        mini_app_user = social_account.mini_app_user
+                        
+                        # Устанавливаем linked_custom_user если не установлен
+                        if not mini_app_user.linked_custom_user:
+                            mini_app_user.linked_custom_user = user
+                            mini_app_user.save(update_fields=['linked_custom_user'])
+                            logger.info(f"Установлена связь MiniAppUser (telegram_id={telegram_id}) -> CustomUser (id={user.id}, username={user.username})")
+                        
+                        # Обновляем данные MiniAppUser из Telegram
+                        mini_app_updated = False
+                        changed_social_fields = []  # Инициализируем список измененных полей
+                        
+                        if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                            mini_app_user.first_name = data.get('first_name')
+                            mini_app_updated = True
+                        if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                            mini_app_user.last_name = data.get('last_name')
+                            mini_app_updated = True
+                        
+                        # Обновляем telegram_photo_url если есть
+                        photo_url = data.get('photo_url')
+                        if photo_url and photo_url != mini_app_user.telegram_photo_url:
+                            mini_app_user.telegram_photo_url = photo_url
+                            mini_app_updated = True
+                        
+                        # Синхронизируем поля социальных сетей из CustomUser в MiniAppUser
+                        if user:
+                            user.refresh_from_db()
+                            social_fields_updated = False
+                            social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                            
+                            for field in social_fields:
+                                custom_user_value = getattr(user, field, None)
+                                mini_app_value = getattr(mini_app_user, field, None)
+                                
+                                if custom_user_value and custom_user_value.strip():
+                                    if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
+                                        setattr(mini_app_user, field, custom_user_value)
+                                        changed_social_fields.append(field)
+                                        social_fields_updated = True
+                            
+                            if social_fields_updated:
+                                mini_app_updated = True
+                        
+                        if mini_app_updated:
+                            update_fields_list = []
+                            if changed_social_fields:
+                                update_fields_list.extend(changed_social_fields)
+                            if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                                update_fields_list.append('first_name')
+                            if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                                update_fields_list.append('last_name')
+                            if photo_url and photo_url != mini_app_user.telegram_photo_url:
+                                update_fields_list.append('telegram_photo_url')
+                            
+                            if update_fields_list:
+                                mini_app_user.save(update_fields=update_fields_list)
+                            else:
+                                mini_app_user.save()
+                            logger.info(f"Обновлены данные MiniAppUser для telegram_id={telegram_id}")
+                        
+                        # Объединяем статистику Mini App
+                        try:
+                            unlinked_stats = MiniAppTaskStatistics.objects.filter(
+                                mini_app_user=mini_app_user,
+                                linked_statistics__isnull=True
+                            )
+                            if unlinked_stats.exists():
+                                merged_count = 0
+                                with transaction.atomic():
+                                    for mini_app_stat in unlinked_stats:
+                                        try:
+                                            mini_app_stat.merge_to_main_statistics(user)
+                                            merged_count += 1
+                                        except Exception as merge_error:
+                                            logger.warning(f"Ошибка при объединении статистики задачи {mini_app_stat.task_id}: {merge_error}")
+                                
+                                if merged_count > 0:
+                                    logger.info(f"Успешно объединено {merged_count} записей статистики Mini App с основной статистикой для пользователя {user.username}")
+                        except Exception as stats_error:
+                            logger.warning(f"Ошибка при объединении статистики Mini App для telegram_id={telegram_id}: {stats_error}")
+                            
+                    except Exception as mau_error:
+                        logger.warning(f"Ошибка при инициализации/обновлении MiniAppUser: {mau_error}")
                 else:
-                    # Создаем нового пользователя или связываем с существующим
-                    user = TelegramAuthService._get_or_create_user(data)
+                    # Создаем нового пользователя или связываем с существующим с учетом тенанта
+                    user = TelegramAuthService._get_or_create_user(data, tenant)
                     is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для telegram_id={telegram_id}, username: {user.username}, is_active={user.is_active}, is_new={is_new_user}")
                     
-                    # Создаем или обновляем социальный аккаунт
+                    # Создаем или обновляем социальный аккаунт с учетом тенанта
                     # username из Telegram должен идти в SocialAccount.username, а не в User.username
                     social_account, created = SocialAccount.objects.get_or_create(
-                        user=user,
+                        tenant=tenant,
                         provider='telegram',
                         provider_user_id=telegram_id,
                         defaults={
+                            'user': user,
                             'username': data.get('username'),
                             'first_name': data.get('first_name'),
                             'last_name': data.get('last_name'),
                             'avatar_url': data.get('photo_url')
                         }
                     )
+                    
+                    # Если аккаунт уже существовал, но у него другой пользователь (например, был NULL тенант), 
+                    # убеждаемся что он привязан к правильному пользователю
+                    if not created and social_account.user != user:
+                        social_account.user = user
+                        social_account.save(update_fields=['user'])
+                        logger.info(f"SocialAccount перепривязан к пользователю {user.username}")
                     
                     # Обновляем данные если аккаунт уже существовал
                     if not created:
@@ -384,95 +405,121 @@ class TelegramAuthService:
                             social_account.refresh_from_db()
                             logger.info(f"Пользователь после связывания: {user.username}, is_active={user.is_active}")
                         
-                        # После auto_link_existing_users устанавливаем обратную связь MiniAppUser -> CustomUser
-                        # и объединяем статистику если MiniAppUser был связан
+                        # Убеждаемся что MiniAppUser существует
+                        from accounts.models import MiniAppUser
+                        from tasks.models import MiniAppTaskStatistics
+                        
+                        # Пытаемся получить или создать MiniAppUser для этого тенанта
+                        mini_app_user, mau_created = MiniAppUser.objects.get_or_create(
+                            telegram_id=int(telegram_id),
+                            tenant=tenant,
+                            defaults={
+                                'first_name': data.get('first_name', '') or '',
+                                'last_name': data.get('last_name', '') or '',
+                                'username': data.get('username', '') or '',
+                                'telegram_photo_url': data.get('photo_url', '') or '',
+                                'linked_custom_user': user
+                            }
+                        )
+                        
+                        if mau_created:
+                            logger.info(f"Создан новый MiniAppUser для telegram_id={telegram_id} в тенанте {tenant}")
+                        
+                        # Обновляем социальный аккаунт
+                        social_account.refresh_from_db()
+                        
+                        # Проверяем есть ли связь с MiniAppUser
+                        if not social_account.mini_app_user:
+                            # Связываем SocialAccount с MiniAppUser
+                            social_account.link_to_mini_app_user(mini_app_user)
+                            logger.info(f"Связан новый social_account с MiniAppUser для telegram_id={telegram_id}")
+                        
+                        # Используем связанного пользователя
+                        mini_app_user = social_account.mini_app_user
+                        
+                        # Устанавливаем linked_custom_user если не установлен
+                        if not mini_app_user.linked_custom_user:
+                            mini_app_user.linked_custom_user = user
+                            mini_app_user.save(update_fields=['linked_custom_user'])
+                            logger.info(f"Установлена связь MiniAppUser (telegram_id={telegram_id}) -> CustomUser (id={user.id}, username={user.username})")
+                        
+                        # Обновляем данные MiniAppUser из Telegram
+                        mini_app_updated = False
+                        changed_social_fields = []
+                        
+                        if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                            mini_app_user.first_name = data.get('first_name')
+                            mini_app_updated = True
+                        if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                            mini_app_user.last_name = data.get('last_name')
+                            mini_app_updated = True
+                        
+                        photo_url = data.get('photo_url')
+                        if photo_url and photo_url != mini_app_user.telegram_photo_url:
+                            mini_app_user.telegram_photo_url = photo_url
+                            mini_app_updated = True
+                        
+                        # Синхронизируем поля соц сетей из CustomUser в MiniAppUser
+                        if user:
+                            user.refresh_from_db()
+                            social_fields_updated = False
+                            social_fields = ['github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
+                            
+                            for field in social_fields:
+                                custom_user_value = getattr(user, field, None)
+                                mini_app_value = getattr(mini_app_user, field, None)
+                                
+                                if custom_user_value and custom_user_value.strip():
+                                    if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
+                                        setattr(mini_app_user, field, custom_user_value)
+                                        changed_social_fields.append(field)
+                                        social_fields_updated = True
+                            
+                            if social_fields_updated:
+                                mini_app_updated = True
+                        
+                        if mini_app_updated:
+                            update_fields_list = []
+                            if changed_social_fields:
+                                update_fields_list.extend(changed_social_fields)
+                            if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
+                                update_fields_list.append('first_name')
+                            if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
+                                update_fields_list.append('last_name')
+                            if photo_url and photo_url != mini_app_user.telegram_photo_url:
+                                update_fields_list.append('telegram_photo_url')
+                            
+                            if update_fields_list:
+                                mini_app_user.save(update_fields=update_fields_list)
+                            else:
+                                mini_app_user.save()
+                            logger.info(f"Обновлены данные MiniAppUser для telegram_id={telegram_id}")
+                        
+                        # Объединяем статистику Mini App с основной
                         try:
-                            from accounts.models import MiniAppUser
-                            from tasks.models import MiniAppTaskStatistics
+                            unlinked_stats = MiniAppTaskStatistics.objects.filter(
+                                mini_app_user=mini_app_user,
+                                linked_statistics__isnull=True
+                            )
+                            if unlinked_stats.exists():
+                                merged_count = 0
+                                with transaction.atomic():
+                                    for mini_app_stat in unlinked_stats:
+                                        try:
+                                            mini_app_stat.merge_to_main_statistics(user)
+                                            merged_count += 1
+                                        except Exception as merge_error:
+                                            logger.warning(f"Ошибка при объединении статистики задачи {mini_app_stat.task_id}: {merge_error}")
+                                
+                                if merged_count > 0:
+                                    logger.info(f"Успешно объединено {merged_count} записей статистики для пользователя {user.username}")
+                        except Exception as stats_error:
+                            logger.warning(f"Ошибка при объединении статистики Mini App для telegram_id={telegram_id}: {stats_error}")
                             
-                            # Проверяем есть ли связанный MiniAppUser
-                            if hasattr(social_account, 'mini_app_user') and social_account.mini_app_user:
-                                mini_app_user = social_account.mini_app_user
-                                
-                                # Устанавливаем linked_custom_user если не установлен
-                                if not mini_app_user.linked_custom_user:
-                                    mini_app_user.linked_custom_user = user
-                                    mini_app_user.save(update_fields=['linked_custom_user'])
-                                    logger.info(f"Установлена связь MiniAppUser (telegram_id={telegram_id}) -> CustomUser (id={user.id}, username={user.username})")
-                                
-                                # Обновляем данные MiniAppUser из Telegram
-                                mini_app_updated = False
-                                changed_social_fields = []  # Инициализируем список измененных полей
-                                
-                                if data.get('first_name') and data.get('first_name') != mini_app_user.first_name:
-                                    mini_app_user.first_name = data.get('first_name')
-                                    mini_app_updated = True
-                                if data.get('last_name') and data.get('last_name') != mini_app_user.last_name:
-                                    mini_app_user.last_name = data.get('last_name')
-                                    mini_app_updated = True
-                                
-                                # Обновляем telegram_photo_url если есть
-                                photo_url = data.get('photo_url')
-                                if photo_url and photo_url != mini_app_user.telegram_photo_url:
-                                    mini_app_user.telegram_photo_url = photo_url
-                                    mini_app_updated = True
-                                
-                                # Синхронизируем поля социальных сетей из CustomUser в MiniAppUser
-                                # Это обеспечивает что данные соцсетей подтягиваются везде где используется одна БД
-                                if user:
-                                    user.refresh_from_db()
-                                    social_fields_updated = False
-                                    
-                                    # Список полей социальных сетей для синхронизации
-                                    social_fields = ['telegram', 'github', 'instagram', 'facebook', 'linkedin', 'youtube', 'website']
-                                    
-                                    for field in social_fields:
-                                        custom_user_value = getattr(user, field, None)
-                                        mini_app_value = getattr(mini_app_user, field, None)
-                                        
-                                        # Обновляем только если в CustomUser есть значение и оно отличается
-                                        if custom_user_value and custom_user_value.strip():
-                                            if not mini_app_value or mini_app_value.strip() != custom_user_value.strip():
-                                                setattr(mini_app_user, field, custom_user_value)
-                                                changed_social_fields.append(field)
-                                                social_fields_updated = True
-                                                logger.info(f"Синхронизировано поле {field} для MiniAppUser (telegram_id={telegram_id}): {custom_user_value}")
-                                    
-                                    if social_fields_updated:
-                                        mini_app_updated = True
-                                
-                                if mini_app_updated:
-                                    mini_app_user.save()
-                                    logger.info(f"Обновлены данные MiniAppUser для telegram_id={telegram_id}")
-                                
-                                # Объединяем статистику Mini App с основной статистикой
-                                try:
-                                    # Находим всю статистику MiniAppUser которая еще не связана
-                                    unlinked_stats = MiniAppTaskStatistics.objects.filter(
-                                        mini_app_user=mini_app_user,
-                                        linked_statistics__isnull=True
-                                    )
-                                    
-                                    if unlinked_stats.exists():
-                                        merged_count = 0
-                                        with transaction.atomic():
-                                            for mini_app_stat in unlinked_stats:
-                                                try:
-                                                    mini_app_stat.merge_to_main_statistics(user)
-                                                    merged_count += 1
-                                                    logger.info(f"Объединена статистика задачи {mini_app_stat.task_id} для пользователя {user.username}")
-                                                except Exception as merge_error:
-                                                    logger.warning(f"Ошибка при объединении статистики задачи {mini_app_stat.task_id}: {merge_error}")
-                                        
-                                        if merged_count > 0:
-                                            logger.info(f"Успешно объединено {merged_count} записей статистики Mini App с основной статистикой для пользователя {user.username}")
-                                except Exception as stats_error:
-                                    logger.warning(f"Ошибка при объединении статистики Mini App для telegram_id={telegram_id}: {stats_error}")
-                            
-                        except ImportError as import_error:
-                            logger.warning(f"Не удалось импортировать модели для связывания MiniAppUser: {import_error}")
-                        except Exception as linking_error:
-                            logger.warning(f"Ошибка при установке связи MiniAppUser -> CustomUser для telegram_id={telegram_id}: {linking_error}")
+                    except ImportError as import_error:
+                        logger.warning(f"Не удалось импортировать модели для связывания MiniAppUser: {import_error}")
+                    except Exception as linking_error:
+                        logger.warning(f"Ошибка при установке связи MiniAppUser -> CustomUser для telegram_id={telegram_id}: {linking_error}")
                             
                     except Exception as e:
                         logger.warning(f"Ошибка при автоматическом связывании для telegram_id={telegram_id}: {e}")
@@ -649,12 +696,13 @@ class TelegramAuthService:
             return False
     
     @staticmethod
-    def _get_or_create_user(data: Dict[str, Any]) -> User:
+    def _get_or_create_user(data: Dict[str, Any], tenant=None) -> User:
         """
         Получает или создает пользователя на основе данных Telegram.
         
         Args:
             data: Данные от Telegram Login Widget
+            tenant: Текущий тенант
             
         Returns:
             User: Пользователь Django
@@ -669,10 +717,17 @@ class TelegramAuthService:
         last_name = data.get('last_name', '') or ''
         photo_url = data.get('photo_url', '') or ''
         
-        logger.info(f"Поиск/создание пользователя для telegram_id={telegram_id}, telegram_username={telegram_username}, first_name={first_name}, last_name={last_name}")
+        logger.info(f"Поиск/создание пользователя для telegram_id={telegram_id}, telegram_username={telegram_username}, tenant={tenant}")
         
-        # Сначала ищем по telegram_id в CustomUser
-        user = User.objects.filter(telegram_id=telegram_id).first()
+        # Сначала ищем по telegram_id и тенанту в CustomUser
+        user_filter = Q(telegram_id=telegram_id)
+        if tenant:
+            user_filter &= Q(tenant=tenant)
+        else:
+            # Если тенант не указан, ищем среди глобальных пользователей (tenant=None)
+            user_filter &= Q(tenant__isnull=True)
+            
+        user = User.objects.filter(user_filter).first()
         
         if user:
             # Обновляем данные пользователя
@@ -703,10 +758,13 @@ class TelegramAuthService:
             
             return user
         
-        # Пытаемся найти существующего пользователя по username из Telegram
-        # Это помогает связать существующие аккаунты на сайте с Telegram
+        # Пытаемся найти существующего пользователя в этом тенанте по username
         if telegram_username and telegram_username.strip():
-            existing_user = User.objects.filter(username=telegram_username).first()
+            existing_user_filter = Q(username=telegram_username)
+            if tenant:
+                existing_user_filter &= Q(tenant=tenant)
+            
+            existing_user = User.objects.filter(existing_user_filter).first()
             if existing_user:
                 # Если найден пользователь без telegram_id или с другим telegram_id, связываем его
                 if not existing_user.telegram_id or str(existing_user.telegram_id) != telegram_id:
@@ -750,19 +808,20 @@ class TelegramAuthService:
         else:
             base_username = f"user_{telegram_id}"
         
-        # Проверяем уникальность username
+        # Проверяем уникальность username в рамках тенанта
         username = base_username
         counter = 1
-        while User.objects.filter(username=username).exists():
+        while User.objects.filter(username=username, tenant=tenant).exists():
             username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:  # Защита от бесконечного цикла
                 username = f"user_{telegram_id}_{int(time.time())}"
                 break
         
-        logger.info(f"Создание нового пользователя: username={username}, telegram_id={telegram_id}, telegram_username={telegram_username}")
+        logger.info(f"Создание нового пользователя: username={username}, telegram_id={telegram_id}, tenant={tenant}")
         user = User.objects.create(
             username=username,
+            tenant=tenant,
             first_name=first_name,
             last_name=last_name,
             telegram_id=telegram_id,

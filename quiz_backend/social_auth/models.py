@@ -134,11 +134,20 @@ class SocialAccount(models.Model):
         help_text=_('Связь с Django админом, если он также управляет сайтом')
     )
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='social_accounts',
+        null=True,
+        blank=True,
+        verbose_name=_('Тенант')
+    )
+
     class Meta:
         db_table = 'social_accounts'
         verbose_name = _('Социальный аккаунт')
         verbose_name_plural = _('Социальные аккаунты')
-        unique_together = ('provider', 'provider_user_id')
+        unique_together = ('tenant', 'provider', 'provider_user_id')
         indexes = [
             models.Index(fields=['provider', 'provider_user_id']),
             models.Index(fields=['user', 'provider']),
@@ -278,7 +287,8 @@ class SocialAccount(models.Model):
             # Связываем с TelegramUser
             from accounts.models import TelegramUser
             telegram_user = TelegramUser.objects.filter(
-                telegram_id=int(self.provider_user_id)
+                telegram_id=int(self.provider_user_id),
+                tenant=self.tenant
             ).first()
             if telegram_user and not self.telegram_user:
                 self.link_to_telegram_user(telegram_user)
@@ -287,7 +297,8 @@ class SocialAccount(models.Model):
             # Связываем с MiniAppUser
             from accounts.models import MiniAppUser
             mini_app_user = MiniAppUser.objects.filter(
-                telegram_id=int(self.provider_user_id)
+                telegram_id=int(self.provider_user_id),
+                tenant=self.tenant
             ).first()
             if mini_app_user and not self.mini_app_user:
                 self.link_to_mini_app_user(mini_app_user)
@@ -296,7 +307,8 @@ class SocialAccount(models.Model):
             # Связываем с TelegramAdmin
             from accounts.models import TelegramAdmin
             telegram_admin = TelegramAdmin.objects.filter(
-                telegram_id=int(self.provider_user_id)
+                telegram_id=int(self.provider_user_id),
+                tenant=self.tenant
             ).first()
             if telegram_admin and not self.telegram_admin:
                 self.link_to_telegram_admin(telegram_admin)
