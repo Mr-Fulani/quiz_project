@@ -2,10 +2,17 @@
 Сервис для работы с AWS S3 и Cloudflare R2.
 Адаптирован из bot/services/s3_services.py для синхронного использования в Django.
 Поддерживает переключение между S3 и R2 через настройки.
+
+Иерархия путей в R2 (SaaS / мультитенантная):
+  {env}/{tenant_slug}/tasks/{topic_slug}/images/{file}
+  {env}/{tenant_slug}/tasks/{topic_slug}/videos/{file}
+  {env}/{tenant_slug}/tasks/json/{file}
+  {env}/images/{file}   ← fallback для legacy / без тенанта
 """
 import io
 import logging
 import os
+import re
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -13,8 +20,129 @@ import boto3
 from botocore.exceptions import ClientError
 from PIL import Image
 from django.conf import settings
+from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
+
+
+# ─────────────────────────────────────────────────────────────
+# Утилиты построения R2-ключей
+# ─────────────────────────────────────────────────────────────
+
+def build_r2_key(
+    file_name: str,
+    file_type: str,
+    tenant_slug: str = None,
+    topic_slug: str = None,
+) -> str:
+    """
+    Строит ключ (путь) к файлу в R2 с учётом среды, тенанта и темы.
+
+    Иерархия:
+      Полный:   {env}/{tenant_slug}/tasks/{topic_slug_safe}/{file_type}/{file_name}
+      JSON:     {env}/{tenant_slug}/tasks/json/{file_name}
+      Fallback: {env}/{file_type}/{file_name}
+
+    Args:
+        file_name:   имя файла (например, 'python_loops_en_42.png')
+        file_type:   'images' | 'videos' | 'json'
+        tenant_slug: slug тенанта (например, 'quiz-code')
+        topic_slug:  название темы (будет slugified, например 'Python 3' → 'python-3')
+
+    Returns:
+        Строка — ключ объекта в R2/S3.
+    """
+    env = getattr(settings, 'R2_ENVIRONMENT_PREFIX', 'prod')
+
+    if tenant_slug and file_type == 'json':
+        return f"{env}/{tenant_slug}/tasks/json/{file_name}"
+
+    if tenant_slug and topic_slug:
+        safe_topic = slugify(topic_slug)  # SEO-friendly: 'Python 3.12+' → 'python-312'
+        return f"{env}/{tenant_slug}/tasks/{safe_topic}/{file_type}/{file_name}"
+
+    # Fallback: обратная совместимость, без тенанта
+    return f"{env}/{file_type}/{file_name}"
+
+
+def _make_r2_client():
+    """Создаёт и возвращает boto3-клиент для R2/S3."""
+    use_r2 = getattr(settings, 'USE_R2_STORAGE', False)
+    client_kwargs = {
+        'service_name': 's3',
+        'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
+        'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
+    }
+    if use_r2 and getattr(settings, 'AWS_S3_ENDPOINT_URL', None):
+        client_kwargs['endpoint_url'] = settings.AWS_S3_ENDPOINT_URL
+    elif not use_r2:
+        client_kwargs['region_name'] = getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1')
+    return boto3.client(**client_kwargs)
+
+
+def _put_object_safe(client, bucket: str, key: str, body: bytes, content_type: str):
+    """Загружает объект в R2/S3, при необходимости повторяет без ACL."""
+    try:
+        client.put_object(
+            Bucket=bucket, Key=key, Body=body,
+            ContentType=content_type, ACL='public-read'
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'AccessControlListNotSupported':
+            logger.warning(f"Бакет {bucket} не поддерживает ACL — повтор без ACL.")
+            client.put_object(Bucket=bucket, Key=key, Body=body, ContentType=content_type)
+        else:
+            raise
+
+
+def upload_json_to_r2(
+    json_content: str,
+    file_name: str,
+    tenant_slug: str = None,
+) -> Optional[str]:
+    """
+    Загружает JSON-файл задач в R2 и возвращает публичный URL.
+
+    Путь: {env}/{tenant_slug}/tasks/json/{file_name}
+          {env}/json/{file_name}  (если тенант не указан)
+
+    Args:
+        json_content: Содержимое JSON как строка
+        file_name:    Имя файла (например, '2026-04-14_python_42tasks.json')
+        tenant_slug:  Slug тенанта для изоляции
+
+    Returns:
+        URL загруженного файла или None при ошибке.
+    """
+    use_r2 = getattr(settings, 'USE_R2_STORAGE', False)
+    storage_name = 'R2' if use_r2 else 'S3'
+
+    if not all([settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY,
+                settings.AWS_STORAGE_BUCKET_NAME]):
+        logger.error(f"❌ {storage_name} не настроен — JSON не будет сохранён.")
+        return None
+
+    try:
+        key = build_r2_key(file_name, 'json', tenant_slug=tenant_slug)
+        body = json_content.encode('utf-8')
+        bucket = settings.AWS_STORAGE_BUCKET_NAME
+
+        client = _make_r2_client()
+        _put_object_safe(client, bucket, key, body, 'application/json; charset=utf-8')
+
+        domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', None) or \
+                 getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
+        if not domain:
+            logger.error("❌ Публичный домен R2/S3 не настроен.")
+            return None
+
+        url = f"https://{domain}/{key}"
+        logger.info(f"✅ JSON сохранён в {storage_name}: {url}")
+        return url
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка сохранения JSON в R2: {e}", exc_info=True)
+        return None
 
 
 def extract_s3_key_from_url(url: str) -> Optional[str]:
@@ -56,7 +184,12 @@ def extract_s3_key_from_url(url: str) -> Optional[str]:
         return None
 
 
-def upload_image_to_s3(image: Image.Image, image_name: str) -> Optional[str]:
+def upload_image_to_s3(
+    image: Image.Image,
+    image_name: str,
+    tenant_slug: str = None,
+    topic_slug: str = None,
+) -> Optional[str]:
     """
     Загружает изображение в S3 или R2 и возвращает публичный URL.
     Автоматически определяет хранилище на основе настроек USE_R2_STORAGE.
@@ -97,70 +230,17 @@ def upload_image_to_s3(image: Image.Image, image_name: str) -> Optional[str]:
         image.save(image_bytes, format='PNG', optimize=True)
         image_bytes.seek(0)
         
-        # Формируем путь с учетом окружения (prod/ или dev/) и типа файла
+        # Формируем путь с иерархией тенанта (SaaS) или fallback
         use_r2 = getattr(settings, 'USE_R2_STORAGE', False)
         if use_r2:
-            # Для R2 используем структуру: {env}/images/ или {env}/videos/
-            env_prefix = getattr(settings, 'R2_ENVIRONMENT_PREFIX', 'prod')
-            if not image_name.startswith(f'{env_prefix}/') and not image_name.startswith('images/') and not image_name.startswith('videos/'):
-                image_key = f'{env_prefix}/images/{image_name}'
-            elif image_name.startswith('images/') or image_name.startswith('videos/'):
-                # Если уже есть images/ или videos/, добавляем только env_prefix
-                image_key = f'{env_prefix}/{image_name}'
-            else:
-                image_key = image_name
+            image_key = build_r2_key(image_name, 'images', tenant_slug, topic_slug)
         else:
-            # Для S3 используем простую структуру images/
-            if not image_name.startswith('images/') and not image_name.startswith('videos/'):
-                image_key = f'images/{image_name}'
-            else:
-                image_key = image_name
+            image_key = f'images/{image_name}'
         
         # Создаем клиент S3/R2
-        client_kwargs = {
-            'service_name': 's3',
-            'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
-            'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
-        }
+        s3_client = _make_r2_client()
         
-        # Для R2 добавляем endpoint URL
-        if use_r2 and hasattr(settings, 'AWS_S3_ENDPOINT_URL') and settings.AWS_S3_ENDPOINT_URL:
-            client_kwargs['endpoint_url'] = settings.AWS_S3_ENDPOINT_URL
-        # Для S3 добавляем region
-        elif not use_r2:
-            client_kwargs['region_name'] = getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1')
-        
-        s3_client = boto3.client(**client_kwargs)
-        
-        try:
-            # Попытка загрузить с ACL (R2 может не поддерживать)
-            s3_client.put_object(
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                Key=image_key,
-                Body=image_bytes,
-                ContentType='image/png',
-                ACL='public-read'
-            )
-        except ClientError as e:
-            # Проверка на ошибку с ACL
-            if e.response['Error']['Code'] == 'AccessControlListNotSupported':
-                logger.warning(
-                    f"Бакет {settings.AWS_STORAGE_BUCKET_NAME} не поддерживает ACL. "
-                    f"Повторная загрузка без ACL."
-                )
-                # Перезагружаем изображение в байты
-                image_bytes = io.BytesIO()
-                image.save(image_bytes, format='PNG', optimize=True)
-                image_bytes.seek(0)
-                
-                s3_client.put_object(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    Key=image_key,
-                    Body=image_bytes,
-                    ContentType='image/png'
-                )
-            else:
-                raise e
+        _put_object_safe(s3_client, settings.AWS_STORAGE_BUCKET_NAME, image_key, image_bytes.read(), 'image/png')
         
         # Конструируем и возвращаем полный URL
         domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', None) or getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
@@ -251,15 +331,22 @@ def delete_image_from_s3(image_url: str) -> bool:
         return False
 
 
-def upload_video_to_s3(video_path: str, video_name: str) -> Optional[str]:
+def upload_video_to_s3(
+    video_path: str,
+    video_name: str,
+    tenant_slug: str = None,
+    topic_slug: str = None,
+) -> Optional[str]:
     """
     Загружает видео файл в S3 или R2 и возвращает публичный URL.
     Автоматически определяет хранилище на основе настроек USE_R2_STORAGE.
-    
+
     Args:
-        video_path: Путь к видео файлу на диске
-        video_name: Имя файла для сохранения (может включать путь, например 'videos/task.mp4')
-        
+        video_path:   Путь к видео файлу на диске
+        video_name:   Имя файла для сохранения
+        tenant_slug:  Slug тенанта для иерархии R2
+        topic_slug:   Название темы (будет slugified)
+
     Returns:
         URL загруженного видео или None при ошибке
     """
@@ -290,23 +377,11 @@ def upload_video_to_s3(video_path: str, video_name: str) -> Optional[str]:
         with open(video_path, 'rb') as f:
             video_bytes = f.read()
         
-        # Формируем путь с учетом окружения (prod/ или dev/) и типа файла
+        # Формируем путь с иерархией тенанта (SaaS) или fallback
         if use_r2:
-            # Для R2 используем структуру: {env}/videos/
-            env_prefix = getattr(settings, 'R2_ENVIRONMENT_PREFIX', 'prod')
-            if not video_name.startswith(f'{env_prefix}/') and not video_name.startswith('videos/') and not video_name.startswith('images/'):
-                video_key = f'{env_prefix}/videos/{video_name}'
-            elif video_name.startswith('videos/') or video_name.startswith('images/'):
-                # Если уже есть videos/ или images/, добавляем только env_prefix
-                video_key = f'{env_prefix}/{video_name}'
-            else:
-                video_key = video_name
+            video_key = build_r2_key(video_name, 'videos', tenant_slug, topic_slug)
         else:
-            # Для S3 используем простую структуру videos/
-            if not video_name.startswith('videos/') and not video_name.startswith('images/'):
-                video_key = f'videos/{video_name}'
-            else:
-                video_key = video_name
+            video_key = f'videos/{video_name}'
         
         # Определяем ContentType по расширению
         if video_name.endswith('.mp4'):
@@ -317,45 +392,9 @@ def upload_video_to_s3(video_path: str, video_name: str) -> Optional[str]:
             content_type = 'video/mp4'  # По умолчанию
         
         # Создаем клиент S3/R2
-        client_kwargs = {
-            'service_name': 's3',
-            'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
-            'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
-        }
+        s3_client = _make_r2_client()
         
-        # Для R2 добавляем endpoint URL
-        if use_r2 and hasattr(settings, 'AWS_S3_ENDPOINT_URL') and settings.AWS_S3_ENDPOINT_URL:
-            client_kwargs['endpoint_url'] = settings.AWS_S3_ENDPOINT_URL
-        # Для S3 добавляем region
-        elif not use_r2:
-            client_kwargs['region_name'] = getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1')
-        
-        s3_client = boto3.client(**client_kwargs)
-        
-        try:
-            # Попытка загрузить с ACL (R2 может не поддерживать)
-            s3_client.put_object(
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                Key=video_key,
-                Body=video_bytes,
-                ContentType=content_type,
-                ACL='public-read'
-            )
-        except ClientError as e:
-            # Проверка на ошибку с ACL
-            if e.response['Error']['Code'] == 'AccessControlListNotSupported':
-                logger.warning(
-                    f"Бакет {settings.AWS_STORAGE_BUCKET_NAME} не поддерживает ACL. "
-                    f"Повторная загрузка без ACL."
-                )
-                s3_client.put_object(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    Key=video_key,
-                    Body=video_bytes,
-                    ContentType=content_type
-                )
-            else:
-                raise e
+        _put_object_safe(s3_client, settings.AWS_STORAGE_BUCKET_NAME, video_key, video_bytes, content_type)
         
         # Конструируем и возвращаем полный URL
         domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', None) or getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
@@ -388,15 +427,21 @@ def upload_video_to_s3(video_path: str, video_name: str) -> Optional[str]:
         return None
 
 
-def upload_video_to_r2(video_bytes: bytes, video_name: str) -> Optional[str]:
+def upload_video_to_r2(
+    video_bytes: bytes,
+    video_name: str,
+    tenant_slug: str = None,
+    topic_slug: str = None,
+) -> Optional[str]:
     """
-    Загружает видео в S3/R2 и возвращает публичный URL.
-    Подготовка к будущей генерации видео.
-    
+    Загружает видео (байты) в S3/R2 и возвращает публичный URL.
+
     Args:
-        video_bytes: Байты видео файла
-        video_name: Имя видео для сохранения (может включать путь)
-        
+        video_bytes:  Байты видео файла
+        video_name:   Имя видео для сохранения
+        tenant_slug:  Slug тенанта для иерархии R2
+        topic_slug:   Название темы (будет slugified)
+
     Returns:
         URL загруженного видео или None при ошибке
     """
@@ -418,24 +463,12 @@ def upload_video_to_r2(video_bytes: bytes, video_name: str) -> Optional[str]:
         return None
     
     try:
-        # Формируем путь с учетом окружения (prod/ или dev/) и типа файла
+        # Формируем путь с иерархией тенанта (SaaS) или fallback
         use_r2 = getattr(settings, 'USE_R2_STORAGE', False)
         if use_r2:
-            # Для R2 используем структуру: {env}/videos/
-            env_prefix = getattr(settings, 'R2_ENVIRONMENT_PREFIX', 'prod')
-            if not video_name.startswith(f'{env_prefix}/') and not video_name.startswith('videos/') and not video_name.startswith('images/'):
-                video_key = f'{env_prefix}/videos/{video_name}'
-            elif video_name.startswith('videos/') or video_name.startswith('images/'):
-                # Если уже есть videos/ или images/, добавляем только env_prefix
-                video_key = f'{env_prefix}/{video_name}'
-            else:
-                video_key = video_name
+            video_key = build_r2_key(video_name, 'videos', tenant_slug, topic_slug)
         else:
-            # Для S3 используем простую структуру videos/
-            if not video_name.startswith('videos/') and not video_name.startswith('images/'):
-                video_key = f'videos/{video_name}'
-            else:
-                video_key = video_name
+            video_key = f'videos/{video_name}'
         
         # Определяем ContentType по расширению
         if video_name.endswith('.mp4'):
@@ -446,45 +479,9 @@ def upload_video_to_r2(video_bytes: bytes, video_name: str) -> Optional[str]:
             content_type = 'video/mp4'  # По умолчанию
         
         # Создаем клиент S3/R2
-        client_kwargs = {
-            'service_name': 's3',
-            'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
-            'aws_secret_access_key': settings.AWS_SECRET_ACCESS_KEY,
-        }
+        s3_client = _make_r2_client()
         
-        # Для R2 добавляем endpoint URL
-        if use_r2 and hasattr(settings, 'AWS_S3_ENDPOINT_URL') and settings.AWS_S3_ENDPOINT_URL:
-            client_kwargs['endpoint_url'] = settings.AWS_S3_ENDPOINT_URL
-        # Для S3 добавляем region
-        elif not use_r2:
-            client_kwargs['region_name'] = getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1')
-        
-        s3_client = boto3.client(**client_kwargs)
-        
-        try:
-            # Попытка загрузить с ACL (R2 может не поддерживать)
-            s3_client.put_object(
-                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                Key=video_key,
-                Body=video_bytes,
-                ContentType=content_type,
-                ACL='public-read'
-            )
-        except ClientError as e:
-            # Проверка на ошибку с ACL
-            if e.response['Error']['Code'] == 'AccessControlListNotSupported':
-                logger.warning(
-                    f"Бакет {settings.AWS_STORAGE_BUCKET_NAME} не поддерживает ACL. "
-                    f"Повторная загрузка без ACL."
-                )
-                s3_client.put_object(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    Key=video_key,
-                    Body=video_bytes,
-                    ContentType=content_type
-                )
-            else:
-                raise e
+        _put_object_safe(s3_client, settings.AWS_STORAGE_BUCKET_NAME, video_key, video_bytes, content_type)
         
         # Конструируем и возвращаем полный URL
         domain = getattr(settings, 'AWS_PUBLIC_MEDIA_DOMAIN', None) or getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None)
