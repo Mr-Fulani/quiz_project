@@ -331,6 +331,9 @@ services:
       - DJANGO_API_BASE_URL=http://quiz_backend:8000
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
       - MINI_APP_BASE_URL=${WEBAPP_URL:-http://localhost:8080}
+      # Домен мини-аппа — используется как X-Forwarded-Host в запросах к Django
+      # Должен совпадать с полем mini_app_domain у тенанта в Django Admin
+      - MINI_APP_DOMAIN=${MINI_APP_DOMAIN:-mini.quiz-code.com}
       - PYTHONPATH=/mini_app
       - DEBUG=False  # Отключаем DEBUG для тестирования
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
