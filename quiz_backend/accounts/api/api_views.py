@@ -1039,12 +1039,26 @@ class MiniAppProfileByTelegramID(APIView):
 
                 if not mini_app_user:
                     # Создаем нового MiniAppUser с использованием сериализатора
-                    logger.info(f"Создаем нового MiniAppUser для telegram_id {telegram_id} через MiniAppUserCreateSerializer.")
-                    create_serializer = MiniAppUserCreateSerializer(data=user_data)
+                    tenant = getattr(request, 'tenant', None)
+                    logger.info(
+                        f"Создаем нового MiniAppUser для telegram_id={telegram_id}, "
+                        f"tenant={tenant} через MiniAppUserCreateSerializer."
+                    )
+                    if not tenant:
+                        logger.error(
+                            f"[MiniAppProfileByTelegramID] КРИТИЧНО: tenant=None для telegram_id={telegram_id}! "
+                            f"HTTP_HOST={request.META.get('HTTP_HOST')}, "
+                            f"X-Forwarded-Host={request.META.get('HTTP_X_FORWARDED_HOST')}"
+                        )
+                    create_serializer = MiniAppUserCreateSerializer(
+                        data=user_data,
+                        context={'request': request}
+                    )
                     create_serializer.is_valid(raise_exception=True)
-                    mini_app_user = create_serializer.save()
+                    # Явно передаём tenant — это критично для multi-tenant изоляции
+                    mini_app_user = create_serializer.save(tenant=tenant)
 
-                    logger.info(f"✅ Успешно создан MiniAppUser: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, username={mini_app_user.username}")
+                    logger.info(f"✅ Создан MiniAppUser: ID={mini_app_user.id}, telegram_id={mini_app_user.telegram_id}, tenant={mini_app_user.tenant}")
                     
                     # Отправляем уведомление админам о новом пользователе
                     try:
