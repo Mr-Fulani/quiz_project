@@ -39,7 +39,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'email', 'password', 'password_confirm', 'language')
+        fields = ('tenant', 'username', 'email', 'password', 'password_confirm', 'language')
+        extra_kwargs = {
+            'tenant': {'read_only': True},
+        }
 
     def validate(self, data):
         if data['password'] != data['password_confirm']:

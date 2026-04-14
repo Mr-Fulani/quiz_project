@@ -1159,7 +1159,8 @@ class GitHubAuthService:
                         
                 else:
                     # Создаем нового пользователя или связываем с существующим
-                    user = GitHubAuthService._get_or_create_user(user_info)
+                    tenant = getattr(request, 'tenant', None)
+                    user = GitHubAuthService._get_or_create_user(user_info, tenant)
                     is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для github_id={github_id}, username: {user.username}")
                     
@@ -1261,12 +1262,13 @@ class GitHubAuthService:
             }
     
     @staticmethod
-    def _get_or_create_user(user_info: Dict[str, Any]) -> User:
+    def _get_or_create_user(user_info: Dict[str, Any], tenant=None) -> User:
         """
         Получает или создает пользователя на основе данных GitHub.
         
         Args:
             user_info: Данные о пользователе от GitHub API
+            tenant: Тенант для изоляции данных
             
         Returns:
             User: Пользователь Django
@@ -1279,14 +1281,16 @@ class GitHubAuthService:
         email = user_info.get('email', '')
         avatar_url = user_info.get('avatar_url', '')
         
-        logger.info(f"Поиск/создание пользователя для github_id={github_id}, github_username={github_username}")
+        logger.info(f"Поиск/создание пользователя для github_id={github_id}, github_username={github_username}, tenant={tenant}")
         
-        # Сначала пытаемся найти существующего пользователя по email (если есть)
+        # Сначала пытаемся найти существующего пользователя по email в рамках тенанта
         if email:
-            user = User.objects.filter(email=email).first()
+            qs = User.objects.filter(email=email)
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            user = qs.first()
             if user:
                 logger.info(f"Найден пользователь по email: {user.username}")
-                # Обновляем данные пользователя
                 updated = False
                 if first_name and first_name != user.first_name:
                     user.first_name = first_name
@@ -1296,19 +1300,18 @@ class GitHubAuthService:
                     updated = True
                 if updated:
                     user.save()
-                
-                # Загружаем аватарку если есть
                 if avatar_url and not user.avatar:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
-                
                 return user
         
-        # Пытаемся найти по username
+        # Пытаемся найти по username в рамках тенанта
         if github_username:
-            user = User.objects.filter(username=github_username).first()
+            qs = User.objects.filter(username=github_username)
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            user = qs.first()
             if user:
                 logger.info(f"Найден пользователь по username: {user.username}")
-                # Обновляем данные
                 updated = False
                 if email and email != user.email:
                     user.email = email
@@ -1321,41 +1324,35 @@ class GitHubAuthService:
                     updated = True
                 if updated:
                     user.save()
-                
-                # Загружаем аватарку если есть
                 if avatar_url and not user.avatar:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
-                
                 return user
         
-        # Если не нашли существующего пользователя, создаем нового
-        # Генерируем уникальный username
+        # Создаём нового пользователя с тенантом
         base_username = github_username or f"github_{github_id}"
-        
-        # Проверяем уникальность username
         username = base_username
         counter = 1
-        while User.objects.filter(username=username).exists():
+        while User.objects.filter(username=username, tenant=tenant).exists():
             username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:
                 username = f"github_user_{github_id}_{int(time.time())}"
                 break
         
-        logger.info(f"Создание нового пользователя: username={username}, github_id={github_id}, github_username={github_username}")
+        logger.info(f"Создание нового пользователя: username={username}, github_id={github_id}, tenant={tenant}")
         user = User.objects.create(
             username=username,
+            tenant=tenant,
             email=email,
             first_name=first_name,
             last_name=last_name,
             is_active=True
         )
         
-        # Загружаем аватарку если есть
         if avatar_url:
             TelegramAuthService._download_avatar_from_url(avatar_url, user)
         
-        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, github_id={github_id}")
+        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, github_id={github_id}, tenant={tenant}")
         return user
 
 
@@ -1662,7 +1659,8 @@ class GoogleAuthService:
                         
                 else:
                     # Создаем нового пользователя или связываем с существующим
-                    user = GoogleAuthService._get_or_create_user(user_info)
+                    tenant = getattr(request, 'tenant', None)
+                    user = GoogleAuthService._get_or_create_user(user_info, tenant)
                     is_new_user = user.created_at > timezone.now() - timezone.timedelta(minutes=5)
                     logger.info(f"Создан/найден пользователь для google_id={google_id}, username: {user.username}")
                     
@@ -1756,12 +1754,13 @@ class GoogleAuthService:
             }
     
     @staticmethod
-    def _get_or_create_user(user_info: Dict[str, Any]) -> User:
+    def _get_or_create_user(user_info: Dict[str, Any], tenant=None) -> User:
         """
         Получает или создает пользователя на основе данных Google.
         
         Args:
             user_info: Данные о пользователе от Google API
+            tenant: Тенант для изоляции данных
             
         Returns:
             User: Пользователь Django
@@ -1772,19 +1771,16 @@ class GoogleAuthService:
         last_name = user_info.get('last_name', '')
         avatar_url = user_info.get('picture', '')
         
-        logger.info(f"Поиск/создание пользователя для google_id={google_id}, email={google_email}")
+        logger.info(f"Поиск/создание пользователя для google_id={google_id}, email={google_email}, tenant={tenant}")
         
-        # Сначала пытаемся найти существующего пользователя по email (если есть)
+        # Ищем по email в рамках тенанта
         if google_email:
-            # Ищем по email в User
-            user = User.objects.filter(email=google_email).first()
+            qs = User.objects.filter(email=google_email)
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            user = qs.first()
             if user:
-                logger.info(f"Найден пользователь по email в User: {user.username}")
-                # Обновляем email если его не было
-                if not user.email:
-                    user.email = google_email
-                    user.save()
-                # Обновляем данные пользователя
+                logger.info(f"Найден пользователь по email: {user.username}")
                 updated = False
                 if first_name and first_name != user.first_name:
                     user.first_name = first_name
@@ -1794,29 +1790,22 @@ class GoogleAuthService:
                     updated = True
                 if updated:
                     user.save()
-                
-                # Загружаем аватарку если есть
                 if avatar_url and not user.avatar:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
-                
                 return user
             
-            # Если не нашли в User, ищем по email в SocialAccount
-            # Это помогает, если пользователь поменял email на сайте, но в SocialAccount остался старый
-            social_account_with_email = SocialAccount.objects.filter(
-                email=google_email,
-                is_active=True
-            ).first()
+            # Ищем по email в SocialAccount (скоупируем по тенанту)
+            sa_qs = SocialAccount.objects.filter(email=google_email, is_active=True)
+            if tenant:
+                sa_qs = sa_qs.filter(tenant=tenant)
+            social_account_with_email = sa_qs.first()
             
             if social_account_with_email:
                 user = social_account_with_email.user
-                logger.info(f"Найден пользователь по email в SocialAccount: {user.username}, провайдер: {social_account_with_email.provider}")
-                # Обновляем email в User, если он отличается
+                logger.info(f"Найден пользователь по email в SocialAccount: {user.username}")
                 if user.email != google_email:
                     user.email = google_email
                     user.save()
-                    logger.info(f"Обновлен email пользователя {user.username} с {user.email} на {google_email}")
-                # Обновляем данные пользователя
                 updated = False
                 if first_name and first_name != user.first_name:
                     user.first_name = first_name
@@ -1826,38 +1815,30 @@ class GoogleAuthService:
                     updated = True
                 if updated:
                     user.save()
-                
-                # Загружаем аватарку если есть
                 if avatar_url and not user.avatar:
                     TelegramAuthService._download_avatar_from_url(avatar_url, user)
-                
                 return user
         
-        # Если email не найден, пытаемся найти по имени и фамилии
-        # Это помогает связать аккаунты, если пользователь заходил через Telegram без email
+        # Ищем по имени/фамилии + Telegram аккаунт (в рамках тенанта)
         if first_name and last_name:
-            # Ищем пользователей с совпадающим именем и фамилией, у которых нет email
-            # или email пустой, и есть Telegram аккаунт
             from django.db.models import Q
-            potential_users = User.objects.filter(
+            potential_qs = User.objects.filter(
                 first_name=first_name,
                 last_name=last_name
             ).filter(Q(email__isnull=True) | Q(email=''))
+            if tenant:
+                potential_qs = potential_qs.filter(tenant=tenant)
             
-            # Проверяем, есть ли у них Telegram аккаунт
-            for potential_user in potential_users:
+            for potential_user in potential_qs:
                 telegram_account = potential_user.social_accounts.filter(
                     provider='telegram',
                     is_active=True
                 ).first()
-                
                 if telegram_account:
-                    logger.info(f"Найден пользователь по имени/фамилии с Telegram аккаунтом: {potential_user.username}")
-                    # Обновляем email
+                    logger.info(f"Найден пользователь по имени/фамилии + Telegram: {potential_user.username}")
                     if google_email:
                         potential_user.email = google_email
                         potential_user.save()
-                    # Обновляем данные
                     updated = False
                     if first_name and first_name != potential_user.first_name:
                         potential_user.first_name = first_name
@@ -1867,41 +1848,35 @@ class GoogleAuthService:
                         updated = True
                     if updated:
                         potential_user.save()
-                    
-                    # Загружаем аватарку если есть
                     if avatar_url and not potential_user.avatar:
                         TelegramAuthService._download_avatar_from_url(avatar_url, potential_user)
-                    
                     return potential_user
         
-        # Если не нашли существующего пользователя, создаем нового
-        # Генерируем уникальный username из email или google_id
+        # Создаём нового пользователя с тенантом
         base_username = google_email.split('@')[0] if google_email else f"google_{google_id}"
-        
-        # Проверяем уникальность username
         username = base_username
         counter = 1
-        while User.objects.filter(username=username).exists():
+        while User.objects.filter(username=username, tenant=tenant).exists():
             username = f"{base_username}_{counter}"
             counter += 1
             if counter > 1000:
                 username = f"google_user_{google_id}_{int(time.time())}"
                 break
         
-        logger.info(f"Создание нового пользователя: username={username}, google_id={google_id}, email={google_email}")
+        logger.info(f"Создание нового пользователя: username={username}, google_id={google_id}, tenant={tenant}")
         user = User.objects.create(
             username=username,
+            tenant=tenant,
             email=google_email,
             first_name=first_name,
             last_name=last_name,
             is_active=True
         )
         
-        # Загружаем аватарку если есть
         if avatar_url:
             TelegramAuthService._download_avatar_from_url(avatar_url, user)
         
-        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, google_id={google_id}")
+        logger.info(f"Пользователь создан: id={user.id}, username={user.username}, google_id={google_id}, tenant={tenant}")
         return user
 
 
