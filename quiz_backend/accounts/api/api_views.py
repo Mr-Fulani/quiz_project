@@ -600,6 +600,13 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
     queryset = MiniAppUser.objects.all()
     permission_classes = [permissions.AllowAny]  # Разрешаем доступ для Mini App
     
+    def get_queryset(self):
+        """
+        Фильтрует пользователей по тенанту текущего запроса.
+        """
+        tenant = getattr(self.request, 'tenant', None)
+        return MiniAppUser.objects.filter(tenant=tenant)
+    
     def get_serializer_class(self):
         """
         Выбирает подходящий сериализатор в зависимости от действия.
@@ -616,7 +623,7 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
         """
         telegram_id = self.kwargs.get('pk')
         tenant = getattr(self.request, 'tenant', None)
-        if telegram_id and telegram_id.isdigit():
+        if telegram_id and str(telegram_id).isdigit():
             # Если передан числовой ID, ищем по telegram_id и тенанту
             obj = get_object_or_404(MiniAppUser, telegram_id=telegram_id, tenant=tenant)
         else:
@@ -629,6 +636,9 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
         При создании пользователя устанавливаем текущий тенант.
         """
         tenant = getattr(self.request, 'tenant', None)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"MiniAppUserViewSet.perform_create: создание пользователя с tenant={tenant}")
         serializer.save(tenant=tenant)
     
     @action(detail=False, methods=['get'])
