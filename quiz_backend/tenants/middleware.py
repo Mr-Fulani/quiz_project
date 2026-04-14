@@ -97,9 +97,24 @@ class TenantMiddleware:
         raw_host = request.META.get('HTTP_HOST', '')
         host = self._normalize_host(request.get_host())
         tenant = _get_tenant_by_host(host)
+
+        # Fallback: если по HTTP_HOST тенант не найден — пробуем X-Forwarded-Host.
+        # Это нужно когда mini_app (отдельный Docker сервис) делает внутренние запросы
+        # к Django через quiz_backend:8000, но передаёт реальный домен в X-Forwarded-Host.
+        if not tenant:
+            forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST', '')
+            if forwarded_host:
+                forwarded_host_clean = self._normalize_host(forwarded_host.split(',')[0].strip())
+                tenant = _get_tenant_by_host(forwarded_host_clean)
+                if tenant:
+                    logger.info(
+                        f"[TenantMiddleware] Tenant resolved via X-Forwarded-Host: "
+                        f"{forwarded_host_clean!r} → {tenant.slug}"
+                    )
+
         logger.info(
-            f"[TenantMiddleware] HTTP_HOST={raw_host!r} → normalized={host!r} → "
-            f"tenant={tenant.slug if tenant else 'None (ПРОВЕРЬ mini_app_domain в админке!)'}"
+            f"[TenantMiddleware] HTTP_HOST={raw_host!r} → tenant="
+            f"{tenant.slug if tenant else 'None — проверь mini_app_domain тенанта в БД!'}"
         )
         request.tenant = tenant
         response = self.get_response(request)

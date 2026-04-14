@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     # По возможности используем переменную окружения WEBAPP_URL (устанавливается в .env / docker-compose)
     MINI_APP_BASE_URL: str = os.getenv('WEBAPP_URL', "http://localhost:8080")
 
+    # Домен мини-аппа — используется как X-Forwarded-Host в запросах к Django
+    # чтобы TenantMiddleware мог найти тенанта по mini_app_domain
+    # Должен совпадать с полем mini_app_domain в записи Tenant в Django Admin
+    MINI_APP_DOMAIN: str = os.getenv('MINI_APP_DOMAIN', 'mini.quiz-code.com')
+
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'

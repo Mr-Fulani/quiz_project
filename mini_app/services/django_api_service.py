@@ -25,10 +25,11 @@ class DjangoAPIService:
             headers = {}
         
         # Если запрос идет напрямую к Django (quiz_backend:8000), 
-        # устанавливаем правильный Host заголовок
+        # устанавливаем правильный Host заголовок — домен мини-аппа
         if 'quiz_backend:8000' in self.base_url:
-            headers['Host'] = 'quiz-code.com'
-            headers['X-Forwarded-Host'] = 'quiz-code.com'
+            mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
+            headers['Host'] = mini_app_domain
+            headers['X-Forwarded-Host'] = mini_app_domain
             headers['X-Forwarded-Proto'] = 'https'
         
         # Если запрос идет через nginx, добавляем правильные заголовки
@@ -40,7 +41,8 @@ class DjangoAPIService:
                 headers['X-Forwarded-Proto'] = 'https'
             elif 'nginx:80' in self.base_url:
                 # Продакшен конфигурация
-                headers['X-Forwarded-Host'] = 'mini.quiz-code.com'
+                mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
+                headers['X-Forwarded-Host'] = mini_app_domain
                 headers['X-Forwarded-Proto'] = 'https'
         
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
