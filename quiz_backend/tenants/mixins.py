@@ -71,8 +71,9 @@ class TenantFilteredAdminMixin:
 
             # 3. Если нашли тенант - присваиваем
             if current_tenant:
-                obj.tenant = current_tenant
-                logger.info(f"[TenantAdmin] Successfully assigned tenant '{current_tenant.slug}' to {obj}")
+                if hasattr(obj, 'tenant'):
+                    obj.tenant = current_tenant
+                    logger.info(f"[TenantAdmin] Successfully assigned tenant '{current_tenant.slug}' to {obj}")
             else:
                 # Если всё еще нет (например, суперюзер на localhost без привязки)
                 # Выбросим понятную ошибку вместо IntegrityError
@@ -83,21 +84,21 @@ class TenantFilteredAdminMixin:
     # ── Ограничение FK-выборок по тенанту ────────────────────────────────────
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if not request.user.is_superuser:
-            tenant = getattr(request.user, 'tenant', None)
-            if tenant:
-                related_model = db_field.related_model
-                if hasattr(related_model, 'tenant'):
-                    kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
+        tenant = getattr(request.user, 'tenant', None) if not request.user.is_superuser else None
+
+        if tenant:
+            related_model = db_field.related_model
+            if hasattr(related_model, 'tenant'):
+                kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if not request.user.is_superuser:
-            tenant = getattr(request.user, 'tenant', None)
-            if tenant:
-                related_model = db_field.related_model
-                if hasattr(related_model, 'tenant'):
-                    kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
+        tenant = getattr(request.user, 'tenant', None) if not request.user.is_superuser else None
+
+        if tenant:
+            related_model = db_field.related_model
+            if hasattr(related_model, 'tenant'):
+                kwargs['queryset'] = related_model.objects.filter(tenant=tenant)
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     # ── Скрытие поля tenant от обычного staff ─────────────────────────────────
