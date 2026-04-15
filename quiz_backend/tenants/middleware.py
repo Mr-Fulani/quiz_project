@@ -27,6 +27,8 @@ def _get_tenant_by_host(host):
         from django.conf import settings
 
         # Ищем с учетом порта, без порта и со слэшами
+        logger.debug(f'[TenantMiddleware] Lookup attempt for: clean={clean_host!r}, no_port={host_no_port!r}')
+        
         tenant = Tenant.objects.filter(
             Q(domain=clean_host) | Q(domain=clean_host + '/') |
             Q(domain=host_no_port) | Q(domain=host_no_port + '/') |
@@ -47,12 +49,12 @@ def _get_tenant_by_host(host):
 
         if tenant:
             _tenant_cache[host] = tenant
-            logger.debug(f'[TenantMiddleware] Host "{clean_host}" → Tenant "{tenant.slug}"')
+            logger.info(f'[TenantMiddleware] ✅ Resolved host "{clean_host}" to Tenant "{tenant.slug}"')
         else:
             # Не кэшируем None — при следующем запросе снова проверим БД.
             # Это важно: если тенант добавлен в БД после запуска сервера,
             # кэширование None заблокировало бы его обнаружение навсегда.
-            logger.warning(f'[TenantMiddleware] No active tenant for host "{clean_host}" (not cached)')
+            logger.warning(f'[TenantMiddleware] ❌ No active tenant for host "{clean_host}". Check admin settings (domain/mini_app_domain)!')
 
         return tenant
 

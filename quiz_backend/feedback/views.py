@@ -242,7 +242,8 @@ def submit_feedback_from_mini_app(request):
                 message=admin_message,
                 related_object_id=feedback.id,
                 related_object_type='feedback',
-                request=request
+                request=request,
+                tenant=tenant
             )
             
             logger.info(f"✅ Уведомление о feedback #{feedback.id} отправлено админам")

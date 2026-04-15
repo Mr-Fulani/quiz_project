@@ -80,9 +80,11 @@ class NextTaskView(APIView):
     def get(self, request):
         # Получаем следующую задачу (пока простая логика)
         tenant = getattr(request, 'tenant', None)
-        queryset = Task.objects.filter(published=True)
-        if tenant:
-            queryset = queryset.filter(tenant=tenant)
+        if not tenant:
+            logger.warning(f"[NextTaskView] Тенант не определен для хоста: {request.get_host()}. Возвращаем 404.")
+            return Response({'message': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        queryset = Task.objects.filter(published=True, tenant=tenant)
             
         task = queryset.first()
         if not task:
@@ -145,6 +147,10 @@ def tasks_by_subtopic(request, subtopic_id):
     """
     try:
         tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            logger.warning(f"[tasks_by_subtopic] Тенант не определен для хоста: {request.get_host()}. Возвращаем 404.")
+            return Response({'error': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
+            
         subtopic = get_object_or_404(Subtopic, id=subtopic_id, topic__tenant=tenant)
         language = request.query_params.get('language', 'en')
         

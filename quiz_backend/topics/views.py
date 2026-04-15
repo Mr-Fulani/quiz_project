@@ -184,6 +184,10 @@ def topics_simple(request):
     Простой endpoint для мини-приложения с поддержкой поиска и языка
     """
     tenant = getattr(request, 'tenant', None)
+    if not tenant:
+        logger.warning(f"[topics_simple] Тенант не определен для хоста: {request.get_host()}. Возвращаем пустой список.")
+        return Response([])
+        
     topics = Topic.objects.filter(tenant=tenant)
     
     # Добавляем поддержку поиска
@@ -282,6 +286,10 @@ def topic_detail_simple(request, topic_id):
     try:
         from django.shortcuts import get_object_or_404
         tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            logger.warning(f"[topic_detail_simple] Тенант не определен для хоста: {request.get_host()}. Возвращаем 404.")
+            return Response({"error": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND)
+            
         topic = get_object_or_404(Topic, id=topic_id, tenant=tenant)
         
         # Получаем язык из query параметров
@@ -349,6 +357,10 @@ def subtopic_detail_simple(request, subtopic_id):
     try:
         from django.shortcuts import get_object_or_404
         tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            logger.warning(f"[subtopic_detail_simple] Тенант не определен для хоста: {request.get_host()}. Возвращаем 404.")
+            return Response({"error": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND)
+            
         subtopic = get_object_or_404(Subtopic, id=subtopic_id, topic__tenant=tenant)
         
         # Получаем язык из query параметров

@@ -120,7 +120,8 @@ def notify_admins_about_donation(sender, instance, created, **kwargs):
             message=admin_message,
             related_object_id=instance.id,
             related_object_type='donation',
-            request=None  # В signals нет доступа к request
+            request=None,
+            tenant=instance.tenant
         )
         
         logger.info(f"📤 Отправлено уведомление о донате #{instance.id} из Mini App")

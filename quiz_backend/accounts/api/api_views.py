@@ -1100,7 +1100,8 @@ class MiniAppProfileByTelegramID(APIView):
                             message=admin_message,
                             related_object_id=mini_app_user.id,
                             related_object_type='message',
-                            request=request
+                            request=request,
+                            tenant=tenant
                         )
                         
                         logger.info(f"📤 Отправлено уведомление о новом пользователе #{mini_app_user.id}")
