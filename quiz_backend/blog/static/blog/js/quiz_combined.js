@@ -390,6 +390,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * Форматирует ссылки (Markdown и сырые), экранируя остальной текст, если требуется.
+     * @param {string} text - Текст или уже экранированный HTML.
+     * @param {boolean} isEscaped - Если true, текст уже прошел escapeHtml.
+     */
+    function formatInlineLinks(text, isEscaped = false) {
+        if (!text) return '';
+        let processed = isEscaped ? text : escapeHtml(text);
+        
+        // Заменяем Markdown-ссылки [Текст](https://...)
+        processed = processed.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (match, title, url) => {
+            const unescapedUrl = url.replace(/&amp;/g, '&');
+            return `<a href="${unescapedUrl}" class="source-link" target="_blank" rel="noopener noreferrer">${title}</a>`;
+        });
+        
+        // Выделяем сырые ссылки, перед которыми нет кавычек (не находятся внутри готовых HTML-тегов)
+        processed = processed.replace(/(^|[^="'])(https?:\/\/[^\s<)\]"']+)/g, (match, prefix, url) => {
+            const unescapedUrl = url.replace(/&amp;/g, '&');
+            // Если ссылка кончается на точку или запятую, исключаем её из url
+            let cleanUrl = url;
+            let suffix = '';
+            if (url.match(/[.,;!?]$/)) {
+                suffix = url.slice(-1);
+                cleanUrl = url.slice(0, -1);
+            }
+            return `${prefix}<a href="${unescapedUrl}" class="source-link" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${suffix}`;
+        });
+        
+        return processed;
+    }
+
+    /**
      * Форматирует текст объяснения: выделяет заголовки, списки и код.
      * @param {string} text - Исходный текст.
      * @returns {string} - Отформатированный HTML.
@@ -398,6 +429,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!text) return '';
         
         let formatted = text;
+        
+        // Обрабатываем ссылки (сначала Markdown, потом сырые).
+        // Так как formatExplanation дальше сам экранирует куски (line by line),
+        // нам надо быть осторожными: ссылки могут сломаться при escapeHtml в цикле построчно.
+        // Поэтому мы будем форматировать ссылки УЖЕ ПОСЛЕ escapeHtml внутри цикла!
         
         // Сначала выделяем код в обратных кавычках (чтобы не трогать его дальше)
         const codeBlocks = [];
@@ -474,15 +510,29 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Показывает модальное окно с объяснением и предотвращает прокрутку страницы.
      * @param {string} explanation - Текст объяснения.
+     * @param {string} sourceName - Название источника.
+     * @param {string} sourceLink - Ссылка на источник.
      */
-    function showModal(explanation) {
+    function showModal(explanation, sourceName = '', sourceLink = '') {
         let modal = document.querySelector('.modal');
         if (modal) {
             modal.remove();
         }
 
         // Форматируем текст
-        const formattedExplanation = formatExplanation(explanation);
+        let formattedExplanation = formatExplanation(explanation);
+        
+        // Добавляем источник, если он есть
+        if (sourceName || sourceLink) {
+            let sourceHtml = '';
+            if (sourceLink) {
+                sourceHtml = `<a href="${sourceLink}" class="source-link" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceName || sourceLink)}</a>`;
+            } else {
+                // Если указано только имя, парсим его на предмет Markdown-ссылок или обычных ссылок
+                sourceHtml = `<span class="source-text">${formatInlineLinks(sourceName, false)}</span>`;
+            }
+            formattedExplanation += `<div class="explanation-source">${sourceHtml}</div>`;
+        }
 
         modal = document.createElement('div');
         modal.className = 'modal';
@@ -671,7 +721,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             e.stopPropagation();
                             e.stopImmediatePropagation();
                             const explanation = taskItem.dataset.explanation || 'No explanation available.';
-                            showModal(explanation);
+                            const sourceName = taskItem.dataset.sourceName || '';
+                            const sourceLink = taskItem.dataset.sourceLink || '';
+                            showModal(explanation, sourceName, sourceLink);
                             return false;
                         }
                     };
@@ -912,8 +964,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     // Показываем модальное окно с объяснением с задержкой 1.5 секунды,
                     // чтобы анимация успела отобразиться
+                    const sourceName = taskItem.dataset.sourceName || '';
+                    const sourceLink = taskItem.dataset.sourceLink || '';
                     setTimeout(() => {
-                        showModal(explanation);
+                        showModal(explanation, sourceName, sourceLink);
                     }, 1500);
                 }
             } catch (error) {

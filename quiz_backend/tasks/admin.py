@@ -23,13 +23,17 @@ from tenants.mixins import TenantFilteredAdminMixin
 logger = logging.getLogger(__name__)
 
 
-class TaskTranslationInline(admin.TabularInline):
+class TaskTranslationInline(admin.StackedInline):
     """
     Inline редактирование переводов задачи.
+    Изменено на StackedInline для удобства редактирования новых полей.
     """
     model = TaskTranslation
     extra = 0
-    fields = ('language', 'question', 'answers', 'correct_answer', 'explanation', 'long_explanation')
+    fields = (
+        'language', 'question', 'answers', 'correct_answer', 
+        'explanation', 'long_explanation', 'source_name', 'source_link'
+    )
     readonly_fields = ('publish_date',)
 
 

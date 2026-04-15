@@ -453,6 +453,36 @@ pre.code-block {
     content: counter(step-counter, decimal) !important;
 }
 
+/* Стили для блока источника в объяснении */
+.explanation-source {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.2);
+    font-size: var(--fs6);
+    color: #a0aec0;
+    font-style: italic;
+}
+
+/* Стили для кликабельных ссылок источника */
+.source-link {
+    color: #38bdf8 !important; /* Яркий голубой цвет */
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-style: normal;
+}
+
+.source-link:hover {
+    color: #7dd3fc !important; /* Более светлый при наведении */
+}
+
+/* Стили для текстового источника без ссылки */
+.source-text {
+    color: #e2e8f0;
+    font-weight: 500;
+    font-style: normal;
+}
+
 /**
  * Стили для нумерованных списков в объяснениях.
  */
