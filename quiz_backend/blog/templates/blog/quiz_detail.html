@@ -27,7 +27,11 @@ Includes the user sidebar for authenticated users.
                   <li class="service-item">
                     <a href="{% url 'blog:quiz_difficulty' quiz_type=topic.name|lower subtopic=subtopic.name|slugify %}">
                       <div class="service-icon-box">
-                        <img src="{{ topic.icon }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
+                        {% if topic.icon_svg %}
+                          {{ topic.icon_svg|safe }}
+                        {% else %}
+                          <img src="{{ topic.icon }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
+                        {% endif %}
                       </div>
                       <div class="service-content-box">
                         <h4 class="h4 service-item-title">{{ subtopic.name }}</h4>
