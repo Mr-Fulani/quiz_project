@@ -16,6 +16,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from .models import TaskComment, TaskCommentReport, TaskTranslation, TaskCommentImage
+from tenants.mixins import TenantFilteredViewMixin
 from .comment_serializers import (
     TaskCommentSerializer,
     TaskCommentListSerializer,
@@ -36,7 +37,7 @@ class CommentPagination(PageNumberPagination):
     max_page_size = 50
 
 
-class TaskCommentViewSet(viewsets.ModelViewSet):
+class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
     """
     ViewSet для работы с комментариями к задачам.
     
@@ -48,6 +49,7 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
     - Отправку жалоб на комментарии
     """
     queryset = TaskComment.objects.all()
+    tenant_lookup = 'task_translation__task__tenant'
     pagination_class = CommentPagination
     permission_classes = [AllowAny]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
@@ -69,7 +71,7 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         Фильтрация комментариев по translation_id.
         Возвращает только корневые комментарии (без parent_comment).
         """
-        queryset = TaskComment.objects.filter(is_deleted=False)
+        queryset = super().get_queryset().filter(is_deleted=False)
         
         # Фильтрация по translation_id
         translation_id = self.kwargs.get('translation_id')
@@ -273,9 +275,13 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 logger.error(f"Ошибка при проверке бана пользователя: {e}")
         
-        # Проверяем, что translation_id существует
+        # Проверяем, что translation_id существует и принадлежит тенанту
         translation_id = kwargs.get('translation_id')
-        get_object_or_404(TaskTranslation, pk=translation_id)
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            get_object_or_404(TaskTranslation, pk=translation_id, task__tenant=tenant)
+        else:
+            get_object_or_404(TaskTranslation, pk=translation_id)
         
         # Добавляем translation_id в данные
         data = request.data.copy()

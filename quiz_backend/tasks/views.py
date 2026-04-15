@@ -9,6 +9,7 @@ from django.db import transaction
 
 from .models import Task, TaskStatistics
 from topics.models import Subtopic
+from tenants.mixins import TenantFilteredViewMixin
 from .serializers import (
     TaskSerializer,
     TaskStatisticsSerializer,
@@ -20,22 +21,22 @@ from .serializers import (
 
 # Create your views here.
 
-class TaskListView(generics.ListAPIView):
+class TaskListView(TenantFilteredViewMixin, generics.ListAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
-class TaskDetailView(generics.RetrieveAPIView):
+class TaskDetailView(TenantFilteredViewMixin, generics.RetrieveAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
-class TaskCreateView(generics.CreateAPIView):
+class TaskCreateView(TenantFilteredViewMixin, generics.CreateAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAdminUser]
 
-class TaskSubmitView(generics.GenericAPIView):
+class TaskSubmitView(TenantFilteredViewMixin, generics.GenericAPIView):
     serializer_class = TaskSubmitSerializer
     queryset = Task.objects.all()
     
@@ -57,7 +58,12 @@ class TaskSkipView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        task = Task.objects.get(pk=pk)
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            task = get_object_or_404(Task, pk=pk, tenant=tenant)
+        else:
+            task = get_object_or_404(Task, pk=pk)
+            
         stats, created = TaskStatistics.objects.get_or_create(
             user=request.user,
             task=task,
@@ -73,22 +79,29 @@ class NextTaskView(APIView):
 
     def get(self, request):
         # Получаем следующую задачу (пока простая логика)
-        task = Task.objects.filter(published=True).first()
+        tenant = getattr(request, 'tenant', None)
+        queryset = Task.objects.filter(published=True)
+        if tenant:
+            queryset = queryset.filter(tenant=tenant)
+            
+        task = queryset.first()
         if not task:
             return Response({'message': 'No tasks available'}, status=status.HTTP_404_NOT_FOUND)
         
         serializer = TaskSerializer(task)
         return Response(serializer.data)
 
-class TaskStatsView(generics.ListAPIView):
+class TaskStatsView(TenantFilteredViewMixin, generics.ListAPIView):
     serializer_class = TaskStatisticsSerializer
+    tenant_lookup = 'task__tenant'
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return TaskStatistics.objects.filter(user=self.request.user)
 
-class UserTaskStatsView(generics.GenericAPIView):
+class UserTaskStatsView(TenantFilteredViewMixin, generics.GenericAPIView):
     serializer_class = TaskStatsResponseSerializer
+    tenant_lookup = 'task__tenant'
     
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -105,8 +118,9 @@ class UserTaskStatsView(generics.GenericAPIView):
             'total_points': 0
         })
 
-class TopicTaskStatsView(generics.GenericAPIView):
+class TopicTaskStatsView(TenantFilteredViewMixin, generics.GenericAPIView):
     serializer_class = TaskStatsResponseSerializer
+    tenant_lookup = 'task__tenant'
     
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -130,7 +144,8 @@ def tasks_by_subtopic(request, subtopic_id):
     Получение задач для подтемы с учетом языка
     """
     try:
-        subtopic = get_object_or_404(Subtopic, id=subtopic_id)
+        tenant = getattr(request, 'tenant', None)
+        subtopic = get_object_or_404(Subtopic, id=subtopic_id, topic__tenant=tenant)
         language = request.query_params.get('language', 'en')
         
         # Получаем задачи с переводами на нужном языке
