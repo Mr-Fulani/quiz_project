@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const textLength = header.textContent.trim().length;
 
                 // Если хотя бы один заголовок длиннее 6 символов, помечаем
-                if (textLength > 6) {
+                if (textLength > 5) {
                     hasLongHeader = true;
                 }
             });
