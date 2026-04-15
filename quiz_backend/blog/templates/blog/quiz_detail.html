@@ -29,6 +29,8 @@ Includes the user sidebar for authenticated users.
                       <div class="service-icon-box">
                         {% if topic.icon_svg %}
                           {{ topic.icon_svg|safe }}
+                        {% elif topic.icon_image %}
+                          <img src="{{ topic.icon_image.url }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
                         {% else %}
                           <img src="{{ topic.icon }}" alt="{% blocktrans with subtopic_name=subtopic.name %}{{ subtopic_name }} icon{% endblocktrans %}" width="40">
                         {% endif %}

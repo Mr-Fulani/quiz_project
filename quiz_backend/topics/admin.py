@@ -47,7 +47,7 @@ class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'description', 'icon', 'icon_svg')
+            'fields': ('name', 'description', 'icon', 'icon_svg', 'icon_image')
         }),
         ('Медиа для карточки в карусели', {
             'fields': ('media_type', 'card_image', 'card_video', 'video_poster'),
@@ -63,6 +63,8 @@ class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     def icon_preview(self, obj):
         if obj.icon_svg:
             return f'<div style="width: 32px; height: 32px; color: #ff9a00;">{obj.icon_svg}</div>'
+        if obj.icon_image:
+            return f'<img src="{obj.icon_image.url}" alt="{obj.name}" style="width: 32px; height: 32px; object-fit: contain;">'
         if obj.icon:
             return f'<img src="{obj.icon}" alt="{obj.name}" style="width: 32px; height: 32px; object-fit: contain;">'
         return 'Нет иконки'
