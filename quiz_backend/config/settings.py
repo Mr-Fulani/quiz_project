@@ -525,7 +525,7 @@ else:
     SECURE_HSTS_PRELOAD = True
 
     # Настройки для работы за прокси-сервером (Nginx)
-    USE_X_FORWARDED_HOST = False
+    USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Отключаем CSRF для API endpoints (не рекомендуется для продакшена без должной аутентификации)
