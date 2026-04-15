@@ -65,14 +65,13 @@ All static text is localized using {% trans %} for English msgid and translation
                             <p class="blog-category">{% trans project.category.name %}</p>
                             {% if project.created_at %}
                             <span class="dot"></span>
-                            <time datetime="{{ project.created_at|date:'Y-m-d' }}">{{ project.created_at|date:"M d, Y"
-                                }}</time>
+                            <time datetime="{{ project.created_at|date:'Y-m-d' }}">{{ project.created_at|date:"M d, Y" }}</time>
                             {% endif %}
                         </div>
                         <h3 class="h3 blog-item-title">{{ project.title }}</h3>
                         {% if project.description %}
                         <p class="blog-text">
-                            {{ project.description|striptags|truncatechars:220 }}
+                            {{ project.description|striptags|truncatechars:220|safe }}
                         </p>
                         {% endif %}
                     </div>
