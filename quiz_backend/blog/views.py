@@ -2657,6 +2657,7 @@ def statistics_view(request):
     Отображает статистику по квизам.
 
     Показывает общую или личную статистику (view=personal).
+    Данные фильтруются по активному тенанту.
 
     Args:
         request: HTTP-запрос.
@@ -2664,26 +2665,33 @@ def statistics_view(request):
     Returns:
         HttpResponse: Рендеринг 'accounts/statistics.html'.
     """
+    # Получаем активного тенанта
+    tenant = getattr(request, 'tenant', None)
+    
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)
 
-    # Общая статистика
-    stats = TaskStatistics.objects.aggregate(
+    # Общая статистика тенанта
+    stats_qs = TaskStatistics.objects.filter(task__tenant=tenant) if tenant else TaskStatistics.objects.none()
+    
+    stats = stats_qs.aggregate(
         total_quizzes=Count('id'),
         successful_quizzes=Count('id', filter=Q(successful=True))
     )
-    total_users = CustomUser.objects.count()
+    
+    total_users = CustomUser.objects.filter(tenant=tenant).count() if tenant else 0
     total_quizzes_completed = stats['total_quizzes']
     avg_score = (
         (stats['successful_quizzes'] / total_quizzes_completed * 100.0)
         if total_quizzes_completed else 0
     )
 
-    # Графики: активность
-    activity_stats = TaskStatistics.objects.filter(
+    # Графики: активность (только этого тенанта)
+    activity_stats = stats_qs.filter(
         last_attempt_date__date__gte=start_date,
         last_attempt_date__date__lte=end_date
     ).values('last_attempt_date__date').annotate(count=Count('id')).order_by('last_attempt_date__date')
+    
     activity_dates = [(start_date + timedelta(n)).strftime('%d.%m') for n in range(31)]
     activity_data = [0] * 31
     for stat in activity_stats:
@@ -2691,14 +2699,15 @@ def statistics_view(request):
         if 0 <= day_index < 31:
             activity_data[day_index] = stat['count']
 
-    # Графики: категории
-    categories_stats = Topic.objects.annotate(task_count=Count('tasks')).values('name', 'task_count')
+    # Графики: категории (только этого тенанта)
+    topics_qs = Topic.objects.filter(tenant=tenant) if tenant else Topic.objects.none()
+    categories_stats = topics_qs.annotate(task_count=Count('tasks')).values('name', 'task_count')
     categories_labels = [stat['name'] for stat in categories_stats] or ['No data']
     categories_data = [stat['task_count'] for stat in categories_stats] or [0]
 
-    # Графики: попытки
+    # Графики: попытки (только этого тенанта)
     scores_distribution = [
-        TaskStatistics.objects.filter(attempts__gt=i, attempts__lte=i + 5).count()
+        stats_qs.filter(attempts__gt=i, attempts__lte=i + 5).count()
         for i in range(0, 25, 5)
     ]
 
@@ -2715,10 +2724,15 @@ def statistics_view(request):
 
     # Личная статистика
     if request.user.is_authenticated:
-        # Считаем уникальные translation_group_id вместо количества записей
-        # чтобы не учитывать дубликаты от синхронизации статистики между языками
-        total_attempts = TaskStatistics.objects.filter(user=request.user).values('task__translation_group_id').distinct().count()
-        successful_attempts = TaskStatistics.objects.filter(user=request.user, successful=True).values('task__translation_group_id').distinct().count()
+        user_stats_qs = TaskStatistics.objects.filter(user=request.user)
+        # Если пользователь не принадлежит тенанту (например superuser без тенанта), 
+        # или мы хотим показать только статистику этого проекта
+        if tenant:
+             user_stats_qs = user_stats_qs.filter(task__tenant=tenant)
+
+        # Считаем уникальные translation_group_id
+        total_attempts = user_stats_qs.values('task__translation_group_id').distinct().count()
+        successful_attempts = user_stats_qs.filter(successful=True).values('task__translation_group_id').distinct().count()
         
         user_stats = {
             'total_attempts': total_attempts,
@@ -2732,22 +2746,21 @@ def statistics_view(request):
         user_stats['solved_tasks'] = user_stats['successful_attempts']
 
         # Личная активность
-        user_activity_stats = TaskStatistics.objects.filter(
-            user=request.user,
+        user_activity_stats = user_stats_qs.filter(
             last_attempt_date__isnull=False
         ).values('last_attempt_date__date').annotate(count=Count('id')).order_by('last_attempt_date__date')
         user_activity_dates = [stat['last_attempt_date__date'].strftime('%d.%m') for stat in user_activity_stats] or ['No data']
         user_activity_data = [stat['count'] for stat in user_activity_stats] or [0]
 
         # Личные категории
-        user_category_stats = TaskStatistics.objects.filter(user=request.user).values(
+        user_category_stats = user_stats_qs.values(
             'task__topic__name'
         ).annotate(count=Count('id')).order_by('-count')[:5]
         user_categories_labels = [stat['task__topic__name'] or 'Unknown' for stat in user_category_stats] or ['No data']
         user_categories_data = [stat['count'] for stat in user_category_stats] or [0]
 
         # Личные попытки
-        user_attempts = TaskStatistics.objects.filter(user=request.user).values('attempts').annotate(count=Count('id'))
+        user_attempts = user_stats_qs.values('attempts').annotate(count=Count('id'))
         user_attempts_distribution = [0] * 5
         for attempt in user_attempts:
             attempts_value = int(attempt['attempts'] or 0)
@@ -2766,6 +2779,7 @@ def statistics_view(request):
         })
 
     return render(request, 'accounts/statistics.html', context)
+
 
 
 
