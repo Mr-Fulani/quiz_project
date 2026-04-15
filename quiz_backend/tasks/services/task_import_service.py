@@ -72,19 +72,20 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None) -
                     failed_tasks += 1
                     continue
                 
-                # Получаем или создаём тему
-                # Теперь поиск учитывает тенант, чтобы не было конфликтов при совпадении имен тем у разных тенантов
-                topic, created = Topic.objects.get_or_create(
-                    name=topic_name,
-                    tenant=tenant,
-                    defaults={'description': f'Topic for {topic_name}'}
-                )
-                
-                if created:
+                # Получаем или создаём тему (безопасно: берем первую если вдруг есть дубликаты)
+                topic = Topic.objects.filter(name=topic_name, tenant=tenant).first()
+                if not topic:
+                    topic = Topic.objects.create(
+                        name=topic_name,
+                        tenant=tenant,
+                        description=f'Topic for {topic_name}'
+                    )
                     logger.info(f"✅ Создана новая тема: {topic_name}")
                     detailed_logs.append(f"✅ Создана новая тема: {topic_name}")
+                    created = True
                 else:
                     detailed_logs.append(f"📂 Используется существующая тема: {topic_name}")
+                    created = False
                 
                 # Получаем или создаём подтему
                 subtopic_name = task_data.get('subtopic')
@@ -92,14 +93,13 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None) -
                 
                 if subtopic_name:
                     # Нормализуем имя подтемы перед поиском/созданием
-                    # Это предотвращает создание дубликатов из-за различий в пробелах/регистре
                     normalized_subtopic_name = normalize_subtopic_name(subtopic_name)
-                    subtopic, created = Subtopic.objects.get_or_create(
-                        name=normalized_subtopic_name,
-                        topic=topic
-                    )
-                    
-                    if created:
+                    subtopic = Subtopic.objects.filter(name=normalized_subtopic_name, topic=topic).first()
+                    if not subtopic:
+                        subtopic = Subtopic.objects.create(
+                            name=normalized_subtopic_name,
+                            topic=topic
+                        )
                         logger.info(f"✅ Создана новая подтема: {subtopic_name}")
                         detailed_logs.append(f"✅ Создана новая подтема: {subtopic_name}")
                     else:
