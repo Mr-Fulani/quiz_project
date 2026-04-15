@@ -65,6 +65,17 @@ class Topic(models.Model):
         verbose_name="SVG код иконки",
         help_text="Если указано, будет использоваться вместо стандартной иконки. Можно вставить SVG код целиком."
     )
+    icon_image = models.ImageField(
+        upload_to='topic_icons/',
+        null=True,
+        blank=True,
+        verbose_name="Файл иконки",
+        validators=[
+            validate_file_size,
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'svg'])
+        ],
+        help_text="Загрузите файл иконки (PNG, JPG или SVG). Используется, если не указан SVG код."
+    )
     
     # Медиа для карточки темы в карусели мини-приложения
     card_image = models.ImageField(
