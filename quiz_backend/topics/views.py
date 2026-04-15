@@ -445,6 +445,8 @@ def subtopic_detail_simple(request, subtopic_id):
                     'answers': answers,
                     'correct_answer': translation.correct_answer,
                     'explanation': translation.long_explanation or translation.explanation,
+                    'source_name': translation.source_name,
+                    'source_link': translation.source_link,
                     'is_solved': is_solved,
                     'translation_id': translation.id  # Для системы комментариев
                 }

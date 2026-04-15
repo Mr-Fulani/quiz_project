@@ -713,6 +713,45 @@ if (window.TaskManagerAlreadyLoaded) {
         }
 
         /**
+         * Форматирует ссылки (Markdown и сырые), экранируя остальной текст, если требуется.
+         * @param {string} text - Текст или уже экранированный HTML.
+         * @param {boolean} isEscaped - Если true, текст уже прошел escapeHtml.
+         */
+        formatInlineLinks(text, isEscaped = false) {
+            if (!text) return '';
+            
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+            
+            let processed = isEscaped ? text : escapeHtml(text);
+            
+            // Заменяем Markdown-ссылки [Текст](https://...)
+            processed = processed.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (match, title, url) => {
+                const unescapedUrl = url.replace(/&amp;/g, '&');
+                return `<a href="${unescapedUrl}" class="source-link" target="_blank" rel="noopener noreferrer">${title}</a>`;
+            });
+            
+            // Выделяем сырые ссылки, перед которыми нет кавычек (не находятся внутри готовых HTML-тегов)
+            // Исключаем ссылки, которые уже являются частью <a> тега (простая проверка на префикс)
+            processed = processed.replace(/(^|[^="'])(https?:\/\/[^\s<)\]"']+)/g, (match, prefix, url) => {
+                const unescapedUrl = url.replace(/&amp;/g, '&');
+                // Если ссылка кончается на точку или запятую, исключаем её из url
+                let cleanUrl = url;
+                let suffix = '';
+                if (url.match(/[.,;!?]$/)) {
+                    suffix = url.slice(-1);
+                    cleanUrl = url.slice(0, -1);
+                }
+                return `${prefix}<a href="${unescapedUrl}" class="source-link" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${suffix}`;
+            });
+            
+            return processed;
+        }
+
+        /**
          * Форматирует текст объяснения: выделяет заголовки, списки и код.
          * @param {string} text - Исходный текст.
          * @returns {string} - Отформатированный HTML.
@@ -803,6 +842,10 @@ if (window.TaskManagerAlreadyLoaded) {
                     let processedLine = trimmed.replace(/__CODE_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
                     // Восстанавливаем блоки кода
                     processedLine = processedLine.replace(/__CODEBLOCK_(\d+)__/g, (_, idx) => codeBlocks[parseInt(idx)] || '');
+                    
+                    // Форматируем ссылки в строке
+                    processedLine = this.formatInlineLinks(processedLine, true);
+                    
                     result.push(`<p>${processedLine}</p>`);
                 }
             });
@@ -876,7 +919,25 @@ if (window.TaskManagerAlreadyLoaded) {
                             if (originalText) {
                                 console.log('📝 Исходный текст объяснения:', originalText.substring(0, 200));
                                 // Форматируем текст
-                                const formatted = this.formatExplanation(originalText);
+                                let formatted = this.formatExplanation(originalText);
+                                
+                                // Добавляем источник, если он есть
+                                const sourceName = taskItem.dataset.sourceName || '';
+                                const sourceLink = taskItem.dataset.sourceLink || '';
+                                
+                                if (sourceName || sourceLink) {
+                                    let sourceHtml = '';
+                                    if (sourceLink) {
+                                        // Экранируем название источника, если оно есть
+                                        const displayName = sourceName ? sourceName : sourceLink;
+                                        sourceHtml = `<a href="${sourceLink}" class="source-link" target="_blank" rel="noopener noreferrer">${displayName}</a>`;
+                                    } else {
+                                        // Если указано только имя, форматируем возможные ссылки в нем
+                                        sourceHtml = `<span class="source-text">${this.formatInlineLinks(sourceName, false)}</span>`;
+                                    }
+                                    formatted += `<div class="explanation-source">${sourceHtml}</div>`;
+                                }
+                                
                                 console.log('📝 Отформатированный HTML:', formatted.substring(0, 500));
                                 // Заменяем содержимое на отформатированное
                                 explanationText.innerHTML = formatted;

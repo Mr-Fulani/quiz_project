@@ -19,7 +19,11 @@
     <div class="tasks-container">
         {% if tasks %}
             {% for task in tasks %}
-            <div class="task-item" data-task-id="{{ task.id }}" data-solved="{{ task.is_solved | lower }}">
+            <div class="task-item" 
+                 data-task-id="{{ task.id }}" 
+                 data-solved="{{ task.is_solved | lower }}"
+                 data-source-name="{{ task.source_name or '' }}"
+                 data-source-link="{{ task.source_link or '' }}">
                 <!-- Картинка задачи -->
                 {% if task.image_url %}
                 <div class="task-image">
@@ -33,7 +37,9 @@
                     <button class="answer-option" 
                             data-answer="{{ answer }}"
                             data-correct="{% if answer == task.correct_answer %}true{% else %}false{% endif %}"
-                            data-explanation="{{ task.explanation }}">
+                            data-explanation="{{ task.explanation }}"
+                            data-source-name="{{ task.source_name or '' }}"
+                            data-source-link="{{ task.source_link or '' }}">
                         {{ answer }}
                     </button>
                     {% endfor %}

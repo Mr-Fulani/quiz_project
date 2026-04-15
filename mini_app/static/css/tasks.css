@@ -448,3 +448,35 @@ body.task-image-overlay-open {
         font-size: 20px;
     }
 } 
+/* Стили для источников и ссылок в объяснении */
+.explanation-source {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(0, 255, 0, 0.2);
+    font-size: 14px;
+}
+
+.explanation-source::before {
+    content: "Источник: ";
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+.source-link, .explanation-content a {
+    color: var(--active-color);
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(41, 253, 83, 0.4);
+    transition: all 0.2s ease;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.source-link:hover, .explanation-content a:hover {
+    color: #4ade80;
+    border-bottom-color: #4ade80;
+    background: rgba(41, 253, 83, 0.1);
+}
+
+.source-text {
+    color: #e5e7eb;
+}
