@@ -11,7 +11,7 @@ STATIC_VERSIONS = {
     'blog_page.html': '1.1',
     'portfolio.html': '1.1',
     'header-spacing.css': '2.0',
-    'header-spacing.js': '1.2',
+    'header-spacing.js': '1.3',
     'animated_auth.css': '2.0',
     'cookie-consent.css': '2.0',
     'font-awesome.min.css': '2.0',
