@@ -73,8 +73,10 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None) -
                     continue
                 
                 # Получаем или создаём тему
+                # Теперь поиск учитывает тенант, чтобы не было конфликтов при совпадении имен тем у разных тенантов
                 topic, created = Topic.objects.get_or_create(
                     name=topic_name,
+                    tenant=tenant,
                     defaults={'description': f'Topic for {topic_name}'}
                 )
                 
