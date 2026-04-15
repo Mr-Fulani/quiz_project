@@ -59,6 +59,12 @@ class Topic(models.Model):
         default='/static/blog/images/icons/default-icon.png',
         help_text='Путь к иконке темы (например, blog/images/icons/java-icon.png)'
     )
+    icon_svg = models.TextField(
+        null=True, 
+        blank=True, 
+        verbose_name="SVG код иконки",
+        help_text="Если указано, будет использоваться вместо стандартной иконки. Можно вставить SVG код целиком."
+    )
     
     # Медиа для карточки темы в карусели мини-приложения
     card_image = models.ImageField(

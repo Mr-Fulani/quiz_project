@@ -31,7 +31,11 @@ All static text is localized using {% trans %} for English msgid and translation
             <li class="service-item">
               <a href="{% url 'blog:quiz_detail' quiz_type=topic.name|lower %}" class="service-link">
                 <div class="service-icon-box">
-                  <img src="{{ topic.icon }}" alt="{% blocktrans with topic_name=topic.name %}{{ topic_name }} icon{% endblocktrans %}" width="40">
+                  {% if topic.icon_svg %}
+                    {{ topic.icon_svg|safe }}
+                  {% else %}
+                    <img src="{{ topic.icon }}" alt="{% blocktrans with topic_name=topic.name %}{{ topic_name }} icon{% endblocktrans %}" width="40">
+                  {% endif %}
                 </div>
                 <div class="service-content-box">
                   <h4 class="h4 service-item-title">{{ topic.name }}</h4>
