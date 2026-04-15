@@ -301,7 +301,10 @@ def send_to_all_admins(
                 logger.error(f"Ошибка отправки уведомления админу {admin.telegram_id}: {e}")
         
         # Дополнительный получатель из .env/settings для аварийного мониторинга
-        env_admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+        env_admin_chat_id = (
+            getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+            or getattr(settings, 'ADMIN_TELEGRAM_ID', None)
+        )
         if env_admin_chat_id:
             try:
                 env_chat_id = int(str(env_admin_chat_id).strip())
@@ -319,7 +322,7 @@ def send_to_all_admins(
                     else:
                         logger.warning(f"Не удалось отправить уведомление env-админу {env_chat_id}")
             except (TypeError, ValueError):
-                logger.warning(f"Некорректный TELEGRAM_ADMIN_CHAT_ID: {env_admin_chat_id!r}")
+                logger.warning(f"Некорректный TELEGRAM_ADMIN_CHAT_ID/ADMIN_TELEGRAM_ID: {env_admin_chat_id!r}")
 
         logger.info(f"Уведомления отправлены {sent_count} (tenant={tenant})")
         

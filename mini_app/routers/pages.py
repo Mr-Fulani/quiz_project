@@ -276,7 +276,10 @@ async def top_users(
         )
         
         # Получаем список языков программирования для фильтра
-        programming_languages = await django_api_service.get_programming_languages()
+        programming_languages = await django_api_service.get_programming_languages(
+            host=host,
+            scheme=scheme
+        )
         
         logger.info(f"Получены данные топ-пользователей: {top_users_data}")
         

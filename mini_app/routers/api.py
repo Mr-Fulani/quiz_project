@@ -822,10 +822,17 @@ async def submit_feedback(request: Request):
                         )
                         logger.info(f"📷 Добавлено изображение: {img_file.filename}, размер: {len(content)} байт")
         
-        # Устанавливаем правильный Host header для Django
-        headers = {
-            'Host': 'localhost',  # Django ожидает localhost, а не nginx_local
-        }
+        # Передаем исходный домен/схему в Django, чтобы TenantMiddleware
+        # корректно определил tenant для feedback и связанных уведомлений.
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+            headers['Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+        logger.info(f"📡 Feedback proxy headers: host={host}, scheme={scheme}")
         
         async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
             if image_files:
