@@ -222,7 +222,12 @@ def format_report_notification(report, request=None) -> str:
         return f"🚨 Новая жалоба #{report.id if report else 'N/A'}"
 
 
-def send_to_all_admins(message: str, parse_mode: str = "Markdown", web_app_url: Optional[str] = None) -> int:
+def send_to_all_admins(
+    message: str,
+    parse_mode: str = "Markdown",
+    web_app_url: Optional[str] = None,
+    tenant=None
+) -> int:
     """
     Отправляет уведомление всем активным администраторам.
     Проверяет настройку notifications_enabled из MiniAppUser перед отправкой.
@@ -240,13 +245,17 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown", web_app_url: 
     try:
         from accounts.models import MiniAppUser
         
-        # Получаем всех активных админов
+        # Получаем всех активных админов.
+        # В multi-tenant режиме приоритетно ограничиваем текущим tenant.
         admins = TelegramAdmin.objects.filter(is_active=True)
+        if tenant:
+            admins = admins.filter(tenant=tenant)
         
         if not admins.exists():
             logger.warning("Нет активных администраторов для отправки уведомлений")
             return 0
         
+        recipient_ids = set()
         for admin in admins:
             try:
                 # Проверяем настройку notifications_enabled из MiniAppUser
@@ -269,11 +278,17 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown", web_app_url: 
                     logger.info(f"Уведомления отключены для админа {admin.telegram_id}, пропускаем отправку")
                     continue
                 
+                # Избегаем повторной отправки на один и тот же chat_id
+                if admin.telegram_id in recipient_ids:
+                    continue
+                recipient_ids.add(admin.telegram_id)
+
                 success = send_telegram_notification_sync(
                     telegram_id=admin.telegram_id,
                     message=message,
                     parse_mode=parse_mode,
-                    web_app_url=web_app_url
+                    web_app_url=web_app_url,
+                    tenant=tenant,
                 )
                 
                 if success:
@@ -285,7 +300,28 @@ def send_to_all_admins(message: str, parse_mode: str = "Markdown", web_app_url: 
             except Exception as e:
                 logger.error(f"Ошибка отправки уведомления админу {admin.telegram_id}: {e}")
         
-        logger.info(f"Уведомления отправлены {sent_count} из {admins.count()} админов")
+        # Дополнительный получатель из .env/settings для аварийного мониторинга
+        env_admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+        if env_admin_chat_id:
+            try:
+                env_chat_id = int(str(env_admin_chat_id).strip())
+                if env_chat_id not in recipient_ids:
+                    success = send_telegram_notification_sync(
+                        telegram_id=env_chat_id,
+                        message=message,
+                        parse_mode=parse_mode,
+                        web_app_url=web_app_url,
+                        tenant=tenant,
+                    )
+                    if success:
+                        sent_count += 1
+                        logger.info(f"Уведомление отправлено env-админу {env_chat_id}")
+                    else:
+                        logger.warning(f"Не удалось отправить уведомление env-админу {env_chat_id}")
+            except (TypeError, ValueError):
+                logger.warning(f"Некорректный TELEGRAM_ADMIN_CHAT_ID: {env_admin_chat_id!r}")
+
+        logger.info(f"Уведомления отправлены {sent_count} (tenant={tenant})")
         
     except Exception as e:
         logger.error(f"Ошибка при отправке уведомлений админам: {e}")
@@ -305,7 +341,9 @@ def notify_admins_new_comment(comment) -> int:
     """
     try:
         message = format_comment_notification(comment)
-        return send_to_all_admins(message)
+        tenant = getattr(getattr(comment, 'task_translation', None), 'task', None)
+        tenant = getattr(tenant, 'tenant', None)
+        return send_to_all_admins(message, tenant=tenant)
     except Exception as e:
         logger.error(f"Ошибка при отправке уведомления о новом комментарии: {e}")
         return 0
@@ -324,8 +362,9 @@ def notify_admins_new_report(report, request=None) -> int:
     """
     try:
         message = format_report_notification(report, request=request)
-        return send_to_all_admins(message)
+        tenant = getattr(getattr(getattr(report, 'comment', None), 'task_translation', None), 'task', None)
+        tenant = getattr(tenant, 'tenant', None)
+        return send_to_all_admins(message, tenant=tenant)
     except Exception as e:
         logger.error(f"Ошибка при отправке уведомления о новой жалобе: {e}")
         return 0
-
