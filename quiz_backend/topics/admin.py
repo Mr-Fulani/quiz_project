@@ -47,7 +47,7 @@ class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'description', 'icon')
+            'fields': ('name', 'description', 'icon', 'icon_svg')
         }),
         ('Медиа для карточки в карусели', {
             'fields': ('media_type', 'card_image', 'card_video', 'video_poster'),
@@ -61,6 +61,8 @@ class TopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     get_subtopics_count.short_description = 'Количество подтем'
     
     def icon_preview(self, obj):
+        if obj.icon_svg:
+            return f'<div style="width: 32px; height: 32px; color: #ff9a00;">{obj.icon_svg}</div>'
         if obj.icon:
             return f'<img src="{obj.icon}" alt="{obj.name}" style="width: 32px; height: 32px; object-fit: contain;">'
         return 'Нет иконки'
