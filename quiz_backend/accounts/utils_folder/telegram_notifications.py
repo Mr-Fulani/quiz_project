@@ -317,6 +317,10 @@ def send_telegram_notification_sync(
     # Формируем reply_markup если есть web_app_url
     reply_markup = None
     if web_app_url:
+        # Telegram WebApp requires HTTPS
+        if web_app_url.startswith("http://") and "localhost" not in web_app_url and "127.0.0.1" not in web_app_url:
+            web_app_url = web_app_url.replace("http://", "https://")
+            
         # Определяем текст кнопки в зависимости от типа уведомления (по URL)
         button_text = "Открыть в приложении"
         if "comment_" in web_app_url:
@@ -436,7 +440,8 @@ def create_notification(
     related_object_id: Optional[int] = None,
     related_object_type: Optional[str] = None,
     send_to_telegram: bool = True,
-    web_app_url: Optional[str] = None
+    web_app_url: Optional[str] = None,
+    tenant=None
 ) -> Optional[object]:
     """
     Создает уведомление в БД и опционально отправляет его в Telegram.
@@ -474,6 +479,7 @@ def create_notification(
         
         # Создаем запись уведомления в БД
         notification = Notification.objects.create(
+            tenant=tenant,
             recipient_telegram_id=recipient_telegram_id,
             notification_type=notification_type,
             title=title,
@@ -543,15 +549,14 @@ def notify_all_admins(
             django_models.Q(django_admin__isnull=False)
         )
         
-        # Фильтруем по тенанту если он известен
+        # Фильтруем по тенанту если он известен (включаем также глобальных админов с tenant IS NULL)
         if tenant:
-            admins_qs = admins_qs.filter(tenant=tenant)
-            logger.debug(f"🔍 Фильтрация админов для уведомления по тенанту: {tenant}")
+            admins_qs = admins_qs.filter(
+                django_models.Q(tenant=tenant) | django_models.Q(tenant__isnull=True)
+            )
+            logger.debug(f"🔍 Фильтрация админов для уведомления по тенанту: {tenant} (включая глобальных)")
         else:
-            # Если тенант не определен (например, глобальный суперюзер отправил запрос с localhost)
-            # в Multi-tenant системе мы либо уведомляем только STAFF без тенанта (редко),
-            # либо уведомляем ВСЕХ суперпользователей (Global Admins).
-            # Для надежности в SaaS: если тенанта нет, уведомляем только тех, у кого tenant IS NULL.
+            # Если тенант не определен, уведомляем только глобальных админов
             admins_qs = admins_qs.filter(tenant__isnull=True)
             logger.warning("⚠️ Тенант не определен для уведомления админов. Уведомляем только глобальных админов.")
             

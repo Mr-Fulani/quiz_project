@@ -460,108 +460,93 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
                     logger.info(f"ℹ️ Пользователь ответил сам себе, уведомление не отправляется")
             
             # Уведомляем админов о новом комментарии
-            from tasks.notification_service import format_comment_notification, send_to_all_admins
-            from accounts.models import MiniAppUser, Notification
+            from accounts.utils_folder.telegram_notifications import notify_all_admins
+            from accounts.models import MiniAppUser
             from django.db import models as django_models
             
-            # Формируем красивое сообщение для Telegram (с Markdown форматированием и ссылкой "Просмотреть в админке")
-            telegram_message = format_comment_notification(comment, request=request)
-            
-            # Создаем уведомление в БД ПЕРЕД отправкой
             try:
-                admins = MiniAppUser.objects.filter(
-                    notifications_enabled=True
-                ).filter(
-                    django_models.Q(telegram_admin__isnull=False) |
-                    django_models.Q(django_admin__isnull=False)
-                ).distinct()
+                # Получаем информацию о задаче и топике для уведомления в админке
+                task = comment.task_translation.task
+                topic_name = task.topic.name if task.topic else "Без топика"
+                subtopic_info = ""
+                if task.subtopic:
+                    subtopic_info = f" → {task.subtopic.name}"
                 
-                if admins.exists():
-                    # Получаем информацию о задаче и топике для уведомления в админке
-                    task = comment.task_translation.task
-                    topic_name = task.topic.name if task.topic else "Без топика"
-                    subtopic_info = ""
-                    if task.subtopic:
-                        subtopic_info = f" → {task.subtopic.name}"
-                    
-                    # Получаем информацию об авторе для уведомления в админке
+                # Получаем информацию об авторе для уведомления в админке
+                try:
+                    author = MiniAppUser.objects.get(telegram_id=comment.author_telegram_id)
+                    author_name = author.first_name or author.username or 'Без имени'
+                    author_username = f"@{author.username}" if author.username else 'нет'
+                except MiniAppUser.DoesNotExist:
+                    author_name = comment.author_username
+                    author_username = 'нет'
+                except MiniAppUser.MultipleObjectsReturned:
+                    author = MiniAppUser.objects.filter(telegram_id=comment.author_telegram_id).first()
+                    author_name = author.first_name or author.username or 'Без имени'
+                    author_username = f"@{author.username}" if author.username else 'нет'
+                
+                # Информация о задаче
+                lang_flag = '🇷🇺' if comment.task_translation.language == 'ru' else '🇬🇧'
+                task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()})"
+                
+                # Текст комментария (обрезаем, если слишком длинный)
+                comment_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
+                
+                # Количество изображений
+                images_count = comment.images.count()
+                images_text = f"\n📷 Изображений: {images_count}" if images_count > 0 else ""
+                
+                # Информация о родительском комментарии
+                parent_info = ""
+                if comment.parent_comment:
                     try:
-                        author = MiniAppUser.objects.get(telegram_id=comment.author_telegram_id)
-                        author_name = author.first_name or author.username or 'Без имени'
-                        author_username = f"@{author.username}" if author.username else 'нет'
+                        parent_author = MiniAppUser.objects.get(telegram_id=comment.parent_comment.author_telegram_id)
+                        parent_name = parent_author.first_name or parent_author.username or 'Пользователь'
+                        parent_username = f"@{parent_author.username}" if parent_author.username else 'нет'
+                        parent_info = (
+                            f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {parent_name}"
+                            f" ({parent_username}, ID: {comment.parent_comment.author_telegram_id})"
+                        )
                     except MiniAppUser.DoesNotExist:
-                        author_name = comment.author_username
-                        author_username = 'нет'
-                    
-                    # Информация о задаче
-                    lang_flag = '🇷🇺' if comment.task_translation.language == 'ru' else '🇬🇧'
-                    task_info = f"#{comment.task_translation.task_id} ({lang_flag} {comment.task_translation.language.upper()})"
-                    
-                    # Текст комментария (обрезаем, если слишком длинный)
-                    comment_text = comment.text[:200] + ('...' if len(comment.text) > 200 else '')
-                    
-                    # Количество изображений
-                    images_count = comment.images.count()
-                    images_text = f"\n📷 Изображений: {images_count}" if images_count > 0 else ""
-                    
-                    # Информация о родительском комментарии
-                    parent_info = ""
-                    if comment.parent_comment:
-                        try:
-                            parent_author = MiniAppUser.objects.get(telegram_id=comment.parent_comment.author_telegram_id)
-                            parent_name = parent_author.first_name or parent_author.username or 'Пользователь'
-                            parent_username = f"@{parent_author.username}" if parent_author.username else 'нет'
-                            parent_info = (
-                                f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {parent_name}"
-                                f" ({parent_username}, ID: {comment.parent_comment.author_telegram_id})"
-                            )
-                        except MiniAppUser.DoesNotExist:
-                            parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {comment.parent_comment.author_username or 'Пользователь'}"
-                    
-                    # Формируем сообщение для админки (без Markdown форматирования для отображения в админке)
-                    admin_title = "💬 Новый комментарий"
-                    admin_message = (
-                        f"👤 Автор: {author_name} ({author_username}, ID: {comment.author_telegram_id})\n"
-                        f"📝 Задача: {task_info} | {topic_name}{subtopic_info}\n\n"
-                        f"Текст:\n"
-                        f'"{comment_text}"{images_text}{parent_info}\n\n'
-                        f"🔗 Просмотреть в админке"
-                    )
-                    
-                    # Создаем ОДНО уведомление в БД для всех админов
-                    admin_notification = Notification.objects.create(
-                        recipient_telegram_id=None,  # NULL для админских уведомлений
-                        is_admin_notification=True,
-                        notification_type='comment',
-                        title=admin_title,
-                        message=admin_message,
-                        related_object_id=comment.id,
-                        related_object_type='comment'
-                    )
-                    
-                    # Формируем URL mini app для открытия комментария
-                    # Для WebApp кнопок Telegram передает startParam через window.Telegram.WebApp.startParam
-                    # но также нужно добавить параметр в URL для обработки на сервере
-                    from accounts.utils_folder.telegram_notifications import get_mini_app_url
-                    mini_app_base_url = get_mini_app_url(request)
-                    # Используем базовый URL, параметр будет передан через startParam при создании кнопки
-                    # Но также добавляем в URL для обработки на сервере (fallback)
-                    mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
-                    
-                    # Отправляем красивое сообщение в Telegram (с Markdown форматированием и кнопкой WebApp)
-                    sent_count = send_to_all_admins(telegram_message, web_app_url=mini_app_url)
-                    
-                    # Отмечаем уведомление как отправленное, если хотя бы одному админу отправлено
-                    if sent_count > 0:
-                        admin_notification.mark_as_sent()
-                        logger.info(f"📤 Уведомление #{admin_notification.id} отправлено {sent_count} админам и отмечено как отправленное")
-                    else:
-                        logger.warning(f"⚠️ Уведомление #{admin_notification.id} не было отправлено ни одному админу")
-                    
-                    logger.info(f"📝 Создано админское уведомление #{admin_notification.id} для всех админов")
+                        parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {comment.parent_comment.author_username or 'Пользователь'}"
+                    except MiniAppUser.MultipleObjectsReturned:
+                        parent_author = MiniAppUser.objects.filter(telegram_id=comment.parent_comment.author_telegram_id).first()
+                        parent_name = parent_author.first_name or parent_author.username or 'Пользователь'
+                        parent_username = f"@{parent_author.username}" if parent_author.username else 'нет'
+                        parent_info = (
+                            f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {parent_name}"
+                            f" ({parent_username}, ID: {comment.parent_comment.author_telegram_id})"
+                        )
+                
+                # Формируем сообщение для админки
+                admin_title = "💬 Новый комментарий"
+                admin_message = (
+                    f"👤 Автор: {author_name} ({author_username}, ID: {comment.author_telegram_id})\n"
+                    f"📝 Задача: {task_info} | {topic_name}{subtopic_info}\n\n"
+                    f"Текст:\n"
+                    f'"{comment_text}"{images_text}{parent_info}'
+                )
+                
+                # Формируем URL mini app для открытия комментария
+                from accounts.utils_folder.telegram_notifications import get_mini_app_url
+                mini_app_base_url = get_mini_app_url(request)
+                mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
+                
+                # Отправляем уведомление через централизованную функцию notify_all_admins
+                sent_count = notify_all_admins(
+                    notification_type='comment',
+                    title=admin_title,
+                    message=admin_message,
+                    related_object_id=comment.id,
+                    related_object_type='comment',
+                    web_app_url=mini_app_url,
+                    request=request
+                )
+                
+                logger.info(f"📝 Отправлено уведомление о комментарии #{comment.id} {sent_count} админам")
             except Exception as e:
                 logger.error(f"❌ Ошибка создания уведомления в админке: {e}")
-            
+        
         except Exception as e:
             logger.error(f"❌ Ошибка отправки уведомлений: {e}")
         

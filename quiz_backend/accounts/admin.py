@@ -2945,13 +2945,13 @@ class MiniAppUserAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 
 # Регистрация моделей
 @admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
+class NotificationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     """
     Админ-панель для уведомлений.
     """
     form = NotificationAdminForm
-    list_display = ['id', 'get_recipient_display', 'notification_type', 'title', 'is_read_display', 'sent_to_telegram', 'created_at']
-    list_filter = ['notification_type', 'is_admin_notification', 'is_read', 'sent_to_telegram', 'created_at']
+    list_display = ['id', 'tenant', 'get_recipient_display', 'notification_type', 'title', 'is_read_display', 'sent_to_telegram', 'created_at']
+    list_filter = ['tenant', 'notification_type', 'is_admin_notification', 'is_read', 'sent_to_telegram', 'created_at']
     search_fields = ['recipient_telegram_id', 'title', 'message']
     readonly_fields = ['created_at']
     list_per_page = 50
@@ -2960,7 +2960,7 @@ class NotificationAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('is_admin_notification', 'recipient_telegram_id', 'notification_type', 'title', 'message')
+            'fields': ('tenant', 'is_admin_notification', 'recipient_telegram_id', 'notification_type', 'title', 'message')
         }),
         ('Связанный объект', {
             'fields': ('related_object_id', 'related_object_type'),
