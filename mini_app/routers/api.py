@@ -244,13 +244,25 @@ async def get_topic(topic_id: int):
     return {"subtopics": subtopics}
 
 @router.get("/subtopics/{subtopic_id}")
-async def get_subtopic_with_user(subtopic_id: int, language: str = 'en', telegram_id: int | None = None):
+async def get_subtopic_with_user(request: Request, subtopic_id: int, language: str = 'en', telegram_id: int | None = None):
     """Проксирование деталей подтемы (с задачами) с передачей telegram_id для отметки решённых задач."""
     try:
+        # Получаем хост и схему для тенанта
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+
         params = {'language': language}
         if telegram_id:
             params['telegram_id'] = telegram_id
-        result = await django_api_service._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params)
+        
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+            headers['Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+
+        result = await django_api_service._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params, headers=headers)
         return result
     except Exception as e:
         logger.error(f"Error getting subtopic {subtopic_id}: {e}")
@@ -484,19 +496,31 @@ async def change_language(request: LanguageChangeRequest, response: Response):
     }
 
 @router.get("/topics")
-async def get_topics(search: str = None, language: str = 'ru', telegram_id: int | None = None):
+async def get_topics(request: Request, search: str = None, language: str = 'ru', telegram_id: int | None = None):
     """Получение списка тем с поиском и прогрессом пользователя (telegram_id)"""
     from services.django_api_service import django_api_service
     
     try:
         logger.info(f"/api/topics called: search={search}, language={language}, telegram_id={telegram_id}")
+        
+        # Получаем хост и схему для тенанта
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+
         params = {'language': language, 'has_tasks': 'true'}
         if search:
             params['search'] = search
         if telegram_id:
             params['telegram_id'] = telegram_id
             
-        result = await django_api_service._make_request("GET", "/api/simple/", params=params)
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+            headers['Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+
+        result = await django_api_service._make_request("GET", "/api/simple/", params=params, headers=headers)
         logger.info(f"/api/topics returned {len(result) if isinstance(result, list) else 'non-list'} items")
         return result if isinstance(result, list) else []
     except Exception as e:
