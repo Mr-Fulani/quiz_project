@@ -68,7 +68,7 @@ class DjangoAPIService:
                 logger.error(f"Тело ответа: {response.text}")
                 raise
     
-    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None) -> List[Dict[str, Any]]:
+    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
         """Получение списка тем с учетом языка, прогресса пользователя и наличия задач"""
         params = {'language': language}
         if search:
@@ -78,42 +78,67 @@ class DjangoAPIService:
         if has_tasks is not None:
             params['has_tasks'] = 'true' if has_tasks else 'false'
             
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("GET", "/api/simple/", params=params)
+            data = await self._make_request("GET", "/api/simple/", params=params, headers=headers)
             # Для /api/simple/ возвращается список напрямую, а не объект с results
             return data if isinstance(data, list) else []
         except Exception as e:
             logger.error(f"Ошибка при получении тем: {e}")
             return []
     
-    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
         """Получение подтем для конкретной темы с учетом языка и наличия задач"""
         params = {'language': language}
         if has_tasks is not None:
             params['has_tasks'] = 'true' if has_tasks else 'false'
         if telegram_id:
             params['telegram_id'] = telegram_id
+            
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params=params)
+            data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params=params, headers=headers)
             # API возвращает список напрямую, а не объект с results
             return data if isinstance(data, list) else []
         except Exception as e:
             logger.error(f"Ошибка при получении подтем для темы {topic_id}: {e}")
             return []
     
-    async def get_topic_detail(self, topic_id: int, language: str = 'en') -> Optional[Dict[str, Any]]:
+    async def get_topic_detail(self, topic_id: int, language: str = 'en', host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение детальной информации о теме с учетом языка"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("GET", f"/api/topics/{topic_id}/", params={'language': language})
+            data = await self._make_request("GET", f"/api/topics/{topic_id}/", params={'language': language}, headers=headers)
             return data
         except Exception as e:
             logger.error(f"Ошибка при получении деталей темы {topic_id}: {e}")
             return None
     
-    async def get_subtopic_detail(self, subtopic_id: int, language: str = 'en') -> Optional[Dict[str, Any]]:
+    async def get_subtopic_detail(self, subtopic_id: int, language: str = 'en', host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение детальной информации о подтеме с учетом языка"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("GET", f"/api/subtopics/{subtopic_id}/", params={'language': language})
+            data = await self._make_request("GET", f"/api/subtopics/{subtopic_id}/", params={'language': language}, headers=headers)
             return data
         except Exception as e:
             logger.error(f"Ошибка при получении деталей подтемы {subtopic_id}: {e}")
@@ -129,21 +154,27 @@ class DjangoAPIService:
             # или создадим отдельный endpoint без translation_id
             
             # Используем отдельный endpoint для получения комментария по ID без translation_id
-            data = await self._make_request("GET", f"/api/tasks/comments/{comment_id}/detail-for-deeplink/")
+            data = await self._make_request("GET", f"/api/tasks/comments/{comment_id}/detail-for-deeplink/", headers=headers)
             return data
         except Exception as e:
             logger.error(f"Ошибка при получении деталей комментария {comment_id}: {e}")
             return None
     
-    async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en', telegram_id: Optional[int] = None, level: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_tasks_for_subtopic(self, subtopic_id: int, language: str = 'en', telegram_id: Optional[int] = None, level: Optional[str] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
         """Получение задач для подтемы с учетом языка и уровня сложности"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
             params = {'language': language}
             if telegram_id:
                 params['telegram_id'] = telegram_id
             if level: # Изменено: теперь передаем 'level', даже если он 'all'
                 params['level'] = level
-            data = await self._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params)
+            data = await self._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params, headers=headers)
             return data.get('results', [])
         except Exception as e:
             logger.error(f"Ошибка при получении задач для подтемы {subtopic_id}: {e}")

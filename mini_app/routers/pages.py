@@ -113,8 +113,19 @@ async def index(
     if telegram_id:
         telegram_id = int(telegram_id)
     
+    # Получаем хост и схему для тенанта
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+
     # Получаем темы с учетом языка и telegram_id для прогресса, фильтруем только темы с задачами
-    topics = await django_api_service.get_topics(search=search, language=current_language, telegram_id=telegram_id, has_tasks=True)
+    topics = await django_api_service.get_topics(
+        search=search, 
+        language=current_language, 
+        telegram_id=telegram_id, 
+        has_tasks=True,
+        host=host,
+        scheme=scheme
+    )
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
@@ -434,16 +445,36 @@ async def topic_detail(
     current_language = localization_service.get_language()
     logger.info(f"Rendering topic detail page for topic_id: {topic_id} with language: {current_language}")
     
+    # Получаем хост и схему для тенанта
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+
     # Получаем данные темы
-    topic_data = await django_api_service.get_topic_detail(topic_id=topic_id, language=current_language)
+    topic_data = await django_api_service.get_topic_detail(
+        topic_id=topic_id, 
+        language=current_language,
+        host=host,
+        scheme=scheme
+    )
     # Передаем telegram_id, чтобы сериализатор вернул solved_counts для прогресса
     telegram_id = request.headers.get('X-Telegram-User-Id') or request.cookies.get('telegram_id')
     if telegram_id:
         telegram_id = int(telegram_id)
-    subtopics = await django_api_service.get_subtopics(topic_id=topic_id, language=current_language, has_tasks=True, telegram_id=telegram_id)
+    subtopics = await django_api_service.get_subtopics(
+        topic_id=topic_id, 
+        language=current_language, 
+        has_tasks=True, 
+        telegram_id=telegram_id,
+        host=host,
+        scheme=scheme
+    )
     
     # Получаем список всех тем для навигации
-    topics = await django_api_service.get_topics(language=current_language)
+    topics = await django_api_service.get_topics(
+        language=current_language,
+        host=host,
+        scheme=scheme
+    )
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
@@ -494,8 +525,17 @@ async def subtopic_tasks(
         telegram_id = int(telegram_id)
     logger.info(f"subtopic_tasks: Определен telegram_id={telegram_id}")
     
+    # Получаем хост и схему для тенанта
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+
     # Получаем данные подтемы
-    subtopic_data = await django_api_service.get_subtopic_detail(subtopic_id=subtopic_id, language=current_language)
+    subtopic_data = await django_api_service.get_subtopic_detail(
+        subtopic_id=subtopic_id, 
+        language=current_language,
+        host=host,
+        scheme=scheme
+    )
     
     # Нормализуем уровень из query-параметра или cookie
     level_normalized = (level or '').strip().lower()
@@ -507,7 +547,14 @@ async def subtopic_tasks(
             logger.info(f"subtopic_tasks: Найден level_normalized из cookie: {level_normalized}")
 
     # Получаем задачи для подтемы, передавая уровень сложности в сервис Django API
-    tasks = await django_api_service.get_tasks_for_subtopic(subtopic_id=subtopic_id, language=current_language, telegram_id=telegram_id, level=level_normalized)
+    tasks = await django_api_service.get_tasks_for_subtopic(
+        subtopic_id=subtopic_id, 
+        language=current_language, 
+        telegram_id=telegram_id, 
+        level=level_normalized,
+        host=host,
+        scheme=scheme
+    )
     logger.info(f"subtopic_tasks: Получено {len(tasks)} задач после фильтрации Django API")
 
     # Локальная фильтрация больше не нужна, так как Django API должен возвращать уже отфильтрованные задачи
@@ -520,7 +567,12 @@ async def subtopic_tasks(
     # Получаем данные родительской темы
     topic_data = None
     if subtopic_data and 'topic' in subtopic_data:
-        topic_data = await django_api_service.get_topic_detail(topic_id=subtopic_data['topic'], language=current_language)
+        topic_data = await django_api_service.get_topic_detail(
+            topic_id=subtopic_data['topic'], 
+            language=current_language,
+            host=host,
+            scheme=scheme
+        )
     
     # Получаем переводы для текущего языка
     translations = localization_service.get_all_texts()
@@ -548,7 +600,15 @@ async def subtopic_tasks(
 
 @router.get("/share/topic/{topic_id}", response_class=HTMLResponse)
 async def share_topic_preview(request: Request, topic_id: int):
-    topic_data = await django_api_service.get_topic_detail(topic_id=topic_id)
+    # Получаем хост и схему для тенанта
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    
+    topic_data = await django_api_service.get_topic_detail(
+        topic_id=topic_id,
+        host=host,
+        scheme=scheme
+    )
     if not topic_data:
         raise HTTPException(status_code=404, detail="Topic not found")
     
