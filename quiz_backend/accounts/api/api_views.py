@@ -1127,6 +1127,7 @@ class MiniAppTopUsersListView(TenantFilteredViewMixin, generics.ListAPIView):
     """
     APIView для получения списка топ-пользователей Mini App по рейтингу.
     """
+    queryset = MiniAppUser.objects.all()
     serializer_class = MiniAppTopUserSerializer
     permission_classes = [permissions.AllowAny]
 
