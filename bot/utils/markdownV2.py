@@ -72,12 +72,12 @@ def format_group_link(group):
     """
     if not hasattr(group, 'username') or not group.username:
         display_name = escape_markdown(str(group.group_id))
-        url = escape_markdown(f"https://t.me/{group.group_id}")
+        url = f"https://t.me/{group.group_id}"
     else:
         cleaned_username = group.username.lstrip('@')
         # Экранируем username, включая точки
         display_name = escape_markdown(group.username if group.username.startswith('@') else f"@{cleaned_username}")
-        url = escape_markdown(f"https://t.me/{cleaned_username}")
+        url = f"https://t.me/{cleaned_username}"
     return f"[{display_name}]({url})"
 
 
@@ -88,8 +88,8 @@ def format_user_link(username: str | None, telegram_id: int) -> str:
     if username:
         cleaned_username = username.lstrip('@')
         display = escape_markdown(f"@{cleaned_username}")
-        url = escape_markdown(f"https://t.me/{cleaned_username}")
+        url = f"https://t.me/{cleaned_username}"
     else:
         display = escape_markdown(str(telegram_id))
-        url = escape_markdown(f"tg://user?id={telegram_id}")
+        url = f"tg://user?id={telegram_id}"
     return f"[{display}]({url})"

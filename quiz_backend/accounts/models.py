@@ -1577,6 +1577,15 @@ class Notification(models.Model):
         ('feedback', 'Обратная связь'),
     ]
     
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        null=True,
+        blank=True,
+        verbose_name="Тенант",
+        help_text="Тенант, к которому привязано уведомление (опционально для глобальных)"
+    )
     recipient_telegram_id = models.BigIntegerField(
         null=True,
         blank=True,

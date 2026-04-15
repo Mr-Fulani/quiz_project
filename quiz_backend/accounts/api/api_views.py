@@ -1075,7 +1075,8 @@ class MiniAppProfileByTelegramID(APIView):
                         admin_url = f"{base_url}{admin_path}"
                         
                         # Получаем информацию о пользователе
-                        author_name = mini_app_user.first_name or mini_app_user.username or "Без имени"
+                        raw_author_name = mini_app_user.first_name or mini_app_user.username or "Без имени"
+                        author_name = escape_markdown(raw_author_name)
                         escaped_username = escape_username_for_markdown(mini_app_user.username) if mini_app_user.username else None
                         author_username = f"@{escaped_username}" if escaped_username else 'нет'
                         
