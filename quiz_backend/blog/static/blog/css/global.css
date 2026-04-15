@@ -924,9 +924,17 @@ article.active {
 }
 
 /* 369: Стили для изображения внутри .service-icon-box (выравнивание по центру) */
-.service-icon-box img {
+.service-icon-box img,
+.service-icon-box svg {
     margin: auto;
     /* Автоматические внешние отступы для центрирования изображения */
+    width: 40px !important;
+    height: 40px !important;
+}
+
+.service-icon-box svg {
+    color: var(--orange-yellow-crayola) !important;
+    fill: currentColor !important;
 }
 
 /* 373: Стили для блока с содержимым услуги (текст, заголовок) */
