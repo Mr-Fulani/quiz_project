@@ -269,6 +269,18 @@ class TaskTranslation(models.Model):
         blank=True,
         help_text='Подробное пошаговое объяснение для сайта'
     )
+    source_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='Название источника объяснения (например, Wikipedia)'
+    )
+    source_link = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text='Ссылка на источник объяснения'
+    )
     publish_date = models.DateTimeField(
         null=True, blank=True)
 
