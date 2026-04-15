@@ -293,7 +293,13 @@ def format_markdown_link(text: str, url: str) -> str:
     return f"[{escaped_text}]({safe_url})"
 
 
-def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: str = "Markdown", web_app_url: Optional[str] = None) -> bool:
+def send_telegram_notification_sync(
+    telegram_id: int,
+    message: str,
+    parse_mode: str = "Markdown",
+    web_app_url: Optional[str] = None,
+    tenant=None,
+) -> bool:
     """
     Синхронная отправка уведомления пользователю в Telegram через бота.
     Сначала пытается использовать прямой API Telegram, если не получается - через bot сервис.
@@ -331,8 +337,9 @@ def send_telegram_notification_sync(telegram_id: int, message: str, parse_mode: 
             ]]
         }
     
-    # Сначала пробуем прямой API Telegram
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    # Сначала пробуем прямой API Telegram.
+    # В multi-tenant системе токен бота может отличаться в зависимости от тенанта.
+    bot_token = getattr(tenant, "bot_token", None) or os.getenv('TELEGRAM_BOT_TOKEN')
     if bot_token:
         # Пробуем разные режимы парсинга при ошибке
         parse_modes_to_try = [parse_mode, None, "HTML"] if parse_mode else [None]
@@ -479,7 +486,11 @@ def create_notification(
         
         # Отправляем в Telegram если нужно
         if send_to_telegram:
-            success = send_telegram_notification_sync(recipient_telegram_id, message, web_app_url=web_app_url)
+            success = send_telegram_notification_sync(
+                recipient_telegram_id,
+                message,
+                web_app_url=web_app_url,
+            )
             if success:
                 notification.mark_as_sent()
         
@@ -581,7 +592,8 @@ def notify_all_admins(
             success = send_telegram_notification_sync(
                 telegram_id=admin.telegram_id,
                 message=message,
-                web_app_url=web_app_url
+                web_app_url=web_app_url,
+                tenant=tenant,
             )
             if success:
                 sent_count += 1
