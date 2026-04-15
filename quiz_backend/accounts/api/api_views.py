@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, generics, status
+from tenants.mixins import TenantFilteredViewMixin
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
