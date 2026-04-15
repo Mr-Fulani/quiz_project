@@ -274,13 +274,15 @@ class UserProfileView(DetailView):
         """Добавляем аннотации для статистики."""
         from django.db.models import Count, Q
         tenant = getattr(self.request, 'tenant', None)
+        if not tenant:
+            return CustomUser.objects.none()
+            
         # Не используем only() чтобы гарантировать свежие данные из БД
         qs = CustomUser.objects.annotate(
             tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
             total_score=CustomUser.get_rating_annotation()
         )
-        if tenant:
-            qs = qs.filter(tenant=tenant)
+        qs = qs.filter(tenant=tenant)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -313,13 +315,15 @@ class UserListView(LoginRequiredMixin, ListView):
         from django.db.models import Count, Q
         
         tenant = getattr(self.request, 'tenant', None)
+        if not tenant:
+            return CustomUser.objects.none()
+            
         # Не используем only() чтобы гарантировать свежие данные из БД
         qs = CustomUser.objects.exclude(is_staff=True).annotate(
             tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
             total_score=CustomUser.get_rating_annotation()
         )
-        if tenant:
-            qs = qs.filter(tenant=tenant)
+        qs = qs.filter(tenant=tenant)
         return qs.order_by('-date_joined')
     
     def get_context_data(self, **kwargs):
@@ -340,16 +344,19 @@ def user_list(request):
     logger = logging.getLogger(__name__)
     
     tenant = getattr(request, 'tenant', None)
+    if not tenant:
+        return render(request, 'accounts/user_list.html', {
+            'users': [],
+            'is_paginated': False,
+            'page_obj': None
+        })
     
     from django.db.models import Count, Q
     # Не используем only() чтобы гарантировать свежие данные из БД
-    users_qs = CustomUser.objects.filter(is_active=True).exclude(id=request.user.id).annotate(
+    users_qs = CustomUser.objects.filter(is_active=True, tenant=tenant).exclude(id=request.user.id).annotate(
         tasks_completed=Count('statistics', filter=Q(statistics__successful=True)),
         total_score=CustomUser.get_rating_annotation()
     )
-    
-    if tenant:
-        users_qs = users_qs.filter(tenant=tenant)
         
     users_list = users_qs.order_by('-last_seen')
     paginator = Paginator(users_list, 12)

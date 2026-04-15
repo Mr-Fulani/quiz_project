@@ -492,11 +492,12 @@ def notify_all_admins(
     related_object_id: Optional[int] = None,
     related_object_type: Optional[str] = None,
     web_app_url: Optional[str] = None,
-    request=None
+    request=None,
+    tenant=None
 ) -> int:
     """
-    Отправляет уведомление всем админам.
-    Создает одно уведомление в БД (для всех админов) и отправляет в Telegram каждому админу.
+    Отправляет уведомление всем админам текущего тенанта.
+    Создает одно уведомление в БД (для всех админов этого тенанта) и отправляет в Telegram каждому админу.
     
     Args:
         notification_type: Тип уведомления
@@ -505,7 +506,8 @@ def notify_all_admins(
         related_object_id: ID связанного объекта
         related_object_type: Тип связанного объекта
         web_app_url: URL для открытия mini app (опционально, если не указан, будет сформирован автоматически)
-        request: Django request объект (опционально, используется для формирования web_app_url)
+        request: Django request объект (опционально, используется для получения тенанта и формирования URL)
+        tenant: Объект тенанта (опционально, имеет приоритет перед request.tenant)
         
     Returns:
         int: Количество админов, которым было отправлено уведомление
@@ -513,16 +515,34 @@ def notify_all_admins(
     from accounts.models import MiniAppUser, Notification
     
     try:
-        # Получаем всех админов с включенными уведомлениями
-        admins = MiniAppUser.objects.filter(
+        # Пытаемся определить тенант
+        if not tenant and request:
+            tenant = getattr(request, 'tenant', None)
+        
+        # Базовый запрос: активные админы с включенными уведомлениями
+        admins_qs = MiniAppUser.objects.filter(
             notifications_enabled=True
         ).filter(
             django_models.Q(telegram_admin__isnull=False, telegram_admin__is_active=True) |
             django_models.Q(django_admin__isnull=False)
-        ).distinct()
+        )
+        
+        # Фильтруем по тенанту если он известен
+        if tenant:
+            admins_qs = admins_qs.filter(tenant=tenant)
+            logger.debug(f"🔍 Фильтрация админов для уведомления по тенанту: {tenant}")
+        else:
+            # Если тенант не определен (например, глобальный суперюзер отправил запрос с localhost)
+            # в Multi-tenant системе мы либо уведомляем только STAFF без тенанта (редко),
+            # либо уведомляем ВСЕХ суперпользователей (Global Admins).
+            # Для надежности в SaaS: если тенанта нет, уведомляем только тех, у кого tenant IS NULL.
+            admins_qs = admins_qs.filter(tenant__isnull=True)
+            logger.warning("⚠️ Тенант не определен для уведомления админов. Уведомляем только глобальных админов.")
+            
+        admins = admins_qs.distinct()
         
         if not admins.exists():
-            logger.warning("Не найдено активных админов для отправки уведомления")
+            logger.warning(f"Не найдено активных админов тенанта {tenant} для отправки уведомления")
             return 0
         
         # Если web_app_url не указан, пытаемся сформировать автоматически
@@ -536,8 +556,9 @@ def notify_all_admins(
             if web_app_url:
                 logger.debug(f"🔗 Автоматически сформирован web_app_url для уведомления: {web_app_url}")
         
-        # Создаем ОДНО уведомление в БД для всех админов
+        # Создаем ОДНО уведомление в БД для всех админов этого тенанта
         admin_notification = Notification.objects.create(
+            tenant=tenant,
             recipient_telegram_id=None,  # NULL для админских уведомлений
             is_admin_notification=True,
             notification_type=notification_type,
@@ -547,7 +568,7 @@ def notify_all_admins(
             related_object_type=related_object_type
         )
         
-        logger.info(f"📝 Создано админское уведомление #{admin_notification.id} для всех админов")
+        logger.info(f"📝 Создано админское уведомление #{admin_notification.id} для админов тенанта {tenant}")
         
         # Отправляем в Telegram каждому админу с web_app_url если есть
         sent_count = 0
@@ -564,11 +585,11 @@ def notify_all_admins(
         if sent_count > 0:
             admin_notification.mark_as_sent()
         
-        logger.info(f"📤 Уведомление отправлено {sent_count} из {admins.count()} админам")
+        logger.info(f"📤 Уведомление отправлено {sent_count} из {admins.count()} админам (Тенант: {tenant})")
         return sent_count
         
     except Exception as e:
-        logger.error(f"❌ Ошибка при отправке уведомлений админам: {e}")
+        logger.error(f"❌ Ошибка при отправке уведомлений админам: {e}", exc_info=True)
         return 0
 
 
