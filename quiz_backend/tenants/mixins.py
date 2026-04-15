@@ -117,7 +117,10 @@ class TenantFilteredAdminMixin:
         явно исключено в fieldsets у конкретной модели.
         """
         fieldsets = list(super().get_fieldsets(request, obj))
-        if request.user.is_superuser and self.tenant_lookup == 'tenant':
+        # Проверяем наличие поля 'tenant' в модели
+        has_tenant_field = any(f.name == 'tenant' for f in self.model._meta.get_fields())
+        
+        if request.user.is_superuser and self.tenant_lookup == 'tenant' and has_tenant_field:
             # Ищем, нет ли уже поля tenant
             tenant_present = False
             for name, opts in fieldsets:
@@ -140,7 +143,9 @@ class TenantFilteredAdminMixin:
 
     def get_list_display(self, request):
         list_display = list(super().get_list_display(request))
-        if request.user.is_superuser and 'tenant' not in list_display:
+        # Проверяем наличие поля 'tenant' в модели
+        has_tenant_field = any(f.name == 'tenant' for f in self.model._meta.get_fields())
+        if request.user.is_superuser and has_tenant_field and 'tenant' not in list_display:
             list_display.insert(1, 'tenant')
         return list_display
 
@@ -148,7 +153,9 @@ class TenantFilteredAdminMixin:
 
     def get_list_filter(self, request):
         list_filter = list(super().get_list_filter(request))
-        if request.user.is_superuser and 'tenant' not in list_filter:
+        # Проверяем наличие поля 'tenant' в модели
+        has_tenant_field = any(f.name == 'tenant' for f in self.model._meta.get_fields())
+        if request.user.is_superuser and has_tenant_field and 'tenant' not in list_filter:
             list_filter.insert(0, 'tenant')
         return list_filter
 

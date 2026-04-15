@@ -1146,6 +1146,10 @@ class MiniAppTopUsersListView(TenantFilteredViewMixin, generics.ListAPIView):
             rating=MiniAppUser.get_rating_annotation()
         )
         
+        tenant = getattr(self.request, 'tenant', None)
+        logger.info(f"[MiniAppTopUsers] Request tenant: {tenant.slug if tenant else 'None'}")
+        logger.info(f"[MiniAppTopUsers] Initial queryset count for tenant: {queryset.count()}")
+        
         # Применяем фильтры
         gender = self.request.query_params.get('gender')
         age = self.request.query_params.get('age')

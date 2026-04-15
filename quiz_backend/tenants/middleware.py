@@ -96,28 +96,35 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        raw_host = request.META.get('HTTP_HOST', '')
-        host = self._normalize_host(request.get_host())
-        tenant = _get_tenant_by_host(host)
+        # 1. Сначала пробуем X-Forwarded-Host (доверенный заголовок от прокси/mini_app)
+        forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST', '')
+        tenant = None
+        
+        if forwarded_host:
+            # Берём первый хост если их список (стандарт для прокси)
+            first_forwarded = forwarded_host.split(',')[0].strip()
+            host = self._normalize_host(first_forwarded)
+            tenant = _get_tenant_by_host(host)
+            if tenant:
+                logger.debug(f"[TenantMiddleware] ✅ Tenant {tenant.slug} resolved via X-Forwarded-Host: {host!r}")
 
-        # Fallback: если по HTTP_HOST тенант не найден — пробуем X-Forwarded-Host.
-        # Это нужно когда mini_app (отдельный Docker сервис) делает внутренние запросы
-        # к Django через quiz_backend:8000, но передаёт реальный домен в X-Forwarded-Host.
+        # 2. Если не нашли через Forwarded, пробуем обычный Host
         if not tenant:
-            forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST', '')
-            if forwarded_host:
-                forwarded_host_clean = self._normalize_host(forwarded_host.split(',')[0].strip())
-                tenant = _get_tenant_by_host(forwarded_host_clean)
-                if tenant:
-                    logger.info(
-                        f"[TenantMiddleware] Tenant resolved via X-Forwarded-Host: "
-                        f"{forwarded_host_clean!r} → {tenant.slug}"
-                    )
+            raw_host = request.get_host()
+            host = self._normalize_host(raw_host)
+            tenant = _get_tenant_by_host(host)
+            if tenant:
+                logger.debug(f"[TenantMiddleware] ✅ Tenant {tenant.slug} resolved via Host: {host!r}")
 
-        logger.info(
-            f"[TenantMiddleware] HTTP_HOST={raw_host!r} → tenant="
-            f"{tenant.slug if tenant else 'None — проверь mini_app_domain тенанта в БД!'}"
-        )
+        # 3. Дополнительное логирование для отладки если всё ещё None
+        if not tenant:
+            logger.info(
+                f"[TenantMiddleware] ⚠ No tenant resolved. "
+                f"HTTP_HOST={request.META.get('HTTP_HOST')!r}, "
+                f"X-Forwarded-Host={forwarded_host!r}, "
+                f"Normalized_Host={self._normalize_host(request.get_host())!r}"
+            )
+        
         request.tenant = tenant
         response = self.get_response(request)
         return response
