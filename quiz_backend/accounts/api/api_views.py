@@ -715,13 +715,13 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             linked_count = 0
             
             # Связываем с TelegramUser
-            telegram_user = TelegramUser.objects.filter(telegram_id=telegram_id).first()
+            telegram_user = TelegramUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
             if telegram_user and not user.telegram_user:
                 user.link_to_telegram_user(telegram_user)
                 linked_count += 1
             
             # Связываем с TelegramAdmin
-            telegram_admin = TelegramAdmin.objects.filter(telegram_id=telegram_id).first()
+            telegram_admin = TelegramAdmin.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
             if telegram_admin and not user.telegram_admin:
                 user.link_to_telegram_admin(telegram_admin)
                 linked_count += 1
@@ -1473,7 +1473,8 @@ class ProgrammingLanguagesListView(generics.ListAPIView):
         """
         Возвращает все темы (языки программирования) отсортированные по названию.
         """
-        return Topic.objects.all().order_by('name')
+        tenant = getattr(self.request, 'tenant', None)
+        return Topic.objects.filter(tenant=tenant).order_by('name')
 
     @swagger_auto_schema(
         operation_description="Получение списка языков программирования для фильтрации топ пользователей.",
@@ -1548,8 +1549,9 @@ class MiniAppUserPublicProfileView(APIView):
             Response: JSON с данными профиля (полными или ограниченными в зависимости от is_profile_public)
         """
         try:
-            # Получаем пользователя по telegram_id
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            # Получаем пользователя по telegram_id с учётом тенанта
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Сериализуем данные (сериализатор сам проверит is_profile_public и отфильтрует поля)
             serializer = PublicMiniAppUserSerializer(user, context={'request': request})
@@ -1626,7 +1628,8 @@ class UserAvatarUploadView(APIView):
             from ..serializers import UserAvatarSerializer
             
             # Получаем пользователя
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Проверяем количество существующих аватарок
             existing_count = UserAvatar.objects.filter(user=user).count()
@@ -1746,7 +1749,8 @@ class UserAvatarDeleteView(APIView):
             from ..models import UserAvatar
             
             # Получаем пользователя
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Получаем аватарку
             avatar = UserAvatar.objects.get(id=avatar_id)
@@ -1841,7 +1845,8 @@ class UserAvatarReorderView(APIView):
             from ..serializers import UserAvatarSerializer
             
             # Получаем пользователя
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Получаем данные о новом порядке
             avatar_orders = request.data.get('avatar_orders', [])

@@ -90,11 +90,16 @@ class SubtopicAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
     Фильтрует через topic.tenant (не имеет прямого FK на tenant).
     """
     tenant_lookup = 'topic__tenant'  # фильтрация через связанную модель
-    list_display = ('id', 'name', 'topic', 'get_tasks_count')
-    list_filter = ('topic',)
+    list_display = ('id', 'name', 'topic', 'get_tenant', 'get_tasks_count')
+    list_filter = ('topic__tenant', 'topic')
     search_fields = ('name', 'topic__name')
     raw_id_fields = ('topic',)
     ordering = ('topic', 'name')
+
+    def get_tenant(self, obj):
+        """Получить тенанта через тему"""
+        return obj.topic.tenant if obj.topic else None
+    get_tenant.short_description = 'Тенант'
 
     def save_model(self, request, obj, form, change):
         """
