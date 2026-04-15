@@ -366,13 +366,20 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении топ-пользователей Mini App: {e}")
             return []
 
-    async def get_programming_languages(self) -> List[Dict[str, Any]]:
+    async def get_programming_languages(self, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
         """
         Получение списка языков программирования (тем) для фильтрации.
         """
         try:
+            headers = {}
+            if host:
+                headers['X-Forwarded-Host'] = host
+                headers['Host'] = host
+            if scheme:
+                headers['X-Forwarded-Proto'] = scheme
+
             data = await self._make_request(
-                "GET", "/api/accounts/programming-languages/"
+                "GET", "/api/accounts/programming-languages/", headers=headers
             )
             return data
         except Exception as e:

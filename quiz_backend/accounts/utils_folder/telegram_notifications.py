@@ -591,7 +591,12 @@ def notify_all_admins(
                 recipients.append(admin.telegram_id)
 
         # Дополнительно включаем супер-админа из .env/settings, если задан.
-        env_admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None) or os.getenv('TELEGRAM_ADMIN_CHAT_ID')
+        env_admin_chat_id = (
+            getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None)
+            or os.getenv('TELEGRAM_ADMIN_CHAT_ID')
+            or getattr(settings, 'ADMIN_TELEGRAM_ID', None)
+            or os.getenv('ADMIN_TELEGRAM_ID')
+        )
         if env_admin_chat_id:
             try:
                 env_admin_chat_id_int = int(str(env_admin_chat_id).strip())
@@ -600,7 +605,7 @@ def notify_all_admins(
                     recipients.append(env_admin_chat_id_int)
                     logger.debug(f"➕ Добавлен env/super-admin получатель: {env_admin_chat_id_int}")
             except (ValueError, TypeError):
-                logger.warning(f"⚠️ Некорректный TELEGRAM_ADMIN_CHAT_ID: {env_admin_chat_id!r}")
+                logger.warning(f"⚠️ Некорректный TELEGRAM_ADMIN_CHAT_ID/ADMIN_TELEGRAM_ID: {env_admin_chat_id!r}")
 
         if not recipients:
             logger.warning(f"Не найдено получателей для отправки админского уведомления (тенант: {tenant})")

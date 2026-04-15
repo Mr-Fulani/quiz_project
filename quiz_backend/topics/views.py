@@ -129,6 +129,7 @@ class SubtopicDeleteView(generics.DestroyAPIView):
 class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
     serializer_class = SubtopicWithTasksSerializer  # Используем новый сериализатор
     permission_classes = [AllowAny]  # Разрешаем доступ без аутентификации для mini_app
+    tenant_lookup = 'topic__tenant'
 
     def get_queryset(self):
         # Получаем язык из query параметров, по умолчанию английский
@@ -484,5 +485,4 @@ def subtopic_detail_simple(request, subtopic_id):
         return Response(data)
     except Subtopic.DoesNotExist:
         return Response({'error': 'Subtopic not found'}, status=404)
-
 
