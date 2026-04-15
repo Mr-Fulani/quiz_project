@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import requests
-from typing import Optional, List
+from typing import Optional
 from django.conf import settings
 from django.db import models as django_models
 
@@ -463,11 +463,15 @@ def create_notification(
     
     try:
         # Проверяем, включены ли уведомления у пользователя
+        user = None
         try:
-            # В multi-tenant системе один telegram_id может существовать в нескольких тенантах.
-            # Здесь tenant может быть неизвестен (функция используется в разных контекстах),
-            # поэтому берём первую запись и не падаем на MultipleObjectsReturned.
-            user = MiniAppUser.objects.filter(telegram_id=recipient_telegram_id).first()
+            # В multi-tenant системе выбираем пользователя с приоритетом:
+            # 1) текущий tenant, 2) глобальный tenant=None, 3) любой (fallback).
+            user_qs = MiniAppUser.objects.filter(telegram_id=recipient_telegram_id)
+            if tenant:
+                user = user_qs.filter(tenant=tenant).first() or user_qs.filter(tenant__isnull=True).first()
+            if not user:
+                user = user_qs.first()
             if not user:
                 raise MiniAppUser.DoesNotExist()
             if not user.notifications_enabled:
@@ -476,10 +480,13 @@ def create_notification(
                 send_to_telegram = False
         except MiniAppUser.DoesNotExist:
             logger.warning(f"Пользователь {recipient_telegram_id} не найден в MiniAppUser, но создаём уведомление")
+
+        # Если tenant не передан явно, используем tenant найденного пользователя.
+        notification_tenant = tenant or getattr(user, 'tenant', None)
         
         # Создаем запись уведомления в БД
         notification = Notification.objects.create(
-            tenant=tenant,
+            tenant=notification_tenant,
             recipient_telegram_id=recipient_telegram_id,
             notification_type=notification_type,
             title=title,
@@ -496,6 +503,7 @@ def create_notification(
                 recipient_telegram_id,
                 message,
                 web_app_url=web_app_url,
+                tenant=notification_tenant,
             )
             if success:
                 notification.mark_as_sent()
@@ -534,21 +542,17 @@ def notify_all_admins(
     Returns:
         int: Количество админов, которым было отправлено уведомление
     """
-    from accounts.models import MiniAppUser, Notification
+    from accounts.models import MiniAppUser, Notification, TelegramAdmin
     
     try:
         # Пытаемся определить тенант
         if not tenant and request:
             tenant = getattr(request, 'tenant', None)
         
-        # Базовый запрос: активные админы с включенными уведомлениями
-        admins_qs = MiniAppUser.objects.filter(
-            notifications_enabled=True
-        ).filter(
-            django_models.Q(telegram_admin__isnull=False, telegram_admin__is_active=True) |
-            django_models.Q(django_admin__isnull=False)
-        )
-        
+        # Базовый запрос: активные Telegram-админы.
+        # Используем TelegramAdmin как первичный источник, чтобы не зависеть от OneToOne-связей в MiniAppUser.
+        admins_qs = TelegramAdmin.objects.filter(is_active=True)
+
         # Фильтруем по тенанту если он известен (включаем также глобальных админов с tenant IS NULL)
         if tenant:
             admins_qs = admins_qs.filter(
@@ -559,11 +563,47 @@ def notify_all_admins(
             # Если тенант не определен, уведомляем только глобальных админов
             admins_qs = admins_qs.filter(tenant__isnull=True)
             logger.warning("⚠️ Тенант не определен для уведомления админов. Уведомляем только глобальных админов.")
-            
+
         admins = admins_qs.distinct()
-        
-        if not admins.exists():
-            logger.warning(f"Не найдено активных админов тенанта {tenant} для отправки уведомления")
+
+        # Готовим финальный список telegram_id получателей.
+        recipients = []
+        recipient_ids = set()
+
+        for admin in admins:
+            if not admin.telegram_id:
+                continue
+
+            # Проверяем notifications_enabled в MiniAppUser, если такой профиль существует.
+            mini_qs = MiniAppUser.objects.filter(telegram_id=admin.telegram_id)
+            mini_user = None
+            if tenant:
+                mini_user = mini_qs.filter(tenant=tenant).first() or mini_qs.filter(tenant__isnull=True).first()
+            if not mini_user:
+                mini_user = mini_qs.first()
+
+            if mini_user and not mini_user.notifications_enabled:
+                logger.info(f"Уведомления отключены для админа {admin.telegram_id}, пропускаем отправку")
+                continue
+
+            if admin.telegram_id not in recipient_ids:
+                recipient_ids.add(admin.telegram_id)
+                recipients.append(admin.telegram_id)
+
+        # Дополнительно включаем супер-админа из .env/settings, если задан.
+        env_admin_chat_id = getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', None) or os.getenv('TELEGRAM_ADMIN_CHAT_ID')
+        if env_admin_chat_id:
+            try:
+                env_admin_chat_id_int = int(str(env_admin_chat_id).strip())
+                if env_admin_chat_id_int not in recipient_ids:
+                    recipient_ids.add(env_admin_chat_id_int)
+                    recipients.append(env_admin_chat_id_int)
+                    logger.debug(f"➕ Добавлен env/super-admin получатель: {env_admin_chat_id_int}")
+            except (ValueError, TypeError):
+                logger.warning(f"⚠️ Некорректный TELEGRAM_ADMIN_CHAT_ID: {env_admin_chat_id!r}")
+
+        if not recipients:
+            logger.warning(f"Не найдено получателей для отправки админского уведомления (тенант: {tenant})")
             return 0
         
         # Если web_app_url не указан, пытаемся сформировать автоматически
@@ -593,9 +633,9 @@ def notify_all_admins(
         
         # Отправляем в Telegram каждому админу с web_app_url если есть
         sent_count = 0
-        for admin in admins:
+        for telegram_id in recipients:
             success = send_telegram_notification_sync(
-                telegram_id=admin.telegram_id,
+                telegram_id=telegram_id,
                 message=message,
                 web_app_url=web_app_url,
                 tenant=tenant,
@@ -607,7 +647,7 @@ def notify_all_admins(
         if sent_count > 0:
             admin_notification.mark_as_sent()
         
-        logger.info(f"📤 Уведомление отправлено {sent_count} из {admins.count()} админам (Тенант: {tenant})")
+        logger.info(f"📤 Уведомление отправлено {sent_count} из {len(recipients)} получателям (Тенант: {tenant})")
         return sent_count
         
     except Exception as e:

@@ -3048,10 +3048,23 @@ class NotificationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     django_models.Q(telegram_admin__isnull=False) |
                     django_models.Q(django_admin__isnull=False)
                 ).distinct()
+
+                # В multi-tenant режиме отправляем только админам нужного tenant
+                # (плюс глобальным admin-профилям с tenant=None).
+                if notification.tenant:
+                    admins = admins.filter(
+                        django_models.Q(tenant=notification.tenant) | django_models.Q(tenant__isnull=True)
+                    )
+                else:
+                    admins = admins.filter(tenant__isnull=True)
                 
                 admin_sent = 0
                 for admin in admins:
-                    success = send_telegram_notification_sync(admin.telegram_id, notification.message)
+                    success = send_telegram_notification_sync(
+                        admin.telegram_id,
+                        notification.message,
+                        tenant=notification.tenant,
+                    )
                     if success:
                         admin_sent += 1
                 
@@ -3063,7 +3076,8 @@ class NotificationAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 if notification.recipient_telegram_id:
                     success = send_telegram_notification_sync(
                         notification.recipient_telegram_id,
-                        notification.message
+                        notification.message,
+                        tenant=notification.tenant,
                     )
                     if success:
                         notification.mark_as_sent()
