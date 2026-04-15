@@ -116,16 +116,42 @@ class TenantMiddleware:
             except Exception as e:
                 logger.error(f'[TenantMiddleware] Unexpected error while resolving tenant by slug: {e}')
 
-        # 1. Сначала пробуем X-Forwarded-Host (доверенный заголовок от прокси/mini_app)
+        # 1. Пробуем определить tenant по заголовкам прокси.
+        # Важно: разные прокси используют разные заголовки.
         forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST', '')
-        
-        if not tenant and forwarded_host:
-            # Берём первый хост если их список (стандарт для прокси)
-            first_forwarded = forwarded_host.split(',')[0].strip()
-            host = self._normalize_host(first_forwarded)
-            tenant = _get_tenant_by_host(host)
-            if tenant:
-                logger.debug(f"[TenantMiddleware] ✅ Tenant {tenant.slug} resolved via X-Forwarded-Host: {host!r}")
+        original_host = request.META.get('HTTP_X_ORIGINAL_HOST', '') or request.META.get('HTTP_X_ORIGINAL_FORWARDED_HOST', '')
+        real_host = request.META.get('HTTP_X_REAL_HOST', '')
+        forwarded_header = request.META.get('HTTP_FORWARDED', '')
+
+        proxy_host_candidates = []
+        if forwarded_host:
+            # X-Forwarded-Host может содержать список — берём первый (исходный)
+            proxy_host_candidates.append(('X-Forwarded-Host', forwarded_host.split(',')[0].strip()))
+        if original_host:
+            proxy_host_candidates.append(('X-Original-Host', original_host.split(',')[0].strip()))
+        if real_host:
+            proxy_host_candidates.append(('X-Real-Host', real_host.split(',')[0].strip()))
+        if forwarded_header:
+            # RFC 7239 Forwarded: for=...,host=example.com;proto=https
+            try:
+                parts = forwarded_header.split(';')
+                for part in parts:
+                    part = part.strip()
+                    if part.lower().startswith('host='):
+                        raw = part.split('=', 1)[1].strip().strip('"')
+                        if raw:
+                            proxy_host_candidates.append(('Forwarded', raw))
+                            break
+            except Exception as e:
+                logger.debug(f"[TenantMiddleware] Failed to parse Forwarded header {forwarded_header!r}: {e}")
+
+        if not tenant and proxy_host_candidates:
+            for source, raw in proxy_host_candidates:
+                host = self._normalize_host(raw)
+                tenant = _get_tenant_by_host(host)
+                if tenant:
+                    logger.debug(f"[TenantMiddleware] ✅ Tenant {tenant.slug} resolved via {source}: {host!r}")
+                    break
 
         # 2. Если не нашли через Forwarded, пробуем обычный Host
         if not tenant:
@@ -181,6 +207,9 @@ class TenantMiddleware:
                 f"[TenantMiddleware] ⚠ No tenant resolved. "
                 f"HTTP_HOST={request.META.get('HTTP_HOST')!r}, "
                 f"X-Forwarded-Host={forwarded_host!r}, "
+                f"X-Original-Host={original_host!r}, "
+                f"X-Real-Host={real_host!r}, "
+                f"Forwarded={forwarded_header!r}, "
                 f"Origin={request.META.get('HTTP_ORIGIN')!r}, "
                 f"Referer={request.META.get('HTTP_REFERER')!r}, "
                 f"Normalized_Host={self._normalize_host(request.get_host())!r}"

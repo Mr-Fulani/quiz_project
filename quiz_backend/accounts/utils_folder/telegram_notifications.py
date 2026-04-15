@@ -452,7 +452,12 @@ def create_notification(
     try:
         # Проверяем, включены ли уведомления у пользователя
         try:
-            user = MiniAppUser.objects.get(telegram_id=recipient_telegram_id)
+            # В multi-tenant системе один telegram_id может существовать в нескольких тенантах.
+            # Здесь tenant может быть неизвестен (функция используется в разных контекстах),
+            # поэтому берём первую запись и не падаем на MultipleObjectsReturned.
+            user = MiniAppUser.objects.filter(telegram_id=recipient_telegram_id).first()
+            if not user:
+                raise MiniAppUser.DoesNotExist()
             if not user.notifications_enabled:
                 logger.info(f"Уведомления отключены для пользователя {recipient_telegram_id}")
                 # Всё равно создаём уведомление в БД, но не отправляем в Telegram
