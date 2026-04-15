@@ -64,12 +64,11 @@
                         <div class="blog-meta">
                             <p class="blog-category">{% trans post.category.name %}</p>
                             <span class="dot"></span>
-                            <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y"
-                                }}</time>
+                            <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"M d, Y" }}</time>
                         </div>
                         <h3 class="h3 blog-item-title">{{ post.title }}</h3>
                         <p class="blog-text">
-                            {{ post.excerpt|default:post.content|striptags|truncatechars:220 }}
+                            {{ post.excerpt|default:post.content|striptags|truncatechars:220|safe }}
                         </p>
                     </div>
                 </a>
