@@ -286,7 +286,8 @@ class PublicProfileAPIView(APIView):
         """Получение публичного профиля по ID"""
         try:
             if user_id:
-                user = get_object_or_404(CustomUser, id=user_id)
+                tenant = getattr(request, 'tenant', None)
+                user = get_object_or_404(CustomUser, id=user_id, tenant=tenant)
             else:
                 if not request.user.is_authenticated:
                     return Response({'error': 'Authentication required'}, 
@@ -706,7 +707,8 @@ class MiniAppUserViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            tenant = getattr(request, 'tenant', None)
+            user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Пытаемся связать с существующими пользователями
             linked_count = 0
@@ -1034,8 +1036,9 @@ class MiniAppProfileByTelegramID(APIView):
 
         try:
             with transaction.atomic():
-                # Ищем пользователя по telegram_id
-                mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
+                # Ищем пользователя по telegram_id с учетом тенанта
+                tenant = getattr(request, 'tenant', None)
+                mini_app_user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
 
                 if not mini_app_user:
                     # Создаем нового MiniAppUser с использованием сериализатора
@@ -1118,7 +1121,7 @@ class MiniAppProfileByTelegramID(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MiniAppTopUsersListView(generics.ListAPIView):
+class MiniAppTopUsersListView(TenantFilteredViewMixin, generics.ListAPIView):
     """
     APIView для получения списка топ-пользователей Mini App по рейтингу.
     """
@@ -1137,7 +1140,7 @@ class MiniAppTopUsersListView(generics.ListAPIView):
         Возвращает топ-N пользователей Mini App, отсортированных по рейтингу с поддержкой фильтрации.
         """
         # Аннотируем пользователей их рейтингом, используя метод из модели MiniAppUser
-        queryset = MiniAppUser.objects.annotate(
+        queryset = super().get_queryset().annotate(
             rating=MiniAppUser.get_rating_annotation()
         )
         
@@ -1324,8 +1327,9 @@ class MiniAppUserStatisticsView(APIView):
             activate(language)
         
         try:
-            # Получаем пользователя Mini App
-            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id)
+            # Получаем пользователя Mini App с учетом тенанта
+            tenant = getattr(request, 'tenant', None)
+            mini_app_user = MiniAppUser.objects.get(telegram_id=telegram_id, tenant=tenant)
             
             # Получаем статистику из MiniAppTaskStatistics
             from tasks.models import MiniAppTaskStatistics

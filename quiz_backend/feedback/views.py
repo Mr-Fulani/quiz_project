@@ -9,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, AllowAny
 import logging
 
+from tenants.mixins import TenantFilteredViewMixin
 from .models import FeedbackMessage, FeedbackImage
 from .serializers import FeedbackSerializer
 from .filters import FeedbackFilter
@@ -26,13 +27,13 @@ class CustomPageNumberPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-class FeedbackListCreateView(generics.ListCreateAPIView):
+class FeedbackListCreateView(TenantFilteredViewMixin, generics.ListCreateAPIView):
     """
     API endpoint для списка и создания отзывов.
     
     GET: Получение списка отзывов
-    - Для админов: все отзывы
-    - Для пользователей: только свои отзывы
+    - Для админов: все отзывы (в рамках тенанта)
+    - Для пользователей: только свои отзывы (в рамках тенанта)
     
     POST: Создание нового отзыва
     - Доступно всем авторизованным пользователям
@@ -47,14 +48,15 @@ class FeedbackListCreateView(generics.ListCreateAPIView):
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
+        qs = super().get_queryset()
         if self.request.user.is_staff:
-            return FeedbackMessage.objects.all()
-        return FeedbackMessage.objects.filter(user_id=self.request.user.id)
+            return qs
+        return qs.filter(user_id=self.request.user.id)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-class FeedbackDetailView(generics.RetrieveAPIView):
+class FeedbackDetailView(TenantFilteredViewMixin, generics.RetrieveAPIView):
     """
     API endpoint для просмотра, обновления и удаления отзыва.
     
@@ -67,16 +69,17 @@ class FeedbackDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
+        qs = super().get_queryset()
         if self.request.user.is_staff:
-            return FeedbackMessage.objects.all()
-        return FeedbackMessage.objects.filter(user_id=self.request.user.id)
+            return qs
+        return qs.filter(user_id=self.request.user.id)
 
     def get_permissions(self):
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
 
-class FeedbackListView(generics.ListAPIView):
+class FeedbackListView(TenantFilteredViewMixin, generics.ListAPIView):
     queryset = FeedbackMessage.objects.all()
     serializer_class = FeedbackSerializer
     permission_classes = [IsAdminUser]
@@ -160,8 +163,12 @@ def submit_feedback_from_mini_app(request):
                 
                 logger.info(f"Валидация изображения {idx + 1}: размер={image.size / 1024:.1f}KB, тип={image.content_type}")
         
+        # Получаем тенант
+        tenant = getattr(request, 'tenant', None)
+        
         # Создаем сообщение обратной связи
         feedback = FeedbackMessage.objects.create(
+            tenant=tenant,
             user_id=user_id,
             username=username,
             message=message,
@@ -188,10 +195,18 @@ def submit_feedback_from_mini_app(request):
             
             # Получаем полную информацию о пользователе
             try:
-                mini_user = MiniAppUser.objects.get(telegram_id=user_id)
-                author_name = mini_user.first_name or mini_user.username or 'Без имени'
-                escaped_username = escape_username_for_markdown(mini_user.username) if mini_user.username else None
-                author_username = f"@{escaped_username}" if escaped_username else 'нет'
+                # Фильтруем по тенанту!
+                mini_user_qs = MiniAppUser.objects.filter(telegram_id=user_id)
+                if tenant:
+                    mini_user_qs = mini_user_qs.filter(tenant=tenant)
+                
+                mini_user = mini_user_qs.first()
+                if mini_user:
+                    author_name = mini_user.first_name or mini_user.username or 'Без имени'
+                    escaped_username = escape_username_for_markdown(mini_user.username) if mini_user.username else None
+                    author_username = f"@{escaped_username}" if escaped_username else 'нет'
+                else:
+                    raise MiniAppUser.DoesNotExist()
             except MiniAppUser.DoesNotExist:
                 author_name = username or "Без имени"
                 escaped_username = escape_username_for_markdown(username) if username else None

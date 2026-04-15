@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from django.db import models
 from django.db.models import Count
 from tasks.models import TaskTranslation, MiniAppTaskStatistics
+from tenants.mixins import TenantFilteredViewMixin
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Create your views here.
 
 # Views для тем
-class TopicListView(generics.ListAPIView):
+class TopicListView(TenantFilteredViewMixin, generics.ListAPIView):
     """
     Список всех тем.
     """
@@ -24,7 +25,7 @@ class TopicListView(generics.ListAPIView):
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-class TopicDetailView(generics.RetrieveAPIView):
+class TopicDetailView(TenantFilteredViewMixin, generics.RetrieveAPIView):
     """
     Детальная информация о теме.
     """
@@ -39,7 +40,7 @@ class TopicCreateView(generics.CreateAPIView):
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
-class TopicUpdateView(generics.UpdateAPIView):
+class TopicUpdateView(TenantFilteredViewMixin, generics.UpdateAPIView):
     """
     Обновление темы.
     """
@@ -47,7 +48,7 @@ class TopicUpdateView(generics.UpdateAPIView):
     serializer_class = TopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
-class TopicDeleteView(generics.DestroyAPIView):
+class TopicDeleteView(TenantFilteredViewMixin, generics.DestroyAPIView):
     """
     Удаление темы.
     """
@@ -56,7 +57,7 @@ class TopicDeleteView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
 
 # Новый endpoint для мини-приложения
-class TopicMiniAppListView(generics.ListAPIView):
+class TopicMiniAppListView(TenantFilteredViewMixin, generics.ListAPIView):
     """
     Список всех тем для мини-приложения (без аутентификации).
     Включает дополнительные поля для UI.
@@ -66,7 +67,7 @@ class TopicMiniAppListView(generics.ListAPIView):
     permission_classes = []  # Открытый доступ для мини-приложения
     
     def get_queryset(self):
-        queryset = Topic.objects.all()
+        queryset = super().get_queryset()
         
         # Поддержка поиска
         search = self.request.query_params.get('search', None)
@@ -125,7 +126,7 @@ class SubtopicDeleteView(generics.DestroyAPIView):
     serializer_class = SubtopicSerializer
     permission_classes = [permissions.IsAdminUser]
 
-class TopicSubtopicsView(generics.ListCreateAPIView):
+class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
     serializer_class = SubtopicWithTasksSerializer  # Используем новый сериализатор
     permission_classes = [AllowAny]  # Разрешаем доступ без аутентификации для mini_app
 
@@ -133,7 +134,7 @@ class TopicSubtopicsView(generics.ListCreateAPIView):
         # Получаем язык из query параметров, по умолчанию английский
         language = self.request.query_params.get('language', 'en')
         telegram_id = self.request.query_params.get('telegram_id', None)
-        queryset = Subtopic.objects.filter(topic_id=self.kwargs['topic_id'])
+        queryset = super().get_queryset().filter(topic_id=self.kwargs['topic_id'])
         
         # Аннотируем количество задач (distinct по задачам) на активном языке и фильтруем только те, где >0
         queryset = queryset.annotate(
@@ -182,7 +183,8 @@ def topics_simple(request):
     """
     Простой endpoint для мини-приложения с поддержкой поиска и языка
     """
-    topics = Topic.objects.all()
+    tenant = getattr(request, 'tenant', None)
+    topics = Topic.objects.filter(tenant=tenant)
     
     # Добавляем поддержку поиска
     search = request.GET.get('search', None)
@@ -278,7 +280,9 @@ def topic_detail_simple(request, topic_id):
     Детальная информация о теме для мини-приложения (без аутентификации)
     """
     try:
-        topic = Topic.objects.get(id=topic_id)
+        from django.shortcuts import get_object_or_404
+        tenant = getattr(request, 'tenant', None)
+        topic = get_object_or_404(Topic, id=topic_id, tenant=tenant)
         
         # Получаем язык из query параметров
         language = request.GET.get('language', 'en')
@@ -343,7 +347,9 @@ def subtopic_detail_simple(request, subtopic_id):
     Включает задачи для подтемы, с возможностью фильтрации по уровню сложности.
     """
     try:
-        subtopic = Subtopic.objects.get(id=subtopic_id)
+        from django.shortcuts import get_object_or_404
+        tenant = getattr(request, 'tenant', None)
+        subtopic = get_object_or_404(Subtopic, id=subtopic_id, topic__tenant=tenant)
         
         # Получаем язык из query параметров
         language = request.GET.get('language', 'en')

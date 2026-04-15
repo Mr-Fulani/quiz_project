@@ -11,6 +11,7 @@ from rest_framework import permissions, status, viewsets
 from .services import TelegramWebhookHandler
 from .models import Webhook
 from .serializers import WebhookSerializer
+from tenants.mixins import TenantFilteredViewMixin
 import logging
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class TelegramWebhookSetupView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class WebhookViewSet(viewsets.ModelViewSet):
+class WebhookViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
     """
     ViewSet для управления вебхуками.
     """
@@ -134,12 +135,17 @@ class SocialMediaCallbackView(APIView):
         
         try:
             from tasks.models import SocialMediaPost
+            tenant = getattr(request, 'tenant', None)
             
-            # Находим запись о публикации
-            social_post = SocialMediaPost.objects.filter(
-                task_id=task_id,
-                platform=platform
-            ).order_by('-created_at').first()
+            # Находим запись о публикации с учетом тенанта
+            query = {
+                'task_id': task_id,
+                'platform': platform
+            }
+            if tenant:
+                query['task__tenant'] = tenant
+                
+            social_post = SocialMediaPost.objects.filter(**query).order_by('-created_at').first()
             
             if not social_post:
                 logger.warning(f"⚠️ SocialMediaPost не найден: task_id={task_id}, platform={platform}")

@@ -62,7 +62,8 @@ def create_payment_intent(request):
         email = data.get('email', '')
         name = data.get('name', '')
         source = data.get('source', 'website')  # Получаем источник доната
-        logger.info(f"Payment intent data: amount={amount}, currency={currency}, email={email}, name={name}, source={source}")
+        tenant = getattr(request, 'tenant', None)
+        logger.info(f"Payment intent data: amount={amount}, currency={currency}, email={email}, name={name}, source={source}, tenant={tenant}")
         
         # Валидация данных
         if not amount or float(amount) < 1:
@@ -99,6 +100,7 @@ def create_payment_intent(request):
                 'user_email': email,
                 'user_name': name,
                 'source': source,  # Добавляем источник в metadata
+                'tenant_id': str(tenant.id) if tenant else "",
             },
             automatic_payment_methods={
                 'enabled': True,
@@ -277,7 +279,8 @@ def confirm_payment(request):
                     'name': intent.metadata.get('user_name', 'Anonymous'),
                     'email': intent.metadata.get('user_email', ''),
                     'payment_method': 'stripe',
-                    'source': intent.metadata.get('source', 'website')  # Сохраняем источник
+                    'source': intent.metadata.get('source', 'website'),  # Сохраняем источник
+                    'tenant_id': intent.metadata.get('tenant_id') or None
                 }
             )
             
@@ -370,6 +373,7 @@ def create_wallet_pay_payment(request):
             payment_type='crypto',
             payment_method='wallet_pay',
             source=source,
+            tenant=getattr(request, 'tenant', None),
         )
 
         # ТЕСТОВАЯ ЗАГЛУШКА: если в окружении указан dev-ключ, возвращаем фиктивную успешную ссылку
@@ -510,7 +514,8 @@ def stripe_webhook(request):
                     'name': payment_intent['metadata'].get('user_name', 'Anonymous'),
                     'email': payment_intent['metadata'].get('user_email', ''),
                     'payment_method': 'stripe',
-                    'source': payment_intent['metadata'].get('source', 'website')  # Сохраняем источник
+                    'source': payment_intent['metadata'].get('source', 'website'),  # Сохраняем источник
+                    'tenant_id': payment_intent['metadata'].get('tenant_id') or None
                 }
             )
             
@@ -718,7 +723,8 @@ def create_crypto_payment(request):
             crypto_currency=crypto_currency.upper(),
             status='pending',
             payment_method='coingate',
-            source=source
+            source=source,
+            tenant=getattr(request, 'tenant', None)
         )
         
         # Генерируем уникальный order_id

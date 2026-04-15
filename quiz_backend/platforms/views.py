@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from accounts.models import UserChannelSubscription
 from tasks.pagination import CustomPageNumberPagination
+from tenants.mixins import TenantFilteredViewMixin
 
 from rest_framework.permissions import IsAdminUser
 
@@ -27,7 +28,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_staff)
 
-class TelegramChannelListView(generics.ListCreateAPIView):
+class TelegramChannelListView(TenantFilteredViewMixin, generics.ListCreateAPIView):
     """
     API endpoint для списка и создания Telegram каналов.
     
@@ -49,7 +50,7 @@ class TelegramChannelListView(generics.ListCreateAPIView):
     ordering = ['id']
     pagination_class = CustomPageNumberPagination
 
-class TelegramChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
+class TelegramChannelDetailView(TenantFilteredViewMixin, generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint для просмотра, обновления и удаления Telegram канала.
     
@@ -68,23 +69,32 @@ class ChannelStatsView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        # Базовая статистика
-        total_channels = TelegramGroup.objects.count()
-        active_channels = TelegramGroup.objects.filter(is_active=True).count()
+        tenant = getattr(request, 'tenant', None)
+        
+        # Базовая статистика с фильтрацией по тенанту
+        groups_qs = TelegramGroup.objects.all()
+        subs_qs = UserChannelSubscription.objects.all()
+        
+        if tenant:
+            groups_qs = groups_qs.filter(tenant=tenant)
+            subs_qs = subs_qs.filter(channel__tenant=tenant)
+            
+        total_channels = groups_qs.count()
+        active_channels = groups_qs.filter(is_active=True).count()
         
         # Статистика по языкам
-        language_stats = TelegramGroup.objects.values('language')\
+        language_stats = groups_qs.values('language')\
             .annotate(count=Count('id'))
         
         # Статистика по типам
-        type_stats = TelegramGroup.objects.values('location_type')\
+        type_stats = groups_qs.values('location_type')\
             .annotate(count=Count('id'))
         
         # Статистика по подписчикам
         subscriber_stats = {
-            'total': UserChannelSubscription.objects.count(),
-            'active': UserChannelSubscription.objects.filter(is_active=True).count(),
-            'avg_per_channel': UserChannelSubscription.objects.values('channel')\
+            'total': subs_qs.count(),
+            'active': subs_qs.filter(is_active=True).count(),
+            'avg_per_channel': subs_qs.values('channel')\
                 .annotate(count=Count('id'))\
                 .aggregate(avg=Avg('count'))['avg']
         }
@@ -104,7 +114,11 @@ class ChannelHealthCheckView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
+        tenant = getattr(request, 'tenant', None)
         channels = TelegramGroup.objects.all()
+        if tenant:
+            channels = channels.filter(tenant=tenant)
+            
         health_status = []
 
         for channel in channels:
