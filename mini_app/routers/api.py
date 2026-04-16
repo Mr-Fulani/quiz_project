@@ -239,8 +239,18 @@ async def update_last_seen(request: Request):
 # Удален старый handler /topics без telegram_id, используем расширенную версию ниже
 
 @router.get("/topic/{topic_id}")
-async def get_topic(topic_id: int):
-    subtopics = await fetch_subtopics_from_django(topic_id)
+async def get_topic(request: Request, topic_id: int, language: str = 'en', telegram_id: int | None = None):
+    # Получаем хост и схему для тенанта
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    
+    subtopics = await django_api_service.get_subtopics(
+        topic_id=topic_id, 
+        language=language, 
+        telegram_id=telegram_id,
+        host=host,
+        scheme=scheme
+    )
     return {"subtopics": subtopics}
 
 @router.get("/subtopics/{subtopic_id}")
