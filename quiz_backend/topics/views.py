@@ -127,6 +127,7 @@ class SubtopicDeleteView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
 
 class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
+    queryset = Subtopic.objects.all()
     serializer_class = SubtopicWithTasksSerializer  # Используем новый сериализатор
     permission_classes = [AllowAny]  # Разрешаем доступ без аутентификации для mini_app
     tenant_lookup = 'topic__tenant'
@@ -137,7 +138,7 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
         telegram_id = self.request.query_params.get('telegram_id', None)
         queryset = super().get_queryset().filter(topic_id=self.kwargs['topic_id'])
         
-        # Аннотируем количество задач (distinct по задачам) на активном языке и фильтруем только те, где >0
+        # Аннотируем количество задач (distinct по задачам) на активном языке
         queryset = queryset.annotate(
             tasks_count=Count(
                 'tasks',
@@ -147,7 +148,12 @@ class TopicSubtopicsView(TenantFilteredViewMixin, generics.ListCreateAPIView):
                 ),
                 distinct=True
             )
-        ).filter(tasks_count__gt=0)
+        )
+        
+        # Если передано has_tasks=true, отфильтровываем пустые подтемы
+        has_tasks = self.request.query_params.get('has_tasks', 'false').lower() == 'true'
+        if has_tasks:
+            queryset = queryset.filter(tasks_count__gt=0)
 
         return queryset
 
@@ -485,4 +491,3 @@ def subtopic_detail_simple(request, subtopic_id):
         return Response(data)
     except Subtopic.DoesNotExist:
         return Response({'error': 'Subtopic not found'}, status=404)
-
