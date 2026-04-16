@@ -343,14 +343,28 @@ def send_telegram_notification_sync(
     
     # Сначала пробуем прямой API Telegram.
     # В multi-tenant системе токен бота может отличаться в зависимости от тенанта.
-    bot_token = getattr(tenant, "bot_token", None) or os.getenv('TELEGRAM_BOT_TOKEN')
-    if bot_token:
+    tenant_bot_token = getattr(tenant, "bot_token", None)
+    global_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    bot_tokens_to_try = [tenant_bot_token] if tenant_bot_token else []
+    
+    # Если токен тенанта отличается от глобального, добавляем глобальный как фоллбэк
+    # (полезно, если супер-админ не запускал бота тенанта, но запускал глобального)
+    if global_bot_token and global_bot_token not in bot_tokens_to_try:
+        bot_tokens_to_try.append(global_bot_token)
+        
+    if not bot_tokens_to_try:
+        logger.error("❌ Не найден bot_token ни в тенанте, ни в переменных окружения")
+        return False
+
+    for current_token in bot_tokens_to_try:
         # Пробуем разные режимы парсинга при ошибке
         parse_modes_to_try = [parse_mode, None, "HTML"] if parse_mode else [None]
         
+        chat_not_found = False
+        
         for try_parse_mode in parse_modes_to_try:
             try:
-                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                url = f"https://api.telegram.org/bot{current_token}/sendMessage"
                 payload = {
                     'chat_id': telegram_id,
                     'text': message
@@ -370,65 +384,35 @@ def send_telegram_notification_sync(
                     logger.info(f"✅ Уведомление отправлено пользователю {telegram_id} через Telegram API (parse_mode: {try_parse_mode})")
                     return True
                 elif response.status_code == 400:
-                    # Если ошибка 400, пробуем следующий режим парсинга
+                    # Если ошибка 400, смотрим описание
                     error_data = response.json() if response.content else {}
                     error_desc = error_data.get('description', '')
                     logger.warning(f"⚠️ Telegram API вернул 400 (parse_mode: {try_parse_mode}): {error_desc}")
+                    
+                    if "chat not found" in error_desc.lower():
+                        chat_not_found = True
+                        break # Бессмысленно менять parse_mode, если чата нет
+                        
                     if try_parse_mode != parse_modes_to_try[-1]:  # Не последний режим
                         continue
-                    # Если это последний режим, пробуем через bot сервис
                     break
                 else:
-                    logger.warning(f"⚠️ Telegram API вернул {response.status_code}, пробуем через bot сервис")
+                    logger.warning(f"⚠️ Telegram API вернул {response.status_code}")
                     break
             except Exception as e:
                 logger.warning(f"⚠️ Ошибка отправки через Telegram API (parse_mode: {try_parse_mode}): {e}")
                 if try_parse_mode == parse_modes_to_try[-1]:  # Последний режим
                     break
                 continue
-    
-    # Если прямой API не сработал, пробуем через bot сервис
-    parse_modes_to_try = [parse_mode, None, "HTML"] if parse_mode else [None]
-    
-    for try_parse_mode in parse_modes_to_try:
-        try:
-            bot_url = os.getenv('BOT_API_URL', 'http://telegram_bot:8000')
-            payload = {
-                'chat_id': telegram_id,
-                'text': message
-            }
-            
-            if try_parse_mode:
-                payload['parse_mode'] = try_parse_mode
-            
-            # Добавляем reply_markup если есть
-            if reply_markup:
-                payload['reply_markup'] = reply_markup
-            
-            response = requests.post(
-                f"{bot_url}/api/send-message/",
-                json=payload,
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                logger.info(f"✅ Уведомление отправлено пользователю {telegram_id} через bot сервис (parse_mode: {try_parse_mode})")
-                return True
-            elif response.status_code == 400 and try_parse_mode != parse_modes_to_try[-1]:
-                logger.warning(f"⚠️ Bot сервис вернул 400 (parse_mode: {try_parse_mode}), пробуем следующий режим")
-                continue
-            else:
-                logger.error(f"❌ Ошибка отправки уведомления через bot сервис: {response.status_code}")
-                if try_parse_mode == parse_modes_to_try[-1]:
-                    return False
-                continue
                 
-        except Exception as e:
-            logger.error(f"❌ Исключение при отправке уведомления через bot сервис (parse_mode: {try_parse_mode}): {e}")
-            if try_parse_mode == parse_modes_to_try[-1]:
-                return False
+        # Если чат не найден для текущего токена, и есть еще токены в запасе, пробуем следующий
+        if chat_not_found and current_token != bot_tokens_to_try[-1]:
+            logger.info(f"🔄 Пробуем отправить через резервный токен бота для пользователя {telegram_id}")
             continue
-    
+        elif chat_not_found:
+            logger.error(f"❌ Чат не найден для пользователя {telegram_id} ни в одном из ботов. Пользователь должен нажать /start в боте.")
+            return False
+            
     return False
 
 
