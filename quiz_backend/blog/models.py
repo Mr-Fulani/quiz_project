@@ -1405,9 +1405,10 @@ class Resume(models.Model):
         return f"{self.name} ({'Активно' if self.is_active else 'Неактивно'})"
     
     def save(self, *args, **kwargs):
-        """Если это резюме активно, деактивируем все остальные"""
+        """Если это резюме активно, деактивируем все остальные для этого тенанта"""
         if self.is_active:
-            Resume.objects.exclude(pk=self.pk).update(is_active=False)
+            # Деактивируем другие резюме только того же тенанта
+            Resume.objects.filter(tenant=self.tenant).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
 
 
