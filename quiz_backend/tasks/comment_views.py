@@ -527,14 +527,18 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
                     f'"{comment_text}"{images_text}{parent_info}'
                 )
                 
-                # Формируем URL mini app для открытия комментария
-                from accounts.utils_folder.telegram_notifications import get_mini_app_url
-                mini_app_base_url = get_mini_app_url(request)
-                mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
-                
                 # Явно определяем tenant из задачи — надёжнее чем через request
                 task_tenant = getattr(task, 'tenant', None) or getattr(request, 'tenant', None)
 
+                # Формируем URL mini app для открытия комментария
+                from accounts.utils_folder.telegram_notifications import get_mini_app_url
+                mini_app_url = get_mini_app_url(request, tenant=task_tenant)
+                # Добавляем startapp параметр
+                if '?' in mini_app_url:
+                    mini_app_url = f"{mini_app_url}&startapp=comment_{comment.id}"
+                else:
+                    mini_app_url = f"{mini_app_url}/?startapp=comment_{comment.id}"
+                
                 # Отправляем уведомление через централизованную функцию notify_all_admins
                 sent_count = notify_all_admins(
                     notification_type='comment',
@@ -761,7 +765,9 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
             
             # Формируем ссылку на жалобу в админке с динамическим URL
             # Используем request из view напрямую
-            base_url = get_base_url(request)
+            # Явно определяем tenant из задачи — надёжнее чем через request
+            report_task_tenant = getattr(task, 'tenant', None) or getattr(request, 'tenant', None)
+            base_url = get_base_url(request, tenant=report_task_tenant)
             try:
                 admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
             except Exception:
@@ -844,13 +850,12 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
         responses={200: TaskCommentSerializer}
     )
     @action(detail=True, methods=['get'], url_path='detail-for-deeplink')
-    def detail_for_deeplink(self, request, translation_id=None, pk=None):
+    def detail_for_deeplink(self, request, pk=None, **kwargs):
         """
         Получить детальную информацию о комментарии для deep link.
         Возвращает информацию о комментарии вместе с информацией о задаче, подтеме и теме.
-        Может быть вызван как с translation_id, так и без него (translation_id игнорируется).
         """
-        comment = get_object_or_404(TaskComment, pk=pk, is_deleted=False)
+        comment = get_object_or_404(TaskComment, pk=pk)
         
         # Получаем информацию о задаче
         task_translation = comment.task_translation
