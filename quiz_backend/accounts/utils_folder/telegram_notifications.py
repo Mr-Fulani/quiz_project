@@ -646,36 +646,52 @@ def notify_all_admins(
 
 async def notify_admin(action: str, admin, groups):
     """
-    Отправляет уведомление в Telegram-бот о действиях с администратором через HTTP API.
-    :param action: 'added', 'updated', или 'removed'.
+    Отправляет уведомление TelegramAdmin о действиях с его аккаунтом напрямую через Telegram Bot API.
+    :param action: 'added', 'updated', или 'removed' / 'deleted'.
     :param admin: Объект TelegramAdmin.
     :param groups: Список групп/каналов (QuerySet).
     """
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     if not bot_token:
-        logger.error("TELEGRAM_BOT_TOKEN не найден")
+        logger.error("TELEGRAM_BOT_TOKEN не найден — уведомление TelegramAdmin не отправлено")
+        return
+
+    if not admin.telegram_id:
+        logger.warning(f"TelegramAdmin {admin} не имеет telegram_id, пропускаем уведомление")
         return
 
     group_links = [
-        f"[{group.group_name}](https://t.me/{group.username})" if group.username else f"{group.group_name} (ID: {group.group_id})"
+        f"[{group.group_name}](https://t.me/{group.username.lstrip('@')})" if group.username
+        else f"{group.group_name} (ID: {group.group_id})"
         for group in groups
     ]
+    channels_text = ', '.join(group_links) if group_links else 'не указаны'
 
     if action == 'added':
-        message = f"Здравствуйте, {admin.username}!\nВы были добавлены как администратор:\n{', '.join(group_links)}"
+        message = f"🎉 *Поздравляем, {admin.username or 'Администратор'}!*\n\nВы были добавлены как администратор:\n{channels_text}"
     elif action == 'updated':
-        message = f"Здравствуйте, {admin.username}!\nВаши права обновлены:\n{', '.join(group_links)}"
-    elif action == 'removed':
-        message = f"Здравствуйте, {admin.username}!\nВы удалены из администраторов:\n{', '.join(group_links)}"
+        message = f"✏️ *{admin.username or 'Администратор'}*, ваши права обновлены:\n{channels_text}"
+    elif action in ('removed', 'deleted'):
+        message = f"⚠️ *{admin.username or 'Администратор'}*, вы удалены из администраторов:\n{channels_text}"
     else:
-        logger.error(f"Некорректное действие: {action}")
+        logger.error(f"notify_admin: Некорректное действие: {action!r}")
         return
 
+    # Отправляем напрямую через Telegram Bot API (больше не через внутренний бот-сервис)
     try:
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            'chat_id': admin.telegram_id,
+            'text': message,
+            'parse_mode': 'Markdown',
+            'disable_web_page_preview': True,
+        }
         async with aiohttp.ClientSession() as session:
-            payload = {'chat_id': admin.telegram_id, 'text': message, 'parse_mode': 'Markdown'}
-            async with session.post(f"http://telegram_bot:8000/api/send-message/", json=payload) as response:
-                if response.status != 200:
-                    logger.error(f"Ошибка отправки уведомления: {response.status}")
+            async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                if response.status == 200:
+                    logger.info(f"✅ Уведомление TelegramAdmin ({action}) отправлено → {admin.telegram_id}")
+                else:
+                    resp_text = await response.text()
+                    logger.error(f"❌ Ошибка Telegram API при отправке уведомления TelegramAdmin: {response.status} — {resp_text}")
     except Exception as e:
-        logger.error(f"Ошибка при отправке уведомления: {e}")
+        logger.error(f"❌ Исключение при отправке уведомления TelegramAdmin {admin.telegram_id}: {e}")

@@ -532,6 +532,9 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
                 mini_app_base_url = get_mini_app_url(request)
                 mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
                 
+                # Явно определяем tenant из задачи — надёжнее чем через request
+                task_tenant = getattr(task, 'tenant', None) or getattr(request, 'tenant', None)
+
                 # Отправляем уведомление через централизованную функцию notify_all_admins
                 sent_count = notify_all_admins(
                     notification_type='comment',
@@ -540,7 +543,8 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
                     related_object_id=comment.id,
                     related_object_type='comment',
                     web_app_url=mini_app_url,
-                    request=request
+                    request=request,
+                    tenant=task_tenant
                 )
                 
                 logger.info(f"📝 Отправлено уведомление о комментарии #{comment.id} {sent_count} админам")
@@ -809,13 +813,17 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
             
             logger.info(f"📤 Начинаем отправку уведомления о жалобе #{report.id} для комментария #{comment.id}")
             try:
+                # Явно определяем tenant из задачи — надёжнее чем через request
+                report_task_tenant = getattr(task, 'tenant', None) or getattr(request, 'tenant', None)
+
                 sent_count = notify_all_admins(
                     notification_type='report',
                     title=admin_title,
                     message=admin_message,
                     related_object_id=report.id,
                     related_object_type='report',
-                    request=request
+                    request=request,
+                    tenant=report_task_tenant
                 )
                 logger.info(f"✅ Уведомление о жалобе #{report.id} отправлено {sent_count} админам")
             except Exception as notify_error:
