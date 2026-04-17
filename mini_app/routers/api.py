@@ -38,6 +38,26 @@ authenticator = TelegramAuthenticator(
     #ttl_seconds=3600 # Убрал для отладки
 )
 
+def get_proxy_headers(request: Request):
+    """
+    Извлекает заголовки хоста и протокола из входящего запроса 
+    для передачи их в Django API. Это критично для Multi-Tenant системы.
+    """
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    
+    headers = {
+        'X-Forwarded-Host': host,
+        'X-Forwarded-Proto': scheme
+    }
+    
+    # Также передаем CSRF если он есть (хотя для API он не всегда нужен)
+    csrf = request.headers.get('x-csrf-token')
+    if csrf:
+        headers['X-CSRF-Token'] = csrf
+        
+    return headers
+
 @router.post("/verify-init-data")
 async def verify_init_data(request: Request):
     """
@@ -1254,12 +1274,13 @@ async def reorder_user_avatars(telegram_id: int, request: Request):
 # ========================================
 
 @router.get("/tasks/translations/{translation_id}/comments/")
-async def get_task_comments(translation_id: int, page: int = 1, ordering: str = '-created_at'):
+async def get_task_comments(translation_id: int, request: Request, page: int = 1, ordering: str = '-created_at'):
     """
     Получение комментариев для перевода задачи.
     
     Args:
         translation_id: ID перевода задачи
+        request: FastAPI request
         page: Номер страницы для пагинации
         ordering: Сортировка (created_at, -created_at, reports_count, -reports_count)
         
@@ -1271,7 +1292,12 @@ async def get_task_comments(translation_id: int, page: int = 1, ordering: str = 
         params = {'page': page, 'ordering': ordering}
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(django_url, params=params, timeout=10.0)
+            response = await client.get(
+                django_url, 
+                params=params, 
+                headers=get_proxy_headers(request),
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             return JSONResponse(content=response.json())
@@ -1287,12 +1313,13 @@ async def get_task_comments(translation_id: int, page: int = 1, ordering: str = 
 
 
 @router.get("/tasks/translations/{translation_id}/comments/count/")
-async def get_comments_count(translation_id: int):
+async def get_comments_count(translation_id: int, request: Request):
     """
     Получение количества комментариев для перевода задачи.
     
     Args:
         translation_id: ID перевода задачи
+        request: FastAPI request
         
     Returns:
         JSONResponse: Количество комментариев
@@ -1301,7 +1328,11 @@ async def get_comments_count(translation_id: int):
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/translations/{translation_id}/comments/count/"
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(django_url, timeout=10.0)
+            response = await client.get(
+                django_url, 
+                headers=get_proxy_headers(request),
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             return JSONResponse(content=response.json())
@@ -1365,6 +1396,7 @@ async def create_task_comment(translation_id: int, request: Request):
                     django_url,
                     data=data,
                     files=files if files else None,
+                    headers=get_proxy_headers(request),
                     timeout=30.0
                 )
         else:
@@ -1375,6 +1407,7 @@ async def create_task_comment(translation_id: int, request: Request):
                 response = await client.post(
                     django_url,
                     json=body,
+                    headers=get_proxy_headers(request),
                     timeout=30.0
                 )
         
@@ -1417,6 +1450,7 @@ async def update_task_comment(translation_id: int, comment_id: int, request: Req
                 django_url,
                 json=body,
                 params=params,
+                headers=get_proxy_headers(request),
                 timeout=10.0
             )
         
@@ -1435,13 +1469,14 @@ async def update_task_comment(translation_id: int, comment_id: int, request: Req
 
 
 @router.delete("/tasks/translations/{translation_id}/comments/{comment_id}/")
-async def delete_task_comment(translation_id: int, comment_id: int, telegram_id: int):
+async def delete_task_comment(translation_id: int, comment_id: int, request: Request, telegram_id: int):
     """
     Удаление комментария (мягкое удаление).
     
     Args:
         translation_id: ID перевода задачи
         comment_id: ID комментария
+        request: FastAPI request
         telegram_id: Telegram ID пользователя для проверки прав
         
     Returns:
@@ -1452,7 +1487,12 @@ async def delete_task_comment(translation_id: int, comment_id: int, telegram_id:
         params = {'telegram_id': telegram_id}
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.delete(django_url, params=params, timeout=10.0)
+            response = await client.delete(
+                django_url, 
+                params=params, 
+                headers=get_proxy_headers(request),
+                timeout=10.0
+            )
         
         if response.status_code == 204:
             logger.info(f"✅ Comment {comment_id} deleted")
@@ -1490,6 +1530,7 @@ async def report_task_comment(translation_id: int, comment_id: int, request: Req
             response = await client.post(
                 django_url,
                 json=body,
+                headers=get_proxy_headers(request),
                 timeout=10.0
             )
         
@@ -1499,9 +1540,37 @@ async def report_task_comment(translation_id: int, comment_id: int, request: Req
         else:
             logger.error(f"❌ Error reporting comment: {response.status_code} - {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
-            
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Error in report_task_comment: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/tasks/comments/{comment_id}/detail-for-deeplink/")
+async def get_comment_detail_for_deeplink(comment_id: int, request: Request):
+    """
+    Получение детальной информации о комментарии для deep link.
+    Проксирует запрос к Django API.
+    """
+    try:
+        django_url = f"{settings.DJANGO_API_BASE_URL}/api/tasks/comments/{comment_id}/detail-for-deeplink/"
+        
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(
+                django_url,
+                headers=get_proxy_headers(request),
+                timeout=10.0
+            )
+        
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            logger.error(f"❌ Error fetching comment detail for deeplink: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in get_comment_detail_for_deeplink: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

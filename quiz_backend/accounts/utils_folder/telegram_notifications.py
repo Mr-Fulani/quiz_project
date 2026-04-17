@@ -47,172 +47,154 @@ def escape_username_for_markdown(username: Optional[str]) -> str:
     return re.sub(r'(?<!\\)([_*\[\]\(\)])', r'\\\1', username)
 
 
-def get_base_url(request=None):
+def get_base_url(request=None, tenant=None):
     """
     Получает базовый URL для формирования ссылок в уведомлениях.
-    Для админских ссылок всегда использует основной домен (quiz-code.com), игнорируя поддомены.
     
     Приоритет:
-    1. Из settings.SITE_URL (для продакшена) - ВСЕГДА используется для админских ссылок
-    2. Из request заголовков (X-Forwarded-Host, X-Forwarded-Proto) - для работы через nginx/ngrok
-    3. Из request.get_host() - стандартный способ Django
+    1. Переданный объект tenant (используем его домен)
+    2. Из settings.SITE_URL (для продакшена)
+    3. Из request заголовков (X-Forwarded-Host, X-Forwarded-Proto)
+    4. Из request.get_host()
     
     Args:
         request: Django request объект (опционально)
+        tenant: Объект тенанта (опционально)
         
     Returns:
         str: Базовый URL (например, https://quiz-code.com или https://xxx.ngrok-free.dev)
     """
-    # Для админских ссылок всегда используем SITE_URL из настроек (основной домен)
-    # Это гарантирует, что ссылки на админку будут работать корректно
+    # 1. Если передан тенант, используем его основной домен
+    if tenant:
+        if hasattr(tenant, 'site_url') and tenant.site_url:
+            logger.debug(f"🌐 Используем site_url из тенанта: {tenant.site_url}")
+            return tenant.site_url
+        if hasattr(tenant, 'domain') and tenant.domain:
+            # Предполагаем https для тенантов
+            base = f"https://{tenant.domain.rstrip('/')}"
+            logger.debug(f"🌐 Используем домен из тенанта: {base}")
+            return base
+
+    # 2. Для админских ссылок (если тенант не передан) пытаемся использовать SITE_URL из настроек
     if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
         # Убираем поддомены из SITE_URL если они есть (например, mini.quiz-code.com -> quiz-code.com)
         site_url = settings.SITE_URL
         # Если есть поддомен типа mini., убираем его
         if 'mini.' in site_url:
             site_url = site_url.replace('mini.', '')
-        logger.debug(f"🌐 Используем SITE_URL из настроек (для админки): {site_url}")
+        logger.debug(f"🌐 Используем SITE_URL из настроек: {site_url}")
         return site_url
     
-    # Если передан request и нет SITE_URL, пытаемся получить URL из него
+    # 3. Пытаемся получить из request
     if request:
         try:
+            # Проверяем request.tenant если он есть (и tenant не был передан в аргументах)
+            req_tenant = getattr(request, 'tenant', None)
+            if req_tenant:
+                if hasattr(req_tenant, 'site_url') and req_tenant.site_url:
+                    return req_tenant.site_url
+                if hasattr(req_tenant, 'domain') and req_tenant.domain:
+                    return f"https://{req_tenant.domain.rstrip('/')}"
+
             # Сначала проверяем заголовки X-Forwarded-Host и X-Forwarded-Proto
-            # Это важно для работы через nginx/ngrok
             forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST') or request.META.get('X-Forwarded-Host')
             forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO') or request.META.get('X-Forwarded-Proto')
             
             if forwarded_host:
-                # Используем заголовки от прокси (ngrok/nginx)
                 scheme = forwarded_proto or 'https'
-                # X-Forwarded-Host может содержать несколько хостов, берем первый
                 host = forwarded_host.split(',')[0].strip()
-                # Убираем поддомены для админских ссылок
+                # Убираем поддомены типа mini.
                 if 'mini.' in host:
                     host = host.replace('mini.', '')
                 base_url = f"{scheme}://{host}"
-                logger.debug(f"🌐 Используем URL из заголовков X-Forwarded-Host: {base_url}")
                 return base_url
             
             # Если заголовков нет, используем стандартный способ Django
             scheme = request.scheme or 'https'
             host = request.get_host()
-            if host and host not in ['localhost', '127.0.0.1'] and 'localhost' not in host:
-                # Убираем поддомены для админских ссылок
-                if 'mini.' in host:
-                    host = host.replace('mini.', '')
-                base_url = f"{scheme}://{host}"
-                logger.debug(f"🌐 Используем URL из request.get_host(): {base_url}")
-                return base_url
-            else:
-                logger.debug(f"⚠️ request.get_host() вернул localhost или невалидный хост: {host}, используем fallback")
+            if 'mini.' in host:
+                host = host.replace('mini.', '')
+            return f"{scheme}://{host}"
         except Exception as e:
-            logger.warning(f"Не удалось получить URL из request: {e}")
-    
-    # Последний fallback
-    logger.warning("Не удалось определить базовый URL, используется дефолтный")
+            logger.warning(f"⚠️ Ошибка получения URL из request: {e}")
+            
     return "https://quiz-code.com"
 
 
-def get_mini_app_url(request=None):
+def get_mini_app_url(request=None, tenant=None):
     """
-    Получает базовый URL для mini app (с поддоменом mini.).
-    Для ссылок на mini app всегда использует поддомен mini.quiz-code.com.
-    
-    Args:
-        request: Django request объект (опционально)
-        
-    Returns:
-        str: Базовый URL для mini app (например, https://mini.quiz-code.com)
+    Получает базовый URL для Mini App.
+    Приоритет:
+    1. Переданный объект tenant (используем его mini_app_domain)
+    2. Из settings.MINI_APP_URL
+    3. Из request.tenant
+    4. Конструирует из get_base_url (добавляя mini. если нужно)
     """
-    # Сначала проверяем настройки
-    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
-        site_url = settings.SITE_URL
-        # Если в SITE_URL уже есть mini., используем его
-        if 'mini.' in site_url:
-            logger.debug(f"🌐 Используем SITE_URL с mini поддоменом: {site_url}")
-            return site_url
-        # Если нет mini., добавляем его
-        # Заменяем основной домен на mini.домен
-        if 'quiz-code.com' in site_url:
-            mini_url = site_url.replace('quiz-code.com', 'mini.quiz-code.com')
-            logger.debug(f"🌐 Добавляем mini поддомен: {mini_url}")
-            return mini_url
-        # Если другой домен, добавляем mini. в начало
-        if '://' in site_url:
-            parts = site_url.split('://', 1)
-            mini_url = f"{parts[0]}://mini.{parts[1]}"
-            logger.debug(f"🌐 Добавляем mini поддомен: {mini_url}")
-            return mini_url
+    # 1. Если передан тенант
+    if tenant:
+        if hasattr(tenant, 'mini_app_url') and tenant.mini_app_url:
+            logger.debug(f"📱 Используем mini_app_url из тенанта: {tenant.mini_app_url}")
+            return tenant.mini_app_url
+        if hasattr(tenant, 'mini_app_domain') and tenant.mini_app_domain:
+            url = f"https://{tenant.mini_app_domain.rstrip('/')}"
+            logger.debug(f"📱 Используем mini_app_domain из тенанта: {url}")
+            return url
+
+    # 2. Пытаемся из настроек
+    if hasattr(settings, 'MINI_APP_URL') and settings.MINI_APP_URL:
+        return settings.MINI_APP_URL
     
-    # Если передан request, пытаемся получить URL из него и добавить mini.
+    # 3. Пытаемся через request.tenant
     if request:
-        try:
-            forwarded_host = request.META.get('HTTP_X_FORWARDED_HOST') or request.META.get('X-Forwarded-Host')
-            forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO') or request.META.get('X-Forwarded-Proto')
-            
-            if forwarded_host:
-                scheme = forwarded_proto or 'https'
-                host = forwarded_host.split(',')[0].strip()
-                # Добавляем mini. если его нет
-                if 'mini.' not in host:
-                    host = f"mini.{host}"
-                mini_url = f"{scheme}://{host}"
-                logger.debug(f"🌐 Используем URL из заголовков с mini поддоменом: {mini_url}")
-                return mini_url
-            
-            scheme = request.scheme or 'https'
-            host = request.get_host()
-            if host and host not in ['localhost', '127.0.0.1'] and 'localhost' not in host:
-                # Добавляем mini. если его нет
-                if 'mini.' not in host:
-                    host = f"mini.{host}"
-                mini_url = f"{scheme}://{host}"
-                logger.debug(f"🌐 Используем URL из request.get_host() с mini поддоменом: {mini_url}")
-                return mini_url
-        except Exception as e:
-            logger.warning(f"Не удалось получить URL из request для mini app: {e}")
+        req_tenant = getattr(request, 'tenant', None)
+        if req_tenant:
+            if hasattr(req_tenant, 'mini_app_url') and req_tenant.mini_app_url:
+                return req_tenant.mini_app_url
+            if hasattr(req_tenant, 'mini_app_domain') and req_tenant.mini_app_domain:
+                return f"https://{req_tenant.mini_app_domain.rstrip('/')}"
+
+    # 4. Фоллбэк - конструируем из базового URL
+    base_url = get_base_url(request, tenant)
     
-    # Fallback на дефолтный mini app URL
-    logger.warning("Не удалось определить базовый URL для mini app, используется дефолтный")
-    return "https://mini.quiz-code.com"
+    # Если в базовом URL уже есть mini., возвращаем как есть
+    if 'mini.' in base_url:
+        return base_url
+        
+    # Пытаемся добавить mini. к домену
+    if '://' in base_url:
+        parts = base_url.split('://', 1)
+        scheme = parts[0]
+        domain = parts[1]
+        
+        # Если это не localhost/IP, добавляем mini.
+        if not any(x in domain for x in ['localhost', '127.0.0.1', 'ngrok']):
+            return f"{scheme}://mini.{domain}"
+            
+    return base_url
 
 
-def get_mini_app_url_with_startapp(comment_id: int, request=None) -> str:
+def get_mini_app_url_with_startapp(comment_id: int, request=None, tenant=None) -> str:
     """
     Формирует URL mini app для открытия комментария через WebAppInfo.
-    Параметр startParam будет автоматически передан Telegram через window.Telegram.WebApp.startParam,
-    поэтому в URL его указывать не нужно - просто возвращаем базовый URL mini app.
-    
-    Args:
-        comment_id: ID комментария (используется только для логирования)
-        request: Django request объект (опционально)
-        
-    Returns:
-        str: Базовый URL mini app (например, https://mini.quiz-code.com/)
     """
-    mini_app_url = get_mini_app_url(request)
-    # Telegram автоматически передаст startParam через window.Telegram.WebApp.startParam
-    # при открытии через WebAppInfo, поэтому просто возвращаем базовый URL
+    mini_app_url = get_mini_app_url(request, tenant)
     logger.debug(f"🔗 Сформирован URL mini app для комментария {comment_id}: {mini_app_url}/")
     return f"{mini_app_url}/"
 
 
-def get_comment_deep_link(comment_id: int) -> str:
+def get_comment_deep_link(comment_id: int, tenant=None) -> str:
     """
     Формирует deep link для открытия комментария в mini app через Telegram бота.
-    
-    Args:
-        comment_id: ID комментария
-        
-    Returns:
-        str: Deep link URL (например, https://t.me/mr_proger_bot?startapp=comment_123)
     """
-    from django.conf import settings
-    bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
-    # Формат: https://t.me/bot_username?startapp=comment_123
-    # Используем стандартный формат deep link без указания имени mini app
-    # Telegram автоматически откроет mini app, настроенный в боте
+    # 1. Если передан тенант, используем его бота
+    bot_username = None
+    if tenant and hasattr(tenant, 'bot_username') and tenant.bot_username:
+        bot_username = tenant.bot_username
+    
+    # 2. Фоллбэк на настройки
+    if not bot_username:
+        bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'mr_proger_bot')
+    
     deep_link = f"https://t.me/{bot_username}?startapp=comment_{comment_id}"
     logger.debug(f"🔗 Сформирован deep link для комментария {comment_id}: {deep_link}")
     return deep_link
@@ -222,7 +204,8 @@ def get_web_app_url_for_notification(
     notification_type: str,
     related_object_id: Optional[int] = None,
     related_object_type: Optional[str] = None,
-    request=None
+    request=None,
+    tenant=None
 ) -> Optional[str]:
     """
     Формирует URL mini app для уведомления на основе типа уведомления и связанного объекта.
@@ -232,6 +215,7 @@ def get_web_app_url_for_notification(
         related_object_id: ID связанного объекта
         related_object_type: Тип связанного объекта
         request: Django request объект (опционально)
+        tenant: Объект тенанта (опционально)
         
     Returns:
         str: URL mini app с параметром startapp или None, если URL не может быть сформирован
@@ -239,7 +223,7 @@ def get_web_app_url_for_notification(
     if not related_object_id:
         return None
     
-    mini_app_base_url = get_mini_app_url(request)
+    mini_app_base_url = get_mini_app_url(request, tenant)
     
     # Формируем URL в зависимости от типа уведомления
     if notification_type == 'feedback' or related_object_type == 'feedback':
