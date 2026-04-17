@@ -1354,9 +1354,12 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
 
                 if task_published_any_language:
                     task.published = True
+                    task.published_telegram = True
+                    task.published_website = True
+                    task.published_mini_app = True
                     task.publish_date = timezone.now()
                     task.error = False
-                    update_fields = ['published', 'publish_date', 'error']
+                    update_fields = ['published', 'published_telegram', 'published_website', 'published_mini_app', 'publish_date', 'error']
                     if not task.message_id:
                         update_fields.append('message_id')
                     if not task.group:
@@ -1709,6 +1712,12 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 
                 if result['success'] > 0:
                     published_tasks += 1
+                    # Обновляем статус задачи
+                    task.published = True
+                    if not task.publish_date:
+                        task.publish_date = timezone.now()
+                    task.save(update_fields=['published', 'publish_date'])
+
                     self.message_user(
                         request,
                         f"✅ Задача {task.id}: опубликовано в {result['success']}/{result['total']} платформ",
@@ -1777,6 +1786,12 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 
                 if result.get('success'):
                     published_tasks += 1
+                    # Обновляем статус задачи
+                    task.published = True
+                    if not task.publish_date:
+                        task.publish_date = timezone.now()
+                    task.save(update_fields=['published', 'publish_date'])
+
                     status = result.get('status', 'published')
                     if status == 'already_published':
                         self.message_user(
@@ -1911,6 +1926,11 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 
                 if result.get('success'):
                     published_tasks += 1
+                    # Обновляем статус задачи
+                    task.published = True
+                    if not task.publish_date:
+                        task.publish_date = timezone.now()
+                    task.save(update_fields=['published', 'publish_date'])
                     post_url = result.get('post_url', '')
                     facebook_id = result.get('facebook_post_id')
                     story_id = result.get('instagram_story_id')
