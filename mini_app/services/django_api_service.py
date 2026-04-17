@@ -144,15 +144,15 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении деталей подтемы {subtopic_id}: {e}")
             return None
     
-    async def get_comment_detail(self, comment_id: int) -> Optional[Dict[str, Any]]:
+    async def get_comment_detail(self, comment_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение детальной информации о комментарии для deep link"""
-        try:
-            # Используем endpoint detail-for-deeplink, который возвращает информацию о комментарии
-            # вместе с информацией о задаче, подтеме и теме
-            # Формат URL: /api/tasks/translations/{translation_id}/comments/{comment_id}/detail-for-deeplink/
-            # Но нам нужен comment_id, поэтому сначала получим комментарий через стандартный endpoint
-            # или создадим отдельный endpoint без translation_id
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
             
+        try:
             # Используем отдельный endpoint для получения комментария по ID без translation_id
             data = await self._make_request("GET", f"/api/tasks/comments/{comment_id}/detail-for-deeplink/", headers=headers)
             return data
@@ -242,10 +242,16 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении/создании профиля: {e}")
             raise
 
-    async def get_user_profile(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user_profile(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение профиля пользователя"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("GET", f"/api/accounts/profile/by-telegram/{telegram_id}/")
+            data = await self._make_request("GET", f"/api/accounts/profile/by-telegram/{telegram_id}/", headers=headers)
             return data
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:

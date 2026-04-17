@@ -53,7 +53,11 @@ async def index(
             logger.info(f"🔗 Deep link для комментария: comment_id={comment_id}")
             # Получаем информацию о комментарии через Django API
             try:
-                comment_data = await django_api_service.get_comment_detail(comment_id)
+                # Получаем хост и схему для тенанта
+                host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+                scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+                
+                comment_data = await django_api_service.get_comment_detail(comment_id, host=host, scheme=scheme)
                 if comment_data:
                     translation_id = comment_data.get('translation_id')
                     task_id = comment_data.get('task_id')
@@ -249,8 +253,10 @@ async def top_users(
             try:
                 telegram_id_int = int(telegram_id)
                 # Получаем полный профиль пользователя из Django API для проверки is_admin
-                # Используем метод get_miniapp_user_by_telegram, который возвращает полный профиль с is_admin
-                user_profile = await django_api_service.get_miniapp_user_by_telegram(telegram_id_int)
+                # Используем метод get_miniapp_user_by_telegram, который возвращает полный профиль с полем is_admin
+                host = request.headers.get('x-forwarded-host') or request.headers.get('host')
+                scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+                user_profile = await django_api_service.get_miniapp_user_by_telegram(telegram_id_int, host=host, scheme=scheme)
                 if user_profile and user_profile.get('is_admin'):
                     is_admin = True
                     logger.info(f"Пользователь {telegram_id_int} является админом")
