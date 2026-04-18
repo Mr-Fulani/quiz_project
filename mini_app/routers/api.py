@@ -48,7 +48,8 @@ def get_proxy_headers(request: Request):
     
     headers = {
         'X-Forwarded-Host': host,
-        'X-Forwarded-Proto': scheme
+        'X-Forwarded-Proto': scheme,
+        'Host': host
     }
     
     # Также передаем CSRF если он есть (хотя для API он не всегда нужен)
@@ -377,6 +378,7 @@ async def update_miniapp_user_profile(telegram_id: int, request: Request):
                     django_update_url, 
                     files=files if files else None,
                     data=data if data else None,
+                    headers=get_proxy_headers(request),
                     timeout=30.0
                 )
                     
@@ -398,6 +400,7 @@ async def update_miniapp_user_profile(telegram_id: int, request: Request):
                 response = await client.patch(
                     django_update_url,
                     json=profile_data,
+                    headers=get_proxy_headers(request),
                     timeout=30.0
                 )
             
@@ -870,15 +873,8 @@ async def submit_feedback(request: Request):
         
         # Передаем исходный домен/схему в Django, чтобы TenantMiddleware
         # корректно определил tenant для feedback и связанных уведомлений.
-        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
-        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
-        headers = {}
-        if host:
-            headers['X-Forwarded-Host'] = host
-            headers['Host'] = host
-        if scheme:
-            headers['X-Forwarded-Proto'] = scheme
-        logger.info(f"📡 Feedback proxy headers: host={host}, scheme={scheme}")
+        headers = get_proxy_headers(request)
+        logger.info(f"📡 Feedback proxy headers: {headers}")
         
         async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
             if image_files:
@@ -1138,6 +1134,7 @@ async def create_telegram_stars_invoice(request: Request):
                     'telegram_id': telegram_id,
                     'source': source
                 },
+                headers=get_proxy_headers(request),
                 timeout=30.0
             )
         
@@ -1379,21 +1376,13 @@ async def create_task_comment(translation_id: int, request: Request):
             
             for key, value in form_data.items():
                 if key == 'images':
-                    # Обрабатываем изображения
+                    # Изображения обрабатываем отдельно в списке files
                     if hasattr(value, 'read'):
                         file_content = await value.read()
                         files.append(('images', (value.filename, file_content, value.content_type)))
                 else:
+                    # Остальные поля добавляем в data
                     data[key] = value
-            
-            # Получаем все изображения из form_data
-            images = form_data.getlist('images')
-            if images:
-                files = []
-                for img in images:
-                    if hasattr(img, 'read'):
-                        file_content = await img.read()
-                        files.append(('images', (img.filename, file_content, img.content_type)))
             
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.post(
