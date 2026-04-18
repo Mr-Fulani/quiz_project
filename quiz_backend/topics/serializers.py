@@ -70,6 +70,9 @@ class SubtopicWithTasksSerializer(serializers.ModelSerializer):
         """Возвращает количество задач по уровням сложности на активном языке."""
         request = self.context.get('request')
         language = 'en'
+        if request:
+            language = request.query_params.get('language', 'en')
+            
         from django.db.models import Q
         qs = obj.tasks.filter(Q(published=True) | Q(published_mini_app=True), translations__language=language)
         return {
