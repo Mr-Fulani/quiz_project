@@ -1,0 +1,132 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .confirm-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .confirm-container h1 {
+            color: #417690;
+            margin-top: 0;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        .form-row {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .form-row label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .theme-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .task-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-top: 10px;
+            background: #fff;
+        }
+        .task-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #f9f9f9;
+        }
+        .submit-row {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        .button {
+            padding: 12px 25px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: 0.2s;
+        }
+        .button.default {
+            background: #417690;
+            color: #fff;
+            border: none;
+        }
+        .button.default:hover {
+            background: #2e5266;
+        }
+        .button.cancel {
+            background: #eee;
+            color: #333;
+        }
+        .button.cancel:hover {
+            background: #ddd;
+        }
+        .warning-text {
+            color: #ba2121;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="confirm-container">
+    <h1>🎨 {% trans "Генерация изображений" %}</h1>
+    
+    <p>{% trans "Вы выбрали" %} <strong>{{ queryset.count }}</strong> {% trans "задач для генерации изображений. Пожалуйста, выберите тему оформления." %}</p>
+    
+    <div class="warning-text">
+        ⚠️ {% trans "Все существующие изображения для выбранных задач будут перезаписаны!" %}
+    </div>
+
+    <form action="" method="post">
+        {% csrf_token %}
+        
+        {% for task in queryset %}
+            <input type="hidden" name="{{ action_checkbox_name }}" value="{{ task.pk }}">
+        {% endfor %}
+        
+        <input type="hidden" name="action" value="generate_images">
+        <input type="hidden" name="post" value="yes">
+
+        <div class="form-row">
+            <label for="image_theme">Выберите тему оформления:</label>
+            <select name="image_theme" id="image_theme" class="theme-select">
+                <option value="code" {% if request.tenant.slug != 'iqro-forum' %}selected{% endif %}>💻 Консоль (для программирования)</option>
+                <option value="islamic" {% if request.tenant.slug == 'iqro-forum' %}selected{% endif %}>🕌 Исламская (для религиозных тем)</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label>{% trans "Список задач:" %}</label>
+            <div class="task-list">
+                {% for task in queryset %}
+                    <div class="task-item">#{{ task.id }}: {{ task.topic.name }} - {{ task.translations.first.question|truncatechars:100 }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="submit-row">
+            <input type="submit" value="🚀 {% trans 'Начать генерацию' %}" class="button default">
+            <a href="." class="button cancel">❌ {% trans 'Отмена' %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -756,8 +756,10 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             try:
                 # Получаем тенанта из запроса (устанавливается TenantMiddleware)
                 tenant = getattr(request, 'tenant', None)
+                # Получаем выбранную тему изображений
+                image_theme = request.POST.get('image_theme', 'code')
                 # Импортируем задачи
-                result = import_tasks_from_json(temp_path, publish=publish, tenant=tenant)
+                result = import_tasks_from_json(temp_path, publish=publish, tenant=tenant, image_theme=image_theme)
                 
                 # Удаляем временный файл
                 os.remove(temp_path)
@@ -1256,9 +1258,10 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     logger.info(f"Генерация изображения для задачи {task.id} (язык: {topic_name})")
                     
                     try:
-                        # Генерируем изображение (используем логику из generate_images)
-                        tenant_slug = getattr(request, 'tenant', None).slug if getattr(request, 'tenant', None) else None
-                        image = generate_image_for_task(first_translation.question, topic_name, tenant_slug=tenant_slug)
+                        # Генерируем изображение с темой по умолчанию для тенанта
+                        tenant = getattr(request, 'tenant', None)
+                        image_theme = 'islamic' if tenant and tenant.slug == 'iqro-forum' else 'code'
+                        image = generate_image_for_task(first_translation.question, topic_name, theme=image_theme)
                         
                         if image:
                             # Формируем имя файла в формате, как в боте (используем логику из generate_images)
@@ -1520,23 +1523,30 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             )
     
     @admin.action(description='Сгенерировать изображения для выбранных задач')
+    @admin.action(description='🎨 Сгенерировать изображения')
     def generate_images(self, request, queryset):
         """
-        Генерирует и загружает изображения для задач с детальными логами.
+        Генерирует изображения для выбранных задач.
+        Сначала показывает промежуточную страницу выбора темы.
         """
+        # Если тема еще не выбрана, показываем страницу подтверждения
+        if 'post' not in request.POST:
+            from django.template.response import TemplateResponse
+            return TemplateResponse(request, 'admin/tasks/generate_images_confirm.html', {
+                'queryset': queryset,
+                'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+            })
+
+        # Тема выбрана, приступаем к генерации
+        image_theme = request.POST.get('image_theme', 'code')
         generated_count = 0
         skipped_count = 0
         errors = []
         total_tasks = queryset.count()
         
-        self.message_user(request, f"📊 Начинаем генерацию изображений для {total_tasks} задач...", messages.INFO)
+        self.message_user(request, f"📊 Начинаем генерацию изображений ({image_theme}) для {total_tasks} задач...", messages.INFO)
         
         for task in queryset:
-            if task.image_url:
-                skipped_count += 1
-                self.message_user(request, f"⏭️ Задача {task.id}: изображение уже существует", messages.INFO)
-                continue
-            
             # Получаем первый перевод для генерации
             translation = task.translations.first()
             if not translation:
@@ -1548,11 +1558,10 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             try:
                 topic_name = task.topic.name if task.topic else 'python'
                 
-                self.message_user(request, f"🎨 Генерация изображения для задачи {task.id} (язык: {topic_name})...", messages.INFO)
+                self.message_user(request, f"🎨 Генерация изображения для задачи {task.id} (тема: {image_theme})...", messages.INFO)
                 
-                tenant_slug = getattr(request, 'tenant', None).slug if getattr(request, 'tenant', None) else None
-                # Генерируем изображение
-                image = generate_image_for_task(translation.question, topic_name, tenant_slug=tenant_slug)
+                # Генерируем изображение с выбранной темой
+                image = generate_image_for_task(translation.question, topic_name, theme=image_theme)
                 
                 if image:
                     # Формируем имя файла в формате, как в боте
@@ -1567,11 +1576,10 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     
                     if image_url:
                         task.image_url = image_url
-                        task.error = False  # Сбрасываем ошибку если генерация успешна
+                        task.error = False
                         task.save(update_fields=['image_url', 'error'])
                         generated_count += 1
                         self.message_user(request, f"✅ Задача {task.id}: изображение загружено в S3", messages.SUCCESS)
-                        self.message_user(request, f"   URL: {image_url}", messages.INFO)
                     else:
                         task.error = True
                         task.save(update_fields=['error'])
@@ -1593,7 +1601,7 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
         
         # Итоговое сообщение
         self.message_user(request, "=" * 60, messages.INFO)
-        self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, пропущено {skipped_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
+        self.message_user(request, f"🎉 ЗАВЕРШЕНО: Сгенерировано {generated_count}, ошибок {len(errors)}", messages.SUCCESS if generated_count > 0 else messages.INFO)
     
     @admin.action(description='🎬 Сгенерировать видео')
     def generate_videos(self, request, queryset):
