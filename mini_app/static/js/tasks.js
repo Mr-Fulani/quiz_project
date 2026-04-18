@@ -224,18 +224,16 @@ if (window.TaskManagerAlreadyLoaded) {
             });
             
             // Добавляем логику для уже решенных задач после установки всех обработчиков
+            // Перебираем все задачи для начальной настройки
             document.querySelectorAll('.task-item').forEach(taskItem => {
+                const taskId = taskItem.dataset.taskId;
+                
+                // Всегда показываем объяснение автоматически (без прокрутки при инициализации)
+                this.showExplanation(taskItem, true);
+
                 if (taskItem.dataset.solved === 'true') {
-                    const taskId = taskItem.dataset.taskId;
-                    const explanationElement = document.getElementById(`explanation-${taskId}`);
-                    
                     // Блокируем все ответы, кроме "Не знаю"
                     this.disableAllAnswers(taskItem, true);
-                    
-                    // Если задача решена, сразу показываем объяснение, если оно есть
-                    if (explanationElement) {
-                        this.showExplanation(taskItem);
-                    }
                     
                     // Отмечаем правильный ответ, если задача уже решена
                     const answerOptions = taskItem.querySelectorAll('.answer-option');
@@ -276,7 +274,7 @@ if (window.TaskManagerAlreadyLoaded) {
                         // Блокируем все ответы, кроме "Не знаю"
                         this.disableAllAnswers(taskItem, true);
                         this.showCorrectAnswer(taskItem);
-                        this.showExplanation(taskItem);
+                        this.showExplanation(taskItem, true);
                     }
                 });
             } catch (e) {
@@ -891,8 +889,9 @@ if (window.TaskManagerAlreadyLoaded) {
         /**
          * Показывает объяснение задачи
          * @param {HTMLElement} taskItem - Элемент задачи
+         * @param {boolean} skipScroll - Если true, не прокручивать к объяснению
          */
-        showExplanation(taskItem) {
+        showExplanation(taskItem, skipScroll = false) {
             const taskId = taskItem.dataset.taskId;
             const explanationDiv = document.getElementById(`explanation-${taskId}`);
             
@@ -948,12 +947,14 @@ if (window.TaskManagerAlreadyLoaded) {
                 }
                 
                 explanationDiv.style.display = 'block';
-                setTimeout(() => {
-                explanationDiv.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-                }, 100);
+                if (!skipScroll) {
+                    setTimeout(() => {
+                        explanationDiv.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }, 100);
+                }
             }
         }
 
