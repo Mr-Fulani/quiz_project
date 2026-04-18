@@ -186,6 +186,31 @@
         .hidden {
             display: none !important;
         }
+        .theme-select {
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 18px;
+            padding-right: 45px;
+        }
+        .theme-select:focus {
+            outline: none;
+            border-color: #417690;
+            box-shadow: 0 0 0 3px rgba(65, 118, 144, 0.1);
+        }
+        .theme-select option {
+            padding: 10px;
+        }
     </style>
 {% endblock %}
 
@@ -256,7 +281,7 @@
         
         <div class="form-group">
             <label for="image_theme">Выберите тему изображений:</label>
-            <select id="image_theme" name="image_theme" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
+            <select id="image_theme" name="image_theme" class="theme-select">
                 <option value="code" {% if request.tenant.slug != 'iqro-forum' %}selected{% endif %}>💻 Консоль (Code)</option>
                 <option value="islamic" {% if request.tenant.slug == 'iqro-forum' %}selected{% endif %}>🕌 Исламская (Islamic)</option>
             </select>
