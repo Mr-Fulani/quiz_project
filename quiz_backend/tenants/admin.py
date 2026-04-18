@@ -44,20 +44,47 @@ class TenantAdmin(admin.ModelAdmin):
         }),
     )
 
-    def has_module_perms(self, request):
-        """Только суперпользователи видят этот раздел."""
-        return request.user.is_superuser
+    def get_queryset(self, request):
+        """Обычные админы видят только свой тенант."""
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        # Если это персонал тенанта, фильтруем по текущему тенанту из request
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            return qs.filter(id=tenant.id)
+        return qs.none()
 
-    def has_add_permission(self, request):
-        return request.user.is_superuser
+    def get_readonly_fields(self, request, obj=None):
+        """Обычные админы не могут менять домены и критические настройки."""
+        readonly = list(self.readonly_fields)
+        if not request.user.is_superuser:
+            # Добавляем в readonly критические поля
+            critical_fields = [
+                'slug', 'domain', 'mini_app_domain', 'bot_token', 
+                'bot_username', 'is_active'
+            ]
+            for field in critical_fields:
+                if field not in readonly:
+                    readonly.append(field)
+        return readonly
+
+    def has_module_perms(self, request):
+        """Разрешаем доступ персоналу."""
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
 
     def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        """Добавлять тенанты может только суперпользователь."""
         return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
-        return request.user.is_superuser
-
-    def has_view_permission(self, request, obj=None):
+        """Удалять тенанты может только суперпользователь."""
         return request.user.is_superuser
 
     def domain_link(self, obj):
