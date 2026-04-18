@@ -6,7 +6,7 @@ import json
 import logging
 import random
 import uuid
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from django.db import transaction
 from django.conf import settings
