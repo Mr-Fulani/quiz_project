@@ -262,21 +262,19 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении профиля пользователя {telegram_id}: {e}")
             return None
     
-    async def get_miniapp_user_by_telegram(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_miniapp_user_by_telegram(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """
         Получение полного профиля пользователя Mini App по telegram_id.
-        
-        Использует эндпоинт /api/accounts/miniapp-users/by-telegram/{telegram_id}/,
-        который возвращает полный профиль с полем is_admin.
-        
-        Args:
-            telegram_id: Telegram ID пользователя
-            
-        Returns:
-            Dict с данными профиля или None в случае ошибки
         """
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+            headers['Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("GET", f"/api/accounts/miniapp-users/by-telegram/{telegram_id}/")
+            data = await self._make_request("GET", f"/api/accounts/miniapp-users/by-telegram/{telegram_id}/", headers=headers)
             return data
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
@@ -287,10 +285,17 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении профиля Mini App пользователя {telegram_id}: {e}")
             return None
     
-    async def update_user_profile(self, telegram_id: int, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def update_user_profile(self, telegram_id: int, profile_data: Dict[str, Any], host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Обновление профиля пользователя"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+            headers['Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
-            data = await self._make_request("PATCH", f"/api/accounts/profile/by-telegram/{telegram_id}/update/", json=profile_data)
+            data = await self._make_request("PATCH", f"/api/accounts/profile/by-telegram/{telegram_id}/update/", json=profile_data, headers=headers)
             return data
         except Exception as e:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")
