@@ -227,7 +227,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None) -
                                 
                                 try:
                                     # Генерируем изображение
-                                    image = generate_image_for_task(question, topic_name)
+                                    image = generate_image_for_task(question, topic_name, tenant_slug=tenant.slug if tenant else None)
                                     
                                     if image:
                                         # Формируем имя файла в формате, как в боте

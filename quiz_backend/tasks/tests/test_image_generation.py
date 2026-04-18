@@ -122,3 +122,23 @@ class ImageGenerationServiceTestCase(TestCase):
         self.assertIsNotNone(image)
         self.assertIsInstance(image, Image.Image)
 
+    def test_generate_islamic_image(self):
+        """
+        Тест генерации изображения для тенанта iqro-forum (исламская тематика).
+        """
+        question = "Что такое таваккуль?"
+        topic_name = "Ислам"
+        tenant_slug = "iqro-forum"
+        
+        image = generate_image_for_task(question, topic_name, tenant_slug=tenant_slug)
+        
+        self.assertIsNotNone(image)
+        self.assertIsInstance(image, Image.Image)
+        # Проверяем размеры
+        self.assertEqual(image.width, 1600)
+        self.assertEqual(image.height, 1000)
+        
+        # Проверяем цвет фона (должен быть изумрудным (6, 78, 59))
+        pixel = image.getpixel((WIDTH // 2, HEIGHT // 2)) if 'WIDTH' in locals() else image.getpixel((800, 500))
+        self.assertEqual(pixel, (6, 78, 59))
+
