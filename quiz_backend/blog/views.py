@@ -1220,17 +1220,21 @@ class QuizesView(BreadcrumbsMixin, ListView):
         if not tenant:
             return Topic.objects.none()
         
-        # Задача доступна на сайте если published=True (Telegram) ИЛИ published_website=True
-        site_published = Q(tasks__published=True) | Q(tasks__published_website=True)
+        # Получаем текущий язык (первые 2 символа: 'ru', 'en')
+        preferred_language = get_language()[:2]
+        lang_filter = Q(tasks__translations__language=preferred_language)
+        
+        # Задача доступна на сайте если (published=True ИЛИ published_website=True) И есть перевод
+        site_published = (Q(tasks__published=True) | Q(tasks__published_website=True)) & lang_filter
         
         # Фильтруем данные конкретно этого тенанта
         queryset = Topic.objects.filter(tenant=tenant).filter(site_published).distinct()
         
-        # Аннотируем общее количество опубликованных (для сайта) задач в теме
+        # Аннотируем общее количество опубликованных (на текущем языке) задач в теме
         queryset = queryset.annotate(
             questions_count=Count(
                 'tasks',
-                filter=Q(tasks__published=True) | Q(tasks__published_website=True),
+                filter=(Q(tasks__published=True) | Q(tasks__published_website=True)) & lang_filter,
                 distinct=True
             )
         )
@@ -1242,7 +1246,7 @@ class QuizesView(BreadcrumbsMixin, ListView):
                     'tasks__translation_group_id',
                     filter=Q(
                         tasks__statistics__user=self.request.user
-                    ) & (Q(tasks__published=True) | Q(tasks__published_website=True)),
+                    ) & (Q(tasks__published=True) | Q(tasks__published_website=True)) & lang_filter,
                     distinct=True
                 )
             )
@@ -1308,7 +1312,7 @@ class QuizDetailView(BreadcrumbsMixin, ListView):
         """
         topic_name = self.kwargs['quiz_type'].lower()
         topic = get_object_or_404(Topic, name__iexact=topic_name)
-        preferred_language = get_language()
+        preferred_language = get_language()[:2]
         
         # Задача видна на сайте если published=True (опубликована в TG) ИЛИ published_website=True
         site_published = Q(published=True) | Q(published_website=True)
