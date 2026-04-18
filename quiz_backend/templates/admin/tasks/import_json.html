@@ -255,6 +255,17 @@
         </div>
         
         <div class="form-group">
+            <label for="image_theme">Выберите тему изображений:</label>
+            <select id="image_theme" name="image_theme" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
+                <option value="code" {% if request.tenant.slug != 'iqro-forum' %}selected{% endif %}>💻 Консоль (Code)</option>
+                <option value="islamic" {% if request.tenant.slug == 'iqro-forum' %}selected{% endif %}>🕌 Исламская (Islamic)</option>
+            </select>
+            <div class="help-text">
+                Эта тема будет применена ко всем генерируемым изображениям для этих задач.
+            </div>
+        </div>
+        
+        <div class="form-group">
             <div class="checkbox-group">
                 <input type="checkbox" 
                        id="publish" 

@@ -559,14 +559,14 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
 
 
 
-def generate_image_for_task(task_question: str, topic_name: str, tenant_slug: Optional[str] = None) -> Optional[Image.Image]:
+def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'code') -> Optional[Image.Image]:
     """
-    Генерирует изображение для задачи, учитывая тенант и тему.
+    Генерирует изображение для задачи, используя выбранную тему.
     
     Args:
         task_question: Текст вопроса задачи
         topic_name: Название темы
-        tenant_slug: Слаг тенанта (например, 'quiz-code', 'iqro-forum')
+        theme: Тема оформления ('code', 'islamic')
         
     Returns:
         PIL Image объект или None при ошибке
@@ -618,11 +618,12 @@ def generate_image_for_task(task_question: str, topic_name: str, tenant_slug: Op
             logger.warning("⚠️ Путь к логотипу не установлен или файл не существует, изображение будет создано без логотипа")
             logo_path = None  # Убеждаемся, что None если файла нет
         
-        if tenant_slug == 'iqro-forum':
-            logger.info(f"🕌 Используется исламская тематика для тенанта: {tenant_slug}")
+        if theme == 'islamic':
+            logger.info(f"🕌 Используется исламская тематика (тема: {theme})")
             image = generate_islamic_image(task_question, logo_path)
         else:
-            logger.info(f"💻 Используется консольная тематика для тенанта: {tenant_slug or 'default'}")
+            # По умолчанию используем 'code' (консоль)
+            logger.info(f"💻 Используется консольная тематика (тема: {theme})")
             image = generate_console_image(code, detected_language, logo_path)
             
         return image
