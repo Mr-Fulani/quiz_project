@@ -505,7 +505,8 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
             logo_y = border_padding + 20
             image.paste(logo, (logo_x, logo_y), logo)
             # Текст теперь может начинаться выше, так как логотип не по центру
-            text_y_offset = HEIGHT // 4
+            # Но не слишком высоко, чтобы не пересекаться с логотипом по вертикали (если текст широкий)
+            text_y_offset = 320
         except Exception as e:
             logger.error(f"Ошибка при загрузке логотипа: {e}")
             text_y_offset = HEIGHT // 3
@@ -513,8 +514,8 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
         text_y_offset = HEIGHT // 3
 
     # Подготовка текста
-    # Оборачиваем текст
-    wrapped_text = wrap_text(text, max_line_length=40)
+    # Оборачиваем текст более плотно, чтобы он не выходил за рамки (32 символа - безопасно для кириллицы)
+    wrapped_text = wrap_text(text, max_line_length=32)
     
     # Попытка загрузить шрифт
     font = None
@@ -528,7 +529,8 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
         ]
         for path in font_paths:
             if os.path.exists(path):
-                font = ImageFont.truetype(path, 60)
+                # Немного уменьшаем шрифт для лучшей вмещаемости
+                font = ImageFont.truetype(path, 55)
                 break
     except Exception:
         pass
