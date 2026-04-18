@@ -561,7 +561,7 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
 
 
 
-def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'code') -> Optional[Image.Image]:
+def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'code', custom_logo_path: Optional[str] = None) -> Optional[Image.Image]:
     """
     Генерирует изображение для задачи, используя выбранную тему.
     
@@ -569,6 +569,7 @@ def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'c
         task_question: Текст вопроса задачи
         topic_name: Название темы
         theme: Тема оформления ('code', 'islamic')
+        custom_logo_path: Явный путь к логотипу (например, загруженный тенантом)
         
     Returns:
         PIL Image объект или None при ошибке
@@ -586,16 +587,26 @@ def generate_image_for_task(task_question: str, topic_name: str, theme: str = 'c
 
         logger.info(f"Генерация изображения, язык: {detected_language}")
         
-        # Получаем путь к логотипу: сначала из переменной окружения, потом из настроек, потом fallback
-        logo_path = os.getenv('LOGO_PATH')
+        # Резолвим логотип
+        logo_path = None
+        
+        # 1. Если передан кастомный путь (из админки тенанта), используем его в приоритете
+        if custom_logo_path and os.path.exists(custom_logo_path):
+            logo_path = custom_logo_path
+            logger.info(f"🖼️ Использован кастомный логотип тенанта: {logo_path}")
+        
+        # 2. Если кастомного нет или он недоступен, пробуем глобальные настройки
         if not logo_path:
-            logo_path = getattr(settings, 'LOGO_PATH', None)
+            logo_path = os.getenv('LOGO_PATH')
+            if not logo_path:
+                logo_path = getattr(settings, 'LOGO_PATH', None)
+            
+            # Если путь из настроек есть, но файл не существует - пробуем fallback
+            if logo_path and not os.path.exists(logo_path):
+                logger.warning(f"⚠️ Логотип по пути из настроек не найден: {logo_path}, пробуем fallback...")
+                logo_path = None
         
-        # Если путь из настроек есть, но файл не существует - пробуем fallback
-        if logo_path and not os.path.exists(logo_path):
-            logger.warning(f"⚠️ Логотип по пути из настроек не найден: {logo_path}, пробуем fallback...")
-            logo_path = None
-        
+        # 3. Fallback поиск в ассетах
         if not logo_path:
             # Fallback: ищем логотип в bot/assets/logo.png (как в боте)
             # Список возможных путей в порядке приоритета
