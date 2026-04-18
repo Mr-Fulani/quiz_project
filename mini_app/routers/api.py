@@ -170,17 +170,20 @@ async def verify_init_data(request: Request):
 
 
 @router.get("/profile/by-telegram/{telegram_id}/")
-async def get_profile_by_telegram_id(telegram_id: int):
+async def get_profile_by_telegram_id(telegram_id: int, request: Request):
     """
     Проксирует запрос к Django API для получения профиля по telegram_id.
     """
     logger.info(f"Fetching profile from Django for telegram_id: {telegram_id}")
     django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/profile/by-telegram/{telegram_id}/"
-    headers = {}  # Временно убираем токен для тестирования
 
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(django_url, headers=headers, timeout=10.0)
+            response = await client.get(
+                django_url, 
+                headers=get_proxy_headers(request), 
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             return JSONResponse(content=response.json())
@@ -196,17 +199,20 @@ async def get_profile_by_telegram_id(telegram_id: int):
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 @router.get("/accounts/miniapp-users/by-telegram/{telegram_id}/")
-async def get_miniapp_user_by_telegram_id(telegram_id: int):
+async def get_miniapp_user_by_telegram_id(telegram_id: int, request: Request):
     """
     Проксирует запрос к Django API для получения MiniApp пользователя по telegram_id.
     """
     logger.info(f"Fetching MiniApp user from Django for telegram_id: {telegram_id}")
     django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/by-telegram/{telegram_id}/"
-    headers = {}  # Временно убираем токен для тестирования
 
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(django_url, headers=headers, timeout=10.0)
+            response = await client.get(
+                django_url, 
+                headers=get_proxy_headers(request), 
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             return JSONResponse(content=response.json())
@@ -240,7 +246,12 @@ async def update_last_seen(request: Request):
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/update-last-seen/"
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.post(django_url, json=data, timeout=10.0)
+            response = await client.post(
+                django_url, 
+                json=data, 
+                headers=get_proxy_headers(request), 
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             return JSONResponse(content=response.json())
@@ -751,7 +762,12 @@ async def submit_task_answer(task_id: int, request: Request):
         }
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.post(django_url, json=payload, timeout=10.0)
+            response = await client.post(
+                django_url, 
+                json=payload, 
+                headers=get_proxy_headers(request), 
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             return JSONResponse(content=response.json())
@@ -897,7 +913,7 @@ async def submit_feedback(request: Request):
 
 
 @router.get("/admin-analytics/overview")
-async def get_admin_analytics_overview(telegram_id: int):
+async def get_admin_analytics_overview(telegram_id: int, request: Request):
     """
     Получение общей статистики для админ-панели.
     Проксирует запрос к Django API с проверкой прав доступа.
@@ -911,14 +927,13 @@ async def get_admin_analytics_overview(telegram_id: int):
         
         logger.info(f"📊 Proxy request to: {django_url} with params: {params}")
         
-        headers = {
-            'Host': 'localhost',
-            'X-Forwarded-For': '127.0.0.1',
-            'X-Forwarded-Proto': 'http'
-        }
-        
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(django_url, params=params, headers=headers, timeout=10.0)
+            response = await client.get(
+                django_url, 
+                params=params, 
+                headers=get_proxy_headers(request), 
+                timeout=10.0
+            )
         
         if response.status_code == 200:
             logger.info(f"✅ Статистика получена для telegram_id: {telegram_id}")
@@ -936,7 +951,7 @@ async def get_admin_analytics_overview(telegram_id: int):
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
+        logger.error(f"An unexpected error occurred in get_admin_analytics_overview: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
 
@@ -1150,27 +1165,17 @@ async def create_telegram_stars_invoice(request: Request):
 @router.post("/accounts/miniapp-users/{telegram_id}/avatars/")
 async def upload_user_avatar(
     telegram_id: int,
+    request: Request,
     image: UploadFile = File(...),
     order: int = Form(None)
 ):
     """
     Загрузка новой аватарки для пользователя Mini App.
-    
-    Args:
-        telegram_id: Telegram ID пользователя
-        image: Файл изображения аватарки (фото или GIF)
-        order: Порядок отображения (0, 1, 2). Если не указан, будет автоматически присвоен
-        
-    Returns:
-        JSONResponse: Данные загруженной аватарки
     """
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/"
         
-        # Читаем файл
         file_content = await image.read()
-        
-        # Подготавливаем файл для отправки
         files = {'image': (image.filename, file_content, image.content_type)}
         data = {}
         if order is not None:
@@ -1181,6 +1186,7 @@ async def upload_user_avatar(
                 django_url,
                 files=files,
                 data=data,
+                headers=get_proxy_headers(request),
                 timeout=30.0
             )
         
@@ -1199,22 +1205,19 @@ async def upload_user_avatar(
 
 
 @router.delete("/accounts/miniapp-users/{telegram_id}/avatars/{avatar_id}/")
-async def delete_user_avatar(telegram_id: int, avatar_id: int):
+async def delete_user_avatar(telegram_id: int, avatar_id: int, request: Request):
     """
     Удаление аватарки пользователя Mini App.
-    
-    Args:
-        telegram_id: Telegram ID пользователя
-        avatar_id: ID аватарки для удаления
-        
-    Returns:
-        Response: Пустой ответ с кодом 204
     """
     try:
         django_url = f"{settings.DJANGO_API_BASE_URL}/api/accounts/miniapp-users/{telegram_id}/avatars/{avatar_id}/"
         
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.delete(django_url, timeout=30.0)
+            response = await client.delete(
+                django_url, 
+                headers=get_proxy_headers(request),
+                timeout=30.0
+            )
         
         if response.status_code == 204:
             logger.info(f"✅ Avatar {avatar_id} deleted successfully for user {telegram_id}")
@@ -1252,6 +1255,7 @@ async def reorder_user_avatars(telegram_id: int, request: Request):
             response = await client.patch(
                 django_url,
                 json=body,
+                headers=get_proxy_headers(request),
                 timeout=30.0
             )
         
