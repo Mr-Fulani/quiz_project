@@ -47,8 +47,12 @@ class TenantAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Обычные админы видят только свой тенант."""
         qs = super().get_queryset(request)
+        if not request or not request.user:
+            return qs.none()
+            
         if request.user.is_superuser:
             return qs
+            
         # Если это персонал тенанта, фильтруем по текущему тенанту из request
         tenant = getattr(request, 'tenant', None)
         if tenant:
@@ -58,6 +62,9 @@ class TenantAdmin(admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         """Обычные админы не могут менять домены и критические настройки."""
         readonly = list(self.readonly_fields)
+        if not request or not request.user:
+            return readonly
+            
         if not request.user.is_superuser:
             # Добавляем в readonly критические поля
             critical_fields = [
@@ -68,6 +75,15 @@ class TenantAdmin(admin.ModelAdmin):
                 if field not in readonly:
                     readonly.append(field)
         return readonly
+
+    def get_prepopulated_fields(self, request, obj=None):
+        """
+        Отключаем автозаполнение слага для обычных админов, 
+        так как это поле для них readonly (конфликт в Django Admin).
+        """
+        if request.user and not request.user.is_superuser:
+            return {}
+        return self.prepopulated_fields
 
     def has_module_perms(self, request):
         """Разрешаем доступ персоналу."""
