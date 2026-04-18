@@ -224,14 +224,14 @@ if (window.TaskManagerAlreadyLoaded) {
             });
             
             // Добавляем логику для уже решенных задач после установки всех обработчиков
-            // Перебираем все задачи для начальной настройки
+            // Добавляем логику для уже решенных задач после установки всех обработчиков
             document.querySelectorAll('.task-item').forEach(taskItem => {
-                const taskId = taskItem.dataset.taskId;
-                
-                // Всегда показываем объяснение автоматически (без прокрутки при инициализации)
-                this.showExplanation(taskItem, true);
-
                 if (taskItem.dataset.solved === 'true') {
+                    const taskId = taskItem.dataset.taskId;
+                    
+                    // Показываем объяснение для уже решенных задач (без прокрутки)
+                    this.showExplanation(taskItem, true);
+
                     // Блокируем все ответы, кроме "Не знаю"
                     this.disableAllAnswers(taskItem, true);
                     
@@ -492,11 +492,16 @@ if (window.TaskManagerAlreadyLoaded) {
                         this.showCorrectAnswer(taskItem);
                     }
                     
-                    // Переключаем объяснение для варианта "Не знаю, но хочу узнать"
+                    // Раскрываем объяснение
                     if (isDontKnow) {
+                        // Для варианта "Не знаю" используем toggle (развернуть/свернуть)
                         this.toggleExplanation(taskItem);
-                        taskItem.dataset.solved = 'true';
+                    } else {
+                        // Для обычных ответов (прав/неправ) - принудительно показываем
+                        this.showExplanation(taskItem);
                     }
+                    
+                    taskItem.dataset.solved = 'true';
                     
                     // Показываем уведомление
                     this.showNotification(isCorrect, isDontKnow);
@@ -507,11 +512,12 @@ if (window.TaskManagerAlreadyLoaded) {
                     this.disableAllAnswers(taskItem, true);
                     // Подсветим правильный ответ
                     this.showCorrectAnswer(taskItem);
-                    // Для "Не знаю" переключаем объяснение, но не показываем сообщение об ошибке
+                    
+                    // Показываем объяснение при повторном клике на уже решенную задачу
                     if (isDontKnow) {
                         this.toggleExplanation(taskItem);
                     } else {
-                        this.showToast(window.t ? window.t('already_answered', 'Вы уже отвечали на этот вопрос') : 'Вы уже отвечали на этот вопрос', 'info');
+                        this.showExplanation(taskItem);
                     }
                 } else {
                     console.error('❌ Не удалось отправить ответ');
