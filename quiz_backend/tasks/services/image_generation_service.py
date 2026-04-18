@@ -500,11 +500,12 @@ def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.
             logo = Image.open(logo_path).convert("RGBA")
             fixed_logo_size = (200, 200)
             logo = logo.resize(fixed_logo_size, Resampling.LANCZOS)
-            # Помещаем логотип сверху по центру
-            logo_x = (WIDTH - logo.width) // 2
-            logo_y = border_padding + 60
+            # Помещаем логотип в правый верхний угол (как в quiz-code)
+            logo_x = WIDTH - logo.width - border_padding - 20
+            logo_y = border_padding + 20
             image.paste(logo, (logo_x, logo_y), logo)
-            text_y_offset = logo_y + logo.height + 40
+            # Текст теперь может начинаться выше, так как логотип не по центру
+            text_y_offset = HEIGHT // 4
         except Exception as e:
             logger.error(f"Ошибка при загрузке логотипа: {e}")
             text_y_offset = HEIGHT // 3
