@@ -11,7 +11,7 @@ import textwrap
 from pathlib import Path
 from typing import Tuple, Optional
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from PIL.Image import Resampling
 from pygments import highlight
 from pygments.formatters import ImageFormatter
@@ -458,13 +458,114 @@ def generate_console_image(task_text: str, language: str, logo_path: Optional[st
     return image
 
 
-def generate_image_for_task(task_question: str, topic_name: str) -> Optional[Image.Image]:
+def generate_islamic_image(text: str, logo_path: Optional[str] = None) -> Image.Image:
     """
-    Генерирует изображение для задачи, автоматически определяя язык программирования.
+    Генерация изображения в исламском стиле для iqro-forum.
+    Использует элегантный фон, золотую рамку и центрированный текст.
+    """
+    # Размеры
+    WIDTH, HEIGHT = 1600, 1000
+    
+    # Цвета
+    BG_COLOR = (6, 78, 59)  # Глубокий изумрудно-зеленый
+    GOLD_COLOR = (212, 175, 55)  # Золотой
+    TEXT_COLOR = (255, 255, 255)  # Белый
+    
+    # Создаем изображение
+    image = Image.new("RGB", (WIDTH, HEIGHT), BG_COLOR)
+    draw = ImageDraw.Draw(image)
+    
+    # Рисуем золотую рамку
+    border_padding = 40
+    border_thickness = 15
+    draw.rounded_rectangle(
+        (border_padding, border_padding, WIDTH - border_padding, HEIGHT - border_padding),
+        radius=50,
+        outline=GOLD_COLOR,
+        width=border_thickness
+    )
+    
+    # Добавляем внутреннюю тонкую рамку для изящества
+    inner_padding = border_padding + 25
+    draw.rounded_rectangle(
+        (inner_padding, inner_padding, WIDTH - inner_padding, HEIGHT - inner_padding),
+        radius=40,
+        outline=GOLD_COLOR,
+        width=2
+    )
+
+    # Логотип
+    if logo_path and os.path.exists(logo_path):
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            fixed_logo_size = (200, 200)
+            logo = logo.resize(fixed_logo_size, Resampling.LANCZOS)
+            # Помещаем логотип сверху по центру
+            logo_x = (WIDTH - logo.width) // 2
+            logo_y = border_padding + 60
+            image.paste(logo, (logo_x, logo_y), logo)
+            text_y_offset = logo_y + logo.height + 40
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке логотипа: {e}")
+            text_y_offset = HEIGHT // 3
+    else:
+        text_y_offset = HEIGHT // 3
+
+    # Подготовка текста
+    # Оборачиваем текст
+    wrapped_text = wrap_text(text, max_line_length=40)
+    
+    # Попытка загрузить шрифт
+    font = None
+    try:
+        # Пытаемся найти элегантный шрифт на системе
+        font_paths = [
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+            "/System/Library/Fonts/Times.ttc",
+            "Arial.ttf"
+        ]
+        for path in font_paths:
+            if os.path.exists(path):
+                font = ImageFont.truetype(path, 60)
+                break
+    except Exception:
+        pass
+        
+    if not font:
+        font = ImageFont.load_default()
+
+    # Рисуем текст (центрированный)
+    lines = wrapped_text.split('\n')
+    current_y = text_y_offset
+    
+    for line in lines:
+        try:
+            # В новых версиях PIL (>9.2.0)
+            left, top, right, bottom = draw.textbbox((0, 0), line, font=font)
+            line_width = right - left
+            line_height = bottom - top
+        except AttributeError:
+            # Fallback для старых версий
+            line_width, line_height = draw.textsize(line, font=font)
+            
+        line_x = (WIDTH - line_width) // 2
+        draw.text((line_x, current_y), line, font=font, fill=TEXT_COLOR)
+        current_y += line_height + 25
+
+    return image
+
+
+
+
+def generate_image_for_task(task_question: str, topic_name: str, tenant_slug: Optional[str] = None) -> Optional[Image.Image]:
+    """
+    Генерирует изображение для задачи, учитывая тенант и тему.
     
     Args:
-        task_question: Текст вопроса задачи (может содержать markdown блоки кода)
-        topic_name: Название темы (например, 'Python', 'JavaScript')
+        task_question: Текст вопроса задачи
+        topic_name: Название темы
+        tenant_slug: Слаг тенанта (например, 'quiz-code', 'iqro-forum')
         
     Returns:
         PIL Image объект или None при ошибке
@@ -516,7 +617,13 @@ def generate_image_for_task(task_question: str, topic_name: str) -> Optional[Ima
             logger.warning("⚠️ Путь к логотипу не установлен или файл не существует, изображение будет создано без логотипа")
             logo_path = None  # Убеждаемся, что None если файла нет
         
-        image = generate_console_image(code, detected_language, logo_path)
+        if tenant_slug == 'iqro-forum':
+            logger.info(f"🕌 Используется исламская тематика для тенанта: {tenant_slug}")
+            image = generate_islamic_image(task_question, logo_path)
+        else:
+            logger.info(f"💻 Используется консольная тематика для тенанта: {tenant_slug or 'default'}")
+            image = generate_console_image(code, detected_language, logo_path)
+            
         return image
         
     except Exception as e:

@@ -1257,7 +1257,8 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                     
                     try:
                         # Генерируем изображение (используем логику из generate_images)
-                        image = generate_image_for_task(first_translation.question, topic_name)
+                        tenant_slug = getattr(request, 'tenant', None).slug if getattr(request, 'tenant', None) else None
+                        image = generate_image_for_task(first_translation.question, topic_name, tenant_slug=tenant_slug)
                         
                         if image:
                             # Формируем имя файла в формате, как в боте (используем логику из generate_images)
@@ -1549,8 +1550,9 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 
                 self.message_user(request, f"🎨 Генерация изображения для задачи {task.id} (язык: {topic_name})...", messages.INFO)
                 
+                tenant_slug = getattr(request, 'tenant', None).slug if getattr(request, 'tenant', None) else None
                 # Генерируем изображение
-                image = generate_image_for_task(translation.question, topic_name)
+                image = generate_image_for_task(translation.question, topic_name, tenant_slug=tenant_slug)
                 
                 if image:
                     # Формируем имя файла в формате, как в боте
