@@ -213,6 +213,25 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
             messages.INFO
         )
 
+    def _get_tenant_logo_path(self, request):
+        """
+        Возвращает путь к логотипу текущего тенанта для генерации изображений.
+        Для quiz-code возвращает None, чтобы использовался глобальный логотип.
+        """
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            return None
+        
+        # Для quiz-code оставляем глобальный логотип без изменений
+        if tenant.slug == 'quiz-code':
+            return None
+            
+        # Для остальных тенантов возвращаем путь к загруженному файлу, если он есть
+        if tenant.logo and os.path.exists(tenant.logo.path):
+            return tenant.logo.path
+            
+        return None
+
     fieldsets = (
         ('📚 Основная информация', {
             'fields': ('topic', 'subtopic', 'difficulty')
@@ -758,8 +777,16 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 tenant = getattr(request, 'tenant', None)
                 # Получаем выбранную тему изображений
                 image_theme = request.POST.get('image_theme', 'code')
+                # Получаем путь к логотипу тенанта
+                image_logo_path = self._get_tenant_logo_path(request)
                 # Импортируем задачи
-                result = import_tasks_from_json(temp_path, publish=publish, tenant=tenant, image_theme=image_theme)
+                result = import_tasks_from_json(
+                    temp_path, 
+                    publish=publish, 
+                    tenant=tenant, 
+                    image_theme=image_theme,
+                    image_logo_path=image_logo_path
+                )
                 
                 # Удаляем временный файл
                 os.remove(temp_path)
@@ -1261,7 +1288,13 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                         # Генерируем изображение с темой по умолчанию для тенанта
                         tenant = getattr(request, 'tenant', None)
                         image_theme = 'islamic' if tenant and tenant.slug == 'iqro-forum' else 'code'
-                        image = generate_image_for_task(first_translation.question, topic_name, theme=image_theme)
+                        image_logo_path = self._get_tenant_logo_path(request)
+                        image = generate_image_for_task(
+                            first_translation.question, 
+                            topic_name, 
+                            theme=image_theme,
+                            custom_logo_path=image_logo_path
+                        )
                         
                         if image:
                             # Формируем имя файла в формате, как в боте (используем логику из generate_images)
@@ -1560,8 +1593,16 @@ class TaskAdmin(TenantFilteredAdminMixin, admin.ModelAdmin):
                 
                 self.message_user(request, f"🎨 Генерация изображения для задачи {task.id} (тема: {image_theme})...", messages.INFO)
                 
-                # Генерируем изображение с выбранной темой
-                image = generate_image_for_task(translation.question, topic_name, theme=image_theme)
+                # Получаем путь к логотипу тенанта
+                image_logo_path = self._get_tenant_logo_path(request)
+                
+                # Генерируем изображение с выбранной темой и логотипом
+                image = generate_image_for_task(
+                    translation.question, 
+                    topic_name, 
+                    theme=image_theme,
+                    custom_logo_path=image_logo_path
+                )
                 
                 if image:
                     # Формируем имя файла в формате, как в боте

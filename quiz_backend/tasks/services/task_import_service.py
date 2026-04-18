@@ -21,7 +21,7 @@ from .telegram_service import publish_task_to_telegram
 logger = logging.getLogger(__name__)
 
 
-def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, image_theme: str = 'code') -> Dict:
+def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, image_theme: str = 'code', image_logo_path: Optional[str] = None) -> Dict:
     """
     Импорт задач из JSON файла в базу данных.
     
@@ -30,6 +30,7 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
         publish: Публиковать ли задачи в Telegram сразу после импорта
         tenant: Тенант Которому принадлежат задачи
         image_theme: Тема оформления изображений ('code', 'islamic')
+        image_logo_path: Путь к логотипу для генерации изображений
         Словарь с результатами импорта:
         {
             'successfully_loaded': int,
@@ -227,7 +228,12 @@ def import_tasks_from_json(file_path: str, publish: bool = False, tenant=None, i
                                 
                                 try:
                                     # Генерируем изображение
-                                    image = generate_image_for_task(question, topic_name, theme=image_theme)
+                                    image = generate_image_for_task(
+                                        question, 
+                                        topic_name, 
+                                        theme=image_theme,
+                                        custom_logo_path=image_logo_path
+                                    )
                                     
                                     if image:
                                         # Формируем имя файла в формате, как в боте
