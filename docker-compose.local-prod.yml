@@ -115,6 +115,9 @@ services:
       timeout: 10s
       retries: 10
       start_period: 90s
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
   celery_worker:
     build:
@@ -172,6 +175,9 @@ services:
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
   celery_worker_video:
     build:
@@ -226,6 +232,9 @@ services:
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
   celery_worker_webhooks:
     build:
@@ -274,6 +283,9 @@ services:
     networks:
       - quiz_network_local_prod
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
   celery_beat:
     build:
