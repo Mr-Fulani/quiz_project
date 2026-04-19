@@ -118,6 +118,8 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    extra_hosts:
+      - "smtp.gmail.com:173.194.76.108"
 
   celery_worker:
     build:
@@ -178,6 +180,8 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    extra_hosts:
+      - "smtp.gmail.com:173.194.76.108"
 
   celery_worker_video:
     build:
@@ -235,6 +239,8 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    extra_hosts:
+      - "smtp.gmail.com:173.194.76.108"
 
   celery_worker_webhooks:
     build:
@@ -286,6 +292,8 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+    extra_hosts:
+      - "smtp.gmail.com:173.194.76.108"
 
   celery_beat:
     build:
