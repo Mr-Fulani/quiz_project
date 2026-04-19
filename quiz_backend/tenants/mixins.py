@@ -201,12 +201,25 @@ class TenantFilteredViewMixin:
     def perform_create(self, serializer):
         """
         Автоматически подставляет тенант при создании объекта через API.
+        Использует только прямое поле 'tenant', чтобы избежать ошибок при сложных tenant_lookup.
         """
         request = getattr(self, 'request', None)
         tenant = getattr(request, 'tenant', None) if request else None
 
         if tenant:
-            serializer.save(**{self.tenant_lookup: tenant})
+            # Проверяем, есть ли у модели именно поле 'tenant'.
+            # Если tenant_lookup сложный (напр. 'task_translation__task__tenant'),
+            # мы не можем использовать его для сохранения напрямую.
+            model = serializer.Meta.model
+            has_direct_tenant = any(f.name == 'tenant' for f in model._meta.get_fields())
+            
+            if has_direct_tenant:
+                serializer.save(tenant=tenant)
+            else:
+                # Если прямого поля нет, просто сохраняем. 
+                # Предполагается, что связанные объекты (напр. task_translation) 
+                # уже прошли фильтрацию по тенанту в своих QuerySet.
+                serializer.save()
         else:
             # Для суперпользователей без конкретного тенанта может потребоваться выбор
             serializer.save()
