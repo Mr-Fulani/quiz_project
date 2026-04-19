@@ -311,7 +311,7 @@ async def get_subtopic_with_user(request: Request, subtopic_id: int, language: s
         raise HTTPException(status_code=502, detail="Failed to fetch subtopic from backend")
     
 @router.post("/profile/{telegram_id}/update/")
-async def update_profile(telegram_id: int, avatar: UploadFile = File(...)):
+async def update_profile(telegram_id: int, request: Request, avatar: UploadFile = File(...)):
     """
     Принимает аватар от клиента и пересылает его в Django-бэкенд.
     """
@@ -451,7 +451,7 @@ async def fetch_subtopics_from_django(topic_id: int):
 # Другие API-эндпоинты (test-api, button-click, profile/stats, и т.д.)
 # можно добавить сюда по аналогии. 
 
-async def get_user_profile(request_data: UserProfileRequest):
+async def get_user_profile(request: Request, request_data: UserProfileRequest):
     try:
         logger.info(f"Получен запрос профиля. InitData: {request_data.initData[:150]}...")
         
@@ -489,7 +489,10 @@ async def get_user_profile(request_data: UserProfileRequest):
                 raise HTTPException(status_code=400, detail="Не удалось обработать initData.")
 
         # 3. Запрос на получение или создание профиля в Django
-        profile_data = await django_api_service.get_or_create_user_profile(user_info)
+        profile_data = await django_api_service.get_or_create_user_profile(
+            user_info,
+            headers=get_proxy_headers(request)
+        )
         logger.info(f"Ответ от Django: {profile_data}")
         
         # 4. Возвращаем данные профиля
@@ -547,6 +550,12 @@ async def get_topics(request: Request, search: str = None, language: str = 'ru',
     try:
         logger.info(f"/api/topics called: search={search}, language={language}, telegram_id={telegram_id}")
         
+        params = {'language': language}
+        if search:
+            params['search'] = search
+        if telegram_id:
+            params['telegram_id'] = telegram_id
+            
         result = await django_api_service._make_request(
             "GET", 
             "/api/simple/", 
@@ -560,7 +569,7 @@ async def get_topics(request: Request, search: str = None, language: str = 'ru',
         return []
 
 @router.get("/stripe-publishable-key")
-async def get_stripe_publishable_key():
+async def get_stripe_publishable_key(request: Request):
     """Получение публичного ключа Stripe через Django API"""
     from services.django_api_service import django_api_service
     
