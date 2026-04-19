@@ -119,7 +119,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     extra_hosts:
-      - "smtp.gmail.com:173.194.76.108"
+      - "smtp.gmail.com:142.251.127.108"
 
   celery_worker:
     build:
@@ -181,7 +181,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     extra_hosts:
-      - "smtp.gmail.com:173.194.76.108"
+      - "smtp.gmail.com:142.251.127.108"
 
   celery_worker_video:
     build:
@@ -240,7 +240,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     extra_hosts:
-      - "smtp.gmail.com:173.194.76.108"
+      - "smtp.gmail.com:142.251.127.108"
 
   celery_worker_webhooks:
     build:
@@ -293,7 +293,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     extra_hosts:
-      - "smtp.gmail.com:173.194.76.108"
+      - "smtp.gmail.com:142.251.127.108"
 
   celery_beat:
     build:
