@@ -1070,7 +1070,7 @@ class MiniAppProfileByTelegramID(APIView):
                         from django.urls import reverse
                         
                         # Формируем ссылку на пользователя в админке с динамическим URL
-                        base_url = get_base_url(request)
+                        base_url = get_base_url(request, tenant=tenant)
                         admin_path = reverse('admin:accounts_miniappuser_change', args=[mini_app_user.id])
                         admin_url = f"{base_url}{admin_path}"
                         
