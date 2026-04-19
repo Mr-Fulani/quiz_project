@@ -587,7 +587,8 @@ async def create_payment_intent_proxy(request: Request):
             amount=request_data.get('amount'),
             currency=request_data.get('currency', 'usd'),
             email=request_data.get('email', ''),
-            name=request_data.get('name', '')
+            name=request_data.get('name', ''),
+            headers=get_proxy_headers(request)
         )
         return result
     except Exception as e:
@@ -604,7 +605,8 @@ async def confirm_payment_proxy(request: Request):
         donation_service = DonationService()
         result = await donation_service.confirm_payment(
             payment_intent_id=request_data.get('payment_intent_id'),
-            payment_method_id=request_data.get('payment_method_id', '')
+            payment_method_id=request_data.get('payment_method_id', ''),
+            headers=get_proxy_headers(request)
         )
         return result
     except Exception as e:
@@ -991,105 +993,13 @@ async def get_user_public_profile(telegram_id: int, request: Request):
 
 # ==================== Donation Crypto Endpoints ====================
 
-class CryptoPaymentRequest(BaseModel):
+class CryptoDonationRequest(BaseModel):
     """Модель запроса для создания крипто-платежа"""
     amount: float = Field(..., description="Сумма доната в USD")
     crypto_currency: str = Field(..., description="Криптовалюта (USDT, USDC, BUSD, DAI)")
     email: str = Field(default="", description="Email для уведомлений")
     name: str = Field(..., description="Имя донатера")
     initData: str = Field(..., description="Telegram init data")
-
-
-@router.get("/donation/crypto-currencies")
-async def get_crypto_currencies():
-    """
-    Получение списка поддерживаемых криптовалют для донатов
-    """
-    try:
-        from services.donation_service import DonationService
-        
-        donation_service = DonationService()
-        result = await donation_service.get_crypto_currencies()
-        
-        if result.get('success'):
-            return JSONResponse(content=result)
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=result.get('message', 'Failed to get crypto currencies')
-            )
-            
-    except Exception as e:
-        logger.error(f"Error getting crypto currencies: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.post("/donation/crypto-create")
-async def create_crypto_donation(request: CryptoPaymentRequest):
-    """
-    Создание крипто-платежа через CoinGate
-    """
-    try:
-        from services.donation_service import DonationService
-        
-        # Валидация Telegram init data
-        try:
-            authenticator = TelegramAuthenticator(settings.TELEGRAM_BOT_TOKEN)
-            user_data = authenticator.validate(request.initData)
-            logger.info(f"Validated user for crypto donation: {user_data.user.id}")
-        except (InvalidInitDataError, ExpiredInitDataError) as e:
-            logger.error(f"Invalid init data for crypto donation: {str(e)}")
-            raise HTTPException(status_code=401, detail="Invalid init data")
-        
-        # Создаем крипто-платеж
-        donation_service = DonationService()
-        result = await donation_service.create_crypto_payment(
-            amount=request.amount,
-            crypto_currency=request.crypto_currency,
-            email=request.email,
-            name=request.name
-        )
-        
-        if result.get('success'):
-            logger.info(f"Crypto donation created: {result.get('order_id')}")
-            return JSONResponse(content=result)
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=result.get('message', 'Failed to create crypto payment')
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating crypto donation: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/donation/crypto-status/{order_id}")
-async def get_crypto_payment_status(order_id: str):
-    """
-    Проверка статуса крипто-платежа
-    """
-    try:
-        from services.donation_service import DonationService
-        
-        donation_service = DonationService()
-        result = await donation_service.check_crypto_payment_status(order_id)
-        
-        if result.get('success'):
-            return JSONResponse(content=result)
-        else:
-            raise HTTPException(
-                status_code=404 if 'not found' in result.get('message', '').lower() else 400,
-                detail=result.get('message', 'Failed to get payment status')
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting crypto payment status: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/donation/telegram-stars/create-invoice/")
@@ -1147,8 +1057,152 @@ async def create_telegram_stars_invoice(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error in create_telegram_stars_invoice: {str(e)}", exc_info=True)
+        logger.error(f"❌ Error creating Telegram Stars invoice: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'success': False, 'message': str(e)}
+        )
+
+@router.post("/donation/wallet-pay/create-payment/")
+async def create_wallet_pay_donation(request: Request):
+    """
+    Создание платежа через Wallet Pay
+    """
+    try:
+        logger.info("Creating Wallet Pay payment...")
+        
+        # Получаем данные запроса
+        body = await request.json()
+        amount = body.get('amount')
+        currency = body.get('currency', 'USDT')
+        email = body.get('email', '')
+        name = body.get('name', 'Anonymous')
+        telegram_id = body.get('telegram_id')
+        
+        logger.info(f"Wallet Pay request: amount={amount}, currency={currency}, name={name}")
+        
+        # Валидация
+        if not amount or float(amount) < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid amount. Minimum is $1"
+            )
+        
+        from services.donation_service import DonationService
+        donation_service = DonationService()
+        
+        result = await donation_service.create_wallet_pay_payment(
+            amount=amount,
+            currency=currency,
+            email=email,
+            name=name,
+            telegram_id=telegram_id,
+            headers=get_proxy_headers(request)
+        )
+        
+        if result.get('success'):
+            logger.info("✅ Wallet Pay payment created successfully")
+            return JSONResponse(content=result)
+        else:
+            logger.error(f"❌ Failed to create Wallet Pay payment: {result.get('message')}")
+            return JSONResponse(status_code=400, content=result)
+            
+    except Exception as e:
+        logger.error(f"❌ Error creating Wallet Pay payment: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'success': False, 'message': str(e)}
+        )
+
+@router.get("/donation/crypto/currencies/")
+async def get_crypto_currencies(request: Request):
+    """
+    Получение списка поддерживаемых криптовалют для донатов
+    """
+    try:
+        from services.donation_service import DonationService
+        
+        donation_service = DonationService()
+        result = await donation_service.get_crypto_currencies(headers=get_proxy_headers(request))
+        
+        if result.get('success'):
+            return JSONResponse(content=result)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=result.get('message', 'Failed to get crypto currencies')
+            )
+            
+    except Exception as e:
+        logger.error(f"Error getting crypto currencies: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/donation/crypto/create-payment/")
+async def create_crypto_donation(request: Request, donation_request: CryptoDonationRequest):
+    """
+    Создание крипто-платежа через CoinGate
+    """
+    try:
+        from services.donation_service import DonationService
+        
+        # В мульти-тенант системе валидация на стороне FastAPI через глобальный токен
+        # не работает для других ботов. Мы доверяем данным или проверим их в Django.
+        # logger.info(f"Crypto donation request received for amount {donation_request.amount}") 
+        
+        # Создаем крипто-платеж
+        donation_service = DonationService()
+        result = await donation_service.create_crypto_payment(
+            amount=donation_request.amount,
+            crypto_currency=donation_request.crypto_currency,
+            email=donation_request.email,
+            name=donation_request.name,
+            headers=get_proxy_headers(request)
+        )
+        
+        if result.get('success'):
+            logger.info(f"Crypto donation created: {result.get('order_id')}")
+            return JSONResponse(content=result)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=result.get('message', 'Failed to create crypto payment')
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating crypto donation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/donation/crypto/status/{order_id}/")
+async def check_crypto_donation_status(request: Request, order_id: str):
+    """
+    Проверка статуса крипто-платежа
+    """
+    try:
+        from services.donation_service import DonationService
+        
+        donation_service = DonationService()
+        result = await donation_service.check_crypto_payment_status(order_id, headers=get_proxy_headers(request))
+        
+        if result.get('success'):
+            return JSONResponse(content=result)
+        else:
+            raise HTTPException(
+                status_code=404 if 'not found' in result.get('message', '').lower() else 400,
+                detail=result.get('message', 'Failed to get payment status')
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting crypto payment status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
 
 
 # ========================================

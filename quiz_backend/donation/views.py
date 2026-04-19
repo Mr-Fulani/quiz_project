@@ -1038,7 +1038,10 @@ def create_telegram_stars_invoice(request):
         # Реальный курс может отличаться, уточните актуальный
         stars_amount = int(float(amount) * 100)
         
-        # Создаем запись donation БЕЗ payload (добавим после получения ID)
+        # Получаем тенант
+        tenant = getattr(request, 'tenant', None)
+        
+        # Создаем запись donation
         donation = Donation.objects.create(
             name=name,
             email=email,
@@ -1049,14 +1052,35 @@ def create_telegram_stars_invoice(request):
             payment_method='telegram_stars',
             source=source,
             stars_amount=stars_amount,
+            tenant=tenant,
         )
         
         # Обновляем payload с актуальным ID после создания
         donation.telegram_invoice_payload = f'donation_{donation.id}'
-        donation.save(update_fields=['telegram_invoice_payload'])
+        
+        # Пытаемся привязать пользователя
+        if telegram_id:
+            try:
+                from accounts.models import MiniAppUser
+                ma_user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
+                if ma_user and ma_user.linked_custom_user:
+                    donation.user = ma_user.linked_custom_user
+                elif ma_user:
+                    # Если нет связанного CustomUser, можно создать или оставить анонимным
+                    # Пока оставляем возможность привязки к CustomUser через telegram_id
+                    from accounts.models import CustomUser
+                    c_user = CustomUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
+                    if c_user:
+                        donation.user = c_user
+            except Exception as e:
+                logger.warning(f"Could not link user to donation: {e}")
+
+        donation.save(update_fields=['telegram_invoice_payload', 'user'])
         
         # Создаем инвойс через Telegram Bot API
-        service = TelegramStarsService()
+        # Используем токен конкретного тенанта
+        bot_token = getattr(tenant, 'bot_token', None) if tenant else None
+        service = TelegramStarsService(bot_token=bot_token)
         
         # Обрезаем имя для description (максимум 255 символов для description)
         safe_name = name[:200] if len(name) > 200 else name
