@@ -752,6 +752,11 @@ class DonationSystem {
         }
         
         // Проверяем, не инициализированы ли уже Elements
+        if (this.cardElement && document.getElementById('card-element-modal')?.children.length > 0) {
+            console.log('✅ Stripe Elements already mounted and container not empty, skipping re-init');
+            return;
+        }
+
         if (this.cardElement) {
             console.log('⚠️ Stripe Elements already initialized, destroying old instance...');
             try {
