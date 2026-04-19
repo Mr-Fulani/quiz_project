@@ -16,6 +16,7 @@ from rest_framework.decorators import api_view
 from .forms import DonationForm
 from .models import Donation
 from .utils import send_donation_thank_you_email
+from .tasks import send_donation_email_task
 from .wallet_pay_service import WalletPayService
 import time
 
@@ -288,12 +289,12 @@ def confirm_payment(request):
                 donation.status = 'completed'
                 donation.save()
             
-            # Отправляем email благодарности
+            # Отправляем email благодарности асинхронно
             try:
-                send_donation_thank_you_email(donation)
-                logger.info(f"Thank you email sent for donation {donation.id}")
+                send_donation_email_task.delay(donation.id)
+                logger.info(f"Scheduled thank you email for donation {donation.id}")
             except Exception as e:
-                logger.error(f"Failed to send thank you email for donation {donation.id}: {str(e)}")
+                logger.error(f"Failed to schedule thank you email for donation {donation.id}: {str(e)}")
             
             return JsonResponse({
                 'success': True,
@@ -448,9 +449,9 @@ def wallet_pay_webhook(request):
             donation.save(update_fields=['status'])
             if donation.email:
                 try:
-                    send_donation_thank_you_email(donation)
+                    send_donation_email_task.delay(donation.id)
                 except Exception as mail_err:  # noqa: BLE001
-                    logger.warning(f"Email send failed: {mail_err}")
+                    logger.warning(f"Email task schedule failed: {mail_err}")
         elif status in {'EXPIRED', 'CANCELLED'}:
             donation.status = 'failed'
             donation.save(update_fields=['status'])
@@ -526,10 +527,10 @@ def stripe_webhook(request):
                 
                 # Отправляем email благодарности
                 try:
-                    send_donation_thank_you_email(donation)
-                    logger.info(f"Thank you email sent for donation {donation.id} via webhook")
+                    send_donation_email_task.delay(donation.id)
+                    logger.info(f"Scheduled thank you email for donation {donation.id} via webhook")
                 except Exception as e:
-                    logger.error(f"Failed to send thank you email for donation {donation.id} via webhook: {str(e)}")
+                    logger.error(f"Failed to schedule thank you email for donation {donation.id} via webhook: {str(e)}")
             
         except Exception as e:
             logger.error(f"Error processing webhook payment_intent.succeeded: {str(e)}")
@@ -865,12 +866,12 @@ def get_crypto_payment_status(request, order_id):
         # Маппинг статусов CoinGate на наши статусы
         if coingate_status == 'paid':
             donation.status = 'completed'
-            # Отправляем email благодарности
+            # Отправляем email благодарности асинхронно
             try:
-                send_donation_thank_you_email(donation)
-                logger.info(f"Thank you email sent for donation {donation.id}")
+                send_donation_email_task.delay(donation.id)
+                logger.info(f"Scheduled thank you email for donation {donation.id}")
             except Exception as e:
-                logger.error(f"Failed to send thank you email: {str(e)}")
+                logger.error(f"Failed to schedule thank you email: {str(e)}")
         elif coingate_status in ['invalid', 'expired', 'canceled']:
             donation.status = 'failed'
         elif coingate_status in ['pending', 'confirming']:
@@ -960,12 +961,12 @@ def coingate_callback(request):
         # Маппинг статусов
         if status == 'paid':
             donation.status = 'completed'
-            # Отправляем email благодарности
+            # Отправляем email благодарности асинхронно
             try:
-                send_donation_thank_you_email(donation)
-                logger.info(f"Thank you email sent for donation {donation.id}")
+                send_donation_email_task.delay(donation.id)
+                logger.info(f"Scheduled thank you email for donation {donation.id}")
             except Exception as e:
-                logger.error(f"Failed to send thank you email: {str(e)}")
+                logger.error(f"Failed to schedule thank you email: {str(e)}")
         elif status in ['invalid', 'expired', 'canceled']:
             donation.status = 'failed'
         elif status in ['pending', 'confirming']:

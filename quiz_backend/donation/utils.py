@@ -162,8 +162,12 @@ def send_donation_thank_you_email(donation):
     from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
     from django.conf import settings
-    
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     if donation.status != 'completed' or not donation.email:
+        logger.info(f"Skipping email for donation {donation.id}: status={donation.status}, email={donation.email}")
         return False
     
     # Определяем язык пользователя
@@ -199,11 +203,10 @@ def send_donation_thank_you_email(donation):
         
         # Отправляем
         email.send()
-        print(f"Email отправлен на язык {language} для {donation.email}")
+        logger.info(f"Email успешно отправлен на язык {language} для {donation.email} (донат {donation.id})")
         return True
-        
     except Exception as e:
-        print(f"Ошибка отправки email: {e}")
+        logger.error(f"Ошибка отправки email для доната {donation.id} на языке {language}: {e}. Пробуем fallback.")
         # Fallback на русский язык в случае ошибки
         try:
             text_content = render_to_string('donation/thank_you_email_ru.txt', context)
@@ -218,8 +221,9 @@ def send_donation_thank_you_email(donation):
             
             email.attach_alternative(html_content, "text/html")
             email.send()
-            print(f"Email отправлен (fallback русский) для {donation.email}")
+            logger.info(f"Email успешно отправлен (fallback русский) для {donation.email} (донат {donation.id})")
             return True
         except Exception as fallback_e:
-            print(f"Ошибка отправки fallback email: {fallback_e}")
-            return False 
+            logger.error(f"Ошибка отправки fallback email для доната {donation.id}: {fallback_e}")
+            return False
+ 
