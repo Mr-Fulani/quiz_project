@@ -186,6 +186,9 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
         telegram_id = request.data.get('author_telegram_id')
         if telegram_id:
             try:
+                from accounts.models import MiniAppUser
+                tenant = getattr(request, 'tenant', None)
+                
                 # В Multi-Tenant системе ищем пользователя именно в текущем тенанте
                 if tenant:
                     user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
