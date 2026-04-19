@@ -19,12 +19,20 @@ logger = logging.getLogger(__name__)
 class TelegramStarsService:
     """Сервис интеграции с Telegram Stars (встроенная валюта Telegram)."""
 
-    def __init__(self) -> None:
-        """Инициализирует сервис с использованием настроек из Django."""
-        self.bot_token: str = settings.TELEGRAM_BOT_TOKEN or ''
+    def __init__(self, bot_token: Optional[str] = None) -> None:
+        """
+        Инициализирует сервис.
+        
+        Args:
+            bot_token: Токен Telegram-бота. Если не указан, берется из настроек.
+        """
+        self.bot_token: str = bot_token or settings.TELEGRAM_BOT_TOKEN or ''
         self.base_url: str = f'https://api.telegram.org/bot{self.bot_token}'
 
-        logger.info("Telegram Stars сервис инициализирован")
+        if not self.bot_token:
+            logger.warning("Telegram Stars сервис инициализирован БЕЗ токена!")
+        else:
+            logger.info(f"Telegram Stars сервис инициализирован (token starts with: {self.bot_token[:10]}...)")
 
     def create_invoice_link(
         self,

@@ -22,4 +22,8 @@ urlpatterns = [
     
     # Telegram Stars API
     path('stars/create-invoice/', views.create_telegram_stars_invoice, name='create_telegram_stars_invoice'),
+    
+    # Wallet Pay API
+    path('wallet-pay/create-payment/', views.create_wallet_pay_payment, name='create_wallet_pay_payment'),
+    path('wallet-pay/webhook/', views.wallet_pay_webhook, name='wallet_pay_webhook'),
 ] 
