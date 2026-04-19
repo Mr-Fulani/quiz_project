@@ -80,7 +80,7 @@ def notify_admins_about_donation(sender, instance, created, **kwargs):
         # Формируем ссылку на донат в админке с динамическим URL
         # В signals нет доступа к request, используем fallback на настройки
         from accounts.utils_folder.telegram_notifications import get_base_url, format_markdown_link
-        base_url = get_base_url(None)
+        base_url = get_base_url(None, tenant=instance.tenant)
         admin_path = reverse('admin:donation_donation_change', args=[instance.id])
         admin_url = f"{base_url}{admin_path}"
         
