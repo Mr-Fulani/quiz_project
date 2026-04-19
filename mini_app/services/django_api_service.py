@@ -68,7 +68,7 @@ class DjangoAPIService:
                 logger.error(f"Тело ответа: {response.text}")
                 raise
     
-    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
+    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None, host: str = None, scheme: str = None, headers: Optional[dict] = None) -> List[Dict[str, Any]]:
         """Получение списка тем с учетом языка, прогресса пользователя и наличия задач"""
         params = {'language': language}
         if search:
@@ -78,7 +78,8 @@ class DjangoAPIService:
         if has_tasks is not None:
             params['has_tasks'] = 'true' if has_tasks else 'false'
             
-        headers = {}
+        if headers is None:
+            headers = {}
         if host:
             headers['X-Forwarded-Host'] = host
         if scheme:
@@ -92,7 +93,7 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении тем: {e}")
             return []
     
-    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
+    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None, host: str = None, scheme: str = None, headers: Optional[dict] = None) -> List[Dict[str, Any]]:
         """Получение подтем для конкретной темы с учетом языка и наличия задач"""
         params = {'language': language}
         if has_tasks is not None:
@@ -194,7 +195,7 @@ class DjangoAPIService:
         return data
 
     async def get_or_create_user_profile(
-        self, user_data, host: str = None, scheme: str = None
+        self, user_data, host: str = None, scheme: str = None, headers: Optional[dict] = None
     ) -> dict:
         # user_data здесь - это объект WebAppUser, а не словарь
         telegram_id = user_data.id
@@ -301,7 +302,7 @@ class DjangoAPIService:
             logger.error(f"Ошибка при обновлении профиля пользователя {telegram_id}: {e}")
             return None
     
-    async def get_user_public_profile(self, telegram_id: int, host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
+    async def get_user_public_profile(self, telegram_id: int, host: str = None, scheme: str = None, headers: Optional[dict] = None) -> Optional[Dict[str, Any]]:
         """
         Получение публичного профиля пользователя Mini App по telegram_id.
         
