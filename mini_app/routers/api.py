@@ -874,12 +874,11 @@ async def submit_feedback(request: Request):
         # Передаем исходный домен/схему в Django, чтобы TenantMiddleware
         # корректно определил tenant для feedback и связанных уведомлений.
         headers = get_proxy_headers(request)
-        logger.info(f"📡 Feedback proxy headers: {headers}")
         
         async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
             if image_files:
                 # Отправляем multipart/form-data с файлами
-                logger.info(f"📤 Отправляем данные с {len(image_files)} изображениями")
+                logger.info(f"📤 Отправляем feedback multipart в Django: {list(data_dict.keys())}, файлов: {len(image_files)}")
                 response = await client.post(
                     django_url,
                     data=data_dict,
@@ -888,24 +887,29 @@ async def submit_feedback(request: Request):
                 )
             else:
                 # Отправляем обычный JSON
-                logger.info(f"📤 Отправляем данные без изображений")
+                logger.info(f"📤 Отправляем feedback JSON в Django: {list(data_dict.keys())}")
                 response = await client.post(django_url, json=data_dict, headers=headers)
         
-        if response.status_code == 201 or response.status_code == 200:
+        if response.status_code in [200, 201]:
             logger.info(f"✅ Feedback submitted successfully for telegram_id: {telegram_id}")
             return JSONResponse(content=response.json())
         else:
-            logger.error(f"Error from Django API: {response.status_code} - {response.text}")
-            raise HTTPException(status_code=response.status_code, detail=response.text)
+            # ЛОГИРУЕМ ПОЛНЫЙ ТЕКСТ ОШИБКИ ДЛЯ ДИАГНОСТИКИ
+            error_text = response.text
+            try:
+                error_json = response.json()
+                logger.error(f"❌ Django Feedback API Error ({response.status_code}): {json.dumps(error_json, indent=2, ensure_ascii=False)}")
+                return JSONResponse(content=error_json, status_code=response.status_code)
+            except:
+                logger.error(f"❌ Django Feedback API Raw Error ({response.status_code}): {error_text}")
+                raise HTTPException(status_code=response.status_code, detail=error_text)
             
-    except httpx.RequestError as e:
-        logger.error(f"Request error while contacting Django API: {e}")
-        raise HTTPException(status_code=500, detail="Could not connect to backend service.")
-    except HTTPException as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+        logger.error(f"❌ Critical error in submit_feedback: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.get("/admin-analytics/overview")
@@ -1368,21 +1372,27 @@ async def create_task_comment(translation_id: int, request: Request):
         
         if "multipart/form-data" in content_type:
             # Обрабатываем загрузку с изображениями
+            # Используем request.form(), который автоматически парсит multipart
             form_data = await request.form()
             
-            # Подготавливаем данные и файлы
+            # Подготавливаем данные и файлы для пересылки
             data = {}
             files = []
             
-            for key, value in form_data.items():
-                if key == 'images':
-                    # Изображения обрабатываем отдельно в списке files
-                    if hasattr(value, 'read'):
+            # Тщательно разделяем текстовые поля и файлы
+            for key, value in form_data.multi_items():
+                if isinstance(value, UploadFile):
+                    # Если это файл, добавляем в список files
+                    if key == 'images':
                         file_content = await value.read()
                         files.append(('images', (value.filename, file_content, value.content_type)))
+                        logger.info(f"📎 Прикреплен файл для комментария: {value.filename}")
                 else:
-                    # Остальные поля добавляем в data
-                    data[key] = value
+                    # Если это обычное поле, добавляем в data
+                    # Важно отправлять значения как строки для корректной работы httpx multipart
+                    data[key] = str(value)
+            
+            logger.info(f"📤 Отправка multipart запроса в Django: {list(data.keys())}, файлов: {len(files)}")
             
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.post(
@@ -1395,6 +1405,7 @@ async def create_task_comment(translation_id: int, request: Request):
         else:
             # JSON данные
             body = await request.json()
+            logger.info(f"📤 Отправка JSON запроса в Django: {list(body.keys())}")
             
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.post(
@@ -1404,18 +1415,27 @@ async def create_task_comment(translation_id: int, request: Request):
                     timeout=30.0
                 )
         
+        # Обработка ответа
         if response.status_code == 201:
             logger.info(f"✅ Comment created for translation {translation_id}")
             return JSONResponse(content=response.json(), status_code=201)
         else:
-            logger.error(f"❌ Error creating comment: {response.status_code} - {response.text}")
-            raise HTTPException(status_code=response.status_code, detail=response.text)
+            # ЛОГИРУЕМ ПОЛНЫЙ ТЕКСТ ОШИБКИ ДЛЯ ДИАГНОСТИКИ
+            error_text = response.text
+            try:
+                error_json = response.json()
+                logger.error(f"❌ Django API Error ({response.status_code}): {json.dumps(error_json, indent=2, ensure_ascii=False)}")
+                return JSONResponse(content=error_json, status_code=response.status_code)
+            except:
+                logger.error(f"❌ Django API Raw Error ({response.status_code}): {error_text}")
+                raise HTTPException(status_code=response.status_code, detail=error_text)
             
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error in create_task_comment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"❌ Critical error in create_task_comment: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.patch("/tasks/translations/{translation_id}/comments/{comment_id}/")
