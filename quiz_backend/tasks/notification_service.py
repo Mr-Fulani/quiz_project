@@ -86,7 +86,9 @@ def format_comment_notification(comment, request=None) -> str:
                 parent_info = f"\n\n💬 Ответ на комментарий #{comment.parent_comment.id} от {fallback_parent_name}"
         
         # Формируем ссылку с динамическим base_url
-        base_url = get_base_url(request)
+        tenant = getattr(getattr(comment, 'task_translation', None), 'task', None)
+        tenant = getattr(tenant, 'tenant', None)
+        base_url = get_base_url(request, tenant=tenant)
         try:
             admin_path = reverse('admin:tasks_taskcomment_change', args=[comment.id])
         except Exception:
@@ -183,7 +185,9 @@ def format_report_notification(report, request=None) -> str:
         total_reports = report.comment.reports_count
         
         # Формируем ссылки с использованием get_base_url и reverse
-        base_url = get_base_url(request)
+        tenant = getattr(getattr(getattr(report, 'comment', None), 'task_translation', None), 'task', None)
+        tenant = getattr(tenant, 'tenant', None)
+        base_url = get_base_url(request, tenant=tenant)
         try:
             report_admin_path = reverse('admin:tasks_taskcommentreport_change', args=[report.id])
         except Exception:
