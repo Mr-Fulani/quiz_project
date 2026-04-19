@@ -20,16 +20,35 @@ class DjangoAPIService:
         """Базовый метод для выполнения HTTP запросов"""
         url = f'{self.base_url}{endpoint}'
         
-        # В Multi-Tenant архитектуре критично передавать правильный Host/X-Forwarded-Host.
-        # Эти данные должны приходить из FastAPI роутера через get_proxy_headers(request).
+        # Добавляем заголовок Host для внутренних запросов между контейнерами
         if headers is None:
             headers = {}
-            logger.warning(f"⚠️ Request to {url} without explicit headers. Tenant resolution might fail.")
         
-        # Если Host не передан, Django может не определить тенант.
-        # Мы НЕ подставляем дефолты здесь, чтобы избежать перемешивания данных тенантов.
-        if 'Host' not in headers and 'X-Forwarded-Host' not in headers:
-             logger.warning(f"⚠️ Missing Host headers for request to {url}")
+        # Если запрос идет напрямую к Django (quiz_backend:8000), 
+        # нужно убедиться, что передается правильный домен.
+        # В Multi-Tenant архитектуре FastAPI передает реальный host (например, mini.quiz-islam.com).
+        # Если host не передан, используем fallback из настроек.
+        if 'quiz_backend:8000' in self.base_url:
+            if 'X-Forwarded-Host' not in headers:
+                mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
+                headers['X-Forwarded-Host'] = mini_app_domain
+            if 'Host' not in headers:
+                headers['Host'] = headers.get('X-Forwarded-Host')
+            
+            headers['X-Forwarded-Proto'] = headers.get('X-Forwarded-Proto', 'https')
+        
+        # Если запрос идет через nginx, добавляем правильные заголовки
+        # для корректной работы с Django API
+        elif ('nginx_local:8080' in self.base_url or 'nginx:80' in self.base_url) and 'X-Forwarded-Host' not in headers:
+            if 'nginx_local:8080' in self.base_url:
+                # Локальная разработка с ngrok
+                headers['X-Forwarded-Host'] = '77273f38044f.ngrok-free.app'
+                headers['X-Forwarded-Proto'] = 'https'
+            elif 'nginx:80' in self.base_url:
+                # Продакшен конфигурация
+                mini_app_domain = getattr(settings, 'MINI_APP_DOMAIN', None) or 'mini.quiz-code.com'
+                headers['X-Forwarded-Host'] = mini_app_domain
+                headers['X-Forwarded-Proto'] = 'https'
         
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             try:
@@ -49,7 +68,7 @@ class DjangoAPIService:
                 logger.error(f"Тело ответа: {response.text}")
                 raise
     
-    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None, headers: dict = None) -> List[Dict[str, Any]]:
+    async def get_topics(self, search: Optional[str] = None, language: str = 'en', telegram_id: Optional[int] = None, has_tasks: Optional[bool] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
         """Получение списка тем с учетом языка, прогресса пользователя и наличия задач"""
         params = {'language': language}
         if search:
@@ -59,6 +78,12 @@ class DjangoAPIService:
         if has_tasks is not None:
             params['has_tasks'] = 'true' if has_tasks else 'false'
             
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
             data = await self._make_request("GET", "/api/simple/", params=params, headers=headers)
             # Для /api/simple/ возвращается список напрямую, а не объект с results
@@ -67,13 +92,19 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении тем: {e}")
             return []
     
-    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None, headers: dict = None) -> List[Dict[str, Any]]:
+    async def get_subtopics(self, topic_id: int, language: str = 'en', has_tasks: Optional[bool] = None, telegram_id: Optional[int] = None, host: str = None, scheme: str = None) -> List[Dict[str, Any]]:
         """Получение подтем для конкретной темы с учетом языка и наличия задач"""
         params = {'language': language}
         if has_tasks is not None:
             params['has_tasks'] = 'true' if has_tasks else 'false'
         if telegram_id:
             params['telegram_id'] = telegram_id
+            
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
             
         try:
             data = await self._make_request("GET", f"/api/{topic_id}/subtopics/", params=params, headers=headers)
@@ -83,8 +114,14 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении подтем для темы {topic_id}: {e}")
             return []
     
-    async def get_topic_detail(self, topic_id: int, language: str = 'en', headers: dict = None) -> Optional[Dict[str, Any]]:
+    async def get_topic_detail(self, topic_id: int, language: str = 'en', host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение детальной информации о теме с учетом языка"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
             data = await self._make_request("GET", f"/api/topics/{topic_id}/", params={'language': language}, headers=headers)
             return data
@@ -92,8 +129,14 @@ class DjangoAPIService:
             logger.error(f"Ошибка при получении деталей темы {topic_id}: {e}")
             return None
     
-    async def get_subtopic_detail(self, subtopic_id: int, language: str = 'en', headers: dict = None) -> Optional[Dict[str, Any]]:
+    async def get_subtopic_detail(self, subtopic_id: int, language: str = 'en', host: str = None, scheme: str = None) -> Optional[Dict[str, Any]]:
         """Получение детальной информации о подтеме с учетом языка"""
+        headers = {}
+        if host:
+            headers['X-Forwarded-Host'] = host
+        if scheme:
+            headers['X-Forwarded-Proto'] = scheme
+            
         try:
             data = await self._make_request("GET", f"/api/subtopics/{subtopic_id}/", params={'language': language}, headers=headers)
             return data
