@@ -402,11 +402,15 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
                             
                             # Получаем информацию об авторе ответа
                             try:
-                                reply_author = MiniAppUser.objects.get(telegram_id=comment.author_telegram_id)
-                                reply_author_name = reply_author.first_name or reply_author.username or 'Пользователь'
-                                escaped_reply_username = escape_username_for_markdown(reply_author.username) if reply_author.username else None
-                                reply_author_username = f"@{escaped_reply_username}" if escaped_reply_username else 'нет'
-                            except MiniAppUser.DoesNotExist:
+                                reply_author = MiniAppUser.objects.filter(telegram_id=comment.author_telegram_id).first()
+                                if reply_author:
+                                    reply_author_name = reply_author.first_name or reply_author.username or 'Пользователь'
+                                    escaped_reply_username = escape_username_for_markdown(reply_author.username) if reply_author.username else None
+                                    reply_author_username = f"@{escaped_reply_username}" if escaped_reply_username else 'нет'
+                                else:
+                                    reply_author_name = comment.author_username or 'Пользователь'
+                                    reply_author_username = 'нет'
+                            except Exception:
                                 reply_author_name = comment.author_username or 'Пользователь'
                                 reply_author_username = 'нет'
                             
@@ -429,7 +433,10 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
                             mini_app_base_url = get_mini_app_url(request)
                             # Telegram передаст параметр startapp через window.Telegram.WebApp.startParam
                             # но мы также добавляем его в URL для совместимости
-                            mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
+                            if '?' in mini_app_base_url:
+                                mini_app_url = f"{mini_app_base_url}&startapp=comment_{comment.id}"
+                            else:
+                                mini_app_url = f"{mini_app_base_url}/?startapp=comment_{comment.id}"
                             
                             notification_title = "💬 Новый ответ на ваш комментарий"
                             notification_message = (
