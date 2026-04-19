@@ -37,7 +37,6 @@ authenticator = TelegramAuthenticator(
     secret=TELEGRAM_BOT_TOKEN.encode(),
     #ttl_seconds=3600 # Убрал для отладки
 )
-
 def get_proxy_headers(request: Request):
     """
     Извлекает заголовки хоста и протокола из входящего запроса 
@@ -45,12 +44,16 @@ def get_proxy_headers(request: Request):
     """
     host = request.headers.get('x-forwarded-host') or request.headers.get('host')
     scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
+    tenant_slug = request.headers.get('x-tenant-slug')
     
     headers = {
         'X-Forwarded-Host': host,
         'X-Forwarded-Proto': scheme,
         'Host': host
     }
+    
+    if tenant_slug:
+        headers['X-Tenant-Slug'] = tenant_slug
     
     # Также передаем CSRF если он есть (хотя для API он не всегда нужен)
     csrf = request.headers.get('x-csrf-token')
@@ -280,8 +283,7 @@ async def get_topic(request: Request, topic_id: int, language: str = 'en', teleg
         topic_id=topic_id, 
         language=language, 
         telegram_id=telegram_id,
-        host=host,
-        scheme=scheme
+        headers=get_proxy_headers(request)
     )
     return {"subtopics": subtopics}
 
@@ -297,14 +299,12 @@ async def get_subtopic_with_user(request: Request, subtopic_id: int, language: s
         if telegram_id:
             params['telegram_id'] = telegram_id
         
-        headers = {}
-        if host:
-            headers['X-Forwarded-Host'] = host
-            headers['Host'] = host
-        if scheme:
-            headers['X-Forwarded-Proto'] = scheme
-
-        result = await django_api_service._make_request("GET", f"/api/subtopics/{subtopic_id}/", params=params, headers=headers)
+        result = await django_api_service._make_request(
+            "GET", 
+            f"/api/subtopics/{subtopic_id}/", 
+            params=params, 
+            headers=get_proxy_headers(request)
+        )
         return result
     except Exception as e:
         logger.error(f"Error getting subtopic {subtopic_id}: {e}")
@@ -547,24 +547,12 @@ async def get_topics(request: Request, search: str = None, language: str = 'ru',
     try:
         logger.info(f"/api/topics called: search={search}, language={language}, telegram_id={telegram_id}")
         
-        # Получаем хост и схему для тенанта
-        host = request.headers.get('x-forwarded-host') or request.headers.get('host')
-        scheme = request.headers.get('x-forwarded-proto') or request.url.scheme
-
-        params = {'language': language, 'has_tasks': 'true'}
-        if search:
-            params['search'] = search
-        if telegram_id:
-            params['telegram_id'] = telegram_id
-            
-        headers = {}
-        if host:
-            headers['X-Forwarded-Host'] = host
-            headers['Host'] = host
-        if scheme:
-            headers['X-Forwarded-Proto'] = scheme
-
-        result = await django_api_service._make_request("GET", "/api/simple/", params=params, headers=headers)
+        result = await django_api_service._make_request(
+            "GET", 
+            "/api/simple/", 
+            params=params, 
+            headers=get_proxy_headers(request)
+        )
         logger.info(f"/api/topics returned {len(result) if isinstance(result, list) else 'non-list'} items")
         return result if isinstance(result, list) else []
     except Exception as e:
@@ -577,7 +565,11 @@ async def get_stripe_publishable_key():
     from services.django_api_service import django_api_service
     
     try:
-        result = await django_api_service._make_request("GET", "/api/stripe-publishable-key/")
+        result = await django_api_service._make_request(
+            "GET", 
+            "/api/stripe-publishable-key/", 
+            headers=get_proxy_headers(request)
+        )
         return result
     except Exception as e:
         logger.error(f"Error getting Stripe key: {e}")

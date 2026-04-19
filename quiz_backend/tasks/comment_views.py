@@ -186,11 +186,18 @@ class TaskCommentViewSet(TenantFilteredViewMixin, viewsets.ModelViewSet):
         telegram_id = request.data.get('author_telegram_id')
         if telegram_id:
             try:
-                from accounts.models import MiniAppUser
-                user = MiniAppUser.objects.get(telegram_id=telegram_id)
+                # В Multi-Tenant системе ищем пользователя именно в текущем тенанте
+                if tenant:
+                    user = MiniAppUser.objects.filter(telegram_id=telegram_id, tenant=tenant).first()
+                else:
+                    user = MiniAppUser.objects.filter(telegram_id=telegram_id).first()
                 
-                # Проверяем, не истёк ли бан
-                user.check_ban_expired()
+                if not user:
+                    logger.warning(f"Пользователь с telegram_id={telegram_id} не найден в текущем тенанте {tenant}")
+                    # Если пользователь не найден, мы не можем проверить бан, продолжаем анонимно или с ограничением
+                else:
+                    # Проверяем, не истёк ли бан
+                    user.check_ban_expired()
                 
                 # Если пользователь забанен, запрещаем создание комментария
                 if user.is_banned:
