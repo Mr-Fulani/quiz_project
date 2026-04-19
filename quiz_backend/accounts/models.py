@@ -607,7 +607,8 @@ class UserChannelSubscription(models.Model):
 
             # Формируем ссылку на подписку в админке с динамическим URL
             # В модели нет доступа к request, используем fallback на настройки
-            base_url = get_base_url(None)
+            # Передаем request=None и tenant из канала для корректного URL
+            base_url = get_base_url(None, tenant=getattr(self.channel, 'tenant', None))
             admin_path = reverse('admin:accounts_userchannelsubscription_change', args=[self.id])
             admin_url = f"{base_url}{admin_path}"
 
